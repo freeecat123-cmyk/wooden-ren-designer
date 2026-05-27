@@ -1,6 +1,7 @@
 "use client";
 
 import type { OptionSpec, OptionDependency } from "@/lib/types";
+import { useTranslations } from "next-intl";
 import { RangeInput } from "./RangeInput";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 
@@ -92,6 +93,7 @@ function computeColumnWidthMax(
 }
 
 export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength, allPartIds }: MobileOptionFieldProps) {
+  const t = useTranslations("mobile.optionField");
   if (spec.type === "number") {
     const rawMax = spec.max ?? 9999;
     let cappedMax =
@@ -130,7 +132,7 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
     }
     const partIds = allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined;
     const dynamicMaxHint =
-      cappedMax < rawMax ? `上限 ${cappedMax}（鎖總高）` : undefined;
+      cappedMax < rawMax ? t("maxLocked", { max: cappedMax }) : undefined;
     return (
       <RangeInput
         name={spec.key}
@@ -227,14 +229,14 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
               : "bg-amber-50 ring-amber-200 text-amber-900"
           }`}
         >
-          <span className="font-medium">計算後腳高</span>
+          <span className="font-medium">{t("calcLegHeight")}</span>
           <span className="font-mono tabular-nums text-base">
             {legReadout.leg}<span className="text-xs ml-0.5 opacity-70">mm</span>
           </span>
         </div>
       )}
       {legReadout?.clamped && (
-        <span className="text-xs text-red-600 pl-0.5">已夾到最低 30mm，請降低層高或加大總高</span>
+        <span className="text-xs text-red-600 pl-0.5">{t("clampedMin")}</span>
       )}
     </div>
   );

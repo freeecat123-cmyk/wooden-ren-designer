@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 interface MobileTopBarProps {
   /** 家具中文名，如「方凳」 */
@@ -17,13 +18,14 @@ interface MobileTopBarProps {
  * 此 TopBar 把 ⋯ 移到左側（next to ←），右側留白避開 fixed HeaderUser。
  */
 export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps) {
+  const t = useTranslations("mobile.topBar");
   return (
     <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-amber-900/10 shadow-sm">
       <div className="flex items-center gap-1 min-h-[56px] px-2">
         <Link
           href={backHref}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-lg text-zinc-600 hover:text-amber-800 hover:bg-amber-50 active:scale-95 transition shrink-0"
-          aria-label="返回"
+          aria-label={t("back")}
         >
           ←
         </Link>
@@ -31,8 +33,8 @@ export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps)
           type="button"
           onClick={onOverflow}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-lg text-zinc-600 hover:text-amber-800 hover:bg-amber-50 active:scale-95 transition shrink-0"
-          aria-label="更多動作"
-          title="本頁更多動作（裁切單 / CSV / 列印）"
+          aria-label={t("more")}
+          title={t("moreTitle")}
         >
           ⋯
         </button>

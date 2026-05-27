@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
@@ -60,6 +61,9 @@ interface MobileShellProps {
 }
 
 export function MobileShell(props: MobileShellProps) {
+  const t = useTranslations("mobile");
+  const locale = useLocale();
+  const isEn = locale === "en";
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
@@ -87,6 +91,7 @@ export function MobileShell(props: MobileShellProps) {
   const activeSceneTheme = SCENE_THEMES[activeSceneId];
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
+  const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
   const allPartIds: string[] = design.parts.map((p) => p.id);
 
@@ -158,7 +163,7 @@ export function MobileShell(props: MobileShellProps) {
     <HoveredPartsProvider>
     <div className="md:hidden min-h-screen pb-24">
       <MobileTopBar
-        title={entry.nameZh}
+        title={entryName}
         backHref="/"
         onOverflow={() => setOverflowOpen(true)}
       />
@@ -181,7 +186,7 @@ export function MobileShell(props: MobileShellProps) {
         </div>
 
         <div className="rounded-xl bg-white px-3 py-2.5 ring-1 ring-amber-900/10 shadow-sm">
-          <div className="text-[11px] font-semibold text-zinc-500 mb-1.5">風格</div>
+          <div className="text-[11px] font-semibold text-zinc-500 mb-1.5">{t("form.style")}</div>
           <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
         </div>
 
@@ -194,8 +199,8 @@ export function MobileShell(props: MobileShellProps) {
                 entry.category === "round-stool" ||
                 entry.category === "round-table" ||
                 entry.category === "round-tea-table"
-                  ? "直徑"
-                  : "長"
+                  ? t("form.diameter")
+                  : t("form.length")
               }
               defaultValue={length}
               min={lMin}
@@ -210,7 +215,7 @@ export function MobileShell(props: MobileShellProps) {
               entry.category !== "round-tea-table" && (
                 <RangeInput
                   name="width"
-                  label="寬"
+                  label={t("form.width")}
                   defaultValue={width}
                   min={wMin}
                   max={wMax}
@@ -222,7 +227,7 @@ export function MobileShell(props: MobileShellProps) {
               )}
             <RangeInput
               name="height"
-              label="高"
+              label={t("form.height")}
               defaultValue={height}
               min={hMin}
               max={hMax}
@@ -232,7 +237,7 @@ export function MobileShell(props: MobileShellProps) {
               partIds={resolvePartIds("height", allPartIds)}
             />
             <label className="flex items-center gap-3 text-sm pt-1">
-              <span className="text-zinc-700 font-medium shrink-0 w-8">材料</span>
+              <span className="text-zinc-700 font-medium shrink-0 w-8">{t("form.material")}</span>
               <select
                 name="material"
                 defaultValue={material}
@@ -256,7 +261,7 @@ export function MobileShell(props: MobileShellProps) {
               onClick={() => setAdvancedOpen(true)}
               className="min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
             >
-              ⚙ 進階設定
+              {t("form.advanced")}
             </button>
           </div>
         </div>
@@ -265,15 +270,15 @@ export function MobileShell(props: MobileShellProps) {
         <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
           {entry.category !== "pencil-holder" && entry.category !== "tray" && entry.category !== "dovetail-box" && (
             <>
-              <div className="text-[11px] text-zinc-500">工法</div>
+              <div className="text-[11px] text-zinc-500">{t("form.method")}</div>
               <div className="grid grid-cols-2 gap-2">
                 <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${!props.joineryMode ? "ring-emerald-500 bg-emerald-50 text-emerald-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
                   <input type="radio" name="joineryMode" value="" defaultChecked={!props.joineryMode} className="sr-only" />
-                  🔩 組裝版
+                  {t("form.assembly")}
                 </label>
                 <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${props.joineryMode ? "ring-amber-500 bg-amber-50 text-amber-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
                   <input type="radio" name="joineryMode" value="true" defaultChecked={props.joineryMode} className="sr-only" />
-                  🪵 榫接版
+                  {t("form.joinery")}
                 </label>
               </div>
             </>
@@ -281,33 +286,33 @@ export function MobileShell(props: MobileShellProps) {
           {props.canUseDesignerMode ? (
             <label className="flex items-center gap-2 min-h-[36px] px-1 pt-1 text-sm cursor-pointer border-t border-zinc-100">
               <input type="checkbox" name="designerMode" value="true" defaultChecked={props.designerMode} className="h-4 w-4 accent-amber-600" />
-              <span className="text-zinc-800">🎨 設計師模式</span>
-              <span className="text-[10px] text-zinc-500">自由尺寸到 mm</span>
+              <span className="text-zinc-800">{t("form.designerMode")}</span>
+              <span className="text-[10px] text-zinc-500">{t("form.designerHint")}</span>
             </label>
           ) : null}
         </div>
 
-        <CollapsibleSection title="三視圖" badge="點圖放大">
+        <CollapsibleSection title={t("section.threeView")} badge={t("section.threeViewBadge")}>
           <ZoomableThreeViews design={design} joineryMode={props.joineryMode} />
         </CollapsibleSection>
 
-        <CollapsibleSection title="材料清單" badge={`${design.parts.length} 件`}>
+        <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.length })}>
           <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
-            <span className="leading-snug">切料尺寸已含榫頭凸出長度</span>
+            <span className="leading-snug">{t("section.cutListNotice")}</span>
             <a
               href={props.cutPlanUrl}
               target="_blank"
               rel="noreferrer"
               className="shrink-0 px-2.5 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700"
             >
-              🪚 裁切計算器
+              {t("section.cutPlan")}
             </a>
           </div>
           <MaterialListWithSelection design={design} />
         </CollapsibleSection>
 
         {joineryUsages.length > 0 && (
-          <CollapsibleSection title="工法（榫卯說明）" badge={`${joineryUsages.length} 處`}>
+          <CollapsibleSection title={t("section.joineryNote")} badge={t("section.joineryNoteBadge", { count: joineryUsages.length })}>
             <div className="space-y-3">
               {joineryUsages.map((u, i) => (
                 <div key={i} className="rounded-md border border-zinc-200 bg-white p-3">
@@ -315,26 +320,26 @@ export function MobileShell(props: MobileShellProps) {
                     <h4 className="font-semibold text-sm text-zinc-900">
                       {JOINERY_LABEL[u.type]}
                       <span className="text-xs font-normal text-zinc-500 ml-1">
-                        · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : "母件"} · 共 {u.count} 處
+                        · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : t("joinery.motherPart")} · {t("joinery.spotsCount", { count: u.count })}
                       </span>
                     </h4>
                   </div>
                   <p className="text-xs text-zinc-500 mb-2">
-                    榫頭 {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                    {t("joinery.tenon")} {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
                   </p>
                   <p className="text-xs text-zinc-700 leading-relaxed">{JOINERY_DESCRIPTION[u.type]}</p>
                 </div>
               ))}
-              <p className="text-[11px] text-zinc-500">完整榫卯細節圖：⚙ 進階設定 → 榫接 tab</p>
+              <p className="text-[11px] text-zinc-500">{t("section.joineryFootnote")}</p>
             </div>
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection title="製作工序">
+        <CollapsibleSection title={t("section.buildSteps")}>
           <BuildSteps design={design} />
         </CollapsibleSection>
 
-        <CollapsibleSection title="工具清單">
+        <CollapsibleSection title={t("section.toolList")}>
           <ToolList design={design} />
         </CollapsibleSection>
       </DesignFormShell>
@@ -360,7 +365,7 @@ export function MobileShell(props: MobileShellProps) {
               exceptKeys={visibleStructureSpecs.map((s) => s.key)}
             />
             {visibleStructureSpecs.length === 0 ? (
-              <div className="text-sm text-zinc-500">此家具無結構選項</div>
+              <div className="text-sm text-zinc-500">{t("advancedSheet.noStructure")}</div>
             ) : (
               <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
             )}
@@ -392,7 +397,7 @@ export function MobileShell(props: MobileShellProps) {
                 exceptKeys={visibleJoinerySpecs.map((s) => s.key)}
               />
               {visibleJoinerySpecs.length === 0 ? (
-                <div className="text-sm text-zinc-500">此家具無榫接選項</div>
+                <div className="text-sm text-zinc-500">{t("advancedSheet.noJoineryOption")}</div>
               ) : (
                 <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
               )}
@@ -402,13 +407,13 @@ export function MobileShell(props: MobileShellProps) {
             {joineryUsages.length === 0 ? (
               <div className="text-sm text-zinc-500">
                 {props.joineryMode
-                  ? "此家具無可顯示的榫卯。"
-                  : "切換到「🪵 榫接版」可顯示榫卯細節圖。"}
+                  ? t("joinery.noJoinery")
+                  : t("joinery.switchHint")}
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide pt-1 border-t border-zinc-100">
-                  榫卯細節圖
+                  {t("joinery.detailTitle")}
                 </div>
                 {joineryUsages.map((u, i) => (
                   <div
@@ -422,8 +427,8 @@ export function MobileShell(props: MobileShellProps) {
                           · {u.partNameZh}
                           {u.motherPartNames.length > 0
                             ? ` ↔ ${u.motherPartNames.join(" / ")}`
-                            : " ↔ 母件"}
-                          {" "}· 共 {u.count} 處
+                            : ` ↔ ${t("joinery.motherPart")}`}
+                          {" "}· {t("joinery.spotsCount", { count: u.count })}
                         </span>
                       </h3>
                       <p className="text-[10px] text-zinc-400">
@@ -454,7 +459,7 @@ export function MobileShell(props: MobileShellProps) {
         sceneContent={
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-zinc-500 mb-3">選擇擺放場景，3D 視圖即時更新背景與燈光氛圍</p>
+              <p className="text-xs text-zinc-500 mb-3">{t("advancedSheet.sceneHint")}</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {SCENE_THEME_LIST.map((t) => {
                   const active = t.id === activeSceneId;
@@ -528,16 +533,16 @@ export function MobileShell(props: MobileShellProps) {
                 navigator as Navigator & {
                   share: (d: { title: string; url: string }) => Promise<void>;
                 }
-              ).share({ title: "木頭仁 木作藍圖", url: shortUrl });
+              ).share({ title: t("share.title"), url: shortUrl });
               return;
             } catch {
               // 使用者取消 → fallback 到 alert
             }
           }
-          alert(`短碼已複製：\n${shortUrl}`);
+          alert(`${t("share.copied")}\n${shortUrl}`);
         }}
         onDownloadCsv={() => {
-          alert("材料 CSV phase 2 整合");
+          alert(t("share.csvWip"));
         }}
       />
     </div>

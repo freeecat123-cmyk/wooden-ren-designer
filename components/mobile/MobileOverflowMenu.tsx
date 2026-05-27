@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { InstallAppButton } from "@/components/InstallAppButton";
 
 interface MobileOverflowMenuProps {
@@ -20,13 +21,14 @@ export function MobileOverflowMenu({
   onShareLink,
   onDownloadCsv,
 }: MobileOverflowMenuProps) {
+  const t = useTranslations("mobile.overflow");
   if (!open) return null;
 
   const items = [
-    { label: "📐 裁切單", href: cutPlanUrl, action: null as null | (() => void) },
-    { label: "📋 材料 CSV", href: null, action: onDownloadCsv },
-    { label: "🔗 複製連結", href: null, action: onShareLink },
-    { label: "🖨 列印 / PDF", href: printUrl, action: null },
+    { label: t("cutPlan"), href: cutPlanUrl, action: null as null | (() => void) },
+    { label: t("csv"), href: null, action: onDownloadCsv },
+    { label: t("copy"), href: null, action: onShareLink },
+    { label: t("print"), href: printUrl, action: null },
   ];
 
   return (
@@ -39,7 +41,7 @@ export function MobileOverflowMenu({
         </div>
         <div className="px-5 pt-1 pb-1.5">
           <span className="text-[11px] font-semibold text-zinc-400 tracking-wide">
-            本頁更多動作
+            {t("header")}
           </span>
         </div>
         <ul className="px-2 pb-3">

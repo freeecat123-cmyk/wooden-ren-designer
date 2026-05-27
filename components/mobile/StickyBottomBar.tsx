@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 
 interface StickyBottomBarProps {
   /** 總價（NTD，已含稅毛利） */
@@ -19,6 +20,9 @@ export function StickyBottomBar({
   quoteUrl,
   lineShareText,
 }: StickyBottomBarProps) {
+  const t = useTranslations("mobile.bottom");
+  const locale = useLocale();
+  const isEn = locale === "en";
   const handleLineShare = () => {
     if (typeof window === "undefined") return;
     const fullText = `${lineShareText} ${window.location.href}`;
@@ -29,7 +33,8 @@ export function StickyBottomBar({
     );
   };
 
-  const formattedPrice = new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 0 }).format(totalPrice);
+  const formattedPrice = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(totalPrice);
+  const currencyPrefix = isEn ? "TWD " : "NT$ ";
 
   return (
     <div
@@ -38,18 +43,18 @@ export function StickyBottomBar({
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3 min-h-[72px]">
         <div className="flex flex-col">
-          <span className="text-[11px] text-zinc-500 tracking-wide">參考總價</span>
+          <span className="text-[11px] text-zinc-500 tracking-wide">{t("totalLabel")}</span>
           <span className="text-xl font-bold text-amber-900 tabular-nums leading-tight">
-            NT$ {formattedPrice}
+            {currencyPrefix}{formattedPrice}
           </span>
-          <span className="text-[11px] text-zinc-500">約 {weight.toFixed(1)} kg</span>
+          <span className="text-[11px] text-zinc-500">{t("weight", { kg: weight.toFixed(1) })}</span>
         </div>
         <div className="flex gap-2">
           <Link
             href={quoteUrl}
             className="inline-flex items-center justify-center min-h-[46px] px-4 rounded-xl bg-amber-700 hover:bg-amber-800 active:scale-[0.97] text-white text-sm font-semibold shadow-sm transition-all"
           >
-            💰 報價
+            {t("quoteBtn")}
           </Link>
           <button
             type="button"

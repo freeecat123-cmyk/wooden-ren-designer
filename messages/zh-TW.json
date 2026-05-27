@@ -603,5 +603,87 @@
       "howToDesc": "{name}（{length}×{width}×{height}mm，{material}）的製作工序，含選料、切料、榫接、組裝、塗裝完整步驟。",
       "shareText": "木頭仁設計：{name} {length}×{width}×{height}mm"
     }
+  },
+  "mobile": {
+    "topBar": {
+      "back": "返回",
+      "more": "更多動作",
+      "moreTitle": "本頁更多動作（裁切單 / CSV / 列印）"
+    },
+    "overflow": {
+      "header": "本頁更多動作",
+      "cutPlan": "📐 裁切單",
+      "csv": "📋 材料 CSV",
+      "copy": "🔗 複製連結",
+      "print": "🖨 列印 / PDF"
+    },
+    "bottom": {
+      "totalLabel": "參考總價",
+      "weight": "約 {kg} kg",
+      "quoteBtn": "💰 報價"
+    },
+    "form": {
+      "style": "風格",
+      "diameter": "直徑",
+      "length": "長",
+      "width": "寬",
+      "height": "高",
+      "material": "材料",
+      "advanced": "⚙ 進階設定",
+      "method": "工法",
+      "assembly": "🔩 組裝版",
+      "joinery": "🪵 榫接版",
+      "designerMode": "🎨 設計師模式",
+      "designerHint": "自由尺寸到 mm"
+    },
+    "section": {
+      "threeView": "三視圖",
+      "threeViewBadge": "點圖放大",
+      "cutList": "材料清單",
+      "cutListBadge": "{count} 件",
+      "cutListNotice": "切料尺寸已含榫頭凸出長度",
+      "cutPlan": "🪚 裁切計算器",
+      "joineryNote": "工法（榫卯說明）",
+      "joineryNoteBadge": "{count} 處",
+      "joineryFootnote": "完整榫卯細節圖：⚙ 進階設定 → 榫接 tab",
+      "buildSteps": "製作工序",
+      "toolList": "工具清單"
+    },
+    "joinery": {
+      "tenon": "榫頭",
+      "motherPart": "母件",
+      "spotsCount": "共 {count} 處",
+      "detailTitle": "榫卯細節圖",
+      "noJoinery": "此家具無可顯示的榫卯。",
+      "switchHint": "切換到「🪵 榫接版」可顯示榫卯細節圖。"
+    },
+    "advancedSheet": {
+      "title": "⚙ 進階設定",
+      "aria": "進階設定",
+      "close": "關閉",
+      "tab": {
+        "structure": "結構",
+        "style": "美學",
+        "joinery": "榫接",
+        "scene": "場景"
+      },
+      "noStructure": "此家具無結構選項",
+      "noJoineryOption": "此家具無榫接選項",
+      "sceneHint": "選擇擺放場景，3D 視圖即時更新背景與燈光氛圍"
+    },
+    "share": {
+      "title": "木頭仁 木作藍圖",
+      "copied": "短碼已複製：",
+      "csvWip": "材料 CSV phase 2 整合"
+    },
+    "range": {
+      "minus": "減",
+      "plus": "加"
+    },
+    "optionField": {
+      "calcLegHeight": "計算後腳高",
+      "clampedMin": "已夾到最低 30mm，請降低層高或加大總高",
+      "maxLocked": "上限 {max}（鎖總高）"
+    }
   }
 }

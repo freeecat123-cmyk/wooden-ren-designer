@@ -603,5 +603,87 @@
       "howToDesc": "Full build steps for a {name} ({length}×{width}×{height} mm, {material}): stock selection, cutting, joinery, assembly, finishing.",
       "shareText": "Wooden Ren design: {name} {length}×{width}×{height} mm"
     }
+  },
+  "mobile": {
+    "topBar": {
+      "back": "Back",
+      "more": "More actions",
+      "moreTitle": "More actions on this page (cut plan / CSV / print)"
+    },
+    "overflow": {
+      "header": "More actions",
+      "cutPlan": "📐 Cut plan",
+      "csv": "📋 Material CSV",
+      "copy": "🔗 Copy link",
+      "print": "🖨 Print / PDF"
+    },
+    "bottom": {
+      "totalLabel": "Est. total",
+      "weight": "≈ {kg} kg",
+      "quoteBtn": "💰 Quote"
+    },
+    "form": {
+      "style": "Style",
+      "diameter": "Diameter",
+      "length": "Length",
+      "width": "Width",
+      "height": "Height",
+      "material": "Material",
+      "advanced": "⚙ Advanced",
+      "method": "Method",
+      "assembly": "🔩 Assembly",
+      "joinery": "🪵 Joinery",
+      "designerMode": "🎨 Designer mode",
+      "designerHint": "Custom mm sizes"
+    },
+    "section": {
+      "threeView": "Engineering views",
+      "threeViewBadge": "Tap to zoom",
+      "cutList": "Cut list",
+      "cutListBadge": "{count} parts",
+      "cutListNotice": "Cut sizes include tenon stock length",
+      "cutPlan": "🪚 Cut plan",
+      "joineryNote": "Joinery notes",
+      "joineryNoteBadge": "{count} spots",
+      "joineryFootnote": "Full joinery details: ⚙ Advanced → Joinery tab",
+      "buildSteps": "Build steps",
+      "toolList": "Tool list"
+    },
+    "joinery": {
+      "tenon": "Tenon",
+      "motherPart": "mother part",
+      "spotsCount": "× {count}",
+      "detailTitle": "Joinery details",
+      "noJoinery": "No joinery to show for this template.",
+      "switchHint": "Switch to “🪵 Joinery” mode to see the joinery details."
+    },
+    "advancedSheet": {
+      "title": "⚙ Advanced",
+      "aria": "Advanced settings",
+      "close": "Close",
+      "tab": {
+        "structure": "Structure",
+        "style": "Style",
+        "joinery": "Joinery",
+        "scene": "Scene"
+      },
+      "noStructure": "No structure options for this template",
+      "noJoineryOption": "No joinery options for this template",
+      "sceneHint": "Pick a scene — the 3D view updates background and lighting live"
+    },
+    "share": {
+      "title": "Wooden Ren Blueprint",
+      "copied": "Short link copied:",
+      "csvWip": "Material CSV — coming in phase 2"
+    },
+    "range": {
+      "minus": "Minus",
+      "plus": "Plus"
+    },
+    "optionField": {
+      "calcLegHeight": "Calculated leg height",
+      "clampedMin": "Clamped to 30 mm min — lower a tier or raise total height",
+      "maxLocked": "Max {max} (height locked)"
+    }
   }
 }

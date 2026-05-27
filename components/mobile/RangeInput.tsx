@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
 
 interface PresetPoint {
@@ -55,6 +56,7 @@ export function RangeInput({
   showRange,
   partIds,
 }: RangeInputProps) {
+  const tRange = useTranslations("mobile.range");
   // Part anchor hover/focus → 3D 對應件 emissive 高亮
   const { setHoveredPartIds } = useHoveredParts();
   const hasAnchor = !!(partIds && partIds.length > 0);
@@ -145,7 +147,7 @@ export function RangeInput({
         {showPlusMinus && (
           <button
             type="button"
-            aria-label="減"
+            aria-label={tRange("minus")}
             onMouseDown={() => startRepeat(-step)}
             onMouseUp={stopRepeat}
             onMouseLeave={stopRepeat}
@@ -188,7 +190,7 @@ export function RangeInput({
         {showPlusMinus && (
           <button
             type="button"
-            aria-label="加"
+            aria-label={tRange("plus")}
             onMouseDown={() => startRepeat(step)}
             onMouseUp={stopRepeat}
             onMouseLeave={stopRepeat}
