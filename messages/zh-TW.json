@@ -48,6 +48,55 @@
     "nightstand": "床頭櫃",
     "chest-of-drawers": "斗櫃"
   },
+  "error": {
+    "emoji": "⚠️",
+    "h1": "系統發生錯誤",
+    "body": "木作藍圖當機了。你可以重試，或回報這個問題給木頭仁。",
+    "unknown": "Unknown error",
+    "retry": "重試",
+    "home": "回首頁",
+    "report": "回報這個錯誤",
+    "mailSubject": "[木作藍圖] 系統錯誤回報",
+    "mailBody": "（請描述你剛剛做了什麼）"
+  },
+  "notFound": {
+    "emoji": "🪚",
+    "h1": "這個頁面不存在",
+    "body": "你可能點到失效連結，或路徑打錯了。回首頁挑一個家具開始設計吧。",
+    "home": "回首頁"
+  },
+  "login": {
+    "metadata": {
+      "title": "登入 ｜ 木頭仁 木作藍圖",
+      "description": "用 Google 或 Email 登入木頭仁 木作藍圖"
+    },
+    "brandAlt": "木頭仁 木作藍圖",
+    "brandName": "木頭仁 木作藍圖",
+    "subtitle": "登入後可儲存設計、生成報價、分享連結",
+    "footnote": "首次使用 = 自動註冊。不用設密碼，用 Google 帳號或 Email 收信件登入。",
+    "helpPrefix": "需要協助？",
+    "lineLabel": "LINE 官方加好友"
+  },
+  "pricingStub": {
+    "metadata": {
+      "title": "Pricing · Wooden Ren Designer",
+      "description": "International USD pricing launching later in 2026 via LemonSqueezy. Join the waitlist for early access."
+    },
+    "badge": "International pricing",
+    "h1": "USD billing coming soon",
+    "intro": "Wooden Ren Designer is currently available with TWD billing only (via ECPay, Taiwan's primary payment processor).",
+    "intro2": "International USD billing via LemonSqueezy is scheduled for launch later in 2026, with regional pricing for the US, EU, UK, and Australia.",
+    "highlights": "While you wait, the free tier already includes:",
+    "h1Free": "Free tier",
+    "f1": "Square stool + pencil holder templates",
+    "f2": "Full 3D, joinery details, three-view drawings, cut list",
+    "f3": "Watermark-free PDF export, Letter / A4 paper sizes",
+    "f4": "No signup required to try",
+    "ctaTryFree": "Try free now →",
+    "ctaBack": "Back to home",
+    "ctaContact": "Contact us about international",
+    "tw": "If you can read Chinese and are based in Taiwan, see the <link>full TWD pricing</link>."
+  },
   "help": {
     "metadata": {
       "title": "常見問題 FAQ · 木頭仁 木作藍圖",

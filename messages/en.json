@@ -48,6 +48,55 @@
     "nightstand": "Nightstand",
     "chest-of-drawers": "Chest of drawers"
   },
+  "error": {
+    "emoji": "⚠️",
+    "h1": "Something went wrong",
+    "body": "Wooden Ren Designer hit an unexpected error. You can retry, or report this to us.",
+    "unknown": "Unknown error",
+    "retry": "Retry",
+    "home": "Home",
+    "report": "Report this error",
+    "mailSubject": "[Wooden Ren Designer] System error report",
+    "mailBody": "(Please describe what you were doing when this happened)"
+  },
+  "notFound": {
+    "emoji": "🪚",
+    "h1": "Page not found",
+    "body": "The link may be expired or the path mistyped. Head back home and pick something to build.",
+    "home": "Home"
+  },
+  "login": {
+    "metadata": {
+      "title": "Sign in · Wooden Ren Designer",
+      "description": "Sign in to Wooden Ren Designer with Google or email."
+    },
+    "brandAlt": "Wooden Ren Designer",
+    "brandName": "Wooden Ren Designer",
+    "subtitle": "Sign in to save designs, generate quotes, and share links.",
+    "footnote": "First-time use = automatic account. No password needed — sign in with Google or an email magic link.",
+    "helpPrefix": "Need help?",
+    "lineLabel": "Add LINE Official"
+  },
+  "pricingStub": {
+    "metadata": {
+      "title": "Pricing · Wooden Ren Designer",
+      "description": "International USD pricing launching later in 2026 via LemonSqueezy. Join the waitlist for early access."
+    },
+    "badge": "International pricing",
+    "h1": "USD billing coming soon",
+    "intro": "Wooden Ren Designer is currently available with TWD billing only (via ECPay, Taiwan's primary payment processor).",
+    "intro2": "International USD billing via LemonSqueezy is scheduled for launch later in 2026, with regional pricing for the US, EU, UK, and Australia.",
+    "highlights": "While you wait, the free tier already includes:",
+    "h1Free": "Free tier",
+    "f1": "Square stool + pencil holder templates",
+    "f2": "Full 3D, joinery details, three-view drawings, cut list",
+    "f3": "Watermark-free PDF export, Letter / A4 paper sizes",
+    "f4": "No signup required to try",
+    "ctaTryFree": "Try free now →",
+    "ctaBack": "Back to home",
+    "ctaContact": "Contact us about international",
+    "tw": "If you can read Chinese and are based in Taiwan, see the <link>full TWD pricing</link>."
+  },
   "help": {
     "metadata": {
       "title": "FAQ · Wooden Ren Designer",

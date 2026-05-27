@@ -1,18 +1,32 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { routing, type Locale } from "@/i18n/routing";
 import { LoginPageClient } from "./LoginPageClient";
 
-export const metadata = {
-  title: "登入 ｜ 木頭仁 木作藍圖",
-  description: "用 Google 或 Email 登入木頭仁 木作藍圖",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "login.metadata" });
+  return { title: t("title"), description: t("description") };
+}
 
 export default async function LoginPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ next?: string }>;
 }) {
+  const { locale: raw } = await params;
+  const locale: Locale = (raw as Locale) ?? routing.defaultLocale;
+  setRequestLocale(locale);
+
   const sp = await searchParams;
   const next = sp.next ?? "/";
 
@@ -25,6 +39,8 @@ export default async function LoginPage({
     redirect(next);
   }
 
+  const t = await getTranslations({ locale, namespace: "login" });
+
   return (
     <main className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
@@ -32,33 +48,31 @@ export default async function LoginPage({
           <Link href="/" className="inline-flex flex-col items-center gap-3 group">
             <img
               src="/brand-logo.png"
-              alt="木頭仁 木作藍圖"
+              alt={t("brandAlt")}
               width={88}
               height={88}
               className="rounded-2xl shadow-md ring-1 ring-amber-900/15 group-hover:shadow-lg transition-shadow"
             />
             <h1 className="font-serif-tc text-2xl font-bold text-amber-900">
-              木頭仁 木作藍圖
+              {t("brandName")}
             </h1>
           </Link>
-          <p className="text-sm text-zinc-600 mt-2">
-            登入後可儲存設計、生成報價、分享連結
-          </p>
+          <p className="text-sm text-zinc-600 mt-2">{t("subtitle")}</p>
         </div>
         <div className="bg-white rounded-2xl ring-1 ring-amber-900/10 p-6 sm:p-8 shadow-lg shadow-amber-900/5">
           <LoginPageClient next={next} />
         </div>
         <p className="text-center text-xs text-zinc-500 mt-6 leading-relaxed">
-          首次使用 = 自動註冊。不用設密碼，用 Google 帳號或 Email 收信件登入。
+          {t("footnote")}
           <br />
-          需要協助？
+          {t("helpPrefix")}
           <a
             href="https://lin.ee/EaXGbJ1"
             target="_blank"
             rel="noopener"
             className="text-emerald-700 font-medium hover:underline ml-1"
           >
-            LINE 官方加好友
+            {t("lineLabel")}
           </a>
         </p>
       </div>
