@@ -1192,10 +1192,15 @@ export function T2Annotations({
         ctx.partLocalToSvg(+L / 2, +T / 2, 0).x,
       );
     } else if (view === "top") {
-      cornersXForDim.push(
-        ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).x,
-        ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).x,
-      );
+      // 同 forEach 內 8 corners(tall iso rotation Rz=-π/2 把 part-local Y → world X
+      // → 只取 +T/2 corner 會 collapse)
+      for (const sx of [-1, 1]) {
+        for (const sy of [-1, 1]) {
+          for (const sz of [-1, 1]) {
+            cornersXForDim.push(ctx.partLocalToSvg((sx * L) / 2, (sy * T) / 2, (sz * W) / 2).x);
+          }
+        }
+      }
     } else {
       cornersXForDim.push(
         ctx.partLocalToSvg(0, -T / 2, -W / 2).x,
@@ -1343,12 +1348,16 @@ export function T2Annotations({
         ctx.partLocalToSvg(+L / 2, +T / 2, 0).y,
       );
     } else if (view === "top") {
-      cornersY.push(
-        ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).y,
-        ctx.partLocalToSvg(+L / 2, T / 2, -W / 2).y,
-        ctx.partLocalToSvg(-L / 2, T / 2, +W / 2).y,
-        ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).y,
-      );
+      // 同 cornersXForDim 8 corners(tall iso rotation 把 part-local Y → world X、
+      // 同時 splay rotation 讓 ±T/2 兩端在 world Z 上偏移,silhouette 上下緣靠 8 個
+      // 完整 corner 才抓得到)
+      for (const sx of [-1, 1]) {
+        for (const sy of [-1, 1]) {
+          for (const sz of [-1, 1]) {
+            cornersY.push(ctx.partLocalToSvg((sx * L) / 2, (sy * T) / 2, (sz * W) / 2).y);
+          }
+        }
+      }
     } else {
       cornersY.push(
         ctx.partLocalToSvg(0, -T / 2, -W / 2).y,
@@ -1533,16 +1542,32 @@ export function T2Annotations({
         T_local_label > L_local_label &&
         T_local_label >= W_local_label &&
         (view === "front" || view === "side");
-      const hMm = tallSwapLabel
-        ? round1(2 * lb.hy)
-        : view === "side"
-          ? round1(2 * lb.hz)
-          : round1(2 * lb.hx);
-      const vMm = tallSwapLabel
-        ? round1(2 * lb.hx)
-        : view === "top"
-          ? round1(2 * lb.hz)
-          : round1(2 * lb.hy);
+      // splay 腳零件圖 mortise 都用「沿牙板高方向(length) × 進深(depth)」標,跟視
+      // 圖無關。原本走 box 投影軸推 vMm 對 X 面 mortise 在 FRONT view 給 23(=depth)
+      // 但對 Z 面 mortise 給 10(=width),user 期待兩面都 25×23(user 2026-05-27
+      // 「左邊紅榫是 25×23 不是 25×10、厚度寬度搞反」);厚 10 改成單獨「深」label
+      // 已被前一輪簡化掉,但 user 不關心 — 他在意的是 box 兩維是 length × depth、
+      // 看到的數字跟「沿榫眼長」「沿挖孔深」對得上。
+      const isSplayLegPart =
+        part.shape?.kind === "splayed" ||
+        part.shape?.kind === "splayed-tapered" ||
+        part.shape?.kind === "splayed-round-tapered";
+      const splayMortiseLabel = isSplayLegPart && isMortise;
+      const mortiseFeature = isMortise ? part.mortises[it.idx] : null;
+      const hMm = splayMortiseLabel
+        ? round1(mortiseFeature?.length ?? 0)
+        : tallSwapLabel
+          ? round1(2 * lb.hy)
+          : view === "side"
+            ? round1(2 * lb.hz)
+            : round1(2 * lb.hx);
+      const vMm = splayMortiseLabel
+        ? round1(mortiseFeature?.depth ?? 0)
+        : tallSwapLabel
+          ? round1(2 * lb.hx)
+          : view === "top"
+            ? round1(2 * lb.hz)
+            : round1(2 * lb.hy);
       // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
@@ -1555,10 +1580,18 @@ export function T2Annotations({
           ctx.partLocalToSvg(+L / 2, +T / 2, 0).x,
         );
       } else if (view === "top") {
-        cornersXForDim.push(
-          ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).x,
-          ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).x,
-        );
+        // 對 tall iso isolation rotation(Rz=-π/2)、part-local +Y → world -X、
+        // (±L/2, T/2, ±W/2) 兩 corner 經 rotation 後 world X 都 = T/2 → partLeftX
+        // === partRightX → featureInsideX 永遠 false → 沿 leg 軸的 chain dim 全
+        // 不畫(user 2026-05-27:「仰視圖沒有長向尺寸標注」)。取 ±T/2 全 8 corner
+        // 才 cover leg 兩端 in tall iso 場景;對 non-tall part 同 x 不影響。
+        for (const sx of [-1, 1]) {
+          for (const sy of [-1, 1]) {
+            for (const sz of [-1, 1]) {
+              cornersXForDim.push(ctx.partLocalToSvg((sx * L) / 2, (sy * T) / 2, (sz * W) / 2).x);
+            }
+          }
+        }
       } else {
         cornersXForDim.push(
           ctx.partLocalToSvg(0, -T / 2, -W / 2).x,
@@ -1784,10 +1817,19 @@ export function T2Annotations({
       const L_local = part.visible.length;
       const W_local = part.visible.width;
       const T_local = part.visible.thickness;
+      // tall iso isolation rotation Rz=-π/2:part-local +Y → world -X、+X → world +Y、Z 不變。
+      // 各 view 螢幕軸對應(tall iso):
+      //   front (X-Y plane): H=world X=part-local -Y, V=world Y=part-local +X
+      //   side  (Z-Y plane): H=world Z=part-local  Z, V=world Y=part-local +X
+      //   top   (X-Z plane): H=world X=part-local -Y, V=world Z=part-local  Z
+      // 原本 swapForTallPart 只 cover front/side、漏 top → 仰視 BOTTOM(annView="top")
+      // 沿 leg 軸的 shoulderLft/Rgt chain dim 抓錯軸(走 lb.cx 而非 lb.cy)就沒畫
+      // (user 2026-05-27:「仰視圖沒有長向尺寸標注」)。
+      // SIDE view 邏輯不動(user 已驗收過,partHalfH=T/2 不對但暫不動避免迴歸)。
       const swapForTallPart =
         T_local > L_local &&
         T_local > W_local &&
-        (view === "front" || view === "side");
+        (view === "front" || view === "side" || view === "top");
       const partHalfH = swapForTallPart
         ? T_local / 2
         : view === "side"
@@ -1796,7 +1838,9 @@ export function T2Annotations({
       const partHalfV = swapForTallPart
         ? view === "side"
           ? W_local / 2
-          : L_local / 2
+          : view === "top"
+            ? W_local / 2
+            : L_local / 2
         : view === "top"
           ? W_local / 2
           : T_local / 2;
@@ -1813,14 +1857,18 @@ export function T2Annotations({
       const featCv = swapForTallPart
         ? view === "side"
           ? lb.cz
-          : lb.cx
+          : view === "top"
+            ? lb.cz
+            : lb.cx
         : view === "top"
           ? lb.cz
           : lb.cy;
       const featHv = swapForTallPart
         ? view === "side"
           ? lb.hz
-          : lb.hx
+          : view === "top"
+            ? lb.hz
+            : lb.hx
         : view === "top"
           ? lb.hz
           : lb.hy;
@@ -1859,7 +1907,7 @@ export function T2Annotations({
       // 這種不合理數值（user 2026-05-26 12:36 回報）。
       const prevSibCv = prevLSibling
         ? swapForTallPart
-          ? view === "side"
+          ? view === "top"
             ? prevLSibling.lb.cz
             : prevLSibling.lb.cx
           : view === "top"
@@ -1868,7 +1916,7 @@ export function T2Annotations({
         : 0;
       const prevSibHv = prevLSibling
         ? swapForTallPart
-          ? view === "side"
+          ? view === "top"
             ? prevLSibling.lb.hz
             : prevLSibling.lb.hx
           : view === "top"

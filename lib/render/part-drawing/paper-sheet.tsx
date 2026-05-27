@@ -200,10 +200,21 @@ export function PartDrawingPaperSheet({
   const overlayContent = (view: "front" | "top" | "side" | "bottom") => (ctx: any) => {
     const annPart = view === "bottom" ? mirrorYPart(part) : part;
     const annView: "front" | "top" | "side" = view === "bottom" ? "top" : view;
+    // splay 腳零件圖 TOP 俯視看不到任何 mortise(都打在側面、從正上方俯視只看到斜頂面投影、
+    // 沒有 entry face 朝鏡頭)。user 2026-05-27:「俯視圖看不到榫孔 不需要標」。
+    // 用 raw view 區分:TOP=raw "top"、BOTTOM=raw "bottom"(annView 都會 collapse 成 "top"),
+    // 只對真實 TOP 把 part.mortises 清空,BOTTOM 仰視仍保留全部 mortise。
+    const isSplayFamily =
+      annPart.shape?.kind === "splayed" ||
+      annPart.shape?.kind === "splayed-tapered" ||
+      annPart.shape?.kind === "splayed-round-tapered";
+    const t2Part = view === "top" && isSplayFamily
+      ? { ...annPart, mortises: [] }
+      : annPart;
     return (
       <>
         <T1Dimensions ctx={ctx} part={annPart} view={annView} />
-        <T2Annotations ctx={ctx} part={annPart} view={annView} />
+        <T2Annotations ctx={ctx} part={t2Part} view={annView} />
         <GrainArrow ctx={ctx} part={annPart} view={annView} />
         <ChamferRoundAnnotation ctx={ctx} part={annPart} view={annView} />
         <FacingMark ctx={ctx} part={annPart} view={annView} />
