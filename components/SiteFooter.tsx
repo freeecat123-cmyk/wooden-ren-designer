@@ -1,18 +1,9 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-
 /**
  * 站底版本資訊：學生回報 bug 時可以告訴你他用哪版。
  * Vercel 部署自動帶 NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA + NEXT_PUBLIC_VERCEL_ENV。
  * 本地 dev 沒有就顯示 "dev"。
- *
- * /en 卡位 Coming Soon 頁不顯示中文 footer（避免英文訪客困惑）。
  */
 export function SiteFooter() {
-  const pathname = usePathname();
-  if (pathname?.startsWith("/en")) return null;
-
   const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
   const env = process.env.NEXT_PUBLIC_VERCEL_ENV ?? "local";
   const year = new Date().getFullYear();

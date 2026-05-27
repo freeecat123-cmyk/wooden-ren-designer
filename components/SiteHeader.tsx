@@ -47,11 +47,6 @@ export function SiteHeader() {
     );
   }
 
-  // 英文版卡位 Coming Soon 頁完全不顯示中文 nav（避免英文訪客困惑）。
-  if (pathname?.startsWith("/en")) {
-    return null;
-  }
-
   function isActive(href: string) {
     if (href === "/app") {
       return pathname === "/app" || pathname?.startsWith("/app");
