@@ -659,7 +659,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
         <div className="border-t border-amber-100 p-4">
-          <ToolList design={design} />
+          <ToolList design={design} locale={locale} />
         </div>
       </details>
 
@@ -672,7 +672,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
         <div className="border-t border-amber-100 p-4">
-          <BuildSteps design={design} />
+          <BuildSteps design={design} locale={locale} />
         </div>
       </details>
 

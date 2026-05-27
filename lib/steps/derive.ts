@@ -24,6 +24,21 @@ export const PHASE_LABEL: Record<StepPhase, string> = {
   finish: "塗裝",
 };
 
+export const PHASE_LABEL_EN: Record<StepPhase, string> = {
+  prepare: "Prep stock",
+  mark: "Layout",
+  "cut-stock": "Cut to length",
+  "cut-joinery": "Cut joinery",
+  fit: "Dry-fit",
+  glue: "Glue-up",
+  sand: "Sand",
+  finish: "Finish",
+};
+
+export function phaseLabel(phase: StepPhase, locale: string): string {
+  return locale === "en" ? PHASE_LABEL_EN[phase] : PHASE_LABEL[phase];
+}
+
 export interface BuildStep {
   id: string;
   phase: StepPhase;

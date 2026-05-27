@@ -336,3 +336,63 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     notes: "螺絲頭埋進木面不外露，正面光潔；pocket-hole 進階版",
   },
 };
+
+/**
+ * Tool name EN map. Add new tool ids here when they appear in TOOL_CATALOG.
+ * Missing entries fall back to tool.nameZh (Tool type has no nameEn field).
+ */
+export const TOOL_NAME_EN: Record<string, string> = {
+  "tape-measure-5m": "Tape measure (5 m)",
+  "try-square": "Try square",
+  "marking-gauge": "Marking gauge",
+  "dovetail-marker": "Dovetail marker",
+  "chisel-set-3-6-12": "Chisel set (3 / 6 / 12 mm)",
+  "chisel-hardwood": "Hardwood chisel",
+  "japanese-saw": "Japanese pull saw",
+  "dovetail-saw": "Dovetail saw",
+  "all-purpose-saw": "All-purpose hand saw",
+  "flush-cut-saw": "Flush-cut saw",
+  "groove-plane": "Plough / groove plane",
+  mallet: "Mallet",
+  "f-clamp-x4": "F-clamps × 4",
+  "long-clamp-x2": "Bar / parallel clamps × 2",
+  "sandpaper-set": "Sandpaper set (120 / 240 / 400)",
+  "sandpaper-coarse-60": "Coarse sandpaper (60 grit)",
+  "pva-glue": "PVA wood glue",
+  "wood-oil": "Wood oil",
+  "router-table": "Router table",
+  drill: "Drill",
+  "drill-bits": "Drill bit set",
+  "dowel-jig": "Doweling jig",
+  "pocket-hole-jig": "Pocket-hole jig",
+  "groove-blade": "Dado / grooving blade",
+  "concealed-hinge": "Concealed hinge",
+  "chisel-canvas-roll": "Chisel canvas roll",
+  "silicone-lubricant": "Silicone lubricant",
+  "dovetail-jig": "Dovetail jig",
+  "tenz-screw-set": "TENZ screw set",
+  "sharpening-jig": "Sharpening jig",
+  "glue-tray-set": "Glue tray set",
+  "router-engraving-base": "Router engraving base",
+  "masking-tape-low-tack": "Low-tack masking tape",
+  "quick-bench-vise": "Quick-release bench vise",
+  "hand-drill-brace": "Hand-drill brace",
+  "magnetic-saw-guide": "Magnetic saw guide",
+  "silicone-glue-box": "Silicone glue box",
+  "marking-knife": "Marking knife",
+  "countersink-bit": "Countersink bit",
+  jointer: "Jointer",
+  "jointer-planer": "Jointer / planer",
+  thicknesser: "Thicknesser",
+  "biscuit-joiner": "Biscuit joiner",
+  jigsaw: "Jigsaw",
+  "miter-box": "Miter box",
+};
+
+export function toolName(tool: Tool, locale: string): string {
+  if (locale === "en") {
+    const en = TOOL_NAME_EN[tool.id];
+    if (en) return en;
+  }
+  return tool.nameZh;
+}

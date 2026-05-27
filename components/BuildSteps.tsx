@@ -2,10 +2,10 @@ import type { FurnitureDesign } from "@/lib/types";
 import {
   deriveBuildSteps,
   totalEstimatedHours,
-  PHASE_LABEL,
+  phaseLabel,
   type StepPhase,
 } from "@/lib/steps/derive";
-import { TOOL_CATALOG } from "@/lib/tools/catalog";
+import { TOOL_CATALOG, toolName } from "@/lib/tools/catalog";
 
 const PHASE_COLOR: Record<StepPhase, string> = {
   prepare: "bg-zinc-100 text-zinc-700",
@@ -18,35 +18,53 @@ const PHASE_COLOR: Record<StepPhase, string> = {
   finish: "bg-rose-100 text-rose-800",
 };
 
-export function BuildSteps({ design }: { design: FurnitureDesign }) {
+interface BuildStepsProps {
+  design: FurnitureDesign;
+  /** "zh-TW" (default) or "en". Server passes from params; MobileShell uses useLocale(). */
+  locale?: string;
+}
+
+export function BuildSteps({ design, locale = "zh-TW" }: BuildStepsProps) {
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);
   const saw = design.sawSettings;
+  const isEn = locale === "en";
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-zinc-600">
-        共 {steps.length} 個步驟，預估工時約 <strong>{totalHours} 小時</strong>
-        （依個人熟練度可能差 ±50%）。
+        {isEn ? (
+          <>
+            {steps.length} steps total, estimated <strong>{totalHours} hours</strong> of work
+            (±50% depending on skill level).
+          </>
+        ) : (
+          <>
+            共 {steps.length} 個步驟，預估工時約 <strong>{totalHours} 小時</strong>
+            （依個人熟練度可能差 ±50%）。
+          </>
+        )}
       </p>
       {saw && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
           <div className="font-semibold text-amber-900 mb-1.5">
-            🪚 鋸床複斜角度（壁外撇 {saw.tiltDeg}°）
+            {isEn
+              ? `🪚 Compound miter setup (wall tilt ${saw.tiltDeg}°)`
+              : `🪚 鋸床複斜角度（壁外撇 ${saw.tiltDeg}°）`}
           </div>
           <div className="text-amber-800 space-y-1">
             <div>
-              鋸盤水平轉角（Miter）：<strong className="font-mono">{saw.miterDeg}°</strong>
+              {isEn ? "Miter (horizontal): " : "鋸盤水平轉角（Miter）："}
+              <strong className="font-mono">{saw.miterDeg}°</strong>
             </div>
             <div>
-              鋸片垂直傾角（Bevel）：<strong className="font-mono">{saw.bevelDeg}°</strong>
+              {isEn ? "Bevel (blade tilt): " : "鋸片垂直傾角（Bevel）："}
+              <strong className="font-mono">{saw.bevelDeg}°</strong>
             </div>
             <div className="text-xs text-amber-700 mt-2">
-              4 片牆兩端依此設定切複斜角度，組裝才會 4 角密合。
-              木板平放鋸台、鋸盤轉 {saw.miterDeg}°、鋸片傾 {saw.bevelDeg}°，
-              兩端一起鋸。公式 §AT1.1（Hopper）：
-              M = arctan(cos θ · tan(180°/{saw.sides}))、
-              B = arcsin(sin θ · cos(180°/{saw.sides}))。
+              {isEn
+                ? `Cut both ends of each of the ${saw.sides} walls with these settings so corners close up tight. Lay the board flat, miter ${saw.miterDeg}°, blade tilt ${saw.bevelDeg}°. Hopper formula (§AT1.1): M = arctan(cos θ · tan(180°/${saw.sides})), B = arcsin(sin θ · cos(180°/${saw.sides})).`
+                : `4 片牆兩端依此設定切複斜角度，組裝才會 4 角密合。木板平放鋸台、鋸盤轉 ${saw.miterDeg}°、鋸片傾 ${saw.bevelDeg}°，兩端一起鋸。公式 §AT1.1（Hopper）：M = arctan(cos θ · tan(180°/${saw.sides}))、B = arcsin(sin θ · cos(180°/${saw.sides}))。`}
             </div>
           </div>
         </div>
@@ -64,12 +82,12 @@ export function BuildSteps({ design }: { design: FurnitureDesign }) {
               <span
                 className={`text-xs px-2 py-0.5 rounded-full ${PHASE_COLOR[step.phase]}`}
               >
-                {PHASE_LABEL[step.phase]}
+                {phaseLabel(step.phase, locale)}
               </span>
               <h3 className="font-semibold text-zinc-900">{step.title}</h3>
               {step.estimatedMinutes && (
                 <span className="text-xs text-zinc-500 ml-auto">
-                  約 {step.estimatedMinutes} 分鐘
+                  {isEn ? `~${step.estimatedMinutes} min` : `約 ${step.estimatedMinutes} 分鐘`}
                 </span>
               )}
             </div>
@@ -80,7 +98,7 @@ export function BuildSteps({ design }: { design: FurnitureDesign }) {
 
             {step.toolIds.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="text-xs text-zinc-500">工具：</span>
+                <span className="text-xs text-zinc-500">{isEn ? "Tools:" : "工具："}</span>
                 {step.toolIds.map((id) => {
                   const t = TOOL_CATALOG[id];
                   if (!t) return null;
@@ -89,7 +107,7 @@ export function BuildSteps({ design }: { design: FurnitureDesign }) {
                       key={id}
                       className="text-xs px-2 py-0.5 rounded bg-zinc-100 text-zinc-700"
                     >
-                      {t.nameZh}
+                      {toolName(t, locale)}
                     </span>
                   );
                 })}
@@ -123,7 +141,9 @@ export function BuildSteps({ design }: { design: FurnitureDesign }) {
         ))}
       </ol>
       <p className="text-xs text-zinc-500">
-        以上為依設計自動產出的標準工序。下一版將提供「AI 加強說明 / YT 腳本」按鈕，由 Claude 補上經驗談與拍攝重點。
+        {isEn
+          ? "Above is the auto-generated standard build sequence. A future version will offer “AI deep-dive / YT script” buttons where Claude adds practitioner tips and filming notes."
+          : "以上為依設計自動產出的標準工序。下一版將提供「AI 加強說明 / YT 腳本」按鈕，由 Claude 補上經驗談與拍攝重點。"}
       </p>
     </div>
   );

@@ -336,11 +336,11 @@ export function MobileShell(props: MobileShellProps) {
         )}
 
         <CollapsibleSection title={t("section.buildSteps")}>
-          <BuildSteps design={design} />
+          <BuildSteps design={design} locale={locale} />
         </CollapsibleSection>
 
         <CollapsibleSection title={t("section.toolList")}>
-          <ToolList design={design} />
+          <ToolList design={design} locale={locale} />
         </CollapsibleSection>
       </DesignFormShell>
 
