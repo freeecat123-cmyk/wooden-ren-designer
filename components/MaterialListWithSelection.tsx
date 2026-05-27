@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useLocale } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import { MaterialList } from "@/lib/render/svg-views";
 import { useSelectedPart, useScrollToSelectedRow } from "./SelectedPartContext";
@@ -12,6 +13,7 @@ import { useSelectedPart, useScrollToSelectedRow } from "./SelectedPartContext";
 export function MaterialListWithSelection({ design }: { design: FurnitureDesign }) {
   const { selectedPartId, setSelectedPartId } = useSelectedPart();
   const containerRef = useRef<HTMLDivElement>(null);
+  const locale = useLocale();
   useScrollToSelectedRow(containerRef);
   return (
     <div ref={containerRef}>
@@ -19,6 +21,7 @@ export function MaterialListWithSelection({ design }: { design: FurnitureDesign 
         design={design}
         selectedPartId={selectedPartId}
         onPartClick={(id) => setSelectedPartId(id === selectedPartId ? null : id)}
+        locale={locale}
       />
     </div>
   );

@@ -4,7 +4,8 @@ import { memo } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
-import { JOINERY_LABEL } from "@/lib/joinery/details";
+import { JOINERY_LABEL, JOINERY_LABEL_EN } from "@/lib/joinery/details";
+import { partName } from "@/lib/templates/part-names";
 import {
   MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
@@ -3916,7 +3917,7 @@ const CATEGORY_ORDER: PartCategory[] = [
   "case", "divider", "drawer", "door", "apron", "seat", "leg", "misc",
 ];
 
-const CATEGORY_LABEL: Record<PartCategory, string> = {
+const CATEGORY_LABEL_ZH: Record<PartCategory, string> = {
   case: "🗄️ 櫃體結構",
   divider: "═ 層板 / 分隔板",
   drawer: "🧺 抽屜",
@@ -3925,6 +3926,17 @@ const CATEGORY_LABEL: Record<PartCategory, string> = {
   seat: "🪑 座板 / 椅背",
   leg: "🦵 腳 / 底座",
   misc: "⚙ 其他",
+};
+
+const CATEGORY_LABEL_EN: Record<PartCategory, string> = {
+  case: "🗄️ Carcase",
+  divider: "═ Shelves / Dividers",
+  drawer: "🧺 Drawers",
+  door: "🚪 Doors",
+  apron: "━ Aprons",
+  seat: "🪑 Seat / Back",
+  leg: "🦵 Legs / Base",
+  misc: "⚙ Other",
 };
 
 // 色碼分組：每個分類一個顯眼色，左側 4px 直條 + 標頭背景。
@@ -3947,11 +3959,15 @@ export function MaterialList({
   design,
   selectedPartId,
   onPartClick,
+  locale = "zh-TW",
 }: {
   design: FurnitureDesign;
   selectedPartId?: string | null;
   onPartClick?: (id: string) => void;
+  locale?: string;
 }) {
+  const isEn = locale === "en";
+  const CATEGORY_LABEL = isEn ? CATEGORY_LABEL_EN : CATEGORY_LABEL_ZH;
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
 
@@ -3995,33 +4011,34 @@ export function MaterialList({
     const pieces = Math.max(1, Math.round(part.panelPieces ?? 1));
 
     const billable = effectiveBillableMaterial(part);
+    const matName = isEn ? (MATERIALS[part.material].nameEn ?? MATERIALS[part.material].nameZh) : MATERIALS[part.material].nameZh;
     const materialLabel = isGlass
-      ? `${cut.thickness}mm 強化玻璃`
+      ? (isEn ? `${cut.thickness} mm tempered glass` : `${cut.thickness}mm 強化玻璃`)
       : isBrass
-        ? "仿古銅五金（外購）"
+        ? (isEn ? "Antiqued-brass hardware (purchased)" : "仿古銅五金（外購）")
         : billable === "plywood" || billable === "mdf"
-          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-          : MATERIALS[part.material].nameZh;
+          ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
+          : matName;
 
     if (!isHardware) {
       const groupKey =
         billable === "plywood" || billable === "mdf"
           ? SHEET_GOOD_LABEL[billable]
-          : MATERIALS[part.material].nameZh;
+          : matName;
       bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
     }
 
     const tenonNotes = isGlass
-      ? "另向玻璃行訂製，不入裁切"
+      ? (isEn ? "Order from glass shop; not in cut list" : "另向玻璃行訂製，不入裁切")
       : isBrass
-        ? "外購五金件，不入裁切"
+        ? (isEn ? "Purchased hardware; not in cut list" : "外購五金件，不入裁切")
         : part.tenons.length
           ? part.tenons
               .map(
                 (t) =>
-                  `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+                  `${t.position} ${t.length}mm ${(isEn ? JOINERY_LABEL_EN : JOINERY_LABEL)[t.type] ?? t.type}`,
               )
-              .join("、")
+              .join(isEn ? ", " : "、")
           : "—";
 
     const category = categorizePart(part.id);
@@ -4056,12 +4073,12 @@ export function MaterialList({
     <table className="w-full text-sm min-w-[760px]">
       <thead className="bg-zinc-100 sticky top-0 z-20">
         <tr>
-          <th className="text-left p-2 sticky left-0 z-30 bg-zinc-100">零件</th>
-          <th className="text-left p-2">材質</th>
-          <th className="text-right p-2">可見長 × 寬 × 厚 (mm)</th>
-          <th className="text-right p-2">切料尺寸 (mm)</th>
-          <th className="text-right p-2">材積（板才）</th>
-          <th className="text-left p-2">榫頭備註</th>
+          <th className="text-left p-2 sticky left-0 z-30 bg-zinc-100">{isEn ? "Part" : "零件"}</th>
+          <th className="text-left p-2">{isEn ? "Material" : "材質"}</th>
+          <th className="text-right p-2">{isEn ? "Visible L × W × T (mm)" : "可見長 × 寬 × 厚 (mm)"}</th>
+          <th className="text-right p-2">{isEn ? "Cut size (mm)" : "切料尺寸 (mm)"}</th>
+          <th className="text-right p-2">{isEn ? "Volume (bdft)" : "材積（板才）"}</th>
+          <th className="text-left p-2">{isEn ? "Tenon notes" : "榫頭備註"}</th>
         </tr>
       </thead>
       {sortedCategories.map((cat) => {
@@ -4078,7 +4095,7 @@ export function MaterialList({
                 <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar}`} />
                 {CATEGORY_LABEL[cat]}
                 <span className="ml-2 font-normal opacity-60">
-                  · {catRows.length} 件
+                  · {isEn ? `${catRows.length} parts` : `${catRows.length} 件`}
                 </span>
               </td>
               <td className={`px-2 py-1.5 text-right text-xs font-mono ${color.text}`}>
@@ -4101,7 +4118,7 @@ export function MaterialList({
                   dispCw,
                   cut.thickness,
                 );
-                const piecesPrefix = pieces > 1 ? `${pieces} 片 × ` : "";
+                const piecesPrefix = pieces > 1 ? (isEn ? `${pieces} × ` : `${pieces} 片 × `) : "";
                 const isSelected = selectedPartId === part.id;
                 const interactive = !!onPartClick;
                 // sticky 第一欄需自帶 bg 避免下方 cell 從後面透出來；
@@ -4122,10 +4139,10 @@ export function MaterialList({
                   >
                     <td className={`p-2 pl-3 relative sticky left-0 z-10 ${firstColBg}`}>
                       <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar} opacity-50`} />
-                      {part.nameZh}
+                      {partName(part, locale)}
                       {pieces > 1 && (
                         <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">
-                          拼 {pieces} 片
+                          {isEn ? `glue ${pieces}` : `拼 ${pieces} 片`}
                         </span>
                       )}
                     </td>
@@ -4151,16 +4168,17 @@ export function MaterialList({
         <tbody className="border-t-2 border-sky-300 bg-sky-50/30">
           <tr className="bg-sky-100/60">
             <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-sky-900">
-              🪟 玻璃（另向玻璃行訂製，不入裁切）
-              <span className="ml-2 font-normal text-sky-700">· {glassRows.length} 片</span>
+              {isEn ? "🪟 Glass (order from glass shop; not in cut list)" : "🪟 玻璃（另向玻璃行訂製，不入裁切）"}
+              <span className="ml-2 font-normal text-sky-700">{isEn ? `· ${glassRows.length} panels` : `· ${glassRows.length} 片`}</span>
             </td>
             <td className="px-2 py-1.5 text-right text-xs font-mono text-sky-700">—</td>
             <td />
           </tr>
           <tr className="bg-sky-50/60">
             <td colSpan={6} className="px-3 py-1.5 text-[11px] text-sky-800 italic">
-              ⚠️ 此尺寸僅供參考——實際應在門片做完、量過實際開口後再向玻璃行下單，
-              避免框料切削誤差導致玻璃尺寸不合。
+              {isEn
+                ? "⚠️ Sizes shown are approximate — only order glass after the doors are built and the openings measured, to avoid frame-machining drift."
+                : "⚠️ 此尺寸僅供參考——實際應在門片做完、量過實際開口後再向玻璃行下單，避免框料切削誤差導致玻璃尺寸不合。"}
             </td>
           </tr>
           {glassRows.map(({ part, cut, materialLabel, tenonNotes }) => {
@@ -4172,7 +4190,7 @@ export function MaterialList({
             const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
             return (
               <tr key={part.id} className="border-b border-sky-100">
-                <td className="p-2">{part.nameZh}</td>
+                <td className="p-2">{partName(part, locale)}</td>
                 <td className="p-2">{materialLabel}</td>
                 <td className="p-2 text-right">
                   {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
@@ -4191,8 +4209,8 @@ export function MaterialList({
         <tbody className="border-t-2 border-amber-400 bg-amber-50/30">
           <tr className="bg-amber-100/60">
             <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-amber-900">
-              🪙 仿古銅五金（外購，不入裁切）
-              <span className="ml-2 font-normal text-amber-700">· {brassRows.length} 件</span>
+              {isEn ? "🪙 Antiqued-brass hardware (purchased; not in cut list)" : "🪙 仿古銅五金（外購，不入裁切）"}
+              <span className="ml-2 font-normal text-amber-700">{isEn ? `· ${brassRows.length} items` : `· ${brassRows.length} 件`}</span>
             </td>
             <td className="px-2 py-1.5 text-right text-xs font-mono text-amber-700">—</td>
             <td />
@@ -4206,7 +4224,7 @@ export function MaterialList({
             const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
             return (
               <tr key={part.id} className="border-b border-amber-100">
-                <td className="p-2">{part.nameZh}</td>
+                <td className="p-2">{partName(part, locale)}</td>
                 <td className="p-2">{materialLabel}</td>
                 <td className="p-2 text-right">
                   {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
@@ -4224,17 +4242,17 @@ export function MaterialList({
       <tfoot className="bg-zinc-100 border-t-2 border-zinc-400">
         <tr>
           <td className="p-2 font-semibold" colSpan={4}>
-            合計
+            {isEn ? "Total" : "合計"}
             <span className="ml-3 text-xs text-zinc-500 font-normal">
               {[...bdftByMaterial.entries()]
-                .map(([k, v]) => `${k} ${v.toFixed(2)} 板才`)
-                .join("　・　")}
+                .map(([k, v]) => isEn ? `${k} ${v.toFixed(2)} bdft` : `${k} ${v.toFixed(2)} 板才`)
+                .join(isEn ? "  ·  " : "　・　")}
             </span>
           </td>
           <td className="p-2 text-right font-mono font-semibold">
             {totalBdft.toFixed(2)}
           </td>
-          <td className="p-2 text-xs text-zinc-500">未含 10% 切料損耗</td>
+          <td className="p-2 text-xs text-zinc-500">{isEn ? "Excludes 10% trim waste" : "未含 10% 切料損耗"}</td>
         </tr>
       </tfoot>
     </table>

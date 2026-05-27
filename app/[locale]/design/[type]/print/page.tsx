@@ -214,7 +214,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           subtitle={isEn ? "Cut sizes include tenon stock" : "切料尺寸已含榫頭凸出長度"}
         />
         <div className="rounded border border-zinc-300 overflow-hidden">
-          <MaterialList design={design} />
+          <MaterialList design={design} locale={locale} />
         </div>
         <p className="mt-3 text-xs text-zinc-500">
           {isEn
