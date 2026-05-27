@@ -49,11 +49,11 @@ export async function GET(request: Request) {
           const admin = createAdminClient();
           const { data: u } = await admin
             .from("users")
-            .select("email, name, welcome_email_sent_at")
+            .select("email, name, welcome_email_sent_at, locale")
             .eq("id", user.id)
             .single();
           if (u && !u.welcome_email_sent_at) {
-            const payload = welcomeEmail({ name: u.name });
+            const payload = welcomeEmail({ name: u.name, locale: u.locale ?? "zh-TW" });
             void sendEmail({
               to: u.email,
               subject: payload.subject,
