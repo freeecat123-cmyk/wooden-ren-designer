@@ -227,34 +227,13 @@ export function T1Dimensions({
   const grossMaxY = Math.max(...grossCorners.map((p) => p.y));
   // T1 dim line 起點用 gross（含 tenon protrusion）邊緣，避免 dim 線/標籤
   // 撞進榫頭凸出區（user 05-17 23:16：「30 應該往上拉到 6 18 6 上面」）
-  // ⚠️ splay 件（dx/dz ≠ 0）的端點翹起、`partLocalToSvg` 走的 `makeProjector`
-  // 純套 rotation 不套 shape 變形 → grossMinY 抓的是「未變形矩形」頂、splay 端
-  // 衝過去蓋住 dim chain（user 2026-05-27 回報「500 / 475 / 415 往上移不要蓋著
-  // 圖」）。額外算「shape-deformed 底面 4 corners」svg y 最小值、必要時抬到該值
-  // 之上。注意：這個 clamp **只**動 horizY、不能動 allCorners / partWidthSvg /
-  // grossCorners（會牽連 screenRatio → bestPair 軸對應、之前一版抬高把「475」
-  // 字搞不見）。
-  let horizY = grossMinY - HORIZ_OFFSET;
-  const splayShapeForOffset =
-    part.shape?.kind === "splayed" ||
-    part.shape?.kind === "splayed-tapered" ||
-    part.shape?.kind === "splayed-round-tapered"
-      ? part.shape
-      : null;
-  if (
-    splayShapeForOffset &&
-    (Math.abs(splayShapeForOffset.dxMm) > 0.01 ||
-      Math.abs(splayShapeForOffset.dzMm) > 0.01)
-  ) {
-    const splaySamples = [
-      ctx.partLocalToSvg(-L / 2 + splayShapeForOffset.dxMm, +T / 2, -W / 2 + splayShapeForOffset.dzMm),
-      ctx.partLocalToSvg(+L / 2 + splayShapeForOffset.dxMm, +T / 2, -W / 2 + splayShapeForOffset.dzMm),
-      ctx.partLocalToSvg(-L / 2 + splayShapeForOffset.dxMm, +T / 2, +W / 2 + splayShapeForOffset.dzMm),
-      ctx.partLocalToSvg(+L / 2 + splayShapeForOffset.dxMm, +T / 2, +W / 2 + splayShapeForOffset.dzMm),
-    ];
-    const splayTopY = Math.min(...splaySamples.map((p) => p.y));
-    horizY = Math.min(horizY, splayTopY - HORIZ_OFFSET);
-  }
+  //
+  // splay 件 dim chain 錨點：用未傾斜原料頂(grossMinY)、不為了避開傾斜端 silhouette
+  // 而往上推。理由(user 2026-05-27)：木工拿到的是一根未傾斜方料,所有 dim chain
+  // (37/365/含榫 445 等)都是沿未傾斜長度軸的量度——「要抓的是要挖孔的面」。
+  // 傾斜只是組裝視覺結果,不是製作量度基準。trade-off：傾斜端(虛線)會穿過
+  // dim chain 區,但語意正確優先於視覺乾淨。
+  const horizY = grossMinY - HORIZ_OFFSET;
   const vertX = grossMaxX + VERT_OFFSET;
   const partWidthSvg =
     Math.max(...allCorners.map((p) => p.x)) -
@@ -973,10 +952,18 @@ export function T2Annotations({
   const isCrossViewTooSmall = crossSectionMm < 60 && crossOtherMm < 60;
   part.mortises.forEach((m, idx) => {
     const lb = mortiseEntryBox(m);
-    if (isCrossViewTooSmall && lb.depthAxis !== viewDepthAxis) {
-      return;
-    }
-    const r = projectBoxRect(lb);
+    // 早期 crossSection<60 過濾被移除(user 2026-05-27:「仰視圖少了兩個榫孔」)
+    // → 細長腳 top/bottom 視圖之前只渲染本視軸 mortise、隱掉其他面的、結果
+    // 仰視缺斜孔(對應前視 4 個榫的另 2 個 Z 面)。改成全 render、不可見的走
+    // 虛線 hidden 慣例(下面 isVisibleFromView 判斷)。原 isCrossViewTooSmall
+    // 變數還留下面其他地方用。
+    //
+    // dim chain 抓未旋轉 AABB(user 2026-05-27「轉向之後標線是不是要重抓」):
+    // splay 件 mortise 帶 rotX/rotZ,projectBoxRect 對旋轉 box 算 AABB,dim chain
+    // 邊跟著 AABB 走 → 鋸口位置不對應原料挖孔面。strip rotation 後 AABB 就是
+    // 「未傾斜原料挖孔位置」、木匠量度的邊。
+    const lbForDim = { ...lb, rotX: 0, rotY: 0, rotZ: 0 };
+    const r = projectBoxRect(lbForDim);
     if (!r) return;
     const W = round1(m.width ?? 0);
     const L = round1(m.length ?? 0);
@@ -1028,11 +1015,21 @@ export function T2Annotations({
   // 兩個榫頭的 chain dim 會疊出「43|42」「43|42」兩條一模一樣的尺寸
   // （user 2026-05-21 回報）。同 kind + 同 projected rect + 同 dims 視為
   // 同一張視覺特徵，保留第一個就好。
+  //
+  // mortise dedupe key 加 part-local origin + depthAxis：splay 腳 Z 面 vs X 面
+  // mortise 在 bottom view 都投影到同 AABB,但 part-local origin/depthAxis 不同,
+  // 不該 dedup(user 2026-05-27:仰視缺斜孔)。
   {
     const seen = new Set<string>();
     const unique: Item[] = [];
     for (const it of items) {
-      const key = `${it.kind}|${Math.round(it.rect.x)}|${Math.round(it.rect.y)}|${Math.round(it.rect.w)}|${Math.round(it.rect.h)}|${it.dims}`;
+      let mortiseTag = "";
+      if (it.kind === "m") {
+        const m = part.mortises[it.idx];
+        const lb = mortiseEntryBox(m);
+        mortiseTag = `|${lb.depthAxis}|${Math.round(m.origin.x)}|${Math.round(m.origin.y)}|${Math.round(m.origin.z)}`;
+      }
+      const key = `${it.kind}|${Math.round(it.rect.x)}|${Math.round(it.rect.y)}|${Math.round(it.rect.w)}|${Math.round(it.rect.h)}|${it.dims}${mortiseTag}`;
       if (seen.has(key)) continue;
       seen.add(key);
       unique.push(it);
@@ -1218,10 +1215,9 @@ export function T2Annotations({
     //  夠精確分辨同 row、後面 stagger 再調整)
     const wDimBelow = !outerAbove;
     const wGap = GAP;
-    let wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
-    if (!wDimBelow && Number.isFinite(splaySilTopY)) {
-      wDimY = Math.min(wDimY, splaySilTopY - SIL_TOP_SAFETY);
-    }
+    // splay 件不再 clamp 到 silhouette top 之上（user 2026-05-27：dim chain 錨
+    // 未傾斜原料、虛線傾斜端穿過 dim 區可接受）
+    const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
     return { wDimY, wDimBelow, lDimX: lDimXBase, wStagger: 0, lStagger: 0 };
   });
 
@@ -1282,6 +1278,10 @@ export function T2Annotations({
   }
 
   const elements: React.ReactNode[] = [];
+  // dedupe shoulder label keys (`${lDimX}|${value}` for shoulderTop/Bot, `${wDimY}|${value}` for shoulderLft/Rgt)
+  // 同 column 同值的 shoulder 只畫第一個,避免雙面 mortise(splay 腳 Z 面+X 面)的
+  // 12.5 等 label 重複(user 2026-05-27:「先刪除一個 12.5」)
+  const renderedShoulderKeys = new Set<string>();
   items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
@@ -1312,14 +1312,13 @@ export function T2Annotations({
     // HLE: tenon 是凸出實體、任何視圖都實線。mortise 是內藏腔體、只有入榫面
     // 朝鏡頭（深度軸跟視圖軸一致 + origin 在 + face）才實線、否則虛線。
     // (user:「上面的牙條榫應該是紅色實線」/「藍色榫頭線也應該是藍色實線」)
-    const viewAxis: "x" | "y" | "z" =
-      view === "top" ? "y" : view === "side" ? "x" : "z";
+    // 用 viewDepthAxis(line 939)而非 view-only mapping:tall iso 件 bottom view
+    // 看 X 面(同 top view、Rz=-π/2 isolation rotation)、不是預設 "z"。
+    // user 2026-05-27 回報:「仰視圖這兩個榫是看得到的榫 要實心紅線」。
     let isVisibleFromView = false;
     if (isMortise) {
       const mortiseLb = lb as ReturnType<typeof mortiseEntryBox>;
-      // mortise 深度軸跟視圖軸一致 = 直接看進榫眼開口 → 實線（無論 origin 正負，
-      // isolation 零件圖兩面都算外觀可見）
-      isVisibleFromView = mortiseLb.depthAxis === viewAxis;
+      isVisibleFromView = mortiseLb.depthAxis === viewDepthAxis;
     } else {
       isVisibleFromView = true; // tenon 永遠實線
     }
@@ -1625,11 +1624,8 @@ export function T2Annotations({
       // 避免「438 438」「415 415」「202.5 202.5」這種多 mortise 標籤撞同一行
       const myMeta = baselineMetas[itemIdx];
       const wStaggerOffset = myMeta.wStagger * STAGGER_GAP;
-      const wDimYBaseRaw = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
-      const wDimYBase =
-        !wDimBelow && Number.isFinite(splaySilTopY)
-          ? Math.min(wDimYBaseRaw, splaySilTopY - SIL_TOP_SAFETY)
-          : wDimYBaseRaw;
+      // splay 件不再 clamp 到 silhouette top 之上（同上 user 決策）
+      const wDimYBase = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
       const wDimY = wDimBelow
         ? wDimYBase + wStaggerOffset
         : wDimYBase - wStaggerOffset;
@@ -1912,7 +1908,12 @@ export function T2Annotations({
       // 原本 mid-chain shoulderTop label 會外推 tightOut + 加斜引線避免跟 box W-dim
       // label 同列撞，現在 W/L dim 框已拆 → 撤掉外推，label 回到 dim 線中點原位。
       // (user 2026-05-26「14.4 可以移回去原本位置了」)
-      if (shoulderTop > TH) {
+      // dedupe by VALUE only,跨軸跨 mortise 同值只畫第一個(user 2026-05-27
+      // 「先刪除一個 12.5」)。同 mortise 的 shoulderTop=12.5 跟 shoulderRgt=12.5
+      // 或雙面 mortise 兩個 shoulderRgt=12.5,只留第一個渲染。
+      const shTKey = `${shoulderTop}`;
+      if (shoulderTop > TH && !renderedShoulderKeys.has(shTKey)) {
+        renderedShoulderKeys.add(shTKey);
         const segMidY = (shoulderTopStartY + box.y) / 2;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
@@ -1946,7 +1947,9 @@ export function T2Annotations({
           </g>,
         );
       }
-      if (shoulderBot > TH) {
+      const shBKey = `${shoulderBot}`;
+      if (shoulderBot > TH && !renderedShoulderKeys.has(shBKey)) {
+        renderedShoulderKeys.add(shBKey);
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shB`}>
             <line
@@ -1982,7 +1985,9 @@ export function T2Annotations({
       // W dim 線（horizontal）左右延伸：partLeft→box.x 和 box.x+box.w→partRight
       // user:「我是說往下的延伸線」=>「partEdge 角→wDimY」那條垂直延伸不畫
       // （長線視覺雜訊、shoulder 量 + arrow 已能傳達距邊資訊）
-      if (shoulderLft > TH) {
+      const shLKey = `${shoulderLft}`;
+      if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey)) {
+        renderedShoulderKeys.add(shLKey);
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shL`}>
             <line
@@ -2007,7 +2012,9 @@ export function T2Annotations({
           </g>,
         );
       }
-      if (shoulderRgt > TH) {
+      const shRKey = `${shoulderRgt}`;
+      if (shoulderRgt > TH && !renderedShoulderKeys.has(shRKey)) {
+        renderedShoulderKeys.add(shRKey);
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shR`}>
             <line

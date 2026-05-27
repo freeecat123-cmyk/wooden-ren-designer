@@ -2039,14 +2039,22 @@ function OrthoViewImpl({
             }
           }
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
+          // 零件圖 splay 腳側/正視:實線=未傾斜原料(outer ghost rect)、
+          // 虛線=傾斜後 silhouette。木工視角:要動鋸子的原料 = 實線比較直覺。
+          const isSplayFamily =
+            part.shape?.kind === "splayed" ||
+            part.shape?.kind === "splayed-tapered" ||
+            part.shape?.kind === "splayed-round-tapered";
+          const splaySwap =
+            isolatePartId && isSplayFamily && (view === "front" || view === "side");
           return (
             <polygon
               key={part.id}
               points={points}
               fill="none"
               stroke={stroke}
-              strokeWidth={sw}
-              strokeDasharray={dash}
+              strokeWidth={splaySwap ? sw * 0.8 : sw}
+              strokeDasharray={splaySwap ? "4 3" : dash}
             />
           );
         }
@@ -2272,14 +2280,22 @@ function OrthoViewImpl({
           const isPolygonBottomTop = part.shape?.kind === "regular-polygon" && view === "top";
           const effDash = isPolygonBottomTop ? "4 3" : dash;
           const effStroke = isPolygonBottomTop ? "#444" : stroke;
+          // 零件圖 splay 腳側/正視:實線=未傾斜原料(outer ghost rect 加深處理)、
+          // 虛線=傾斜後 silhouette。木工視角:要動鋸子的原料 = 實線比較直覺。
+          const isSplayFamilyShape =
+            part.shape?.kind === "splayed" ||
+            part.shape?.kind === "splayed-tapered" ||
+            part.shape?.kind === "splayed-round-tapered";
+          const splaySwapShape =
+            isolatePartId && isSplayFamilyShape && (view === "front" || view === "side");
           return (
             <g key={part.id}>
               <polygon
                 points={points}
                 fill="none"
                 stroke={effStroke}
-                strokeWidth={sw}
-                strokeDasharray={effDash}
+                strokeWidth={splaySwapShape ? sw * 0.8 : sw}
+                strokeDasharray={splaySwapShape ? "4 3" : effDash}
               />
               {extras}
             </g>
@@ -2542,18 +2558,31 @@ function OrthoViewImpl({
           );
         })}
 
-      {/* outer bounding box (dashed ghost) */}
-      <rect
-        x={-w / 2}
-        y={drawAreaTop}
-        width={w}
-        height={h}
-        fill="none"
-        stroke="#999"
-        strokeDasharray="3 3"
-        strokeWidth={0.5}
-        opacity={0.8}
-      />
+      {/* outer bounding box (dashed ghost)
+          零件圖 splay 腳側/正視:此框=未傾斜原料,改實線深色當主輪廓
+          (跟 polygon silhouette 改虛線配對, 木工視角實線=要切的料) */}
+      {(() => {
+        const isolatedPart = isolatePartId ? renderDesign.parts[0] : null;
+        const isSplayPartSwap =
+          !!isolatedPart &&
+          (isolatedPart.shape?.kind === "splayed" ||
+            isolatedPart.shape?.kind === "splayed-tapered" ||
+            isolatedPart.shape?.kind === "splayed-round-tapered") &&
+          (view === "front" || view === "side");
+        return (
+          <rect
+            x={-w / 2}
+            y={drawAreaTop}
+            width={w}
+            height={h}
+            fill="none"
+            stroke={isSplayPartSwap ? "#000" : "#999"}
+            strokeDasharray={isSplayPartSwap ? undefined : "3 3"}
+            strokeWidth={isSplayPartSwap ? 1.2 : 0.5}
+            opacity={isSplayPartSwap ? 1 : 0.8}
+          />
+        );
+      })()}
 
       {/* 榫接模式 overlay（drafting-math.md §B5/§B6）：
             - tenon 凸出 = 紅實線

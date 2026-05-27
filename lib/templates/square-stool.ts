@@ -705,8 +705,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         const lsZRotX = (_splayDzForLegs !== 0 && legHeight > 0)
           ? Math.sign(cz || 1) * Math.atan(Math.abs(_splayDzForLegs) / legHeight)
           : 0;
+        // 同 legMortisesForApron 的 xFaceRotZ:rotZ 應 -sign(cx)(user 2026-05-27 斜錯方向)
         const lsXRotZ = (_splayDxForLegs !== 0 && legHeight > 0)
-          ? Math.sign(cx || 1) * Math.atan(Math.abs(_splayDxForLegs) / legHeight)
+          ? -Math.sign(cx || 1) * Math.atan(Math.abs(_splayDxForLegs) / legHeight)
           : 0;
         if (lowerCanHalfStagger) {
           leg.mortises.push(
@@ -849,8 +850,12 @@ function legMortisesForApron(
   const zFaceRotX = (splayDz !== 0 && legHeight > 0)
     ? Math.sign(corner.z || 1) * Math.atan(Math.abs(splayDz) / legHeight)
     : 0;
+  // X 面 mortise rotZ:apron tenon 在 world 沿 -X 方向、leg 軸傾後 leg-local
+  // frame 看 apron 方向是(-cos θ, sin θ),從 mortise 自然軸 -X 旋轉到此是
+  // **clockwise**(負 rotZ around Z),符號要 -sign(corner.x)(user 2026-05-27
+  // 「斜錯方向」)。
   const xFaceRotZ = (splayDx !== 0 && legHeight > 0)
-    ? Math.sign(corner.x || 1) * Math.atan(Math.abs(splayDx) / legHeight)
+    ? -Math.sign(corner.x || 1) * Math.atan(Math.abs(splayDx) / legHeight)
     : 0;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
   // 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫

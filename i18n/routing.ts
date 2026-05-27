@@ -13,6 +13,9 @@ export const routing = defineRouting({
   locales: ["zh-TW", "en"] as const,
   defaultLocale: "zh-TW",
   localePrefix: "as-needed",
+  // 關掉 Accept-Language 自動 redirect:root `/` 永遠走 zh-TW、不被瀏覽器語言重定向到 /en
+  // (user 2026-05-27:「我要進 localhost:3000/ 不要 en」)
+  localeDetection: false,
 });
 
 export type Locale = (typeof routing.locales)[number];
