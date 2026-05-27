@@ -15,6 +15,7 @@ export interface ShapePreset {
     | "z-shape"
     | "hexagon";
   nameZh: string;
+  nameEn: string;
   build: () => RoomPolygon;
 }
 
@@ -22,6 +23,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "rect",
     nameZh: "矩形",
+    nameEn: "Rectangle",
     build: () => ({
       vertices: [
         { x: 0, y: 0 },
@@ -34,6 +36,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "l-shape",
     nameZh: "L 型",
+    nameEn: "L-shape",
     build: () => ({
       vertices: [
         { x: 0, y: 0 },
@@ -48,6 +51,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "t-shape",
     nameZh: "T 型",
+    nameEn: "T-shape",
     build: () => ({
       vertices: [
         { x: 0, y: 0 },
@@ -64,6 +68,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "convex",
     nameZh: "凸型",
+    nameEn: "Convex",
     build: () => ({
       vertices: [
         { x: 0, y: 0 },
@@ -78,6 +83,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "u-shape",
     nameZh: "ㄇ型",
+    nameEn: "U-shape",
     build: () => ({
       // 上緣中央向下凹一塊
       vertices: [
@@ -95,6 +101,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "cross",
     nameZh: "十字型",
+    nameEn: "Cross",
     build: () => ({
       // 中央主體四向各凸出一塊
       vertices: [
@@ -116,6 +123,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "z-shape",
     nameZh: "Z型",
+    nameEn: "Z-shape",
     build: () => ({
       // 兩段矩形對角錯開
       vertices: [
@@ -133,6 +141,7 @@ export const SHAPE_PRESETS: ShapePreset[] = [
   {
     id: "hexagon",
     nameZh: "六角型",
+    nameEn: "Hexagon",
     build: () => ({
       // 矩形切掉左上、右下兩個對角(45° 斜邊)
       vertices: [
@@ -169,18 +178,24 @@ export function getPreset(id: ShapePreset["id"]): RoomPolygon {
 export interface PlankPreset {
   id: string;
   nameZh: string;
+  nameEn: string;
   lengthCm: number;
   widthCm: number;
   gapMm: number;
 }
 
 export const PLANK_PRESETS: PlankPreset[] = [
-  { id: "lam-std", nameZh: "超耐磨 標準", lengthCm: 121, widthCm: 19.5, gapMm: 8 },
-  { id: "lam-long", nameZh: "超耐磨 大尺寸", lengthCm: 183.5, widthCm: 19.6, gapMm: 10 },
-  { id: "spc-std", nameZh: "SPC 石塑", lengthCm: 122, widthCm: 18, gapMm: 8 },
-  { id: "spc-wide", nameZh: "SPC 寬版", lengthCm: 122, widthCm: 22.8, gapMm: 8 },
-  { id: "island", nameZh: "海島型 6寸", lengthCm: 121, widthCm: 18, gapMm: 5 },
-  { id: "solid-std", nameZh: "實木 標準3寸", lengthCm: 91, widthCm: 9.1, gapMm: 12 },
-  { id: "solid-wide", nameZh: "實木 寬版5寸", lengthCm: 121, widthCm: 15, gapMm: 12 },
-  { id: "solid-narrow", nameZh: "實木 窄版2寸", lengthCm: 60, widthCm: 6, gapMm: 10 },
+  { id: "lam-std", nameZh: "超耐磨 標準", nameEn: "Laminate · standard", lengthCm: 121, widthCm: 19.5, gapMm: 8 },
+  { id: "lam-long", nameZh: "超耐磨 大尺寸", nameEn: "Laminate · oversize", lengthCm: 183.5, widthCm: 19.6, gapMm: 10 },
+  { id: "spc-std", nameZh: "SPC 石塑", nameEn: "SPC stone-plastic", lengthCm: 122, widthCm: 18, gapMm: 8 },
+  { id: "spc-wide", nameZh: "SPC 寬版", nameEn: "SPC wide", lengthCm: 122, widthCm: 22.8, gapMm: 8 },
+  { id: "island", nameZh: "海島型 6寸", nameEn: "Engineered · 6 in.", lengthCm: 121, widthCm: 18, gapMm: 5 },
+  { id: "solid-std", nameZh: "實木 標準3寸", nameEn: "Solid wood · 3 in.", lengthCm: 91, widthCm: 9.1, gapMm: 12 },
+  { id: "solid-wide", nameZh: "實木 寬版5寸", nameEn: "Solid wood · 5 in. wide", lengthCm: 121, widthCm: 15, gapMm: 12 },
+  { id: "solid-narrow", nameZh: "實木 窄版2寸", nameEn: "Solid wood · 2 in. narrow", lengthCm: 60, widthCm: 6, gapMm: 10 },
 ];
+
+/** Locale-aware name accessor for ShapePreset / PlankPreset entries. */
+export function presetName(p: { nameZh: string; nameEn: string }, locale: string): string {
+  return locale === "en" ? p.nameEn : p.nameZh;
+}

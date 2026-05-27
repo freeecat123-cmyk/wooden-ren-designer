@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { computeFloorBom } from "@/lib/floor/calc";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { DEFAULT_FLOOR_INPUT, type FloorInput, type RoomPolygon } from "@/lib/floor/types";
@@ -16,6 +16,7 @@ import {
   SHAPE_PRESETS,
   getPreset,
   PLANK_PRESETS,
+  presetName,
   type ShapePreset,
 } from "@/lib/floor/presets";
 import {
@@ -30,6 +31,7 @@ import { FloorRangeInput } from "./FloorRangeInput";
 export function FloorDevClient() {
   const router = useRouter();
   const t = useTranslations("floorTool");
+  const locale = useLocale();
   const [input, setInput] = useState<FloorInput>(DEFAULT_FLOOR_INPUT);
   const bom = useMemo(() => computeFloorBom(input), [input]);
   const [copied, setCopied] = useState(false);
@@ -104,7 +106,7 @@ export function FloorDevClient() {
                   className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50"
                   onClick={() => setRoom(getPreset(preset.id))}
                 >
-                  {preset.nameZh}
+                  {presetName(preset, locale)}
                 </button>
               ))}
             </div>
@@ -152,7 +154,7 @@ export function FloorDevClient() {
                       }))
                     }
                   >
-                    <span className="block font-medium">{p.nameZh}</span>
+                    <span className="block font-medium">{presetName(p, locale)}</span>
                     <span className="block text-[10px] text-zinc-400">
                       {t("presetSpecFormat", {
                         lengthCm: p.lengthCm,
