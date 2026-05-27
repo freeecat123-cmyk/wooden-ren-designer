@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface LemonSubscriptionRow {
   plan: string;
@@ -49,6 +50,7 @@ function statusBadge(status: string): string {
 }
 
 export function LemonSubscriptionClient() {
+  const t = useTranslations("lemon.subscription");
   const [sub, setSub] = useState<LemonSubscriptionRow | null>(null);
   const [purchases, setPurchases] = useState<SinglePurchase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +121,7 @@ export function LemonSubscriptionClient() {
   if (loading) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-16">
-        <p className="text-zinc-500">Loading subscription…</p>
+        <p className="text-zinc-500">{t("loading")}</p>
       </main>
     );
   }
@@ -135,18 +137,16 @@ export function LemonSubscriptionClient() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-12 text-zinc-800">
       <h1 className="font-serif text-3xl sm:text-4xl font-bold text-zinc-900 mb-2">
-        My subscription
+        {t("h1")}
       </h1>
-      <p className="text-zinc-600 mb-8">
-        Manage your Furniture Blueprints plan and single-template purchases.
-      </p>
+      <p className="text-zinc-600 mb-8">{t("intro")}</p>
 
       {sub ? (
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 p-6 shadow-sm mb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h2 className="text-xl font-bold text-zinc-900">
-                {sub.plan === "pro" ? "Furniture Blueprints Pro" : sub.plan}
+                {sub.plan === "pro" ? t("planProLabel") : sub.plan}
                 {sub.period ? (
                   <span className="ml-2 text-sm font-normal text-zinc-500">
                     ({sub.period})
@@ -163,18 +163,18 @@ export function LemonSubscriptionClient() {
               href={PORTAL_ENDPOINT}
               className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-800 transition-colors"
             >
-              Manage subscription →
+              {t("manage")}
             </a>
           </div>
 
           <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <dt className="text-zinc-500">Started</dt>
+              <dt className="text-zinc-500">{t("started")}</dt>
               <dd className="font-semibold text-zinc-900">{formatDate(sub.started_at)}</dd>
             </div>
             <div>
               <dt className="text-zinc-500">
-                {sub.status === "cancelled" ? "Access until" : "Renews on"}
+                {sub.status === "cancelled" ? t("accessUntil") : t("renewsOn")}
               </dt>
               <dd className="font-semibold text-zinc-900">{formatDate(sub.expires_at)}</dd>
             </div>
@@ -182,24 +182,20 @@ export function LemonSubscriptionClient() {
 
           {sub.status === "cancelled" && (
             <p className="mt-4 text-sm text-amber-800 bg-amber-50 rounded-lg p-3 ring-1 ring-amber-200">
-              Your subscription is cancelled but remains active until{" "}
-              {formatDate(sub.expires_at)}. You can reactivate from the customer portal.
+              {t("cancelledNote", { date: formatDate(sub.expires_at) })}
             </p>
           )}
 
-          <p className="mt-4 text-xs text-zinc-500">
-            Update payment method, cancel, or view invoices on the Lemon Squeezy
-            customer portal.
-          </p>
+          <p className="mt-4 text-xs text-zinc-500">{t("portalHint")}</p>
         </section>
       ) : (
         <section className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 p-6 mb-8">
-          <p className="text-amber-900 font-semibold">No active subscription.</p>
+          <p className="text-amber-900 font-semibold">{t("noActive")}</p>
           <a
             href="/en/pricing"
             className="mt-3 inline-block px-5 py-2.5 rounded-lg bg-amber-700 text-white text-sm font-semibold hover:bg-amber-800"
           >
-            View plans
+            {t("viewPlans")}
           </a>
         </section>
       )}
@@ -207,7 +203,7 @@ export function LemonSubscriptionClient() {
       {purchases.length > 0 && (
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 p-6 shadow-sm">
           <h2 className="text-lg font-bold text-zinc-900 mb-4">
-            Single-template purchases
+            {t("singlePurchasesH")}
           </h2>
           <ul className="divide-y divide-stone-200">
             {purchases.map((p, i) => (
@@ -215,7 +211,7 @@ export function LemonSubscriptionClient() {
                 <div>
                   <span className="font-semibold text-zinc-900">{p.id}</span>
                   <span className="ml-2 text-xs text-zinc-500">
-                    {p.kind === "tool" ? "tool" : "template"} · {formatDate(p.created_at)}
+                    {p.kind === "tool" ? t("purchaseTypeTool") : t("purchaseTypeTemplate")} · {formatDate(p.created_at)}
                   </span>
                 </div>
                 <span className="font-bold text-zinc-900">${p.paid_amount}</span>

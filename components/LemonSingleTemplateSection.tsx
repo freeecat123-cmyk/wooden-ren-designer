@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   getTemplateTier,
   TIER_PRICE_USD,
@@ -34,12 +35,6 @@ interface Props {
   loginHref: string;
 }
 
-const TIER_LABEL: Record<TemplateTier, string> = {
-  basic: "Basic",
-  pro: "Pro",
-  studio: "Studio",
-};
-
 const TIER_BADGE_COLOR: Record<TemplateTier, string> = {
   basic: "bg-emerald-100 text-emerald-800",
   pro: "bg-amber-100 text-amber-800",
@@ -57,6 +52,12 @@ export function LemonSingleTemplateSection({
   isAuthed,
   loginHref,
 }: Props) {
+  const t = useTranslations("lemon.singleTemplate");
+  const tierLabel: Record<TemplateTier, string> = {
+    basic: t("tierBasic"),
+    pro: t("tierPro"),
+    studio: t("tierStudio"),
+  };
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(isAuthed);
   const [filter, setFilter] = useState<"all" | TemplateTier>("all");
@@ -108,18 +109,16 @@ export function LemonSingleTemplateSection({
     <section className="mt-16 max-w-5xl mx-auto" id="single-templates">
       <div className="text-center mb-8">
         <h2 className="font-serif text-2xl sm:text-3xl font-bold text-zinc-900">
-          Just want one template?
+          {t("heading")}
         </h2>
-        <p className="mt-2 text-sm text-zinc-600">
-          Buy lifetime access to a single template. No subscription.
-        </p>
+        <p className="mt-2 text-sm text-zinc-600">{t("intro")}</p>
         <div className="mt-3 inline-flex gap-2 text-xs flex-wrap justify-center">
-          {(Object.keys(TIER_PRICE_USD) as TemplateTier[]).map((t) => (
+          {(Object.keys(TIER_PRICE_USD) as TemplateTier[]).map((tier) => (
             <span
-              key={t}
+              key={tier}
               className="px-2.5 py-1 rounded-full bg-zinc-100 ring-1 ring-zinc-300 text-zinc-800"
             >
-              {TIER_LABEL[t]} ${TIER_PRICE_USD[t]}
+              {tierLabel[tier]} ${TIER_PRICE_USD[tier]}
             </span>
           ))}
         </div>
@@ -137,13 +136,13 @@ export function LemonSingleTemplateSection({
                 : "bg-white text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-400"
             }`}
           >
-            {f === "all" ? "All" : TIER_LABEL[f]}
+            {f === "all" ? t("filterAll") : tierLabel[f]}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="text-center text-sm text-zinc-500">Loading…</p>
+        <p className="text-center text-sm text-zinc-500">{t("loading")}</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {items.map((item) => {
@@ -165,7 +164,7 @@ export function LemonSingleTemplateSection({
                     <span
                       className={`mt-1 inline-block text-[10px] px-1.5 py-0.5 rounded-full font-bold ${TIER_BADGE_COLOR[item.tier]}`}
                     >
-                      {TIER_LABEL[item.tier]}
+                      {tierLabel[item.tier]}
                     </span>
                   </div>
                   <div className="text-right">
@@ -178,7 +177,7 @@ export function LemonSingleTemplateSection({
                     disabled
                     className="mt-3 w-full px-3 py-2 rounded-lg bg-emerald-100 text-emerald-800 text-sm font-semibold cursor-default"
                   >
-                    Owned ✓
+                    {t("owned")}
                   </button>
                 ) : isAuthed ? (
                   <form method="POST" action="/api/lemon-squeezy/checkout" className="mt-3">
@@ -188,7 +187,7 @@ export function LemonSingleTemplateSection({
                       type="submit"
                       className="w-full px-3 py-2 rounded-lg bg-amber-800 text-white text-sm font-semibold hover:bg-amber-900"
                     >
-                      Buy
+                      {t("buy")}
                     </button>
                   </form>
                 ) : (
@@ -196,7 +195,7 @@ export function LemonSingleTemplateSection({
                     href={loginHref}
                     className="mt-3 block w-full text-center px-3 py-2 rounded-lg bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-800"
                   >
-                    Sign in
+                    {t("signIn")}
                   </a>
                 )}
               </div>

@@ -88,6 +88,12 @@ export default async function PricingPage({
       kind: "tool" as const,
       difficulty: "intermediate" as const,
     },
+    {
+      id: "raised-floor",
+      nameEn: "Raised-Floor Tatami Calculator",
+      kind: "tool" as const,
+      difficulty: "intermediate" as const,
+    },
   ].filter((c) => isSellableFurniture(c.id) || isSellableTool(c.id));
 
   return (

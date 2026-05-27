@@ -60,6 +60,7 @@ const STUDIO_TOOLS: ReadonlySet<string> = new Set<string>([
   // 裝潢工具
   "ceiling",
   "floor",
+  "raised-floor",
 ]);
 
 export function getTemplateTier(item: SellableTemplate): TemplateTier {
