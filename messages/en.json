@@ -48,6 +48,88 @@
     "nightstand": "Nightstand",
     "chest-of-drawers": "Chest of drawers"
   },
+  "help": {
+    "metadata": {
+      "title": "FAQ · Wooden Ren Designer",
+      "description": "Wooden Ren Designer FAQ: sign-in, subscriptions, payments, invoices, refunds, PWA install, 3D rendering, and other common issues.",
+      "ogTitle": "FAQ · Wooden Ren Designer",
+      "ogDescription": "Sign-in, subscriptions, payments, refunds, PWA install, 3D rendering — common questions."
+    },
+    "h1": "FAQ",
+    "introPrefix": "Can't find an answer? Contact support:",
+    "introOr": "or add",
+    "lineOaLabel": "LINE Official Account",
+    "stillStuckH2": "Still stuck?",
+    "stillStuckBody": "Write us with your registered email and a screenshot of the issue — we reply within 3 business days.",
+    "stillStuckEmail": "✉️ Email support",
+    "stillStuckLine": "💬 LINE Official Account",
+    "footerLinksIntro": "Site links: ",
+    "linkHome": "Home",
+    "linkPricing": "Pricing",
+    "linkSubscription": "My subscription",
+    "linkRefund": "Refunds",
+    "linkPrivacy": "Privacy",
+    "linkTerms": "Terms",
+    "account": {
+      "title": "Account & sign-in",
+      "q1Q": "The sign-in button doesn't work when opened from LINE / FB / IG",
+      "q1A": "LINE / FB / IG in-app browsers don't support Google sign-in. Tap the top-right \"⋯\" and choose <b>Open in browser</b>, or copy the link to Chrome / Safari first.<br/>Alternatively use <b>Email magic link</b> sign-in: enter your email on the sign-in page and tap the link in your inbox within 10 minutes — no Google account needed.",
+      "q2Q": "The email sign-in link says \"link expired\"",
+      "q2A": "Email sign-in links are valid for <b>1 hour</b>. If expired, go back to the <linkLogin>sign-in page</linkLogin> and request a new one. <b>Don't share the link with anyone</b> — it can only be tapped once and only by you."
+    },
+    "billing": {
+      "title": "Subscriptions & payments",
+      "q1Q": "Does monthly billing auto-renew? How do I cancel?",
+      "q1A": "<b>Yes, it auto-renews</b> every 30 days until you cancel. Go to <linkSub>My subscription</linkSub> and tap \"Cancel subscription\" (you keep access through the end of the current period; no refund on the charge already taken).<br/>Yearly plans do NOT auto-renew. You get a reminder email 7 days before expiry.",
+      "q2Q": "I paid but my features aren't unlocked yet",
+      "q2Intro": "Payment callbacks usually complete in 1–5 minutes. If you've waited more than 10 minutes:",
+      "q2Step1": "Refresh the page / sign out and back in",
+      "q2Step2": "Check your email for the \"Payment successful\" notification",
+      "q2Step3": "Still locked? Contact support with the last 4 digits of your card and the time of the transaction",
+      "q3Q": "Monthly vs yearly — what's the difference?",
+      "q3A": "Monthly = auto-renews every 30 days, you cancel to stop. Yearly = pay once for a year, does not auto-renew, comes with a discount. See full pricing on the <linkPricing>pricing page</linkPricing>.",
+      "q4Q": "Can I upgrade or downgrade mid-cycle?",
+      "q4A": "Upgrades: yes. Tap your target plan on the <linkPricing>pricing page</linkPricing> and the system auto-prorates the refund (unused days of the old plan go back to your card) and cancels the old recurring charge. Downgrades: wait until the current plan expires, then pick the new one."
+    },
+    "invoice": {
+      "title": "Invoices (Taiwan only)",
+      "q1Q": "How are invoices issued?",
+      "q1A": "After payment succeeds, the system auto-issues an ECPay B2C electronic invoice (Taiwan tax authority format) to your registered email. Configure at <linkSub>My subscription</linkSub> → Invoice preferences.",
+      "q2Q": "I entered the wrong company name / tax ID",
+      "q2A": "Within <b>24 hours</b>: contact support immediately and we void and reissue (automatic).<br/>After <b>24 hours</b>: requires a manual credit note flow handled by support (1–3 business days).",
+      "q3Q": "I didn't receive the invoice email",
+      "q3A": "Check spam and the Promotions tab first. If still missing, contact support and we'll manually resend. The invoice itself is already on file with Taiwan's <b>Ministry of Finance e-invoice platform</b> and cannot be lost."
+    },
+    "design": {
+      "title": "Designing & using the app",
+      "q1Q": "My saved designs are gone",
+      "q1A": "If you <b>weren't signed in</b> when designing, the data only lives in that browser — switching devices or clearing cache wipes it. <b>Sign in first</b>, then save: designs sync to the cloud and appear in <linkDesigns>My designs</linkDesigns> across devices.",
+      "q2Q": "3D model won't load on my phone / freezes",
+      "q2A": "3D rendering is resource-heavy on older phones / browsers. We recommend <b>desktop + Chrome / Edge</b> or <b>latest iOS Safari</b>. You can also try the \"Assembly\" view to reduce 3D part count.",
+      "q3Q": "Print PDF has blank pages",
+      "q3A": "Use <b>Chrome → Print → Save as PDF</b>, set margins to \"None\", and check \"Background graphics\". Other browsers may break the layout."
+    },
+    "pwa": {
+      "title": "Install as desktop app (PWA)",
+      "q1Q": "How do I install the app on my phone home screen / computer?",
+      "q1A": "After signing in, the top-right menu shows <b>📲 Install app to home screen</b>. It may take a few seconds of interaction to appear on the first visit.<br/><b>iOS Safari</b>: tap the share button ⬆️ at the bottom → Add to Home Screen (must be Safari, not Chrome).<br/><b>Android / desktop Chrome / Edge</b>: tap the button directly.<br/><b>Line / FB in-app browsers</b>: not supported, use your system browser."
+    },
+    "refundSec": {
+      "title": "Refunds",
+      "q1Q": "Can I get a refund?",
+      "q1Intro": "Wooden Ren Designer is a <b>digital virtual product</b>. Per Article 5 of Taiwan's \"Reasonable Exceptions to Distance Contract Rescission\" regulations, payments are <b>generally non-refundable</b> (you also waived the 7-day cooling-off period at checkout).",
+      "q1ListIntro": "However, the following situations may qualify for <b>case-by-case review</b>:",
+      "q1Case1": "Critical system defect making the service <b>unusable</b> (and we cannot fix it within 7 business days)",
+      "q1Case2": "Service is unilaterally terminated by us, leaving paid-for time unused",
+      "q1Case3": "Other situations required by Taiwan consumer protection law",
+      "q1Outro": "Full terms on the <linkRefund>refund policy page</linkRefund>. To apply: email <linkEmail>support</linkEmail> with subject \"Refund Request - <registered email>\", and include order ID, payment date, and reason.",
+      "q2Q": "How do I avoid buyer's remorse?",
+      "q2Intro": "Since refunds are restricted, we recommend:",
+      "q2Tip1": "Build 3 furniture pieces on the <b>free tier</b> first to confirm the tool works for you",
+      "q2Tip2": "Not sure between monthly and yearly? Start with <b>monthly at NT$390</b> for a month, then switch to yearly if you like it",
+      "q2Tip3": "Monthly can be <linkSub>cancelled anytime</linkSub> — access stays through period end"
+    }
+  },
   "contact": {
     "metadata": {
       "title": "Contact · Wooden Ren Designer",
