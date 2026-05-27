@@ -21,7 +21,7 @@
 
 import React from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
-import { OrthoView } from "@/lib/render/svg-views";
+import { OrthoView, mirrorYPart } from "@/lib/render/svg-views";
 import { L_LAYOUT_GAP, L_LAYOUT_CHAIN_PAD, getIsolatedExtents } from "./paper-fit";
 import {
   T1Dimensions,
@@ -196,18 +196,23 @@ export function PartDrawingPaperSheet({
   }
 
   // 共用 overlay slot fragment（與 PartDrawing 的 overlay 一致）
-  const overlayContent = (view: "front" | "top" | "side") => (ctx: any) => (
-    <>
-      <T1Dimensions ctx={ctx} part={part} view={view} />
-      <T2Annotations ctx={ctx} part={part} view={view} />
-      <GrainArrow ctx={ctx} part={part} view={view} />
-      <ChamferRoundAnnotation ctx={ctx} part={part} view={view} />
-      <FacingMark ctx={ctx} part={part} view={view} />
-      <ShapeSpecificAnnotation ctx={ctx} part={part} view={view} />
-      <CompoundMiterAnnotation ctx={ctx} part={part} view={view} />
-      <SawSetupTable ctx={ctx} part={part} view={view} />
-    </>
-  );
+  // 仰視 BOTTOM：annotation 用 Y 鏡像 part + 'top' view 渲染，跟 OrthoView 鏡像 silhouette 對位
+  const overlayContent = (view: "front" | "top" | "side" | "bottom") => (ctx: any) => {
+    const annPart = view === "bottom" ? mirrorYPart(part) : part;
+    const annView: "front" | "top" | "side" = view === "bottom" ? "top" : view;
+    return (
+      <>
+        <T1Dimensions ctx={ctx} part={annPart} view={annView} />
+        <T2Annotations ctx={ctx} part={annPart} view={annView} />
+        <GrainArrow ctx={ctx} part={annPart} view={annView} />
+        <ChamferRoundAnnotation ctx={ctx} part={annPart} view={annView} />
+        <FacingMark ctx={ctx} part={annPart} view={annView} />
+        <ShapeSpecificAnnotation ctx={ctx} part={annPart} view={annView} />
+        <CompoundMiterAnnotation ctx={ctx} part={annPart} view={annView} />
+        <SawSetupTable ctx={ctx} part={annPart} view={annView} />
+      </>
+    );
+  };
 
   return (
     <svg
@@ -384,8 +389,7 @@ export function PartDrawingPaperSheet({
         paperViewport={sideVp}
         overlayContent={overlayContent("side")}
       />
-      {/* 仰視 BOTTOM：top view 的 Y 鏡像；不掛 annotation overlay（原 part 座標跟
-          mirror design 對不上，等 follow-up 再啟）。主要用來看「底面榫眼位置」。 */}
+      {/* 仰視 BOTTOM：top view 的 Y 鏡像；annotation 用 mirrorYPart + 'top' 對位 */}
       <OrthoView
         design={design}
         view="bottom"
@@ -398,6 +402,7 @@ export function PartDrawingPaperSheet({
         paperScale={scale}
         paperFrame={false}
         paperViewport={bottomVp}
+        overlayContent={overlayContent("bottom")}
       />
 
       {/* ─── 端面 detail view（1:2 放大）── 複斜腳專用 ─── */}

@@ -704,18 +704,21 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
  * 此處不動 part.shape 的 Y 不對稱參數（如 tapered.bottomScale）；
  * π rotation 已把 local +Y 轉到世界 -Y，幾何 silhouette 會自然從反面看。
  */
+export function mirrorYPart(p: import("@/lib/types").Part): import("@/lib/types").Part {
+  return {
+    ...p,
+    origin: { x: p.origin.x, y: -p.origin.y, z: p.origin.z },
+    rotation: {
+      x: (p.rotation?.x ?? 0) + Math.PI,
+      y: p.rotation?.y ?? 0,
+      z: p.rotation?.z ?? 0,
+    },
+  };
+}
 function mirrorYDesign(d: import("@/lib/types").FurnitureDesign): import("@/lib/types").FurnitureDesign {
   return {
     ...d,
-    parts: d.parts.map((p) => ({
-      ...p,
-      origin: { x: p.origin.x, y: -p.origin.y, z: p.origin.z },
-      rotation: {
-        x: (p.rotation?.x ?? 0) + Math.PI,
-        y: p.rotation?.y ?? 0,
-        z: p.rotation?.z ?? 0,
-      },
-    })),
+    parts: d.parts.map(mirrorYPart),
   };
 }
 

@@ -47,3 +47,39 @@ export const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
 export function getCategoryLabel(category: FurnitureCategory): string {
   return CATEGORY_LABELS[category] ?? category;
 }
+
+export const CATEGORY_LABELS_EN: Record<FurnitureCategory, string> = {
+  stool: "Square stool",
+  bench: "Bench",
+  "tea-table": "Tea table",
+  "side-table": "Side table",
+  "low-table": "Low table",
+  "open-bookshelf": "Open bookshelf",
+  "chest-of-drawers": "Chest of drawers",
+  "chinese-cabinet": "Ming-style cabinet",
+  "shoe-cabinet": "Shoe cabinet",
+  "display-cabinet": "Display cabinet",
+  "dining-table": "Dining table",
+  desk: "Desk",
+  "dining-chair": "Dining chair",
+  wardrobe: "Wardrobe",
+  "bar-stool": "Bar stool",
+  "media-console": "Media console",
+  nightstand: "Nightstand",
+  "round-stool": "Round stool",
+  "round-tea-table": "Round tea table",
+  "round-table": "Round dining table",
+  "pencil-holder": "Pencil holder",
+  bookend: "Bookend",
+  "photo-frame": "Picture frame",
+  tray: "Tray",
+  "dovetail-box": "Dovetail box",
+  "wine-rack": "Wine rack",
+  bed: "Bed frame",
+  "coat-rack": "Coat rack",
+};
+
+export function categoryLabel(category: FurnitureCategory, locale: string): string {
+  if (locale === "en") return CATEGORY_LABELS_EN[category] ?? CATEGORY_LABELS[category] ?? category;
+  return CATEGORY_LABELS[category] ?? category;
+}

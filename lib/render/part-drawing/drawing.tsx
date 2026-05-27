@@ -13,7 +13,7 @@
 import React, { useLayoutEffect, useRef } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import type { PartDrawingGroup } from "./grouping";
-import { OrthoView } from "@/lib/render/svg-views";
+import { OrthoView, mirrorYPart } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
 import {
   T1Dimensions,
@@ -261,33 +261,31 @@ export function PartDrawing({
                     materialLabel: material?.nameZh ?? part.material,
                     dimsLabel: `${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`,
                   }}
-                  overlayContent={(ctx) => (
-                    <>
-                      {/* 仰視 BOTTOM 內部用 mirror design 渲染、原 part 座標跟
-                          投影對不上，先跳過 annotation overlay，等 follow-up 把
-                          annotation 也 mirror 才開啟。仰視主要看「腳底面榫眼位置」，
-                          尺寸看其他 3 個 view 已足夠。 */}
-                      {view !== "bottom" && (
-                        <>
-                          <T1Dimensions ctx={ctx} part={part} view={view} />
-                          <T2Annotations ctx={ctx} part={part} view={view} />
-                          <GrainArrow ctx={ctx} part={part} view={view} />
-                          <ChamferRoundAnnotation ctx={ctx} part={part} view={view} />
-                          <FacingMark ctx={ctx} part={part} view={view} />
-                          <ShapeSpecificAnnotation
-                            ctx={ctx}
-                            part={part}
-                            view={view}
-                          />
-                          <CompoundMiterAnnotation
-                            ctx={ctx}
-                            part={part}
-                            view={view}
-                          />
-                        </>
-                      )}
-                    </>
-                  )}
+                  overlayContent={(ctx) => {
+                    // 仰視 BOTTOM：annotation 在「Y 鏡像後的 part」+ view='top' 下渲染，
+                    // 才能跟 OrthoView 內部 mirror design 投影對上。
+                    const annPart = view === "bottom" ? mirrorYPart(part) : part;
+                    const annView: PartView = view === "bottom" ? "top" : view;
+                    return (
+                      <>
+                        <T1Dimensions ctx={ctx} part={annPart} view={annView} />
+                        <T2Annotations ctx={ctx} part={annPart} view={annView} />
+                        <GrainArrow ctx={ctx} part={annPart} view={annView} />
+                        <ChamferRoundAnnotation ctx={ctx} part={annPart} view={annView} />
+                        <FacingMark ctx={ctx} part={annPart} view={annView} />
+                        <ShapeSpecificAnnotation
+                          ctx={ctx}
+                          part={annPart}
+                          view={annView}
+                        />
+                        <CompoundMiterAnnotation
+                          ctx={ctx}
+                          part={annPart}
+                          view={annView}
+                        />
+                      </>
+                    );
+                  }}
                 />
               );
               // 倍率工具列（方案 1：每張視圖標題列旁直接放 1×~8×）

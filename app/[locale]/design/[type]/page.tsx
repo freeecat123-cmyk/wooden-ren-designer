@@ -41,6 +41,7 @@ import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER, groupLabel } from "@/lib/design/option-groups";
+import { specLabel } from "@/lib/templates/spec-labels";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
@@ -1178,7 +1179,7 @@ function GroupedOptionFields({
                     key={`${spec.key}-${String(optionValues[spec.key])}`}
                     className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
-                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} allPartIds={allPartIds} />
+                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} allPartIds={allPartIds} locale={locale} />
                   </div>
                 );
               })}
@@ -1197,6 +1198,7 @@ function OptionField({
   overallHeight,
   overallLength,
   allPartIds,
+  locale,
 }: {
   spec: OptionSpec;
   value: string | number | boolean;
@@ -1204,7 +1206,9 @@ function OptionField({
   overallHeight?: number;
   overallLength?: number;
   allPartIds?: string[];
+  locale: string;
 }) {
+  const label = specLabel(spec, locale);
   const choiceVisible = (
     dep: import("@/lib/types").OptionDependency | undefined,
   ): boolean => {
@@ -1265,7 +1269,7 @@ function OptionField({
     return (
       <label className="flex flex-col text-xs" title={spec.help}>
         <span className="text-zinc-700 mb-0.5 truncate">
-          {spec.label}
+          {label}
           {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
         </span>
         {isLockedZone || isColumnWidth ? (
@@ -1302,7 +1306,7 @@ function OptionField({
   if (spec.type === "select") {
     return (
       <label className="flex flex-col text-xs" title={spec.help}>
-        <span className="text-zinc-700 mb-0.5 truncate">{spec.label}</span>
+        <span className="text-zinc-700 mb-0.5 truncate">{label}</span>
         <select
           name={spec.key}
           defaultValue={String(value)}
@@ -1343,7 +1347,7 @@ function OptionField({
       <AutoSubmitCheckbox
         name={spec.key}
         defaultChecked={Boolean(value)}
-        label={spec.label}
+        label={label}
         help={spec.help}
       />
       {legReadout && (

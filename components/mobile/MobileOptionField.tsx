@@ -1,7 +1,8 @@
 "use client";
 
 import type { OptionSpec, OptionDependency } from "@/lib/types";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { specLabel } from "@/lib/templates/spec-labels";
 import { RangeInput } from "./RangeInput";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 
@@ -94,6 +95,8 @@ function computeColumnWidthMax(
 
 export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength, allPartIds }: MobileOptionFieldProps) {
   const t = useTranslations("mobile.optionField");
+  const locale = useLocale();
+  const label = specLabel(spec, locale);
   if (spec.type === "number") {
     const rawMax = spec.max ?? 9999;
     let cappedMax =
@@ -136,7 +139,7 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
     return (
       <RangeInput
         name={spec.key}
-        label={spec.label}
+        label={label}
         defaultValue={Number(value)}
         unit={spec.unit ?? ""}
         min={spec.min ?? 0}
@@ -159,7 +162,7 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
       : visibleChoices[0]?.value ?? currentValue;
     return (
       <fieldset className="flex flex-col gap-1.5 text-sm" title={spec.help}>
-        <legend className="text-zinc-700 font-medium mb-1">{spec.label}</legend>
+        <legend className="text-zinc-700 font-medium mb-1">{label}</legend>
         <div className="flex flex-wrap gap-1.5">
           {visibleChoices.map((c) => {
             const checked = fallbackValue === c.value;
@@ -213,7 +216,7 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
         className="flex items-center justify-between gap-2 min-h-[44px] text-sm"
         title={spec.help}
       >
-        <span className="text-zinc-800 flex-1">{spec.label}</span>
+        <span className="text-zinc-800 flex-1">{label}</span>
         <input
           type="checkbox"
           name={spec.key}
