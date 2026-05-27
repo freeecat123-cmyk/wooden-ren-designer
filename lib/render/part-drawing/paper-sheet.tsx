@@ -254,13 +254,6 @@ export function PartDrawingPaperSheet({
             <line x1={frontVp.x + fW} y1={frontVp.y + fH} x2={sideVp.x} y2={frontVp.y + fH} />
           </g>
         )}
-        {/* FRONT ↔ BOTTOM 對位線：仰視在正視下方，跟正視共用 X 軸範圍（長度對齊）
-            一律渲染（不受 showProjectionLines toggle 控制），讓使用者一眼看出
-            仰視是正視 90° 翻下來看的對應 view。 */}
-        <g stroke="#cbd5e1" strokeWidth={0.18} strokeDasharray="1.5 1.5" fill="none">
-          <line x1={frontVp.x} y1={frontVp.y + fH} x2={frontVp.x} y2={bottomVp.y} />
-          <line x1={frontVp.x + fW} y1={frontVp.y + fH} x2={frontVp.x + fW} y2={bottomVp.y} />
-        </g>
 
         {/* Title block 區（y 182~202）— 6 欄 */}
         <line x1={10} x2={287} y1={182} y2={182} stroke="#222" strokeWidth={0.5} />
