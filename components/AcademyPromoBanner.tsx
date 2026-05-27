@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 
 /**
  * 木匠學院活動 banner — 報名學院送 2 年木作藍圖
  *
  * 共用 component，目前用於 /about 與 / 首頁底部。
+ *
+ * 國際版規則：木匠學院是台灣業務（中文課程綁定），英文版完全隱藏此 banner
+ * （不翻譯）。Master plan project_designer_international.md 已記錄此決策。
  */
-export function AcademyPromoBanner() {
+export async function AcademyPromoBanner() {
+  const locale = await getLocale();
+  if (locale !== "zh-TW") return null;
+
   return (
     <section className="bg-gradient-to-br from-zinc-900 via-amber-950 to-zinc-900 text-white">
       <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
