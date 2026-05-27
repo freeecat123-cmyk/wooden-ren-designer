@@ -1469,16 +1469,9 @@ export function T2Annotations({
             strokeDasharray="4 1.5 0.5 1.5"
           />
         </g>
-      ) : ((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ) ? (
-        <polygon
-          key={`${it.kind}-${it.idx}-box`}
-          points={convexHull2D(projectBoxCorners(lb as any)).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={1.2}
-          strokeDasharray={dash}
-        />
       ) : (
+        // 之前嘗試用 polygon 畫斜邊但下緣也跟著斜（parallelogram），user 要的是
+        // 下緣水平、跟腳內側輪廓共齊（trapezoid，只外側端斜）。先 fallback rect。
         <rect
           key={`${it.kind}-${it.idx}-box`}
           x={box.x}
