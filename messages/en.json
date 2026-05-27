@@ -465,5 +465,71 @@
       "ctaPrimary": "Start designing →",
       "ctaSecondary": "About Wooden Ren"
     }
+  },
+  "templates": {
+    "metadata": {
+      "title": "26 Furniture Templates · Full Guide | Wooden Ren Blueprint",
+      "description": "From square stools, pencil holders and side tables to wardrobes, desks and dining chairs — full overview of 26 parameterizable furniture templates. Each entry shows what it builds, who it suits, what tools you need, and how to vary it."
+    },
+    "filter": {
+      "label": "Filter",
+      "all": "All",
+      "free": "Free",
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced",
+      "count": "{count} items"
+    },
+    "jumpTo": "Jump to",
+    "header": {
+      "badge": "Full template guide · use cases + FAQ",
+      "h1": "26 Furniture Templates + 3 Interior Tools",
+      "h1En": "26 Furniture Templates",
+      "subtitle1": "Every piece has its joinery, its use case, its variations.",
+      "subtitle2": "Ceiling framing, flooring and tatami platform tools live here too.",
+      "subtitle3": "Read the guide first, then decide whether to build it.",
+      "ctaPrimary": "Browse all templates →",
+      "ctaSecondary": "View plans"
+    },
+    "group": {
+      "seating": "Seating",
+      "table": "Tables",
+      "cabinet": "Cabinets",
+      "small": "Small builds",
+      "large": "Large builds",
+      "interiorTools": "Interior tools",
+      "interiorToolsCount": "{count} kits · estimating + pricing + A4 quote, one flow",
+      "itemsCount": "{count} templates"
+    },
+    "interior": {
+      "ceilingName": "Ceiling framing",
+      "ceilingTagline": "Draw the room → calculate furring + calcium silicate board → drawings and quote.",
+      "floorName": "Flooring layout simulator",
+      "floorTagline": "Draw the room → straight / staggered / herringbone auto-layout → plank count and waste.",
+      "raisedFloorName": "Tatami raised platform",
+      "raisedFloorTagline": "Draw the platform → frame, plywood, surface, moisture barrier, skirting → A4 client quote.",
+      "ctaIntro": "Learn more",
+      "ctaStart": "Start estimating"
+    },
+    "badge": {
+      "free": "Free",
+      "wip": "🚧 In progress"
+    },
+    "empty": {
+      "title": "No templates match this filter · ",
+      "clear": "Clear filter"
+    },
+    "card": {
+      "learnMore": "Learn more",
+      "startDesign": "Start designing",
+      "comingSoon": "Coming soon",
+      "previewAlt": "{name} 3D preview"
+    },
+    "bottomCta": {
+      "h2": "Pick one to start",
+      "subtitle": "Square stool and pencil holder are free forever. Other templates unlock with subscription — or read the guide first.",
+      "ctaPrimary": "Start designing →",
+      "ctaSecondary": "View plans"
+    }
   }
 }

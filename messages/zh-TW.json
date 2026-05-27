@@ -465,5 +465,71 @@
       "ctaPrimary": "開始設計 →",
       "ctaSecondary": "關於木頭仁"
     }
+  },
+  "templates": {
+    "metadata": {
+      "title": "26 件家具範本 完整介紹｜木頭仁 木作藍圖",
+      "description": "從方凳、筆筒、邊桌到衣櫃、書桌、餐椅——26 件可參數化的家具範本完整介紹。每張家具都告訴你：能做什麼、適合誰、需要哪些工具、有什麼變化。"
+    },
+    "filter": {
+      "label": "篩選",
+      "all": "全部",
+      "free": "免費",
+      "beginner": "入門",
+      "intermediate": "中階",
+      "advanced": "進階",
+      "count": "{count} 件"
+    },
+    "jumpTo": "跳到",
+    "header": {
+      "badge": "模板完整介紹 · 含適用情境 + FAQ",
+      "h1": "26 件家具範本 + 3 套裝潢工具",
+      "h1En": "26 Furniture Templates",
+      "subtitle1": "每張家具背後都有它的工法、適用場景、變化方式。",
+      "subtitle2": "天花板、地板、和室架高三套裝潢工具也都收在這裡。",
+      "subtitle3": "先看介紹搞懂，再決定要不要動手做。",
+      "ctaPrimary": "直接看貨架 →",
+      "ctaSecondary": "查看方案"
+    },
+    "group": {
+      "seating": "椅凳",
+      "table": "桌",
+      "cabinet": "櫃",
+      "small": "小物",
+      "large": "大件",
+      "interiorTools": "裝潢工具",
+      "interiorToolsCount": "{count} 套 · 算料、估價、出 A4 報價單一條龍",
+      "itemsCount": "{count} 件範本"
+    },
+    "interior": {
+      "ceilingName": "天花板骨架",
+      "ceilingTagline": "畫房間 → 算骨架角材 + 矽酸鈣板 → 出施工圖跟報價單。",
+      "floorName": "地板施工模擬器",
+      "floorTagline": "畫房間 → 直鋪/錯縫/人字拼自動排版 → 算超耐磨片數跟損耗。",
+      "raisedFloorName": "和室架高平台",
+      "raisedFloorTagline": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。",
+      "ctaIntro": "了解更多",
+      "ctaStart": "開始試算"
+    },
+    "badge": {
+      "free": "免費",
+      "wip": "🚧 開發中"
+    },
+    "empty": {
+      "title": "這個篩選沒有對應的範本 · ",
+      "clear": "清除篩選"
+    },
+    "card": {
+      "learnMore": "了解更多",
+      "startDesign": "開始設計",
+      "comingSoon": "敬請期待",
+      "previewAlt": "{name} 3D 預覽"
+    },
+    "bottomCta": {
+      "h2": "選一張開始",
+      "subtitle": "方凳和筆筒永遠免費。其他模板可訂閱解鎖，或先看介紹再決定。",
+      "ctaPrimary": "開始設計 →",
+      "ctaSecondary": "查看方案"
+    }
   }
 }

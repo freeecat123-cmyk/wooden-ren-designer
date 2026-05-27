@@ -18,6 +18,7 @@ import {
   DIFFICULTY_LABEL_ZH,
 } from "@/lib/pricing/template-unlock";
 import type { FurnitureCategory } from "@/lib/types";
+import { routing } from "@/i18n/routing";
 
 /**
  * /templates/[type] — 單模板介紹頁
@@ -33,17 +34,21 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
 interface PageProps {
-  params: Promise<{ type: string }>;
+  params: Promise<{ locale: string; type: string }>;
 }
 
 export async function generateStaticParams() {
+  // 只為預設 locale（zh-TW）預生成；其他 locale 走 notFound
   return FEATURED_TEMPLATE_CATEGORIES.map((c) => ({ type: c }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { type } = await params;
+  const { locale, type } = await params;
+  if (locale !== routing.defaultLocale) {
+    return { title: "Not found" };
+  }
   const marketing = getTemplateMarketing(type as FurnitureCategory);
   const entry = getTemplate(type as FurnitureCategory);
   if (!marketing || !entry) {
@@ -73,7 +78,8 @@ export async function generateMetadata({
 }
 
 export default async function TemplateDetail({ params }: PageProps) {
-  const { type } = await params;
+  const { locale, type } = await params;
+  if (locale !== routing.defaultLocale) notFound();
   const marketing = getTemplateMarketing(type as FurnitureCategory);
   const entry = getTemplate(type as FurnitureCategory);
 

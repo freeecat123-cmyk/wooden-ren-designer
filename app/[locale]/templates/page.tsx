@@ -1,7 +1,14 @@
-import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
+import { routing, type Locale } from "@/i18n/routing";
+import {
+  FURNITURE_CATALOG,
+  type FurnitureCatalogEntry,
+  getEntryName,
+  getEntryDescription,
+} from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import {
   FEATURED_TEMPLATE_CATEGORIES,
@@ -11,47 +18,28 @@ import type { FurnitureCategory } from "@/lib/types";
 
 type FilterKey = "all" | "free" | "beginner" | "intermediate" | "advanced";
 
-const FILTERS: Array<{ key: FilterKey; label: string; emoji?: string }> = [
-  { key: "all", label: "全部" },
-  { key: "free", label: "免費", emoji: "🆓" },
-  { key: "beginner", label: "入門", emoji: "🟢" },
-  { key: "intermediate", label: "中階", emoji: "🟡" },
-  { key: "advanced", label: "進階", emoji: "🔴" },
-];
-
 function matchFilter(item: FurnitureCatalogEntry, filter: FilterKey): boolean {
   if (filter === "all") return true;
   if (filter === "free") return FREE_UNLOCKED_CATEGORIES.includes(item.category);
   return item.difficulty === filter;
 }
 
-/**
- * /templates — 模板介紹索引頁
- *
- * 跟 /app（產品內部目錄）不同：
- *   /app   = 已登入用戶的家具貨架，點卡片直接進設計器
- *   /templates = SEO 入口、給訪客「先看介紹再決定要不要試」
- *
- * 主力 10 模板有獨立介紹頁（在 FEATURED_TEMPLATE_CATEGORIES 裡），
- * 其他模板只列名稱 + 「開始設計」按鈕（避免假介紹頁稀釋 SEO 信號）。
- */
-
-export const metadata: Metadata = {
-  title: "26 件家具範本 完整介紹｜木頭仁 木作藍圖",
-  description:
-    "從方凳、筆筒、邊桌到衣櫃、書桌、餐椅——26 件可參數化的家具範本完整介紹。每張家具都告訴你：能做什麼、適合誰、需要哪些工具、有什麼變化。",
-  alternates: { canonical: "/templates" },
+const FILTER_KEYS: FilterKey[] = ["all", "free", "beginner", "intermediate", "advanced"];
+const FILTER_EMOJI: Record<FilterKey, string | undefined> = {
+  all: undefined,
+  free: "🆓",
+  beginner: "🟢",
+  intermediate: "🟡",
+  advanced: "🔴",
 };
 
 const CATEGORY_GROUPS: Array<{
-  id: string;
-  label: string;
+  id: "seating" | "table" | "cabinet" | "small" | "large";
   emoji: string;
   match: (c: FurnitureCategory) => boolean;
 }> = [
   {
     id: "seating",
-    label: "椅凳",
     emoji: "🪑",
     match: (c) =>
       c === "stool" || c === "bench" || c === "dining-chair" ||
@@ -59,7 +47,6 @@ const CATEGORY_GROUPS: Array<{
   },
   {
     id: "table",
-    label: "桌",
     emoji: "🪵",
     match: (c) =>
       c === "tea-table" || c === "side-table" || c === "low-table" ||
@@ -68,7 +55,6 @@ const CATEGORY_GROUPS: Array<{
   },
   {
     id: "cabinet",
-    label: "櫃",
     emoji: "🗄️",
     match: (c) =>
       c === "open-bookshelf" || c === "chest-of-drawers" ||
@@ -77,7 +63,6 @@ const CATEGORY_GROUPS: Array<{
   },
   {
     id: "small",
-    label: "小物",
     emoji: "🧰",
     match: (c) =>
       c === "pencil-holder" || c === "photo-frame" ||
@@ -85,7 +70,6 @@ const CATEGORY_GROUPS: Array<{
   },
   {
     id: "large",
-    label: "大件",
     emoji: "🛏️",
     match: (c) =>
       c === "bed" || c === "coat-rack" || c === "chinese-cabinet",
@@ -98,55 +82,60 @@ const DEV_SET = new Set<FurnitureCategory>([
 
 interface InteriorTool {
   id: "ceiling" | "floor" | "raised-floor";
-  nameZh: string;
-  tagline: string;
   href: string;
   difficulty: "beginner" | "intermediate" | "advanced";
 }
 
 const INTERIOR_TOOLS: InteriorTool[] = [
-  {
-    id: "ceiling",
-    nameZh: "天花板骨架",
-    tagline: "畫房間 → 算骨架角材 + 矽酸鈣板 → 出施工圖跟報價單。",
-    href: "/ceiling",
-    difficulty: "intermediate",
-  },
-  {
-    id: "floor",
-    nameZh: "地板施工模擬器",
-    tagline: "畫房間 → 直鋪/錯縫/人字拼自動排版 → 算超耐磨片數跟損耗。",
-    href: "/floor",
-    difficulty: "intermediate",
-  },
-  {
-    id: "raised-floor",
-    nameZh: "和室架高平台",
-    tagline: "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。",
-    href: "/raised-floor",
-    difficulty: "intermediate",
-  },
+  { id: "ceiling", href: "/ceiling", difficulty: "intermediate" },
+  { id: "floor", href: "/floor", difficulty: "intermediate" },
+  { id: "raised-floor", href: "/raised-floor", difficulty: "intermediate" },
 ];
 
-const DIFFICULTY_LABEL_ZH: Record<"beginner" | "intermediate" | "advanced", string> = {
-  beginner: "入門",
-  intermediate: "中階",
-  advanced: "進階",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "templates.metadata" });
+  const isDefault = locale === routing.defaultLocale;
+  return {
+    title: t("title"),
+    description: t("description"),
+    alternates: {
+      canonical: isDefault ? "/templates" : `/${locale}/templates`,
+    },
+  };
+}
 
 interface PageProps {
+  params: Promise<{ locale: string }>;
   searchParams?: Promise<{ filter?: string }>;
 }
 
-export default async function TemplatesIndex({ searchParams }: PageProps) {
+export default async function TemplatesIndex({ params, searchParams }: PageProps) {
+  const { locale: raw } = await params;
+  const locale: Locale = (raw as Locale) ?? routing.defaultLocale;
+  setRequestLocale(locale);
+
+  const t = await getTranslations({ locale, namespace: "templates" });
+  const tDiff = await getTranslations({ locale, namespace: "difficulty" });
+
   const sp = (await searchParams) ?? {};
-  const activeFilter = (FILTERS.find((f) => f.key === sp.filter)?.key ??
-    "all") as FilterKey;
+  const activeFilter: FilterKey = FILTER_KEYS.includes(sp.filter as FilterKey)
+    ? (sp.filter as FilterKey)
+    : "all";
   const featuredSet = new Set<string>(FEATURED_TEMPLATE_CATEGORIES);
   const filteredCatalog = FURNITURE_CATALOG.filter((e) =>
     matchFilter(e, activeFilter),
   );
   const visibleCount = filteredCatalog.length;
+
+  // 裝潢工具是 TW-only 業務（建材市場、單位、語境都是台灣），/en 不顯示
+  const showInteriorTools =
+    locale === routing.defaultLocale &&
+    (activeFilter === "all" || activeFilter === "intermediate");
 
   return (
     <main className="bg-[#fafaf7]">
@@ -155,30 +144,34 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-20 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white ring-1 ring-amber-300 text-amber-800 text-xs font-semibold mb-5 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            模板完整介紹 · 含適用情境 + FAQ
+            {t("header.badge")}
           </div>
           <h1 className="font-serif-tc text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900">
-            26 件家具範本 + 3 套裝潢工具
+            {locale === routing.defaultLocale ? t("header.h1") : t("header.h1En")}
           </h1>
           <p className="mt-5 text-zinc-700 max-w-2xl mx-auto leading-relaxed text-lg">
-            每張家具背後都有它的工法、適用場景、變化方式。
+            {t("header.subtitle1")}
             <br />
-            天花板、地板、和室架高三套裝潢工具也都收在這裡。
-            <br />
-            先看介紹搞懂，再決定要不要動手做。
+            {locale === routing.defaultLocale && (
+              <>
+                {t("header.subtitle2")}
+                <br />
+              </>
+            )}
+            {t("header.subtitle3")}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
               href="/app"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-700 text-white font-semibold shadow-md hover:bg-amber-800 transition-colors"
             >
-              直接看貨架 →
+              {t("header.ctaPrimary")}
             </Link>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-zinc-800 font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 transition-colors"
             >
-              查看方案
+              {t("header.ctaSecondary")}
             </Link>
           </div>
         </div>
@@ -191,14 +184,15 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
           <nav className="overflow-x-auto scrollbar-thin">
             <div className="inline-flex gap-1.5 min-w-max items-center">
               <span className="text-xs text-zinc-400 font-medium pr-1">
-                篩選
+                {t("filter.label")}
               </span>
-              {FILTERS.map((f) => {
-                const active = activeFilter === f.key;
-                const href = f.key === "all" ? "/templates" : `/templates?filter=${f.key}`;
+              {FILTER_KEYS.map((key) => {
+                const active = activeFilter === key;
+                const href = key === "all" ? "/templates" : `/templates?filter=${key}`;
+                const emoji = FILTER_EMOJI[key];
                 return (
                   <Link
-                    key={f.key}
+                    key={key}
                     href={href}
                     scroll={false}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
@@ -207,13 +201,13 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
                         : "bg-white text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-400 hover:text-amber-800"
                     }`}
                   >
-                    {f.emoji && <span aria-hidden>{f.emoji}</span>}
-                    <span>{f.label}</span>
+                    {emoji && <span aria-hidden>{emoji}</span>}
+                    <span>{t(`filter.${key}`)}</span>
                   </Link>
                 );
               })}
               <span className="ml-3 text-xs text-zinc-500 tabular-nums shrink-0">
-                {visibleCount} 件
+                {t("filter.count", { count: visibleCount })}
               </span>
             </div>
           </nav>
@@ -221,15 +215,15 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
           <nav className="overflow-x-auto scrollbar-thin">
             <div className="inline-flex gap-2 min-w-max items-center">
               <span className="text-xs text-zinc-400 font-medium pr-1">
-                跳到
+                {t("jumpTo")}
               </span>
-              {(activeFilter === "all" || activeFilter === "intermediate") && (
+              {showInteriorTools && (
                 <a
                   href="#interior-tools"
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-xs font-medium text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 hover:-translate-y-0.5 transition-all"
                 >
                   <span aria-hidden>🏠</span>
-                  <span>裝潢工具</span>
+                  <span>{t("group.interiorTools")}</span>
                   <span className="text-zinc-400 tabular-nums">{INTERIOR_TOOLS.length}</span>
                 </a>
               )}
@@ -243,7 +237,7 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-xs font-medium text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 hover:-translate-y-0.5 transition-all"
                   >
                     <span aria-hidden>{g.emoji}</span>
-                    <span>{g.label}</span>
+                    <span>{t(`group.${g.id}`)}</span>
                     <span className="text-zinc-400 tabular-nums">{count}</span>
                   </a>
                 );
@@ -257,24 +251,32 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16 space-y-14">
         {visibleCount === 0 && activeFilter !== "intermediate" && (
           <div className="text-center py-20 text-zinc-500">
-            這個篩選沒有對應的範本 ·{" "}
+            {t("empty.title")}
             <Link href="/templates" className="text-amber-700 hover:text-amber-900 underline underline-offset-2">
-              清除篩選
+              {t("empty.clear")}
             </Link>
           </div>
         )}
-        {(activeFilter === "all" || activeFilter === "intermediate") && (
+        {showInteriorTools && (
           <div id="interior-tools" className="scroll-mt-40">
             <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-1 flex items-center gap-2">
               <span aria-hidden>🏠</span>
-              裝潢工具
+              {t("group.interiorTools")}
             </h2>
             <p className="text-zinc-500 text-sm mb-6">
-              {INTERIOR_TOOLS.length} 套 · 算料、估價、出 A4 報價單一條龍
+              {t("group.interiorToolsCount", { count: INTERIOR_TOOLS.length })}
             </p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {INTERIOR_TOOLS.map((tool) => (
-                <InteriorToolCard key={tool.id} tool={tool} />
+                <InteriorToolCard
+                  key={tool.id}
+                  tool={tool}
+                  name={t(`interior.${camel(tool.id)}Name`)}
+                  tagline={t(`interior.${camel(tool.id)}Tagline`)}
+                  difficultyLabel={tDiff(tool.difficulty)}
+                  ctaIntro={t("interior.ctaIntro")}
+                  ctaStart={t("interior.ctaStart")}
+                />
               ))}
             </div>
           </div>
@@ -290,19 +292,44 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
             >
               <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-1 flex items-center gap-2">
                 <span aria-hidden>{g.emoji}</span>
-                {g.label}
+                {t(`group.${g.id}`)}
               </h2>
               <p className="text-zinc-500 text-sm mb-6">
-                {items.length} 件範本
+                {t("group.itemsCount", { count: items.length })}
               </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((item) => (
-                  <TemplateCard
-                    key={item.category}
-                    item={item}
-                    hasDetail={featuredSet.has(item.category)}
-                  />
-                ))}
+                {items.map((item) => {
+                  const isFree = FREE_UNLOCKED_CATEGORIES.includes(item.category);
+                  const isDev = DEV_SET.has(item.category);
+                  const hasDetail = featuredSet.has(item.category);
+                  const name = getEntryName(item, locale);
+                  // /en 沒有 [type] 介紹頁（marketing.ts 未翻），不顯示「了解更多」
+                  const showDetailLink = hasDetail && locale === routing.defaultLocale;
+                  const marketing = locale === routing.defaultLocale
+                    ? getTemplateMarketing(item.category)
+                    : null;
+                  const tagline =
+                    marketing?.tagline ?? getEntryDescription(item, locale) ?? "";
+                  return (
+                    <TemplateCard
+                      key={item.category}
+                      categorySlug={item.category}
+                      name={name}
+                      tagline={tagline}
+                      isFree={isFree}
+                      isDev={isDev}
+                      showDetailLink={showDetailLink}
+                      previewAlt={t("card.previewAlt", { name })}
+                      labels={{
+                        free: t("badge.free"),
+                        wip: t("badge.wip"),
+                        learnMore: t("card.learnMore"),
+                        startDesign: t("card.startDesign"),
+                        comingSoon: t("card.comingSoon"),
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
           );
@@ -313,23 +340,23 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
       <section className="bg-gradient-to-br from-amber-700 to-amber-900 text-white">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-14 sm:py-20 text-center">
           <h2 className="font-serif-tc text-3xl sm:text-4xl font-bold leading-tight">
-            選一張開始
+            {t("bottomCta.h2")}
           </h2>
           <p className="mt-4 text-amber-100 max-w-xl mx-auto leading-relaxed">
-            方凳和筆筒永遠免費。其他模板可訂閱解鎖，或先看介紹再決定。
+            {t("bottomCta.subtitle")}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
               href="/app"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white text-amber-800 font-bold shadow-lg hover:-translate-y-0.5 hover:bg-amber-50 transition-all"
             >
-              開始設計 →
+              {t("bottomCta.ctaPrimary")}
             </Link>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white/10 text-white font-semibold ring-1 ring-white/30 hover:bg-white/20 transition-all"
             >
-              查看方案
+              {t("bottomCta.ctaSecondary")}
             </Link>
           </div>
         </div>
@@ -338,19 +365,37 @@ export default async function TemplatesIndex({ searchParams }: PageProps) {
   );
 }
 
-function InteriorToolCard({ tool }: { tool: InteriorTool }) {
+function camel(s: string): string {
+  return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+function InteriorToolCard({
+  tool,
+  name,
+  tagline,
+  difficultyLabel,
+  ctaIntro,
+  ctaStart,
+}: {
+  tool: InteriorTool;
+  name: string;
+  tagline: string;
+  difficultyLabel: string;
+  ctaIntro: string;
+  ctaStart: string;
+}) {
   return (
     <div className="group relative rounded-2xl bg-white ring-1 ring-amber-300 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:ring-amber-500 transition-all">
       <div className="absolute top-2.5 right-2.5 z-10 flex gap-1.5">
         <span className="px-1.5 py-0.5 rounded-full bg-amber-700 text-white text-[10px] font-bold shadow-sm">
-          🏠 裝潢
+          🏠
         </span>
       </div>
       <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-white to-stone-50">
         {tool.id === "ceiling" ? (
           <Image
             src="/thumbs/v2/ceiling.webp"
-            alt="天花板骨架 3D 預覽"
+            alt={`${name} 3D`}
             width={240}
             height={180}
             quality={75}
@@ -394,26 +439,26 @@ function InteriorToolCard({ tool }: { tool: InteriorTool }) {
       </div>
       <div className="p-4 border-t border-amber-100 bg-amber-50">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <h3 className="font-bold text-lg text-zinc-900">{tool.nameZh}</h3>
+          <h3 className="font-bold text-lg text-zinc-900">{name}</h3>
           <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 ring-1 ring-amber-300 text-amber-900 text-[10px] font-bold">
-            {DIFFICULTY_LABEL_ZH[tool.difficulty]}
+            {difficultyLabel}
           </span>
         </div>
         <p className="text-xs text-zinc-600 leading-snug mb-3 min-h-[2.5em] line-clamp-2">
-          {tool.tagline}
+          {tagline}
         </p>
         <div className="flex gap-2">
           <Link
             href={`${tool.href}?intro=1`}
             className="flex-1 text-center px-3 py-2 rounded-full bg-white text-amber-800 font-semibold text-sm ring-1 ring-amber-300 hover:bg-amber-100 transition-colors"
           >
-            了解更多
+            {ctaIntro}
           </Link>
           <Link
             href={tool.href}
             className="flex-1 text-center px-3 py-2 rounded-full bg-amber-700 text-white font-semibold text-sm shadow-sm hover:bg-amber-800 transition-colors"
           >
-            開始試算
+            {ctaStart}
           </Link>
         </div>
       </div>
@@ -422,35 +467,48 @@ function InteriorToolCard({ tool }: { tool: InteriorTool }) {
 }
 
 function TemplateCard({
-  item,
-  hasDetail,
+  categorySlug,
+  name,
+  tagline,
+  isFree,
+  isDev,
+  showDetailLink,
+  previewAlt,
+  labels,
 }: {
-  item: FurnitureCatalogEntry;
-  hasDetail: boolean;
+  categorySlug: string;
+  name: string;
+  tagline: string;
+  isFree: boolean;
+  isDev: boolean;
+  showDetailLink: boolean;
+  previewAlt: string;
+  labels: {
+    free: string;
+    wip: string;
+    learnMore: string;
+    startDesign: string;
+    comingSoon: string;
+  };
 }) {
-  const isFree = FREE_UNLOCKED_CATEGORIES.includes(item.category);
-  const isDev = DEV_SET.has(item.category);
-  const marketing = getTemplateMarketing(item.category);
-  const tagline = marketing?.tagline;
-
   return (
     <div className="group relative rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
       <div className="absolute top-2.5 right-2.5 z-10 flex gap-1.5">
         {isFree && (
           <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
-            免費
+            {labels.free}
           </span>
         )}
         {isDev && (
           <span className="px-1.5 py-0.5 rounded-full bg-zinc-900/90 text-white text-[10px] font-bold shadow-sm">
-            🚧 開發中
+            {labels.wip}
           </span>
         )}
       </div>
       <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-white to-stone-50">
         <Image
-          src={`/thumbs/v2/${item.category}.webp`}
-          alt={`${item.nameZh} 3D 預覽`}
+          src={`/thumbs/v2/${categorySlug}.webp`}
+          alt={previewAlt}
           width={240}
           height={180}
           quality={75}
@@ -461,35 +519,35 @@ function TemplateCard({
         />
       </div>
       <div className="p-4 border-t border-amber-100 bg-amber-50">
-        <h3 className="font-bold text-lg text-zinc-900 mb-1">{item.nameZh}</h3>
+        <h3 className="font-bold text-lg text-zinc-900 mb-1">{name}</h3>
         {tagline ? (
           <p className="text-xs text-zinc-600 leading-snug mb-3 min-h-[2.5em] line-clamp-2">
             {tagline}
           </p>
         ) : (
           <p className="text-xs text-zinc-400 leading-snug mb-3 min-h-[2.5em]">
-            {isDev ? "敬請期待" : item.description ?? ""}
+            {isDev ? labels.comingSoon : ""}
           </p>
         )}
         <div className="flex gap-2">
-          {hasDetail ? (
+          {showDetailLink ? (
             <Link
-              href={`/templates/${item.category}`}
+              href={`/templates/${categorySlug}`}
               className="flex-1 text-center px-3 py-2 rounded-full bg-white text-amber-800 font-semibold text-sm ring-1 ring-amber-300 hover:bg-amber-100 transition-colors"
             >
-              了解更多
+              {labels.learnMore}
             </Link>
           ) : null}
           {!isDev ? (
             <Link
-              href={`/design/${item.category}`}
+              href={`/design/${categorySlug}`}
               className="flex-1 text-center px-3 py-2 rounded-full bg-amber-700 text-white font-semibold text-sm shadow-sm hover:bg-amber-800 transition-colors"
             >
-              開始設計
+              {labels.startDesign}
             </Link>
           ) : (
             <span className="flex-1 text-center px-3 py-2 rounded-full bg-stone-200 text-stone-500 font-semibold text-sm cursor-not-allowed">
-              敬請期待
+              {labels.comingSoon}
             </span>
           )}
         </div>
