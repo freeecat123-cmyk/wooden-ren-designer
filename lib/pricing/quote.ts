@@ -91,6 +91,7 @@ import {
   MM3_PER_BDFT,
   SHEET_AREA_MM2,
   SHEET_GOOD_LABEL,
+  SHEET_GOOD_LABEL_EN,
   effectiveBillableMaterial,
 } from "./catalog";
 import { MATERIALS } from "@/lib/materials";
@@ -193,7 +194,9 @@ function wasteRateFor(category: string): number {
 }
 
 function materialLabel(m: BillableMaterial, locale: string = "zh-TW"): string {
-  if (m === "plywood" || m === "mdf") return SHEET_GOOD_LABEL[m];
+  if (m === "plywood" || m === "mdf") {
+    return locale === "en" ? SHEET_GOOD_LABEL_EN[m] : SHEET_GOOD_LABEL[m];
+  }
   const spec = MATERIALS[m];
   if (!spec) return m;
   return locale === "en" ? spec.nameEn : spec.nameZh;

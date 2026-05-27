@@ -198,7 +198,7 @@
       "q2Q": "How do I avoid buyer's remorse?",
       "q2Intro": "Since refunds are restricted, we recommend:",
       "q2Tip1": "Build 3 furniture pieces on the <b>free tier</b> first to confirm the tool works for you",
-      "q2Tip2": "Not sure between monthly and yearly? Start with <b>monthly at NT$390</b> for a month, then switch to yearly if you like it",
+      "q2Tip2": "Not sure between monthly and yearly? Start with <b>monthly at $9</b> for a month, then switch to yearly if you like it",
       "q2Tip3": "Monthly can be <linkSub>cancelled anytime</linkSub> — access stays through period end"
     }
   },
@@ -396,7 +396,7 @@
     "plans": {
       "eyebrow": "Pricing",
       "h2": "Try free, upgrade when you need to",
-      "intro": "Monthly from NT$390, yearly saves two months. One extra commission, or one stock-math mistake avoided — the subscription has already paid itself off.",
+      "intro": "Pro plan from $9/mo, annual $79 saves two months. One extra commission, or one stock-math mistake avoided — the subscription has already paid itself off.",
       "popular": "Most chosen",
       "free": {
         "name": "Free",
@@ -409,7 +409,7 @@
       },
       "personal": {
         "name": "Personal",
-        "price": "$390",
+        "price": "$9",
         "unit": "/mo",
         "f1": "All furniture templates unlocked",
         "f2": "Ceiling frame / flooring simulator",
@@ -418,7 +418,7 @@
       },
       "pro": {
         "name": "Pro",
-        "price": "$890",
+        "price": "$79",
         "unit": "/mo",
         "f1": "Everything in Personal",
         "f2": "Custom quote + customer database",
@@ -553,6 +553,7 @@
         "cta": "For working pros →"
       },
       "perMonth": "/mo",
+      "perYear": "/yr",
       "yearNote": "Yearly billing saves over a month · Lifetime academy members DM for a code",
       "custom": {
         "title": "🪵 Not subscribing? Buy a single template",
@@ -1107,7 +1108,7 @@
         },
         {
           "q": "How much does the tool cost?",
-          "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions."
+          "a": "Pro Monthly $9/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
         },
         {
           "q": "Can I buy just this tool?",
@@ -1129,7 +1130,7 @@
       "tierSingle": {
         "badge": "Single buy",
         "title": "Single-tool unlock",
-        "price": "NT$590",
+        "price": "$14.99",
         "unit": "lifetime",
         "features": [
           "Permanent unlock of ceiling tool",
@@ -1141,7 +1142,7 @@
       "tierPersonal": {
         "badge": "Most popular",
         "title": "Personal subscription",
-        "price": "NT$390",
+        "price": "$9",
         "unit": "/mo",
         "features": [
           "All 26 furniture templates unlocked",
@@ -1153,7 +1154,7 @@
       "tierPro": {
         "badge": "Pro tier",
         "title": "Pro subscription",
-        "price": "NT$890",
+        "price": "$79",
         "unit": "/mo",
         "features": [
           "Everything in Personal",
@@ -1195,7 +1196,7 @@
       "bodyLine1": "Less than a cup of coffee, a full toolkit comes with you.",
       "bodyLine2": "Includes furniture templates + floor + raised platform — every interior takeoff in one place.",
       "ctaSecondary": "View full plans",
-      "footnote": "Personal NT$ 390/mo · all 26 furniture templates + ceiling + floor + raised platform"
+      "footnote": "Pro Monthly $9/mo · all 26 furniture templates + ceiling + floor + raised platform"
     },
     "schema": {
       "productName": "Wood Ceiling Framing Simulator",
@@ -1457,7 +1458,7 @@
         },
         {
           "q": "How much does the tool cost?",
-          "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions."
+          "a": "Pro Monthly $9/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
         },
         {
           "q": "Can I buy just the floor simulator?",
@@ -1479,7 +1480,7 @@
       "tierSingle": {
         "badge": "Single buy",
         "title": "Single-tool unlock",
-        "price": "NT$590",
+        "price": "$14.99",
         "unit": "lifetime",
         "features": [
           "Permanent unlock of floor + raised platform",
@@ -1491,7 +1492,7 @@
       "tierPersonal": {
         "badge": "Most popular",
         "title": "Personal subscription",
-        "price": "NT$390",
+        "price": "$9",
         "unit": "/mo",
         "features": [
           "All 26 furniture templates unlocked",
@@ -1503,7 +1504,7 @@
       "tierPro": {
         "badge": "Pro tier",
         "title": "Pro subscription",
-        "price": "NT$890",
+        "price": "$79",
         "unit": "/mo",
         "features": [
           "Everything in Personal",
@@ -1545,7 +1546,7 @@
       "bodyLine1": "Living room one, dining room one, study one — a few more projects a month and the subscription pays back instantly.",
       "bodyLine2": "Less than a cup of coffee, a full interior toolkit comes with you.",
       "ctaSecondary": "View full plans",
-      "footnote": "Personal NT$ 390/mo · all 26 furniture templates + ceiling + floor + raised platform"
+      "footnote": "Pro Monthly $9/mo · all 26 furniture templates + ceiling + floor + raised platform"
     },
     "schema": {
       "productName": "Floor Installation Simulator",
@@ -1818,7 +1819,7 @@
         },
         {
           "q": "How much does the tool cost?",
-          "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions."
+          "a": "Pro Monthly $9/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
         },
         {
           "q": "Can I buy just the raised platform tool?",
@@ -1840,7 +1841,7 @@
       "tierSingle": {
         "badge": "Single buy",
         "title": "Single-tool unlock",
-        "price": "NT$590",
+        "price": "$14.99",
         "unit": "lifetime",
         "features": [
           "Permanent unlock of raised platform + floor simulator",
@@ -1852,7 +1853,7 @@
       "tierPersonal": {
         "badge": "Most popular",
         "title": "Personal subscription",
-        "price": "NT$390",
+        "price": "$9",
         "unit": "/mo",
         "features": [
           "All 26 furniture templates unlocked",
@@ -1864,7 +1865,7 @@
       "tierPro": {
         "badge": "Pro tier",
         "title": "Pro subscription",
-        "price": "NT$890",
+        "price": "$79",
         "unit": "/mo",
         "features": [
           "Everything in Personal",
@@ -1906,7 +1907,7 @@
       "bodyLine1": "Tatami one, guest room one, sleeping platform one — save hours each month, double your close speed.",
       "bodyLine2": "Less than a cup of coffee, a full toolkit comes with you.",
       "ctaSecondary": "View full plans",
-      "footnote": "Personal NT$ 390/mo · all 26 furniture templates + ceiling + floor + raised platform",
+      "footnote": "Pro Monthly $9/mo · all 26 furniture templates + ceiling + floor + raised platform",
       "marketRefNote": "Reference: Taiwan tatami raised-platform market runs NT$ {price}/ping and up — one miscalculated ping costs more than half a year of this tool's subscription."
     },
     "schema": {
@@ -2333,7 +2334,7 @@
     "tierSingleCta": "Buy now",
     "tierPersonalBadge": "Most popular",
     "tierPersonalTitle": "Personal subscription",
-    "tierPersonalPrice": "TWD 390",
+    "tierPersonalPrice": "$9",
     "tierPersonalUnit": "/mo",
     "tierPersonalFeature1": "All 26 templates unlocked",
     "tierPersonalFeature2": "Ceiling + flooring simulators",
@@ -2341,7 +2342,7 @@
     "tierPersonalCta": "Upgrade to Personal",
     "tierProBadge": "For pros",
     "tierProTitle": "Professional subscription",
-    "tierProPrice": "TWD 890",
+    "tierProPrice": "$79",
     "tierProUnit": "/mo",
     "tierProFeature1": "Everything in Personal",
     "tierProFeature2": "Client quotes + CRM",
@@ -4347,8 +4348,8 @@
   },
   "upgradePrompt": {
     "planPriceFree": "",
-    "planPricePersonal": "Personal NT$ 390 / mo (yearly 3,900)",
-    "planPricePro": "Pro NT$ 890 / mo (yearly 8,900)",
+    "planPricePersonal": "Pro Monthly $9/mo (yearly $79)",
+    "planPricePro": "Lifetime $129 one-time",
     "planPriceStudent": "Student plan (academy student only)",
     "planPriceLifetime": "Lifetime (discontinued)",
     "inlineTpl": "🌱 Want {feature}? Upgrade to {plan}",

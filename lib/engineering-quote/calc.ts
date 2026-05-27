@@ -16,9 +16,44 @@ export function computeValidUntil(validityDays: number, today = new Date()): str
   }).format(target);
 }
 
+interface LabelCopy {
+  labor: string;
+  laborDetailTpl: (per: string, ping: number) => string;
+  demolition: string;
+  shipping: string;
+  consumables: string;
+  painting: string;
+  paintingDetailTpl: (per: string, ping: number) => string;
+}
+
+const LABEL_COPY: Record<"zhTW" | "en", LabelCopy> = {
+  zhTW: {
+    labor: "施工費",
+    laborDetailTpl: (per, ping) => `每坪 ${per} × ${ping} 坪`,
+    demolition: "拆除清運費",
+    shipping: "運費",
+    consumables: "雜項耗材",
+    painting: "天花板批土油漆",
+    paintingDetailTpl: (per, ping) => `每坪 ${per} × ${ping} 坪`,
+  },
+  en: {
+    labor: "Labor",
+    laborDetailTpl: (per, ping) => `${per}/ping × ${ping} ping`,
+    demolition: "Demolition & disposal",
+    shipping: "Shipping",
+    consumables: "Consumables",
+    painting: "Plaster & paint (ceiling)",
+    paintingDetailTpl: (per, ping) => `${per}/ping × ${ping} ping`,
+  },
+};
+
 export function computeEngineeringQuote(
   input: EngineeringQuoteInput,
+  locale: string = "zh-TW",
 ): EngineeringQuoteBreakdown {
+  const C = locale === "en" ? LABEL_COPY.en : LABEL_COPY.zhTW;
+  const moneyPrefix = locale === "en" ? "NT$" : "NT$";
+  const fmtPer = (n: number) => `${moneyPrefix}${n.toLocaleString()}`;
   const r = (n: number) => Math.round(n);
 
   const materialCost = r(input.materialCost);
@@ -52,18 +87,18 @@ export function computeEngineeringQuote(
   // 品項表:材料明細 + 各費用行
   const lines: EngLineItem[] = [...input.materialLines];
   lines.push({
-    label: "施工費",
-    detail: `每坪 NT$${input.laborPricePerPing.toLocaleString()} × ${input.pingShu} 坪`,
+    label: C.labor,
+    detail: C.laborDetailTpl(fmtPer(input.laborPricePerPing), input.pingShu),
     amount: laborCost,
     unpriced: input.laborPricePerPing <= 0,
   });
-  if (demolitionCost > 0) lines.push({ label: "拆除清運費", amount: demolitionCost });
-  if (shippingCost > 0) lines.push({ label: "運費", amount: shippingCost });
-  if (consumablesCost > 0) lines.push({ label: "雜項耗材", amount: consumablesCost });
+  if (demolitionCost > 0) lines.push({ label: C.demolition, amount: demolitionCost });
+  if (shippingCost > 0) lines.push({ label: C.shipping, amount: shippingCost });
+  if (consumablesCost > 0) lines.push({ label: C.consumables, amount: consumablesCost });
   if (paintingCost > 0) {
     lines.push({
-      label: "天花板批土油漆",
-      detail: `每坪 NT$${input.paintingPerPing.toLocaleString()} × ${input.pingShu} 坪`,
+      label: C.painting,
+      detail: C.paintingDetailTpl(fmtPer(input.paintingPerPing), input.pingShu),
       amount: paintingCost,
     });
   }

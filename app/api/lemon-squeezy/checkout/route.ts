@@ -56,9 +56,10 @@ async function handle(req: NextRequest, params: URLSearchParams): Promise<Respon
   const localeMatch = referer.match(/\/(zh-TW|en)\b/);
   const locale = localeMatch?.[1] ?? "en";
 
-  // success URL 帶回 /[locale]/account
+  // success URL 帶回 /[locale]/my-subscription
+  // ⚠️ 原本指 /account 但該 page 不存在(只有 /account/designs),會 404。
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
-  const successUrl = `${origin}/${locale}/account?checkout=success`;
+  const successUrl = `${origin}/${locale}/my-subscription?checkout=success`;
 
   const baseOpts = {
     customerEmail: user.email ?? undefined,

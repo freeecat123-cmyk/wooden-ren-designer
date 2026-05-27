@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";

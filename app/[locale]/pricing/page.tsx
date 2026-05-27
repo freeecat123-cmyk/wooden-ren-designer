@@ -63,9 +63,10 @@ export default async function PricingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // /design/[type] paywall 會 redirect 過來 ?locked=stool — 高亮對應卡
+  // /design/[type] paywall 會 redirect 過來 ?locked=stool — 高亮對應卡。
+  // 工具銷售頁(Ceiling/Floor/RaisedFloor Marketing)用 ?upgrade=<tool> 同樣意思。
   const sp = await searchParams;
-  const lockedRaw = sp?.locked;
+  const lockedRaw = sp?.locked ?? sp?.upgrade;
   const lockedCategory = typeof lockedRaw === "string" ? lockedRaw : null;
 
   // 蒐集所有可單買的項目（27 家具 + ceiling/floor 兩工具）

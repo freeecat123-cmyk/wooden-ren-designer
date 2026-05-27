@@ -40,8 +40,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function RaisedFloorQuotePrintPage({
+  params,
   searchParams,
 }: PageProps) {
+  const { locale } = await params;
   const { d, o, c, viewMode } = await searchParams;
 
   let input: RaisedFloorInput = DEFAULT_RAISED_FLOOR_INPUT;
@@ -61,9 +63,9 @@ export default async function RaisedFloorQuotePrintPage({
     ? { ...EMPTY_CUSTOMER, ...safeDecode<CustomerInfo>(c) }
     : EMPTY_CUSTOMER;
 
-  const bom = computeRaisedFloorBom(input);
-  const engInput = raisedFloorBomToEngInput(bom, opts);
-  const breakdown = computeEngineeringQuote(engInput);
+  const bom = computeRaisedFloorBom(input, locale);
+  const engInput = raisedFloorBomToEngInput(bom, opts, locale);
+  const breakdown = computeEngineeringQuote(engInput, locale);
 
   // 回設定頁 — 帶回原始 d/o/c 不失焦
   const backParams = new URLSearchParams();

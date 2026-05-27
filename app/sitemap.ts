@@ -8,18 +8,17 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com
  * Sitemap with hreflang alternates for zh-TW (default, no prefix) and /en/*.
  *
  * Routes available on both locales: /, /app, /templates, /about, /pricing, /help,
- * /contact, /design/[type] for non-dev categories. Listed with `alternates.languages`
- * so Google knows they're translated equivalents.
+ * /contact, /ceiling, /floor, /raised-floor, /design/[type] for non-dev categories.
+ * Listed with `alternates.languages` so Google knows they're translated equivalents.
  *
  * zh-only routes (still emitted; not listed under /en):
  *  - /templates/[type]/* — marketing.ts not yet translated; /en notFound()s
  *  - /pricing/student — TW academy plan
- *  - /ceiling /floor /raised-floor — TW construction tools
  *  - /calc/apron-tilt — not localized
  *  - /changelog
  */
 
-const TW_ONLY_ROUTES = ["calc/apron-tilt", "ceiling", "floor", "raised-floor", "changelog"];
+const TW_ONLY_ROUTES = ["calc/apron-tilt", "changelog"];
 
 function biLocaleEntry(
   path: string,
@@ -66,6 +65,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     biLocaleEntry("/templates", "weekly", 0.95, now),
     biLocaleEntry("/about", "monthly", 0.9, now),
     biLocaleEntry("/pricing", "monthly", 0.9, now),
+    biLocaleEntry("/ceiling", "monthly", 0.85, now),
+    biLocaleEntry("/floor", "monthly", 0.85, now),
+    biLocaleEntry("/raised-floor", "monthly", 0.85, now),
     biLocaleEntry("/help", "monthly", 0.5, now),
     biLocaleEntry("/contact", "monthly", 0.5, now),
   ];

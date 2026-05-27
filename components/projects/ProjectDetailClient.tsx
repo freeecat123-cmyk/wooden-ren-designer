@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { createClient } from "@/lib/supabase/client";

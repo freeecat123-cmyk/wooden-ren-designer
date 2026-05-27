@@ -1,4 +1,4 @@
-import type { CeilingBom } from "./types";
+import { ceilingBomItemName, type CeilingBom } from "./types";
 import type { EngineeringQuoteInput, EngLineItem } from "../engineering-quote/types";
 import type { ENGINEERING_QUOTE_DEFAULTS } from "../engineering-quote/defaults";
 
@@ -13,18 +13,22 @@ export function ceilingBomToEngInput(
   bom: CeilingBom,
   materialPerPing: number,
   opts: EngOpts,
+  locale: string = "zh-TW",
 ): EngineeringQuoteInput {
   const ping = bom.auto.pingShu;
   const materialCost = Math.round(materialPerPing * ping);
+  const isEn = locale === "en";
 
   const summary = bom.items
-    .map((it) => `${it.nameZh} ${it.count}`)
-    .join("、");
+    .map((it) => `${ceilingBomItemName(it, locale)} ${it.count}`)
+    .join(isEn ? ", " : "、");
 
   const materialLines: EngLineItem[] = [
     {
-      label: "天花板系統材料",
-      detail: `每坪 NT$${materialPerPing.toLocaleString()} × ${ping} 坪(${summary})`,
+      label: isEn ? "Ceiling system materials" : "天花板系統材料",
+      detail: isEn
+        ? `NT$${materialPerPing.toLocaleString()}/ping × ${ping} ping (${summary})`
+        : `每坪 NT$${materialPerPing.toLocaleString()} × ${ping} 坪(${summary})`,
       amount: materialCost,
       unpriced: materialPerPing <= 0,
     },

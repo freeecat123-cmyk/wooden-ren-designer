@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
@@ -23,16 +23,25 @@ export async function generateMetadata({
 }
 
 export default async function FloorQuotePage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ d?: string }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect(`/login?next=${encodeURIComponent("/floor/quote")}`);
+  if (!user) {
+    redirect({
+      href: `/login?next=${encodeURIComponent("/floor/quote")}`,
+      locale,
+    });
+    return null;
+  }
 
   // admin 永遠可進，其他人依 canUseFloorTool permission
   if (!isAdminEmail(user.email, getServerAdminEmails())) {
@@ -42,7 +51,7 @@ export default async function FloorQuotePage({
       .eq("id", user.id)
       .single();
     if (!canUseFeature(profile as UserPlanProfile | null, "canUseFloorTool")) {
-      redirect("/pricing?upgrade=floor");
+      redirect({ href: "/pricing?upgrade=floor", locale });
     }
   }
 
@@ -57,7 +66,7 @@ export default async function FloorQuotePage({
   }
 
   const bom = computeFloorBom(input);
-  const engInput = floorBomToEngInput(bom, ENGINEERING_QUOTE_DEFAULTS);
+  const engInput = floorBomToEngInput(bom, ENGINEERING_QUOTE_DEFAULTS, locale);
 
   return (
     <EngineeringQuoteClient

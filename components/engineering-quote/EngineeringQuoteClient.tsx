@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { EngineeringQuoteForm, type EngQuoteOpts } from "./EngineeringQuoteForm";
@@ -34,6 +34,7 @@ export function EngineeringQuoteClient({
   base,
 }: Props) {
   const t = useTranslations("engQuoteClient");
+  const locale = useLocale();
   const router = useRouter();
   const customerFormRef = useRef<HTMLFormElement>(null);
   const [opts, setOpts] = useState<EngQuoteOpts>(ENGINEERING_QUOTE_DEFAULTS);
@@ -60,28 +61,31 @@ export function EngineeringQuoteClient({
 
   const breakdown = useMemo(
     () =>
-      computeEngineeringQuote({
-        quoteType,
-        pingShu: base.pingShu,
-        areaM2: base.areaM2,
-        materialCost,
-        materialLines,
-        laborPricePerPing: opts.laborPricePerPing,
-        demolitionMode: opts.demolitionMode,
-        demolitionLump: opts.demolitionLump,
-        demolitionPerPing: opts.demolitionPerPing,
-        shippingCost: opts.shippingCost,
-        consumablesMode: opts.consumablesMode,
-        consumablesLump: opts.consumablesLump,
-        consumablesPercent: opts.consumablesPercent,
-        paintingPerPing: opts.paintingPerPing,
-        marginRate: opts.marginRate,
-        vatRate: opts.vatRate,
-        discountRate: opts.discountRate,
-        depositRate: opts.depositRate,
-        validityDays: opts.validityDays,
-      }),
-    [quoteType, base, opts],
+      computeEngineeringQuote(
+        {
+          quoteType,
+          pingShu: base.pingShu,
+          areaM2: base.areaM2,
+          materialCost,
+          materialLines,
+          laborPricePerPing: opts.laborPricePerPing,
+          demolitionMode: opts.demolitionMode,
+          demolitionLump: opts.demolitionLump,
+          demolitionPerPing: opts.demolitionPerPing,
+          shippingCost: opts.shippingCost,
+          consumablesMode: opts.consumablesMode,
+          consumablesLump: opts.consumablesLump,
+          consumablesPercent: opts.consumablesPercent,
+          paintingPerPing: opts.paintingPerPing,
+          marginRate: opts.marginRate,
+          vatRate: opts.vatRate,
+          discountRate: opts.discountRate,
+          depositRate: opts.depositRate,
+          validityDays: opts.validityDays,
+        },
+        locale,
+      ),
+    [quoteType, base, opts, locale, materialCost, materialLines],
   );
 
   function goPrint() {

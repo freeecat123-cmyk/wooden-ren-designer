@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCard";
@@ -103,7 +103,8 @@ export function PricingClient() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
-    const locked = sp.get("locked");
+    // 工具銷售頁用 ?upgrade=<tool>，paywall 用 ?locked=<category>，兩個都吃
+    const locked = sp.get("locked") ?? sp.get("upgrade");
     if (locked) setLockedCategory(locked);
     const c = sp.get("coupon");
     if (c) setCoupon({ code: c.toUpperCase(), status: "idle" });

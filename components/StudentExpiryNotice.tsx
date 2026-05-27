@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { studentDaysRemaining } from "@/lib/permissions";

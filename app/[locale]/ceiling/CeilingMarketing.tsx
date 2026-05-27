@@ -5,7 +5,7 @@
  * 已登入有權限者由 page.tsx 直送 <CeilingDevClient />。
  */
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
 
@@ -38,6 +38,8 @@ type TierBlock = {
 
 export async function CeilingMarketing({ status }: Props) {
   const t = await getTranslations("ceilingMarketing");
+  const locale = await getLocale();
+  const isEn = locale === "en";
 
   const primaryHref =
     status === "guest" ? "/login?next=/ceiling" : "/pricing?upgrade=ceiling";
@@ -68,10 +70,10 @@ export async function CeilingMarketing({ status }: Props) {
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: "390",
-      priceCurrency: "TWD",
+      price: isEn ? "9" : "390",
+      priceCurrency: isEn ? "USD" : "TWD",
       availability: "https://schema.org/InStock",
-      url: `${SITE_URL}/pricing`,
+      url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },
   };
   const breadcrumbSchema = {

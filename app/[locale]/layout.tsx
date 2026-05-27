@@ -175,6 +175,9 @@ export default async function LocaleLayout({
                 locale === "en"
                   ? [
                       { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: "USD" },
+                      { "@type": "Offer", name: "Pro Monthly", price: "9", priceCurrency: "USD" },
+                      { "@type": "Offer", name: "Pro Annual", price: "79", priceCurrency: "USD" },
+                      { "@type": "Offer", name: "Lifetime", price: "129", priceCurrency: "USD" },
                     ]
                   : [
                       { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: "TWD" },

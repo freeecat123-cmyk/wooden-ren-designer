@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
@@ -23,16 +23,25 @@ export async function generateMetadata({
 }
 
 export default async function CeilingQuotePage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ d?: string }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect(`/login?next=${encodeURIComponent("/ceiling/quote")}`);
+  if (!user) {
+    redirect({
+      href: `/login?next=${encodeURIComponent("/ceiling/quote")}`,
+      locale,
+    });
+    return null;
+  }
 
   // admin 永遠可進，其他人依 canUseCeilingTool permission
   if (!isAdminEmail(user.email, getServerAdminEmails())) {
@@ -42,7 +51,7 @@ export default async function CeilingQuotePage({
       .eq("id", user.id)
       .single();
     if (!canUseFeature(profile as UserPlanProfile | null, "canUseCeilingTool")) {
-      redirect("/pricing?upgrade=ceiling");
+      redirect({ href: "/pricing?upgrade=ceiling", locale });
     }
   }
 
@@ -56,9 +65,9 @@ export default async function CeilingQuotePage({
     }
   }
 
-  const bom = computeCeilingBom(input);
+  const bom = computeCeilingBom(input, locale);
   // 編輯頁初始 materialPerPing = 0，實際值由 client 的費用表單帶
-  const engInput = ceilingBomToEngInput(bom, 0, ENGINEERING_QUOTE_DEFAULTS);
+  const engInput = ceilingBomToEngInput(bom, 0, ENGINEERING_QUOTE_DEFAULTS, locale);
 
   return (
     <EngineeringQuoteClient

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { formatTWD } from "@/lib/pricing/catalog";

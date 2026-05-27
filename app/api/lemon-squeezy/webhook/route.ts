@@ -296,9 +296,18 @@ async function handleSubscriptionCreated(
     "subscription_created.subscriptions.upsert",
   );
 
-  // 同步 users.plan
+  // 同步 users.plan + subscription_status + expires_at
+  // ⚠️ 漏 subscription_status / subscription_expires_at = getEffectivePlan 永遠 fallback 'free'
+  // → users.plan 'pro' 但 effectivePlan='free' → 所有付費內容卡死。
   await mustOk(
-    admin.from("users").update({ plan: variant.plan }).eq("id", userId),
+    admin
+      .from("users")
+      .update({
+        plan: variant.plan,
+        subscription_status: "active",
+        subscription_expires_at: renewsAt,
+      })
+      .eq("id", userId),
     "subscription_created.users.update",
   );
 }
@@ -317,18 +326,51 @@ async function handleSubscriptionUpdated(
   const variant = lookupVariant(variantId);
   if (!variant || variant.kind !== "subscription") return;
 
+  const newStatus = sub.status as string; // active / paused / cancelled / expired / past_due
+  const renewsAt = sub.renews_at as string;
+
   await mustOk(
     admin
       .from("subscriptions")
       .update({
         plan: variant.plan,
         period: variant.period === "yearly" ? "yearly" : "monthly",
-        expires_at: sub.renews_at as string,
-        status: sub.status as string, // active / paused / cancelled / expired
+        expires_at: renewsAt,
+        status: newStatus,
       })
       .eq("lemonsqueezy_subscription_id", subId),
     "subscription_updated.subscriptions.update",
   );
+
+  // 同步 users.plan + subscription_status + expires_at（月→年升級、續扣後 renews_at 變等）
+  // status 對應 users.subscription_status check constraint: inactive/active/cancelled/expired
+  const userStatus =
+    newStatus === "active" || newStatus === "on_trial"
+      ? "active"
+      : newStatus === "cancelled"
+        ? "cancelled"
+        : newStatus === "expired" || newStatus === "unpaid"
+          ? "expired"
+          : "inactive";
+
+  const { data: subRow } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("lemonsqueezy_subscription_id", subId)
+    .single();
+  if (subRow?.user_id) {
+    await mustOk(
+      admin
+        .from("users")
+        .update({
+          plan: variant.plan,
+          subscription_status: userStatus,
+          subscription_expires_at: renewsAt,
+        })
+        .eq("id", subRow.user_id),
+      "subscription_updated.users.update",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -341,17 +383,37 @@ async function handleSubscriptionCancelled(
 ): Promise<void> {
   const subId = payload.data.id;
   const sub = payload.data.attributes;
+  const endsAt = sub.ends_at as string;
   await mustOk(
     admin
       .from("subscriptions")
       .update({
         status: "cancelled",
         // expires_at 保留：使用者付到 end of period 仍能用
-        expires_at: sub.ends_at as string,
+        expires_at: endsAt,
       })
       .eq("lemonsqueezy_subscription_id", subId),
     "subscription_cancelled.subscriptions.update",
   );
+
+  // 同步 users.subscription_status='cancelled' 但保留 expires_at（仍可用到 ends_at）
+  const { data: subRow } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("lemonsqueezy_subscription_id", subId)
+    .single();
+  if (subRow?.user_id) {
+    await mustOk(
+      admin
+        .from("users")
+        .update({
+          subscription_status: "cancelled",
+          subscription_expires_at: endsAt,
+        })
+        .eq("id", subRow.user_id),
+      "subscription_cancelled.users.update",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -394,7 +456,15 @@ async function handleSubscriptionPaymentSuccess(
     "payment_success.payments.upsert",
   );
 
-  // 續扣後 renews_at 會在另一個 subscription_updated 事件帶來，這裡不主動延 expires_at
+  // 確保 users.subscription_status='active'（防 subscription_updated 沒準時到 user 卡權限）。
+  // expires_at 延展靠 subscription_updated 帶 renews_at。
+  await mustOk(
+    admin
+      .from("users")
+      .update({ subscription_status: "active" })
+      .eq("id", subRow.user_id),
+    "payment_success.users.update",
+  );
 }
 
 // ---------------------------------------------------------------------------

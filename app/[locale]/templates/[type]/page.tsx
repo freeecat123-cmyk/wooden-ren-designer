@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -115,10 +115,10 @@ export default async function TemplateDetail({ params }: PageProps) {
     },
     offers: {
       "@type": "Offer",
-      price: isFree ? "0" : "390",
-      priceCurrency: "TWD",
+      price: isFree ? "0" : isEn ? "9" : "390",
+      priceCurrency: isEn ? "USD" : "TWD",
       availability: "https://schema.org/InStock",
-      url: `${SITE_URL}/pricing`,
+      url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },
   };
 
@@ -191,9 +191,9 @@ export default async function TemplateDetail({ params }: PageProps) {
 
       {/* ============ Breadcrumb ============ */}
       <nav className="max-w-6xl mx-auto px-5 sm:px-6 pt-6 pb-2 text-sm text-zinc-500">
-        <Link href={isEn ? "/en" : "/"} className="hover:text-amber-700">{t("breadcrumbHome")}</Link>
+        <Link href="/" className="hover:text-amber-700">{t("breadcrumbHome")}</Link>
         <span className="mx-2">/</span>
-        <Link href={isEn ? "/en/templates" : "/templates"} className="hover:text-amber-700">{t("breadcrumbTemplates")}</Link>
+        <Link href="/templates" className="hover:text-amber-700">{t("breadcrumbTemplates")}</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700 font-medium">{entryName}</span>
       </nav>
@@ -236,7 +236,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                   {isFree ? t("heroCtaTryFree") : t("heroCtaStartDesign")} →
                 </Link>
                 <Link
-                  href={isEn ? "/en/pricing" : "/pricing"}
+                  href="/pricing"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-zinc-800 font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 transition-all"
                 >
                   {isFree ? t("heroCtaUnlockAll") : t("heroCtaViewPlans")}
@@ -615,7 +615,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                 </li>
               </ul>
               <Link
-                href={`${isEn ? "/en" : ""}/design/${entry.category}`}
+                href={`/design/${entry.category}`}
                 className="block text-center px-6 py-3.5 rounded-full bg-amber-700 text-white font-bold shadow-md hover:bg-amber-800 hover:-translate-y-0.5 transition-all"
               >
                 {t("freeCta")}
@@ -628,7 +628,15 @@ export default async function TemplateDetail({ params }: PageProps) {
                 <PricingOption
                   badge={t("tierSingleBadge")}
                   title={t("tierSingleTitle")}
-                  price={`NT$${unlockPrice}`}
+                  price={
+                    isEn
+                      ? entry.difficulty === "beginner"
+                        ? "$4.99"
+                        : entry.difficulty === "intermediate"
+                          ? "$9.99"
+                          : "$14.99"
+                      : `NT$${unlockPrice}`
+                  }
                   unit={t("tierSingleUnit")}
                   features={[
                     t("tierSingleFeature1"),
@@ -654,7 +662,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                   t("tierPersonalFeature2"),
                   t("tierPersonalFeature3"),
                 ]}
-                cta={{ label: t("tierPersonalCta"), href: isEn ? "/en/pricing" : "/pricing" }}
+                cta={{ label: t("tierPersonalCta"), href: "/pricing" }}
                 highlight={true}
               />
               {/* 專業版 */}
@@ -668,7 +676,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                   t("tierProFeature2"),
                   t("tierProFeature3"),
                 ]}
-                cta={{ label: t("tierProCta"), href: isEn ? "/en/pricing" : "/pricing" }}
+                cta={{ label: t("tierProCta"), href: "/pricing" }}
                 highlight={false}
               />
             </div>
@@ -677,7 +685,7 @@ export default async function TemplateDetail({ params }: PageProps) {
           {!isFree && (
             <p className="mt-6 text-center text-xs text-zinc-500">
               {t("pricingFootnoteText")}
-              <Link href={isEn ? "/en/pricing" : "/pricing"} className="ml-1 text-amber-700 hover:text-amber-900 underline underline-offset-2">
+              <Link href="/pricing" className="ml-1 text-amber-700 hover:text-amber-900 underline underline-offset-2">
                 {t("pricingFootnoteLink")}
               </Link>
             </p>
@@ -714,7 +722,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                 return (
                   <Link
                     key={r.category}
-                    href={rHasEnDetail ? `${isEn ? "/en" : ""}/templates/${r.category}` : `${isEn ? "/en" : ""}/design/${r.category}`}
+                    href={rHasEnDetail ? `/templates/${r.category}` : `/design/${r.category}`}
                     className="group flex flex-col rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden hover:ring-amber-400 hover:shadow-xl hover:-translate-y-1 transition-all"
                   >
                     <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-white to-stone-50 relative">
@@ -761,7 +769,7 @@ export default async function TemplateDetail({ params }: PageProps) {
             </div>
             <div className="mt-6 text-center">
               <Link
-                href={isEn ? "/en/templates" : "/templates"}
+                href="/templates"
                 className="inline-flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 font-semibold"
               >
                 {t("relatedViewAll")}
@@ -782,13 +790,13 @@ export default async function TemplateDetail({ params }: PageProps) {
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
-              href={`${isEn ? "/en" : ""}/design/${entry.category}`}
+              href={`/design/${entry.category}`}
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white text-amber-800 font-bold shadow-lg hover:-translate-y-0.5 hover:bg-amber-50 transition-all"
             >
               {isFree ? t("bottomCtaTryFree") : t("bottomCtaStartDesign")}
             </Link>
             <Link
-              href={isEn ? "/en/templates" : "/templates"}
+              href="/templates"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white/10 text-white font-semibold ring-1 ring-white/30 hover:bg-white/20 transition-all"
             >
               {t("bottomCtaBrowse")}

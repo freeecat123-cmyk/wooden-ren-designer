@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -105,6 +105,7 @@ export default async function Landing({
   const { locale: raw } = await params;
   const locale: Locale = (raw as Locale) ?? routing.defaultLocale;
   setRequestLocale(locale);
+  const isEn = locale === "en";
 
   // 已登入用戶 → 直接送進 locale 對應的 /app
   const user = await getSessionUser();
@@ -377,7 +378,7 @@ export default async function Landing({
           />
           <PricingCard
             tier={t("pricing.personal.tier")}
-            price="390"
+            price={isEn ? "9" : "390"}
             unit={t("pricing.perMonth")}
             highlight={true}
             features={[
@@ -392,11 +393,12 @@ export default async function Landing({
               href:
                 locale === routing.defaultLocale ? "/pricing" : `/${locale}/pricing`,
             }}
+            currency={isEn ? "$" : "NT$"}
           />
           <PricingCard
             tier={t("pricing.pro.tier")}
-            price="890"
-            unit={t("pricing.perMonth")}
+            price={isEn ? "79" : "890"}
+            unit={isEn ? t("pricing.perYear") : t("pricing.perMonth")}
             highlight={false}
             features={[
               t("pricing.pro.f1"),
@@ -410,6 +412,7 @@ export default async function Landing({
               href:
                 locale === routing.defaultLocale ? "/pricing" : `/${locale}/pricing`,
             }}
+            currency={isEn ? "$" : "NT$"}
           />
         </div>
         <p className="mt-6 text-center text-sm text-zinc-500">
@@ -435,7 +438,13 @@ export default async function Landing({
                 >
                   <div className="text-xs text-zinc-500">{tD(d)}</div>
                   <div className="mt-1 font-bold text-zinc-900">
-                    NT$ {TEMPLATE_UNLOCK_PRICES[d]}
+                    {isEn
+                      ? d === "beginner"
+                        ? "$4.99"
+                        : d === "intermediate"
+                          ? "$9.99"
+                          : "$14.99"
+                      : `NT$ ${TEMPLATE_UNLOCK_PRICES[d]}`}
                   </div>
                 </div>
               ))}
@@ -530,6 +539,7 @@ function PricingCard({
   features,
   popularLabel,
   cta,
+  currency = "NT$",
 }: {
   tier: string;
   price: string;
@@ -538,6 +548,7 @@ function PricingCard({
   features: string[];
   popularLabel: string;
   cta: { label: string; href: string };
+  currency?: string;
 }) {
   return (
     <div
@@ -554,7 +565,7 @@ function PricingCard({
       )}
       <div className="font-bold text-lg text-zinc-900 mb-2">{tier}</div>
       <div className="flex items-baseline gap-1 mb-5">
-        <span className="text-zinc-500 text-sm">NT$</span>
+        <span className="text-zinc-500 text-sm">{currency}</span>
         <span className="text-4xl font-bold text-zinc-900 tabular-nums">
           {price}
         </span>

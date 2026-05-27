@@ -7,7 +7,7 @@
  *   不管在改哪個輸入,結果永遠在眼前。任何輸入變更 → 即時 computeFloorBom 重算。
  */
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { computeFloorBom } from "@/lib/floor/calc";
 import { encodeState } from "@/lib/engineering-quote/url-codec";

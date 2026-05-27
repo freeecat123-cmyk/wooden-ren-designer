@@ -22,10 +22,13 @@ export async function generateMetadata({
 }
 
 export default async function CeilingQuotePrintPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ d?: string; o?: string; c?: string; viewMode?: string }>;
 }) {
+  const { locale } = await params;
   const { d, o, c, viewMode } = await searchParams;
 
   let input: CeilingInput = DEFAULT_CEILING_INPUT;
@@ -43,9 +46,9 @@ export default async function CeilingQuotePrintPage({
     ? { ...EMPTY_CUSTOMER, ...safeDecode<CustomerInfo>(c) }
     : EMPTY_CUSTOMER;
 
-  const bom = computeCeilingBom(input);
-  const engInput = ceilingBomToEngInput(bom, opts.ceilingMaterialPerPing, opts);
-  const breakdown = computeEngineeringQuote(engInput);
+  const bom = computeCeilingBom(input, locale);
+  const engInput = ceilingBomToEngInput(bom, opts.ceilingMaterialPerPing, opts, locale);
+  const breakdown = computeEngineeringQuote(engInput, locale);
 
   return (
     <EngineeringQuotePrint

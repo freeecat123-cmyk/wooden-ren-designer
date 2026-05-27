@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import {

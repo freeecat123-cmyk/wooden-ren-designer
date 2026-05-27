@@ -5,7 +5,7 @@
  * 已登入有權限者由 page.tsx 直送 <RaisedFloorClient />。
  */
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
 
@@ -39,9 +39,11 @@ type TierBlock = {
 
 export async function RaisedFloorMarketing({ status }: Props) {
   const t = await getTranslations("raisedFloorMarketing");
+  const locale = await getLocale();
+  const isEn = locale === "en";
 
   const primaryHref =
-    status === "guest" ? "/login?next=/raised-floor" : "/pricing?upgrade=floor";
+    status === "guest" ? "/login?next=/raised-floor" : "/pricing?upgrade=raised-floor";
   const primaryLabel =
     status === "guest" ? t("hero.ctaGuest") : t("hero.ctaUpgrade");
   const pageUrl = `${SITE_URL}/raised-floor`;
@@ -69,10 +71,10 @@ export async function RaisedFloorMarketing({ status }: Props) {
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: "390",
-      priceCurrency: "TWD",
+      price: isEn ? "9" : "390",
+      priceCurrency: isEn ? "USD" : "TWD",
       availability: "https://schema.org/InStock",
-      url: `${SITE_URL}/pricing`,
+      url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },
   };
   const breadcrumbSchema = {
@@ -433,7 +435,7 @@ export async function RaisedFloorMarketing({ status }: Props) {
               price={tierSingle.price}
               unit={tierSingle.unit}
               features={tierSingle.features}
-              cta={{ label: tierSingle.cta, href: "/pricing?upgrade=floor" }}
+              cta={{ label: tierSingle.cta, href: "/pricing?upgrade=raised-floor" }}
             />
             <PricingTier
               badge={tierPersonal.badge}

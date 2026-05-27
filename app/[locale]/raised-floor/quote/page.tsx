@@ -5,7 +5,7 @@
  * URL query: ?d=<base64 RaisedFloorInput>
  */
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
@@ -34,15 +34,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function RaisedFloorQuotePage({
+  params,
   searchParams,
 }: PageProps) {
+  const { locale } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent("/raised-floor/quote")}`);
+    redirect({
+      href: `/login?next=${encodeURIComponent("/raised-floor/quote")}`,
+      locale,
+    });
+    return null;
   }
 
   if (!isAdminEmail(user.email, getServerAdminEmails())) {
@@ -56,9 +62,9 @@ export default async function RaisedFloorQuotePage({
       "canUseFloorTool",
     );
     const unlockedTools = await fetchUnlockedTools(createAdminClient(), user.id);
-    const boughtUnlock = unlockedTools.includes("floor");
+    const boughtUnlock = unlockedTools.includes("raised-floor");
     if (!planAllows && !boughtUnlock) {
-      redirect("/pricing?upgrade=floor");
+      redirect({ href: "/pricing?upgrade=raised-floor", locale });
     }
   }
 
@@ -72,8 +78,8 @@ export default async function RaisedFloorQuotePage({
     }
   }
 
-  const bom = computeRaisedFloorBom(input);
-  const engInput = raisedFloorBomToEngInput(bom, ENGINEERING_QUOTE_DEFAULTS);
+  const bom = computeRaisedFloorBom(input, locale);
+  const engInput = raisedFloorBomToEngInput(bom, ENGINEERING_QUOTE_DEFAULTS, locale);
 
   return (
     <RaisedFloorQuoteClient

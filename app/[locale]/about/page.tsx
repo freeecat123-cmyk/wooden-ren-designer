@@ -78,6 +78,7 @@ export default async function AboutPage({
   const tD = await getTranslations({ locale, namespace: "difficulty" });
 
   const prefix = locale === routing.defaultLocale ? "" : `/${locale}`;
+  const isEn = locale === "en";
 
   return (
     <main className="max-w-5xl mx-auto px-5 sm:px-6 py-10 sm:py-14">
@@ -547,7 +548,13 @@ export default async function AboutPage({
                 >
                   <div className="text-xs text-zinc-500">{tD(d)}</div>
                   <div className="mt-1 font-bold text-zinc-900">
-                    NT$ {TEMPLATE_UNLOCK_PRICES[d]}
+                    {isEn
+                      ? d === "beginner"
+                        ? "$4.99"
+                        : d === "intermediate"
+                          ? "$9.99"
+                          : "$14.99"
+                      : `NT$ ${TEMPLATE_UNLOCK_PRICES[d]}`}
                   </div>
                 </div>
               ))}

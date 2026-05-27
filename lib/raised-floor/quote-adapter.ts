@@ -6,7 +6,7 @@
  *   - materialCost = bom.cost.total
  *   - pingShu / areaM2 = bom.auto.pingShu / bom.auto.platformAreaM2
  */
-import type { RaisedFloorBom } from "./types";
+import { bomItemName, bomItemNote, type RaisedFloorBom } from "./types";
 import type { EngineeringQuoteInput, EngLineItem } from "../engineering-quote/types";
 import type { ENGINEERING_QUOTE_DEFAULTS } from "../engineering-quote/defaults";
 
@@ -15,17 +15,20 @@ type EngOpts = typeof ENGINEERING_QUOTE_DEFAULTS;
 export function raisedFloorBomToEngInput(
   bom: RaisedFloorBom,
   opts: EngOpts,
+  locale: string = "zh-TW",
 ): EngineeringQuoteInput {
+  const pcsUnit = locale === "en" ? "pcs" : "片";
   const materialLines: EngLineItem[] = bom.items.map((it) => {
     const qty =
       it.count != null
-        ? `${it.count} 片`
+        ? `${it.count} ${pcsUnit}`
         : it.totalLengthM != null
           ? `${it.totalLengthM.toFixed(1)} m`
           : "";
-    const detail = [it.spec, qty, it.note].filter(Boolean).join(" · ") || undefined;
+    const note = bomItemNote(it, locale);
+    const detail = [it.spec, qty, note].filter(Boolean).join(" · ") || undefined;
     return {
-      label: it.nameZh,
+      label: bomItemName(it, locale),
       detail,
       amount: it.subtotal ?? 0,
       unpriced: it.subtotal === undefined,

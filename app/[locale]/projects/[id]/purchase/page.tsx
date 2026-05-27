@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { fetchProjectQuoteData } from "@/lib/projects/fetch-quote-data";
