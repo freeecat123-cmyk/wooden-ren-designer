@@ -175,16 +175,21 @@ async function handleOrderCreated(
     throw new Error(`order_created: unknown variant ${variantId} (order ${orderId})`);
   }
 
-  // 1. 寫 payments
+  // 1. 寫 payments（upsert ignoreDuplicates 防 LS resend 撞 unique）
   await mustOk(
-    admin.from("payments").insert({
-      user_id: userId,
-      amount: Math.round(totalCents / 100), // 內部用整數塊（USD）
-      status: "success",
-      payment_provider: "lemonsqueezy",
-      lemonsqueezy_order_id: orderId,
-    }),
-    "order_created.payments.insert",
+    admin
+      .from("payments")
+      .upsert(
+        {
+          user_id: userId,
+          amount: Math.round(totalCents / 100), // 內部用整數塊（USD）
+          status: "success",
+          payment_provider: "lemonsqueezy",
+          lemonsqueezy_order_id: orderId,
+        },
+        { onConflict: "lemonsqueezy_order_id", ignoreDuplicates: true },
+      ),
+    "order_created.payments.upsert",
   );
 
   // 2. 按 variant 種類開權限
@@ -199,28 +204,38 @@ async function handleOrderCreated(
     if (!templateId) {
       throw new Error(`single-template order missing template_id (order ${orderId})`);
     }
-    // 判斷是 furniture 還是 tool
+    // 判斷是 furniture 還是 tool（upsert 用 (user_id, category|tool) 防重複買同模板/工具）
     if (isSellableFurniture(templateId)) {
       await mustOk(
-        admin.from("template_unlocks").insert({
-          user_id: userId,
-          category: templateId,
-          paid_amount: Math.round(totalCents / 100),
-          payment_provider: "lemonsqueezy",
-          lemonsqueezy_order_id: orderId,
-        }),
-        "order_created.template_unlocks.insert",
+        admin
+          .from("template_unlocks")
+          .upsert(
+            {
+              user_id: userId,
+              category: templateId,
+              paid_amount: Math.round(totalCents / 100),
+              payment_provider: "lemonsqueezy",
+              lemonsqueezy_order_id: orderId,
+            },
+            { onConflict: "user_id,category", ignoreDuplicates: true },
+          ),
+        "order_created.template_unlocks.upsert",
       );
     } else if (isSellableTool(templateId)) {
       await mustOk(
-        admin.from("tool_unlocks").insert({
-          user_id: userId,
-          tool: templateId,
-          paid_amount: Math.round(totalCents / 100),
-          payment_provider: "lemonsqueezy",
-          lemonsqueezy_order_id: orderId,
-        }),
-        "order_created.tool_unlocks.insert",
+        admin
+          .from("tool_unlocks")
+          .upsert(
+            {
+              user_id: userId,
+              tool: templateId,
+              paid_amount: Math.round(totalCents / 100),
+              payment_provider: "lemonsqueezy",
+              lemonsqueezy_order_id: orderId,
+            },
+            { onConflict: "user_id,tool", ignoreDuplicates: true },
+          ),
+        "order_created.tool_unlocks.upsert",
       );
     } else {
       throw new Error(`single-template order: unknown template_id "${templateId}"`);
@@ -258,19 +273,25 @@ async function handleSubscriptionCreated(
   const orderId = sub.order_id as number | undefined;
 
   // ⚠️ subscriptions.started_at 是 NOT NULL 沒 default，漏給會 silent fail。
+  // upsert 防 LS resend 撞 lemonsqueezy_subscription_id unique。
   await mustOk(
-    admin.from("subscriptions").insert({
-      user_id: userId,
-      plan: variant.plan, // 'pro'
-      period: variant.period === "yearly" ? "yearly" : "monthly",
-      status: "active",
-      started_at: startedAt,
-      expires_at: renewsAt,
-      payment_provider: "lemonsqueezy",
-      lemonsqueezy_subscription_id: subId,
-      lemonsqueezy_order_id: orderId ? String(orderId) : null,
-    }),
-    "subscription_created.subscriptions.insert",
+    admin
+      .from("subscriptions")
+      .upsert(
+        {
+          user_id: userId,
+          plan: variant.plan, // 'pro'
+          period: variant.period === "yearly" ? "yearly" : "monthly",
+          status: "active",
+          started_at: startedAt,
+          expires_at: renewsAt,
+          payment_provider: "lemonsqueezy",
+          lemonsqueezy_subscription_id: subId,
+          lemonsqueezy_order_id: orderId ? String(orderId) : null,
+        },
+        { onConflict: "lemonsqueezy_subscription_id", ignoreDuplicates: true },
+      ),
+    "subscription_created.subscriptions.upsert",
   );
 
   // 同步 users.plan
@@ -356,14 +377,19 @@ async function handleSubscriptionPaymentSuccess(
   }
 
   await mustOk(
-    admin.from("payments").insert({
-      user_id: subRow.user_id,
-      amount: Math.round(totalCents / 100),
-      status: "success",
-      payment_provider: "lemonsqueezy",
-      lemonsqueezy_order_id: String(payload.data.id),
-    }),
-    "payment_success.payments.insert",
+    admin
+      .from("payments")
+      .upsert(
+        {
+          user_id: subRow.user_id,
+          amount: Math.round(totalCents / 100),
+          status: "success",
+          payment_provider: "lemonsqueezy",
+          lemonsqueezy_order_id: String(payload.data.id),
+        },
+        { onConflict: "lemonsqueezy_order_id", ignoreDuplicates: true },
+      ),
+    "payment_success.payments.upsert",
   );
 
   // 續扣後 renews_at 會在另一個 subscription_updated 事件帶來，這裡不主動延 expires_at
@@ -389,14 +415,19 @@ async function handleSubscriptionPaymentFailed(
   if (!subRow) return;
 
   await mustOk(
-    admin.from("payments").insert({
-      user_id: subRow.user_id,
-      amount: Math.round((invoice.total as number) / 100),
-      status: "failed",
-      payment_provider: "lemonsqueezy",
-      lemonsqueezy_order_id: String(payload.data.id),
-    }),
-    "payment_failed.payments.insert",
+    admin
+      .from("payments")
+      .upsert(
+        {
+          user_id: subRow.user_id,
+          amount: Math.round((invoice.total as number) / 100),
+          status: "failed",
+          payment_provider: "lemonsqueezy",
+          lemonsqueezy_order_id: String(payload.data.id),
+        },
+        { onConflict: "lemonsqueezy_order_id", ignoreDuplicates: true },
+      ),
+    "payment_failed.payments.upsert",
   );
   // TODO: 寄信通知使用者更新卡片
 }
