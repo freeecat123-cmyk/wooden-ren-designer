@@ -173,7 +173,9 @@ export function computeRaisedFloorBom(
       category: "joist",
       nameZh: "主支(骨架)",
       nameEn: "Main joists (frame)",
-      spec: `${input.mainJoist.nameZh} @ ${input.joistSpacingCm}cm`,
+      spec: isEn
+        ? `${input.mainJoist.widthMm}×${input.mainJoist.thicknessMm} mm @ ${input.joistSpacingCm} cm`
+        : `${input.mainJoist.nameZh} @ ${input.joistSpacingCm}cm`,
       totalLengthM: joistTotalM,
       note: `井字邊框 ${joist.perimeterM.toFixed(1)}m + 中間主支 ${joist.middleCount} 條`,
       noteEn: isEn
@@ -185,7 +187,9 @@ export function computeRaisedFloorBom(
       category: "sub-joist",
       nameZh: "副支(密底)",
       nameEn: "Sub-joists (dense base)",
-      spec: `${input.subJoist.nameZh} @ ${input.subJoistSpacingCm}cm`,
+      spec: isEn
+        ? `${input.subJoist.widthMm}×${input.subJoist.thicknessMm} mm @ ${input.subJoistSpacingCm} cm`
+        : `${input.subJoist.nameZh} @ ${input.subJoistSpacingCm}cm`,
       totalLengthM: subJoistTotalM,
       note: `${subJoist.count} 根 × 平均 ${subJoist.typicalLengthCm.toFixed(0)}cm`,
       noteEn: isEn
@@ -197,7 +201,9 @@ export function computeRaisedFloorBom(
       category: "plywood",
       nameZh: "底層夾板",
       nameEn: "Base plywood",
-      spec: `${input.plywood.nameZh} ${input.plywood.sheetLengthCm}×${input.plywood.sheetWidthCm}cm`,
+      spec: isEn
+        ? `Plywood ${input.plywood.thicknessMm} mm, ${input.plywood.sheetLengthCm}×${input.plywood.sheetWidthCm} cm sheet`
+        : `${input.plywood.nameZh} ${input.plywood.sheetLengthCm}×${input.plywood.sheetWidthCm}cm`,
       count: plywoodSheetCount,
       note: `平台 ${platformAreaM2.toFixed(2)}m² ÷ 單片 ${sheetAreaM2.toFixed(2)}m² × 1+${Math.round(input.plywoodWaste * 100)}%損耗`,
       noteEn: isEn
@@ -246,7 +252,9 @@ export function computeRaisedFloorBom(
       category: "underlay",
       nameZh: "防潮墊",
       nameEn: "Vapor barrier",
-      spec: `${underlay.nameZh} ${underlay.rollAreaM2.toFixed(0)}m²/卷`,
+      spec: isEn
+        ? `Underlay ${underlay.thicknessMm} mm, ${underlay.rollAreaM2.toFixed(0)} m²/roll`
+        : `${underlay.nameZh} ${underlay.rollAreaM2.toFixed(0)}m²/卷`,
       count: underlayRollCount,
       note: `平台 ${platformAreaM2.toFixed(2)}m² × 1+${Math.round(underlayWaste * 100)}%損耗 → ${underlayRollCount} 卷(${rollM2Total.toFixed(0)}m²)`,
       noteEn: isEn

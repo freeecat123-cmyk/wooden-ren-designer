@@ -1,3 +1,4 @@
+import { bilingualAlternates } from "@/i18n/metadata";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { ProjectsClient } from "@/components/projects/ProjectsClient";
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: { canonical: "/projects" },
+    alternates: bilingualAlternates("/projects", locale),
   };
 }
 

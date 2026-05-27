@@ -1,3 +1,4 @@
+import { bilingualAlternates } from "@/i18n/metadata";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import ChatClient from "./ChatClient";
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: { canonical: "/chat" },
+    alternates: bilingualAlternates("/chat", locale),
   };
 }
 

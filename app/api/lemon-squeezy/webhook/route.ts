@@ -23,6 +23,8 @@
 import { type NextRequest, after } from "next/server";
 import { sendEmail } from "@/lib/email/send";
 import { lemonPaymentFailedEmail } from "@/lib/email/templates/lemon-payment-failed";
+import { lemonSubscriptionActivatedEmail } from "@/lib/email/templates/lemon-subscription-activated";
+import { lemonUnlockSuccessEmail } from "@/lib/email/templates/lemon-single-template-success";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   extractEventId,
@@ -195,12 +197,16 @@ async function handleOrderCreated(
   );
 
   // 2. 按 variant 種類開權限
+  const amountUsd = Math.round(totalCents / 100);
+  let unlockEmailItem: { kind: "lifetime" | "template" | "tool"; label: string; href: string } | null = null;
+
   if (variant.kind === "lifetime") {
     // Lifetime → users.plan = 'lifetime'（或視 schema 改 subscriptions row）
     await mustOk(
       admin.from("users").update({ plan: "lifetime" }).eq("id", userId),
       "order_created.users.update.lifetime",
     );
+    unlockEmailItem = { kind: "lifetime", label: "Lifetime", href: "/en/app" };
   } else if (variant.kind === "single-template") {
     const templateId = custom.template_id;
     if (!templateId) {
@@ -215,7 +221,7 @@ async function handleOrderCreated(
             {
               user_id: userId,
               category: templateId,
-              paid_amount: Math.round(totalCents / 100),
+              paid_amount: amountUsd,
               payment_provider: "lemonsqueezy",
               lemonsqueezy_order_id: orderId,
             },
@@ -223,6 +229,11 @@ async function handleOrderCreated(
           ),
         "order_created.template_unlocks.upsert",
       );
+      unlockEmailItem = {
+        kind: "template",
+        label: templateId,
+        href: `/en/design/${templateId}`,
+      };
     } else if (isSellableTool(templateId)) {
       await mustOk(
         admin
@@ -231,7 +242,7 @@ async function handleOrderCreated(
             {
               user_id: userId,
               tool: templateId,
-              paid_amount: Math.round(totalCents / 100),
+              paid_amount: amountUsd,
               payment_provider: "lemonsqueezy",
               lemonsqueezy_order_id: orderId,
             },
@@ -239,12 +250,38 @@ async function handleOrderCreated(
           ),
         "order_created.tool_unlocks.upsert",
       );
+      const toolLabels: Record<string, string> = {
+        ceiling: "Ceiling Framing Calculator",
+        floor: "Flooring Layout Calculator",
+        "raised-floor": "Raised-Floor Tatami Calculator",
+      };
+      unlockEmailItem = {
+        kind: "tool",
+        label: toolLabels[templateId] ?? templateId,
+        href: `/en/${templateId}`,
+      };
     } else {
       throw new Error(`single-template order: unknown template_id "${templateId}"`);
     }
   } else if (variant.kind === "subscription") {
     // 訂閱透過 subscription_created 事件處理，這條 order 只記 payment
     console.log(`[ls/webhook] subscription order ${orderId} — wait for subscription_created`);
+  }
+
+  // 寄發木頭仁品牌確認信(LS 自家 invoice 並行送一封)
+  if (unlockEmailItem && userEmail) {
+    const mail = lemonUnlockSuccessEmail({
+      kind: unlockEmailItem.kind,
+      itemLabel: unlockEmailItem.label,
+      amount: amountUsd,
+      itemHref: unlockEmailItem.href,
+    });
+    await sendEmail({
+      to: userEmail,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
   }
 }
 
@@ -310,6 +347,34 @@ async function handleSubscriptionCreated(
       .eq("id", userId),
     "subscription_created.users.update",
   );
+
+  // 寄發木頭仁品牌歡迎信(LS 自家 invoice 並行送一封)
+  // user_email 從 sub payload 或 users 表查
+  const subUserEmail = sub.user_email as string | undefined;
+  let email = subUserEmail;
+  if (!email) {
+    const { data: userRow } = await admin
+      .from("users")
+      .select("email")
+      .eq("id", userId)
+      .single();
+    email = userRow?.email ?? undefined;
+  }
+  if (email) {
+    const planLabel = `Pro ${variant.period === "yearly" ? "Annual" : "Monthly"}`;
+    const totalCents = (sub.total ?? 0) as number;
+    const mail = lemonSubscriptionActivatedEmail({
+      planLabel,
+      renewsAt,
+      amount: Math.round(totalCents / 100),
+    });
+    await sendEmail({
+      to: email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

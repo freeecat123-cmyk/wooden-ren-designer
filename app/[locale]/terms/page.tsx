@@ -1,3 +1,4 @@
+import { bilingualAlternates } from "@/i18n/metadata";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
@@ -11,7 +12,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: { canonical: "/terms" },
+    alternates: bilingualAlternates("/terms", locale),
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),

@@ -565,29 +565,86 @@ export function bomToCsvRows(
   bom: RaisedFloorBom,
   cuttingPlan: CuttingPlan,
   plywoodLayout: PlywoodLayout,
+  locale: string = "zh-TW",
 ): string[][] {
   const out: string[][] = [];
+  const isEn = locale === "en";
+  const L = isEn
+    ? {
+        title: "Raised platform — material list & cutting plan",
+        summaryPing: "ping",
+        section1: "━━ Material list ━━",
+        bomHeader: ["Category", "Name", "Spec", "Qty", "Total length (m)", "Note", "Subtotal (NT$)"],
+        total: "Total",
+        section2: "━━ Cutting plan ① Joists (1D FFD) ━━",
+        stockInfoTpl: (len: number, kerf: number, splice: number) =>
+          `Stock ${len} cm/run · saw kerf ${kerf} cm · splice overlap ${splice} cm`,
+        joistHeader: ["Run #", "Cuts (each segment cm)", "Used (cm)", "Kerf (cm)", "Remain (cm)"],
+        runCountTpl: (n: number) => `${n} runs total`,
+        remainTpl: (m: string, pct: number) => `Remain ${m} m (utilization ${pct}%)`,
+        section3: "━━ Cutting plan ② Flooring planks ━━",
+        plankInfoTpl: (l: number, w: number, full: number, cut: number, newCnt: number, waste: number) =>
+          `Plank ${l}×${w} cm · ${full} full + ${cut} cut (${newCnt} new sheets used) · waste ${waste.toFixed(1)}%`,
+        plankHeader: ["#", "Type", "Effective length (cm)", "Area (cm²)"],
+        full: "Full",
+        cut: "Cut",
+        reuseHeader: "─ Offcut reuse details ─",
+        section4: "━━ Cutting plan ③ Plywood ━━",
+        plywoodInfoTpl: (l: number, w: number, sheets: number, full: number, cut: number, gap: number) =>
+          `Plywood · ${l}×${w} cm · ${sheets} sheets needed (${full} full + ${cut} cut) · gap ${gap} mm`,
+        orderInfoTpl: (order: number, saved: number) =>
+          `Order: ${order} sheets (${saved} saved via 2D offcut packing)`,
+        plywoodHeader: ["#", "Type", "Width (cm)", "Height (cm)", "Area (cm²)"],
+        packingHeader: "─ Packing details ─",
+      }
+    : {
+        title: "和室架高平台 — 材料清單與裁切表",
+        summaryPing: "坪",
+        section1: "━━ 材料清單 ━━",
+        bomHeader: ["類別", "名稱", "規格", "數量", "總長(m)", "備註", "小計(NT$)"],
+        total: "總計",
+        section2: "━━ 裁切表 ① 骨架(1D FFD) ━━",
+        stockInfoTpl: (len: number, kerf: number, splice: number) =>
+          `原料 ${len}cm/支 · 鋸路 ${kerf}cm · 接點搭接 ${splice}cm`,
+        joistHeader: ["支號", "切法(各段 cm)", "已用(cm)", "鋸路(cm)", "剩料(cm)"],
+        runCountTpl: (n: number) => `共 ${n} 支`,
+        remainTpl: (m: string, pct: number) => `剩 ${m} m (利用率 ${pct}%)`,
+        section3: "━━ 裁切表 ② 地板 ━━",
+        plankInfoTpl: (l: number, w: number, full: number, cut: number, newCnt: number, waste: number) =>
+          `面材 ${l}×${w}cm · 整片 ${full} + 裁切 ${cut}(實耗新片 ${newCnt})· 損耗 ${waste.toFixed(1)}%`,
+        plankHeader: ["編號", "類型", "有效長(cm)", "面積(cm²)"],
+        full: "整片",
+        cut: "裁切",
+        reuseHeader: "─ 餘料再利用明細 ─",
+        section4: "━━ 裁切表 ③ 夾板 ━━",
+        plywoodInfoTpl: (l: number, w: number, sheets: number, full: number, cut: number, gap: number) =>
+          `夾板 · ${l}×${w}cm · 平台需鋪 ${sheets} 片(整 ${full} + 裁 ${cut})· 拼縫 ${gap}mm`,
+        orderInfoTpl: (order: number, saved: number) =>
+          `實際訂料:${order} 張(2D 餘料拼湊後省 ${saved} 張)`,
+        plywoodHeader: ["編號", "類型", "寬(cm)", "高(cm)", "面積(cm²)"],
+        packingHeader: "─ 下料拼湊明細 ─",
+      };
 
-  out.push(["和室架高平台 — 材料清單與裁切表"]);
+  out.push([L.title]);
   out.push([
-    `平台 ${bom.input.widthCm}×${bom.input.depthCm}cm`,
-    `高 ${bom.input.heightCm}cm`,
-    `面積 ${bom.auto.platformAreaM2.toFixed(2)} m²`,
-    `${bom.auto.pingShu.toFixed(2)} 坪`,
+    `${isEn ? "Platform" : "平台"} ${bom.input.widthCm}×${bom.input.depthCm}cm`,
+    `${isEn ? "Height" : "高"} ${bom.input.heightCm}cm`,
+    `${isEn ? "Area" : "面積"} ${bom.auto.platformAreaM2.toFixed(2)} m²`,
+    `${bom.auto.pingShu.toFixed(2)} ${L.summaryPing}`,
   ]);
   out.push([]);
 
   // 1. BOM 主表
-  out.push(["━━ 材料清單 ━━"]);
-  out.push(["類別", "名稱", "規格", "數量", "總長(m)", "備註", "小計(NT$)"]);
+  out.push([L.section1]);
+  out.push(L.bomHeader);
   for (const it of bom.items) {
     out.push([
       it.category,
-      it.nameZh,
+      isEn && it.nameEn ? it.nameEn : it.nameZh,
       it.spec,
       it.count != null ? String(it.count) : "",
       it.totalLengthM != null ? it.totalLengthM.toFixed(1) : "",
-      it.note ?? "",
+      (isEn && it.noteEn ? it.noteEn : it.note) ?? "",
       it.subtotal != null ? String(Math.round(it.subtotal)) : "",
     ]);
   }
@@ -597,23 +654,15 @@ export function bomToCsvRows(
     "",
     "",
     "",
-    "總計",
+    L.total,
     bom.cost.total > 0 ? String(Math.round(bom.cost.total)) : "",
   ]);
   out.push([]);
 
   // 2. 骨架裁切表
-  out.push(["━━ 裁切表 ① 骨架(1D FFD) ━━"]);
-  out.push([
-    `原料 ${cuttingPlan.stockLengthCm}cm/支 · 鋸路 ${cuttingPlan.sawKerfCm}cm · 接點搭接 ${cuttingPlan.spliceOverlapCm}cm`,
-  ]);
-  out.push([
-    "支號",
-    "切法(各段 cm)",
-    "已用(cm)",
-    "鋸路(cm)",
-    "剩料(cm)",
-  ]);
+  out.push([L.section2]);
+  out.push([L.stockInfoTpl(cuttingPlan.stockLengthCm, cuttingPlan.sawKerfCm, cuttingPlan.spliceOverlapCm)]);
+  out.push(L.joistHeader);
   for (const s of cuttingPlan.stocks) {
     out.push([
       `#${s.index}`,
@@ -625,47 +674,61 @@ export function bomToCsvRows(
   }
   out.push([
     "",
-    `共 ${cuttingPlan.summary.stockCount} 支`,
+    L.runCountTpl(cuttingPlan.summary.stockCount),
     `${cuttingPlan.summary.totalUsedM} m`,
     "",
-    `剩 ${cuttingPlan.summary.totalRemainM} m (利用率 ${cuttingPlan.summary.utilizationPct}%)`,
+    L.remainTpl(cuttingPlan.summary.totalRemainM.toString(), cuttingPlan.summary.utilizationPct),
   ]);
   out.push([]);
 
   // 3. 地板裁切表
-  out.push(["━━ 裁切表 ② 地板 ━━"]);
+  out.push([L.section3]);
   out.push([
-    `面材 ${bom.input.plankLengthCm}×${bom.input.plankWidthCm}cm · 整片 ${bom.trace.plankFullCount} + 裁切 ${bom.trace.plankCutCount}(實耗新片 ${bom.trace.plankCutNewCount})· 損耗 ${bom.trace.plankWastePercent.toFixed(1)}%`,
+    L.plankInfoTpl(
+      bom.input.plankLengthCm,
+      bom.input.plankWidthCm,
+      bom.trace.plankFullCount,
+      bom.trace.plankCutCount,
+      bom.trace.plankCutNewCount,
+      bom.trace.plankWastePercent,
+    ),
   ]);
-  out.push(["編號", "類型", "有效長(cm)", "面積(cm²)"]);
+  out.push(L.plankHeader);
   bom.layout.planks.forEach((p, i) => {
     out.push([
       `#${i + 1}`,
-      p.kind === "full" ? "整片" : "裁切",
+      p.kind === "full" ? L.full : L.cut,
       r1(p.effectiveLengthCm).toString(),
       Math.round(p.usedAreaCm2).toString(),
     ]);
   });
   if (bom.trace.offcutReuseLog.length > 0) {
     out.push([]);
-    out.push(["─ 餘料再利用明細 ─"]);
+    out.push([L.reuseHeader]);
     for (const line of bom.trace.offcutReuseLog) out.push([line]);
   }
   out.push([]);
 
   // 4. 夾板裁切表
-  out.push(["━━ 裁切表 ③ 夾板 ━━"]);
+  out.push([L.section4]);
   out.push([
-    `${bom.input.plywood.nameZh} · ${plywoodLayout.sheetLongX}×${plywoodLayout.sheetShortZ}cm · 平台需鋪 ${plywoodLayout.sheets.length} 片(整 ${plywoodLayout.fullCount} + 裁 ${plywoodLayout.cutCount})· 拼縫 ${bom.input.plywoodGapMm}mm`,
+    L.plywoodInfoTpl(
+      plywoodLayout.sheetLongX,
+      plywoodLayout.sheetShortZ,
+      plywoodLayout.sheets.length,
+      plywoodLayout.fullCount,
+      plywoodLayout.cutCount,
+      bom.input.plywoodGapMm,
+    ),
   ]);
   out.push([
-    `實際訂料:${plywoodLayout.orderSheetCount} 張(2D 餘料拼湊後省 ${plywoodLayout.sheets.length - plywoodLayout.orderSheetCount} 張)`,
+    L.orderInfoTpl(plywoodLayout.orderSheetCount, plywoodLayout.sheets.length - plywoodLayout.orderSheetCount),
   ]);
-  out.push(["編號", "類型", "寬(cm)", "高(cm)", "面積(cm²)"]);
+  out.push(L.plywoodHeader);
   for (const s of plywoodLayout.sheets) {
     out.push([
       `#${s.index}`,
-      s.isFull ? "整片" : "裁切",
+      s.isFull ? L.full : L.cut,
       r1(s.w).toString(),
       r1(s.h).toString(),
       Math.round(s.w * s.h).toString(),
@@ -673,7 +736,7 @@ export function bomToCsvRows(
   }
   if (plywoodLayout.packingLog.length > 0) {
     out.push([]);
-    out.push(["─ 下料拼湊明細 ─"]);
+    out.push([L.packingHeader]);
     for (const line of plywoodLayout.packingLog) out.push([line]);
   }
 

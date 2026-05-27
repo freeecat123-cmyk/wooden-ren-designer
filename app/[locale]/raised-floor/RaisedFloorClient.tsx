@@ -199,7 +199,7 @@ export function RaisedFloorClient() {
   };
 
   const downloadCsv = () => {
-    const csv = bomCsvString(bomToCsvRows(bom, cuttingPlan, plywoodLayout));
+    const csv = bomCsvString(bomToCsvRows(bom, cuttingPlan, plywoodLayout, locale));
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
