@@ -1,4 +1,4 @@
-import { MATERIALS, type MaterialSpec, materialName } from "@/lib/materials";
+import { MATERIALS, type MaterialSpec, materialName, materialNotes } from "@/lib/materials";
 import type { MaterialId } from "@/lib/types";
 
 /**
@@ -163,7 +163,10 @@ export function MaterialAttributesPanel({ materialId, locale = "zh-TW" }: Materi
             ? `Density ${spec.density} kg/m³ · Janka ${spec.hardness} N`
             : `密度 ${spec.density} kg/m³ · Janka ${spec.hardness} N`}
         </div>
-        {spec.notes && <div className="text-zinc-600 mb-1 leading-relaxed">{spec.notes}</div>}
+        {(() => {
+          const note = materialNotes(materialId, locale);
+          return note ? <div className="text-zinc-600 mb-1 leading-relaxed">{note}</div> : null;
+        })()}
         {a.styles.length > 0 && (
           <div className="text-zinc-500">
             {isEn ? "Suits: " : "適合："}
