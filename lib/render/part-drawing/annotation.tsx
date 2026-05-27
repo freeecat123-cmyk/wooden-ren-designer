@@ -1263,18 +1263,8 @@ export function T2Annotations({
     // HLE: tenon 是凸出實體、任何視圖都實線。mortise 是內藏腔體、只有入榫面
     // 朝鏡頭（深度軸跟視圖軸一致 + origin 在 + face）才實線、否則虛線。
     // (user:「上面的牙條榫應該是紅色實線」/「藍色榫頭線也應該是藍色實線」)
-    //
-    // tall part isolation rotation：thickness 最長時 part 被 Rz=-π/2 翻倒
-    // （part-local X ↔ part-local Y），top view 看的真實 part-local 面是 X 軸
-    // 不是 Y 軸；side view 看的是 Y 軸不是 X 軸。沒翻 viewAxis 的話腳的 X 面
-    // 榫眼 (depthAxis="x") 會在俯視被當成 hidden 畫成虛線（user 2026-05-27
-    // 「俯視看不到榫眼面」就是這個 bug）
-    const isTallPart =
-      part.visible.thickness > part.visible.length &&
-      part.visible.thickness > part.visible.width;
-    const viewAxis: "x" | "y" | "z" = isTallPart
-      ? view === "top" ? "x" : view === "side" ? "y" : "z"
-      : view === "top" ? "y" : view === "side" ? "x" : "z";
+    const viewAxis: "x" | "y" | "z" =
+      view === "top" ? "y" : view === "side" ? "x" : "z";
     let isVisibleFromView = false;
     if (isMortise) {
       const mortiseLb = lb as ReturnType<typeof mortiseEntryBox>;
