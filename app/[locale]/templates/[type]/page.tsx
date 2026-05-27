@@ -50,7 +50,7 @@ export async function generateMetadata({
   if (!marketing || !entry) {
     return { title: locale === "en" ? "Template not found" : "找不到範本介紹" };
   }
-  const ogImage = `${SITE_URL}/api/og?type=${encodeURIComponent(type)}`;
+  const ogImage = `${SITE_URL}/api/og?type=${encodeURIComponent(type)}${locale !== routing.defaultLocale ? `&locale=${locale}` : ""}`;
   const isDefault = locale === routing.defaultLocale;
   const pathPrefix = isDefault ? "" : `/${locale}`;
   return {

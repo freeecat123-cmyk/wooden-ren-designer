@@ -90,6 +90,7 @@ export async function generateMetadata({
     const v = sp[k];
     if (typeof v === "string" && v) ogParams.set(k, v);
   }
+  if (locale !== routing.defaultLocale) ogParams.set("locale", locale);
   const ogImage = `/api/og?${ogParams.toString()}`;
   const isDefault = locale === routing.defaultLocale;
   const canonical = isDefault
