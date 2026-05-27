@@ -1201,14 +1201,27 @@ function OrthoViewImpl({
           {/* 欄位標籤 + 值 */}
           {(() => {
             const colW = 277 / 6;
-            const cols: Array<{ label: string; value: string }> = [
-              { label: "件號", value: paperTitleBlock?.partNo ?? "—" },
-              { label: "件名", value: title },
-              { label: "材料", value: paperTitleBlock?.materialLabel ?? "—" },
-              { label: "數量", value: `×${paperTitleBlock?.count ?? 1}` },
-              { label: "比例", value: `1:${paperScaleN}` },
-              { label: "尺寸 mm", value: paperTitleBlock?.dimsLabel ?? "—" },
-            ];
+            // Title-block field labels — chosen short so they fit a 277/6 mm column.
+            // We pick EN labels when the OrthoView title starts with an ASCII letter
+            // (which only happens when ThreeViewLayout passed an EN title), otherwise zh.
+            const enTitleBlock = /^[A-Z]/.test(title);
+            const cols: Array<{ label: string; value: string }> = enTitleBlock
+              ? [
+                  { label: "Part #", value: paperTitleBlock?.partNo ?? "—" },
+                  { label: "Name", value: title },
+                  { label: "Material", value: paperTitleBlock?.materialLabel ?? "—" },
+                  { label: "Qty", value: `×${paperTitleBlock?.count ?? 1}` },
+                  { label: "Scale", value: `1:${paperScaleN}` },
+                  { label: "Size mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+                ]
+              : [
+                  { label: "件號", value: paperTitleBlock?.partNo ?? "—" },
+                  { label: "件名", value: title },
+                  { label: "材料", value: paperTitleBlock?.materialLabel ?? "—" },
+                  { label: "數量", value: `×${paperTitleBlock?.count ?? 1}` },
+                  { label: "比例", value: `1:${paperScaleN}` },
+                  { label: "尺寸 mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+                ];
             return cols.map((c, i) => {
               const cx = 10 + colW * i + colW / 2;
               return (
@@ -3867,20 +3880,23 @@ export function VerticalDimensionLine({
 export function ThreeViewLayout({
   design,
   joineryMode = false,
+  locale = "zh-TW",
 }: {
   design: FurnitureDesign;
   joineryMode?: boolean;
+  locale?: string;
 }) {
+  const isEn = locale === "en";
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT VIEW" joineryMode={joineryMode} />
+        <OrthoView design={design} view="front" title={isEn ? "FRONT VIEW" : "正視圖"} titleEn={isEn ? "" : "FRONT VIEW"} joineryMode={joineryMode} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE VIEW" joineryMode={joineryMode} />
+        <OrthoView design={design} view="side" title={isEn ? "SIDE VIEW" : "側視圖"} titleEn={isEn ? "" : "SIDE VIEW"} joineryMode={joineryMode} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP VIEW" joineryMode={joineryMode} />
+        <OrthoView design={design} view="top" title={isEn ? "TOP VIEW" : "俯視圖"} titleEn={isEn ? "" : "TOP VIEW"} joineryMode={joineryMode} />
       </div>
     </div>
   );

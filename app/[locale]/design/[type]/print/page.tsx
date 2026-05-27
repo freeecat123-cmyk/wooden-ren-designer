@@ -204,7 +204,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             ? "⚠️ Dimensions shown are shoulder-to-shoulder, post-assembly. Cut sizes include tenon stock — see the cut list on the next page."
             : "⚠️ 標示為組裝後可見尺寸（肩到肩）。實際切料含榫頭，請看下一頁材料單。"}
         </p>
-        <ThreeViewLayout design={design} joineryMode={joineryMode} />
+        <ThreeViewLayout design={design} joineryMode={joineryMode} locale={locale} />
       </section>
 
       {/* ================= Page 3: Material list ================= */}
