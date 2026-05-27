@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
-import { getTemplate } from "@/lib/templates";
+import { getTemplate, getEntryName } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import type { FurnitureCategory } from "@/lib/types";
-import { MATERIALS } from "@/lib/materials";
+import { materialName } from "@/lib/materials";
 import {
   DEFAULT_NEST_CONFIG,
   buildCutPieces,
@@ -19,12 +20,13 @@ import {
 } from "@/lib/design/parse-search-params";
 
 interface PageProps {
-  params: Promise<{ type: string }>;
+  params: Promise<{ locale: string; type: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export default async function CutPlanPage({ params, searchParams }: PageProps) {
-  const { type } = await params;
+  const { locale, type } = await params;
+  const t = await getTranslations({ locale, namespace: "cutPlan" });
   const sp = await searchParams;
 
   const entry = getTemplate(type as FurnitureCategory);
@@ -64,6 +66,8 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const initialSpecs = collapseIntoSpecs(allPieces);
 
   const designQuery = designParamsToQuery(parsed, entry);
+  const entryName = getEntryName(entry, locale);
+  const matName = materialName(material, locale);
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-6 print:px-0 print:py-4 cutplan-print">
@@ -71,20 +75,20 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
         href={`/design/${type}?${designQuery.toString()}`}
         className="text-sm text-zinc-500 hover:underline no-print"
       >
-        ← 回{entry.nameZh}設計
+        {t("backLink", { name: entryName })}
       </Link>
 
       <header className="mt-2 mb-4 no-print">
-        <h1 className="text-2xl font-bold">裁切計算器</h1>
+        <h1 className="text-2xl font-bold">{t("h1")}</h1>
         <p className="mt-0.5 text-xs text-zinc-500">
-          {entry.nameZh} · {length}×{width}×{height}mm · {MATERIALS[material].nameZh}．左邊輸入庫存 → 右邊立刻看排料圖
+          {t("subtitle", { name: entryName, length, width, height, material: matName })}
         </p>
       </header>
 
       <CutPlanApp
         initialSpecs={initialSpecs}
         initialConfig={DEFAULT_NEST_CONFIG}
-        entryNameZh={`${entry.nameZh} ${length}×${width}×${height}mm ${MATERIALS[material].nameZh}`}
+        entryNameZh={`${entryName} ${length}×${width}×${height}mm ${matName}`}
       />
     </main>
   );

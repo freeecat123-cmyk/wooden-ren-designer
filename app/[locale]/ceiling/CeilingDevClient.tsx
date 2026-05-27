@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import {
   DEFAULT_CEILING_INPUT,
@@ -34,7 +35,6 @@ import { bomToCuttingPieces, computeCuttingPlan } from "@/lib/ceiling/cutting";
 import {
   type Fixture,
   type FixtureKind,
-  FIXTURE_KIND_LABEL,
   checkFixtureCollisions,
   makeDefaultFixture,
 } from "@/lib/ceiling/fixtures";
@@ -51,6 +51,8 @@ const EMPTY_CUSTOMER: CustomerInfo = { name: "", phone: "", address: "", notes: 
 
 export function CeilingDevClient() {
   const router = useRouter();
+  const t = useTranslations("ceilingTool");
+  const fixtureKindLabel = (k: FixtureKind) => t(`fixtureKind.${k}`);
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
   const bom = useMemo(() => computeCeilingBom(input), [input]);
 
@@ -127,7 +129,7 @@ export function CeilingDevClient() {
     } catch (e) {
       console.warn(e);
       setShareStatus("");
-      alert("分享失敗,請稍後重試(或檢查 Upstash 設定)");
+      alert(t("shareError"));
     }
   }
 
@@ -189,7 +191,10 @@ export function CeilingDevClient() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `天花板算料_${input.longSideCm}x${input.shortSideCm}.csv`;
+    a.download = t("csvFilename", {
+      long: input.longSideCm,
+      short: input.shortSideCm,
+    });
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -211,34 +216,34 @@ export function CeilingDevClient() {
               ▣
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-zinc-900 leading-tight">天花板骨架施工模擬器</h1>
+              <h1 className="text-sm font-semibold text-zinc-900 leading-tight">{t("header.h1")}</h1>
               <p className="text-[10px] text-zinc-500 leading-tight flex items-center gap-1.5">
-                <span className="text-[9px] text-rose-700 bg-rose-50 ring-1 ring-rose-200 px-1.5 py-px rounded-full">admin</span>
-                木匠學院 · v0.4
+                <span className="text-[9px] text-rose-700 bg-rose-50 ring-1 ring-rose-200 px-1.5 py-px rounded-full">{t("header.adminBadge")}</span>
+                {t("header.subtitle")}
               </p>
             </div>
           </div>
           <div className="inline-flex gap-0.5 p-0.5 bg-stone-100 rounded-lg text-[11px] font-medium ring-1 ring-stone-200">
             <button onClick={() => setViewKind("2d")}
               className={`px-3 py-1.5 rounded-md transition ${viewKind === "2d" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800"}`}>
-              📐 平面
+              {t("header.view2d")}
             </button>
             <button onClick={() => setViewKind("3d")}
               className={`px-3 py-1.5 rounded-md transition ${viewKind === "3d" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800"}`}>
-              🧊 立體
+              {t("header.view3d")}
             </button>
           </div>
           <button onClick={shareCase} disabled={shareStatus === "loading"}
             className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-stone-200 hover:bg-stone-50 hover:border-stone-300 transition text-zinc-700 disabled:opacity-50">
-            {shareStatus === "loading" ? "..." : shareStatus === "copied" ? "✓ 連結已複製" : "🔗 分享"}
+            {shareStatus === "loading" ? t("header.shareLoading") : shareStatus === "copied" ? t("header.shareCopied") : t("header.shareIdle")}
           </button>
           <button onClick={downloadCsv}
             className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-stone-200 hover:bg-stone-50 hover:border-stone-300 transition text-zinc-700">
-            ⬇ CSV
+            {t("header.csv")}
           </button>
           <button onClick={() => { setViewKind("2d"); setTimeout(() => window.print(), 200); }}
             className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm shadow-amber-500/30 transition">
-            🖨 列印
+            {t("header.print")}
           </button>
         </div>
       </header>
@@ -248,30 +253,35 @@ export function CeilingDevClient() {
         <div className="flex items-start justify-between gap-6">
           <BrandedHeader />
           <div className="text-right text-[11px] text-zinc-700">
-            <p className="font-bold text-sm text-zinc-900">天花板骨架材料採購清單</p>
-            <p className="mt-0.5">日期:{new Date().toLocaleDateString("zh-TW")}</p>
-            {shareCode && <p className="text-zinc-500 font-mono">案場 #{shareCode}</p>}
+            <p className="font-bold text-sm text-zinc-900">{t("printHeader.title")}</p>
+            <p className="mt-0.5">{t("printHeader.dateLabel")}{new Date().toLocaleDateString()}</p>
+            {shareCode && <p className="text-zinc-500 font-mono">{t("printHeader.caseLabel")}{shareCode}</p>}
           </div>
         </div>
         {(customer.name || customer.address || customer.phone) && (
           <div className="mt-3 pt-2 border-t border-stone-200 grid grid-cols-2 gap-2 text-[11px]">
             <div>
-              <span className="text-zinc-500">客戶:</span>
-              <span className="ml-1 font-semibold">{customer.name || "—"}</span>
+              <span className="text-zinc-500">{t("printHeader.clientLabel")}</span>
+              <span className="ml-1 font-semibold">{customer.name || t("printHeader.missingValue")}</span>
               {customer.phone && <span className="ml-3 text-zinc-700">{customer.phone}</span>}
             </div>
             <div className="text-right">
-              <span className="text-zinc-500">案場:</span>
-              <span className="ml-1 text-zinc-700">{customer.address || "—"}</span>
+              <span className="text-zinc-500">{t("printHeader.siteLabel")}</span>
+              <span className="ml-1 text-zinc-700">{customer.address || t("printHeader.missingValue")}</span>
             </div>
             {customer.notes && (
-              <div className="col-span-2 text-zinc-600">備註:{customer.notes}</div>
+              <div className="col-span-2 text-zinc-600">{t("printHeader.notesLabel")}{customer.notes}</div>
             )}
           </div>
         )}
         <p className="text-[10px] text-zinc-500 mt-2">
-          長 {input.longSideCm} × 短 {input.shortSideCm} × 板高 {input.slabHeightCm} × 天花板高 {input.ceilingHeightCm} cm
-          · {r2(bom.auto.pingShu)} 坪
+          {t("printHeader.dimensionSummary", {
+            long: input.longSideCm,
+            short: input.shortSideCm,
+            slab: input.slabHeightCm,
+            ceiling: input.ceilingHeightCm,
+            ping: r2(bom.auto.pingShu),
+          })}
         </p>
       </div>
 
@@ -284,24 +294,24 @@ export function CeilingDevClient() {
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
               <div className="inline-flex gap-0.5 p-0.5 bg-white rounded-md ring-1 ring-stone-200">
                 <button onClick={() => setView3D("iso")}
-                  className={`px-2 py-1 rounded font-medium ${view3D === "iso" ? "bg-amber-100 text-amber-900" : "text-zinc-600 hover:text-zinc-900"}`}>軸測</button>
+                  className={`px-2 py-1 rounded font-medium ${view3D === "iso" ? "bg-amber-100 text-amber-900" : "text-zinc-600 hover:text-zinc-900"}`}>{t("view3dToolbar.iso")}</button>
                 <button onClick={() => setView3D("top")}
-                  className={`px-2 py-1 rounded font-medium ${view3D === "top" ? "bg-amber-100 text-amber-900" : "text-zinc-600 hover:text-zinc-900"}`}>俯視</button>
+                  className={`px-2 py-1 rounded font-medium ${view3D === "top" ? "bg-amber-100 text-amber-900" : "text-zinc-600 hover:text-zinc-900"}`}>{t("view3dToolbar.top")}</button>
               </div>
               <label className="flex items-center gap-2 text-zinc-600">
-                💥 爆炸
+                {t("view3dToolbar.explode")}
                 <input type="range" min={0} max={1} step={0.01} value={explode}
                   onChange={(e) => setExplode(Number(e.target.value))} className="w-28 accent-amber-600" />
                 <span className="tabular-nums w-10 text-zinc-500 font-mono">{(explode * 100).toFixed(0)}%</span>
               </label>
               <div className="flex items-center gap-1 text-zinc-600">
-                <span>圖層</span>
+                <span>{t("view3dToolbar.layersLabel")}</span>
                 {[
-                  { k: "room" as const, label: "房間" },
-                  { k: "frame" as const, label: "邊框" },
-                  { k: "main" as const, label: "主支+吊筋" },
-                  { k: "sub" as const, label: "副支" },
-                  { k: "boards" as const, label: "矽酸鈣板" },
+                  { k: "room" as const, label: t("view3dToolbar.layerRoom") },
+                  { k: "frame" as const, label: t("view3dToolbar.layerFrame") },
+                  { k: "main" as const, label: t("view3dToolbar.layerMain") },
+                  { k: "sub" as const, label: t("view3dToolbar.layerSub") },
+                  { k: "boards" as const, label: t("view3dToolbar.layerBoards") },
                 ].map(({ k, label }) => (
                   <button key={k} onClick={() => toggleLayer(k)}
                     className={`px-2 h-7 rounded-md text-[11px] font-medium transition ${
@@ -329,95 +339,108 @@ export function CeilingDevClient() {
             {/* 4 大輸入 — 房間尺寸 */}
             <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-stone-100 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-zinc-900">📐 房間尺寸</h2>
-                <span className="text-[11px] text-zinc-600">拖拉條調整,圖與材料表即時重算</span>
+                <h2 className="text-sm font-semibold text-zinc-900">{t("roomSize.h2")}</h2>
+                <span className="text-[11px] text-zinc-600">{t("roomSize.hint")}</span>
               </div>
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                <CeilingRangeInput icon="↔" label="長邊" value={input.longSideCm} unit="cm"
+                <CeilingRangeInput icon="↔" label={t("roomSize.longSide")} value={input.longSideCm} unit="cm"
                   min={100} max={1500} step={5} onChange={(v) => update("longSideCm", v)} />
-                <CeilingRangeInput icon="↕" label="短邊" value={input.shortSideCm} unit="cm"
+                <CeilingRangeInput icon="↕" label={t("roomSize.shortSide")} value={input.shortSideCm} unit="cm"
                   min={100} max={1200} step={5} onChange={(v) => update("shortSideCm", v)} />
-                <CeilingRangeInput icon="↥" label="板高" sub="樓板到地" value={input.slabHeightCm} unit="cm"
+                <CeilingRangeInput icon="↥" label={t("roomSize.slabHeight")} sub={t("roomSize.slabHeightSub")} value={input.slabHeightCm} unit="cm"
                   min={200} max={400} step={1} onChange={(v) => update("slabHeightCm", v)} />
-                <CeilingRangeInput icon="≡" label="天花板高" sub="完成面" value={input.ceilingHeightCm} unit="cm"
+                <CeilingRangeInput icon="≡" label={t("roomSize.ceilingHeight")} sub={t("roomSize.ceilingHeightSub")} value={input.ceilingHeightCm} unit="cm"
                   min={180} max={380} step={1} onChange={(v) => update("ceilingHeightCm", v)} />
               </div>
             </section>
 
         {/* ============ 6 重點數字 ============ */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-          <Stat icon="◬" tone="amber" label="坪數" value={r2(bom.auto.pingShu)} unit="坪"
+          <Stat icon="◬" tone="amber" label={t("stats.ping")} value={r2(bom.auto.pingShu)} unit={t("stats.pingUnit")}
             hint={`${r2(bom.auto.roomAreaM2)} m²`} />
-          <Stat icon="▭" tone="stone" label="邊框" value={r1(bom.items[0].totalLengthM ?? 0)} unit="m"
-            hint={`周長 ${input.longSideCm + input.shortSideCm}×2`} />
-          <Stat icon="┃" tone="amber" label="主支" value={bom.trace.mainJoistTimberCount} unit="支"
-            hint={`${r1(bom.trace.mainJoistLengthCm)} cm`} />
-          <Stat icon="━" tone="stone" label="副支" value={totalSub} unit="支"
-            hint={subRows.length >= 2 ? `${subRows[0].unitLengthCm}/${subRows[1].unitLengthCm} cm` : `${subRows[0]?.unitLengthCm ?? "—"} cm`} />
-          <Stat icon="|" tone="stone" label="吊筋" value={hanger?.count ?? 0} unit="支"
-            hint={`長 ${r1(bom.auto.hangerHeightCm)} cm`} />
-          <Stat icon="▦" tone="amber" label="矽酸鈣板" value={totalBoards} unit="張"
-            hint={`${boardFull?.count ?? 0} 整 / ${boardCut?.count ?? 0} 裁`} />
+          <Stat icon="▭" tone="stone" label={t("stats.frame")} value={r1(bom.items[0].totalLengthM ?? 0)} unit={t("stats.frameUnit")}
+            hint={t("stats.framePerimHint", { perim: input.longSideCm + input.shortSideCm })} />
+          <Stat icon="┃" tone="amber" label={t("stats.mainJoist")} value={bom.trace.mainJoistTimberCount} unit={t("stats.joistUnit")}
+            hint={t("stats.mainJoistHint", { len: r1(bom.trace.mainJoistLengthCm) })} />
+          <Stat icon="━" tone="stone" label={t("stats.subJoist")} value={totalSub} unit={t("stats.joistUnit")}
+            hint={subRows.length >= 2
+              ? t("stats.subJoistHintTwo", { a: subRows[0].unitLengthCm ?? "—", b: subRows[1].unitLengthCm ?? "—" })
+              : t("stats.subJoistHintOne", { a: subRows[0]?.unitLengthCm ?? "—" })} />
+          <Stat icon="|" tone="stone" label={t("stats.hanger")} value={hanger?.count ?? 0} unit={t("stats.joistUnit")}
+            hint={t("stats.hangerHint", { len: r1(bom.auto.hangerHeightCm) })} />
+          <Stat icon="▦" tone="amber" label={t("stats.boards")} value={totalBoards} unit={t("stats.boardsUnit")}
+            hint={t("stats.boardsHint", { full: boardFull?.count ?? 0, cut: boardCut?.count ?? 0 })} />
         </section>
 
         {/* ============ 參數卡(全部可調) ============ */}
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm print:hidden">
           <div className="px-5 py-3 border-b border-stone-100 flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-zinc-900">⚙ 參數</h2>
-            <span className="text-[11px] text-zinc-600">改任何值,圖與材料表即時重算</span>
+            <h2 className="text-sm font-semibold text-zinc-900">{t("params.h2")}</h2>
+            <span className="text-[11px] text-zinc-600">{t("params.subtitle")}</span>
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* 排版 */}
-            <ParamGroup icon="⇆" title="排版基準">
-              <Toggle3 label="主支(沿長邊)" value={input.alignmentBase}
-                opts={[["left", "靠左"], ["center", "置中"], ["right", "靠右"]]}
+            <ParamGroup icon="⇆" title={t("params.alignmentTitle")}>
+              <Toggle3 label={t("params.alignMainLabel")} value={input.alignmentBase}
+                opts={[
+                  ["left", t("params.alignLeft")],
+                  ["center", t("params.alignCenter")],
+                  ["right", t("params.alignRight")],
+                ]}
                 onChange={(v) => update("alignmentBase", v as AlignmentBase)} />
-              <Toggle3 label="副支(沿短邊)" value={input.subAlignmentBase}
-                opts={[["top", "靠上"], ["middle", "置中"], ["bottom", "靠下"]]}
+              <Toggle3 label={t("params.alignSubLabel")} value={input.subAlignmentBase}
+                opts={[
+                  ["top", t("params.alignTop")],
+                  ["middle", t("params.alignMiddle")],
+                  ["bottom", t("params.alignBottom")],
+                ]}
                 onChange={(v) => update("subAlignmentBase", v as SubAlignmentBase)} />
-              <Check label="邊框兼當支撐 (−2 主支)" checked={input.frameDoublesAsSupport}
+              <Check label={t("params.frameDoublesAsSupport")} checked={input.frameDoublesAsSupport}
                 onChange={(v) => update("frameDoublesAsSupport", v)} />
             </ParamGroup>
 
             {/* 矽酸鈣板 */}
-            <ParamGroup icon="🪵" title="矽酸鈣板">
-              <CeilingRangeInput label="板長" value={input.boardLongCm} unit="cm"
+            <ParamGroup icon="🪵" title={t("params.boardTitle")}>
+              <CeilingRangeInput label={t("params.boardLong")} value={input.boardLongCm} unit="cm"
                 min={60} max={300} step={10} onChange={(v) => update("boardLongCm", v)} />
-              <CeilingRangeInput label="板寬" value={input.boardShortCm} unit="cm"
+              <CeilingRangeInput label={t("params.boardShort")} value={input.boardShortCm} unit="cm"
                 min={45} max={150} step={5} onChange={(v) => update("boardShortCm", v)} />
-              <CeilingRangeInput label="接縫" value={input.jointGapMm} unit="mm"
+              <CeilingRangeInput label={t("params.jointGap")} value={input.jointGapMm} unit="mm"
                 min={0} max={10} step={1} onChange={(v) => update("jointGapMm", v)} />
-              <p className="text-[10px] text-zinc-600 leading-snug">業界 3-6 mm,9 mm 板取 3 mm</p>
+              <p className="text-[10px] text-zinc-600 leading-snug">{t("params.jointGapHint")}</p>
             </ParamGroup>
 
             {/* 角材 + 間距 */}
-            <ParamGroup icon="📏" title="角材 + 間距">
-              <Check label="🔒 依板規自動算間距" checked={input.useAutoSpacing}
+            <ParamGroup icon="📏" title={t("params.timberTitle")}>
+              <Check label={t("params.autoSpacing")} checked={input.useAutoSpacing}
                 onChange={(v) => update("useAutoSpacing", v)} />
-              <CeilingRangeInput label="主支中心距" unit="cm"
+              <CeilingRangeInput label={t("params.mainSpacing")} unit="cm"
                 value={input.useAutoSpacing ? bom.input.mainSpacingCm : input.mainSpacingCm}
                 min={30} max={120} step={0.1} disabled={input.useAutoSpacing}
-                help={input.useAutoSpacing ? "已鎖定:依板規自動算。取消上方勾選即可手動拖拉" : undefined}
+                help={input.useAutoSpacing ? t("params.autoSpacingLockHelp") : undefined}
                 onChange={(v) => update("mainSpacingCm", v)} />
-              <CeilingRangeInput label="副支中心距" unit="cm"
+              <CeilingRangeInput label={t("params.subSpacing")} unit="cm"
                 value={input.useAutoSpacing ? bom.input.subSpacingCm : input.subSpacingCm}
                 min={20} max={60} step={0.1} disabled={input.useAutoSpacing}
-                help={input.useAutoSpacing ? "已鎖定:依板規自動算。取消上方勾選即可手動拖拉" : undefined}
+                help={input.useAutoSpacing ? t("params.autoSpacingLockHelp") : undefined}
                 onChange={(v) => update("subSpacingCm", v)} />
-              <CeilingRangeInput label="角材寬" value={input.timberWidthCm} unit="cm"
+              <CeilingRangeInput label={t("params.timberWidth")} value={input.timberWidthCm} unit="cm"
                 min={2} max={6} step={0.1} onChange={(v) => update("timberWidthCm", v)} />
-              <CeilingRangeInput label="角材厚" value={input.timberThicknessCm} unit="cm"
+              <CeilingRangeInput label={t("params.timberThickness")} value={input.timberThicknessCm} unit="cm"
                 min={2} max={6} step={0.1} onChange={(v) => update("timberThicknessCm", v)} />
             </ParamGroup>
 
             {/* 吊筋 */}
-            <ParamGroup icon="🪝" title="吊筋">
-              <Toggle3 label="密度" value={input.hangerDensity}
-                opts={[["standard", "業界標準"], ["minimal", "簡化"]]}
+            <ParamGroup icon="🪝" title={t("params.hangerTitle")}>
+              <Toggle3 label={t("params.hangerDensity")} value={input.hangerDensity}
+                opts={[
+                  ["standard", t("params.hangerStandard")],
+                  ["minimal", t("params.hangerMinimal")],
+                ]}
                 onChange={(v) => update("hangerDensity", v as HangerDensity)} />
-              <CeilingRangeInput label="中心距" value={input.hangerSpacingCm} unit="cm"
+              <CeilingRangeInput label={t("params.hangerSpacing")} value={input.hangerSpacingCm} unit="cm"
                 min={45} max={150} step={5} disabled={input.hangerDensity === "minimal"}
-                help={input.hangerDensity === "minimal" ? "簡化模式下不適用(每根主支只在兩端各一支)" : undefined}
+                help={input.hangerDensity === "minimal" ? t("params.hangerMinimalHelp") : undefined}
                 onChange={(v) => update("hangerSpacingCm", v)} />
             </ParamGroup>
           </div>
@@ -426,12 +449,12 @@ export function CeilingDevClient() {
         {/* ============ BOM ============ */}
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-stone-100 flex items-center gap-2 flex-wrap">
-            <h2 className="text-sm font-semibold text-zinc-900">📋 材料清單</h2>
-            <span className="text-[11px] text-zinc-600">總計 {bom.items.length} 項 · 點任一行高亮對應視覺</span>
+            <h2 className="text-sm font-semibold text-zinc-900">{t("bom.h2")}</h2>
+            <span className="text-[11px] text-zinc-600">{t("bom.subtitle", { count: bom.items.length })}</span>
             {highlight && (
               <button onClick={() => { setHighlight(null); setSubLengthFilter(null); setBoardKindFilter(null); }}
                 className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 transition">
-                清除高亮 ×
+                {t("bom.clearHighlight")}
               </button>
             )}
           </div>
@@ -439,12 +462,12 @@ export function CeilingDevClient() {
             <table className="w-full text-sm">
               <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                 <tr>
-                  <th className="text-left px-4 py-2.5 font-semibold">類別</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">名稱</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">規格</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">單長</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">總長</th>
-                  <th className="text-right px-4 py-2.5 font-semibold">數量</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t("bom.thCategory")}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t("bom.thName")}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t("bom.thSpec")}</th>
+                  <th className="text-right px-4 py-2.5 font-semibold">{t("bom.thUnitLen")}</th>
+                  <th className="text-right px-4 py-2.5 font-semibold">{t("bom.thTotalLen")}</th>
+                  <th className="text-right px-4 py-2.5 font-semibold">{t("bom.thCount")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
@@ -467,11 +490,11 @@ export function CeilingDevClient() {
                         isOther ? "opacity-40 hover:opacity-100" :
                         "hover:bg-amber-50/30"
                       }`}>
-                      <td className="px-4 py-2.5"><CategoryBadge category={it.category} /></td>
+                      <td className="px-4 py-2.5"><CategoryBadge category={it.category} t={t} /></td>
                       <td className="px-4 py-2.5 text-zinc-900 font-medium">{it.nameZh}</td>
                       <td className="px-4 py-2.5 text-zinc-600 text-xs">{it.spec}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.unitLengthCm != null ? `${it.unitLengthCm} cm` : "—"}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.totalLengthM != null ? `${it.totalLengthM} m` : "—"}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.unitLengthCm != null ? `${it.unitLengthCm} cm` : t("bom.dash")}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.totalLengthM != null ? `${it.totalLengthM} m` : t("bom.dash")}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums font-bold text-amber-700">{it.count}</td>
                     </tr>
                   );
@@ -483,12 +506,12 @@ export function CeilingDevClient() {
 
         {/* ============ 施作提示 ============ */}
         <section className="rounded-2xl bg-gradient-to-br from-amber-50 via-white to-stone-50 ring-1 ring-amber-200/50 p-4 sm:p-5">
-          <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">💡 施作提示</h3>
+          <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">{t("tips.h3")}</h3>
           <ul className="text-[12px] text-zinc-700 leading-relaxed space-y-1 list-none">
-            <li><span className="text-amber-700 font-semibold">板邊接縫:</span> 預設 {input.jointGapMm} mm,環氧樹脂填縫 + 48 mm 接縫帶 + 批土收尾</li>
-            <li><span className="text-amber-700 font-semibold">板邊對齊:</span> 中間板邊落主支中心(藍色 tick),周邊板邊落邊框外線</li>
-            <li><span className="text-amber-700 font-semibold">螺絲:</span> 距板邊 ≥ 15 mm,沿板邊每 20-30 cm 一支</li>
-            <li><span className="text-amber-700 font-semibold">材料餘量:</span> 建議多訂 <strong>5-10% 餘料</strong>(現場切割損耗、量錯、板材瑕疵備用)</li>
+            <li><span className="text-amber-700 font-semibold">{t("tips.jointLabel")}</span> {t("tips.jointDesc", { gap: input.jointGapMm })}</li>
+            <li><span className="text-amber-700 font-semibold">{t("tips.alignLabel")}</span> {t("tips.alignDesc")}</li>
+            <li><span className="text-amber-700 font-semibold">{t("tips.screwLabel")}</span> {t("tips.screwDesc")}</li>
+            <li><span className="text-amber-700 font-semibold">{t("tips.wasteLabel")}</span> {t("tips.wasteDescPrefix")}<strong>{t("tips.wasteDescBold")}</strong>{t("tips.wasteDescSuffix")}</li>
           </ul>
         </section>
 
@@ -497,10 +520,10 @@ export function CeilingDevClient() {
           <button onClick={() => setFixturesOpen(!fixturesOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-semibold text-zinc-900">🔦 燈具 / 開孔</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("fixtures.h2")}</h2>
               <span className="text-[11px] text-zinc-600">
-                {fixtures.length} 個{collisions.length > 0 && (
-                  <span className="ml-2 text-rose-700 font-semibold">⚠ {collisions.length} 處撞主/副支</span>
+                {t("fixtures.countSummary", { count: fixtures.length })}{collisions.length > 0 && (
+                  <span className="ml-2 text-rose-700 font-semibold">{t("fixtures.collisionSummary", { count: collisions.length })}</span>
                 )}
               </span>
             </div>
@@ -512,23 +535,23 @@ export function CeilingDevClient() {
                 {(["led", "vent", "speaker", "sprinkler", "other"] as FixtureKind[]).map((k) => (
                   <button key={k} onClick={() => addFixture(k)}
                     className="px-2.5 py-1 text-[11px] rounded-md bg-amber-50 ring-1 ring-amber-200 text-amber-900 hover:bg-amber-100 transition">
-                    + {FIXTURE_KIND_LABEL[k]}
+                    + {fixtureKindLabel(k)}
                   </button>
                 ))}
               </div>
               {fixtures.length === 0 ? (
-                <p className="text-[11px] text-zinc-500">點上方按鈕加開孔。位置 X(沿長邊)/ Z(沿短邊)從房間左上(0,0)起算 cm。</p>
+                <p className="text-[11px] text-zinc-500">{t("fixtures.emptyHint")}</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg ring-1 ring-stone-200">
                   <table className="w-full text-xs">
                     <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                       <tr>
-                        <th className="text-left px-3 py-2">類別</th>
-                        <th className="text-left px-3 py-2">名稱</th>
-                        <th className="text-right px-3 py-2">X cm</th>
-                        <th className="text-right px-3 py-2">Z cm</th>
-                        <th className="text-right px-3 py-2">半徑 cm</th>
-                        <th className="text-right px-3 py-2">狀態</th>
+                        <th className="text-left px-3 py-2">{t("fixtures.thCategory")}</th>
+                        <th className="text-left px-3 py-2">{t("fixtures.thName")}</th>
+                        <th className="text-right px-3 py-2">{t("fixtures.thX")}</th>
+                        <th className="text-right px-3 py-2">{t("fixtures.thZ")}</th>
+                        <th className="text-right px-3 py-2">{t("fixtures.thR")}</th>
+                        <th className="text-right px-3 py-2">{t("fixtures.thStatus")}</th>
                         <th></th>
                       </tr>
                     </thead>
@@ -538,9 +561,9 @@ export function CeilingDevClient() {
                         const ok = fCollisions.length === 0;
                         return (
                           <tr key={f.id} className={ok ? "" : "bg-rose-50/40"}>
-                            <td className="px-3 py-1.5 text-zinc-700">{FIXTURE_KIND_LABEL[f.kind]}</td>
+                            <td className="px-3 py-1.5 text-zinc-700">{fixtureKindLabel(f.kind)}</td>
                             <td className="px-3 py-1.5">
-                              <input type="text" value={f.label} placeholder={FIXTURE_KIND_LABEL[f.kind]}
+                              <input type="text" value={f.label} placeholder={fixtureKindLabel(f.kind)}
                                 onChange={(e) => updateFixture(f.id, { label: e.target.value })}
                                 className="w-24 px-2 py-1 border border-stone-300 rounded text-xs focus:outline-none focus:border-amber-500" />
                             </td>
@@ -560,8 +583,8 @@ export function CeilingDevClient() {
                                 className="w-14 px-2 py-1 border border-stone-300 rounded text-xs tabular-nums focus:outline-none focus:border-amber-500" />
                             </td>
                             <td className="px-3 py-1.5 text-right text-[10px]">
-                              {ok ? <span className="text-emerald-700">✓ OK</span>
-                                : <span className="text-rose-700">⚠ 撞 {fCollisions.map(c => c.hitWith).join(", ")}</span>}
+                              {ok ? <span className="text-emerald-700">{t("fixtures.statusOk")}</span>
+                                : <span className="text-rose-700">{t("fixtures.statusHit", { parts: fCollisions.map(c => c.hitWith).join(", ") })}</span>}
                             </td>
                             <td className="px-2 py-1.5">
                               <button onClick={() => removeFixture(f.id)}
@@ -576,8 +599,8 @@ export function CeilingDevClient() {
               )}
               {collisions.length > 0 && (
                 <div className="rounded-lg bg-rose-50 ring-1 ring-rose-200 p-3 text-[11px] text-rose-800">
-                  <strong>⚠ {collisions.length} 處碰撞 — 燈具會卡到主/副支。</strong>
-                  解法:挪燈具位置 / 改尺寸 / 改主支對齊基準(讓主支位置避開燈具)。
+                  <strong>{t("fixtures.collisionTitle", { count: collisions.length })}</strong>
+                  {t("fixtures.collisionFix")}
                 </div>
               )}
             </div>
@@ -589,10 +612,13 @@ export function CeilingDevClient() {
           <button onClick={() => setCutOpen(!cutOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">🪚 裁料計算(角材)</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("cutting.h2")}</h2>
               <span className="text-[11px] text-zinc-600">
-                共 {cuttingPlan.summary.stockCount} 支角材 · 利用率 {cuttingPlan.summary.utilizationPct}%
-                · 剩料 {cuttingPlan.summary.totalRemainM} m
+                {t("cutting.summary", {
+                  count: cuttingPlan.summary.stockCount,
+                  pct: cuttingPlan.summary.utilizationPct,
+                  remain: cuttingPlan.summary.totalRemainM,
+                })}
               </span>
             </div>
             <span className="text-zinc-400 text-xs">{cutOpen ? "▲" : "▼"}</span>
@@ -601,28 +627,28 @@ export function CeilingDevClient() {
             <div className="p-5 space-y-4">
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">原料一支長</span>
+                  <span className="text-zinc-600">{t("cutting.stockLengthLabel")}</span>
                   <input type="number" value={stockLengthCm} step={10}
                     onChange={(e) => setStockLengthCm(Number(e.target.value))}
                     className="w-20 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
                   <span className="text-[10px] text-zinc-600">cm</span>
-                  <span className="text-[10px] text-zinc-600">(360=12 尺、300=10 尺、600=20 尺)</span>
+                  <span className="text-[10px] text-zinc-600">{t("cutting.stockLengthHint")}</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">鋸路</span>
+                  <span className="text-zinc-600">{t("cutting.sawKerfLabel")}</span>
                   <input type="number" value={sawKerfCm} step={0.1}
                     onChange={(e) => setSawKerfCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
                   <span className="text-[10px] text-zinc-600">cm</span>
-                  <span className="text-[10px] text-zinc-600">(鋸條切一刀的損耗)</span>
+                  <span className="text-[10px] text-zinc-600">{t("cutting.sawKerfHint")}</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">接點搭接</span>
+                  <span className="text-zinc-600">{t("cutting.spliceLabel")}</span>
                   <input type="number" value={spliceOverlapCm} step={1}
                     onChange={(e) => setSpliceOverlapCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
                   <span className="text-[10px] text-zinc-600">cm</span>
-                  <span className="text-[10px] text-zinc-600">(超原料一支的長段自動切多段、接點疊長)</span>
+                  <span className="text-[10px] text-zinc-600">{t("cutting.spliceHint")}</span>
                 </label>
               </div>
               {/* 拼接段資訊(自動切多段後顯示) */}
@@ -639,7 +665,11 @@ export function CeilingDevClient() {
                 return (
                   <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3 sm:p-4">
                     <h3 className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-1.5">
-                      🔗 太長要分段接({groups.size} 件 → {splicedPieces.length} 段,每接點搭接 {spliceOverlapCm} cm)
+                      {t("cutting.splicedTitle", {
+                        groups: groups.size,
+                        pieces: splicedPieces.length,
+                        overlap: spliceOverlapCm,
+                      })}
                     </h3>
                     <ul className="text-[11px] text-amber-800 space-y-1 leading-relaxed">
                       {[...groups.entries()].map(([base, segs]) => (
@@ -651,12 +681,12 @@ export function CeilingDevClient() {
                               {r1(s.lengthCm)}
                             </span>
                           ))}
-                          <span className="text-amber-600 font-mono">合 {r1(segs.reduce((s, p) => s + p.lengthCm, 0))} cm</span>
+                          <span className="text-amber-600 font-mono">{t("cutting.splicedSum", { len: r1(segs.reduce((s, p) => s + p.lengthCm, 0)) })}</span>
                         </li>
                       ))}
                     </ul>
                     <p className="mt-2 text-[10px] text-amber-700 leading-relaxed">
-                      實務:接點放在邊框上強固(或鎖鐵片補強)。
+                      {t("cutting.splicedFooter")}
                     </p>
                   </div>
                 );
@@ -666,11 +696,11 @@ export function CeilingDevClient() {
                 <table className="w-full text-xs">
                   <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="text-left px-3 py-2 font-semibold">第幾支</th>
-                      <th className="text-left px-3 py-2 font-semibold">切法</th>
-                      <th className="text-right px-3 py-2 font-semibold">已用</th>
-                      <th className="text-right px-3 py-2 font-semibold">鋸路</th>
-                      <th className="text-right px-3 py-2 font-semibold">剩料</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("cutting.thStock")}</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("cutting.thCut")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("cutting.thUsed")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("cutting.thKerf")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("cutting.thRemain")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -689,7 +719,7 @@ export function CeilingDevClient() {
                                   {p.lengthCm}
                                 </span>
                               ))}
-                              {oversize && <span className="text-[10px] text-rose-700">要分段接</span>}
+                              {oversize && <span className="text-[10px] text-rose-700">{t("cutting.oversize")}</span>}
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums">{r1(s.usedLengthCm)}</td>
@@ -704,11 +734,11 @@ export function CeilingDevClient() {
                 </table>
               </div>
               <div className="flex flex-wrap gap-3 text-[11px] text-zinc-500">
-                <span>訂料 <strong className="text-zinc-900 text-base font-bold">{cuttingPlan.summary.stockCount}</strong> 支 {stockLengthCm} cm 角材</span>
-                <span>總長 <strong className="text-zinc-700">{cuttingPlan.summary.totalStockLengthM} m</strong></span>
-                <span>實用 <strong className="text-zinc-700">{cuttingPlan.summary.totalUsedM} m</strong></span>
-                <span>剩料 <strong className="text-rose-700">{cuttingPlan.summary.totalRemainM} m</strong></span>
-                <span>利用率 <strong className="text-amber-700">{cuttingPlan.summary.utilizationPct}%</strong></span>
+                <span>{t("cutting.footStockCount")} <strong className="text-zinc-900 text-base font-bold">{cuttingPlan.summary.stockCount}</strong> {t("cutting.footStockSuffix", { len: stockLengthCm })}</span>
+                <span>{t("cutting.footTotalLen")} <strong className="text-zinc-700">{t("cutting.footMeter", { n: cuttingPlan.summary.totalStockLengthM })}</strong></span>
+                <span>{t("cutting.footUsed")} <strong className="text-zinc-700">{t("cutting.footMeter", { n: cuttingPlan.summary.totalUsedM })}</strong></span>
+                <span>{t("cutting.footRemain")} <strong className="text-rose-700">{t("cutting.footMeter", { n: cuttingPlan.summary.totalRemainM })}</strong></span>
+                <span>{t("cutting.footUtilization")} <strong className="text-amber-700">{t("cutting.footPercent", { n: cuttingPlan.summary.utilizationPct })}</strong></span>
               </div>
             </div>
           )}
@@ -719,19 +749,19 @@ export function CeilingDevClient() {
           <button onClick={() => setStepsOpen(!stepsOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">📐 施工步驟</h2>
-              <span className="text-[11px] text-zinc-600">5 步流程</span>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("steps.h2")}</h2>
+              <span className="text-[11px] text-zinc-600">{t("steps.subtitle")}</span>
             </div>
             <span className="text-zinc-400 text-xs">{stepsOpen ? "▲" : "▼"}</span>
           </button>
           {stepsOpen && (
             <ol className="divide-y divide-stone-100 text-sm">
               {[
-                { n: 1, title: "牆面指定高度做邊框", desc: "靠牆邊緣為基準,角材往室內生成" },
-                { n: 2, title: "主支跨短邊平接", desc: "主支中心距等於矽酸鈣板寬度" },
-                { n: 3, title: "副支置入主支間", desc: "副支中心距一尺二,全部對齊" },
-                { n: 4, title: "確認框架水平", desc: "以天花板作完成面基準,固定吊筋" },
-                { n: 5, title: "封矽酸鈣板", desc: "中間板邊落在主支中心,周邊板邊落在邊框外線" },
+                { n: 1, title: t("steps.step1Title"), desc: t("steps.step1Desc") },
+                { n: 2, title: t("steps.step2Title"), desc: t("steps.step2Desc") },
+                { n: 3, title: t("steps.step3Title"), desc: t("steps.step3Desc") },
+                { n: 4, title: t("steps.step4Title"), desc: t("steps.step4Desc") },
+                { n: 5, title: t("steps.step5Title"), desc: t("steps.step5Desc") },
               ].map((step) => (
                 <li key={step.n} className="px-5 py-3 flex items-start gap-3 hover:bg-amber-50/30 transition">
                   <div className="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-amber-500/30">
@@ -752,9 +782,9 @@ export function CeilingDevClient() {
           <button onClick={() => setCustomerOpen(!customerOpen)}
             className="w-full px-5 py-3 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">📇 客戶資料</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("customer.h2")}</h2>
               <span className="text-[11px] text-zinc-600">
-                {customer.name ? customer.name : "未填(列印不顯示)"}
+                {customer.name ? customer.name : t("customer.emptyHint")}
               </span>
             </div>
             <span className="text-zinc-400 text-xs">{customerOpen ? "▲" : "▼"}</span>
@@ -762,37 +792,36 @@ export function CeilingDevClient() {
           {customerOpen && (
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <label className="block">
-                <span className="text-zinc-600 block mb-1">客戶姓名</span>
+                <span className="text-zinc-600 block mb-1">{t("customer.nameLabel")}</span>
                 <input type="text" value={customer.name}
                   onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                  placeholder="王先生 / 林設計師"
+                  placeholder={t("customer.namePlaceholder")}
                   className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
               </label>
               <label className="block">
-                <span className="text-zinc-600 block mb-1">聯絡電話</span>
+                <span className="text-zinc-600 block mb-1">{t("customer.phoneLabel")}</span>
                 <input type="text" value={customer.phone}
                   onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-                  placeholder="09xx-xxx-xxx"
+                  placeholder={t("customer.phonePlaceholder")}
                   className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
               </label>
               <label className="block sm:col-span-2">
-                <span className="text-zinc-600 block mb-1">案場地址</span>
+                <span className="text-zinc-600 block mb-1">{t("customer.addressLabel")}</span>
                 <input type="text" value={customer.address}
                   onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                  placeholder="台北市信義區 ___ 路 ___ 號"
+                  placeholder={t("customer.addressPlaceholder")}
                   className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
               </label>
               <label className="block sm:col-span-2">
-                <span className="text-zinc-600 block mb-1">備註</span>
+                <span className="text-zinc-600 block mb-1">{t("customer.notesLabel")}</span>
                 <textarea value={customer.notes}
                   onChange={(e) => setCustomer({ ...customer, notes: e.target.value })}
                   rows={2}
-                  placeholder="施作期 / 特別需求 / 收費對象..."
+                  placeholder={t("customer.notesPlaceholder")}
                   className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500 resize-none" />
               </label>
               <p className="sm:col-span-2 text-[10px] text-zinc-500">
-                客戶資料只用於 PDF 列印 + 短碼分享(讓師傅/客戶確認案場)。
-                LOGO/公司資訊請去 <a href="/settings" className="text-amber-700 hover:underline">設定頁</a> 自訂。
+                {t("customer.footnotePart1")}<a href="/settings" className="text-amber-700 hover:underline">{t("customer.footnoteLink")}</a>{t("customer.footnotePart2")}
               </p>
             </div>
           )}
@@ -805,7 +834,7 @@ export function CeilingDevClient() {
           }
           className="w-full rounded-2xl bg-[#bd9955] py-3 text-base font-semibold text-white hover:opacity-90 transition shadow-sm print:hidden"
         >
-          🧾 產生報價單
+          {t("generateQuote")}
         </button>
 
         {/* ============ 公式 trace(admin) ============ */}
@@ -813,11 +842,11 @@ export function CeilingDevClient() {
           <button onClick={() => setTraceOpen(!traceOpen)}
             className="w-full text-left px-5 py-3 rounded-2xl bg-white ring-1 ring-stone-200 hover:bg-stone-50 flex items-center justify-between text-sm transition">
             <span className="font-medium text-zinc-700 flex items-center gap-2">
-              🔬 公式對照 trace <span className="text-[10px] text-zinc-600 font-normal">admin debug</span>
+              {t("trace.label")} <span className="text-[10px] text-zinc-600 font-normal">{t("trace.adminTag")}</span>
             </span>
             <span className="text-zinc-400 text-xs">{traceOpen ? "▲" : "▼"}</span>
           </button>
-          {traceOpen && <TracePanel bom={bom} />}
+          {traceOpen && <TracePanel bom={bom} t={t} />}
         </section>
           </div>
         </div>
@@ -826,28 +855,28 @@ export function CeilingDevClient() {
         <div className="hidden print:block mt-6 pt-4 border-t border-stone-300">
           <div className="grid grid-cols-3 gap-4 text-[11px] text-zinc-700">
             <div>
-              <p className="mb-8">師傅 / 木工:</p>
-              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">簽名</div>
+              <p className="mb-8">{t("printSignature.carpenter")}</p>
+              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">{t("printSignature.signLabel")}</div>
             </div>
             <div>
-              <p className="mb-8">客戶 / 業主:</p>
-              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">簽名</div>
+              <p className="mb-8">{t("printSignature.client")}</p>
+              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">{t("printSignature.signLabel")}</div>
             </div>
             <div>
-              <p className="mb-8">日期:______ / ____ / ____</p>
-              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">確認</div>
+              <p className="mb-8">{t("printSignature.dateLine")}</p>
+              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">{t("printSignature.confirmLabel")}</div>
             </div>
           </div>
         </div>
 
         {/* ============ 免責 / 使用提醒(頁尾) ============ */}
         <footer className="mt-8 mb-2 rounded-2xl bg-stone-100/60 border border-stone-200/80 p-4 sm:p-5 text-[11px] text-zinc-500 leading-relaxed">
-          <p className="font-semibold text-zinc-700 mb-1.5">⚠ 使用提醒</p>
+          <p className="font-semibold text-zinc-700 mb-1.5">{t("footerDisclaimer.title")}</p>
           <ul className="space-y-1 list-disc list-inside marker:text-zinc-400">
-            <li>本工具計算結果為 <strong>估算值</strong>,實際施工請依現場狀況(樓板高低、樑柱位置、管線走向)調整。</li>
-            <li>材料用量建議 <strong>多備 5-10% 餘量</strong>,涵蓋現場切割損耗、量錯、板材瑕疵備用。</li>
-            <li>結構承重、防火、防水、隔音等專業評估,請洽合格 <strong>結構技師 / 室內裝修專業技術人員</strong>。</li>
-            <li>使用本工具產生之施工結果造成之損失,本工具與木匠學院 <strong>概不負責</strong>。</li>
+            <li>{t("footerDisclaimer.line1Prefix")}<strong>{t("footerDisclaimer.line1Bold")}</strong>{t("footerDisclaimer.line1Suffix")}</li>
+            <li>{t("footerDisclaimer.line2Prefix")}<strong>{t("footerDisclaimer.line2Bold")}</strong>{t("footerDisclaimer.line2Suffix")}</li>
+            <li>{t("footerDisclaimer.line3Prefix")}<strong>{t("footerDisclaimer.line3Bold")}</strong>{t("footerDisclaimer.line3Suffix")}</li>
+            <li>{t("footerDisclaimer.line4Prefix")}<strong>{t("footerDisclaimer.line4Bold")}</strong>{t("footerDisclaimer.line4Suffix")}</li>
           </ul>
         </footer>
       </main>
@@ -921,19 +950,29 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
   );
 }
 
-function CategoryBadge({ category }: { category: string }) {
-  const map: Record<string, { label: string; tone: string }> = {
-    "frame":      { label: "邊框",   tone: "bg-amber-100 text-amber-900 ring-amber-200" },
-    "main-joist": { label: "主支",   tone: "bg-orange-100 text-orange-900 ring-orange-200" },
-    "sub-joist":  { label: "副支",   tone: "bg-stone-100 text-stone-700 ring-stone-200" },
-    "hanger":     { label: "吊筋",   tone: "bg-slate-100 text-slate-700 ring-slate-200" },
-    "board-full": { label: "板·整", tone: "bg-emerald-100 text-emerald-900 ring-emerald-200" },
-    "board-cut":  { label: "板·裁", tone: "bg-rose-100 text-rose-900 ring-rose-200" },
+function CategoryBadge({ category, t }: { category: string; t: ReturnType<typeof useTranslations<"ceilingTool">> }) {
+  const tone: Record<string, string> = {
+    "frame":      "bg-amber-100 text-amber-900 ring-amber-200",
+    "main-joist": "bg-orange-100 text-orange-900 ring-orange-200",
+    "sub-joist":  "bg-stone-100 text-stone-700 ring-stone-200",
+    "hanger":     "bg-slate-100 text-slate-700 ring-slate-200",
+    "board-full": "bg-emerald-100 text-emerald-900 ring-emerald-200",
+    "board-cut":  "bg-rose-100 text-rose-900 ring-rose-200",
   };
-  const info = map[category] ?? { label: category, tone: "bg-stone-100 text-stone-700 ring-stone-200" };
+  const labelKeyMap: Record<string, string> = {
+    "frame": "category.frame",
+    "main-joist": "category.mainJoist",
+    "sub-joist": "category.subJoist",
+    "hanger": "category.hanger",
+    "board-full": "category.boardFull",
+    "board-cut": "category.boardCut",
+  };
+  const labelKey = labelKeyMap[category];
+  const label = labelKey ? t(labelKey) : category;
+  const klass = tone[category] ?? "bg-stone-100 text-stone-700 ring-stone-200";
   return (
-    <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ring-1 font-medium ${info.tone}`}>
-      {info.label}
+    <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ring-1 font-medium ${klass}`}>
+      {label}
     </span>
   );
 }
@@ -948,17 +987,17 @@ function pieceTone(category: string): string {
   }
 }
 
-function TracePanel({ bom }: { bom: ReturnType<typeof computeCeilingBom> }) {
+function TracePanel({ bom, t }: { bom: ReturnType<typeof computeCeilingBom>; t: ReturnType<typeof useTranslations<"ceilingTool">> }) {
   return (
     <div className="mt-2 rounded-2xl bg-white ring-1 ring-stone-200 p-5 text-xs space-y-3">
-      <Row label="主支中心位置(沿長邊 cm)" mono>[{bom.trace.mainJoistCentersCm.join(", ")}]</Row>
-      <Row label="主支單支長度 × 實際根數" mono>{bom.trace.mainJoistLengthCm} cm × {bom.trace.mainJoistTimberCount}</Row>
-      <Row label="支撐排序(含邊框內側,cm)" mono>[{bom.trace.supportPositionsCm.join(", ")}]</Row>
+      <Row label={t("trace.rowMainCenters")} mono>[{bom.trace.mainJoistCentersCm.join(", ")}]</Row>
+      <Row label={t("trace.rowMainLenCount")} mono>{t("trace.rowMainLenCountValue", { len: bom.trace.mainJoistLengthCm, count: bom.trace.mainJoistTimberCount })}</Row>
+      <Row label={t("trace.rowSupportPositions")} mono>[{bom.trace.supportPositionsCm.join(", ")}]</Row>
       <div>
-        <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-semibold mb-1">副支 slot 明細</div>
+        <div className="text-[10px] text-zinc-500 uppercase tracking-wide font-semibold mb-1">{t("trace.subSlotsTitle")}</div>
         <table className="w-full text-[10px] font-mono">
           <thead className="text-zinc-400">
-            <tr><th className="text-left">slot</th><th className="text-right">寬</th><th className="text-right">副支長</th><th className="text-right">數</th></tr>
+            <tr><th className="text-left">{t("trace.thSlot")}</th><th className="text-right">{t("trace.thWidth")}</th><th className="text-right">{t("trace.thSubLen")}</th><th className="text-right">{t("trace.thCount")}</th></tr>
           </thead>
           <tbody className="text-zinc-700">
             {bom.trace.slots.map((s, i) => (
@@ -972,9 +1011,9 @@ function TracePanel({ bom }: { bom: ReturnType<typeof computeCeilingBom> }) {
           </tbody>
         </table>
       </div>
-      <Row label="每主支吊筋數" mono>{bom.trace.hangerPerMainJoist}</Row>
-      <Row label="副支 Y 偏移(從 innerY0,cm)" mono>[{bom.trace.subJoistYOffsetsCm.join(", ")}]</Row>
-      <Row label="矽酸鈣板鋪法">{bom.trace.boardLayoutDescription}</Row>
+      <Row label={t("trace.rowHangerPerMain")} mono>{bom.trace.hangerPerMainJoist}</Row>
+      <Row label={t("trace.rowSubYOffsets")} mono>[{bom.trace.subJoistYOffsetsCm.join(", ")}]</Row>
+      <Row label={t("trace.rowBoardLayout")}>{bom.trace.boardLayoutDescription}</Row>
     </div>
   );
 }

@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
 import {
@@ -47,28 +48,33 @@ import {
   type CuttingCategory,
 } from "@/lib/raised-floor/cutting";
 
-const PILLAR_CORNERS: { value: PillarCorner; label: string }[] = [
-  { value: "tl", label: "左上" },
-  { value: "tr", label: "右上" },
-  { value: "bl", label: "左下" },
-  { value: "br", label: "右下" },
-];
+const PILLAR_CORNER_VALUES: PillarCorner[] = ["tl", "tr", "bl", "br"];
 
 type PreviewTab = "frame" | "plank" | "3d";
 
-const LAYER_LABELS: { key: LayerKey; label: string }[] = [
-  { key: "legs", label: "腳柱" },
-  { key: "frameTop", label: "頂框" },
-  { key: "frameBottom", label: "底框" },
-  { key: "mainTop", label: "頂主支" },
-  { key: "mainBottom", label: "底主支" },
-  { key: "sub", label: "副支" },
-  { key: "plywood", label: "夾板" },
-  { key: "plank", label: "面材" },
+const LAYER_KEYS: { key: LayerKey; labelKey: string }[] = [
+  { key: "legs", labelKey: "layerLegs" },
+  { key: "frameTop", labelKey: "layerFrameTop" },
+  { key: "frameBottom", labelKey: "layerFrameBottom" },
+  { key: "mainTop", labelKey: "layerMainTop" },
+  { key: "mainBottom", labelKey: "layerMainBottom" },
+  { key: "sub", labelKey: "layerSub" },
+  { key: "plywood", labelKey: "layerPlywood" },
+  { key: "plank", labelKey: "layerPlank" },
 ];
 
 export function RaisedFloorClient() {
   const router = useRouter();
+  const t = useTranslations("raisedFloorTool.client");
+  const cornerLabel = (c: PillarCorner) => {
+    const map: Record<PillarCorner, string> = {
+      tl: "cornerTopLeft",
+      tr: "cornerTopRight",
+      bl: "cornerBottomLeft",
+      br: "cornerBottomRight",
+    };
+    return t(map[c]);
+  };
   const [input, setInput] = useState<RaisedFloorInput>(DEFAULT_RAISED_FLOOR_INPUT);
   const bom = useMemo(() => computeRaisedFloorBom(input), [input]);
   const [copied, setCopied] = useState(false);
@@ -132,7 +138,7 @@ export function RaisedFloorClient() {
   const addPillar = () => {
     if (input.pillars.length >= 2) return;
     const used = new Set(input.pillars.map((p) => p.corner));
-    const free = PILLAR_CORNERS.find((c) => !used.has(c.value))?.value ?? "tl";
+    const free = PILLAR_CORNER_VALUES.find((c) => !used.has(c)) ?? "tl";
     set("pillars", [...input.pillars, { corner: free, widthCm: 60, depthCm: 60 }]);
   };
   const removePillar = () => {
@@ -147,26 +153,42 @@ export function RaisedFloorClient() {
   };
 
   const copyBom = () => {
+    const shapeName = input.shape === "rect" ? t("shapeRect") : t("shapeLshape");
+    const shapeLine =
+      t("copyShapeLine", {
+        shape: shapeName,
+        width: input.widthCm,
+        depth: input.depthCm,
+      }) +
+      (input.pillars.length > 0
+        ? t("copyPillarSuffix", { count: input.pillars.length })
+        : "");
     const lines = [
-      "【和室架高平台材料清單】",
-      `平台 ${bom.auto.platformAreaM2.toFixed(2)} m² / ${bom.auto.pingShu.toFixed(2)} 坪 · 周長 ${bom.auto.perimeterM.toFixed(1)} m · 架高 ${input.heightCm} cm`,
-      `形狀:${input.shape === "rect" ? "矩形" : "L 形"} ${input.widthCm}×${input.depthCm} cm${input.pillars.length > 0 ? ` · 挨柱 ${input.pillars.length} 根` : ""}`,
-      "──────────",
+      t("copyTitle"),
+      t("copyPlatformLine", {
+        area: bom.auto.platformAreaM2.toFixed(2),
+        ping: bom.auto.pingShu.toFixed(2),
+        perimeter: bom.auto.perimeterM.toFixed(1),
+        height: input.heightCm,
+      }),
+      shapeLine,
+      t("copyDivider"),
       ...bom.items.map((it) => {
         const qty =
           it.count != null
-            ? `${it.count} 片`
+            ? `${it.count} ${t("unitPiece")}`
             : it.totalLengthM != null
-              ? `${it.totalLengthM.toFixed(1)} m`
+              ? `${it.totalLengthM.toFixed(1)} ${t("unitMeter")}`
               : "";
         const money =
           it.subtotal != null ? `  NT$ ${Math.round(it.subtotal).toLocaleString()}` : "";
         return `${it.nameZh} ${it.spec}  ${qty}${money}`;
       }),
-      "──────────",
+      t("copyDivider"),
       bom.cost.total > 0
-        ? `總計 NT$ ${Math.round(bom.cost.total).toLocaleString()}${bom.cost.hasUnpriced ? "(部分品項未報價)" : ""}`
-        : "(未設定報價)",
+        ? t("copyTotalLine", { total: Math.round(bom.cost.total).toLocaleString() }) +
+          (bom.cost.hasUnpriced ? t("copyTotalUnpricedSuffix") : "")
+        : t("copyNoQuoteLine"),
     ];
     navigator.clipboard.writeText(lines.join("\n")).then(() => {
       setCopied(true);
@@ -180,24 +202,26 @@ export function RaisedFloorClient() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `架高地板_${input.widthCm}x${input.depthCm}_H${input.heightCm}.csv`;
+    a.download = t("csvFilename", {
+      width: input.widthCm,
+      depth: input.depthCm,
+      height: input.heightCm,
+    });
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <main className="mx-auto max-w-6xl p-6">
-      <h1 className="text-xl font-bold">和室架高平台估價</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        底架 + 面材完整算料 · 矩形/L 形 + 0~2 根挨柱
-      </p>
+      <h1 className="text-xl font-bold">{t("h1")}</h1>
+      <p className="mt-1 text-sm text-zinc-500">{t("subtitle")}</p>
 
       <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_420px] md:items-start">
         {/* ───── 左:輸入 ───── */}
         <div className="space-y-4 min-w-0">
           {/* ① 平台形狀 [永遠展開] */}
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">① 平台形狀</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("section1Shape")}</h2>
             <div className="mb-3 flex gap-2">
               {(["rect", "l-shape"] as PlatformShape[]).map((s) => {
                 const active = input.shape === s;
@@ -211,15 +235,15 @@ export function RaisedFloorClient() {
                         : "border-zinc-300 hover:bg-zinc-50"
                     }`}
                   >
-                    {s === "rect" ? "矩形" : "L 形"}
+                    {s === "rect" ? t("shapeRect") : t("shapeLshape")}
                   </button>
                 );
               })}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
               <FloorRangeInput
-                label="總寬"
-                unit="cm"
+                label={t("totalWidth")}
+                unit={t("unitCm")}
                 value={input.widthCm}
                 min={100}
                 max={800}
@@ -227,8 +251,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("widthCm", v)}
               />
               <FloorRangeInput
-                label="總深"
-                unit="cm"
+                label={t("totalDepth")}
+                unit={t("unitCm")}
                 value={input.depthCm}
                 min={100}
                 max={800}
@@ -238,8 +262,8 @@ export function RaisedFloorClient() {
               {input.shape === "l-shape" && (
                 <>
                   <FloorRangeInput
-                    label="L 凹陷寬"
-                    unit="cm"
+                    label={t("lCutX")}
+                    unit={t("unitCm")}
                     value={input.lCutXCm}
                     min={50}
                     max={400}
@@ -247,8 +271,8 @@ export function RaisedFloorClient() {
                     onChange={(v) => set("lCutXCm", v)}
                   />
                   <FloorRangeInput
-                    label="L 凹陷深"
-                    unit="cm"
+                    label={t("lCutY")}
+                    unit={t("unitCm")}
                     value={input.lCutYCm}
                     min={50}
                     max={400}
@@ -263,10 +287,10 @@ export function RaisedFloorClient() {
 
           {/* ② 架高高度 */}
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">② 架高高度</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("section2Height")}</h2>
             <FloorRangeInput
-              label="高度"
-              unit="cm"
+              label={t("height")}
+              unit={t("unitCm")}
               value={input.heightCm}
               min={10}
               max={50}
@@ -277,8 +301,8 @@ export function RaisedFloorClient() {
 
           {/* ③ 面材 */}
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">③ 面材</h2>
-            <div className="mb-1 text-xs text-zinc-500">常用地板尺寸</div>
+            <h2 className="mb-3 text-sm font-semibold">{t("section3Plank")}</h2>
+            <div className="mb-1 text-xs text-zinc-500">{t("plankPresetLabel")}</div>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {PLANK_PRESETS.map((p) => {
                 const active =
@@ -304,7 +328,11 @@ export function RaisedFloorClient() {
                   >
                     <span className="block font-medium">{p.nameZh}</span>
                     <span className="block text-[10px] text-zinc-400">
-                      {p.lengthCm}×{p.widthCm}cm · 縫{p.gapMm}mm
+                      {t("plankPresetSpec", {
+                        lengthCm: p.lengthCm,
+                        widthCm: p.widthCm,
+                        gapMm: p.gapMm,
+                      })}
                     </span>
                   </button>
                 );
@@ -312,8 +340,8 @@ export function RaisedFloorClient() {
             </div>
             <div className="grid grid-cols-1 gap-x-3 gap-y-2">
               <FloorRangeInput
-                label="片長"
-                unit="cm"
+                label={t("plankLength")}
+                unit={t("unitCm")}
                 value={input.plankLengthCm}
                 min={50}
                 max={200}
@@ -321,8 +349,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("plankLengthCm", v)}
               />
               <FloorRangeInput
-                label="片寬"
-                unit="cm"
+                label={t("plankWidth")}
+                unit={t("unitCm")}
                 value={input.plankWidthCm}
                 min={5}
                 max={30}
@@ -330,8 +358,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("plankWidthCm", v)}
               />
               <FloorRangeInput
-                label="伸縮縫"
-                unit="mm"
+                label={t("plankGap")}
+                unit={t("unitMm")}
                 value={input.plankGapMm}
                 min={3}
                 max={15}
@@ -342,12 +370,12 @@ export function RaisedFloorClient() {
 
             {/* 鋪設方向轉向 toggle */}
             <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs text-zinc-500">鋪設方向</span>
+              <span className="text-xs text-zinc-500">{t("plankDirectionLabel")}</span>
               <div className="flex gap-1">
                 {(
                   [
-                    { v: "long-axis", label: "沿長軸" },
-                    { v: "short-axis", label: "沿短軸 ↻" },
+                    { v: "long-axis", label: t("plankDirLong") },
+                    { v: "short-axis", label: t("plankDirShort") },
                   ] as { v: "long-axis" | "short-axis"; label: string }[]
                 ).map((opt) => {
                   const active = (input.plankDirection ?? "long-axis") === opt.v;
@@ -370,7 +398,7 @@ export function RaisedFloorClient() {
 
             {/* 起鋪角(對齊地板模擬器:左/右/上/下/中央置中) */}
             <label className="mt-2 flex items-center gap-2 text-xs">
-              <span className="text-zinc-500">起鋪角</span>
+              <span className="text-zinc-500">{t("plankStartLabel")}</span>
               <select
                 className="rounded border border-zinc-300 px-2 py-1"
                 value={input.plankStartCorner ?? "top-left"}
@@ -381,11 +409,11 @@ export function RaisedFloorClient() {
                   )
                 }
               >
-                <option value="top-left">左上</option>
-                <option value="top-right">右上</option>
-                <option value="bottom-left">左下</option>
-                <option value="bottom-right">右下</option>
-                <option value="center">中央置中</option>
+                <option value="top-left">{t("plankStartTopLeft")}</option>
+                <option value="top-right">{t("plankStartTopRight")}</option>
+                <option value="bottom-left">{t("plankStartBottomLeft")}</option>
+                <option value="bottom-right">{t("plankStartBottomRight")}</option>
+                <option value="center">{t("plankStartCenter")}</option>
               </select>
             </label>
           </section>
@@ -393,22 +421,20 @@ export function RaisedFloorClient() {
           {/* ④ 挨柱(可選,預設展開可摺) */}
           <details open className="rounded-lg border border-zinc-200 p-4">
             <summary className="cursor-pointer text-sm font-semibold">
-              ④ 挨柱
+              {t("section4Pillar")}
               <span className="ml-2 text-[11px] font-normal text-zinc-400">
-                ({input.pillars.length}/2 根)
+                {t("pillarCountLabel", { count: input.pillars.length })}
               </span>
             </summary>
             <div className="mt-3">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs text-zinc-500">
-                  靠柱施工時挖出凹陷,最多 2 根
-                </span>
+                <span className="text-xs text-zinc-500">{t("pillarHint")}</span>
                 <div className="flex gap-1">
                   <button
                     onClick={removePillar}
                     disabled={input.pillars.length <= 0}
                     className="h-6 w-6 rounded bg-stone-100 text-base leading-none hover:bg-stone-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="移除挨柱"
+                    aria-label={t("pillarRemoveAria")}
                   >
                     −
                   </button>
@@ -416,7 +442,7 @@ export function RaisedFloorClient() {
                     onClick={addPillar}
                     disabled={input.pillars.length >= 2}
                     className="h-6 w-6 rounded bg-stone-100 text-base leading-none hover:bg-stone-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="加入挨柱"
+                    aria-label={t("pillarAddAria")}
                   >
                     +
                   </button>
@@ -426,7 +452,7 @@ export function RaisedFloorClient() {
                 {input.pillars.map((p, i) => (
                   <div key={i} className="rounded border border-zinc-200 p-2">
                     <label className="mb-2 flex items-center gap-2 text-xs">
-                      <span className="text-zinc-500">位置</span>
+                      <span className="text-zinc-500">{t("pillarPositionLabel")}</span>
                       <select
                         className="rounded border border-zinc-300 px-2 py-1"
                         value={p.corner}
@@ -434,17 +460,17 @@ export function RaisedFloorClient() {
                           updatePillar(i, { corner: e.target.value as PillarCorner })
                         }
                       >
-                        {PILLAR_CORNERS.map((c) => (
-                          <option key={c.value} value={c.value}>
-                            {c.label}
+                        {PILLAR_CORNER_VALUES.map((c) => (
+                          <option key={c} value={c}>
+                            {cornerLabel(c)}
                           </option>
                         ))}
                       </select>
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
                       <FloorRangeInput
-                        label="柱寬"
-                        unit="cm"
+                        label={t("pillarWidth")}
+                        unit={t("unitCm")}
                         value={p.widthCm}
                         min={20}
                         max={150}
@@ -452,8 +478,8 @@ export function RaisedFloorClient() {
                         onChange={(v) => updatePillar(i, { widthCm: v })}
                       />
                       <FloorRangeInput
-                        label="柱深"
-                        unit="cm"
+                        label={t("pillarDepth")}
+                        unit={t("unitCm")}
                         value={p.depthCm}
                         min={20}
                         max={150}
@@ -464,9 +490,7 @@ export function RaisedFloorClient() {
                   </div>
                 ))}
                 {input.pillars.length === 0 && (
-                  <p className="text-[11px] text-zinc-400">
-                    無挨柱;按 + 加入並選位置與凹陷尺寸。
-                  </p>
+                  <p className="text-[11px] text-zinc-400">{t("pillarEmptyHint")}</p>
                 )}
               </div>
             </div>
@@ -474,10 +498,10 @@ export function RaisedFloorClient() {
 
           {/* ⑤ 骨架 */}
           <details className="rounded-lg border border-zinc-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold">⑤ 骨架</summary>
+            <summary className="cursor-pointer text-sm font-semibold">{t("section5Frame")}</summary>
             <div className="mt-3 space-y-3">
               <label className="flex flex-col gap-1 text-xs">
-                <span className="text-zinc-500">主支角材(頂/底框共用)</span>
+                <span className="text-zinc-500">{t("mainJoistLabel")}</span>
                 <select
                   className="rounded border border-zinc-300 px-2 py-1"
                   value={input.mainJoist.id}
@@ -491,7 +515,7 @@ export function RaisedFloorClient() {
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-xs">
-                <span className="text-zinc-500">副支角材</span>
+                <span className="text-zinc-500">{t("subJoistLabel")}</span>
                 <select
                   className="rounded border border-zinc-300 px-2 py-1"
                   value={input.subJoist.id}
@@ -505,8 +529,8 @@ export function RaisedFloorClient() {
                 </select>
               </label>
               <FloorRangeInput
-                label="主支間距"
-                unit="cm"
+                label={t("mainJoistSpacing")}
+                unit={t("unitCm")}
                 value={input.joistSpacingCm}
                 min={20}
                 max={50}
@@ -514,8 +538,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("joistSpacingCm", v)}
               />
               <FloorRangeInput
-                label="副支間距"
-                unit="cm"
+                label={t("subJoistSpacing")}
+                unit={t("unitCm")}
                 value={input.subJoistSpacingCm}
                 min={20}
                 max={80}
@@ -527,10 +551,10 @@ export function RaisedFloorClient() {
 
           {/* ⑥ 夾板 */}
           <details className="rounded-lg border border-zinc-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold">⑥ 夾板</summary>
+            <summary className="cursor-pointer text-sm font-semibold">{t("section6Plywood")}</summary>
             <div className="mt-3 space-y-3">
               <label className="flex flex-col gap-1 text-xs">
-                <span className="text-zinc-500">夾板規格</span>
+                <span className="text-zinc-500">{t("plywoodSpecLabel")}</span>
                 <select
                   className="rounded border border-zinc-300 px-2 py-1"
                   value={input.plywood.id}
@@ -547,8 +571,8 @@ export function RaisedFloorClient() {
               {/* 夾板微調(預設來自規格,可±1cm 調整成料行實品) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
                 <FloorRangeInput
-                  label="長邊"
-                  unit="cm"
+                  label={t("plywoodLongEdge")}
+                  unit={t("unitCm")}
                   value={input.plywood.sheetWidthCm}
                   min={120}
                   max={260}
@@ -558,8 +582,8 @@ export function RaisedFloorClient() {
                   }
                 />
                 <FloorRangeInput
-                  label="短邊"
-                  unit="cm"
+                  label={t("plywoodShortEdge")}
+                  unit={t("unitCm")}
                   value={input.plywood.sheetLengthCm}
                   min={60}
                   max={130}
@@ -569,8 +593,8 @@ export function RaisedFloorClient() {
                   }
                 />
                 <FloorRangeInput
-                  label="厚度"
-                  unit="mm"
+                  label={t("plywoodThickness")}
+                  unit={t("unitMm")}
                   value={input.plywood.thicknessMm}
                   min={9}
                   max={24}
@@ -580,13 +604,11 @@ export function RaisedFloorClient() {
                   }
                 />
               </div>
-              <p className="text-[10px] text-zinc-500 leading-relaxed">
-                💡 選 preset 自動帶入標準尺寸,可再 ±1cm 微調對齊料行實品。
-              </p>
+              <p className="text-[10px] text-zinc-500 leading-relaxed">{t("plywoodSpecHint")}</p>
 
               <FloorRangeInput
-                label="拼縫間隙(不補 AB 膠)"
-                unit="mm"
+                label={t("plywoodGap")}
+                unit={t("unitMm")}
                 value={input.plywoodGapMm}
                 min={2}
                 max={4}
@@ -594,8 +616,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("plywoodGapMm", v)}
               />
               <FloorRangeInput
-                label="損耗"
-                unit="%"
+                label={t("plywoodWaste")}
+                unit={t("unitPercent")}
                 value={Math.round(input.plywoodWaste * 100)}
                 min={0}
                 max={50}
@@ -610,11 +632,11 @@ export function RaisedFloorClient() {
 
           {/* ⑧ 估價 */}
           <details className="rounded-lg border border-zinc-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold">⑧ 估價</summary>
+            <summary className="cursor-pointer text-sm font-semibold">{t("section8Price")}</summary>
             <div className="mt-3 grid grid-cols-1 gap-x-3 gap-y-2">
               <FloorRangeInput
-                label="面材每坪"
-                unit="元"
+                label={t("plankPrice")}
+                unit={t("unitYuan")}
                 value={input.plankPricePerPing}
                 min={0}
                 max={20000}
@@ -622,8 +644,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("plankPricePerPing", v)}
               />
               <FloorRangeInput
-                label="角材每米"
-                unit="元"
+                label={t("joistPrice")}
+                unit={t("unitYuan")}
                 value={input.joistPricePerM}
                 min={0}
                 max={500}
@@ -631,8 +653,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("joistPricePerM", v)}
               />
               <FloorRangeInput
-                label="夾板每片"
-                unit="元"
+                label={t("plywoodPrice")}
+                unit={t("unitYuan")}
                 value={input.plywoodPricePerSheet}
                 min={0}
                 max={3000}
@@ -640,8 +662,8 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("plywoodPricePerSheet", v)}
               />
               <FloorRangeInput
-                label="踢腳每米"
-                unit="元"
+                label={t("skirtingPrice")}
+                unit={t("unitYuan")}
                 value={input.skirtingPricePerM}
                 min={0}
                 max={500}
@@ -659,23 +681,23 @@ export function RaisedFloorClient() {
             <div className="flex gap-1.5">
               {(
                 [
-                  { key: "frame", label: "骨架 2D" },
-                  { key: "plank", label: "拼花 2D" },
-                  { key: "3d", label: "3D 爆炸" },
+                  { key: "frame", label: t("tabFrame") },
+                  { key: "plank", label: t("tabPlank") },
+                  { key: "3d", label: t("tab3d") },
                 ] as { key: PreviewTab; label: string }[]
-              ).map((t) => {
-                const active = tab === t.key;
+              ).map((tab2) => {
+                const active = tab === tab2.key;
                 return (
                   <button
-                    key={t.key}
-                    onClick={() => setTab(t.key)}
+                    key={tab2.key}
+                    onClick={() => setTab(tab2.key)}
                     className={`flex-1 rounded border px-3 py-1.5 text-xs ${
                       active
                         ? "border-[#bd9955] bg-[#bd9955]/15 text-[#8a6d3b] font-medium"
                         : "border-zinc-300 hover:bg-zinc-50"
                     }`}
                   >
-                    {t.label}
+                    {tab2.label}
                   </button>
                 );
               })}
@@ -698,7 +720,7 @@ export function RaisedFloorClient() {
                 {/* 爆炸 slider */}
                 <div className="rounded border border-zinc-200 p-2">
                   <div className="mb-1 flex items-center justify-between text-[11px] text-zinc-500">
-                    <span>爆炸程度</span>
+                    <span>{t("explodeLabel")}</span>
                     <span className="font-mono text-zinc-700">
                       {Math.round(explode * 100)}%
                     </span>
@@ -718,8 +740,8 @@ export function RaisedFloorClient() {
                 <div className="flex gap-1.5">
                   {(
                     [
-                      { key: "iso", label: "軸測" },
-                      { key: "top", label: "俯視" },
+                      { key: "iso", label: t("view3dIso") },
+                      { key: "top", label: t("view3dTop") },
                     ] as { key: ViewMode; label: string }[]
                   ).map((v) => {
                     const active = viewMode === v.key;
@@ -744,9 +766,9 @@ export function RaisedFloorClient() {
             {/* 圖層 toggle — 三個 tab 都共用(2D/拼花/3D 都吃 layers) */}
             {(tab === "frame" || tab === "3d") && (
               <div className="rounded border border-zinc-200 p-2">
-                <div className="mb-1 text-[11px] text-zinc-500">顯示圖層</div>
+                <div className="mb-1 text-[11px] text-zinc-500">{t("layersLabel")}</div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {LAYER_LABELS.map((l) => (
+                  {LAYER_KEYS.map((l) => (
                     <label
                       key={l.key}
                       className="flex items-center gap-1 text-xs text-zinc-600 cursor-pointer"
@@ -757,7 +779,7 @@ export function RaisedFloorClient() {
                         onChange={() => toggleLayer(l.key)}
                         className="accent-[#bd9955]"
                       />
-                      {l.label}
+                      {t(l.labelKey)}
                     </label>
                   ))}
                 </div>
@@ -766,55 +788,57 @@ export function RaisedFloorClient() {
 
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               <Stat
-                label="面材"
+                label={t("statPlank")}
                 value={`${bom.trace.plankTotalCount}`}
-                unit="片"
+                unit={t("unitPiece")}
               />
               <Stat
-                label="副支"
+                label={t("statSub")}
                 value={bom.trace.subJoistTotalM.toFixed(1)}
-                unit="m"
+                unit={t("unitMeter")}
               />
               <Stat
-                label="骨架"
+                label={t("statFrame")}
                 value={bom.trace.joistTotalM.toFixed(1)}
-                unit="m"
+                unit={t("unitMeter")}
               />
               <Stat
-                label="夾板"
+                label={t("statPlywood")}
                 value={`${bom.trace.plywoodSheetCount}`}
-                unit="片"
+                unit={t("unitPiece")}
               />
               <Stat
-                label="周長"
+                label={t("statPerimeter")}
                 value={bom.auto.perimeterM.toFixed(1)}
-                unit="m"
+                unit={t("unitMeter")}
               />
             </div>
 
             {/* BOM 表 */}
             <div className="rounded-lg border border-zinc-200 p-3">
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">材料清單</h2>
+                <h2 className="text-sm font-semibold">{t("bomTitle")}</h2>
                 <div className="flex gap-1.5">
                   <button
                     onClick={downloadCsv}
                     className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50"
-                    title="含 BOM + 三張裁切表(UTF-8 BOM,Excel 開中文 OK)"
+                    title={t("csvTitle")}
                   >
-                    ⬇ CSV
+                    {t("csvButton")}
                   </button>
                   <button
                     onClick={copyBom}
                     className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50"
                   >
-                    {copied ? "已複製 ✓" : "複製清單"}
+                    {copied ? t("copyDone") : t("copyButton")}
                   </button>
                 </div>
               </div>
               <p className="text-xs text-zinc-500">
-                平台 {bom.auto.platformAreaM2.toFixed(2)} m² ·{" "}
-                {bom.auto.pingShu.toFixed(2)} 坪
+                {t("platformSummary", {
+                  area: bom.auto.platformAreaM2.toFixed(2),
+                  ping: bom.auto.pingShu.toFixed(2),
+                })}
               </p>
               <table className="mt-2 w-full border-collapse text-xs">
                 <tbody>
@@ -825,24 +849,24 @@ export function RaisedFloorClient() {
                         <div className="text-[10px] text-zinc-400">{it.spec}</div>
                       </td>
                       <td className="py-1 text-right whitespace-nowrap">
-                        {it.count != null && `${it.count} 片`}
-                        {it.totalLengthM != null && `${it.totalLengthM.toFixed(1)} m`}
+                        {it.count != null && `${it.count} ${t("unitPiece")}`}
+                        {it.totalLengthM != null && `${it.totalLengthM.toFixed(1)} ${t("unitMeter")}`}
                       </td>
                       <td className="py-1 pl-2 text-right whitespace-nowrap text-zinc-700">
                         {it.subtotal != null
                           ? `NT$ ${Math.round(it.subtotal).toLocaleString()}`
-                          : "—"}
+                          : t("noPrice")}
                       </td>
                     </tr>
                   ))}
                   <tr className="border-t-2 border-zinc-300">
                     <td className="py-1 font-semibold" colSpan={2}>
-                      總計
+                      {t("totalRow")}
                     </td>
                     <td className="py-1 pl-2 text-right font-semibold whitespace-nowrap">
                       {bom.cost.total > 0
                         ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                        : "—"}
+                        : t("noPrice")}
                     </td>
                   </tr>
                 </tbody>
@@ -853,18 +877,18 @@ export function RaisedFloorClient() {
             <div className="rounded-lg border border-[#bd9955]/40 bg-[#bd9955]/10 p-3">
               <div className="flex items-end justify-between gap-2">
                 <div>
-                  <div className="text-xs text-zinc-500">預估總價</div>
+                  <div className="text-xs text-zinc-500">{t("estimatedTotal")}</div>
                   <div className="text-2xl font-bold text-[#8a6d3b]">
                     {bom.cost.total > 0
                       ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                      : "未設定報價"}
+                      : t("noQuote")}
                   </div>
                 </div>
                 {bom.cost.total > 0 && bom.cost.hasUnpriced && (
                   <div className="text-[10px] text-amber-700 text-right leading-tight">
-                    部分品項
+                    {t("partiallyPriced1")}
                     <br />
-                    未報價
+                    {t("partiallyPriced2")}
                   </div>
                 )}
               </div>
@@ -880,7 +904,7 @@ export function RaisedFloorClient() {
               }
               className="w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
             >
-              🧾 產生報價單
+              {t("generateQuote")}
             </button>
           </div>
         </aside>
@@ -896,11 +920,13 @@ export function RaisedFloorClient() {
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">🪚 裁料表 ① 骨架</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("frameCutSection")}</h2>
               <span className="text-[11px] text-zinc-600">
-                共 {cuttingPlan.summary.stockCount} 支角材 · 利用率{" "}
-                {cuttingPlan.summary.utilizationPct}% · 剩料{" "}
-                {cuttingPlan.summary.totalRemainM} m
+                {t("frameCutSummary", {
+                  count: cuttingPlan.summary.stockCount,
+                  pct: cuttingPlan.summary.utilizationPct,
+                  remain: cuttingPlan.summary.totalRemainM,
+                })}
               </span>
             </div>
             <span className="text-zinc-400 text-xs">{cutOpen ? "▲" : "▼"}</span>
@@ -909,7 +935,7 @@ export function RaisedFloorClient() {
             <div className="p-5 space-y-4">
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">原料一支長</span>
+                  <span className="text-zinc-600">{t("stockLengthLabel")}</span>
                   <input
                     type="number"
                     value={stockLengthCm}
@@ -917,10 +943,10 @@ export function RaisedFloorClient() {
                     onChange={(e) => setStockLengthCm(Number(e.target.value))}
                     className="w-20 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500"
                   />
-                  <span className="text-[10px] text-zinc-600">cm (360=12 尺、300=10 尺)</span>
+                  <span className="text-[10px] text-zinc-600">{t("stockLengthHint")}</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">鋸路</span>
+                  <span className="text-zinc-600">{t("sawKerfLabel")}</span>
                   <input
                     type="number"
                     value={sawKerfCm}
@@ -931,7 +957,7 @@ export function RaisedFloorClient() {
                   <span className="text-[10px] text-zinc-600">cm</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">接點搭接</span>
+                  <span className="text-zinc-600">{t("spliceLabel")}</span>
                   <input
                     type="number"
                     value={spliceOverlapCm}
@@ -939,7 +965,7 @@ export function RaisedFloorClient() {
                     onChange={(e) => setSpliceOverlapCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500"
                   />
-                  <span className="text-[10px] text-zinc-600">cm(超原料長段自動分段拼)</span>
+                  <span className="text-[10px] text-zinc-600">{t("spliceHint")}</span>
                 </label>
               </div>
 
@@ -957,7 +983,11 @@ export function RaisedFloorClient() {
                 return (
                   <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3 sm:p-4">
                     <h3 className="text-xs font-semibold text-amber-900 mb-2">
-                      🔗 太長要分段接({groups.size} 件 → {splicedPieces.length} 段,每接點搭接 {spliceOverlapCm} cm)
+                      {t("splicedTitle", {
+                        groups: groups.size,
+                        pieces: splicedPieces.length,
+                        overlap: spliceOverlapCm,
+                      })}
                     </h3>
                     <ul className="text-[11px] text-amber-800 space-y-1 leading-relaxed">
                       {[...groups.entries()].map(([base, segs]) => (
@@ -973,7 +1003,7 @@ export function RaisedFloorClient() {
                             </span>
                           ))}
                           <span className="text-amber-600 font-mono">
-                            合 {r1(segs.reduce((s, p) => s + p.lengthCm, 0))} cm
+                            {t("splicedSum", { len: r1(segs.reduce((s, p) => s + p.lengthCm, 0)) })}
                           </span>
                         </li>
                       ))}
@@ -986,11 +1016,11 @@ export function RaisedFloorClient() {
                 <table className="w-full text-xs">
                   <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="text-left px-3 py-2 font-semibold">第幾支</th>
-                      <th className="text-left px-3 py-2 font-semibold">切法</th>
-                      <th className="text-right px-3 py-2 font-semibold">已用</th>
-                      <th className="text-right px-3 py-2 font-semibold">鋸路</th>
-                      <th className="text-right px-3 py-2 font-semibold">剩料</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("thStock")}</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("thCut")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thUsed")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thKerf")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thRemain")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -1050,44 +1080,44 @@ export function RaisedFloorClient() {
 
               <div className="flex flex-wrap gap-3 text-[11px] text-zinc-500">
                 <span>
-                  訂料{" "}
+                  {t("footOrder")}{" "}
                   <strong className="text-zinc-900 text-base font-bold">
                     {cuttingPlan.summary.stockCount}
                   </strong>{" "}
-                  支 {stockLengthCm} cm
+                  {t("footStockSuffix", { len: stockLengthCm })}
                 </span>
                 <span>
-                  總長{" "}
+                  {t("footTotalLen")}{" "}
                   <strong className="text-zinc-700">
-                    {cuttingPlan.summary.totalStockLengthM} m
+                    {t("footMeter", { n: cuttingPlan.summary.totalStockLengthM })}
                   </strong>
                 </span>
                 <span>
-                  實用{" "}
+                  {t("footUsed")}{" "}
                   <strong className="text-zinc-700">
-                    {cuttingPlan.summary.totalUsedM} m
+                    {t("footMeter", { n: cuttingPlan.summary.totalUsedM })}
                   </strong>
                 </span>
                 <span>
-                  剩料{" "}
+                  {t("footRemain")}{" "}
                   <strong className="text-rose-700">
-                    {cuttingPlan.summary.totalRemainM} m
+                    {t("footMeter", { n: cuttingPlan.summary.totalRemainM })}
                   </strong>
                 </span>
                 <span>
-                  利用率{" "}
+                  {t("footUtilization")}{" "}
                   <strong className="text-amber-700">
-                    {cuttingPlan.summary.utilizationPct}%
+                    {t("footPercent", { n: cuttingPlan.summary.utilizationPct })}
                   </strong>
                 </span>
               </div>
 
               <div className="flex flex-wrap gap-3 text-[10px] text-zinc-500">
-                <Legend tone={pieceTone("frame-top")} label="頂框" />
-                <Legend tone={pieceTone("frame-bottom")} label="底框" />
-                <Legend tone={pieceTone("main-joist")} label="頂主支" />
-                <Legend tone={pieceTone("main-joist-bottom")} label="底主支" />
-                <Legend tone={pieceTone("sub-joist")} label="副支" />
+                <Legend tone={pieceTone("frame-top")} label={t("legendFrameTop")} />
+                <Legend tone={pieceTone("frame-bottom")} label={t("legendFrameBottom")} />
+                <Legend tone={pieceTone("main-joist")} label={t("legendMainTop")} />
+                <Legend tone={pieceTone("main-joist-bottom")} label={t("legendMainBottom")} />
+                <Legend tone={pieceTone("sub-joist")} label={t("legendSub")} />
               </div>
             </div>
           )}
@@ -1102,12 +1132,15 @@ export function RaisedFloorClient() {
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">🪵 裁料表 ② 地板</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("plankCutSection")}</h2>
               <span className="text-[11px] text-zinc-600">
-                整片 {bom.trace.plankFullCount} + 裁切{" "}
-                {bom.trace.plankCutCount}(實耗新片{" "}
-                {bom.trace.plankCutNewCount})= {bom.trace.plankTotalCount} 片 · 損耗{" "}
-                {bom.trace.plankWastePercent.toFixed(1)}%
+                {t("plankCutSummary", {
+                  full: bom.trace.plankFullCount,
+                  cut: bom.trace.plankCutCount,
+                  newPieces: bom.trace.plankCutNewCount,
+                  total: bom.trace.plankTotalCount,
+                  waste: bom.trace.plankWastePercent.toFixed(1),
+                })}
               </span>
             </div>
             <span className="text-zinc-400 text-xs">{plankCutOpen ? "▲" : "▼"}</span>
@@ -1115,17 +1148,17 @@ export function RaisedFloorClient() {
           {plankCutOpen && (
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <Stat label="整片" value={String(bom.trace.plankFullCount)} unit="片" />
-                <Stat label="裁切件" value={String(bom.trace.plankCutCount)} unit="件" />
+                <Stat label={t("statFull")} value={String(bom.trace.plankFullCount)} unit={t("unitPiece")} />
+                <Stat label={t("statCutPieces")} value={String(bom.trace.plankCutCount)} unit={t("unitCount")} />
                 <Stat
-                  label="裁切實耗新片"
+                  label={t("statCutNew")}
                   value={String(bom.trace.plankCutNewCount)}
-                  unit="片"
+                  unit={t("unitPiece")}
                 />
                 <Stat
-                  label="實算損耗"
+                  label={t("statWaste")}
                   value={bom.trace.plankWastePercent.toFixed(1)}
-                  unit="%"
+                  unit={t("unitPercent")}
                 />
               </div>
 
@@ -1133,10 +1166,10 @@ export function RaisedFloorClient() {
                 <table className="w-full text-xs">
                   <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="text-left px-3 py-2 font-semibold">編號</th>
-                      <th className="text-left px-3 py-2 font-semibold">類型</th>
-                      <th className="text-right px-3 py-2 font-semibold">有效長 cm</th>
-                      <th className="text-right px-3 py-2 font-semibold">面積 cm²</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("thNo")}</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("thType")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thEffectiveLen")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thArea")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -1153,11 +1186,11 @@ export function RaisedFloorClient() {
                         <td className="px-3 py-2">
                           {p.kind === "full" ? (
                             <span className="px-1.5 py-0.5 rounded text-[10px] ring-1 bg-stone-100 text-stone-700 ring-stone-200">
-                              整片
+                              {t("labelFull")}
                             </span>
                           ) : (
                             <span className="px-1.5 py-0.5 rounded text-[10px] ring-1 bg-amber-100 text-amber-900 ring-amber-200">
-                              裁切片
+                              {t("labelCut")}
                             </span>
                           )}
                         </td>
@@ -1176,7 +1209,7 @@ export function RaisedFloorClient() {
               {bom.trace.offcutReuseLog.length > 0 && (
                 <details className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-3">
                   <summary className="cursor-pointer text-xs font-semibold text-emerald-900">
-                    ♻️ 餘料再利用明細({bom.trace.offcutReuseLog.length} 筆)
+                    {t("offcutReuseSummary", { count: bom.trace.offcutReuseLog.length })}
                   </summary>
                   <ul className="mt-2 text-[11px] text-emerald-800 space-y-0.5 pl-4 list-disc">
                     {bom.trace.offcutReuseLog.map((line, i) => (
@@ -1198,15 +1231,17 @@ export function RaisedFloorClient() {
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">🟫 裁料表 ③ 夾板</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("plywoodCutSection")}</h2>
               <span className="text-[11px] text-zinc-600">
-                {plywoodLayout.sheets.length} 片(整 {plywoodLayout.fullCount} + 裁{" "}
-                {plywoodLayout.cutCount})· 訂料{" "}
-                <strong className="text-amber-700">{plywoodLayout.orderSheetCount} 張</strong>
+                {t("plywoodCutSummary", {
+                  count: plywoodLayout.sheets.length,
+                  full: plywoodLayout.fullCount,
+                  cut: plywoodLayout.cutCount,
+                })}{" "}
+                <strong className="text-amber-700">{plywoodLayout.orderSheetCount} {t("plywoodOrderUnit")}</strong>
                 {plywoodLayout.sheets.length > plywoodLayout.orderSheetCount && (
                   <span className="text-emerald-700">
-                    {" "}
-                    ♻ 省{plywoodLayout.sheets.length - plywoodLayout.orderSheetCount}
+                    {t("plywoodSaved", { n: plywoodLayout.sheets.length - plywoodLayout.orderSheetCount })}
                   </span>
                 )}
               </span>
@@ -1216,25 +1251,25 @@ export function RaisedFloorClient() {
           {plywoodCutOpen && (
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <Stat label="平台需鋪" value={String(plywoodLayout.sheets.length)} unit="片" />
-                <Stat label="整片" value={String(plywoodLayout.fullCount)} unit="片" />
-                <Stat label="裁切片" value={String(plywoodLayout.cutCount)} unit="片" />
+                <Stat label={t("statPlywoodLay")} value={String(plywoodLayout.sheets.length)} unit={t("unitPiece")} />
+                <Stat label={t("statPlywoodFull")} value={String(plywoodLayout.fullCount)} unit={t("unitPiece")} />
+                <Stat label={t("statPlywoodCut")} value={String(plywoodLayout.cutCount)} unit={t("unitPiece")} />
                 <Stat
-                  label="實際訂料"
+                  label={t("statPlywoodOrder")}
                   value={String(plywoodLayout.orderSheetCount)}
-                  unit="張"
+                  unit={t("unitSheet")}
                 />
               </div>
 
               {plywoodLayout.sheets.length > plywoodLayout.orderSheetCount && (
                 <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-3 text-[11px] text-emerald-900">
-                  ♻️ 2D 餘料拼湊後省{" "}
-                  <strong>
-                    {plywoodLayout.sheets.length - plywoodLayout.orderSheetCount}
-                  </strong>{" "}
-                  張新料(平台需鋪 {plywoodLayout.sheets.length} 片但只要訂{" "}
-                  {plywoodLayout.orderSheetCount} 張{plywoodLayout.sheetLongX}×
-                  {plywoodLayout.sheetShortZ}cm 板,小裁切片從整片下料剩餘區裁出)
+                  {t("plywoodSavedBanner", {
+                    n: plywoodLayout.sheets.length - plywoodLayout.orderSheetCount,
+                    laid: plywoodLayout.sheets.length,
+                    ordered: plywoodLayout.orderSheetCount,
+                    longCm: plywoodLayout.sheetLongX,
+                    shortCm: plywoodLayout.sheetShortZ,
+                  })}
                 </div>
               )}
 
@@ -1242,12 +1277,12 @@ export function RaisedFloorClient() {
                 <table className="w-full text-xs">
                   <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="text-left px-3 py-2 font-semibold">編號</th>
-                      <th className="text-left px-3 py-2 font-semibold">類型</th>
-                      <th className="text-right px-3 py-2 font-semibold">寬 cm</th>
-                      <th className="text-right px-3 py-2 font-semibold">高 cm</th>
-                      <th className="text-right px-3 py-2 font-semibold">面積 cm²</th>
-                      <th className="text-right px-3 py-2 font-semibold">新料</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("thNo")}</th>
+                      <th className="text-left px-3 py-2 font-semibold">{t("thType")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thWidthCm")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thHeightCm")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thArea")}</th>
+                      <th className="text-right px-3 py-2 font-semibold">{t("thNewSheet")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -1263,17 +1298,17 @@ export function RaisedFloorClient() {
                         <td className="px-3 py-2 font-mono text-zinc-700">
                           #{s.index}
                           {!s.isFull && (
-                            <span className="ml-1 text-[10px] text-rose-700">裁</span>
+                            <span className="ml-1 text-[10px] text-rose-700">{t("cutMark")}</span>
                           )}
                         </td>
                         <td className="px-3 py-2">
                           {s.isFull ? (
                             <span className="px-1.5 py-0.5 rounded text-[10px] ring-1 bg-amber-100 text-amber-900 ring-amber-200">
-                              整片
+                              {t("labelFull")}
                             </span>
                           ) : (
                             <span className="px-1.5 py-0.5 rounded text-[10px] ring-1 bg-rose-100 text-rose-900 ring-rose-200">
-                              裁切片
+                              {t("labelCut")}
                             </span>
                           )}
                         </td>
@@ -1288,8 +1323,8 @@ export function RaisedFloorClient() {
                         </td>
                         <td className="px-3 py-2 text-right text-zinc-700 font-mono text-[11px]">
                           {s.orderSheetIndex != null
-                            ? `料${s.orderSheetIndex}`
-                            : "—"}
+                            ? t("newSheetFormat", { n: s.orderSheetIndex })
+                            : t("noPrice")}
                         </td>
                       </tr>
                     ))}
@@ -1310,7 +1345,7 @@ export function RaisedFloorClient() {
                 return (
                   <div className="rounded-lg bg-stone-50 ring-1 ring-stone-200 p-3">
                     <h3 className="text-xs font-semibold text-stone-800 mb-2">
-                      📦 新料下料分組(同號 = 同張板切出)
+                      {t("newSheetGroupTitle")}
                     </h3>
                     <ul className="text-[11px] text-stone-700 space-y-0.5 font-mono">
                       {[...groups.entries()]
@@ -1318,12 +1353,12 @@ export function RaisedFloorClient() {
                         .map(([sheetIdx, cells]) => (
                           <li key={sheetIdx}>
                             <span className="text-amber-700 font-semibold">
-                              料 {sheetIdx}:
+                              {t("newSheetGroupLabel", { n: sheetIdx })}
                             </span>{" "}
                             #{cells.join(" + #")}
                             {cells.length > 1 && (
                               <span className="text-emerald-700 ml-1">
-                                ({cells.length} 片共板)
+                                {t("newSheetSharedSuffix", { n: cells.length })}
                               </span>
                             )}
                           </li>
@@ -1336,7 +1371,7 @@ export function RaisedFloorClient() {
               {plywoodLayout.packingLog.length > 0 && (
                 <details className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3">
                   <summary className="cursor-pointer text-xs font-semibold text-amber-900">
-                    📦 下料拼湊明細({plywoodLayout.packingLog.length} 筆)
+                    {t("packingLogSummary", { count: plywoodLayout.packingLog.length })}
                   </summary>
                   <ul className="mt-2 text-[11px] text-amber-800 space-y-0.5 pl-4 list-disc">
                     {plywoodLayout.packingLog.map((line, i) => (
@@ -1347,9 +1382,10 @@ export function RaisedFloorClient() {
               )}
 
               <p className="text-[11px] text-zinc-500 leading-relaxed">
-                💡 接縫已自動吸到最近的主支/副支中心(實務上每片邊緣都釘得到骨架)。
-                整片寬 {plywoodLayout.sheetLongX}cm × {plywoodLayout.sheetShortZ}cm
-                ±15% 內算「整片下料」。
+                {t("plywoodFooter", {
+                  longCm: plywoodLayout.sheetLongX,
+                  shortCm: plywoodLayout.sheetShortZ,
+                })}
               </p>
             </div>
           )}
@@ -1364,8 +1400,8 @@ export function RaisedFloorClient() {
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">📐 施工步驟</h2>
-              <span className="text-[11px] text-zinc-600">6 步流程</span>
+              <h2 className="text-sm font-semibold text-zinc-900">{t("stepsSection")}</h2>
+              <span className="text-[11px] text-zinc-600">{t("stepsSubtitle")}</span>
             </div>
             <span className="text-zinc-400 text-xs">{stepsOpen ? "▲" : "▼"}</span>
           </button>
@@ -1374,33 +1410,52 @@ export function RaisedFloorClient() {
               {[
                 {
                   n: 1,
-                  title: "放樣 + 底框鎖地",
-                  desc: "在原地坪上彈線標出平台範圍(挨柱/L 形依設計圖),沿輪廓鎖底框角材;遇到挨柱角向內凹折,挨柱本體保留不蓋。",
+                  title: t("step1Title"),
+                  desc: t("step1Desc"),
                 },
                 {
                   n: 2,
-                  title: "立腳柱",
-                  desc: `周邊腳柱站底框上、內柱站底主支上(都用 ${bom.input.mainJoist.nameZh});${bom.trace.joistRowCount} 排內柱用調整腳對齊平台水平,鎖緊不晃動。`,
+                  title: t("step2Title"),
+                  desc: t("step2Desc", {
+                    joist: bom.input.mainJoist.nameZh,
+                    rows: bom.trace.joistRowCount,
+                  }),
                 },
                 {
                   n: 3,
-                  title: "架頂框 + 頂主支",
-                  desc: `沿平台輪廓鎖頂框,${bom.input.mainJoist.nameZh} 主支跨短軸、中心距 ${bom.input.joistSpacingCm}cm 共 ${bom.trace.joistRowCount} 條;頂面共線,雷射水平儀確認整個平台水平。`,
+                  title: t("step3Title"),
+                  desc: t("step3Desc", {
+                    joist: bom.input.mainJoist.nameZh,
+                    spacing: bom.input.joistSpacingCm,
+                    rows: bom.trace.joistRowCount,
+                  }),
                 },
                 {
                   n: 4,
-                  title: "副支補強",
-                  desc: `${bom.input.subJoist.nameZh} 副支跨主支中間 slot、間距 ${bom.input.subJoistSpacingCm}cm 共 ${bom.trace.subJoistCount} 根;每片夾板邊緣都要釘得到副支才不會踩起來軟。`,
+                  title: t("step4Title"),
+                  desc: t("step4Desc", {
+                    joist: bom.input.subJoist.nameZh,
+                    spacing: bom.input.subJoistSpacingCm,
+                    count: bom.trace.subJoistCount,
+                  }),
                 },
                 {
                   n: 5,
-                  title: `鋪夾板(${bom.input.plywood.nameZh})`,
-                  desc: `${plywoodLayout.fullCount} 片整片 + ${plywoodLayout.cutCount} 片裁切;接縫對準主支/副支中心釘下,片與片留 ${bom.input.plywoodGapMm}mm 拼縫(防潮膨脹用,不補 AB 膠)。`,
+                  title: t("step5Title", { plywood: bom.input.plywood.nameZh }),
+                  desc: t("step5Desc", {
+                    full: plywoodLayout.fullCount,
+                    cut: plywoodLayout.cutCount,
+                    gap: bom.input.plywoodGapMm,
+                  }),
                 },
                 {
                   n: 6,
-                  title: "鋪面材",
-                  desc: `${bom.input.plankLengthCm}×${bom.input.plankWidthCm}cm 面材沿長軸鋪、錯縫 1/2 一片;牆邊留伸縮縫 ${bom.input.plankGapMm}mm,踢腳板/收邊條最後上。`,
+                  title: t("step6Title"),
+                  desc: t("step6Desc", {
+                    lengthCm: bom.input.plankLengthCm,
+                    widthCm: bom.input.plankWidthCm,
+                    gap: bom.input.plankGapMm,
+                  }),
                 },
               ].map((step) => (
                 <li

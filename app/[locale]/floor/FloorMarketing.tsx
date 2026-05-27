@@ -1,11 +1,12 @@
 /**
- * /floor — 訪客銷售頁
+ * /floor — 訪客銷售頁(雙語 i18n)
  *
  * 渲染條件:未登入 OR 已登入但沒解鎖。
  * 已登入有權限者由 page.tsx 直送 <FloorDevClient />。
  */
-import Link from "next/link";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
 
 type UserStatus = "guest" | "loggedInNoAccess";
@@ -17,122 +18,54 @@ interface Props {
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
-const PARAMETERS = [
-  { label: "房間形狀（9 種）", desc: "矩形、L 形、ㄇ 形、十字、凸窗 + 挨柱 0–2 根，2D 編輯器拉一拉就好。" },
-  { label: "面材規格", desc: "超耐磨 / 海島型 / 實木，片長片寬 mm 級調整，比比看哪款省料。" },
-  { label: "拼板款式（5 種）", desc: "直鋪、1/2 錯縫、1/3 錯縫、人字拼 Herringbone、Chevron V 型。" },
-  { label: "起鋪角度", desc: "0° / 30° / 45° / 90° 四檔，自動算切角廢料。" },
-  { label: "長軸方向", desc: "依房間長邊或短邊鋪，視覺延伸感不同，損耗也不同。" },
-  { label: "伸縮縫 mm 級", desc: "牆邊預留縫從 8mm 到 15mm 自由設，影響邊條材料用量。" },
-  { label: "踢腳板（高度 / 門洞）", desc: "踢腳板高度可設，門洞位置標出後系統自動扣總長。" },
-  { label: "防潮墊規格（選配）", desc: "PE / EPE / Tyvek 三種選一，卷長卷寬不同自動算卷數。" },
-];
+type PainItem = { emoji: string; title: string; body: string };
+type FeatureItem = { emoji: string; title: string; body: string };
+type ParamItem = { label: string; desc: string };
+type OutputItem = { icon: string; title: string; body: string };
+type ShowcaseItem = { img: string; label: string; desc: string };
+type AudienceItem = { emoji: string; title: string; body: string };
+type ScenarioItem = { tag: string; body: string };
+type FaqItem = { q: string; a: string };
+type RelatedItem = { href: string; emoji: string; title: string; body: string };
+type TierBlock = {
+  badge: string;
+  title: string;
+  price: string;
+  unit: string;
+  features: string[];
+  cta: string;
+};
 
-const AUTO_OUTPUTS = [
-  { icon: "🪵", title: "面材片數", body: "起鋪角、伸縮縫、5 種拼板都算進損耗，超耐磨 / 海島型 / 實木同一條演算法。" },
-  { icon: "📐", title: "排版預覽", body: "2D 即時顯示拼板效果，3D 透視看真實質感，客戶不用想像。" },
-  { icon: "🔁", title: "5 種款式即比即看", body: "切換拼板款式 1 秒重算，「人字拼比直鋪多多少廢料」秒答。" },
-  { icon: "📏", title: "踢腳板米數", body: "依房間周長自動算，門洞自動扣，木質 / PVC 線板都算。" },
-  { icon: "🧾", title: "A4 估價單", body: "客戶資料 + 品項 + 總計 + 條款一頁印出，另存 PDF 直接寄客戶。" },
-  { icon: "📊", title: "BOM CSV 匯出", body: "Excel 開沒亂碼，工班直接抓料用。" },
-];
+export async function FloorMarketing({ status }: Props) {
+  const t = await getTranslations("floorMarketing");
 
-const SCENARIOS = [
-  {
-    tag: "🔨 接案現場",
-    body: "客戶問「客廳鋪人字拼貴多少」當場切換款式比給看，2D 預覽 + 估價單秒重算，客戶當場決定花樣。",
-  },
-  {
-    tag: "🪜 統包 / 設計師",
-    body: "提案 3 房 2 廳，每間切不同款式、不同色，一頁 A4 全打包。改尺寸不用重畫，半小時的事 5 分鐘搞定。",
-  },
-  {
-    tag: "🏠 DIY 換木地板",
-    body: "舊房翻新自己鋪，畫房間 → 系統告訴你要訂幾片超耐磨、幾條踢腳板，直接去料行不用問人。",
-  },
-  {
-    tag: "🎓 木匠學院學員",
-    body: "課程學的鋪設邏輯、起鋪角、伸縮縫，這支工具讓你看「演算法怎麼算」，從練手到接案無縫接軌。",
-  },
-];
-
-const FAQS = [
-  {
-    q: "超耐磨、海島型、實木有什麼差?",
-    a: "超耐磨是密集板印木紋表層,耐磨耐刮便宜,但泡水會壞;海島型是密集板上貼 1-2mm 實木皮,有實木質感、耐潮,主流選擇;實木地板是 100% 實木,最有質感但最貴、會脹縮。本工具 3 種都吃,自動套對應規格跟單價。",
-  },
-  {
-    q: "人字拼的損耗真的會這麼高嗎?",
-    a: "人字拼直鋪損耗 12-22%,直鋪只有 1.5-6.6%。但人字拼好看貴氣、客單價高。本工具算人字拼會把斜切餘料反向拼回去(一刀切兩片共板),實際損耗算給你看,料行報價隨便加 20% 你能省下 5-10%。",
-  },
-  {
-    q: "中央起鋪是什麼意思?要不要選?",
-    a: "中央起鋪 = 從房間中心線往兩邊鋪,首末排寬度對稱。優點:左右兩邊餘量等寬,視覺最平衡。缺點:中間有一條接縫。一般客廳推薦中央起鋪,小房間就左上起鋪即可。",
-  },
-  {
-    q: "跟「和室架高平台估價」差在哪?",
-    a: "地板模擬器算的是平鋪木地板（超耐磨 / 海島型 / 實木）、無骨架，貼地直接鋪。架高平台是 30cm 以上的台座，有頂框、底框、主支、副支、夾板、防潮墊、踢腳板。兩者共用同一把解鎖鑰匙，買一個解兩個。",
-  },
-  {
-    q: "可以匯出 PDF / CSV 嗎?",
-    a: "A4 估價單直接走瀏覽器列印 → 另存 PDF,LOGO / 公司資料 / 條款都在「品牌客製」面板填過一次就一直用。BOM 走 CSV 匯出,Excel 開沒亂碼。",
-  },
-  {
-    q: "工具錢多少?",
-    a: "個人版 NT$ 390/月,含全 26 個家具範本 + 天花板骨架 + 地板模擬器 + 和室架高平台,所有工具全給。專業版 NT$ 890/月 多了客戶報價系統 + STL/CNC 輸出 + 尺寸無上限。",
-  },
-  {
-    q: "可以單買地板模擬器嗎?",
-    a: "可以。地板模擬器跟和室架高平台共用「floor」這把解鎖鑰匙,單買解鎖兩個工具。價格在 /pricing 頁面。",
-  },
-  {
-    q: "我家不是規矩矩形,L 形以外能算嗎?",
-    a: "v1 已支援矩形、L、T、ㄇ、十字、Z、六角 7 種正交多邊形,以及自訂多邊形。斜牆、圓弧未支援,但正在排路線圖。",
-  },
-  {
-    q: "工具會持續更新嗎?",
-    a: "會。人字拼演算法、9 房間形狀、5 起鋪角、餘料 2D 配對都是上線後逐步補進去的。改進方向:斜牆/圓弧、3D 透視、地板熱漲冷縮提示、整合廠商規格資料庫。",
-  },
-];
-
-const RELATED_TOOLS = [
-  {
-    href: "/raised-floor",
-    emoji: "🏯",
-    title: "和室架高平台估價",
-    body: "30cm 以上的台座，骨架 + 夾板 + 防潮 + 踢腳一條龍。跟地板共用一把鑰匙。",
-  },
-  {
-    href: "/ceiling",
-    emoji: "🔨",
-    title: "天花板骨架施工模擬器",
-    body: "角材井字 + 矽酸鈣板拼板。客戶要「天地一起做」一站搞定。",
-  },
-  {
-    href: "/templates",
-    emoji: "🪑",
-    title: "26 件家具範本",
-    body: "從筆筒到衣櫃，裝潢工程常搭一起出。",
-  },
-];
-
-export function FloorMarketing({ status }: Props) {
   const primaryHref =
-    status === "guest"
-      ? "/login?next=/floor"
-      : "/pricing?upgrade=floor";
+    status === "guest" ? "/login?next=/floor" : "/pricing?upgrade=floor";
   const primaryLabel =
-    status === "guest" ? "登入開始試算" : "升級個人版解鎖";
+    status === "guest" ? t("hero.ctaGuest") : t("hero.ctaUpgrade");
   const pageUrl = `${SITE_URL}/floor`;
+
+  const painItems = t.raw("painSection.items") as PainItem[];
+  const featureItems = t.raw("featureSection.items") as FeatureItem[];
+  const paramItems = t.raw("paramsSection.items") as ParamItem[];
+  const outputItems = t.raw("outputsSection.items") as OutputItem[];
+  const showcaseItems = t.raw("showcaseSection.items") as ShowcaseItem[];
+  const audienceItems = t.raw("audienceSection.items") as AudienceItem[];
+  const notForItems = t.raw("audienceSection.notForItems") as string[];
+  const scenarioItems = t.raw("scenariosSection.items") as ScenarioItem[];
+  const faqItems = t.raw("faqSection.items") as FaqItem[];
+  const relatedItems = t.raw("relatedSection.items") as RelatedItem[];
+  const tierSingle = t.raw("pricingSection.tierSingle") as TierBlock;
+  const tierPersonal = t.raw("pricingSection.tierPersonal") as TierBlock;
+  const tierPro = t.raw("pricingSection.tierPro") as TierBlock;
 
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: "地板施工模擬器",
-    description:
-      "畫房間 → 直鋪 / 錯縫 / 人字拼自動排版 → 算片數、損耗、估價一頁出。木地板算料 30 秒搞定。",
+    name: t("schema.productName"),
+    description: t("schema.productDescription"),
     image: `${SITE_URL}/thumbs/v2/ceiling.webp`,
-    brand: { "@type": "Brand", name: "木頭仁木匠學院" },
+    brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
       price: "390",
@@ -145,15 +78,15 @@ export function FloorMarketing({ status }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "首頁", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "範本介紹", item: `${SITE_URL}/templates` },
-      { "@type": "ListItem", position: 3, name: "地板施工模擬器", item: pageUrl },
+      { "@type": "ListItem", position: 1, name: t("schema.breadcrumbHome"), item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: t("schema.breadcrumbTemplates"), item: `${SITE_URL}/templates` },
+      { "@type": "ListItem", position: 3, name: t("schema.breadcrumbCurrent"), item: pageUrl },
     ],
   };
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
+    mainEntity: faqItems.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -177,11 +110,11 @@ export function FloorMarketing({ status }: Props) {
 
       {/* ============ Breadcrumb ============ */}
       <nav className="max-w-6xl mx-auto px-5 sm:px-6 pt-6 pb-2 text-sm text-zinc-500">
-        <Link href="/" className="hover:text-amber-700">首頁</Link>
+        <Link href="/" className="hover:text-amber-700">{t("breadcrumb.home")}</Link>
         <span className="mx-2">/</span>
-        <Link href="/templates" className="hover:text-amber-700">範本介紹</Link>
+        <Link href="/templates" className="hover:text-amber-700">{t("breadcrumb.templates")}</Link>
         <span className="mx-2">/</span>
-        <span className="text-zinc-700 font-medium">地板施工模擬器</span>
+        <span className="text-zinc-700 font-medium">{t("breadcrumb.current")}</span>
       </nav>
 
       {/* ============ Hero ============ */}
@@ -195,23 +128,22 @@ export function FloorMarketing({ status }: Props) {
             <div>
               <div className="flex flex-wrap gap-2 mb-5">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 ring-1 ring-amber-300 text-amber-900 text-xs font-bold">
-                  🪵 裝潢工具
+                  {t("hero.badgeInterior")}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white ring-1 ring-stone-300 text-zinc-700 text-xs font-bold">
-                  個人版 / 專業版
+                  {t("hero.badgePlan")}
                 </span>
               </div>
               <h1 className="font-serif-tc text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 leading-[1.15]">
-                地板施工模擬器
+                {t("hero.h1")}
               </h1>
               <p className="mt-4 text-xl text-amber-800 font-semibold leading-relaxed">
-                畫出房間 → 直鋪 / 錯縫 / 人字拼自動排版 →<br className="hidden sm:inline" />
-                算片數、損耗、估價一頁出。
+                {t("hero.leadLine1")}
+                <br className="hidden sm:inline" />
+                {t("hero.leadLine2")}
               </p>
               <p className="mt-3 text-zinc-600 leading-relaxed">
-                超耐磨、海島型、實木 3 大材路都吃。9 種房間形狀(矩形 / L / ㄇ /
-                十字 / Z / 六角)拉一拉,人字拼斜切餘料一刀兩用,起鋪角中央置中
-                自動算對稱餘量。
+                {t("hero.body")}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
@@ -224,17 +156,14 @@ export function FloorMarketing({ status }: Props) {
                   href="/pricing"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-zinc-800 font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 transition-all"
                 >
-                  查看方案
+                  {t("hero.ctaSecondary")}
                 </Link>
               </div>
               <p className="mt-4 text-xs text-zinc-500">
-                跟「和室架高平台」共用解鎖鑰匙,買一個解兩個。
+                {t("hero.footnote")}
               </p>
               <div className="mt-5">
-                <ShareButtons
-                  url={pageUrl}
-                  title="地板施工模擬器｜畫房間 → 5 種拼板自動排版 → 算片數損耗估價"
-                />
+                <ShareButtons url={pageUrl} title={t("hero.shareTitle")} />
               </div>
             </div>
             <div className="relative">
@@ -243,7 +172,7 @@ export function FloorMarketing({ status }: Props) {
                   <svg
                     viewBox="0 0 200 160"
                     className="w-[88%] h-[88%]"
-                    aria-label="地板錯縫鋪設示意"
+                    aria-label={t("hero.diagramAria")}
                   >
                     {/* 房間邊框 */}
                     <rect x={10} y={10} width={180} height={140} fill="none" stroke="#666" strokeWidth={1.5} />
@@ -275,38 +204,17 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 痛點 ============ */}
+      {/* ============ pain points ============ */}
       <section className="bg-white border-b border-stone-200">
         <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-3">
-            鋪地板算料,你最頭痛這 4 件事
+            {t("painSection.h2")}
           </h2>
           <p className="text-center text-zinc-500 mb-10">
-            這工具就是衝著它們做的
+            {t("painSection.sub")}
           </p>
           <div className="grid sm:grid-cols-2 gap-5">
-            {[
-              {
-                emoji: "🤯",
-                title: "算片數常多訂或漏訂",
-                body: "房間 4 米 × 3 米、地板片 121×19.5cm，到底要訂幾片?半天加完還忘了算門洞。",
-              },
-              {
-                emoji: "🌀",
-                title: "人字拼算料燒腦,料行喊不出價",
-                body: "人字拼的損耗到底是 15% 還是 22%?斜切餘料能不能拼回去?光想就頭痛,料行通常隨便加 20%。",
-              },
-              {
-                emoji: "📐",
-                title: "起鋪角設錯,整片要重排",
-                body: "從左上角還是中央起鋪? 60cm 還是 40cm 錯縫?設一次錯就要全部重畫一遍,看圖才知道對不對。",
-              },
-              {
-                emoji: "📄",
-                title: "估價要再開 Excel 排",
-                body: "算完片數還要打 Excel、貼 LOGO、排 A4。客戶改尺寸又要重排,半天就過了。",
-              },
-            ].map((p) => (
+            {painItems.map((p) => (
               <div
                 key={p.title}
                 className="rounded-2xl bg-stone-50 ring-1 ring-stone-200 p-6 hover:ring-amber-400 hover:bg-amber-50/40 transition-all"
@@ -320,48 +228,17 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 功能 ============ */}
+      {/* ============ features ============ */}
       <section className="bg-gradient-to-b from-stone-50 to-white border-b border-stone-200">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-3">
-            這支工具做什麼
+            {t("featureSection.h2")}
           </h2>
           <p className="text-center text-zinc-500 mb-10">
-            從房間形狀 → 排版 → 估價單,一條龍
+            {t("featureSection.sub")}
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              {
-                emoji: "📐",
-                title: "9 種房間形狀",
-                body: "矩形 / L / T / ㄇ / 十字 / Z / 六角 / 自訂多邊形,拉長寬即時算料。",
-              },
-              {
-                emoji: "🪵",
-                title: "3 大材路 + 多規格",
-                body: "超耐磨 121×19.5、海島型、實木 3寸 / 5寸 / 2寸,單價單位都跟料行對齊。",
-              },
-              {
-                emoji: "🌀",
-                title: "4 種排版方式",
-                body: "直鋪、half 錯縫、random 錯縫、人字拼。人字拼斜切餘料一刀切兩片共板。",
-              },
-              {
-                emoji: "🎯",
-                title: "5 種起鋪角",
-                body: "左上 / 右上 / 左下 / 右下 / 中央置中(對稱餘量自動算)。每片配料告訴你從哪邊鋸。",
-              },
-              {
-                emoji: "🚪",
-                title: "門洞 / 收邊扣料",
-                body: "門口扣多少 cm、踢腳板要不要算,直接設,系統幫你扣完算淨用量。",
-              },
-              {
-                emoji: "🧾",
-                title: "A4 估價單 + CSV 下料表",
-                body: "客戶資料、品項、總計、條款,一頁 A4 印出。BOM 同步匯 CSV 給工班。",
-              },
-            ].map((f) => (
+            {featureItems.map((f) => (
               <div
                 key={f.title}
                 className="rounded-2xl bg-white ring-1 ring-stone-200 p-6 shadow-sm hover:shadow-lg hover:ring-amber-400 hover:-translate-y-0.5 transition-all"
@@ -375,17 +252,17 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 可調參數 ============ */}
+      {/* ============ params ============ */}
       <section className="bg-white border-b border-stone-200">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
-            你可以調整這些參數
+            {t("paramsSection.h2")}
           </h2>
           <p className="text-zinc-500 mb-7">
-            演算法自動算片數、廢料、踢腳板米數。
+            {t("paramsSection.sub")}
           </p>
           <div className="space-y-3">
-            {PARAMETERS.map((p) => (
+            {paramItems.map((p) => (
               <div
                 key={p.label}
                 className="rounded-xl bg-stone-50 ring-1 ring-stone-200 p-5 hover:ring-amber-300 transition-colors"
@@ -398,17 +275,17 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 自動產出 ============ */}
+      {/* ============ outputs ============ */}
       <section className="bg-gradient-to-b from-white to-amber-50/30 border-b border-amber-100">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
-            輸入完成,自動產出
+            {t("outputsSection.h2")}
           </h2>
           <p className="text-zinc-500 mb-7">
-            6 件事一次出齊,列印 A4 直接帶進工坊或交給客戶。
+            {t("outputsSection.sub")}
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
-            {AUTO_OUTPUTS.map((o) => (
+            {outputItems.map((o) => (
               <div key={o.title} className="rounded-xl bg-white ring-1 ring-stone-200 p-4">
                 <div className="flex items-start gap-3">
                   <div className="text-2xl shrink-0">{o.icon}</div>
@@ -423,28 +300,17 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 實際輸出畫面 ============ */}
+      {/* ============ showcase ============ */}
       <section className="bg-white border-b border-stone-200">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-            實際輸出畫面
+            {t("showcaseSection.h2")}
           </h2>
           <p className="text-center text-zinc-500 mb-9">
-            以下都是工具實際生成的畫面,套你的尺寸後即時更新。
+            {t("showcaseSection.sub")}
           </p>
           <div className="grid md:grid-cols-2 gap-5">
-            {[
-              {
-                img: "/showcase/floor-overview.png",
-                label: "9 種房間 + 5 種拼板款式",
-                desc: "拉房間外框 → 即時看排版,直鋪/錯縫/人字拼一鍵切換比。",
-              },
-              {
-                img: "/showcase/floor-patterns.png",
-                label: "面材規格 + 起鋪角",
-                desc: "8 種常用面材一鍵套,起鋪角 / 伸縮縫 / 長軸方向都可調。",
-              },
-            ].map((s) => (
+            {showcaseItems.map((s) => (
               <figure
                 key={s.label}
                 className="group rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:ring-amber-400 transition-all"
@@ -466,40 +332,19 @@ export function FloorMarketing({ status }: Props) {
             ))}
           </div>
           <p className="mt-6 text-center text-xs text-zinc-400">
-            ※ 改尺寸 / 換款式 / 切換面材時,這些圖都會即時重算
+            {t("showcaseSection.footnote")}
           </p>
         </div>
       </section>
 
-      {/* ============ 適合誰 ============ */}
+      {/* ============ audience ============ */}
       <section className="bg-stone-50 border-b border-stone-200">
         <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-10">
-            適合哪些人
+            {t("audienceSection.h2")}
           </h2>
           <div className="grid sm:grid-cols-2 gap-5">
-            {[
-              {
-                emoji: "🔨",
-                title: "木地板師傅 / 統包",
-                body: "客戶問「客廳鋪到底要幾箱」當場掏手機算,改尺寸馬上重出估價單。",
-              },
-              {
-                emoji: "🏠",
-                title: "DIY 自己換地板",
-                body: "看完料表直接去 HOLA / 特力屋,不用問師傅、不用 Excel,連起鋪角都告訴你。",
-              },
-              {
-                emoji: "🪜",
-                title: "裝潢設計師",
-                body: "提案放一張排版圖 + 估價單,客戶當場 close。改材路不用重畫。",
-              },
-              {
-                emoji: "🎓",
-                title: "木匠學院學員",
-                body: "課程學的鋪設工法實際算一次,從練手到接案無縫接軌。",
-              },
-            ].map((p) => (
+            {audienceItems.map((p) => (
               <div
                 key={p.title}
                 className="rounded-2xl bg-white ring-1 ring-stone-200 p-6 flex gap-4 items-start"
@@ -514,26 +359,25 @@ export function FloorMarketing({ status }: Props) {
           </div>
           <div className="mt-10 rounded-2xl bg-white ring-1 ring-stone-200 p-6">
             <div className="font-semibold text-zinc-900 mb-2">
-              ⚠️ 這幾種狀況不要用
+              {t("audienceSection.notForTitle")}
             </div>
             <ul className="text-sm text-zinc-600 space-y-1.5 list-disc pl-5">
-              <li>磁磚、石材、塑膠地板 — 本工具算木地板,不算硬質材料</li>
-              <li>樓梯、踢腳板專案 — 本工具算地板鋪設,踢腳板只能扣長度</li>
-              <li>圓弧形/不規則房間 — v1 支援正交多邊形 9 種,圓弧未支援</li>
-              <li>已有 CAD/Revit 工作流程 — 本工具補的是「沒 CAD 但要算料」的洞</li>
+              {notForItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
           </div>
         </div>
       </section>
 
-      {/* ============ 使用情境 ============ */}
+      {/* ============ scenarios ============ */}
       <section className="bg-white border-b border-stone-200">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-7">
-            什麼時候會用到
+            {t("scenariosSection.h2")}
           </h2>
           <div className="space-y-3">
-            {SCENARIOS.map((s) => (
+            {scenarioItems.map((s) => (
               <div key={s.tag} className="rounded-2xl bg-stone-50 ring-1 ring-stone-200 p-5">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 ring-1 ring-amber-300 text-amber-800 text-xs font-bold mb-3">
                   {s.tag}
@@ -549,10 +393,10 @@ export function FloorMarketing({ status }: Props) {
       <section className="bg-stone-50 border-b border-stone-200">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-8 text-center">
-            常見問題
+            {t("faqSection.h2")}
           </h2>
           <div className="space-y-3">
-            {FAQS.map((f) => (
+            {faqItems.map((f) => (
               <details
                 key={f.q}
                 className="rounded-xl bg-white ring-1 ring-stone-200 hover:ring-amber-300 transition-all group"
@@ -572,74 +416,62 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 如何取得 ============ */}
+      {/* ============ pricing tiers ============ */}
       <section className="bg-gradient-to-b from-amber-50/30 to-white border-b border-amber-100">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-            如何取得「地板施工模擬器」
+            {t("pricingSection.h2")}
           </h2>
           <p className="text-center text-zinc-500 text-sm mb-9">
-            三種解鎖方式擇一,跟和室架高共用鑰匙
+            {t("pricingSection.sub")}
           </p>
           <div className="grid md:grid-cols-3 gap-4">
             <PricingTier
-              badge="單買"
-              title="單工具買斷"
-              price="NT$590"
-              unit="永久"
-              features={[
-                "永久解鎖地板 + 架高平台",
-                "不訂閱也能用",
-                "未來功能改進自動拿到",
-              ]}
-              cta={{ label: "看單買方案", href: "/pricing?upgrade=floor" }}
+              badge={tierSingle.badge}
+              title={tierSingle.title}
+              price={tierSingle.price}
+              unit={tierSingle.unit}
+              features={tierSingle.features}
+              cta={{ label: tierSingle.cta, href: "/pricing?upgrade=floor" }}
             />
             <PricingTier
-              badge="最多人選"
-              title="個人版訂閱"
-              price="NT$390"
-              unit="/月"
-              features={[
-                "全 26 家具範本解鎖",
-                "天花板 + 地板 + 架高平台",
-                "PDF 列印 + 雲端儲存無限",
-              ]}
-              cta={{ label: "升級個人版", href: "/pricing" }}
+              badge={tierPersonal.badge}
+              title={tierPersonal.title}
+              price={tierPersonal.price}
+              unit={tierPersonal.unit}
+              features={tierPersonal.features}
+              cta={{ label: tierPersonal.cta, href: "/pricing" }}
               highlight
             />
             <PricingTier
-              badge="接案級"
-              title="專業版訂閱"
-              price="NT$890"
-              unit="/月"
-              features={[
-                "個人版全部功能",
-                "客戶報價 + 客戶資料管理",
-                "STL/OBJ 輸出 + 尺寸無上限",
-              ]}
-              cta={{ label: "升級專業版", href: "/pricing" }}
+              badge={tierPro.badge}
+              title={tierPro.title}
+              price={tierPro.price}
+              unit={tierPro.unit}
+              features={tierPro.features}
+              cta={{ label: tierPro.cta, href: "/pricing" }}
             />
           </div>
           <p className="mt-6 text-center text-xs text-zinc-500">
-            年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 ·
+            {t("pricingSection.footnoteText")}
             <Link href="/pricing" className="ml-1 text-amber-700 hover:text-amber-900 underline underline-offset-2">
-              看完整方案比較
+              {t("pricingSection.footnoteLink")}
             </Link>
           </p>
         </div>
       </section>
 
-      {/* ============ 相關工具 ============ */}
+      {/* ============ related tools ============ */}
       <section className="bg-stone-50 border-b border-stone-200">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-            你可能也想看
+            {t("relatedSection.h2")}
           </h2>
           <p className="text-center text-zinc-500 text-sm mb-9">
-            一起接案、一起算料的好搭擋
+            {t("relatedSection.sub")}
           </p>
           <div className="grid sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {RELATED_TOOLS.map((r) => (
+            {relatedItems.map((r) => (
               <Link
                 key={r.href}
                 href={r.href}
@@ -651,7 +483,7 @@ export function FloorMarketing({ status }: Props) {
                 </div>
                 <p className="text-xs text-zinc-600 leading-snug">{r.body}</p>
                 <div className="mt-3 text-xs font-semibold text-amber-700 group-hover:text-amber-900 inline-flex items-center gap-1">
-                  看詳細介紹 →
+                  {t("relatedSection.cta")}
                 </div>
               </Link>
             ))}
@@ -659,16 +491,16 @@ export function FloorMarketing({ status }: Props) {
         </div>
       </section>
 
-      {/* ============ 最終 CTA ============ */}
+      {/* ============ final CTA ============ */}
       <section className="bg-gradient-to-br from-amber-700 via-amber-800 to-stone-900 text-white">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-14 sm:py-20 text-center">
           <h2 className="font-serif-tc text-2xl sm:text-4xl font-bold mb-4">
-            少花半天算料、多接一個案子
+            {t("finalCta.h2")}
           </h2>
           <p className="text-amber-100 text-base sm:text-lg mb-8 leading-relaxed">
-            客廳一張、餐廳一張、書房一張——每月多接幾個案子,訂閱費當場回本。
+            {t("finalCta.bodyLine1")}
             <br />
-            一杯咖啡的錢,一整套裝潢工具帶走。
+            {t("finalCta.bodyLine2")}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Link
@@ -681,11 +513,11 @@ export function FloorMarketing({ status }: Props) {
               href="/pricing"
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white/10 text-white font-semibold ring-1 ring-white/30 hover:bg-white/20 transition-all"
             >
-              看完整方案
+              {t("finalCta.ctaSecondary")}
             </Link>
           </div>
           <p className="mt-6 text-sm text-amber-200/80">
-            個人版 NT$ 390/月 · 含全 26 家具模板 + 天花板 + 地板 + 架高平台
+            {t("finalCta.footnote")}
           </p>
         </div>
       </section>

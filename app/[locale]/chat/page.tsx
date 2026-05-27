@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import ChatClient from "./ChatClient";
 
-export const metadata: Metadata = {
-  title: "木頭仁 AI 木工大師 · 24h 木工問答客服",
-  description:
-    "問木工問題的 AI 客服，背後是木頭仁本人 19 份知識庫——榫卯、木材、塗裝、安全、機械、修補、明式家具、Windsor 椅、雕刻、車旋全包。",
-  alternates: { canonical: "/chat" },
-};
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "chat" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: { canonical: "/chat" },
+  };
+}
 
 export default function ChatPage() {
   return <ChatClient />;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { detectWebviewApp } from "@/lib/webview";
 import {
   GoogleButton,
@@ -16,6 +17,7 @@ import {
  * 分享連結就能正確 deep-link）。
  */
 export function LoginPageClient({ next }: { next: string }) {
+  const t = useTranslations("login");
   const [webviewApp, setWebviewApp] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,11 +39,11 @@ export function LoginPageClient({ next }: { next: string }) {
       <MagicLinkForm />
       <div className="my-4 flex items-center gap-2 text-xs text-zinc-400">
         <div className="h-px flex-1 bg-zinc-200" />
-        <span>或</span>
+        <span>{t("divider")}</span>
         <div className="h-px flex-1 bg-zinc-200" />
       </div>
       <GoogleButton
-        disabledReason={webviewApp ? `${webviewApp} 內無法用 Google 登入` : null}
+        disabledReason={webviewApp ? t("googleDisabledTpl", { app: webviewApp }) : null}
       />
     </div>
   );

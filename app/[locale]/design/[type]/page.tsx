@@ -825,14 +825,15 @@ function JoineryRulesCallout({ locale }: { locale: string }) {
   );
 }
 
-function JoinerySection({ design, locale }: { design: FurnitureDesign; locale: string }) {
+async function JoinerySection({ design, locale }: { design: FurnitureDesign; locale: string }) {
+  const t = await getTranslations({ locale, namespace: "design.joinery" });
   const usages = extractJoineryUsages(design);
   if (usages.length === 0) {
-    return <p className="text-sm text-zinc-500">{locale === "en" ? "No joinery to show for this design." : "這個設計沒有可顯示的榫卯。"}</p>;
+    return <p className="text-sm text-zinc-500">{t("noToShow")}</p>;
   }
-  const motherLabel = locale === "en" ? "mother part" : "母件";
-  const spotsLabel = (n: number) => locale === "en" ? `× ${n}` : `共 ${n} 處`;
-  const tenonLabel = locale === "en" ? "Tenon" : "榫頭";
+  const motherLabel = t("motherPart");
+  const spotsLabel = (n: number) => t("spotsLabel", { n });
+  const tenonLabel = t("tenon");
   return (
     <div className="space-y-6">
       <JoineryRulesCallout locale={locale} />
@@ -872,7 +873,7 @@ function JoinerySection({ design, locale }: { design: FurnitureDesign; locale: s
   );
 }
 
-function ParameterForm({
+async function ParameterForm({
   type,
   defaults,
   limits,
@@ -895,6 +896,7 @@ function ParameterForm({
   allPartIds: string[];
   locale: string;
 }) {
+  const t = await getTranslations({ locale, namespace: "design.form" });
   return (
     <DesignFormShell
       action={`/design/${type}`}
@@ -904,8 +906,8 @@ function ParameterForm({
         <fieldset className="mb-5">
           <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            工法選擇
-            <span className="text-[10px] font-normal text-zinc-400">— 影響材料單與接合工序</span>
+            {t("joineryMethodLegend")}
+            <span className="text-[10px] font-normal text-zinc-400">{t("joineryMethodHint")}</span>
           </legend>
           <div className="grid grid-cols-2 gap-2.5">
             <label
@@ -923,11 +925,11 @@ function ParameterForm({
                 className="sr-only"
               />
               <div className="text-sm font-semibold text-emerald-900 flex items-center gap-1">
-                🔩 組裝版
-                <span className="text-[10px] font-normal text-emerald-700 ml-auto">推薦新手</span>
+                {t("modeAssemblyLabel")}
+                <span className="text-[10px] font-normal text-emerald-700 ml-auto">{t("modeAssemblyBadge")}</span>
               </div>
               <div className="text-[11px] text-emerald-800 leading-relaxed">
-                螺絲 / 木釘 / DOMINO / 斜孔系統。施作快、強度約榫接版 60–70%，日常家具夠用。
+                {t("modeAssemblyDesc")}
               </div>
             </label>
             <label
@@ -945,11 +947,11 @@ function ParameterForm({
                 className="sr-only"
               />
               <div className="text-sm font-semibold text-amber-900 flex items-center gap-1">
-                🪵 榫接版
-                <span className="text-[10px] font-normal text-amber-700 ml-auto">傳統工法</span>
+                {t("modeJoineryLabel")}
+                <span className="text-[10px] font-normal text-amber-700 ml-auto">{t("modeJoineryBadge")}</span>
               </div>
               <div className="text-[11px] text-amber-800 leading-relaxed">
-                傳統榫卯接合，含榫頭榫眼細節圖、精緻工序。難度較高、做工較久。
+                {t("modeJoineryDesc")}
               </div>
             </label>
           </div>
@@ -957,7 +959,7 @@ function ParameterForm({
       )}
       <fieldset className="mb-5 rounded-xl border border-amber-300/70 bg-white/70 p-3.5 shadow-sm shadow-amber-900/5">
         <legend className="text-xs text-amber-900 px-2 font-semibold bg-amber-100 rounded-md py-0.5">
-          🎨 設計師模式（自由尺寸）
+          {t("designerLegend")}
         </legend>
         {canUseDesignerMode ? (
           <label className="flex items-start gap-2 cursor-pointer">
@@ -970,11 +972,11 @@ function ParameterForm({
             />
             <div className="flex-1 min-w-0">
               <div className="text-xs text-amber-900 leading-relaxed">
-                開啟後解除範本上限，可輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。
+                {t("designerOnDesc")}
               </div>
               {designerMode && (
                 <div className="mt-1.5 text-[10px] text-amber-700 leading-relaxed">
-                  ⚠️ 已啟用：尺寸不再受範本上限限制。極端尺寸下範本可能產生不合理結果（樑深不足、榫接無法成立），請務必以三視圖檢核。
+                  {t("designerOnWarning")}
                 </div>
               )}
             </div>
@@ -986,12 +988,12 @@ function ParameterForm({
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs text-amber-900 leading-relaxed">
-                解除範本尺寸上限，輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。
+                {t("designerLockedDesc")}
               </div>
               <div className="mt-1.5 text-[11px] text-amber-800">
-                這是 <span className="font-semibold">專業版</span> 功能。
+                {t("designerProPrefix")}<span className="font-semibold">{t("designerProName")}</span>{t("designerProSuffix")}
                 <Link href="/pricing" className="ml-1 underline font-medium hover:text-amber-900">
-                  看方案 →
+                  {t("designerProLink")}
                 </Link>
               </div>
             </div>
@@ -1001,10 +1003,10 @@ function ParameterForm({
       <div className="mb-4 pb-3 border-b border-amber-200/60 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-1 h-4 bg-amber-500 rounded-full" />
-          整體尺寸
+          {t("overallSize")}
           {designerMode && (
             <span className="text-[10px] font-normal text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
-              無上限
+              {t("designerNoLimit")}
             </span>
           )}
         </h3>
@@ -1021,35 +1023,38 @@ function ParameterForm({
             <NumberInput
               key={`length-${defaults.length}`}
               name="length"
-              label={isRound ? "直徑" : "寬"}
+              label={isRound ? t("diameter") : t("width")}
               defaultValue={defaults.length}
               max={limits?.length}
               partIds={resolvePartIds("length", allPartIds)}
+              upperLimitTpl={t("upperLimit", { max: limits?.length ?? 0 })}
             />
             {!isRound && (
               <NumberInput
                 key={`width-${defaults.width}`}
                 name="width"
-                label="深"
+                label={t("depth")}
                 defaultValue={defaults.width}
                 max={limits?.width}
                 partIds={resolvePartIds("width", allPartIds)}
+                upperLimitTpl={t("upperLimit", { max: limits?.width ?? 0 })}
               />
             )}
             <NumberInput
               key={`height-${defaults.height}`}
               name="height"
-              label="高"
+              label={t("height")}
               defaultValue={defaults.height}
               max={limits?.height}
               partIds={resolvePartIds("height", allPartIds)}
+              upperLimitTpl={t("upperLimit", { max: limits?.height ?? 0 })}
             />
           </div>
         );
       })()}
       <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
         <label className="flex items-center gap-1.5 shrink-0">
-          <span className="text-zinc-600 font-medium">{locale === "en" ? "Wood" : "木材"}</span>
+          <span className="text-zinc-600 font-medium">{t("wood")}</span>
           <select
             key={`material-${defaults.material}`}
             name="material"
@@ -1063,7 +1068,7 @@ function ParameterForm({
             ))}
           </select>
         </label>
-        <HeightPresetChips presets={getHeightPresetsForCategory(type)} maxHeight={limits?.height} />
+        <HeightPresetChips presets={getHeightPresetsForCategory(type, locale)} maxHeight={limits?.height} />
       </div>
 
       {/* 木材立體屬性面板：6 軸雷達圖 + 文化定位 + CITES/油性警示 */}
@@ -1085,7 +1090,7 @@ function ParameterForm({
           <div className="mb-3 pb-2 border-b border-amber-200/60">
             <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
               <span className="w-1 h-4 bg-amber-500 rounded-full" />
-              細部設定
+              {t("detailSettings")}
             </h3>
           </div>
           {/* 中式方角櫃自有 9 個 cabinetPreset (書櫃/茶櫃/明式頂箱櫃...) +
@@ -1123,7 +1128,7 @@ function ParameterForm({
           <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
         </span>
-        改參數 0.5 秒後自動更新設計
+        {t("autoUpdate")}
       </p>
     </DesignFormShell>
   );
@@ -1236,7 +1241,7 @@ function GroupedOptionFields({
   );
 }
 
-function OptionField({
+async function OptionField({
   spec,
   value,
   allValues,
@@ -1253,6 +1258,7 @@ function OptionField({
   allPartIds?: string[];
   locale: string;
 }) {
+  const tForm = await getTranslations({ locale, namespace: "design.form" });
   const label = specLabel(spec, locale);
   const help = specHelp(spec, locale);
   const choiceVisible = (
@@ -1330,7 +1336,9 @@ function OptionField({
             showPlusMinus
             dynamicMaxHint={
               effectiveMax !== spec.max
-                ? `上限 ${effectiveMax}${isLockedZone ? "（鎖總高）" : ""}`
+                ? (isLockedZone
+                    ? tForm("dynamicMaxHintLocked", { max: effectiveMax ?? 0 })
+                    : tForm("dynamicMaxHint", { max: effectiveMax ?? 0 }))
                 : undefined
             }
           />
@@ -1399,8 +1407,8 @@ function OptionField({
       {legReadout && (
         <label className="flex flex-col text-xs">
           <span className="text-zinc-700 mb-0.5 truncate">
-            計算後腳高
-            <span className="text-zinc-400 ml-1">·mm</span>
+            {tForm("legReadoutLabel")}
+            <span className="text-zinc-400 ml-1">{tForm("legReadoutUnit")}</span>
           </span>
           <div
             className={`border rounded px-1.5 py-1 text-sm font-mono tabular-nums ${
@@ -1412,7 +1420,7 @@ function OptionField({
             {legReadout.leg}
           </div>
           {legReadout.clamped && (
-            <span className="mt-0.5 text-[10px] text-red-600">已夾到最低 30mm，請降低層高或加大總高</span>
+            <span className="mt-0.5 text-[10px] text-red-600">{tForm("legReadoutClamped")}</span>
           )}
         </label>
       )}
@@ -1424,22 +1432,34 @@ function OptionField({
  * family-aware 高度預設值（mm）。
  * 只給「高」一個維度，避免桌機畫面塞太擠。
  */
-function getHeightPresetsForCategory(type: string): { value: number; label: string }[] {
+function getHeightPresetsForCategory(type: string, locale: string): { value: number; label: string }[] {
+  const isEn = locale === "en";
+  const L = {
+    diningTable: isEn ? "Dining" : "餐桌",
+    workbench: isEn ? "Worktop" : "工作",
+    bar: isEn ? "Bar" : "吧台",
+    diningChair: isEn ? "Dining" : "餐椅",
+    barStool: isEn ? "Bar" : "吧凳",
+    coffeeTable: isEn ? "Coffee" : "茶几",
+    nightstand: isEn ? "Nightstand" : "床頭",
+    tallCab: isEn ? "Tall" : "高櫃",
+    shortCab: isEn ? "Short" : "矮櫃",
+  };
   const t = type.toLowerCase();
   if (t.includes("dining-table") || t.includes("desk") || t.includes("workbench")) {
-    return [{ value: 720, label: "餐桌" }, { value: 760, label: "工作" }];
+    return [{ value: 720, label: L.diningTable }, { value: 760, label: L.workbench }];
   }
   if (t.includes("bar")) {
-    return [{ value: 1050, label: "吧台" }, { value: 750, label: "餐桌" }];
+    return [{ value: 1050, label: L.bar }, { value: 750, label: L.diningTable }];
   }
   if (t.includes("chair") || t.includes("stool") || t.includes("bench")) {
-    return [{ value: 450, label: "餐椅" }, { value: 750, label: "吧凳" }];
+    return [{ value: 450, label: L.diningChair }, { value: 750, label: L.barStool }];
   }
   if (t.includes("coffee-table") || t.includes("side-table") || t.includes("nightstand")) {
-    return [{ value: 420, label: "茶几" }, { value: 550, label: "床頭" }];
+    return [{ value: 420, label: L.coffeeTable }, { value: 550, label: L.nightstand }];
   }
   if (t.includes("bookcase") || t.includes("shelf") || t.includes("cabinet")) {
-    return [{ value: 1800, label: "高櫃" }, { value: 900, label: "矮櫃" }];
+    return [{ value: 1800, label: L.tallCab }, { value: 900, label: L.shortCab }];
   }
   return [];
 }
@@ -1451,6 +1471,7 @@ function NumberInput({
   max,
   partIds,
   presetPoints,
+  upperLimitTpl,
 }: {
   name: string;
   label: string;
@@ -1458,10 +1479,11 @@ function NumberInput({
   max?: number;
   partIds?: string[];
   presetPoints?: { value: number; label: string }[];
+  upperLimitTpl?: string;
 }) {
   return (
     <label className="flex flex-col text-xs">
-      <span className="text-zinc-600 mb-1 truncate" title={max ? `上限 ${max} mm` : undefined}>
+      <span className="text-zinc-600 mb-1 truncate" title={max && upperLimitTpl ? upperLimitTpl : undefined}>
         {label}<span className="text-zinc-400 font-normal ml-0.5">mm</span>
         {max && <span className="text-zinc-400 font-normal ml-1">≤{max}</span>}
       </span>

@@ -88,10 +88,10 @@ export default async function AboutPage({
           className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-0 w-[34rem] max-w-full h-72 rounded-full bg-amber-200/35 blur-3xl"
         />
         <Image
-          src="/brand-logo-text.png"
+          src={locale === "en" ? "/brand-logo-en.png" : "/brand-logo-text.png"}
           alt={t("hero.logoAlt")}
-          width={1254}
-          height={1254}
+          width={locale === "en" ? 512 : 1254}
+          height={locale === "en" ? 512 : 1254}
           className="relative mx-auto mb-7 sm:mb-9 rounded-3xl shadow-xl ring-1 ring-amber-200/60 w-40 h-40 sm:w-56 sm:h-56"
           priority
         />
@@ -414,11 +414,11 @@ export default async function AboutPage({
       <section className="mt-20 sm:mt-24 rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 p-8 sm:p-12">
         <div className="flex flex-col md:flex-row items-center gap-8">
           <Image
-            src="/brand-logo.png"
+            src={locale === "en" ? "/brand-logo-en.png" : "/brand-logo.png"}
             alt={t("hero.logoAlt")}
-            width={160}
-            height={160}
-            className="rounded-2xl shadow-md ring-1 ring-amber-200 shrink-0"
+            width={locale === "en" ? 512 : 160}
+            height={locale === "en" ? 512 : 160}
+            className="rounded-2xl shadow-md ring-1 ring-amber-200 shrink-0 w-40 h-40"
           />
           <div className="flex-1 text-center md:text-left">
             <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900">

@@ -5,13 +5,8 @@
  *
  * 獨立元件:不直接 setState、改透過 props.set 把整把 setter 接出去,
  * 方便 RaisedFloorClient.tsx 之後手動 wire 進來而不衝突。
- *
- * 顯示位置建議:BOM 表下方(估價 ⑥ 之後)。
- *
- * 內部分兩個 details:
- *   1. 防潮墊 — preset 下拉 + 損耗滑桿(undefined = 不裝)
- *   2. 踢腳板 — none/wood/pvc 三選一 + 高度 + 門洞數/寬度
  */
+import { useTranslations } from "next-intl";
 import { FloorRangeInput } from "@/app/[locale]/floor/FloorRangeInput";
 import { UNDERLAY_PRESETS, getUnderlayPreset } from "@/lib/raised-floor/presets";
 import type {
@@ -26,30 +21,31 @@ export interface UnderlaySkirtingSectionProps {
   set: <K extends keyof RaisedFloorInput>(k: K, v: RaisedFloorInput[K]) => void;
 }
 
-const SKIRTING_OPTIONS: { value: SkirtingType; label: string }[] = [
-  { value: "none", label: "不裝" },
-  { value: "wood", label: "木質踢腳" },
-  { value: "pvc", label: "PVC 踢腳" },
-];
-
 export function UnderlaySkirtingSection({
   input,
   set,
 }: UnderlaySkirtingSectionProps) {
+  const t = useTranslations("raisedFloorTool.underlaySkirting");
   const underlayId = input.underlay?.id ?? "";
   const skirtingType: SkirtingType = input.skirtingType ?? "none";
   const skirtingActive = skirtingType !== "none";
+
+  const skirtingOptions: { value: SkirtingType; label: string }[] = [
+    { value: "none", label: t("noneOption") },
+    { value: "wood", label: t("skirtingWood") },
+    { value: "pvc", label: t("skirtingPvc") },
+  ];
 
   return (
     <div className="space-y-3">
       {/* 防潮墊 */}
       <details className="rounded-lg border border-zinc-200 p-4">
         <summary className="cursor-pointer text-sm font-semibold">
-          ⑦ 防潮墊
+          {t("underlaySection")}
         </summary>
         <div className="mt-3 space-y-3">
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-zinc-500">防潮墊規格</span>
+            <span className="text-zinc-500">{t("underlaySpecLabel")}</span>
             <select
               className="rounded border border-zinc-300 px-2 py-1"
               value={underlayId}
@@ -58,10 +54,13 @@ export function UnderlaySkirtingSection({
                 set("underlay", id === "" ? undefined : getUnderlayPreset(id));
               }}
             >
-              <option value="">不裝</option>
+              <option value="">{t("noneOption")}</option>
               {UNDERLAY_PRESETS.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.nameZh}({u.rollAreaM2}m²/卷)
+                  {t("underlayOptionFormat", {
+                    name: u.nameZh,
+                    areaM2: u.rollAreaM2,
+                  })}
                 </option>
               ))}
             </select>
@@ -69,8 +68,8 @@ export function UnderlaySkirtingSection({
           {input.underlay && (
             <>
               <FloorRangeInput
-                label="損耗"
-                unit="%"
+                label={t("wasteLabel")}
+                unit={t("wasteUnit")}
                 value={Math.round((input.underlayWaste ?? 0.1) * 100)}
                 min={0}
                 max={50}
@@ -78,7 +77,7 @@ export function UnderlaySkirtingSection({
                 onChange={(v) => set("underlayWaste", v / 100)}
               />
               <p className="text-[11px] text-zinc-500">
-                預設報價 NT$ {input.underlay.pricePerRoll}/卷(可在價格區覆寫)
+                {t("underlayPriceHint", { price: input.underlay.pricePerRoll })}
               </p>
             </>
           )}
@@ -88,11 +87,11 @@ export function UnderlaySkirtingSection({
       {/* 踢腳板 */}
       <details className="rounded-lg border border-zinc-200 p-4">
         <summary className="cursor-pointer text-sm font-semibold">
-          ⑧ 踢腳板
+          {t("skirtingSection")}
         </summary>
         <div className="mt-3 space-y-3">
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-zinc-500">踢腳種類</span>
+            <span className="text-zinc-500">{t("skirtingTypeLabel")}</span>
             <select
               className="rounded border border-zinc-300 px-2 py-1"
               value={skirtingType}
@@ -100,7 +99,7 @@ export function UnderlaySkirtingSection({
                 set("skirtingType", e.target.value as SkirtingType)
               }
             >
-              {SKIRTING_OPTIONS.map((o) => (
+              {skirtingOptions.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -111,8 +110,8 @@ export function UnderlaySkirtingSection({
           {skirtingActive && (
             <>
               <FloorRangeInput
-                label="踢腳高度"
-                unit="cm"
+                label={t("skirtingHeightLabel")}
+                unit={t("skirtingHeightUnit")}
                 value={input.skirtingHeightCm ?? 8}
                 min={3}
                 max={20}
@@ -120,8 +119,8 @@ export function UnderlaySkirtingSection({
                 onChange={(v) => set("skirtingHeightCm", v)}
               />
               <FloorRangeInput
-                label="門洞數量"
-                unit="個"
+                label={t("doorCountLabel")}
+                unit={t("doorCountUnit")}
                 value={input.doorCount ?? 0}
                 min={0}
                 max={10}
@@ -130,8 +129,8 @@ export function UnderlaySkirtingSection({
               />
               {(input.doorCount ?? 0) > 0 && (
                 <FloorRangeInput
-                  label="每個門洞寬"
-                  unit="cm"
+                  label={t("doorWidthLabel")}
+                  unit={t("doorWidthUnit")}
                   value={input.doorWidthCm ?? 90}
                   min={60}
                   max={200}
@@ -140,7 +139,7 @@ export function UnderlaySkirtingSection({
                 />
               )}
               <p className="text-[11px] text-zinc-500">
-                踢腳板長度 = 平台周長 − 門洞數 × 門洞寬
+                {t("skirtingFormulaHint")}
               </p>
             </>
           )}
@@ -149,9 +148,3 @@ export function UnderlaySkirtingSection({
     </div>
   );
 }
-
-// TODO: 在 RaisedFloorClient.tsx 把 <UnderlaySkirtingSection /> 加進 BOM 區下方
-//   範例:
-//     import { UnderlaySkirtingSection } from "./UnderlaySkirtingSection";
-//     ...
-//     <UnderlaySkirtingSection input={input} set={set} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * 木頭仁 AI 木工大師 · 客服 chat UI
@@ -14,16 +15,16 @@ interface Message {
   content: string;
 }
 
-const SUGGESTED_QUESTIONS = [
-  "桌鋸 kickback 怎麼防？",
-  "6 分板實際是幾 mm？",
-  "鳩尾榫角度 1:6 跟 1:8 怎麼選？",
-  "亞麻仁油布為什麼會自燃？",
-  "Wegner Y 椅是不是抄明式圈椅？",
-  "蒸彎要蒸多久？1 hour per inch 怎麼算？",
-];
-
 export default function ChatClient() {
+  const t = useTranslations("chat");
+  const suggestedQuestions = [
+    t("suggestedQ1"),
+    t("suggestedQ2"),
+    t("suggestedQ3"),
+    t("suggestedQ4"),
+    t("suggestedQ5"),
+    t("suggestedQ6"),
+  ];
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -84,7 +85,7 @@ export default function ChatClient() {
       if (remHeader) setRemaining(Number(remHeader));
 
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({ error: "未知錯誤" }));
+        const errBody = await res.json().catch(() => ({ error: t("errUnknown") }));
         setError(errBody.error ?? `HTTP ${res.status}`);
         // 把空白 assistant 拿掉
         setMessages((prev) => prev.slice(0, -1));
@@ -93,7 +94,7 @@ export default function ChatClient() {
       }
 
       const reader = res.body?.getReader();
-      if (!reader) throw new Error("無法讀取串流");
+      if (!reader) throw new Error(t("errReadStream"));
 
       const decoder = new TextDecoder();
       while (true) {
@@ -113,7 +114,7 @@ export default function ChatClient() {
         });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "未知錯誤";
+      const msg = err instanceof Error ? err.message : t("errUnknown");
       setError(msg);
       setMessages((prev) => prev.slice(0, -1));
     } finally {
@@ -144,9 +145,9 @@ export default function ChatClient() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="max-w-md text-center text-zinc-600">
-          <h1 className="text-xl font-semibold mb-2">AI 木工大師暫不可用</h1>
+          <h1 className="text-xl font-semibold mb-2">{t("unavailableH")}</h1>
           <p className="text-sm">
-            服務尚未配置 ANTHROPIC_API_KEY，請聯絡管理員。
+            {t("unavailableBody")}
           </p>
         </div>
       </div>
@@ -166,16 +167,16 @@ export default function ChatClient() {
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <div>
               <h1 className="text-lg font-bold text-zinc-900">
-                🪵 木頭仁 AI 木工大師
+                {t("headerH1")}
               </h1>
               <p className="text-xs text-zinc-500 mt-0.5">
-                榫卯 / 木材 / 塗裝 / 安全 / 機械 / 修補 / 明式 / Windsor / 雕刻 / 車旋
+                {t("headerSubtitle")}
               </p>
             </div>
             <div className="flex items-center gap-3">
               {remaining !== null && (
                 <span className="text-xs text-zinc-500">
-                  今日剩 {remaining} 題
+                  {t("remaining", { n: remaining })}
                 </span>
               )}
               {messages.length > 0 && (
@@ -183,7 +184,7 @@ export default function ChatClient() {
                   onClick={reset}
                   className="text-xs text-zinc-500 hover:text-zinc-900 px-2 py-1 rounded border border-zinc-200"
                 >
-                  重新對話
+                  {t("btnReset")}
                 </button>
               )}
             </div>
@@ -200,12 +201,12 @@ export default function ChatClient() {
             <div className="text-center text-zinc-500 py-12">
               <div className="text-3xl mb-3">🪚</div>
               <p className="text-sm mb-6">
-                我是木頭仁的 AI 分身。
+                {t("emptyIntro1")}
                 <br />
-                木工問題我來答（19 份知識庫 / 13952 行）
+                {t("emptyIntro2")}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl mx-auto">
-                {SUGGESTED_QUESTIONS.map((q) => (
+                {suggestedQuestions.map((q) => (
                   <button
                     key={q}
                     onClick={() => sendMessage(q)}
@@ -235,7 +236,7 @@ export default function ChatClient() {
                 }
               >
                 {m.content || (
-                  <span className="text-zinc-400 italic">思考中⋯</span>
+                  <span className="text-zinc-400 italic">{t("thinking")}</span>
                 )}
               </div>
             </div>
@@ -259,7 +260,7 @@ export default function ChatClient() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={streaming ? "回答中⋯" : "問木工題目，例：6 分板幾 mm？"}
+            placeholder={streaming ? t("placeholderStreaming") : t("placeholderIdle")}
             rows={1}
             disabled={streaming}
             className="flex-1 resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-700 disabled:bg-zinc-100"
@@ -270,14 +271,14 @@ export default function ChatClient() {
             disabled={!input.trim() || streaming}
             className="bg-amber-700 hover:bg-amber-800 disabled:bg-zinc-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
           >
-            {streaming ? "⋯" : "送出"}
+            {streaming ? t("btnSendDots") : t("btnSend")}
           </button>
         </form>
         {!isEmbed && (
           <p className="max-w-3xl mx-auto mt-2 text-[10px] text-zinc-400 text-center">
-            AI 答案僅供參考。涉及安全或結構請以實際工法書 / 廠商說明為準。
+            {t("disclaimerLine1")}
             <br />
-            Powered by Claude Haiku 4.5 · 木頭仁木匠學院出品
+            {t("disclaimerLine2")}
           </p>
         )}
       </footer>

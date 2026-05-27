@@ -47,7 +47,7 @@ export default async function LoginPage({
         <div className="text-center mb-7">
           <Link href="/" className="inline-flex flex-col items-center gap-3 group">
             <img
-              src="/brand-logo.png"
+              src={locale === "en" ? "/brand-logo-en.png" : "/brand-logo.png"}
               alt={t("brandAlt")}
               width={88}
               height={88}

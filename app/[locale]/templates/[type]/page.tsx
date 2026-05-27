@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { FURNITURE_CATALOG, getTemplate } from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import {
@@ -13,10 +14,7 @@ import {
 import { getHighlights } from "@/lib/templates/highlights";
 import { getGallery } from "@/lib/templates/gallery";
 import { ShareButtons } from "@/components/ShareButtons";
-import {
-  getUnlockPrice,
-  DIFFICULTY_LABEL_ZH,
-} from "@/lib/pricing/template-unlock";
+import { getUnlockPrice } from "@/lib/pricing/template-unlock";
 import type { FurnitureCategory } from "@/lib/types";
 import { routing } from "@/i18n/routing";
 
@@ -48,7 +46,8 @@ export async function generateMetadata({
   const marketing = getTemplateMarketing(type as FurnitureCategory, locale);
   const entry = getTemplate(type as FurnitureCategory);
   if (!marketing || !entry) {
-    return { title: locale === "en" ? "Template not found" : "找不到範本介紹" };
+    const t = await getTranslations({ locale, namespace: "templateDetail" });
+    return { title: t("metadataTitleFallback") };
   }
   const ogImage = `${SITE_URL}/api/og?type=${encodeURIComponent(type)}${locale !== routing.defaultLocale ? `&locale=${locale}` : ""}`;
   const isDefault = locale === routing.defaultLocale;
@@ -82,15 +81,22 @@ export default async function TemplateDetail({ params }: PageProps) {
 
   if (!marketing || !entry) notFound();
 
+  const t = await getTranslations({ locale, namespace: "templateDetail" });
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
   const highlights = getHighlights(entry.category);
   const gallery = getGallery(entry.category);
   const unlockPrice = isFree ? null : getUnlockPrice(entry.category);
   const isEn = locale === "en";
   const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
-  const difficultyLabel = isEn
-    ? (entry.difficulty === "beginner" ? "Beginner" : entry.difficulty === "intermediate" ? "Intermediate" : "Advanced")
-    : DIFFICULTY_LABEL_ZH[entry.difficulty];
+  const difficultyKey =
+    entry.difficulty === "beginner"
+      ? "difficultyBeginner"
+      : entry.difficulty === "intermediate"
+        ? "difficultyIntermediate"
+        : "difficultyAdvanced";
+  const difficultyLabel = t(difficultyKey);
+  const outputItems = t.raw("outputs") as { icon: string; title: string; body: string }[];
+  const showcaseLabels = t.raw("showcase") as { label: string; desc: string }[];
   const relatedEntries = marketing.related
     .map((c) => FURNITURE_CATALOG.find((f) => f.category === c))
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
@@ -100,12 +106,12 @@ export default async function TemplateDetail({ params }: PageProps) {
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: isEn ? `${entryName} design template` : `${entry.nameZh} 設計範本`,
+    name: t("schemaProductName", { name: entryName }),
     description: marketing.seoDescription,
     image: `${SITE_URL}/thumbs/v2/${type}.webp`,
     brand: {
       "@type": "Brand",
-      name: isEn ? "Wooden Ren Carpenter Academy" : "木頭仁木匠學院",
+      name: t("schemaBrand"),
     },
     offers: {
       "@type": "Offer",
@@ -120,11 +126,11 @@ export default async function TemplateDetail({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: isEn ? "Home" : "首頁", item: SITE_URL },
+      { "@type": "ListItem", position: 1, name: t("breadcrumbHome"), item: SITE_URL },
       {
         "@type": "ListItem",
         position: 2,
-        name: isEn ? "Templates" : "範本介紹",
+        name: t("breadcrumbTemplates"),
         item: `${SITE_URL}${isEn ? "/en" : ""}/templates`,
       },
       {
@@ -150,7 +156,7 @@ export default async function TemplateDetail({ params }: PageProps) {
     ? {
         "@context": "https://schema.org",
         "@type": "HowTo",
-        name: isEn ? `How to build a ${entryName}` : `如何製作${entry.nameZh}`,
+        name: t("schemaHowToName", { name: entryName }),
         description: marketing.tagline,
         image: `${SITE_URL}/thumbs/v2/${type}.webp`,
         step: marketing.howToSteps.map((s, i) => ({
@@ -185,9 +191,9 @@ export default async function TemplateDetail({ params }: PageProps) {
 
       {/* ============ Breadcrumb ============ */}
       <nav className="max-w-6xl mx-auto px-5 sm:px-6 pt-6 pb-2 text-sm text-zinc-500">
-        <Link href={isEn ? "/en" : "/"} className="hover:text-amber-700">{isEn ? "Home" : "首頁"}</Link>
+        <Link href={isEn ? "/en" : "/"} className="hover:text-amber-700">{t("breadcrumbHome")}</Link>
         <span className="mx-2">/</span>
-        <Link href={isEn ? "/en/templates" : "/templates"} className="hover:text-amber-700">{isEn ? "Templates" : "範本介紹"}</Link>
+        <Link href={isEn ? "/en/templates" : "/templates"} className="hover:text-amber-700">{t("breadcrumbTemplates")}</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700 font-medium">{entryName}</span>
       </nav>
@@ -204,7 +210,7 @@ export default async function TemplateDetail({ params }: PageProps) {
               <div className="flex flex-wrap gap-2 mb-5">
                 {isFree && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-xs font-bold">
-                    {isEn ? "Free template" : "免費模板"}
+                    {t("freeBadge")}
                   </span>
                 )}
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white ring-1 ring-stone-300 text-zinc-700 text-xs font-bold">
@@ -227,23 +233,19 @@ export default async function TemplateDetail({ params }: PageProps) {
                   href={`/design/${entry.category}`}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-700 text-white font-semibold shadow-lg shadow-amber-700/30 hover:bg-amber-800 hover:-translate-y-0.5 transition-all"
                 >
-                  {isEn
-                    ? (isFree ? "Try free" : "Start designing")
-                    : (isFree ? "免費試做" : "開始設計")} →
+                  {isFree ? t("heroCtaTryFree") : t("heroCtaStartDesign")} →
                 </Link>
                 <Link
                   href={isEn ? "/en/pricing" : "/pricing"}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-zinc-800 font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 transition-all"
                 >
-                  {isEn
-                    ? (isFree ? "Unlock all templates" : "View plans")
-                    : (isFree ? "升級全部模板" : "查看方案")}
+                  {isFree ? t("heroCtaUnlockAll") : t("heroCtaViewPlans")}
                 </Link>
               </div>
               <div className="mt-5">
                 <ShareButtons
                   url={`${SITE_URL}/templates/${type}`}
-                  title={isEn ? `${entryName} plans | ${marketing.tagline}` : `${entry.nameZh}設計圖｜${marketing.tagline}`}
+                  title={t("shareTitle", { name: entryName, tagline: marketing.tagline })}
                 />
               </div>
             </div>
@@ -252,7 +254,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                 <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-stone-50 to-amber-50/30">
                   <Image
                     src={`/thumbs/v2/${entry.category}.webp`}
-                    alt={isEn ? `${entryName} 3D preview` : `${entry.nameZh} 3D 預覽`}
+                    alt={t("preview3dAlt", { name: entryName })}
                     width={520}
                     height={520}
                     priority
@@ -270,10 +272,10 @@ export default async function TemplateDetail({ params }: PageProps) {
         <section className="bg-gradient-to-b from-stone-50 to-white border-b border-stone-200">
           <div className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
             <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-              {isEn ? `${entryName} design details` : `${entry.nameZh} 設計細節`}
+              {t("galleryH2", { name: entryName })}
             </h2>
             <p className="text-center text-zinc-500 mb-9">
-              {isEn ? "What's distinctive about this template" : "這支模板獨有的視覺重點"}
+              {t("gallerySubtitle")}
             </p>
             <div
               className={`grid gap-5 ${gallery.length === 1 ? "max-w-3xl mx-auto" : gallery.length === 2 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"}`}
@@ -313,10 +315,10 @@ export default async function TemplateDetail({ params }: PageProps) {
       {highlights && highlights.length > 0 && (
         <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-            {isEn ? "Design highlights" : "設計重點"}
+            {t("highlightsH2")}
           </h2>
           <p className="text-center text-zinc-500 mb-9">
-            {isEn ? "What this template's algorithm handles for you" : "這支模板的演算法幫你顧到的事"}
+            {t("highlightsSubtitle")}
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {highlights.map((h) => (
@@ -346,7 +348,7 @@ export default async function TemplateDetail({ params }: PageProps) {
       {/* ============ 能幫你做什麼 ============ */}
       <section className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
         <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-5">
-          {isEn ? "What this template builds for you" : "這支模板能幫你做什麼"}
+          {t("whatItDoesH2")}
         </h2>
         <div className="prose prose-zinc max-w-none">
           {marketing.whatItDoes.split("\n\n").map((p, i) => (
@@ -361,12 +363,12 @@ export default async function TemplateDetail({ params }: PageProps) {
       <section className="bg-stone-50 border-y border-stone-200">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-7">
-            {isEn ? "Who this template suits" : "這支模板適合誰"}
+            {t("fitForH2")}
           </h2>
           <div className="grid sm:grid-cols-2 gap-5">
             <div className="rounded-2xl bg-white ring-1 ring-emerald-200 p-6">
               <h3 className="font-bold text-emerald-800 mb-3 flex items-center gap-2">
-                <span className="text-xl">✓</span> {isEn ? "Recommended for" : "推薦給你"}
+                <span className="text-xl">✓</span> {t("fitForGood")}
               </h3>
               <ul className="space-y-2">
                 {marketing.fitFor.good.map((g) => (
@@ -379,7 +381,7 @@ export default async function TemplateDetail({ params }: PageProps) {
             {marketing.fitFor.notFor && marketing.fitFor.notFor.length > 0 && (
               <div className="rounded-2xl bg-white ring-1 ring-stone-300 p-6">
                 <h3 className="font-bold text-zinc-600 mb-3 flex items-center gap-2">
-                  <span className="text-xl">×</span> {isEn ? "Not for" : "不適合"}
+                  <span className="text-xl">×</span> {t("fitForNotFor")}
                 </h3>
                 <ul className="space-y-2">
                   {marketing.fitFor.notFor.map((n) => (
@@ -397,10 +399,10 @@ export default async function TemplateDetail({ params }: PageProps) {
       {/* ============ 可調參數 ============ */}
       <section className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
         <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
-          {isEn ? "Parameters you can adjust" : "你可以調整這些參數"}
+          {t("paramsH2")}
         </h2>
         <p className="text-zinc-500 mb-7">
-          {isEn ? "The algorithm auto-computes dimensions, joinery, and material usage." : "演算法自動算尺寸、榫卯、材料用量。"}
+          {t("paramsSubtitle")}
         </p>
         <div className="space-y-3">
           {marketing.parameters.map((p) => (
@@ -421,31 +423,13 @@ export default async function TemplateDetail({ params }: PageProps) {
       <section className="bg-gradient-to-b from-white to-amber-50/30 border-y border-amber-100">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
-            {isEn ? "Enter sizes, get everything" : "輸入完成，自動產出"}
+            {t("outputsH2")}
           </h2>
           <p className="text-zinc-500 mb-7">
-            {isEn ? "Six deliverables in one pass — print A4 and walk into the shop." : "5 件事一次出齊，列印 A4 直接帶進工坊。"}
+            {t("outputsSubtitle")}
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
-            {[
-              ...(isEn
-                ? [
-                    { icon: "📐", title: "Engineering views", body: "Front / side / top auto-dimensioned" },
-                    { icon: "🪵", title: "Perspective", body: "3D rotatable, explodable, see inside" },
-                    { icon: "🔧", title: "Joinery detail", body: "Every joint zoomed and dimensioned" },
-                    { icon: "📊", title: "Cut list", body: "Per-part sizes, board-foot conversion, waste estimate" },
-                    { icon: "✂️", title: "Cut layout", body: "Optimized stock layout, minimum waste" },
-                    { icon: "📄", title: "A4 PDF", body: "One-click print for the shop" },
-                  ]
-                : [
-                    { icon: "📐", title: "三視圖", body: "前 / 側 / 俯三向自動標尺寸" },
-                    { icon: "🪵", title: "透視圖", body: "3D 可旋轉、可拆解、看內部結構" },
-                    { icon: "🔧", title: "榫卯細節", body: "每個榫接點放大圖、尺寸標註" },
-                    { icon: "📊", title: "材料單", body: "每片木料尺寸、台才換算、邊料試算" },
-                    { icon: "✂️", title: "切割圖", body: "排料最佳化、邊料最少" },
-                    { icon: "📄", title: "A4 PDF", body: "一鍵列印帶進工坊" },
-                  ]),
-            ].map((o) => (
+            {outputItems.map((o) => (
               <div
                 key={o.title}
                 className="rounded-xl bg-white ring-1 ring-stone-200 p-4"
@@ -470,12 +454,10 @@ export default async function TemplateDetail({ params }: PageProps) {
       {/* ============ 實際輸出畫面（共用截圖） ============ */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
         <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-          {isEn ? "Real generated output" : "實際輸出畫面"}
+          {t("showcaseH2")}
         </h2>
         <p className="text-center text-zinc-500 mb-9">
-          {isEn
-            ? `The screens below are actually generated from the ${entryName} template — apply your sizes and they update live.`
-            : `以下都是「${entry.nameZh}」實際生成的畫面，套你的尺寸後會即時更新。`}
+          {t("showcaseSubtitle", { name: entryName })}
         </p>
         <div className="grid md:grid-cols-2 gap-5">
           {(() => {
@@ -487,31 +469,11 @@ export default async function TemplateDetail({ params }: PageProps) {
               return exists ? specific : fallback;
             };
             return [
-              {
-                img: tpl("threeview", "/about-assets/feat-threeview.png"),
-                label: isEn ? "Engineering views" : "工程三視圖",
-                desc: isEn ? "Front / side / top fully auto-dimensioned" : "前 / 側 / 俯三向尺寸全自動標註",
-              },
-              {
-                img: tpl("cutplan", "/about-assets/feat-cutplan-full.png"),
-                label: isEn ? "Cut layout" : "排板裁切圖",
-                desc: isEn ? "Algorithmic nesting, minimum waste — hand to the lumber yard and cut straight from it" : "演算法排料、邊料最少，材料行直接照鋸",
-              },
-              {
-                img: tpl("cutlist", "/about-assets/feat-cutlist.png"),
-                label: isEn ? "Cut list" : "切料清單",
-                desc: isEn ? "Per-part sizes with board-foot conversion, printable for the shop" : "每片木料尺寸、含台才換算、可列印帶進工坊",
-              },
-              {
-                img: tpl("steps", "/about-assets/feat-steps.png"),
-                label: isEn ? "Build steps" : "製作工序",
-                desc: isEn ? "Stock prep through finishing, every step timed" : "從備料、開料、組裝到塗裝，每步都標時間",
-              },
-              {
-                img: tpl("3d", "/about-assets/hero-3d.png"),
-                label: isEn ? "3D perspective" : "3D 透視預覽",
-                desc: isEn ? "Rotatable, explodable, see the joinery inside" : "可旋轉、可拆解、可看內部榫卯結構",
-              },
+              { img: tpl("threeview", "/about-assets/feat-threeview.png"), ...showcaseLabels[0] },
+              { img: tpl("cutplan", "/about-assets/feat-cutplan-full.png"), ...showcaseLabels[1] },
+              { img: tpl("cutlist", "/about-assets/feat-cutlist.png"), ...showcaseLabels[2] },
+              { img: tpl("steps", "/about-assets/feat-steps.png"), ...showcaseLabels[3] },
+              { img: tpl("3d", "/about-assets/hero-3d.png"), ...showcaseLabels[4] },
             ];
           })().map((s) => (
             <figure
@@ -539,14 +501,14 @@ export default async function TemplateDetail({ params }: PageProps) {
           ))}
         </div>
         <p className="mt-6 text-center text-xs text-zinc-400">
-          {isEn ? "※ These regenerate live whenever you tweak size, wood, or style" : "※ 改尺寸 / 換木料 / 切換款式時，這幾張圖都會即時重算"}
+          {t("showcaseFootnote")}
         </p>
       </section>
 
       {/* ============ 使用情境 ============ */}
       <section className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
         <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-7">
-          {isEn ? "When you'd build one" : "什麼時候會用到"}
+          {t("scenariosH2")}
         </h2>
         <div className="space-y-3">
           {marketing.scenarios.map((s) => (
@@ -568,10 +530,10 @@ export default async function TemplateDetail({ params }: PageProps) {
         <section className="bg-stone-50 border-y border-stone-200">
           <div className="max-w-3xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
             <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
-              {isEn ? `${marketing.presets.length} preset variations` : `${marketing.presets.length} 種預設變體`}
+              {t("presetsH2", { count: marketing.presets.length })}
             </h2>
             <p className="text-zinc-500 mb-7">
-              {isEn ? "Swap styles in one click — no need to re-adjust every parameter from scratch." : "一鍵切換不同風格、不用每次從頭調參數。"}
+              {t("presetsSubtitle")}
             </p>
             <div className="grid sm:grid-cols-2 gap-3">
               {marketing.presets.map((p) => (
@@ -593,7 +555,7 @@ export default async function TemplateDetail({ params }: PageProps) {
       {/* ============ FAQ ============ */}
       <section className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
         <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-7">
-          {isEn ? "FAQ" : "常見問題"}
+          {t("faqH2")}
         </h2>
         <div className="space-y-3">
           {marketing.faqs.map((f) => (
@@ -619,46 +581,44 @@ export default async function TemplateDetail({ params }: PageProps) {
       <section className="bg-gradient-to-b from-amber-50/30 to-white border-y border-amber-100">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-            {isEn ? `How to unlock "${entryName}"` : `如何取得「${entry.nameZh}」`}
+            {t("pricingH2", { name: entryName })}
           </h2>
           <p className="text-center text-zinc-500 text-sm mb-9">
-            {isEn
-              ? (isFree ? "Free template — start building now" : `${difficultyLabel} template — pick one of three unlock paths`)
-              : (isFree ? "免費模板，直接開始用" : `${difficultyLabel}模板，三種解鎖方式擇一`)}
+            {isFree
+              ? t("pricingSubtitleFree")
+              : t("pricingSubtitlePaid", { difficulty: difficultyLabel })}
           </p>
 
           {isFree ? (
             <div className="max-w-2xl mx-auto rounded-2xl bg-white ring-2 ring-emerald-400 p-7 shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-xs font-bold">
-                  {isEn ? "Free forever" : "完全免費"}
+                  {t("freeBadgeForever")}
                 </span>
-                <span className="text-zinc-400 text-sm">{isEn ? "Unlimited use" : "永久使用"}</span>
+                <span className="text-zinc-400 text-sm">{t("freeBadgeUnlimited")}</span>
               </div>
               <h3 className="font-bold text-xl text-zinc-900 mb-3">
-                {isEn
-                  ? `${entryName} is a beginner-practice template — on the house from Wooden Ren`
-                  : `${entry.nameZh} 是入門練手模板，木頭仁送你`}
+                {t("freeTitle", { name: entryName })}
               </h3>
               <ul className="space-y-2 mb-6 text-sm text-zinc-700">
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
-                  <span>{isEn ? "No signup, no payment, unlimited builds" : "不用註冊、不用付費、不限次數"}</span>
+                  <span>{t("freeFeature1")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
-                  <span>{isEn ? "3D, joinery, 3-views, cut list and PDF — same as paid users" : "3D、榫卯、三視圖、材料單、PDF 全給，跟付費用戶一樣"}</span>
+                  <span>{t("freeFeature2")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
-                  <span>{isEn ? "Only limit: a size cap (fits small practice builds)" : "唯一限制：尺寸有上限（適合練手小品）"}</span>
+                  <span>{t("freeFeature3")}</span>
                 </li>
               </ul>
               <Link
                 href={`${isEn ? "/en" : ""}/design/${entry.category}`}
                 className="block text-center px-6 py-3.5 rounded-full bg-amber-700 text-white font-bold shadow-md hover:bg-amber-800 hover:-translate-y-0.5 transition-all"
               >
-                {isEn ? "Try free →" : "免費試做 →"}
+                {t("freeCta")}
               </Link>
             </div>
           ) : (
@@ -666,17 +626,17 @@ export default async function TemplateDetail({ params }: PageProps) {
               {/* 單範本買斷 — 直接 POST 到 ECPay（未登入會 redirect 到 /login） */}
               {unlockPrice && (
                 <PricingOption
-                  badge="單買"
-                  title="單範本買斷"
+                  badge={t("tierSingleBadge")}
+                  title={t("tierSingleTitle")}
                   price={`NT$${unlockPrice}`}
-                  unit="永久"
+                  unit={t("tierSingleUnit")}
                   features={[
-                    "永久解鎖這支模板",
-                    "不訂閱也能用",
-                    "未來功能改進也自動拿到",
+                    t("tierSingleFeature1"),
+                    t("tierSingleFeature2"),
+                    t("tierSingleFeature3"),
                   ]}
                   cta={{
-                    label: "立即購買",
+                    label: t("tierSingleCta"),
                     action: "/api/checkout/template",
                     hiddenField: { name: "category", value: entry.category },
                   }}
@@ -685,26 +645,30 @@ export default async function TemplateDetail({ params }: PageProps) {
               )}
               {/* 個人版 */}
               <PricingOption
-                badge={isEn ? "Most popular" : "最多人選"}
-                title={isEn ? "Personal subscription" : "個人版訂閱"}
-                price={isEn ? "TWD 390" : "NT$390"}
-                unit={isEn ? "/mo" : "/月"}
-                features={isEn
-                  ? ["All 26 templates unlocked", "Ceiling + flooring simulators", "Unlimited PDF + cloud saves"]
-                  : ["全 26 模板解鎖", "天花板 + 地板模擬器", "PDF 列印 + 雲端儲存無限"]}
-                cta={{ label: isEn ? "Upgrade to Personal" : "升級個人版", href: isEn ? "/en/pricing" : "/pricing" }}
+                badge={t("tierPersonalBadge")}
+                title={t("tierPersonalTitle")}
+                price={t("tierPersonalPrice")}
+                unit={t("tierPersonalUnit")}
+                features={[
+                  t("tierPersonalFeature1"),
+                  t("tierPersonalFeature2"),
+                  t("tierPersonalFeature3"),
+                ]}
+                cta={{ label: t("tierPersonalCta"), href: isEn ? "/en/pricing" : "/pricing" }}
                 highlight={true}
               />
               {/* 專業版 */}
               <PricingOption
-                badge={isEn ? "For pros" : "接案級"}
-                title={isEn ? "Professional subscription" : "專業版訂閱"}
-                price={isEn ? "TWD 890" : "NT$890"}
-                unit={isEn ? "/mo" : "/月"}
-                features={isEn
-                  ? ["Everything in Personal", "Client quotes + CRM", "STL/OBJ export (CNC) + unlimited sizes"]
-                  : ["個人版全部功能", "客戶報價 + 客戶資料管理", "STL/OBJ 輸出（CNC）+ 尺寸無上限"]}
-                cta={{ label: isEn ? "Upgrade to Pro" : "升級專業版", href: isEn ? "/en/pricing" : "/pricing" }}
+                badge={t("tierProBadge")}
+                title={t("tierProTitle")}
+                price={t("tierProPrice")}
+                unit={t("tierProUnit")}
+                features={[
+                  t("tierProFeature1"),
+                  t("tierProFeature2"),
+                  t("tierProFeature3"),
+                ]}
+                cta={{ label: t("tierProCta"), href: isEn ? "/en/pricing" : "/pricing" }}
                 highlight={false}
               />
             </div>
@@ -712,11 +676,9 @@ export default async function TemplateDetail({ params }: PageProps) {
 
           {!isFree && (
             <p className="mt-6 text-center text-xs text-zinc-500">
-              {isEn
-                ? "Annual plan saves one month · Lifetime academy members DM for a code · "
-                : "年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 · "}
+              {t("pricingFootnoteText")}
               <Link href={isEn ? "/en/pricing" : "/pricing"} className="ml-1 text-amber-700 hover:text-amber-900 underline underline-offset-2">
-                {isEn ? "Compare all plans" : "看完整方案比較"}
+                {t("pricingFootnoteLink")}
               </Link>
             </p>
           )}
@@ -728,10 +690,10 @@ export default async function TemplateDetail({ params }: PageProps) {
         <section className="bg-stone-50 border-y border-stone-200">
           <div className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
             <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
-              {isEn ? "You might also like" : "你可能也想看"}
+              {t("relatedH2")}
             </h2>
             <p className="text-center text-zinc-500 text-sm mb-9">
-              {isEn ? "Same family or complementary templates" : "同類別或互補的家具範本"}
+              {t("relatedSubtitle")}
             </p>
             <div className="grid sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
               {relatedEntries.map((r) => {
@@ -741,9 +703,14 @@ export default async function TemplateDetail({ params }: PageProps) {
                 const rIsFree = FREE_UNLOCKED_CATEGORIES.includes(r.category);
                 const rMarketing = getTemplateMarketing(r.category, locale);
                 const rHasEnDetail = rHasDetail && (locale !== "en" || Boolean(rMarketing));
-                const rDifficulty = isEn
-                  ? (r.difficulty === "beginner" ? "Beginner" : r.difficulty === "intermediate" ? "Intermediate" : "Advanced")
-                  : (r.difficulty === "beginner" ? "入門" : r.difficulty === "intermediate" ? "中階" : "進階");
+                const rDifficultyKey =
+                  r.difficulty === "beginner"
+                    ? "difficultyBeginner"
+                    : r.difficulty === "intermediate"
+                      ? "difficultyIntermediate"
+                      : "difficultyAdvanced";
+                const rDifficulty = t(rDifficultyKey);
+                const rDisplayName = isEn ? (r.nameEn ?? r.nameZh) : r.nameZh;
                 return (
                   <Link
                     key={r.category}
@@ -754,7 +721,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                       <div className="absolute top-2 right-2 z-10 flex gap-1.5">
                         {rIsFree && (
                           <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold">
-                            {isEn ? "Free" : "免費"}
+                            {t("relatedFreeBadge")}
                           </span>
                         )}
                         <span className="px-1.5 py-0.5 rounded-full bg-white/95 ring-1 ring-stone-300 text-zinc-600 text-[10px] font-bold">
@@ -763,7 +730,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                       </div>
                       <Image
                         src={`/thumbs/v2/${r.category}.webp`}
-                        alt={isEn ? `${r.nameEn ?? r.nameZh} 3D preview` : `${r.nameZh} 3D 預覽`}
+                        alt={t("preview3dAlt", { name: rDisplayName })}
                         width={240}
                         height={180}
                         quality={75}
@@ -775,7 +742,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                     </div>
                     <div className="p-4 border-t border-amber-100 bg-amber-50 flex-1 flex flex-col">
                       <div className="font-bold text-zinc-900 group-hover:text-amber-900 mb-1">
-                        {isEn ? (r.nameEn ?? r.nameZh) : r.nameZh}
+                        {rDisplayName}
                       </div>
                       {rMarketing?.tagline && (
                         <p className="text-xs text-zinc-600 leading-snug line-clamp-2">
@@ -784,7 +751,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                       )}
                       {rHasEnDetail && (
                         <div className="mt-3 text-xs font-semibold text-amber-700 group-hover:text-amber-900 inline-flex items-center gap-1">
-                          {isEn ? "Full guide →" : "看詳細介紹 →"}
+                          {t("relatedFullGuide")}
                         </div>
                       )}
                     </div>
@@ -797,7 +764,7 @@ export default async function TemplateDetail({ params }: PageProps) {
                 href={isEn ? "/en/templates" : "/templates"}
                 className="inline-flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 font-semibold"
               >
-                {isEn ? "View all 26 templates →" : "看全部 26 件範本 →"}
+                {t("relatedViewAll")}
               </Link>
             </div>
           </div>
@@ -808,31 +775,23 @@ export default async function TemplateDetail({ params }: PageProps) {
       <section className="bg-gradient-to-br from-amber-700 to-amber-900 text-white">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-14 sm:py-20 text-center">
           <h2 className="font-serif-tc text-3xl sm:text-4xl font-bold leading-tight">
-            {isEn ? `Start designing your ${entryName}` : `開始設計這張 ${entry.nameZh}`}
+            {t("bottomCtaH2", { name: entryName })}
           </h2>
           <p className="mt-5 text-amber-100 max-w-xl mx-auto leading-relaxed">
-            {isEn
-              ? (isFree
-                  ? "Free template — no signup, no payment, start now."
-                  : "Personal plan TWD 390/mo unlocks all 26 templates + interior tools.")
-              : (isFree
-                  ? "免費模板，不用註冊不用付費，直接開始。"
-                  : "訂閱個人版 NT$390/月，解鎖全 26 模板＋裝潢工具。")}
+            {isFree ? t("bottomCtaBodyFree") : t("bottomCtaBodyPaid")}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
               href={`${isEn ? "/en" : ""}/design/${entry.category}`}
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white text-amber-800 font-bold shadow-lg hover:-translate-y-0.5 hover:bg-amber-50 transition-all"
             >
-              {isEn
-                ? (isFree ? "Try free →" : "Start designing →")
-                : (isFree ? "免費試做 →" : "開始設計 →")}
+              {isFree ? t("bottomCtaTryFree") : t("bottomCtaStartDesign")}
             </Link>
             <Link
               href={isEn ? "/en/templates" : "/templates"}
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white/10 text-white font-semibold ring-1 ring-white/30 hover:bg-white/20 transition-all"
             >
-              {isEn ? "Browse templates" : "看其他範本"}
+              {t("bottomCtaBrowse")}
             </Link>
           </div>
         </div>

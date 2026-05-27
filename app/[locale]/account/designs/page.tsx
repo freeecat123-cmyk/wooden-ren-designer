@@ -1,11 +1,20 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { MyDesignsClient } from "@/components/MyDesignsClient";
 
-export const metadata = {
-  title: "我的設計 · 木頭仁 木作藍圖",
-  description:
-    "你在木頭仁 木作藍圖儲存的家具設計清單——尺寸、木材、樣式、估價、PDF 一鍵打開繼續做。",
-  alternates: { canonical: "/account/designs" },
-};
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "myDesigns" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: { canonical: "/account/designs" },
+  };
+}
 
 export default function MyDesignsPage() {
   return <MyDesignsClient />;

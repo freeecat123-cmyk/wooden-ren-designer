@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
-import { getTemplate } from "@/lib/templates";
+import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
-import { MATERIALS } from "@/lib/materials";
+import { MATERIALS, materialName } from "@/lib/materials";
 import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { taipeiIsoDate } from "@/lib/utils/date-tw";
 import {
@@ -29,7 +30,7 @@ import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
 interface PageProps {
-  params: Promise<{ type: string }>;
+  params: Promise<{ locale: string; type: string }>;
   searchParams: Promise<Record<string, string>>;
 }
 
@@ -54,7 +55,8 @@ export default async function QuotePrintPage({
   params,
   searchParams,
 }: PageProps) {
-  const { type } = await params;
+  const { locale, type } = await params;
+  const tp = await getTranslations({ locale, namespace: "quote.print" });
   const sp = await searchParams;
 
   const entry = getTemplate(type as FurnitureCategory);
@@ -149,17 +151,20 @@ export default async function QuotePrintPage({
 
   const termNotes: string[] = [];
   if (sp.termIncludeShipping === "1") {
-    termNotes.push("本報價含運費。");
+    termNotes.push(tp("termShippingIncluded"));
   } else {
-    termNotes.push("運費另計，依實際送貨地點報價。");
+    termNotes.push(tp("termShippingExcluded"));
   }
   if (sp.termIncludeInstallation === "1") {
-    termNotes.push("本報價含現場安裝（工坊北北基區域內）。");
+    termNotes.push(tp("termInstallIncluded"));
   } else {
-    termNotes.push("不含現場安裝；如需到府組裝請另議。");
+    termNotes.push(tp("termInstallExcluded"));
   }
 
-  const pdfFilename = `${customerName || "報價單"}_${entry.nameZh}_${todayStr}`.replace(
+  const entryName = getEntryName(entry, locale);
+  const entryDesc = getEntryDescription(entry, locale) ?? "";
+  const matName = materialName(material, locale);
+  const pdfFilename = `${customerName || tp("pdfFilenameFallback")}_${entryName}_${todayStr}`.replace(
     /[\\/:*?"<>|]/g,
     "_",
   );
@@ -168,13 +173,13 @@ export default async function QuotePrintPage({
     <main className="max-w-[210mm] mx-auto bg-white text-zinc-900 relative quote-print-compact">
       <div className="no-print sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200 px-6 py-3 flex items-center justify-between">
         <p className="text-sm text-zinc-600">
-          A4 報價單預覽 — 按下按鈕後在系統對話框選擇「另存為 PDF」
+          {tp("previewHint")}
         </p>
         <PrintButton suggestedFilename={pdfFilename} />
       </div>
 
       <div className="print-watermark" aria-hidden>
-        <span>木頭仁 · woodenren.com</span>
+        <span>{tp("watermark")}</span>
       </div>
 
       <section
@@ -187,17 +192,17 @@ export default async function QuotePrintPage({
           <div className="flex items-start gap-3">
             <div className="text-right text-[11px]">
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                <dt className="text-zinc-500">報價單號</dt>
+                <dt className="text-zinc-500">{tp("metaQuoteNo")}</dt>
                 <dd className="font-mono font-semibold text-right">{quoteNo}</dd>
-                <dt className="text-zinc-500">開立日期</dt>
+                <dt className="text-zinc-500">{tp("metaIssueDate")}</dt>
                 <dd className="font-mono text-right">{todayStr}</dd>
-                <dt className="text-zinc-500">有效期限</dt>
+                <dt className="text-zinc-500">{tp("metaExpiry")}</dt>
                 <dd className="font-mono text-right">{expiryStr}</dd>
-                <dt className="text-zinc-500">預計交期</dt>
+                <dt className="text-zinc-500">{tp("metaDelivery")}</dt>
                 <dd className="font-mono text-right">
                   {deliveryStr}
                   <span className="text-zinc-400 text-[10px]">
-                    {" "}（約 {quote.estimatedWorkdays} 工作天）
+                    {tp("metaDeliveryDays", { days: quote.estimatedWorkdays })}
                   </span>
                 </dd>
               </div>
@@ -210,14 +215,14 @@ export default async function QuotePrintPage({
         <section className="grid grid-cols-2 gap-4 mt-4">
           <BrandedSupplier />
           <InfoBlock
-            title="客戶 TO"
+            title={tp("customerTo")}
             rows={[
-              ["公司／姓名", customerName || DASH],
-              ["聯絡人", customerContact || DASH],
-              ["電話", customerPhone || DASH],
-              ["送貨地址", customerAddress || DASH],
-              ["統編", customerTaxId || DASH],
-              ["email", customerEmail || DASH],
+              [tp("fieldCompany"), customerName || DASH],
+              [tp("fieldContact"), customerContact || DASH],
+              [tp("fieldPhone"), customerPhone || DASH],
+              [tp("fieldAddress"), customerAddress || DASH],
+              [tp("fieldTaxId"), customerTaxId || DASH],
+              [tp("fieldEmail"), customerEmail || DASH],
             ]}
           />
         </section>
@@ -225,14 +230,14 @@ export default async function QuotePrintPage({
         {/* Product thumbnail — 三視圖縮圖讓客戶看到實體（側併排、小尺寸） */}
         <section className="mt-4 print-keep">
           <div className="flex items-baseline justify-between mb-1.5">
-            <h3 className="text-[11px] font-semibold text-zinc-700">設計圖</h3>
+            <h3 className="text-[11px] font-semibold text-zinc-700">{tp("designSection")}</h3>
             <span className="text-[9px] text-zinc-400">
-              設計編號：{design.id}
+              {tp("designId", { id: design.id })}
             </span>
           </div>
           <ZoomableThreeViews design={design} />
           <p className="mt-1 text-[9px] text-zinc-400">
-            三視圖顯示家具尺寸與比例，實際成品木紋、色差依天然木材狀態而定。
+            {tp("designCaption")}
           </p>
         </section>
 
@@ -242,31 +247,31 @@ export default async function QuotePrintPage({
             <thead className="bg-zinc-100">
               <tr className="border-b border-zinc-400">
                 <th className="text-left p-2 border-r border-zinc-300">
-                  品項
+                  {tp("thItem")}
                 </th>
                 <th className="text-left p-2 border-r border-zinc-300">
-                  規格
+                  {tp("thSpec")}
                 </th>
                 <th className="text-center p-2 border-r border-zinc-300 w-12">
-                  數量
+                  {tp("thQty")}
                 </th>
-                <th className="text-right p-2 w-28">金額 NT$</th>
+                <th className="text-right p-2 w-28">{tp("thAmount")}</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-zinc-300">
                 <td className="p-2 border-r border-zinc-300 align-top">
-                  <div className="font-semibold">{entry.nameZh}</div>
+                  <div className="font-semibold">{entryName}</div>
                   <div className="text-[10px] text-zinc-500">
-                    {entry.description}
+                    {entryDesc}
                   </div>
                 </td>
                 <td className="p-2 border-r border-zinc-300 align-top text-[10px]">
                   <div>
-                    尺寸 {length} × {width} × {height} mm
+                    {tp("specDimension", { length, width, height })}
                   </div>
-                  <div>木材：{MATERIALS[material].nameZh}</div>
-                  <div>零件數：{design.parts.length} 件</div>
+                  <div>{tp("specMaterial", { name: matName })}</div>
+                  <div>{tp("specPartCount", { n: design.parts.length })}</div>
                 </td>
                 <td className="text-center p-2 border-r border-zinc-300 align-top font-semibold">
                   {quote.quantity}
@@ -274,9 +279,9 @@ export default async function QuotePrintPage({
                 <td className="text-right p-2 font-mono align-top">
                   {quote.quantity > 1 ? (
                     <>
-                      <div>{formatTWD(quote.unitPriceExclVat)} / 件</div>
+                      <div>{tp("amountPerUnit", { price: formatTWD(quote.unitPriceExclVat) })}</div>
                       <div className="font-semibold">
-                        = {formatTWD(quote.subtotalBeforeDiscount)}
+                        {tp("amountEquals", { price: formatTWD(quote.subtotalBeforeDiscount) })}
                       </div>
                     </>
                   ) : (
@@ -292,7 +297,7 @@ export default async function QuotePrintPage({
         {viewMode === "internal" && (
           <section className="mt-4">
             <h3 className="text-[11px] font-semibold mb-1 text-zinc-700">
-              成本明細（內部存檔用）
+              {tp("internalDetailH")}
             </h3>
             <table className="w-full text-[10px] border border-zinc-300">
               <tbody>
@@ -319,14 +324,14 @@ export default async function QuotePrintPage({
               {viewMode === "internal" && (
                 <>
                   <tr className="border-t border-zinc-300">
-                    <td className="py-1 text-zinc-600">單件成本</td>
+                    <td className="py-1 text-zinc-600">{tp("rowCostPerUnit")}</td>
                     <td className="py-1 text-right font-mono">
                       {formatTWD(quote.costSubtotal)}
                     </td>
                   </tr>
                   <tr>
                     <td className="py-1 text-zinc-600">
-                      毛利（{Math.round(laborOpts.marginRate * 100)}%）
+                      {tp("rowMargin", { pct: Math.round(laborOpts.marginRate * 100) })}
                     </td>
                     <td className="py-1 text-right font-mono">
                       + {formatTWD(quote.margin)}
@@ -335,7 +340,7 @@ export default async function QuotePrintPage({
                   {quote.designerMarkupRate > 0 && (
                     <tr>
                       <td className="py-1 text-amber-800">
-                        🎨 設計師加成（{Math.round(quote.designerMarkupRate * 100)}%）
+                        {tp("rowDesignerMarkup", { pct: Math.round(quote.designerMarkupRate * 100) })}
                       </td>
                       <td className="py-1 text-right font-mono text-amber-800">
                         + {formatTWD(quote.designerMarkupAmount)}
@@ -347,7 +352,7 @@ export default async function QuotePrintPage({
               {viewMode === "customer" && (
                 <tr className="border-t border-zinc-300">
                   <td className="py-1 text-zinc-600">
-                    單件報價
+                    {tp("rowUnitQuote")}
                   </td>
                   <td className="py-1 text-right font-mono">
                     {formatTWD(quote.unitPriceExclVat)}
@@ -357,7 +362,7 @@ export default async function QuotePrintPage({
               {quote.quantity > 1 && (
                 <tr>
                   <td className="py-1 text-zinc-600">
-                    × {quote.quantity} 件
+                    {tp("rowQtyMultiplier", { n: quote.quantity })}
                   </td>
                   <td className="py-1 text-right font-mono">
                     {formatTWD(quote.subtotalBeforeDiscount)}
@@ -367,7 +372,7 @@ export default async function QuotePrintPage({
               {quote.discountAmount > 0 && (
                 <tr>
                   <td className="py-1 text-red-700">
-                    折扣（{(laborOpts.discountRate * 100).toFixed(0)}% off）
+                    {tp("rowDiscount", { pct: (laborOpts.discountRate * 100).toFixed(0) })}
                   </td>
                   <td className="py-1 text-right font-mono text-red-700">
                     − {formatTWD(quote.discountAmount)}
@@ -375,7 +380,7 @@ export default async function QuotePrintPage({
                 </tr>
               )}
               <tr className="border-t border-zinc-400 font-semibold">
-                <td className="py-2">報價（未稅）</td>
+                <td className="py-2">{tp("rowSubtotalExclVat")}</td>
                 <td className="py-2 text-right font-mono">
                   {formatTWD(quote.subtotalExclVat)}
                 </td>
@@ -384,14 +389,14 @@ export default async function QuotePrintPage({
                 <>
                   <tr>
                     <td className="py-1 text-zinc-600">
-                      營業稅（{(laborOpts.vatRate * 100).toFixed(0)}%）
+                      {tp("rowVat", { pct: (laborOpts.vatRate * 100).toFixed(0) })}
                     </td>
                     <td className="py-1 text-right font-mono">
                       + {formatTWD(quote.vat)}
                     </td>
                   </tr>
                   <tr className="border-t-2 border-zinc-900 font-bold bg-zinc-900 text-white">
-                    <td className="py-2 pl-2">含稅總計 TOTAL</td>
+                    <td className="py-2 pl-2">{tp("rowGrandTotal")}</td>
                     <td className="py-2 pr-2 text-right font-mono text-base">
                       {formatTWD(quote.total)}
                     </td>
@@ -402,7 +407,7 @@ export default async function QuotePrintPage({
                 <>
                   <tr>
                     <td className="pt-3 py-1 text-emerald-700">
-                      訂金（下訂時付 {(laborOpts.depositRate * 100).toFixed(0)}%）
+                      {tp("rowDeposit", { pct: (laborOpts.depositRate * 100).toFixed(0) })}
                     </td>
                     <td className="pt-3 py-1 text-right font-mono text-emerald-700">
                       {formatTWD(quote.depositAmount)}
@@ -410,7 +415,7 @@ export default async function QuotePrintPage({
                   </tr>
                   <tr>
                     <td className="py-1 text-zinc-600">
-                      尾款（交貨時付 {((1 - laborOpts.depositRate) * 100).toFixed(0)}%）
+                      {tp("rowBalance", { pct: ((1 - laborOpts.depositRate) * 100).toFixed(0) })}
                     </td>
                     <td className="py-1 text-right font-mono">
                       {formatTWD(quote.balanceAmount)}
@@ -440,13 +445,13 @@ export default async function QuotePrintPage({
           <div>
             <div className="h-14 border-b border-zinc-400" />
             <div className="mt-1 flex justify-between text-zinc-600">
-              <span>客戶簽章</span>
-              <span>日期：＿＿＿＿ / ＿＿ / ＿＿</span>
+              <span>{tp("signCustomer")}</span>
+              <span>{tp("signDate")}</span>
             </div>
           </div>
           <div>
             <div className="h-14 border-b border-zinc-400 flex items-end justify-end pr-4">
-              <span className="text-[10px] text-zinc-400">（本公司用印）</span>
+              <span className="text-[10px] text-zinc-400">{tp("companySeal")}</span>
             </div>
             <BrandedSignature todayStr={todayStr} />
           </div>
