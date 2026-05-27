@@ -1173,8 +1173,17 @@ export const TEMPLATE_MARKETING: Record<string, TemplateMarketing> = M;
 /** 已有介紹頁的模板 category id（給 sitemap / 索引頁判斷用） */
 export const FEATURED_TEMPLATE_CATEGORIES = Object.keys(M) as FurnitureCategory[];
 
+import { TEMPLATE_MARKETING_EN, FEATURED_TEMPLATE_CATEGORIES_EN } from "./marketing-en";
+
+/** Featured templates that have EN translations (subset of FEATURED_TEMPLATE_CATEGORIES). */
+export { FEATURED_TEMPLATE_CATEGORIES_EN };
+
 export function getTemplateMarketing(
   category: FurnitureCategory,
+  locale: string = "zh-TW",
 ): TemplateMarketing | undefined {
+  if (locale === "en") {
+    return TEMPLATE_MARKETING_EN[category] ?? undefined;
+  }
   return TEMPLATE_MARKETING[category];
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { FURNITURE_CATALOG } from "@/lib/templates";
-import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
+import { FEATURED_TEMPLATE_CATEGORIES, FEATURED_TEMPLATE_CATEGORIES_EN } from "@/lib/templates/marketing";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
@@ -80,9 +80,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((e) => !DEV_CATEGORIES.has(e.category))
     .map((e) => biLocaleEntry(`/design/${e.category}`, "monthly", 0.8, now));
 
-  // /templates/[type]/* — zh only (marketing.ts not translated yet)
+  // /templates/[type]/* — bilingual when EN marketing exists; otherwise zh-only
+  const enTemplateSet = new Set(FEATURED_TEMPLATE_CATEGORIES_EN as string[]);
   const templateRoutes: MetadataRoute.Sitemap = FEATURED_TEMPLATE_CATEGORIES.map((c) =>
-    twOnlyEntry(`/templates/${c}`, "monthly", 0.85, now),
+    enTemplateSet.has(c as string)
+      ? biLocaleEntry(`/templates/${c}`, "monthly", 0.85, now)
+      : twOnlyEntry(`/templates/${c}`, "monthly", 0.85, now),
   );
 
   return [...staticRoutes, ...twOnlyRoutes, ...templateRoutes, ...designRoutes];
