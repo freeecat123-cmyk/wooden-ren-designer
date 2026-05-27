@@ -21,6 +21,8 @@
  */
 
 import { type NextRequest, after } from "next/server";
+import { sendEmail } from "@/lib/email/send";
+import { lemonPaymentFailedEmail } from "@/lib/email/templates/lemon-payment-failed";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   extractEventId,
@@ -405,10 +407,18 @@ async function handleSubscriptionPaymentFailed(
 ): Promise<void> {
   const invoice = payload.data.attributes;
   const subId = invoice.subscription_id as number;
+  const totalCents = invoice.total as number;
+  const amount = Math.round(totalCents / 100);
+  const userEmail = invoice.user_email as string | undefined;
+  const declineReason = invoice.status_formatted as string | undefined;
+  const attempt = invoice.refunded_at ? undefined : (invoice.test_mode as boolean | undefined)
+    ? undefined
+    : undefined; // LS payload 沒固定 attempt_number 欄，留空交給文案處理
 
+  // 反查訂閱拿 user_id + plan label
   const { data: subRow } = await admin
     .from("subscriptions")
-    .select("user_id")
+    .select("user_id, plan, period")
     .eq("lemonsqueezy_subscription_id", String(subId))
     .single();
 
@@ -420,7 +430,7 @@ async function handleSubscriptionPaymentFailed(
       .upsert(
         {
           user_id: subRow.user_id,
-          amount: Math.round((invoice.total as number) / 100),
+          amount,
           status: "failed",
           payment_provider: "lemonsqueezy",
           lemonsqueezy_order_id: String(payload.data.id),
@@ -429,5 +439,33 @@ async function handleSubscriptionPaymentFailed(
       ),
     "payment_failed.payments.upsert",
   );
-  // TODO: 寄信通知使用者更新卡片
+
+  // 寄信通知 user 更新卡片（avoid silent churn）
+  // 取 email 順序：webhook invoice 帶的 > Supabase users 表 email
+  let email = userEmail;
+  if (!email) {
+    const { data: userRow } = await admin
+      .from("users")
+      .select("email")
+      .eq("id", subRow.user_id)
+      .single();
+    email = userRow?.email ?? undefined;
+  }
+  if (email) {
+    const planLabel = `${subRow.plan === "pro" ? "Pro" : subRow.plan} ${subRow.period === "yearly" ? "Annual" : "Monthly"}`;
+    const mail = lemonPaymentFailedEmail({
+      planLabel,
+      amount,
+      reason: declineReason,
+      attemptNumber: attempt,
+    });
+    await sendEmail({
+      to: email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  } else {
+    console.warn(`[ls/webhook] payment_failed: no email for user ${subRow.user_id}`);
+  }
 }
