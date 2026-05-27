@@ -824,6 +824,17 @@ function legMortisesForApron(
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
   const through = opts.apronThrough ?? false;
+  const splayDx = opts.splayDx ?? 0;
+  const splayDz = opts.splayDz ?? 0;
+  // 斜腳：榫眼跟著牙板斜（user 2026-05-27 推翻 2026-05-26 的「腳中心軸不轉」決定）
+  // - Z 面榫（左右牙板）：牙板沿 Z 軸，因 splayDx 在 X-Y 平面內傾斜 → mortise 繞 part-local Z 軸轉
+  // - X 面榫（前後牙板）：牙板沿 X 軸，因 splayDz 在 Z-Y 平面內傾斜 → mortise 繞 part-local X 軸轉
+  const zFaceRotZ = (splayDx !== 0 && legHeight > 0)
+    ? Math.sign(corner.x || 1) * Math.atan(Math.abs(splayDx) / legHeight)
+    : 0;
+  const xFaceRotX = (splayDz !== 0 && legHeight > 0)
+    ? Math.sign(corner.z || 1) * Math.atan(Math.abs(splayDz) / legHeight)
+    : 0;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
   // 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
   // 視覺錯開時 X 向整支下移
@@ -838,6 +849,7 @@ function legMortisesForApron(
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
+      rotZ: zFaceRotZ || undefined,
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
@@ -846,6 +858,7 @@ function legMortisesForApron(
       length: apronLowerTenonH,
       width: apronTenonThick,
       through,
+      rotX: xFaceRotX || undefined,
     },
   ];
 }

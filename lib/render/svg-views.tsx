@@ -462,11 +462,25 @@ function projectFeaturePolygon(
     return { x: vx, y: vy };
   };
 
+  // box 自己的 Euler XYZ 旋轉（splayed apron mortise 的 rotZ ≈ tiltX 等）
+  const brx = box.rotX ?? 0, bry = box.rotY ?? 0, brz = box.rotZ ?? 0;
+  const bcx = Math.cos(brx), bsx = Math.sin(brx);
+  const bcy = Math.cos(bry), bsy = Math.sin(bry);
+  const bcz = Math.cos(brz), bsz = Math.sin(brz);
+  const rotateBoxCorner = (ox: number, oy: number, oz: number) => {
+    let x = ox, y = oy, z = oz;
+    if (brx) { const ny = y * bcx - z * bsx, nz = y * bsx + z * bcx; y = ny; z = nz; }
+    if (bry) { const nx = x * bcy + z * bsy, nz = -x * bsy + z * bcy; x = nx; z = nz; }
+    if (brz) { const nx = x * bcz - y * bsz, ny = x * bsz + y * bcz; x = nx; y = ny; }
+    return [x, y, z] as [number, number, number];
+  };
+
   const corners: Array<{ x: number; y: number }> = [];
   for (const sx of [-1, 1])
     for (const sy of [-1, 1])
       for (const sz of [-1, 1]) {
-        corners.push(project(box.cx + sx * box.hx, box.cy + sy * box.hy, box.cz + sz * box.hz));
+        const [ox, oy, oz] = rotateBoxCorner(sx * box.hx, sy * box.hy, sz * box.hz);
+        corners.push(project(box.cx + ox, box.cy + oy, box.cz + oz));
       }
   // unused vars to avoid lint
   void lx; void lz;

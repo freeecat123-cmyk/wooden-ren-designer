@@ -732,16 +732,22 @@ export function T2Annotations({
   const projectBoxRect = (box: {
     cx: number; cy: number; cz: number;
     hx: number; hy: number; hz: number;
+    rotX?: number; rotY?: number; rotZ?: number;
   }): { x: number; y: number; w: number; h: number } | null => {
+    const brx = box.rotX ?? 0, bry = box.rotY ?? 0, brz = box.rotZ ?? 0;
+    const bcx = Math.cos(brx), bsx = Math.sin(brx);
+    const bcy = Math.cos(bry), bsy = Math.sin(bry);
+    const bcz = Math.cos(brz), bsz = Math.sin(brz);
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const sx of [-1, 1]) {
       for (const sy of [-1, 1]) {
         for (const sz of [-1, 1]) {
-          const p = ctx.partLocalToSvg(
-            box.cx + sx * box.hx,
-            box.cy + sy * box.hy,
-            box.cz + sz * box.hz,
-          );
+          // box 自己的 Euler XYZ 旋轉（splayed mortise 用）
+          let ox = sx * box.hx, oy = sy * box.hy, oz = sz * box.hz;
+          if (brx) { const ny = oy * bcx - oz * bsx, nz = oy * bsx + oz * bcx; oy = ny; oz = nz; }
+          if (bry) { const nx = ox * bcy + oz * bsy, nz = -ox * bsy + oz * bcy; ox = nx; oz = nz; }
+          if (brz) { const nx = ox * bcz - oy * bsz, ny = ox * bsz + oy * bcz; ox = nx; oy = ny; }
+          const p = ctx.partLocalToSvg(box.cx + ox, box.cy + oy, box.cz + oz);
           if (p.x < minX) minX = p.x;
           if (p.x > maxX) maxX = p.x;
           if (p.y < minY) minY = p.y;
@@ -775,6 +781,7 @@ export function T2Annotations({
     cx: number; cy: number; cz: number;
     hx: number; hy: number; hz: number;
     depthAxis: "x" | "y" | "z";
+    rotX: number; rotY: number; rotZ: number;
   } {
     const lx = part.visible.length;
     const ly = part.visible.thickness;
@@ -827,6 +834,7 @@ export function T2Annotations({
         hy: D / 2,
         hz: (longOnZ ? longDim : shortDim) / 2,
         depthAxis: "y",
+        rotX: m.rotX ?? 0, rotY: m.rotY ?? 0, rotZ: m.rotZ ?? 0,
       };
     } else if (depthAxis === "x") {
       const enterRight = m.origin.x >= 0;
@@ -847,6 +855,7 @@ export function T2Annotations({
         hy: (longOnZ ? shortDim : longDim) / 2,
         hz: (longOnZ ? longDim : shortDim) / 2,
         depthAxis: "x",
+        rotX: m.rotX ?? 0, rotY: m.rotY ?? 0, rotZ: m.rotZ ?? 0,
       };
     } else {
       // depthAxis === "z"
@@ -865,6 +874,7 @@ export function T2Annotations({
         hy: (longOnX ? shortDim : longDim) / 2,
         hz: D / 2,
         depthAxis: "z",
+        rotX: m.rotX ?? 0, rotY: m.rotY ?? 0, rotZ: m.rotZ ?? 0,
       };
     }
   }
