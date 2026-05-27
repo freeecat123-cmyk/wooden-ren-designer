@@ -531,5 +531,77 @@
       "ctaPrimary": "開始設計 →",
       "ctaSecondary": "查看方案"
     }
+  },
+  "design": {
+    "metadata": {
+      "notFoundTitle": "找不到家具範本",
+      "titleTemplate": "{name}設計圖｜輸入尺寸自動產出三視圖、材料單、報價",
+      "descriptionTemplate": "{description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖紙。木頭仁木匠學院出品。"
+    },
+    "back": "← 回家具列表",
+    "detailedIntro": "這支{name}的詳細介紹",
+    "wipTemplate": "這個家具模板還在開發中，目前先支援「方凳」。",
+    "header": {
+      "piecesCount": "{count} 件",
+      "weightApprox": "約 {kg} kg",
+      "weightTitle": "實重 = 各部件 體積×木材密度 + 12% 包裝重",
+      "quoteBtn": "💰 產生報價",
+      "printBtn": "🖨️ 列印 / PDF"
+    },
+    "clamp": {
+      "title": "已達免費版尺寸上限——已自動縮回",
+      "row": "{dim}：{from} mm → {to} mm",
+      "footer": "想做更大尺寸？開啟「設計師模式」自由輸入到 mm 級——",
+      "upgrade": "升級專業版 →",
+      "dimWidth": "寬",
+      "dimDepth": "深",
+      "dimHeight": "高",
+      "dimDiameter": "直徑"
+    },
+    "warnings": {
+      "title": "設計參數有問題（已自動修正後續渲染）："
+    },
+    "section": {
+      "perspective": "透視圖",
+      "perspectiveHint": "3D · 拖曳旋轉、滾輪縮放",
+      "threeView": "工程三視圖",
+      "threeViewHint": "標示為組裝後肩到肩可見尺寸",
+      "cutList": "🪵 材料單",
+      "cutListHint": "{count} 件 · 切料尺寸已含榫頭",
+      "cutListNotice": "切料尺寸已含榫頭凸出長度。母榫（凹）不影響零件外形尺寸。",
+      "cutPlanBtn": "🪚 裁切計算器",
+      "preview3d": "3D 預覽（同步高亮選中零件）",
+      "joineryDetail": "🪚 榫卯細節圖",
+      "joineryAssembly": "🔩 組裝接合說明",
+      "toolList": "🛠️ 工具清單",
+      "buildSteps": "📋 製作工序",
+      "related": "想做類似的？相關範本"
+    },
+    "noJoinery": {
+      "h": "📐 無榫卯組裝方式（擇一或混用）",
+      "row1Lead": "斜孔螺絲",
+      "row1Body": "—— 板材垂直接合（頂板↔側板、層板↔側板）。用斜孔器夾具鑽 15° 斜孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。",
+      "row2Lead": "木釘拼接",
+      "row2Body": "—— 板材拼寬或結構補強，用木板打孔定位器 + 8mm 木釘。",
+      "row3Lead": "DOMINO 圓榫",
+      "row3Body": "—— 想要更接近榫接強度可用 DOMINO 系統（機具另備）。",
+      "row4Lead": "木工螺絲 + 白膠",
+      "row4Body": "—— 框架類（椅腳↔牙板、橫撐↔椅腳）最簡單。先鑽先導孔避免劈裂。",
+      "row5Lead": "所有接點務必上白膠",
+      "row5Body": "—— 機械緊固 + 膠合才是真正牢固。螺絲木釘只是夾緊工具。",
+      "tools": "建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 夾具×4、砂紙 120/240/400。",
+      "switchHint": "如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選左側「榫接模式」。"
+    },
+    "related": {
+      "linkSuffix": "設計圖 →"
+    },
+    "jsonLd": {
+      "homeCrumb": "首頁",
+      "catalogCrumb": "家具範本",
+      "designCrumb": "{name}設計圖",
+      "howToName": "如何製作{name}：{length}×{width}×{height}mm",
+      "howToDesc": "{name}（{length}×{width}×{height}mm，{material}）的製作工序，含選料、切料、榫接、組裝、塗裝完整步驟。",
+      "shareText": "木頭仁設計：{name} {length}×{width}×{height}mm"
+    }
   }
 }

@@ -531,5 +531,77 @@
       "ctaPrimary": "Start designing →",
       "ctaSecondary": "View plans"
     }
+  },
+  "design": {
+    "metadata": {
+      "notFoundTitle": "Template not found",
+      "titleTemplate": "{name} plans | Enter dimensions, get 3 views, cut list and quote",
+      "descriptionTemplate": "{description}. Enter length × width × height, pick the wood — get auto cut list, 3 views and perspective, A4 printable shop drawings. Made by Wooden Ren Carpenter Academy."
+    },
+    "back": "← Back to templates",
+    "detailedIntro": "Full guide for this {name}",
+    "wipTemplate": "This template is still in development; only the square stool is currently supported.",
+    "header": {
+      "piecesCount": "{count} parts",
+      "weightApprox": "≈ {kg} kg",
+      "weightTitle": "Actual weight = part volume × wood density + 12% packaging",
+      "quoteBtn": "💰 Generate quote",
+      "printBtn": "🖨️ Print / PDF"
+    },
+    "clamp": {
+      "title": "Free-plan size cap reached — auto-clamped",
+      "row": "{dim}: {from} mm → {to} mm",
+      "footer": "Need it bigger? Turn on Designer Mode to enter custom mm sizes —",
+      "upgrade": "Upgrade to Pro →",
+      "dimWidth": "Width",
+      "dimDepth": "Depth",
+      "dimHeight": "Height",
+      "dimDiameter": "Diameter"
+    },
+    "warnings": {
+      "title": "Some parameters had issues (auto-corrected for the render):"
+    },
+    "section": {
+      "perspective": "Perspective",
+      "perspectiveHint": "3D · drag to rotate, scroll to zoom",
+      "threeView": "Engineering views",
+      "threeViewHint": "Dimensions shown shoulder-to-shoulder, post-assembly visible",
+      "cutList": "🪵 Cut list",
+      "cutListHint": "{count} parts · cut sizes include tenon stock",
+      "cutListNotice": "Cut sizes include tenon length. Mortises do not affect outer part dimensions.",
+      "cutPlanBtn": "🪚 Cut plan",
+      "preview3d": "3D preview (highlights the selected part)",
+      "joineryDetail": "🪚 Joinery details",
+      "joineryAssembly": "🔩 Assembly notes",
+      "toolList": "🛠️ Tool list",
+      "buildSteps": "📋 Build steps",
+      "related": "Want to build something similar? Related templates"
+    },
+    "noJoinery": {
+      "h": "📐 Mortise-free assembly options (pick one or combine)",
+      "row1Lead": "Pocket screws",
+      "row1Body": " — vertical board joints (top↔side, shelf↔side). Drill 15° pocket holes with a jig and screw in from the hidden face — no exposed screw heads.",
+      "row2Lead": "Dowel joinery",
+      "row2Body": " — edge-glue panels or reinforce structure with a doweling jig + 8 mm dowels.",
+      "row3Lead": "DOMINO loose tenons",
+      "row3Body": " — closer to true mortise-and-tenon strength using a DOMINO joiner (separate machine required).",
+      "row4Lead": "Wood screws + glue",
+      "row4Body": " — easiest for frame work (leg↔apron, stretcher↔leg). Pre-drill pilot holes to avoid splitting.",
+      "row5Lead": "Always glue every joint",
+      "row5Body": " — mechanical fasteners + adhesive is what holds it. Screws and dowels just clamp while the glue cures.",
+      "tools": "Suggested tools: pocket-hole jig, doweling jig, drill, drill bit set, PVA wood glue, 4× F-clamps, 120/240/400 grit sandpaper.",
+      "switchHint": "Want traditional mortise-and-tenon (with detail drawings and finer steps)? Toggle Joinery mode on the left."
+    },
+    "related": {
+      "linkSuffix": "plans →"
+    },
+    "jsonLd": {
+      "homeCrumb": "Home",
+      "catalogCrumb": "Furniture templates",
+      "designCrumb": "{name} plans",
+      "howToName": "How to build a {name}: {length}×{width}×{height} mm",
+      "howToDesc": "Full build steps for a {name} ({length}×{width}×{height} mm, {material}): stock selection, cutting, joinery, assembly, finishing.",
+      "shareText": "Wooden Ren design: {name} {length}×{width}×{height} mm"
+    }
   }
 }

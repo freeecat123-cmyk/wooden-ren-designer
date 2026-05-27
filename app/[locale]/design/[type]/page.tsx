@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getTemplate } from "@/lib/templates";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { routing, type Locale } from "@/i18n/routing";
+import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
@@ -63,7 +65,7 @@ import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 
 interface PageProps {
-  params: Promise<{ type: string }>;
+  params: Promise<{ locale: string; type: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
@@ -71,13 +73,15 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: Promise<{ type: string }>;
+  params: Promise<{ locale: string; type: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { type } = await params;
+  const { locale: rawLocale, type } = await params;
+  const locale: Locale = (rawLocale as Locale) ?? routing.defaultLocale;
   const sp = await searchParams;
   const entry = getTemplate(type as FurnitureCategory);
-  if (!entry) return { title: "找不到家具範本" };
+  const tMeta = await getTranslations({ locale, namespace: "design.metadata" });
+  if (!entry) return { title: tMeta("notFoundTitle") };
 
   const ogParams = new URLSearchParams({ type: entry.category });
   for (const k of ["length", "width", "height", "material", "style"]) {
@@ -85,11 +89,16 @@ export async function generateMetadata({
     if (typeof v === "string" && v) ogParams.set(k, v);
   }
   const ogImage = `/api/og?${ogParams.toString()}`;
-  const canonical = `/design/${entry.category}`;
+  const isDefault = locale === routing.defaultLocale;
+  const canonical = isDefault
+    ? `/design/${entry.category}`
+    : `/${locale}/design/${entry.category}`;
   const shareUrl = ogParams.toString() ? `${canonical}?${ogParams.toString().replace(/^type=[^&]+&?/, "")}` : canonical;
 
-  const title = `${entry.nameZh}設計圖｜輸入尺寸自動產出三視圖、材料單、報價`;
-  const description = `${entry.description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖紙。木頭仁木匠學院出品。`;
+  const entryName = getEntryName(entry, locale);
+  const entryDesc = getEntryDescription(entry, locale) ?? "";
+  const title = tMeta("titleTemplate", { name: entryName });
+  const description = tMeta("descriptionTemplate", { name: entryName, description: entryDesc });
   // 跟 app/sitemap.ts 同一份名單：尚未完成的模板從 sitemap 拿掉，但頁面仍可訪
   // 問。這裡同步加 robots noindex 防止 Google 仍照爬把半成品索引進去。
   const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack"]);
@@ -111,7 +120,10 @@ export async function generateMetadata({
 }
 
 export default async function DesignPage({ params, searchParams }: PageProps) {
-  const { type } = await params;
+  const { locale: rawLocale, type } = await params;
+  const locale: Locale = (rawLocale as Locale) ?? routing.defaultLocale;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "design" });
   const sp = await searchParams;
 
   const entry = getTemplate(type as FurnitureCategory);
@@ -158,11 +170,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-12">
         <Link href="/" className="text-sm text-zinc-500 hover:underline">
-          ← 回家具列表
+          {t("back")}
         </Link>
-        <h1 className="text-2xl font-bold mt-4">{entry.nameZh}</h1>
+        <h1 className="text-2xl font-bold mt-4">{getEntryName(entry, locale)}</h1>
         <p className="mt-3 p-4 bg-amber-50 text-amber-800 rounded-lg">
-          這個家具模板還在開發中，目前先支援「方凳」。
+          {t("wipTemplate")}
         </p>
       </main>
     );
@@ -195,9 +207,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const height = limits ? Math.min(parsed.height, limits.height) : parsed.height;
   const clampedDims: { dim: string; from: number; to: number }[] = [];
   if (limits) {
-    if (parsed.length > limits.length) clampedDims.push({ dim: isRoundCategory ? "直徑" : "寬", from: parsed.length, to: limits.length });
-    if (!isRoundCategory && parsed.width > limits.width) clampedDims.push({ dim: "深", from: parsed.width, to: limits.width });
-    if (parsed.height > limits.height) clampedDims.push({ dim: "高", from: parsed.height, to: limits.height });
+    if (parsed.length > limits.length) clampedDims.push({ dim: isRoundCategory ? t("clamp.dimDiameter") : t("clamp.dimWidth"), from: parsed.length, to: limits.length });
+    if (!isRoundCategory && parsed.width > limits.width) clampedDims.push({ dim: t("clamp.dimDepth"), from: parsed.width, to: limits.width });
+    if (parsed.height > limits.height) clampedDims.push({ dim: t("clamp.dimHeight"), from: parsed.height, to: limits.height });
   }
 
   // 書桌特例：H 框離地高 server-side clamp 到櫃底以下，讓 form 顯示實際採用值
@@ -291,16 +303,18 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const quoteUrl = `${designUrl}/quote?${printQuery.toString()}`;
   const cutPlanUrl = `${designUrl}/cut-plan?${printQuery.toString()}`;
   const printUrl = `${quoteUrl}&print=1`;
-  const lineShareText = `木頭仁設計：${entry.nameZh} ${length}×${width}×${height}mm`;
+  const entryName = getEntryName(entry, locale);
+  const entryDesc = getEntryDescription(entry, locale) ?? "";
+  const lineShareText = t("jsonLd.shareText", { name: entryName, length, width, height });
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "首頁", item: siteUrl },
-      { "@type": "ListItem", position: 2, name: "家具範本", item: `${siteUrl}/#catalog` },
-      { "@type": "ListItem", position: 3, name: `${entry.nameZh}設計圖`, item: `${siteUrl}/design/${entry.category}` },
+      { "@type": "ListItem", position: 1, name: t("jsonLd.homeCrumb"), item: siteUrl },
+      { "@type": "ListItem", position: 2, name: t("jsonLd.catalogCrumb"), item: `${siteUrl}/#catalog` },
+      { "@type": "ListItem", position: 3, name: t("jsonLd.designCrumb", { name: entryName }), item: `${siteUrl}/design/${entry.category}` },
     ],
   };
 
@@ -315,9 +329,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const howToJsonLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: `如何製作${entry.nameZh}：${length}×${width}×${height}mm`,
-    description: `${entry.nameZh}（${length}×${width}×${height}mm，${MATERIALS[material].nameZh}）的製作工序，含選料、切料、榫接、組裝、塗裝完整步驟。`,
-    inLanguage: "zh-TW",
+    name: t("jsonLd.howToName", { name: entryName, length, width, height }),
+    description: t("jsonLd.howToDesc", { name: entryName, length, width, height, material: MATERIALS[material].nameZh }),
+    inLanguage: locale === "en" ? "en" : "zh-TW",
     ...(totalMinutes > 0 ? { totalTime: `PT${totalMinutes}M` } : {}),
     step: buildStepsForSchema.map((s, i) => ({
       "@type": "HowToStep",
@@ -365,25 +379,26 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     <main className="max-w-7xl mx-auto px-6 py-6">
       <div className="flex items-center gap-4 flex-wrap">
         <Link href="/app" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">
-          <span className="transition-transform group-hover:-translate-x-0.5">←</span> 回家具列表
+          <span className="transition-transform group-hover:-translate-x-0.5">←</span> {t("back").replace(/^← ?/, "")}
         </Link>
-        {FEATURED_TEMPLATE_CATEGORIES.includes(entry.category) && (
+        {/* /templates/[type] 只在 zh-TW 存在（marketing.ts 還沒翻），/en 不顯示這個連結 */}
+        {locale === routing.defaultLocale && FEATURED_TEMPLATE_CATEGORIES.includes(entry.category) && (
           <Link href={`/templates/${entry.category}`} className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 transition-colors">
             <span aria-hidden>📖</span>
-            這支{entry.nameZh}的詳細介紹
+            {t("detailedIntro", { name: entryName })}
           </Link>
         )}
       </div>
 
       <header className="mt-3 mb-5 rounded-2xl border border-amber-200/70 bg-white/80 shadow-sm shadow-amber-900/5 px-5 py-4 flex items-center justify-between flex-wrap gap-4">
         <div className="min-w-0">
-          <h1 className="font-serif-tc text-[1.7rem] leading-tight font-bold tracking-tight text-zinc-900">{entry.nameZh}</h1>
+          <h1 className="font-serif-tc text-[1.7rem] leading-tight font-bold tracking-tight text-zinc-900">{entryName}</h1>
           <p className="mt-1.5 text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span>{entry.description}</span>
+            <span>{entryDesc}</span>
             <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{length} × {width} × {height} mm</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{MATERIALS[material].nameZh}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{design.parts.length} 件</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title="實重 = 各部件 體積×木材密度 + 12% 包裝重">約 {estimateWeight(design)} kg</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.length })}</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title={t("header.weightTitle")}>{t("header.weightApprox", { kg: estimateWeight(design) })}</span>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -398,7 +413,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           {/* <PhotoToParamsButton /> */}
           <SaveDesignButton
             furnitureType={type}
-            defaultName={`${entry.nameZh} ${length}×${width}×${height}`}
+            defaultName={`${entryName} ${length}×${width}×${height}`}
             params={{
               length,
               width,
@@ -413,14 +428,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             target="_blank"
             className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-emerald-900/20 hover:bg-emerald-800 hover:shadow-md transition-all"
           >
-            💰 產生報價
+            {t("header.quoteBtn")}
           </Link>
           <Link
             href={`/design/${type}/print?${printQuery.toString()}`}
             target="_blank"
             className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-medium shadow-sm shadow-black/20 hover:bg-zinc-700 hover:shadow-md transition-all"
           >
-            🖨️ 列印 / PDF
+            {t("header.printBtn")}
           </Link>
         </div>
       </header>
@@ -430,18 +445,18 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <div className="flex items-start gap-2">
             <span className="text-base leading-none mt-0.5">🔒</span>
             <div className="flex-1">
-              <div className="font-semibold mb-1">已達免費版尺寸上限——已自動縮回</div>
+              <div className="font-semibold mb-1">{t("clamp.title")}</div>
               <ul className="list-disc pl-5 space-y-0.5 text-xs">
                 {clampedDims.map((c) => (
                   <li key={c.dim}>
-                    {c.dim}：{c.from} mm <span className="text-rose-500">→</span> {c.to} mm
+                    {c.dim}: {c.from} mm <span className="text-rose-500">→</span> {c.to} mm
                   </li>
                 ))}
               </ul>
               <div className="mt-2 text-xs">
-                想做更大尺寸？開啟「設計師模式」自由輸入到 mm 級——
+                {t("clamp.footer")}
                 <Link href="/pricing" className="font-semibold underline hover:text-rose-700">
-                  升級專業版 →
+                  {t("clamp.upgrade")}
                 </Link>
               </div>
             </div>
@@ -454,7 +469,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <div className="flex items-start gap-2">
             <span className="text-base leading-none mt-0.5">⚠️</span>
             <div className="flex-1">
-              <div className="font-semibold mb-1">設計參數有問題（已自動修正後續渲染）：</div>
+              <div className="font-semibold mb-1">{t("warnings.title")}</div>
               <ul className="list-disc pl-5 space-y-0.5 text-xs">
                 {design.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
@@ -488,8 +503,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <div className="rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
               <span className="w-1 h-4 bg-amber-500 rounded-full" />
-              透視圖
-              <span className="text-[10px] font-normal text-zinc-400">3D · 拖曳旋轉、滾輪縮放</span>
+              {t("section.perspective")}
+              <span className="text-[10px] font-normal text-zinc-400">{t("section.perspectiveHint")}</span>
             </div>
             <SceneThemeToggle current={sceneId} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
@@ -532,9 +547,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       <section data-section="threeview" className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-1 h-4 bg-amber-500 rounded-full" />
-          工程三視圖
+          {t("section.threeView")}
           <span className="ml-auto text-[10px] font-normal text-zinc-400">
-            標示為組裝後肩到肩可見尺寸
+            {t("section.threeViewHint")}
           </span>
         </div>
         <div className="p-3">
@@ -557,20 +572,20 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <summary className="cursor-pointer list-none rounded-t-2xl px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            🪵 材料單
-            <span className="text-[10px] font-normal text-zinc-400">{design.parts.length} 件 · 切料尺寸已含榫頭</span>
+            {t("section.cutList")}
+            <span className="text-[10px] font-normal text-zinc-400">{t("section.cutListHint", { count: design.parts.length })}</span>
           </span>
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
         <div className="border-t border-amber-100">
           <div className="px-4 py-2.5 bg-amber-50/40 border-b border-amber-100 flex items-center justify-between text-[11px] text-zinc-500">
-            <span>切料尺寸已含榫頭凸出長度。母榫（凹）不影響零件外形尺寸。</span>
+            <span>{t("section.cutListNotice")}</span>
             <Link
               href={`/design/${type}/cut-plan?${printQuery.toString()}`}
               target="_blank"
               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 text-white rounded-lg text-[11px] font-medium shadow-sm shadow-amber-900/20 hover:bg-amber-700 hover:shadow-md transition-all"
             >
-              🪚 裁切計算器
+              {t("section.cutPlanBtn")}
             </Link>
           </div>
           {/* desktop 雙欄：左清單右 sticky 3D；mobile 單欄 + Material3dPip 浮窗 */}
@@ -584,7 +599,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                 <div className="rounded-xl border border-amber-200/70 bg-white shadow-sm overflow-hidden">
                   <div className="px-3 py-2 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-[11px] font-semibold text-zinc-700 flex items-center gap-2">
                     <span className="w-1 h-3.5 bg-amber-500 rounded-full" />
-                    3D 預覽（同步高亮選中零件）
+                    {t("section.preview3d")}
                   </div>
                   <SceneThemeToggle current={sceneId} />
                   <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
@@ -605,7 +620,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {joineryMode ? "🪚 榫卯細節圖" : "🔩 組裝接合說明"}
+            {joineryMode ? t("section.joineryDetail") : t("section.joineryAssembly")}
           </span>
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
@@ -614,19 +629,19 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <JoinerySection design={design} />
           ) : (
             <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
-              <p className="font-semibold mb-2">📐 無榫卯組裝方式（擇一或混用）</p>
+              <p className="font-semibold mb-2">{t("noJoinery.h")}</p>
               <ul className="space-y-1.5 list-disc list-inside ml-1">
-                <li><b>斜孔螺絲</b>—— 板材垂直接合（頂板↔側板、層板↔側板）。用斜孔器夾具鑽 15° 斜孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。</li>
-                <li><b>木釘拼接</b>—— 板材拼寬或結構補強，用木板打孔定位器 + 8mm 木釘。</li>
-                <li><b>DOMINO 圓榫</b>—— 想要更接近榫接強度可用 DOMINO 系統（機具另備）。</li>
-                <li><b>木工螺絲 + 白膠</b>—— 框架類（椅腳↔牙板、橫撐↔椅腳）最簡單。先鑽先導孔避免劈裂。</li>
-                <li><b>所有接點務必上白膠</b>—— 機械緊固 + 膠合才是真正牢固。螺絲木釘只是夾緊工具。</li>
+                <li><b>{t("noJoinery.row1Lead")}</b>{t("noJoinery.row1Body")}</li>
+                <li><b>{t("noJoinery.row2Lead")}</b>{t("noJoinery.row2Body")}</li>
+                <li><b>{t("noJoinery.row3Lead")}</b>{t("noJoinery.row3Body")}</li>
+                <li><b>{t("noJoinery.row4Lead")}</b>{t("noJoinery.row4Body")}</li>
+                <li><b>{t("noJoinery.row5Lead")}</b>{t("noJoinery.row5Body")}</li>
               </ul>
               <p className="mt-3 text-xs text-emerald-700">
-                建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 夾具×4、砂紙 120/240/400。
+                {t("noJoinery.tools")}
               </p>
               <p className="mt-2 text-xs text-emerald-600">
-                如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選左側「榫接模式」。
+                {t("noJoinery.switchHint")}
               </p>
             </div>
           )}
@@ -637,7 +652,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            🛠️ 工具清單
+            {t("section.toolList")}
           </span>
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
@@ -650,7 +665,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            📋 製作工序
+            {t("section.buildSteps")}
           </span>
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
@@ -664,7 +679,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <section className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/40 px-5 py-4">
           <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2 mb-3">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            想做類似的？相關範本
+            {t("section.related")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {relatedTemplates.map((r) => (
@@ -676,10 +691,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                 className="group rounded-xl bg-white ring-1 ring-amber-900/10 px-4 py-3 hover:ring-amber-400 hover:shadow-md transition"
               >
                 <div className="font-semibold text-zinc-900 group-hover:text-amber-800 transition">
-                  {r.nameZh}設計圖 →
+                  {getEntryName(r, locale)} {t("related.linkSuffix")}
                 </div>
                 <div className="mt-1 text-xs text-zinc-500 line-clamp-2">
-                  {r.description}
+                  {getEntryDescription(r, locale) ?? ""}
                 </div>
               </Link>
             ))}
