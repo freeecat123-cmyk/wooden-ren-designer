@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Link } from "@/i18n/navigation";
+import { bilingualAlternates } from "@/i18n/metadata";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -56,7 +57,7 @@ export async function generateMetadata({
     title: marketing.seoTitle,
     description: marketing.seoDescription,
     keywords: marketing.keywords,
-    alternates: { canonical: `${pathPrefix}/templates/${type}` },
+    alternates: bilingualAlternates(`/templates/${type}`, locale),
     openGraph: {
       type: "article",
       locale: locale === "en" ? "en" : "zh_TW",
@@ -294,16 +295,18 @@ export default async function TemplateDetail({ params }: PageProps) {
                       className="object-contain p-2"
                     />
                   </div>
-                  <figcaption className="p-5 border-t border-amber-100 bg-amber-50">
-                    <div className="font-bold text-zinc-900 mb-1">
-                      {g.label}
-                    </div>
-                    {g.desc && (
-                      <div className="text-sm text-zinc-600 leading-relaxed">
-                        {g.desc}
+                  {!isEn && (
+                    <figcaption className="p-5 border-t border-amber-100 bg-amber-50">
+                      <div className="font-bold text-zinc-900 mb-1">
+                        {g.label}
                       </div>
-                    )}
-                  </figcaption>
+                      {g.desc && (
+                        <div className="text-sm text-zinc-600 leading-relaxed">
+                          {g.desc}
+                        </div>
+                      )}
+                    </figcaption>
+                  )}
                 </figure>
               ))}
             </div>
@@ -311,8 +314,8 @@ export default async function TemplateDetail({ params }: PageProps) {
         </section>
       )}
 
-      {/* ============ 設計重點 Highlights ============ */}
-      {highlights && highlights.length > 0 && (
+      {/* ============ 設計重點 Highlights(EN 暫不翻譯,hide;v2 補) ============ */}
+      {!isEn && highlights && highlights.length > 0 && (
         <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
             {t("highlightsH2")}

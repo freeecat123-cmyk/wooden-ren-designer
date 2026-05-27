@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LemonSqueezyPricingClient } from "@/components/LemonSqueezyPricingClient";
 import { PricingClient } from "@/components/PricingClient";
 import { routing, type Locale } from "@/i18n/routing";
+import { bilingualAlternates } from "@/i18n/metadata";
 import {
   isSellableFurniture,
   isSellableTool,
@@ -16,13 +17,14 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const alt = bilingualAlternates("/pricing", locale);
 
   if (locale !== routing.defaultLocale) {
     const t = await getTranslations({ locale, namespace: "pricingStub.metadata" });
     return {
       title: t("title"),
       description: t("description"),
-      alternates: { canonical: `/${locale}/pricing` },
+      alternates: alt,
     };
   }
 
@@ -30,12 +32,12 @@ export async function generateMetadata({
     title: "方案與訂閱｜木頭仁 木作藍圖",
     description:
       "個人 390、專業 890、學員 2 年免費。月付 / 年付兩種選擇，從免費試用到接案專業版。木頭仁木匠學院出品。",
-    alternates: { canonical: "/pricing" },
+    alternates: alt,
     openGraph: {
       title: "方案與訂閱｜木頭仁 木作藍圖",
       description:
         "個人 390、專業 890、學員 2 年免費。月付 / 年付兩種選擇，從免費試用到接案專業版。",
-      url: "/pricing",
+      url: alt.canonical,
       images: [{ url: "/og.png", width: 1200, height: 630 }],
     },
   };

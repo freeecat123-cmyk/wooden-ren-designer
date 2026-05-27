@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -120,6 +121,8 @@ const CHANGELOG: ChangelogEntry[] = [
 
 export default async function ChangelogPage({ params }: PageProps) {
   const { locale } = await params;
+  // Changelog entries are historical zh-TW records; EN site doesn't render them.
+  if (locale === "en") notFound();
   const t = await getTranslations({ locale, namespace: "changelog" });
   const badgeStyle: Record<ChangelogEntry["badge"], { label: string; cls: string }> = {
     new: { label: t("badgeNew"), cls: "bg-emerald-100 ring-emerald-300 text-emerald-800" },

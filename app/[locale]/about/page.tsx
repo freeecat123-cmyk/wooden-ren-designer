@@ -7,6 +7,7 @@ import {
 } from "@/lib/pricing/template-unlock";
 import { AcademyPromoBanner } from "@/components/AcademyPromoBanner";
 import { Link } from "@/i18n/navigation";
+import { bilingualAlternates } from "@/i18n/metadata";
 import { routing, type Locale } from "@/i18n/routing";
 
 export async function generateMetadata({
@@ -16,15 +17,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "about.metadata" });
-  const canonicalPath = locale === routing.defaultLocale ? "/about" : `/${locale}/about`;
+  const alt = bilingualAlternates("/about", locale);
   return {
     title: t("title"),
     description: t("description"),
-    alternates: { canonical: canonicalPath },
+    alternates: alt,
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),
-      url: canonicalPath,
+      url: alt.canonical,
       type: "website",
       images: [{ url: "/og.png", width: 1200, height: 630 }],
     },

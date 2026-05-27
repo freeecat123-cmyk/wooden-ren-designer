@@ -1,4 +1,5 @@
 import { Link } from "@/i18n/navigation";
+import { bilingualAlternates } from "@/i18n/metadata";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
@@ -29,7 +30,7 @@ export async function generateMetadata({
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: { canonical: "/app" },
+    alternates: bilingualAlternates("/app", locale),
   };
 }
 

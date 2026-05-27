@@ -1,4 +1,5 @@
 import { Link } from "@/i18n/navigation";
+import { bilingualAlternates } from "@/i18n/metadata";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -36,11 +37,10 @@ export async function generateMetadata({
     locale,
     namespace: "landing.metadata",
   });
-  const canonicalPath = locale === routing.defaultLocale ? "/" : `/${locale}`;
   return {
     title: t("title"),
     description: t("description"),
-    alternates: { canonical: canonicalPath },
+    alternates: bilingualAlternates("/", locale),
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),
