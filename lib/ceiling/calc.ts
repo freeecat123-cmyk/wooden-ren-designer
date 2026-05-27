@@ -38,7 +38,11 @@ const EPS = 0.01; // cm, 浮點容差
 /**
  * 主入口:輸入 → 完整 BOM + 中間 trace
  */
-export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
+export function computeCeilingBom(
+  rawInput: CeilingInput,
+  locale: string = "zh-TW",
+): CeilingBom {
+  const isEn = locale === "en";
   // 自動依板規算間距(若 useAutoSpacing=true):
   //   mainSpacing = boardShortCm + jointGap (cm)  // 板放間距裡 + 接縫
   //   subSpacing  = boardLongCm / round(boardLongCm / 36) // 板長均分,目標 ~36cm
@@ -69,10 +73,14 @@ export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
   items.push({
     category: "frame",
     nameZh: "邊框角材",
+    nameEn: "Perimeter furring",
     spec: `${input.timberWidthCm}×${input.timberThicknessCm} cm`,
     totalLengthM: cmToM(frameTotalCm),
     count: 1, // 視為一整套(總長表示)
     note: `周長 = 2 × (${input.longSideCm} + ${input.shortSideCm}) = ${frameTotalCm} cm`,
+    noteEn: isEn
+      ? `Perimeter = 2 × (${input.longSideCm} + ${input.shortSideCm}) = ${frameTotalCm} cm`
+      : undefined,
   });
 
   // ────── 主支 ──────
@@ -80,12 +88,18 @@ export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
     items.push({
       category: "main-joist",
       nameZh: "主支角材",
+      nameEn: "Main joists",
       spec: `${input.timberWidthCm}×${input.timberThicknessCm} cm`,
       unitLengthCm: round1(layout.mainJoistLengthCm),
       count: layout.mainJoistTimberCount,
       note: input.frameDoublesAsSupport
         ? `主支位置 ${layout.mainPositionCount} 處,扣除與邊框重疊 ${layout.mainPositionCount - layout.mainJoistTimberCount} 處 = ${layout.mainJoistTimberCount} 支`
         : `主支根數 = floor(${input.longSideCm} / ${input.mainSpacingCm}) + 1 = ${layout.mainPositionCount} 支`,
+      noteEn: isEn
+        ? input.frameDoublesAsSupport
+          ? `${layout.mainPositionCount} main-joist positions, minus ${layout.mainPositionCount - layout.mainJoistTimberCount} that overlap the frame = ${layout.mainJoistTimberCount} pieces`
+          : `Main joist count = floor(${input.longSideCm} / ${input.mainSpacingCm}) + 1 = ${layout.mainPositionCount} pieces`
+        : undefined,
     });
   }
 
@@ -109,6 +123,7 @@ export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
     items.push({
       category: "sub-joist",
       nameZh: "副支角材",
+      nameEn: "Sub-joists",
       spec: `${input.timberWidthCm}×${input.timberThicknessCm} cm`,
       unitLengthCm: r.length,
       count: r.count,
@@ -121,13 +136,21 @@ export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
   items.push({
     category: "hanger",
     nameZh: "吊筋",
-    spec: `長度 ${round1(auto.hangerHeightCm)} cm (=板高 − 天花板高)`,
+    nameEn: "Hangers",
+    spec: isEn
+      ? `Length ${round1(auto.hangerHeightCm)} cm (= slab height − ceiling height)`
+      : `長度 ${round1(auto.hangerHeightCm)} cm (=板高 − 天花板高)`,
     unitLengthCm: round1(auto.hangerHeightCm),
     count: totalHangers,
     note:
       input.hangerDensity === "standard"
         ? `業界標準:每主支 floor(${round1(layout.mainJoistLengthCm)} / ${input.hangerSpacingCm}) + 1 = ${hangerPerMainJoist} 支 × ${layout.mainJoistTimberCount} 主支 = ${totalHangers} 支(邊框固定點另計)`
         : `圖示版:每主支 2 支 × ${layout.mainJoistTimberCount} 主支 = ${totalHangers} 支(邊框固定點另計)`,
+    noteEn: isEn
+      ? input.hangerDensity === "standard"
+        ? `Standard: per main joist floor(${round1(layout.mainJoistLengthCm)} / ${input.hangerSpacingCm}) + 1 = ${hangerPerMainJoist} × ${layout.mainJoistTimberCount} joists = ${totalHangers} (perimeter anchors counted separately)`
+        : `Diagram-spec: 2 hangers per main joist × ${layout.mainJoistTimberCount} joists = ${totalHangers} (perimeter anchors counted separately)`
+      : undefined,
   });
 
   // ────── 矽酸鈣板 ──────
@@ -136,18 +159,28 @@ export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
     items.push({
       category: "board-full",
       nameZh: "矽酸鈣板(整張)",
+      nameEn: "Calcium silicate board (full)",
       spec: `${input.boardShortCm}×${input.boardLongCm} cm`,
       count: boardCalc.fullCount,
       note: `${boardCalc.fullCols} 全寬欄 × ${boardCalc.fullRows} 全長列 = ${boardCalc.fullCount} 張`,
+      noteEn: isEn
+        ? `${boardCalc.fullCols} full-width cols × ${boardCalc.fullRows} full-length rows = ${boardCalc.fullCount} sheets`
+        : undefined,
     });
   }
   if (boardCalc.cutCount > 0) {
     items.push({
       category: "board-cut",
       nameZh: "矽酸鈣板(裁切)",
-      spec: `${input.boardShortCm}×${input.boardLongCm} cm 剩料`,
+      nameEn: "Calcium silicate board (cut pieces)",
+      spec: isEn
+        ? `${input.boardShortCm}×${input.boardLongCm} cm offcuts`
+        : `${input.boardShortCm}×${input.boardLongCm} cm 剩料`,
       count: boardCalc.cutCount,
       note: `總位置 ${boardCalc.totalPositions} − 全張 ${boardCalc.fullCount} = ${boardCalc.cutCount} 張`,
+      noteEn: isEn
+        ? `Total positions ${boardCalc.totalPositions} − full sheets ${boardCalc.fullCount} = ${boardCalc.cutCount} sheets`
+        : undefined,
     });
   }
 

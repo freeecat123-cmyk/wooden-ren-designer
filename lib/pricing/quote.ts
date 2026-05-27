@@ -192,15 +192,86 @@ function wasteRateFor(category: string): number {
     : WASTE_RATES.default;
 }
 
-function materialLabel(m: BillableMaterial): string {
+function materialLabel(m: BillableMaterial, locale: string = "zh-TW"): string {
   if (m === "plywood" || m === "mdf") return SHEET_GOOD_LABEL[m];
-  return MATERIALS[m]?.nameZh ?? m;
+  const spec = MATERIALS[m];
+  if (!spec) return m;
+  return locale === "en" ? spec.nameEn : spec.nameZh;
 }
+
+const QUOTE_COPY = {
+  zhTW: {
+    materialPrefix: "材料｜",
+    primarySuffix: "（主材）",
+    panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
+      `${bdft} 板才（含 ${waste}% 切料損耗）× NT$${unitPrice}/板才`,
+    sheetMaterial: (label: string, thickness: number) =>
+      `材料｜${label}（板材，${thickness}mm）`,
+    sheetDetail: (sheets: number, thickness: number, areaM2: string, waste: number, unitPrice: number) =>
+      `${sheets} 張 ${thickness}mm × 2440×1220mm（實用 ${areaM2} m² + ${waste}% 切料損耗 → ceil 成整張）× NT$${unitPrice}/板才`,
+    labor: "加工工資",
+    laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
+      `${hours} 小時（手動覆寫;自動估 ${autoHours}h）× NT$${rate}/hr`,
+    laborDetailChamfer: (base: string, ch: string, chDetail: string, rate: number) =>
+      `主工時 ${base}h + 倒角 ${ch}h(${chDetail})× NT$${rate}/hr`,
+    laborDetailBasic: (hours: string, rate: number) => `${hours} 小時 × NT$${rate}/hr`,
+    equipment: "設備折舊",
+    equipmentDetail: (hours: string, rate: number) => `${hours} 小時 × NT$${rate}/hr`,
+    consumables: "耗材",
+    consumablesDetail: "膠、砂紙、鑽頭磨耗等",
+    finishing: "塗裝費",
+    finishingDetail: "護木油 / 蠟 / 漆料 + 上漆工時",
+    hardware: "五金",
+    hardwareDetail: "鉸鏈 / 滑軌 / 把手 / 腳輪等",
+    shipping: "運費",
+    shippingDetail: "跨區運輸 / 物流 / 搬運",
+    installation: "安裝費",
+    installationDetail: "現場組裝 / 上牆 / 水平調整",
+    chamferRound: (m: string) => `45° 倒角 ${m}m`,
+    chamferRounded: (m: string) => `圓角 ${m}m`,
+    chamferConfigs: (n: number) => `${n} 種規格 setup`,
+    chamferJoin: "、",
+  },
+  en: {
+    materialPrefix: "Material · ",
+    primarySuffix: " (primary)",
+    panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
+      `${bdft} bd-ft (incl. ${waste}% cut waste) × NT$${unitPrice}/bd-ft`,
+    sheetMaterial: (label: string, thickness: number) =>
+      `Material · ${label} (sheet, ${thickness}mm)`,
+    sheetDetail: (sheets: number, thickness: number, areaM2: string, waste: number, unitPrice: number) =>
+      `${sheets} sheets ${thickness}mm × 2440×1220mm (used ${areaM2} m² + ${waste}% waste → ceil to full sheets) × NT$${unitPrice}/bd-ft`,
+    labor: "Labor",
+    laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
+      `${hours} hr (manual override; auto-est ${autoHours}h) × NT$${rate}/hr`,
+    laborDetailChamfer: (base: string, ch: string, chDetail: string, rate: number) =>
+      `Build ${base}h + edge profiling ${ch}h (${chDetail}) × NT$${rate}/hr`,
+    laborDetailBasic: (hours: string, rate: number) => `${hours} hr × NT$${rate}/hr`,
+    equipment: "Equipment depreciation",
+    equipmentDetail: (hours: string, rate: number) => `${hours} hr × NT$${rate}/hr`,
+    consumables: "Consumables",
+    consumablesDetail: "Glue, sandpaper, bit wear, etc.",
+    finishing: "Finishing",
+    finishingDetail: "Wood oil / wax / paint + finishing labor",
+    hardware: "Hardware",
+    hardwareDetail: "Hinges / slides / pulls / casters",
+    shipping: "Shipping",
+    shippingDetail: "Long-haul / logistics / moving",
+    installation: "Installation",
+    installationDetail: "On-site assembly / wall-mount / leveling",
+    chamferRound: (m: string) => `45° chamfer ${m}m`,
+    chamferRounded: (m: string) => `Rounded ${m}m`,
+    chamferConfigs: (n: number) => `${n} setup configs`,
+    chamferJoin: ", ",
+  },
+} as const;
 
 export function calculateQuote(
   design: FurnitureDesign,
   opts: LaborDefaults,
+  locale: string = "zh-TW",
 ): QuoteBreakdown {
+  const C = locale === "en" ? QUOTE_COPY.en : QUOTE_COPY.zhTW;
   // 1. 按計價材料分組加總材積
   // 使用者若把夾板/中纖板單價清空（null），該類零件併回主材一起計
   // 視覺裝飾（玻璃）不計入木料成本
@@ -265,10 +336,10 @@ export function calculateQuote(
     }
 
     const amount = bdft * unitPrice;
-    const suffix = mat === design.primaryMaterial ? "（主材）" : "";
+    const suffix = mat === design.primaryMaterial ? C.primarySuffix : "";
     materialLines.push({
-      label: `材料｜${materialLabel(mat)}${suffix}`,
-      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(wasteRate * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
+      label: `${C.materialPrefix}${materialLabel(mat, locale)}${suffix}`,
+      detail: C.panelDetailTpl(bdft.toFixed(2), Math.round(wasteRate * 100), unitPrice),
       amount,
     });
     materialCost += amount;
@@ -291,8 +362,14 @@ export function calculateQuote(
     const amount = bdft * unitPrice;
 
     materialLines.push({
-      label: `材料｜${materialLabel(mat)}（板材，${thickness}mm）`,
-      detail: `${sheetsNeeded} 張 ${thickness}mm × 2440×1220mm（實用 ${(totalAreaMm2 / 1e6).toFixed(2)} m² + ${Math.round(wasteRate * 100)}% 切料損耗 → ceil 成整張）× NT$${unitPrice}/板才`,
+      label: C.sheetMaterial(materialLabel(mat, locale), thickness),
+      detail: C.sheetDetail(
+        sheetsNeeded,
+        thickness,
+        (totalAreaMm2 / 1e6).toFixed(2),
+        Math.round(wasteRate * 100),
+        unitPrice,
+      ),
       amount,
     });
     materialCost += amount;
@@ -369,50 +446,55 @@ export function calculateQuote(
     chamferLabor.hours > 0
       ? [
           chamferLabor.totalMmChamfered > 0
-            ? `45° 倒角 ${(chamferLabor.totalMmChamfered / 1000).toFixed(1)}m`
+            ? C.chamferRound((chamferLabor.totalMmChamfered / 1000).toFixed(1))
             : "",
           chamferLabor.totalMmRounded > 0
-            ? `圓角 ${(chamferLabor.totalMmRounded / 1000).toFixed(1)}m`
+            ? C.chamferRounded((chamferLabor.totalMmRounded / 1000).toFixed(1))
             : "",
           chamferLabor.uniqueConfigs > 0
-            ? `${chamferLabor.uniqueConfigs} 種規格 setup`
+            ? C.chamferConfigs(chamferLabor.uniqueConfigs)
             : "",
         ]
           .filter(Boolean)
-          .join("、")
+          .join(C.chamferJoin)
       : "";
 
   const lines: QuoteLineItem[] = [
     ...materialLines,
     {
-      label: "加工工資",
+      label: C.labor,
       detail: hasHoursOverride
-        ? `${laborHours.toFixed(1)} 小時（手動覆寫；自動估 ${autoLaborHours.toFixed(1)}h）× NT$${opts.hourlyRate}/hr`
+        ? C.laborDetailOverride(laborHours.toFixed(1), autoLaborHours.toFixed(1), opts.hourlyRate)
         : chamferLabor.hours > 0
-          ? `主工時 ${baseLaborHours.toFixed(1)}h + 倒角 ${chamferLabor.hours.toFixed(1)}h（${chamferDetail}）× NT$${opts.hourlyRate}/hr`
-          : `${laborHours.toFixed(1)} 小時 × NT$${opts.hourlyRate}/hr`,
+          ? C.laborDetailChamfer(
+              baseLaborHours.toFixed(1),
+              chamferLabor.hours.toFixed(1),
+              chamferDetail,
+              opts.hourlyRate,
+            )
+          : C.laborDetailBasic(laborHours.toFixed(1), opts.hourlyRate),
       amount: laborCost,
     },
     {
-      label: "設備折舊",
-      detail: `${laborHours.toFixed(1)} 小時 × NT$${opts.equipmentRate}/hr`,
+      label: C.equipment,
+      detail: C.equipmentDetail(laborHours.toFixed(1), opts.equipmentRate),
       amount: equipmentCost,
     },
     {
-      label: "耗材",
-      detail: "膠、砂紙、鑽頭磨耗等",
+      label: C.consumables,
+      detail: C.consumablesDetail,
       amount: consumables,
     },
     {
-      label: "塗裝費",
-      detail: "護木油 / 蠟 / 漆料 + 上漆工時",
+      label: C.finishing,
+      detail: C.finishingDetail,
       amount: finishingCost,
     },
     ...(hardwareCost > 0
       ? [
           {
-            label: "五金",
-            detail: "鉸鏈 / 滑軌 / 把手 / 腳輪等",
+            label: C.hardware,
+            detail: C.hardwareDetail,
             amount: hardwareCost,
           },
         ]
@@ -420,8 +502,8 @@ export function calculateQuote(
     ...(shippingCost > 0
       ? [
           {
-            label: "運費",
-            detail: "跨區運輸 / 物流 / 搬運",
+            label: C.shipping,
+            detail: C.shippingDetail,
             amount: shippingCost,
           },
         ]
@@ -429,8 +511,8 @@ export function calculateQuote(
     ...(installationCost > 0
       ? [
           {
-            label: "安裝費",
-            detail: "現場組裝 / 上牆 / 水平調整",
+            label: C.installation,
+            detail: C.installationDetail,
             amount: installationCost,
           },
         ]

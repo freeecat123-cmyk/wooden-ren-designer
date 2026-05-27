@@ -58,7 +58,7 @@ interface ToolListProps {
 }
 
 export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
-  const tools = deriveRequiredTools(design);
+  const tools = deriveRequiredTools(design, locale);
   const isEn = locale === "en";
   const categoryLabel = isEn ? CATEGORY_LABEL_EN : CATEGORY_LABEL_ZH;
   const priorityLabel = isEn ? PRIORITY_LABEL_EN : PRIORITY_LABEL_ZH;

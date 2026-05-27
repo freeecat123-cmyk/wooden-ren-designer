@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import {
   calculateQuote,
@@ -63,13 +63,14 @@ export function QuoteShareActions({
   materialName,
 }: Props) {
   const t = useTranslations("quoteShareActions");
+  const locale = useLocale();
   const [copied, setCopied] = useState<CopiedState>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
 
   // 共用：拿到當下表單狀態 + 解析 origin + 短碼。沒設 publicBaseUrl 會 alert 並回 null。
   const prepareShareUrl = async () => {
-    const state = readFormState(design);
+    const state = readFormState(design, locale);
     if (!state) {
       alert(t("alertNoForm"));
       return null;
@@ -153,7 +154,7 @@ export function QuoteShareActions({
   };
 
   const handlePdf = () => {
-    const state = readFormState(design);
+    const state = readFormState(design, locale);
     if (!state) {
       alert(t("alertNoForm"));
       return;
@@ -300,7 +301,7 @@ function parseOptNum(
   return n;
 }
 
-function readFormState(design: FurnitureDesign) {
+function readFormState(design: FurnitureDesign, locale: string = "zh-TW") {
   const form = document.getElementById(FORM_ID) as HTMLFormElement | null;
   if (!form) return null;
   const data = new FormData(form);
@@ -341,7 +342,7 @@ function readFormState(design: FurnitureDesign) {
     email: get("customerEmail") ?? "",
   };
 
-  const quote = calculateQuote(design, opts);
+  const quote = calculateQuote(design, opts, locale);
 
   // quotedAt 鎖定：從 form 拿；沒有就用今天，並把它「凍結」到 params 裡，
   // 讓寄出去的連結帶著這個日期，客人那邊 expiry 不會漂移。

@@ -133,14 +133,29 @@ export type RaisedFloorBomCategory =
 export interface RaisedFloorBomItem {
   category: RaisedFloorBomCategory;
   nameZh: string;
+  /** EN translation (optional — set when computeRaisedFloorBom receives a non-zh locale) */
+  nameEn?: string;
   spec: string;
   /** 數量(片/條) */
   count?: number;
   /** 總長度(m)— joist / skirting */
   totalLengthM?: number;
   note?: string;
+  /** EN translation of note */
+  noteEn?: string;
   /** 此項小計(NT$);未報價=undefined */
   subtotal?: number;
+}
+
+/** Locale-aware accessor for BOM item display name. */
+export function bomItemName(it: RaisedFloorBomItem, locale: string): string {
+  return locale === "en" && it.nameEn ? it.nameEn : it.nameZh;
+}
+
+/** Locale-aware accessor for BOM item note. */
+export function bomItemNote(it: RaisedFloorBomItem, locale: string): string | undefined {
+  if (locale === "en" && it.noteEn) return it.noteEn;
+  return it.note;
 }
 
 export interface RaisedFloorBom {

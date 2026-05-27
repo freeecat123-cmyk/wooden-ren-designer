@@ -17,7 +17,7 @@ const PRIORITY_LABEL_EN: Record<ToolPriority, string> = {
 };
 
 export async function PrintToolList({ design, locale = "zh-TW" }: { design: FurnitureDesign; locale?: string }) {
-  const tools = deriveRequiredTools(design);
+  const tools = deriveRequiredTools(design, locale);
   const isEn = locale === "en";
   const PRIORITY_LABEL = isEn ? PRIORITY_LABEL_EN : PRIORITY_LABEL_ZH;
 

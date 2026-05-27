@@ -91,6 +91,8 @@ export interface BomItem {
     | "board-cut";   // 裁切矽酸鈣板
   /** 中文顯示名(可帶長度/規格) */
   nameZh: string;
+  /** EN translation (filled when computeCeilingBom receives non-zh locale) */
+  nameEn?: string;
   /** 規格描述,例 "3.6×3.0 cm" 或 "90×180 cm" */
   spec: string;
   /** 單支長度(角材用);邊框類用 totalLengthM 而非此欄 */
@@ -101,6 +103,22 @@ export interface BomItem {
   count: number;
   /** 備註(計算過程透明化:給師傅核對用) */
   note?: string;
+  /** EN translation of note */
+  noteEn?: string;
+}
+
+/** Locale-aware BOM item name accessor. */
+export function ceilingBomItemName(it: BomItem, locale: string): string {
+  return locale === "en" && it.nameEn ? it.nameEn : it.nameZh;
+}
+
+/** Locale-aware BOM item note accessor. */
+export function ceilingBomItemNote(
+  it: BomItem,
+  locale: string,
+): string | undefined {
+  if (locale === "en" && it.noteEn) return it.noteEn;
+  return it.note;
 }
 
 export interface CeilingBom {

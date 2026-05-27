@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import {
   DEFAULT_CEILING_INPUT,
@@ -52,9 +52,10 @@ const EMPTY_CUSTOMER: CustomerInfo = { name: "", phone: "", address: "", notes: 
 export function CeilingDevClient() {
   const router = useRouter();
   const t = useTranslations("ceilingTool");
+  const locale = useLocale();
   const fixtureKindLabel = (k: FixtureKind) => t(`fixtureKind.${k}`);
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
-  const bom = useMemo(() => computeCeilingBom(input), [input]);
+  const bom = useMemo(() => computeCeilingBom(input, locale), [input, locale]);
 
   const [viewKind, setViewKind] = useState<"2d" | "3d">("2d");
   const [view3D, setView3D] = useState<ViewMode>("iso");
@@ -491,7 +492,7 @@ export function CeilingDevClient() {
                         "hover:bg-amber-50/30"
                       }`}>
                       <td className="px-4 py-2.5"><CategoryBadge category={it.category} t={t} /></td>
-                      <td className="px-4 py-2.5 text-zinc-900 font-medium">{it.nameZh}</td>
+                      <td className="px-4 py-2.5 text-zinc-900 font-medium">{locale === "en" && it.nameEn ? it.nameEn : it.nameZh}</td>
                       <td className="px-4 py-2.5 text-zinc-600 text-xs">{it.spec}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.unitLengthCm != null ? `${it.unitLengthCm} cm` : t("bom.dash")}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.totalLengthM != null ? `${it.totalLengthM} m` : t("bom.dash")}</td>

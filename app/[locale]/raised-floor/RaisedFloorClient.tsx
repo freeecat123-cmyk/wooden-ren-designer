@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
 import {
@@ -75,8 +75,9 @@ export function RaisedFloorClient() {
     };
     return t(map[c]);
   };
+  const locale = useLocale();
   const [input, setInput] = useState<RaisedFloorInput>(DEFAULT_RAISED_FLOOR_INPUT);
-  const bom = useMemo(() => computeRaisedFloorBom(input), [input]);
+  const bom = useMemo(() => computeRaisedFloorBom(input, locale), [input, locale]);
   const [copied, setCopied] = useState(false);
 
   // 預覽 tab + 3D 控制
@@ -182,7 +183,8 @@ export function RaisedFloorClient() {
               : "";
         const money =
           it.subtotal != null ? `  NT$ ${Math.round(it.subtotal).toLocaleString()}` : "";
-        return `${it.nameZh} ${it.spec}  ${qty}${money}`;
+        const displayName = locale === "en" && it.nameEn ? it.nameEn : it.nameZh;
+        return `${displayName} ${it.spec}  ${qty}${money}`;
       }),
       t("copyDivider"),
       bom.cost.total > 0
@@ -845,7 +847,7 @@ export function RaisedFloorClient() {
                   {bom.items.map((it, i) => (
                     <tr key={i} className="border-b border-zinc-100 align-top">
                       <td className="py-1">
-                        <div className="font-medium">{it.nameZh}</div>
+                        <div className="font-medium">{locale === "en" && it.nameEn ? it.nameEn : it.nameZh}</div>
                         <div className="text-[10px] text-zinc-400">{it.spec}</div>
                       </td>
                       <td className="py-1 text-right whitespace-nowrap">

@@ -176,7 +176,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     sp.beginnerMode === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
-  const quote = calculateQuote(design, laborOpts);
+  const quote = calculateQuote(design, laborOpts, locale);
   const finalDeliveryWorkdays =
     laborOpts.deliveryDaysOverride > 0
       ? laborOpts.deliveryDaysOverride

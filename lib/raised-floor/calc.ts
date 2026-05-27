@@ -19,7 +19,11 @@ import type { FloorInput } from "@/lib/floor/types";
 
 const PING_M2 = 3.305;
 
-export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
+export function computeRaisedFloorBom(
+  input: RaisedFloorInput,
+  locale: string = "zh-TW",
+): RaisedFloorBom {
+  const isEn = locale === "en";
   // 1. 平台多邊形
   const platform = buildPlatformPolygon({
     shape: input.shape,
@@ -156,33 +160,49 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     {
       category: "plank",
       nameZh: "面材(地板片)",
+      nameEn: "Floor planks",
       spec: `${input.plankLengthCm}×${input.plankWidthCm} cm`,
       count: plankTotalCount,
       note: `整片 ${plankFullCount} + 裁切 ${plankCutCount}(實算損耗 ${plankWastePercent.toFixed(1)}%)`,
+      noteEn: isEn
+        ? `${plankFullCount} full + ${plankCutCount} cut (waste ${plankWastePercent.toFixed(1)}%)`
+        : undefined,
       subtotal: plankCost > 0 ? plankCost : undefined,
     },
     {
       category: "joist",
       nameZh: "主支(骨架)",
+      nameEn: "Main joists (frame)",
       spec: `${input.mainJoist.nameZh} @ ${input.joistSpacingCm}cm`,
       totalLengthM: joistTotalM,
       note: `井字邊框 ${joist.perimeterM.toFixed(1)}m + 中間主支 ${joist.middleCount} 條`,
+      noteEn: isEn
+        ? `Perimeter frame ${joist.perimeterM.toFixed(1)} m + ${joist.middleCount} interior runs`
+        : undefined,
       subtotal: mainJoistCost > 0 ? mainJoistCost : undefined,
     },
     {
       category: "sub-joist",
       nameZh: "副支(密底)",
+      nameEn: "Sub-joists (dense base)",
       spec: `${input.subJoist.nameZh} @ ${input.subJoistSpacingCm}cm`,
       totalLengthM: subJoistTotalM,
       note: `${subJoist.count} 根 × 平均 ${subJoist.typicalLengthCm.toFixed(0)}cm`,
+      noteEn: isEn
+        ? `${subJoist.count} runs × avg ${subJoist.typicalLengthCm.toFixed(0)} cm`
+        : undefined,
       subtotal: subJoistCost > 0 ? subJoistCost : undefined,
     },
     {
       category: "plywood",
       nameZh: "底層夾板",
+      nameEn: "Base plywood",
       spec: `${input.plywood.nameZh} ${input.plywood.sheetLengthCm}×${input.plywood.sheetWidthCm}cm`,
       count: plywoodSheetCount,
       note: `平台 ${platformAreaM2.toFixed(2)}m² ÷ 單片 ${sheetAreaM2.toFixed(2)}m² × 1+${Math.round(input.plywoodWaste * 100)}%損耗`,
+      noteEn: isEn
+        ? `Platform ${platformAreaM2.toFixed(2)} m² ÷ sheet ${sheetAreaM2.toFixed(2)} m² × 1+${Math.round(input.plywoodWaste * 100)}% waste`
+        : undefined,
       subtotal: plywoodCost > 0 ? plywoodCost : undefined,
     },
     {
@@ -193,14 +213,28 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
           : skirtingType === "pvc"
             ? "踢腳板(PVC)"
             : "踢腳/收邊",
+      nameEn:
+        skirtingType === "wood"
+          ? "Baseboard (wood)"
+          : skirtingType === "pvc"
+            ? "Baseboard (PVC)"
+            : "Baseboard / trim",
       spec:
         skirtingType === "none"
-          ? "沿平台周長"
-          : `高 ${input.skirtingHeightCm ?? 8}cm × 沿平台周長`,
+          ? isEn
+            ? "Along platform perimeter"
+            : "沿平台周長"
+          : isEn
+            ? `H ${input.skirtingHeightCm ?? 8} cm × perimeter`
+            : `高 ${input.skirtingHeightCm ?? 8}cm × 沿平台周長`,
       totalLengthM: skirtingLengthM,
       note:
         skirtingType !== "none" && doorCount > 0
           ? `已扣 ${doorCount} 個門洞 × ${doorWidthCm}cm`
+          : undefined,
+      noteEn:
+        isEn && skirtingType !== "none" && doorCount > 0
+          ? `Deducted ${doorCount} door openings × ${doorWidthCm} cm`
           : undefined,
       subtotal: skirtingCost > 0 ? skirtingCost : undefined,
     },
@@ -211,9 +245,13 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     items.push({
       category: "underlay",
       nameZh: "防潮墊",
+      nameEn: "Vapor barrier",
       spec: `${underlay.nameZh} ${underlay.rollAreaM2.toFixed(0)}m²/卷`,
       count: underlayRollCount,
       note: `平台 ${platformAreaM2.toFixed(2)}m² × 1+${Math.round(underlayWaste * 100)}%損耗 → ${underlayRollCount} 卷(${rollM2Total.toFixed(0)}m²)`,
+      noteEn: isEn
+        ? `Platform ${platformAreaM2.toFixed(2)} m² × 1+${Math.round(underlayWaste * 100)}% waste → ${underlayRollCount} rolls (${rollM2Total.toFixed(0)} m²)`
+        : undefined,
       subtotal: underlayCost > 0 ? underlayCost : undefined,
     });
   }
