@@ -36,7 +36,7 @@ import type {
   LayerKey,
   ViewMode,
 } from "@/lib/raised-floor/RaisedFloorScene3D";
-import { FloorRangeInput } from "@/app/[locale]/floor/FloorRangeInput";
+import { FloorRangeInput } from "@/app/floor/FloorRangeInput";
 import { UnderlaySkirtingSection } from "./UnderlaySkirtingSection";
 import {
   bomToCuttingPieces,

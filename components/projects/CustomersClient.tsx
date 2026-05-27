@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { formatTWD } from "@/lib/pricing/catalog";
-import type { CustomerSummary } from "@/app/[locale]/customers/page";
+import type { CustomerSummary } from "@/app/customers/page";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);

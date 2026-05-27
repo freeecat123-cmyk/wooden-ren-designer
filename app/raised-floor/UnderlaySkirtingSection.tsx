@@ -12,7 +12,7 @@
  *   1. 防潮墊 — preset 下拉 + 損耗滑桿(undefined = 不裝)
  *   2. 踢腳板 — none/wood/pvc 三選一 + 高度 + 門洞數/寬度
  */
-import { FloorRangeInput } from "@/app/[locale]/floor/FloorRangeInput";
+import { FloorRangeInput } from "@/app/floor/FloorRangeInput";
 import { UNDERLAY_PRESETS, getUnderlayPreset } from "@/lib/raised-floor/presets";
 import type {
   RaisedFloorInput,
