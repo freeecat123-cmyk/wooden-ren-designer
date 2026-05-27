@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { getSizePresets } from "@/lib/design/size-presets";
+import { useTranslations, useLocale } from "next-intl";
+import { getSizePresetsLocalized } from "@/lib/design/size-presets";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -25,9 +25,10 @@ interface SizePresetButtonsProps {
 
 export function SizePresetButtons({ category, limits, compact }: SizePresetButtonsProps) {
   const t = useTranslations("sizePreset");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const allPresets = getSizePresets(category);
+  const allPresets = getSizePresetsLocalized(category, locale);
   const presets = limits
     ? allPresets.filter((p) => p.length <= limits.length && p.width <= limits.width && p.height <= limits.height)
     : allPresets;
