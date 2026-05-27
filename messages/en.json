@@ -1,0 +1,20 @@
+{
+  "$comment": "Phase 1 skeleton: minimum keys for i18n to work. Phase 2 marketing translation will expand this heavily. New keys must be added to zh-TW.json in same PR; CI will block on diff.",
+  "common": {
+    "siteName": "Wooden Ren Designer",
+    "siteTagline": "From idea to buildable plans, in seconds"
+  },
+  "nav": {
+    "about": "About",
+    "templates": "Templates",
+    "app": "Furniture catalog",
+    "pricing": "Pricing",
+    "help": "Help",
+    "changelog": "Changelog"
+  },
+  "cta": {
+    "start": "Start designing",
+    "learnMore": "Learn more",
+    "subscribe": "Subscribe"
+  }
+}

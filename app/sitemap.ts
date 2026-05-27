@@ -4,6 +4,9 @@ import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
+// Phase 1：sitemap 只列 zh-TW URLs。/en/* URL 在 Phase 2 行銷頁完成英譯後才加上
+// hreflang alternates 並一起 emit，避免目前 Google 看到重複中文內容。
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const staticRoutes: MetadataRoute.Sitemap = [

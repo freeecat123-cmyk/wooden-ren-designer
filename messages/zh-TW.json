@@ -1,0 +1,20 @@
+{
+  "$comment": "Phase 1 骨架：i18n 系統可運作所需的最小集合。Phase 2 行銷頁英譯時會大量擴充此檔；新增 key 必須同步加到 en.json，CI 會擋差集。",
+  "common": {
+    "siteName": "木頭仁 木作藍圖",
+    "siteTagline": "把腦中的家具，畫成可以動手做的圖"
+  },
+  "nav": {
+    "about": "認識木作藍圖",
+    "templates": "範本介紹",
+    "app": "家具範本",
+    "pricing": "方案定價",
+    "help": "常見問題",
+    "changelog": "更新日誌"
+  },
+  "cta": {
+    "start": "開始設計",
+    "learnMore": "了解更多",
+    "subscribe": "訂閱方案"
+  }
+}
