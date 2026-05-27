@@ -39,6 +39,8 @@ export interface PlanFeatures {
   canUseCeilingTool: boolean;
   /** 地板施工模擬器(/floor) */
   canUseFloorTool: boolean;
+  /** 和室架高平台施工模擬器(/raised-floor) */
+  canUseRaisedFloorTool: boolean;
 }
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
@@ -52,6 +54,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseDesignerMode: false,
     canUseCeilingTool: false,
     canUseFloorTool: false,
+    canUseRaisedFloorTool: false,
   },
   personal: {
     maxDesigns: Infinity,
@@ -65,6 +68,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     // 把專業版完全聚焦「接案 SaaS」（報價/客戶/STL/無上限）。
     canUseCeilingTool: true,
     canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
   },
   pro: {
     maxDesigns: Infinity,
@@ -76,6 +80,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseDesignerMode: true,
     canUseCeilingTool: true,
     canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
   },
   student: {
     maxDesigns: Infinity,
@@ -87,6 +92,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseDesignerMode: true,
     canUseCeilingTool: true,
     canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
   },
   lifetime: {
     maxDesigns: Infinity,
@@ -98,6 +104,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseDesignerMode: true,
     canUseCeilingTool: true,
     canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
   },
 };
 

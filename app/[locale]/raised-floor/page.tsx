@@ -2,8 +2,11 @@
  * /raised-floor — 和室架高平台估價工具
  *
  * 雙頭路由:訪客 / 無權限者看銷售頁,有權限者進工具。
- * 權限門檻共用 /floor 的鑰匙(canUseFloorTool / 已解鎖 "floor")。
+ * 權限門檻:canUseRaisedFloorTool plan flag OR 已單買 "raised-floor" 解鎖。
  * admin 永遠可進。
+ *
+ * (2026-05-27 之前共用 /floor 的鑰匙當 fallback,但 raised-floor 進 ToolId
+ * 後改用獨立 flag,讓單買 raised-floor 也能開鎖。)
  */
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
@@ -51,15 +54,18 @@ export default async function RaisedFloorPage({
     return <RaisedFloorClient />;
   }
 
-  // 已登入:plan 含 canUseFloorTool OR 已單買 "floor" 解鎖 → 工具,否則銷售頁
+  // 已登入:plan 含 canUseRaisedFloorTool OR 已單買 "raised-floor" 解鎖 → 工具
   const { data: profile } = await supabase
     .from("users")
     .select("plan,subscription_status,subscription_expires_at,student_expires_at")
     .eq("id", user.id)
     .single();
-  const planAllows = canUseFeature(profile as UserPlanProfile | null, "canUseFloorTool");
+  const planAllows = canUseFeature(
+    profile as UserPlanProfile | null,
+    "canUseRaisedFloorTool",
+  );
   const unlockedTools = await fetchUnlockedTools(createAdminClient(), user.id);
-  const boughtUnlock = unlockedTools.includes("floor");
+  const boughtUnlock = unlockedTools.includes("raised-floor");
   if (!planAllows && !boughtUnlock) {
     return <RaisedFloorMarketing status="loggedInNoAccess" />;
   }
