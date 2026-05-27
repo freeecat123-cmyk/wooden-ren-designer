@@ -65,7 +65,7 @@ export default async function FloorQuotePage({
     }
   }
 
-  const bom = computeFloorBom(input);
+  const bom = computeFloorBom(input, locale);
   const engInput = floorBomToEngInput(bom, ENGINEERING_QUOTE_DEFAULTS, locale);
 
   return (

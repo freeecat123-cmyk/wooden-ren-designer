@@ -11,7 +11,13 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { computeFloorBom } from "@/lib/floor/calc";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
-import { DEFAULT_FLOOR_INPUT, type FloorInput, type RoomPolygon } from "@/lib/floor/types";
+import {
+  DEFAULT_FLOOR_INPUT,
+  floorBomItemName,
+  floorBomItemSpec,
+  type FloorInput,
+  type RoomPolygon,
+} from "@/lib/floor/types";
 import {
   SHAPE_PRESETS,
   getPreset,
@@ -33,7 +39,7 @@ export function FloorDevClient() {
   const t = useTranslations("floorTool");
   const locale = useLocale();
   const [input, setInput] = useState<FloorInput>(DEFAULT_FLOOR_INPUT);
-  const bom = useMemo(() => computeFloorBom(input), [input]);
+  const bom = useMemo(() => computeFloorBom(input, locale), [input, locale]);
   const [copied, setCopied] = useState(false);
 
   const set = <K extends keyof FloorInput>(k: K, v: FloorInput[K]) =>
@@ -73,7 +79,7 @@ export function FloorDevClient() {
                 : "";
         const money =
           it.subtotal != null ? `  NT$ ${Math.round(it.subtotal).toLocaleString()}` : "";
-        return `${it.nameZh} ${it.spec}  ${qty}${money}`;
+        return `${floorBomItemName(it, locale)} ${floorBomItemSpec(it, locale)}  ${qty}${money}`;
       }),
       t("copyDivider"),
       bom.cost.total > 0
@@ -286,7 +292,7 @@ export function FloorDevClient() {
               <tbody>
                 {bom.items.map((it, i) => (
                   <tr key={i} className="border-b border-zinc-100">
-                    <td className="py-1 font-medium">{it.nameZh}</td>
+                    <td className="py-1 font-medium">{floorBomItemName(it, locale)}</td>
                     <td className="py-1 text-right whitespace-nowrap">
                       {it.count != null && `${it.count} ${t("unitPiece")}`}
                       {it.totalLengthM != null && `${it.totalLengthM.toFixed(1)} ${t("unitMeter")}`}

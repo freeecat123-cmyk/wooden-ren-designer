@@ -100,7 +100,11 @@ export interface FloorLayout {
 export interface FloorBomItem {
   category: "plank" | "skirting" | "underlay";
   nameZh: string;
+  /** EN translation(optional;computeFloorBom 收 locale 時自動填) */
+  nameEn?: string;
   spec: string;
+  /** EN spec(optional) */
+  specEn?: string;
   /** 數量(片/條/—)*/
   count?: number;
   /** 總長(m)— skirting 用 */
@@ -108,8 +112,26 @@ export interface FloorBomItem {
   /** 總面積(m²)— underlay 用 */
   totalAreaM2?: number;
   note?: string;
+  /** EN note(optional) */
+  noteEn?: string;
   /** 此項小計金額(NT$);價格未設定時為 undefined */
   subtotal?: number;
+}
+
+/** Locale-aware accessor for BOM item display name. */
+export function floorBomItemName(it: FloorBomItem, locale: string): string {
+  return locale === "en" && it.nameEn ? it.nameEn : it.nameZh;
+}
+
+/** Locale-aware accessor for BOM item spec. */
+export function floorBomItemSpec(it: FloorBomItem, locale: string): string {
+  return locale === "en" && it.specEn ? it.specEn : it.spec;
+}
+
+/** Locale-aware accessor for BOM item note. */
+export function floorBomItemNote(it: FloorBomItem, locale: string): string | undefined {
+  if (locale === "en" && it.noteEn) return it.noteEn;
+  return it.note;
 }
 
 export interface FloorBom {

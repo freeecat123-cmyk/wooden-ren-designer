@@ -1,19 +1,26 @@
-import type { FloorBom } from "./types";
+import {
+  floorBomItemName,
+  floorBomItemNote,
+  floorBomItemSpec,
+  type FloorBom,
+} from "./types";
 import type { EngineeringQuoteInput, EngLineItem } from "../engineering-quote/types";
 import type { ENGINEERING_QUOTE_DEFAULTS } from "../engineering-quote/defaults";
 
 type EngOpts = typeof ENGINEERING_QUOTE_DEFAULTS;
 
-/** FloorBom → EngineeringQuoteInput。費用參數由 opts(報價表單)帶入。
- *  locale 預留接口:floor BOM 目前只 zh,EN 仍 fallback nameZh,等補 nameEn 時自動生效。 */
+/** FloorBom → EngineeringQuoteInput。費用參數由 opts(報價表單)帶入。 */
 export function floorBomToEngInput(
   bom: FloorBom,
   opts: EngOpts,
-  _locale: string = "zh-TW",
+  locale: string = "zh-TW",
 ): EngineeringQuoteInput {
   const materialLines: EngLineItem[] = bom.items.map((it) => ({
-    label: it.nameZh,
-    detail: [it.spec, it.note].filter(Boolean).join(" · ") || undefined,
+    label: floorBomItemName(it, locale),
+    detail:
+      [floorBomItemSpec(it, locale), floorBomItemNote(it, locale)]
+        .filter(Boolean)
+        .join(" · ") || undefined,
     amount: it.subtotal ?? 0,
     unpriced: it.subtotal === undefined,
   }));

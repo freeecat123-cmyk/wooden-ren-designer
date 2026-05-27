@@ -46,7 +46,7 @@ export default async function FloorQuotePrintPage({
     ? { ...EMPTY_CUSTOMER, ...safeDecode<CustomerInfo>(c) }
     : EMPTY_CUSTOMER;
 
-  const bom = computeFloorBom(input);
+  const bom = computeFloorBom(input, locale);
   const engInput = floorBomToEngInput(bom, opts, locale);
   const breakdown = computeEngineeringQuote(engInput, locale);
 

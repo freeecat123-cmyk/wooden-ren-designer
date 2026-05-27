@@ -19,7 +19,8 @@ import { optimizeOffcuts, pairHerringboneOffcuts } from "./cutting";
 
 const EMPIRICAL_WASTE = 0.1;
 
-export function computeFloorBom(input: FloorInput): FloorBom {
+export function computeFloorBom(input: FloorInput, locale: string = "zh-TW"): FloorBom {
+  const isEn = locale === "en";
   const layout = computeFloorLayout(input);
 
   const fullPlanks = layout.planks.filter((p) => p.kind === "full");
@@ -85,12 +86,17 @@ export function computeFloorBom(input: FloorInput): FloorBom {
   items.push({
     category: "plank",
     nameZh: "地板片",
+    nameEn: "Flooring plank",
     spec: `${input.plankLengthCm}×${input.plankWidthCm} cm`,
     count: totalPlankCount,
     note:
       input.wasteMode === "empirical"
         ? `含經驗損耗 10%;建議進貨 ${Math.ceil(totalPlankCount * 1.1)} 片`
         : `整片 ${fullPlankCount} + 裁切 ${cutPlankCount}(實算損耗 ${wastePercent.toFixed(1)}%)`,
+    noteEn:
+      input.wasteMode === "empirical"
+        ? `Includes 10% empirical waste; order ${Math.ceil(totalPlankCount * 1.1)} planks`
+        : `${fullPlankCount} full + ${cutPlankCount} cut (actual waste ${wastePercent.toFixed(1)}%)`,
     subtotal: plankCost > 0 ? plankCost : undefined,
   });
 
@@ -98,12 +104,18 @@ export function computeFloorBom(input: FloorInput): FloorBom {
     items.push({
       category: "skirting",
       nameZh: input.skirtingType === "skirting" ? "踢腳板" : "收邊條",
+      nameEn: input.skirtingType === "skirting" ? "Skirting board" : "Edge trim",
       spec: "沿牆周長",
+      specEn: "Along wall perimeter",
       totalLengthM: skirtingLengthM,
       note:
         input.doorCount > 0
           ? `已扣 ${input.doorCount} 個門洞 × ${input.doorWidthCm}cm`
           : "未扣門洞",
+      noteEn:
+        input.doorCount > 0
+          ? `Deducted ${input.doorCount} door opening(s) × ${input.doorWidthCm}cm`
+          : "No door opening deducted",
       subtotal: skirtingCost > 0 ? skirtingCost : undefined,
     });
   }
@@ -111,7 +123,9 @@ export function computeFloorBom(input: FloorInput): FloorBom {
   items.push({
     category: "underlay",
     nameZh: "防潮墊",
+    nameEn: "Moisture barrier underlay",
     spec: "滿鋪",
+    specEn: "Full coverage",
     totalAreaM2: roomAreaM2,
     subtotal: underlayCost > 0 ? underlayCost : undefined,
   });
