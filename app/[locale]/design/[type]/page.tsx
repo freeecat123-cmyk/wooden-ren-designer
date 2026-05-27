@@ -21,12 +21,12 @@ import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ThreeDExportButton } from "@/components/ThreeDExportButton";
-import { MATERIALS } from "@/lib/materials";
+import { MATERIALS, materialName } from "@/lib/materials";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import {
   JoineryDetail,
-  JOINERY_LABEL,
-  JOINERY_DESCRIPTION,
+  joineryLabel,
+  joineryDescription,
 } from "@/lib/joinery/details";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
@@ -40,7 +40,7 @@ import { ErgoHints } from "@/components/ErgoHints";
 import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
-import { GROUP_META, GROUP_ORDER } from "@/lib/design/option-groups";
+import { GROUP_META, GROUP_ORDER, groupLabel } from "@/lib/design/option-groups";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
@@ -330,7 +330,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     "@context": "https://schema.org",
     "@type": "HowTo",
     name: t("jsonLd.howToName", { name: entryName, length, width, height }),
-    description: t("jsonLd.howToDesc", { name: entryName, length, width, height, material: MATERIALS[material].nameZh }),
+    description: t("jsonLd.howToDesc", { name: entryName, length, width, height, material: materialName(material, locale) }),
     inLanguage: locale === "en" ? "en" : "zh-TW",
     ...(totalMinutes > 0 ? { totalTime: `PT${totalMinutes}M` } : {}),
     step: buildStepsForSchema.map((s, i) => ({
@@ -396,7 +396,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <p className="mt-1.5 text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span>{entryDesc}</span>
             <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{length} × {width} × {height} mm</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{MATERIALS[material].nameZh}</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{materialName(material, locale)}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.length })}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title={t("header.weightTitle")}>{t("header.weightApprox", { kg: estimateWeight(design) })}</span>
           </p>
@@ -540,6 +540,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             designerMode={designerMode}
             canUseDesignerMode={canUseDesignerMode}
             allPartIds={design.parts.map((p) => p.id)}
+            locale={locale}
           />
         </div>
       </section>
@@ -626,7 +627,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </summary>
         <div className="border-t border-amber-100 p-4">
           {joineryMode ? (
-            <JoinerySection design={design} />
+            <JoinerySection design={design} locale={locale} />
           ) : (
             <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
               <p className="font-semibold mb-2">{t("noJoinery.h")}</p>
@@ -778,11 +779,14 @@ function JoineryRulesCallout() {
   );
 }
 
-function JoinerySection({ design }: { design: FurnitureDesign }) {
+function JoinerySection({ design, locale }: { design: FurnitureDesign; locale: string }) {
   const usages = extractJoineryUsages(design);
   if (usages.length === 0) {
-    return <p className="text-sm text-zinc-500">這個設計沒有可顯示的榫卯。</p>;
+    return <p className="text-sm text-zinc-500">{locale === "en" ? "No joinery to show for this design." : "這個設計沒有可顯示的榫卯。"}</p>;
   }
+  const motherLabel = locale === "en" ? "mother part" : "母件";
+  const spotsLabel = (n: number) => locale === "en" ? `× ${n}` : `共 ${n} 處`;
+  const tenonLabel = locale === "en" ? "Tenon" : "榫頭";
   return (
     <div className="space-y-6">
       <JoineryRulesCallout />
@@ -793,16 +797,16 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
         >
           <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
             <h3 className="font-semibold">
-              {JOINERY_LABEL[u.type]}{" "}
+              {joineryLabel(u.type, locale)}{" "}
               <span className="text-xs font-normal text-zinc-500">
-                · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : "母件"} · 共 {u.count} 處
+                · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : motherLabel} · {spotsLabel(u.count)}
               </span>
             </h3>
             <p className="text-xs text-zinc-500">
-              榫頭 {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+              {tenonLabel} {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
             </p>
           </div>
-          <p className="text-xs text-zinc-600 mb-3">{JOINERY_DESCRIPTION[u.type]}</p>
+          <p className="text-xs text-zinc-600 mb-3">{joineryDescription(u.type, locale)}</p>
           <ZoomableJoineryDetail
             type={u.type}
             params={{
@@ -832,6 +836,7 @@ function ParameterForm({
   designerMode,
   canUseDesignerMode,
   allPartIds,
+  locale,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
@@ -842,6 +847,7 @@ function ParameterForm({
   designerMode: boolean;
   canUseDesignerMode: boolean;
   allPartIds: string[];
+  locale: string;
 }) {
   return (
     <DesignFormShell
@@ -997,7 +1003,7 @@ function ParameterForm({
       })()}
       <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
         <label className="flex items-center gap-1.5 shrink-0">
-          <span className="text-zinc-600 font-medium">木材</span>
+          <span className="text-zinc-600 font-medium">{locale === "en" ? "Wood" : "木材"}</span>
           <select
             key={`material-${defaults.material}`}
             name="material"
@@ -1006,7 +1012,7 @@ function ParameterForm({
           >
             {Object.values(MATERIALS).map((m) => (
               <option key={m.id} value={m.id}>
-                {m.nameZh}
+                {locale === "en" ? m.nameEn : m.nameZh}
               </option>
             ))}
           </select>
@@ -1061,6 +1067,7 @@ function ParameterForm({
             overallHeight={defaults.height}
             overallLength={defaults.length}
             allPartIds={allPartIds}
+            locale={locale}
           />
         </>
       )}
@@ -1114,6 +1121,7 @@ function GroupedOptionFields({
   overallHeight,
   overallLength,
   allPartIds,
+  locale,
 }: {
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
@@ -1121,6 +1129,7 @@ function GroupedOptionFields({
   overallHeight?: number;
   overallLength?: number;
   allPartIds?: string[];
+  locale: string;
 }) {
   // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
   const visibleSchema = optionSchema.filter(
@@ -1149,7 +1158,7 @@ function GroupedOptionFields({
             <summary className="flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer list-none hover:bg-amber-50/60 transition-colors select-none">
               <span className={`w-1 h-3.5 rounded-full ${meta.bar}`} />
               <span className="text-xs font-semibold text-zinc-800">
-                {meta.label}
+                {groupLabel(meta, locale)}
               </span>
               <span className="text-[10px] text-zinc-400">
                 {specs.length}

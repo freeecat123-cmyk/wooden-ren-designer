@@ -7,7 +7,7 @@ import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
-import { JOINERY_LABEL, JOINERY_DESCRIPTION } from "@/lib/joinery/details";
+import { joineryLabel, joineryDescription } from "@/lib/joinery/details";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
@@ -28,7 +28,7 @@ import type { FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
-import { groupSpecsByGroup } from "@/lib/design/option-groups";
+import { groupSpecsByGroup, groupLabel } from "@/lib/design/option-groups";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
@@ -244,7 +244,7 @@ export function MobileShell(props: MobileShellProps) {
                 className="flex-1 min-h-[36px] border border-zinc-300 rounded-md px-2 py-1 bg-white text-zinc-900 text-sm"
               >
                 {Object.entries(MATERIALS).map(([id, m]) => (
-                  <option key={id} value={id}>{m.nameZh}</option>
+                  <option key={id} value={id}>{isEn ? m.nameEn : m.nameZh}</option>
                 ))}
               </select>
             </label>
@@ -318,7 +318,7 @@ export function MobileShell(props: MobileShellProps) {
                 <div key={i} className="rounded-md border border-zinc-200 bg-white p-3">
                   <div className="flex items-baseline justify-between flex-wrap gap-1 mb-1">
                     <h4 className="font-semibold text-sm text-zinc-900">
-                      {JOINERY_LABEL[u.type]}
+                      {joineryLabel(u.type, locale)}
                       <span className="text-xs font-normal text-zinc-500 ml-1">
                         · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : t("joinery.motherPart")} · {t("joinery.spotsCount", { count: u.count })}
                       </span>
@@ -327,7 +327,7 @@ export function MobileShell(props: MobileShellProps) {
                   <p className="text-xs text-zinc-500 mb-2">
                     {t("joinery.tenon")} {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
                   </p>
-                  <p className="text-xs text-zinc-700 leading-relaxed">{JOINERY_DESCRIPTION[u.type]}</p>
+                  <p className="text-xs text-zinc-700 leading-relaxed">{joineryDescription(u.type, locale)}</p>
                 </div>
               ))}
               <p className="text-[11px] text-zinc-500">{t("section.joineryFootnote")}</p>
@@ -422,7 +422,7 @@ export function MobileShell(props: MobileShellProps) {
                   >
                     <div className="flex items-baseline justify-between flex-wrap gap-1 mb-1">
                       <h3 className="text-sm font-semibold text-zinc-800">
-                        {JOINERY_LABEL[u.type]}{" "}
+                        {joineryLabel(u.type, locale)}{" "}
                         <span className="text-xs font-normal text-zinc-500">
                           · {u.partNameZh}
                           {u.motherPartNames.length > 0
@@ -435,7 +435,7 @@ export function MobileShell(props: MobileShellProps) {
                         {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
                       </p>
                     </div>
-                    <p className="text-xs text-zinc-500 mb-2">{JOINERY_DESCRIPTION[u.type]}</p>
+                    <p className="text-xs text-zinc-500 mb-2">{joineryDescription(u.type, locale)}</p>
                     <ZoomableJoineryDetail
                       type={u.type}
                       params={{
@@ -568,6 +568,7 @@ function GroupedSpecs({
   overallLength?: number;
   allPartIds?: string[];
 }) {
+  const locale = useLocale();
   const groups = groupSpecsByGroup(specs);
   return (
     <>
@@ -577,7 +578,7 @@ function GroupedSpecs({
             <span className={`inline-block w-1 h-4 rounded-full ${g.meta.bar}`} />
             <span className="text-sm font-semibold text-zinc-800">
               <span className="mr-1">{g.meta.icon}</span>
-              {g.meta.label}
+              {groupLabel(g.meta, locale)}
             </span>
           </div>
           <div className="space-y-3 pl-3 border-l-2 border-zinc-100">

@@ -1,5 +1,11 @@
 import type { MaterialId } from "@/lib/types";
 
+export function materialName(id: MaterialId, locale: string): string {
+  const m = MATERIALS[id];
+  if (!m) return id;
+  return locale === "en" ? m.nameEn : m.nameZh;
+}
+
 /**
  * 立體屬性（per drafting-math.md §AC）
  *

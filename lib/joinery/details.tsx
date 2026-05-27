@@ -11456,3 +11456,43 @@ export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
   "pocket-hole": "用斜孔器夾具鑽 15° 斜孔，再用專用螺絲從隱藏處鎖入。快速、不需榫卯的常見接合方式。",
   screw: "木工白膠 + 木螺絲直鎖。螺絲頭可埋頭並用木塞蓋住，最簡單。",
 };
+
+export const JOINERY_LABEL_EN: Record<JoineryType, string> = {
+  "through-tenon": "Through tenon",
+  "blind-tenon": "Blind tenon",
+  "shouldered-tenon": "Haunched tenon",
+  "stub-joint": "Housing joint",
+  "half-lap": "Half lap",
+  dovetail: "Dovetail",
+  "finger-joint": "Finger joint",
+  "tongue-and-groove": "Tongue and groove",
+  dowel: "Dowel",
+  "mitered-spline": "Mitered spline",
+  mitered: "45° miter (glue only)",
+  "pocket-hole": "Pocket-hole screw",
+  screw: "Screw + glue",
+};
+
+export const JOINERY_DESCRIPTION_EN: Record<JoineryType, string> = {
+  "through-tenon": "Tenon passes fully through the mortise and is visible on the far side. Highest strength — ideal for chair legs and structural table joints.",
+  "blind-tenon": "Tenon stops inside the mortise; not visible from the outside. Cleaner look — good for leg-to-apron and casework.",
+  "shouldered-tenon": "Main tenon plus a small haunch above it: the tenon takes pull-out load, the haunch resists rotation. Standard for leg-to-apron joints.",
+  "stub-joint": "Aprons / stretchers don't form a tenon — the whole end face seats into a same-size pocket in the mate. Common for round legs where shouldered tenons are hard to cut.",
+  "half-lap": "Each piece is rebated to half its thickness so they overlap flush. Simple, common for frame crossings.",
+  dovetail: "Trapezoidal tails interlock for very high tensile strength. Classic on drawers and box corners.",
+  "finger-joint": "Symmetric square fingers interlock. Common on box / tray corners.",
+  "tongue-and-groove": "One face has a tongue, the other a matching groove — standard for edge-joining panels.",
+  dowel: "Loose round dowel pins connect the parts. Easy to make, lower strength than mortise-and-tenon.",
+  "mitered-spline": "45° miter reinforced with a biscuit or thin spline.",
+  mitered: "Pure 45° miter with PVA glue, no reinforcement. Clean look, low pull-out strength — picture frames and small decorative frames only.",
+  "pocket-hole": "Drill 15° pocket holes with a jig, then drive purpose-made screws from the hidden face. Fast, no joinery cutting required.",
+  screw: "PVA glue + wood screw straight in. Screw heads can be counterbored and plugged. Simplest option.",
+};
+
+export function joineryLabel(type: JoineryType, locale: string): string {
+  return locale === "en" ? JOINERY_LABEL_EN[type] : JOINERY_LABEL[type];
+}
+
+export function joineryDescription(type: JoineryType, locale: string): string {
+  return locale === "en" ? JOINERY_DESCRIPTION_EN[type] : JOINERY_DESCRIPTION[type];
+}
