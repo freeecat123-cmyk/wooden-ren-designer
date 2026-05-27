@@ -18,13 +18,22 @@ export const metadata = {
     "畫房間 → 算角材、矽酸鈣板、吊筋 → 出 A4 估價單。木作天花板算料 30 秒搞定。",
 };
 
-export default async function CeilingPage() {
+export default async function CeilingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ intro?: string }>;
+}) {
+  const { intro } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) return <CeilingMarketing status="guest" />;
+
+  if (intro === "1") {
+    return <CeilingMarketing status="loggedInNoAccess" />;
+  }
 
   if (isAdminEmail(user.email, getServerAdminEmails())) {
     return <CeilingDevClient />;

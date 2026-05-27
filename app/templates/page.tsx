@@ -404,7 +404,7 @@ function InteriorToolCard({ tool }: { tool: InteriorTool }) {
         </p>
         <div className="flex gap-2">
           <Link
-            href={tool.href}
+            href={`${tool.href}?intro=1`}
             className="flex-1 text-center px-3 py-2 rounded-full bg-white text-amber-800 font-semibold text-sm ring-1 ring-amber-300 hover:bg-amber-100 transition-colors"
           >
             了解更多

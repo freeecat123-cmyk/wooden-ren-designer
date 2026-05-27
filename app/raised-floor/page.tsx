@@ -18,7 +18,12 @@ export const metadata = {
     "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。木工師傅、統包、DIY 自己做和室一次搞定。",
 };
 
-export default async function RaisedFloorPage() {
+export default async function RaisedFloorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ intro?: string }>;
+}) {
+  const { intro } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,6 +31,11 @@ export default async function RaisedFloorPage() {
 
   // 訪客 → 銷售頁
   if (!user) return <RaisedFloorMarketing status="guest" />;
+
+  // ?intro=1 強制顯示介紹頁（讓 admin/付費用戶也能從 /templates「了解更多」進來）
+  if (intro === "1") {
+    return <RaisedFloorMarketing status="loggedInNoAccess" />;
+  }
 
   // admin 直通工具
   if (isAdminEmail(user.email, getServerAdminEmails())) {

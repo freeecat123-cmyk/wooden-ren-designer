@@ -17,13 +17,22 @@ export const metadata = {
     "畫房間 → 直鋪 / 錯縫 / 人字拼自動排版 → 算片數損耗估價。木地板算料 30 秒搞定。",
 };
 
-export default async function FloorPage() {
+export default async function FloorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ intro?: string }>;
+}) {
+  const { intro } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) return <FloorMarketing status="guest" />;
+
+  if (intro === "1") {
+    return <FloorMarketing status="loggedInNoAccess" />;
+  }
 
   if (isAdminEmail(user.email, getServerAdminEmails())) {
     return <FloorDevClient />;
