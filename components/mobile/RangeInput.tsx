@@ -4,7 +4,18 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
 import { useUnit } from "@/hooks/useUnit";
-import { formatInchFraction } from "@/lib/units/format";
+import { formatInchFraction, MM_PER_INCH } from "@/lib/units/format";
+
+const SIXTEENTH_MM = MM_PER_INCH / 16;
+
+function snapToSixteenthMm(mm: number, dir: 1 | -1 | 0 = 0): number {
+  const sixteenths = mm / SIXTEENTH_MM;
+  const target =
+    dir === 1 ? Math.floor(sixteenths) + 1
+    : dir === -1 ? Math.ceil(sixteenths) - 1
+    : Math.round(sixteenths);
+  return Math.round(target * SIXTEENTH_MM);
+}
 
 interface PresetPoint {
   value: number;
@@ -207,7 +218,76 @@ export function RangeInput({
         )}
 
         <div className="shrink-0 flex flex-col items-end gap-0.5">
-          {editing ? (
+          {showInchHelper ? (
+            <div className="inline-flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={tRange("minus")}
+                disabled={value <= min}
+                onClick={() => {
+                  setValue((v) => {
+                    const next = clamp(snapToSixteenthMm(v, -1));
+                    requestAnimationFrame(() => {
+                      sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+                      sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
+                    });
+                    return next;
+                  });
+                }}
+                className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
+              >
+                −
+              </button>
+              <span
+                tabIndex={0}
+                role="spinbutton"
+                aria-valuenow={value}
+                aria-valuemin={min}
+                aria-valuemax={max}
+                aria-valuetext={formatInchFraction(value)}
+                onKeyDown={(e) => {
+                  const stepInch = (dir: 1 | -1, mag: 1 | 4 = 1) => {
+                    e.preventDefault();
+                    setValue((v) => {
+                      let next = v;
+                      for (let i = 0; i < mag; i++) next = snapToSixteenthMm(next, dir);
+                      next = clamp(next);
+                      requestAnimationFrame(() => {
+                        sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+                        sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
+                      });
+                      return next;
+                    });
+                  };
+                  if (e.key === "ArrowUp") stepInch(1);
+                  else if (e.key === "ArrowDown") stepInch(-1);
+                  else if (e.key === "PageUp") stepInch(1, 4);
+                  else if (e.key === "PageDown") stepInch(-1, 4);
+                }}
+                className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 font-mono tabular-nums text-zinc-900 text-xs flex items-center justify-center outline-none focus:ring-2 focus:ring-amber-300"
+              >
+                {formatInchFraction(value)}
+              </span>
+              <button
+                type="button"
+                aria-label={tRange("plus")}
+                disabled={value >= max}
+                onClick={() => {
+                  setValue((v) => {
+                    const next = clamp(snapToSixteenthMm(v, 1));
+                    requestAnimationFrame(() => {
+                      sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+                      sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
+                    });
+                    return next;
+                  });
+                }}
+                className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
+              >
+                +
+              </button>
+            </div>
+          ) : editing ? (
             <input
               ref={inputRef}
               type="number"
@@ -272,14 +352,8 @@ export function RangeInput({
           </div>
         )}
 
-        {!editing && <input type="hidden" name={name} value={value} />}
+        {(!editing || showInchHelper) && <input type="hidden" name={name} value={value} />}
       </div>
-
-      {showInchHelper && Number.isFinite(value) && (
-        <div className="mt-0.5 ml-[4.25rem] text-[10px] text-zinc-500 tabular-nums leading-none">
-          ≈ {formatInchFraction(value)}
-        </div>
-      )}
 
       {dynamicMaxHint && (
         <div className="mt-1 ml-[4.25rem] text-[11px] text-zinc-500">

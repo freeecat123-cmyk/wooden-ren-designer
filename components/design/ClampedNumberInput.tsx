@@ -4,7 +4,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
 import { useUnit } from "@/hooks/useUnit";
-import { formatInchFraction } from "@/lib/units/format";
+import { formatInchFraction, MM_PER_INCH } from "@/lib/units/format";
+
+const SIXTEENTH_MM = MM_PER_INCH / 16; // 1.5875mm
+
+/** Snap mm value to nearest 1/16" (in mm, rounded to int for clean URLs) */
+function snapToSixteenthMm(mm: number, dir: 1 | -1 | 0 = 0): number {
+  const sixteenths = mm / SIXTEENTH_MM;
+  const target =
+    dir === 1 ? Math.floor(sixteenths) + 1
+    : dir === -1 ? Math.ceil(sixteenths) - 1
+    : Math.round(sixteenths);
+  return Math.round(target * SIXTEENTH_MM);
+}
 
 interface PresetPoint {
   value: number;
@@ -171,16 +183,84 @@ export function ClampedNumberInput({
     dynamicMaxHint ||
     label;
 
-  const inchHelperText = showInchHelper
-    ? (() => {
-        const n = Number(value);
-        return Number.isFinite(n) ? `≈ ${formatInchFraction(n)}` : null;
-      })()
-    : null;
+  // Pattern B: inch fraction input with +/- step buttons + hidden mm input
+  const inchStep = useCallback(
+    (dir: 1 | -1, magnitude: 1 | 4 = 1) => {
+      setValue((prev) => {
+        const n = Number(prev);
+        const base = Number.isFinite(n) ? n : 0;
+        let next = base;
+        for (let i = 0; i < magnitude; i++) {
+          next = snapToSixteenthMm(next, dir);
+        }
+        return String(clamp(next));
+      });
+      requestAnimationFrame(fireNativeChange);
+    },
+    [clamp, fireNativeChange],
+  );
+
+  const renderInchPatternB = () => {
+    const n = Number(value);
+    const fraction = Number.isFinite(n) ? formatInchFraction(n) : "—";
+    const atMin = min !== undefined && Number.isFinite(n) && n <= min;
+    const atMax = max !== undefined && Number.isFinite(n) && n >= max;
+    return (
+      <span className="inline-flex items-center gap-1 min-w-0">
+        <button
+          type="button"
+          aria-label={t("decrease")}
+          disabled={atMin}
+          onClick={() => inchStep(-1)}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
+        >
+          −
+        </button>
+        <span
+          tabIndex={0}
+          role="spinbutton"
+          aria-valuenow={Number.isFinite(n) ? n : undefined}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuetext={fraction}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowUp") { e.preventDefault(); inchStep(1); }
+            else if (e.key === "ArrowDown") { e.preventDefault(); inchStep(-1); }
+            else if (e.key === "PageUp") { e.preventDefault(); inchStep(1, 4); }
+            else if (e.key === "PageDown") { e.preventDefault(); inchStep(-1, 4); }
+          }}
+          className="px-2 py-1 min-w-[3.5rem] text-center tabular-nums text-sm rounded border border-zinc-200 bg-white outline-none focus:ring-2 focus:ring-amber-300"
+        >
+          {fraction}
+        </span>
+        <button
+          type="button"
+          aria-label={t("increase")}
+          disabled={atMax}
+          onClick={() => inchStep(1)}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
+        >
+          +
+        </button>
+        <input ref={inputRef} type="hidden" name={name} value={value} />
+      </span>
+    );
+  };
 
   // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變（hover 接線除外）
   if (!hasExtras) {
-    const bareInput = (
+    if (showInchHelper) {
+      return (
+        <span
+          className="inline-flex"
+          onPointerEnter={hasAnchor ? handleEnter : undefined}
+          onPointerLeave={hasAnchor ? handleLeave : undefined}
+        >
+          {renderInchPatternB()}
+        </span>
+      );
+    }
+    return (
       <input
         type="number"
         name={name}
@@ -202,15 +282,6 @@ export function ClampedNumberInput({
         className={className}
       />
     );
-    if (!inchHelperText) return bareInput;
-    return (
-      <span className="flex flex-col w-full min-w-0">
-        {bareInput}
-        <span className="mt-0.5 text-[10px] text-zinc-500 tabular-nums leading-none">
-          {inchHelperText}
-        </span>
-      </span>
-    );
   }
 
   return (
@@ -226,7 +297,7 @@ export function ClampedNumberInput({
           </span>
         )}
 
-        {showPlusMinus && (
+        {showPlusMinus && !showInchHelper && (
           <button
             type="button"
             aria-label={t("decrease")}
@@ -241,27 +312,31 @@ export function ClampedNumberInput({
           </button>
         )}
 
-        <input
-          ref={inputRef}
-          type="number"
-          name={name}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onFocus={hasAnchor ? handleEnter : undefined}
-          onBlur={(e) => {
-            if (hasAnchor) handleLeave();
-            const n = Number(e.target.value);
-            if (!Number.isFinite(n)) return;
-            if (max !== undefined && n > max) setValue(String(max));
-            else if (min !== undefined && n < min) setValue(String(min));
-          }}
-          min={min}
-          max={max}
-          step={step}
-          className={`${className ?? ""} flex-1 min-w-[3.5rem] w-full text-center tabular-nums no-spinner`.trim()}
-        />
+        {showInchHelper ? (
+          renderInchPatternB()
+        ) : (
+          <input
+            ref={inputRef}
+            type="number"
+            name={name}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={hasAnchor ? handleEnter : undefined}
+            onBlur={(e) => {
+              if (hasAnchor) handleLeave();
+              const n = Number(e.target.value);
+              if (!Number.isFinite(n)) return;
+              if (max !== undefined && n > max) setValue(String(max));
+              else if (min !== undefined && n < min) setValue(String(min));
+            }}
+            min={min}
+            max={max}
+            step={step}
+            className={`${className ?? ""} flex-1 min-w-[3.5rem] w-full text-center tabular-nums no-spinner`.trim()}
+          />
+        )}
 
-        {showPlusMinus && (
+        {showPlusMinus && !showInchHelper && (
           <button
             type="button"
             aria-label={t("increase")}
@@ -302,12 +377,6 @@ export function ClampedNumberInput({
           </span>
         )}
       </span>
-
-      {inchHelperText && (
-        <span className="mt-0.5 text-[10px] text-zinc-500 tabular-nums leading-none">
-          {inchHelperText}
-        </span>
-      )}
 
       {dynamicMaxHint && (
         <span className="mt-1 text-[11px] text-zinc-500">

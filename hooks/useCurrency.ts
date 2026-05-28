@@ -20,6 +20,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useGeoDefaults } from "./useGeoDefaults";
 import type { CurrencyPref } from "@/lib/geo-defaults";
 
@@ -40,10 +41,17 @@ function readLocalCurrency(): CurrencyPref | null {
 }
 
 export function useCurrency(): CurrencyPref {
+  const locale = useLocale();
   const geo = useGeoDefaults();
   const [currency, setCurrency] = useState<CurrencyPref>(FALLBACK);
 
   useEffect(() => {
+    // 國外版（locale=en）強制 USD，無視 localStorage / geo cookie。
+    // 對外不顯示 TWD 選項，避免英文使用者看到台幣困惑。
+    if (locale === "en") {
+      setCurrency("USD");
+      return;
+    }
     const resolve = () => {
       const local = readLocalCurrency();
       setCurrency(local ?? geo.currency);
@@ -59,7 +67,7 @@ export function useCurrency(): CurrencyPref {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener(CURRENCY_CHANGE_EVENT, onCustom);
     };
-  }, [geo.currency]);
+  }, [geo.currency, locale]);
 
   return currency;
 }

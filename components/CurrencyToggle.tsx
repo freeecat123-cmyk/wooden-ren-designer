@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useCurrency, CURRENCY_CHANGE_EVENT } from "@/hooks/useCurrency";
 import type { CurrencyPref } from "@/lib/geo-defaults";
 
@@ -11,7 +12,11 @@ import type { CurrencyPref } from "@/lib/geo-defaults";
  * 金額層級的多幣別定價是商業決策，未統一前 USD/TWD 各自硬寫一份。
  */
 export function CurrencyToggle() {
+  const locale = useLocale();
   const currency = useCurrency();
+
+  // 國外版（en）強制 USD,不給切 — 對外不顯示 TWD 選項
+  if (locale === "en") return null;
 
   const setCurrency = (next: CurrencyPref) => {
     try {
