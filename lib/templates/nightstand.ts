@@ -169,7 +169,7 @@ export const nightstand: FurnitureTemplate = (input) => {
       hasDrawers: drawerCount > 0,
       drawerCount,
       hasDrawerSlide: getOption<boolean>(input, opt(o, "useDrawerSlide")),
-    }),
+    }, input.locale),
   );
   // 床面齊平 ergo：標準床面 500-550mm（含床墊），床頭櫃高 ±50mm 才好用
   if (input.height < 450) {
@@ -179,7 +179,10 @@ export const nightstand: FurnitureTemplate = (input) => {
   }
   if (input.length > 600 || input.height > 800) {
     appendSuggestion(design, {
-      text: `${input.length}×${input.height}mm 比較像斗櫃 / 五斗櫃尺寸——斗櫃模板有完整抽屜結構選項。`,
+      text:
+        input.locale === "en"
+          ? `${input.length}×${input.height} mm is closer to chest-of-drawers sizing — that template has full drawer structure options.`
+          : `${input.length}×${input.height}mm 比較像斗櫃 / 五斗櫃尺寸——斗櫃模板有完整抽屜結構選項。`,
       suggestedCategory: "chest-of-drawers",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });

@@ -412,7 +412,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
-    }),
+    }, input.locale),
   );
   // 鞋層淨高 ergo：每層 < 170mm 高跟鞋放不下，> 350mm 太浪費；建議 190-280mm
   // 從 zones 計算每個 shelves zone 的每層淨高（heightMm / count）
@@ -428,7 +428,10 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   }
   if (input.height > 2000 || input.length > 1500) {
     appendSuggestion(design, {
-      text: `${input.length}×${input.height}mm 已超過鞋櫃常規——衣櫃模板支援大尺寸玄關櫃。`,
+      text:
+        input.locale === "en"
+          ? `${input.length}×${input.height} mm is past typical shoe-cabinet sizing — the wardrobe template handles large entry cabinets.`
+          : `${input.length}×${input.height}mm 已超過鞋櫃常規——衣櫃模板支援大尺寸玄關櫃。`,
       suggestedCategory: "wardrobe",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });

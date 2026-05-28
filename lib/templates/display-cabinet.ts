@@ -331,7 +331,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
-    }),
+    }, input.locale),
   );
   return design;
 };

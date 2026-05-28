@@ -356,11 +356,14 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       hasDrawers: actualDrawerCount > 0,
       drawerCount: actualDrawerCount,
       hasDrawerSlide: useDrawerSlide,
-    }),
+    }, input.locale),
   );
   if (input.height > 1500) {
     appendSuggestion(design, {
-      text: `櫃高 ${input.height}mm 已接近衣櫃尺寸——衣櫃模板有吊衣桿、長褲架等收納選項。`,
+      text:
+        input.locale === "en"
+          ? `Cabinet height ${input.height} mm is approaching wardrobe size — the wardrobe template offers hanging rods, trouser racks, and more storage options.`
+          : `櫃高 ${input.height}mm 已接近衣櫃尺寸——衣櫃模板有吊衣桿、長褲架等收納選項。`,
       suggestedCategory: "wardrobe",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });

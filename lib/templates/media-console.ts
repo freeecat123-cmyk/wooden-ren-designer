@@ -438,11 +438,14 @@ export const mediaConsole: FurnitureTemplate = (input) => {
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
-    }),
+    }, input.locale),
   );
   if (input.height > 900 || input.length > 3000) {
     appendSuggestion(design, {
-      text: `${input.length}×${input.height}mm 已不算電視矮櫃——展示櫃模板支援更高尺寸。`,
+      text:
+        input.locale === "en"
+          ? `${input.length}×${input.height} mm is past media-console territory — the display-cabinet template handles taller sizes.`
+          : `${input.length}×${input.height}mm 已不算電視矮櫃——展示櫃模板支援更高尺寸。`,
       suggestedCategory: "display-cabinet",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });

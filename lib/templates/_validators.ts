@@ -229,23 +229,33 @@ export interface CabinetStructureRules {
   hasDrawerSlide?: boolean;
 }
 
-export function validateCabinetStructure(rules: CabinetStructureRules): string[] {
+export function validateCabinetStructure(
+  rules: CabinetStructureRules,
+  locale: string = "zh-TW",
+): string[] {
+  const isEn = locale === "en";
   const warnings: string[] = [];
   const { panelThickness, height } = rules;
   if (rules.shelfSpan && rules.shelfSpan > 600 && panelThickness < 12) {
     warnings.push(
-      `層板跨距 ${rules.shelfSpan}mm 但板厚只 ${panelThickness}mm（< 12mm）——` +
-        `承重時會明顯下凹。建議加厚到 15mm 以上、或縮短跨距、或加中央分隔板。`,
+      isEn
+        ? `Shelf span ${rules.shelfSpan} mm with only ${panelThickness} mm panel (< 12 mm) — visible sag under load. Use ≥ 15 mm panels, shorten the span, or add a center divider.`
+        : `層板跨距 ${rules.shelfSpan}mm 但板厚只 ${panelThickness}mm（< 12mm）——` +
+            `承重時會明顯下凹。建議加厚到 15mm 以上、或縮短跨距、或加中央分隔板。`,
     );
   }
   if (height > 1500 && panelThickness < 15) {
     warnings.push(
-      `櫃高 ${height}mm 但板厚僅 ${panelThickness}mm，整體結構偏弱——建議加厚到 18mm。`,
+      isEn
+        ? `Cabinet height ${height} mm but panel thickness only ${panelThickness} mm — overall structure is weak. Bump up to 18 mm.`
+        : `櫃高 ${height}mm 但板厚僅 ${panelThickness}mm，整體結構偏弱——建議加厚到 18mm。`,
     );
   }
   if (rules.hasDrawers && (rules.drawerCount ?? 0) >= 3 && rules.hasDrawerSlide === false) {
     warnings.push(
-      `共 ${rules.drawerCount} 個抽屜但沒勾「三段式滑軌」——大抽屜純木製滑軌易卡且開合費力，建議加滑軌五金。`,
+      isEn
+        ? `${rules.drawerCount} drawers but no three-section slides enabled — large all-wood drawers jam easily; add slide hardware.`
+        : `共 ${rules.drawerCount} 個抽屜但沒勾「三段式滑軌」——大抽屜純木製滑軌易卡且開合費力，建議加滑軌五金。`,
     );
   }
   return warnings;

@@ -166,7 +166,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
       hasDrawers,
       drawerCount,
       hasDrawerSlide: useDrawerSlide,
-    }),
+    }, input.locale),
   );
   // 吊衣桿高度 ergo：< 1100mm 大衣/長外套掛不下；1700+ 標配
   for (const z of zones) {

@@ -421,7 +421,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
       hasDrawers: actualDrawerCount > 0,
       drawerCount: actualDrawerCount,
       hasDrawerSlide: useDrawerSlide,
-    }),
+    }, input.locale),
   );
   return design;
 };
