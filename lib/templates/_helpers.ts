@@ -385,7 +385,7 @@ export function seatEdgeOption(
     group,
     type: "number",
     key: "seatEdge",
-    label: "倒角尺寸 (mm)",
+    label: "倒角尺寸",
     defaultValue,
     min: 0,
     max: 30,
@@ -423,7 +423,7 @@ export function seatEdgeBottomOption(
     group,
     type: "number",
     key: "seatEdgeBottom",
-    label: "下緣倒角尺寸 (mm)",
+    label: "下緣倒角尺寸",
     defaultValue,
     min: 0,
     max: 30,
@@ -441,7 +441,7 @@ export function stretcherEdgeOption(
     group,
     type: "number",
     key: "stretcherEdge",
-    label: "倒角尺寸 (mm)",
+    label: "倒角尺寸",
     defaultValue,
     min: 0,
     max: 15,
@@ -477,7 +477,7 @@ export function apronEdgeOption(
     group,
     type: "number",
     key: "apronEdge",
-    label: "牙條倒角 (mm)",
+    label: "牙條倒角",
     defaultValue,
     min: 0,
     max: 15,
@@ -550,7 +550,7 @@ export function legEdgeOption(
     group,
     type: "number",
     key: "legEdge",
-    label: "倒角尺寸 (mm)",
+    label: "倒角尺寸",
     defaultValue,
     min: 0,
     max: 20,
@@ -729,7 +729,7 @@ export function toeKickOptions(group: OptionGroup = "structure", opts: { hidden?
       group,
       type: "number",
       key: "toeKickHeight",
-      label: "踢腳板高 (mm)",
+      label: "踢腳板高",
       defaultValue: 80,
       min: 50,
       max: 150,
@@ -740,7 +740,7 @@ export function toeKickOptions(group: OptionGroup = "structure", opts: { hidden?
       group,
       type: "number",
       key: "toeKickRecess",
-      label: "踢腳板內凹 (mm)",
+      label: "踢腳板內凹",
       defaultValue: 50,
       min: 30,
       max: 100,
@@ -775,7 +775,7 @@ export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; 
     const midDeps = opts.extraDeps && opts.extraDeps.length > 0
       ? { all: [{ key: "lockTotalHeight", equals: true }, ...opts.extraDeps] }
       : { key: "lockTotalHeight", equals: true };
-    specs.push({ group: "zone-mid", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 250, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到", dependsOn: midDeps });
+    specs.push({ group: "zone-mid", type: "number", key: "midHeight", label: "中層高度", defaultValue: 250, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到", dependsOn: midDeps });
   }
   return specs;
 }
@@ -867,7 +867,7 @@ export function crownMoldingOptions(group: OptionGroup = "structure", opts: { hi
       group,
       type: "number",
       key: "crownProjection",
-      label: "冠飾外伸 (mm)",
+      label: "冠飾外伸",
       defaultValue: 30,
       min: 15,
       max: 80,

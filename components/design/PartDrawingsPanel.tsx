@@ -140,8 +140,6 @@ export function PartDrawingsPanel({ design }: Props) {
                   <span className="text-zinc-500 text-xs">
                     {zoomedView === "front"
                       ? t("viewFrontParen")
-                      : zoomedView === "top"
-                      ? t("viewTopParen")
                       : zoomedView === "side"
                       ? t("viewSideParen")
                       : t("viewBottomParen")}
@@ -167,7 +165,6 @@ export function PartDrawingsPanel({ design }: Props) {
               {(
                 [
                   { v: "front" as PartView, label: t("viewFront") },
-                  { v: "top" as PartView, label: t("viewTop") },
                   { v: "side" as PartView, label: t("viewSide") },
                   { v: "bottom" as PartView, label: t("viewBottom") },
                 ]

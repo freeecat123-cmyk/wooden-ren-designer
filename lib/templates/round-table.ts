@@ -328,10 +328,10 @@ function buildTrestleRoundTable(p: {
 }
 
 export const roundTableOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
   seatEdgeOption("top", 1),
   seatEdgeStyleOption("top"),
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
   // 圓腳/夏克/車旋/獨柱/端梁腳沒有 4 條長邊可倒角；只在 box / tapered / fluted-square 顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
@@ -340,8 +340,8 @@ export const roundTableOptions: OptionSpec[] = [
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配。獨柱／端梁桌型不適用", wide: true, dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳離邊", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "方錐腳（方料下方收窄）" },
@@ -359,22 +359,22 @@ export const roundTableOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 5, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立。僅外斜系列有效（餐桌 5° 內最自然，避免絆腳）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   // 獨柱餐桌底爪參數
-  { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬 (mm)", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚 (mm)", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   // 牙條倒角：跟橫撐一樣，只有直腳 box 時牙條才是直方料、能吃 chamfer
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "apronEdge", notIn: [0] }] } },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 120, min: 30, max: 500, step: 10, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 22, min: 12, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地", defaultValue: 120, min: 30, max: 500, step: 10, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
 ];
 
 /**

@@ -36,7 +36,7 @@ import {
 } from "./_helpers";
 
 export const nightstandOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, min: 9, max: 30, step: 1 },
   ...makeZoneOptions({
     // 兩段式床頭櫃：上層 150mm 抽屜（手機/書/眼鏡剛好）+ 下層門櫃自動填滿
     // 下層改 door（不是 shelves）— 床邊小物要遮蔽防灰塵
@@ -59,8 +59,8 @@ export const nightstandOptions: OptionSpec[] = [
   backModeOption,
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 100, min: 0, max: 300, step: 10, help: "100 在 600mm 床頭櫃比例最穩；120 偏細長。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
-  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 100, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "椅腳高", defaultValue: 100, min: 0, max: 300, step: 10, help: "100 在 600mm 床頭櫃比例最穩；120 偏細長。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "椅腳粗", defaultValue: 35, min: 20, max: 100, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -68,11 +68,11 @@ export const nightstandOptions: OptionSpec[] = [
     { value: "round-tapered", label: "圓錐腳" },
     { value: "bracket", label: "帶托腳牙" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerSlideOption,
   ...lockTotalHeightOptions({ skipMid: true }),
   // 鎖定總高時要讓使用者也能設下層高度（非鎖定時下層自動填滿，不顯示此欄）
-  { group: "zone-bot", type: "number", key: "bottomHeight", label: "下層高度 (mm)", defaultValue: 280, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到；下層門櫃高度", dependsOn: { key: "lockTotalHeight", equals: true } },
+  { group: "zone-bot", type: "number", key: "bottomHeight", label: "下層高度", defaultValue: 280, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到；下層門櫃高度", dependsOn: { key: "lockTotalHeight", equals: true } },
   pullStyleOption("drawer"),
   doorPullStyleOption("door"),
 ];

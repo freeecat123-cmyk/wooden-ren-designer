@@ -196,10 +196,9 @@ export function PartDrawing({
         />
       ) : (() => {
         const VIEWS: Array<{ view: PartView; title: string; titleEn: string }> = [
-          { view: "front", title: "正視", titleEn: "FRONT" },
-          { view: "top", title: "俯視", titleEn: "TOP" },
+          { view: "front", title: "俯視", titleEn: "TOP" },
           { view: "side", title: "側視", titleEn: "SIDE" },
-          { view: "bottom", title: "仰視", titleEn: "BOTTOM" },
+          { view: "bottom", title: "正視", titleEn: "FRONT" },
         ];
         const filtered = singleView
           ? VIEWS.filter((v) => v.view === singleView)

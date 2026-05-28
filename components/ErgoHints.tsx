@@ -6,8 +6,8 @@ import { checkErgonomics, type ErgoInput } from "@/lib/design/ergonomics";
  * 不阻擋設計，只在欄位下方顯示「太高/太低」hint。
  * Server-rendered（純函數計算），刷新後才更新——和 design preview 同步重生。
  */
-export function ErgoHints({ category, overall, options }: ErgoInput) {
-  const warnings = checkErgonomics({ category, overall, options });
+export function ErgoHints({ category, overall, options, locale }: ErgoInput & { locale?: string }) {
+  const warnings = checkErgonomics({ category, overall, options }, locale);
   if (warnings.length === 0) return null;
 
   return (

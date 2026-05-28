@@ -1099,6 +1099,7 @@ async function ParameterForm({
           height: defaults.height,
         }}
         options={optionValues}
+        locale={locale}
       />
 
       {optionSchema.length > 0 && (

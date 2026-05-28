@@ -1287,6 +1287,13 @@ export function T2Annotations({
   // 同 column 同值的 shoulder 只畫第一個,避免雙面 mortise(splay 腳 Z 面+X 面)的
   // 12.5 等 label 重複(user 2026-05-27:「先刪除一個 12.5」)
   const renderedShoulderKeys = new Set<string>();
+  // 正視（annView=top）腿件 shoulderLft/Rgt label 撞行避撞：
+  // splay 腿同側 outer mortise (solid box) + 旋轉 mortise (dashed box) 兩個 shoulder
+  // dim label 會落在同一條 wDimY → 視覺上「279³⁰¹」「128¹⁰⁶」疊字。
+  // 收到第 N 個落在同 Y(±4px tol) 同側 (L/R) 的 label,往下推 STAGGER_GAP * N。
+  // (user 2026-05-28「正視圖底下 301 279 跟 128 106 太近了 把 279 128 往下移」)
+  const shoulderHYUsed: { L: number[]; R: number[] } = { L: [], R: [] };
+  const SHOULDER_Y_TOL = 4;
   items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
@@ -2059,6 +2066,12 @@ export function T2Annotations({
       const shLKey = `${shoulderLft}`;
       if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey)) {
         renderedShoulderKeys.add(shLKey);
+        const shLOffset =
+          view === "top" && isLegPart
+            ? shoulderHYUsed.L.filter((y) => Math.abs(y - wLabelY) <= SHOULDER_Y_TOL).length *
+              STAGGER_GAP
+            : 0;
+        shoulderHYUsed.L.push(wLabelY);
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shL`}>
             <line
@@ -2072,7 +2085,7 @@ export function T2Annotations({
             {inwardArrowsH(partLeftX, box.x, wDimY)}
             <text
               x={(partLeftX + box.x) / 2}
-              y={wLabelY}
+              y={wLabelY + shLOffset}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"
@@ -2086,6 +2099,12 @@ export function T2Annotations({
       const shRKey = `${shoulderRgt}`;
       if (shoulderRgt > TH && !renderedShoulderKeys.has(shRKey)) {
         renderedShoulderKeys.add(shRKey);
+        const shROffset =
+          view === "top" && isLegPart
+            ? shoulderHYUsed.R.filter((y) => Math.abs(y - wLabelY) <= SHOULDER_Y_TOL).length *
+              STAGGER_GAP
+            : 0;
+        shoulderHYUsed.R.push(wLabelY);
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shR`}>
             <line
@@ -2099,7 +2118,7 @@ export function T2Annotations({
             {inwardArrowsH(box.x + box.w, partRightX, wDimY)}
             <text
               x={(box.x + box.w + partRightX) / 2}
-              y={wLabelY}
+              y={wLabelY + shROffset}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"

@@ -87,8 +87,8 @@ export const trayOptions: OptionSpec[] = [
     { value: "kitchen-deep", label: "廚房深筒（厚壁 12mm + 1 隔板 + 把手）" },
     { value: "woodworker-caddy", label: "木工工具箱（厚壁 + grid + 拉手）" },
   ], help: "一鍵套適合該情境的壁厚 / 接合 / 外撇 / 把手 / 分隔組合，user 後改不蓋。" },
-  { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
-  { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "wallThickness", label: "壁厚", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "bottomThickness", label: "底厚", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板接法", defaultValue: "seated", choices: [
     { value: "seated", label: "底板內縮（壁立其上膠合，最簡單）" },
     { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
@@ -106,9 +106,9 @@ export const trayOptions: OptionSpec[] = [
   { group: "joinery", type: "number", key: "wallSplay", label: "壁外撇角度 (°)", defaultValue: 0, min: 0, max: 45, step: 1, unit: "°", help: "0 = 垂直壁；> 0 = 壁向外傾（shaker 托盤風）。miter 角接合時自動變複斜——鋸床鋸切角度會由公式計算。15° 內最常見、30° 偏戲劇感、45° 接近碗狀。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "miter" }] } },
   { group: "divider", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "divider", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "bodyShape", equals: "rect" } },
-  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
-  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 500, step: 1, unit: "mm", help: "0 = 自動填滿（從底板到頂）。手動指定可矮於壁高，讓筆桿露出來。" },
-  { group: "divider", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。", dependsOn: { key: "bodyShape", equals: "rect" } },
+  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
+  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度", defaultValue: 0, min: 0, max: 500, step: 1, unit: "mm", help: "0 = 自動填滿（從底板到頂）。手動指定可矮於壁高，讓筆桿露出來。" },
+  { group: "divider", type: "number", key: "dividerInset", label: "隔板嵌入深度", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
     { value: "none", label: "無隔板" },
     { value: "single", label: "單片直徑（穿過中心）" },
@@ -124,9 +124,9 @@ export const trayOptions: OptionSpec[] = [
     { value: "pill", label: "圓角長條（兩端半圓 + 中段矩形）" },
     { value: "circle", label: "圓形（單一圓孔，較小手指洞）" },
   ], dependsOn: { key: "withHandle", equals: true }, help: "圓角長條最常見、最不刮手；矩形最容易加工；圓形適合小托盤或刻意要圓孔效果。" },
-  { group: "handle", type: "number", key: "handleWidth", label: "把手孔寬 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", help: "建議 80-120mm（容 3-4 隻手指）。會自動 clamp 到壁長 -40mm（兩側留 20mm 邊）。", dependsOn: { all: [{ key: "withHandle", equals: true }, { key: "handleShape", notIn: ["circle"] }] } },
-  { group: "handle", type: "number", key: "handleHeight", label: "把手孔高 (mm)", defaultValue: 25, min: 15, max: 50, step: 1, unit: "mm", help: "建議 20-30mm（手指穿過剛好）。", dependsOn: { key: "withHandle", equals: true } },
-  { group: "handle", type: "number", key: "handleTopMargin", label: "把手距壁頂 (mm)", defaultValue: 10, min: 5, max: 30, step: 1, unit: "mm", help: "把手孔上緣距離壁頂的距離。", dependsOn: { key: "withHandle", equals: true } },
+  { group: "handle", type: "number", key: "handleWidth", label: "把手孔寬", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", help: "建議 80-120mm（容 3-4 隻手指）。會自動 clamp 到壁長 -40mm（兩側留 20mm 邊）。", dependsOn: { all: [{ key: "withHandle", equals: true }, { key: "handleShape", notIn: ["circle"] }] } },
+  { group: "handle", type: "number", key: "handleHeight", label: "把手孔高", defaultValue: 25, min: 15, max: 50, step: 1, unit: "mm", help: "建議 20-30mm（手指穿過剛好）。", dependsOn: { key: "withHandle", equals: true } },
+  { group: "handle", type: "number", key: "handleTopMargin", label: "把手距壁頂", defaultValue: 10, min: 5, max: 30, step: 1, unit: "mm", help: "把手孔上緣距離壁頂的距離。", dependsOn: { key: "withHandle", equals: true } },
 ];
 
 /**

@@ -61,23 +61,23 @@ export const coatRackOptions: OptionSpec[] = [
     { value: "kids", label: "兒童矮款（細柱 + 3 腳）" },
     { value: "industrial", label: "工業派（方柱 + 3 腳）" },
   ], help: "依風格一鍵套柱粗 / 樣式 / 底爪 / 鉤數 / 配件組合，user 後改不蓋。" },
-  { group: "leg", type: "number", key: "columnSize", label: "立柱粗 (mm)", defaultValue: 60, min: 35, max: 80, step: 5, unit: "mm" },
+  { group: "leg", type: "number", key: "columnSize", label: "立柱粗", defaultValue: 60, min: 35, max: 80, step: 5, unit: "mm" },
   { group: "leg", type: "select", key: "columnStyle", label: "立柱樣式", defaultValue: "lathe-turned", choices: [
     { value: "box", label: "方柱（直方料）" },
     { value: "round", label: "圓柱（直圓料）" },
     { value: "lathe-turned", label: "車旋柱（古典花瓶輪廓，最經典）" },
   ] },
   { group: "leg", type: "number", key: "footCount", label: "底爪數", defaultValue: 3, min: 3, max: 4, step: 1, help: "3 腳穩定、120° 等分視覺有設計感（預設）；4 腳更傳統，需 footLength ≥ 350 才不會視覺笨拙" },
-  { group: "leg", type: "number", key: "footLength", label: "底爪長 (mm)", defaultValue: 350, min: 200, max: 450, step: 10, help: "從柱中心往外的長度（影響穩定度）" },
+  { group: "leg", type: "number", key: "footLength", label: "底爪長", defaultValue: 350, min: 200, max: 450, step: 10, help: "從柱中心往外的長度（影響穩定度）" },
   { group: "structure", type: "number", key: "hookCount", label: "掛鉤數", defaultValue: 6, min: 4, max: 8, step: 2 },
-  { group: "structure", type: "number", key: "hookLength", label: "掛鉤外伸長 (mm)", defaultValue: 110, min: 60, max: 180, step: 10 },
+  { group: "structure", type: "number", key: "hookLength", label: "掛鉤外伸長", defaultValue: 110, min: 60, max: 180, step: 10 },
   { group: "structure", type: "checkbox", key: "withSecondHookRow", label: "加第二排掛鉤", defaultValue: false, help: "在主排下方 200mm 處加一圈，掛短外套 / 圍巾" },
   { group: "structure", type: "checkbox", key: "wallMode", label: "靠牆模式（省後排掛鉤）", defaultValue: false, help: "假定靠牆放，省掉朝牆面的 1/3 掛鉤（前 240° 範圍保留）" },
   { group: "structure", type: "checkbox", key: "withUmbrellaBase", label: "底部加傘架槽", defaultValue: false, help: "底爪之間加一個 200mm 直徑淺盤（金屬或塑膠 tray）放雨傘 / 雨鞋。實際盤要外購，木工只標位置", wide: true },
   { group: "structure", type: "checkbox", key: "withMirror", label: "立柱中段加掛鏡", defaultValue: false, help: "在立柱中段固定一面方形鏡（300×400mm 常見），出門前可整理儀容", wide: true },
   { group: "structure", type: "checkbox", key: "withHatRail", label: "頂端帽架橫木", defaultValue: false, help: "立柱頂端加 60mm 寬橫木 + 掛鉤，掛禮帽 / 報童帽不變形", wide: true },
   { group: "structure", type: "checkbox", key: "withFloorTray", label: "底盤鞋墊托", defaultValue: false, help: "底爪上加一片圓盤（400mm 直徑），放鞋墊承接滴水", wide: true },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "立柱邊倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "方柱才有效；圓柱已經圓了。1-2mm 微倒手感佳" },
+  { group: "structure", type: "number", key: "edgeChamfer", label: "立柱邊倒角", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "方柱才有效；圓柱已經圓了。1-2mm 微倒手感佳" },
 ];
 
 /**

@@ -93,11 +93,11 @@ export function PartDrawingPaperSheet({
   const innerH = 156;
   const gap = L_LAYOUT_GAP;
 
-  // L 佈局 bbox（包含兩端+中間 view 邊界共 4 條 chain pad）
-  // 寬：左半 fW（front/top/bottom 對齊）+ 右半 sW（side） + 中間 gap
-  // 高：top + front + bottom 三層垂直堆疊（第三角法）
+  // L 佈局 bbox（user 2026-05-28 移除俯視 TOP，剩 FRONT/SIDE/BOTTOM 三視）
+  // 寬：左半 fW（front/bottom 對齊）+ 右半 sW（side） + 中間 gap
+  // 高：front + bottom 兩層垂直堆疊（少一層 tH 跟一個 gap）
   const lLayoutW = fW + sW + gap + padPaper * 4;
-  const lLayoutH = tH + fH + tH + gap * 2 + padPaper * 6;
+  const lLayoutH = fH + tH + gap + padPaper * 4;
   // 置中於 inner drawing area（不夠時 clamp 0）
   const offX = Math.max(0, (innerW - lLayoutW) / 2);
   const offY = Math.max(0, (innerH - lLayoutH) / 2);
@@ -106,15 +106,9 @@ export function PartDrawingPaperSheet({
 
   // L 佈局 viewport（紙面 A4 mm 座標）— 加 chain padding,viewport 包含 silhouette
   // ± padPaper 的空間,讓 dim chain 不會溢出到鄰居 view
-  const topVp = {
-    x: baseX,
-    y: baseY,
-    w: fW,
-    h: tH,
-  };
   const frontVp = {
     x: baseX,
-    y: baseY + tH + padPaper + gap + padPaper,
+    y: baseY,
     w: fW,
     h: fH,
   };
@@ -125,7 +119,7 @@ export function PartDrawingPaperSheet({
     h: fH,
   };
   // 仰視 BOTTOM viewport：放在 frontVp 下方（第三角法慣例：仰視在正視下）
-  // 寬高跟 topVp 一致（xExt × zExt），X 對齊 frontVp 讓「長 425」與正視共用對位線
+  // 寬高 = fW × tH，X 對齊 frontVp 讓「長 425」與正視共用對位線
   const bottomVp = {
     x: baseX,
     y: frontVp.y + fH + padPaper + gap + padPaper,
@@ -270,9 +264,6 @@ export function PartDrawingPaperSheet({
         {/* 投影輔助線 toggle */}
         {showProjectionLines && (
           <g stroke="#ccc" strokeWidth={0.15} strokeDasharray="2 2" fill="none">
-            {/* FRONT ↔ TOP 對位（共用 X 軸範圍） */}
-            <line x1={frontVp.x} y1={frontVp.y} x2={frontVp.x} y2={topVp.y + topVp.h} />
-            <line x1={frontVp.x + fW} y1={frontVp.y} x2={frontVp.x + fW} y2={topVp.y + topVp.h} />
             {/* FRONT ↔ SIDE 對位（共用 Y 軸範圍） */}
             <line x1={frontVp.x + fW} y1={frontVp.y} x2={sideVp.x} y2={frontVp.y} />
             <line x1={frontVp.x + fW} y1={frontVp.y + fH} x2={sideVp.x} y2={frontVp.y + fH} />
@@ -368,23 +359,9 @@ export function PartDrawingPaperSheet({
       {/* ─── 3 個內嵌 OrthoView（embedded mode，回 <g> 不是 <svg>） ─── */}
       <OrthoView
         design={design}
-        view="top"
+        view="front"
         title="俯視"
         titleEn="TOP"
-        isolatePartId={part.id}
-        showDimensions={false}
-        embedded
-        paperMode="a4-landscape"
-        paperScale={scale}
-        paperFrame={false}
-        paperViewport={topVp}
-        overlayContent={overlayContent("top")}
-      />
-      <OrthoView
-        design={design}
-        view="front"
-        title="正視"
-        titleEn="FRONT"
         isolatePartId={part.id}
         showDimensions={false}
         embedded
@@ -412,8 +389,8 @@ export function PartDrawingPaperSheet({
       <OrthoView
         design={design}
         view="bottom"
-        title="仰視"
-        titleEn="BOTTOM"
+        title="正視"
+        titleEn="FRONT"
         isolatePartId={part.id}
         showDimensions={false}
         embedded
@@ -535,10 +512,9 @@ export function PartDrawingPaperSheet({
       {/* View 標籤（每個 view 左上角加底色矩形）— 最後渲染，蓋在 annotation 之上 */}
       <g fontFamily="sans-serif">
         {([
-          { label: "俯視 TOP", vp: topVp },
-          { label: "正視 FRONT", vp: frontVp },
+          { label: "俯視 TOP", vp: frontVp },
           { label: "側視 SIDE", vp: sideVp },
-          { label: "仰視 BOTTOM", vp: bottomVp },
+          { label: "正視 FRONT", vp: bottomVp },
         ] as const).map((v, i) => {
           const labelX = v.vp.x - padPaper * 0.8;
           const labelY = v.vp.y - padPaper * 0.5;

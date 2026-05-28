@@ -24,18 +24,20 @@ interface Range {
   errPad?: number;     // 再 ±errPad 之外是 ERROR（預設 = warnPad × 2）
 }
 
-function check(value: number, r: Range, field: string, label: string): ErgoWarning | null {
+function check(value: number, r: Range, field: string, label: string, labelEn: string, locale: string): ErgoWarning | null {
   const [lo, hi] = r.ok;
   const errPad = r.errPad ?? r.warnPad * 2;
   if (value >= lo && value <= hi) return null;
-  const suggest = `建議 ${lo}–${hi} mm`;
+  const isEn = locale === "en";
+  const suggest = isEn ? `Suggested: ${lo}–${hi} mm` : `建議 ${lo}–${hi} mm`;
+  const useLabel = isEn ? labelEn : label;
   if (value >= lo - r.warnPad && value <= hi + r.warnPad) {
-    return { field, level: "WARN", message: `${label}邊緣值（${value} mm）`, suggest };
+    return { field, level: "WARN", message: isEn ? `${useLabel} near edge (${value} mm)` : `${useLabel}邊緣值（${value} mm）`, suggest };
   }
   if (value >= lo - errPad && value <= hi + errPad) {
-    return { field, level: "ERROR", message: `${label}超出建議範圍（${value} mm）`, suggest };
+    return { field, level: "ERROR", message: isEn ? `${useLabel} out of recommended range (${value} mm)` : `${useLabel}超出建議範圍（${value} mm）`, suggest };
   }
-  return { field, level: "ERROR", message: `${label}嚴重不合理（${value} mm）`, suggest };
+  return { field, level: "ERROR", message: isEn ? `${useLabel} severely unreasonable (${value} mm)` : `${useLabel}嚴重不合理（${value} mm）`, suggest };
 }
 
 // ---- 各家具類別的範圍表 ----
@@ -85,44 +87,40 @@ export interface ErgoInput {
   options?: Record<string, unknown>;
 }
 
-export function checkErgonomics(input: ErgoInput): ErgoWarning[] {
+export function checkErgonomics(input: ErgoInput, locale: string = "zh-TW"): ErgoWarning[] {
   const warnings: ErgoWarning[] = [];
   const { category, overall, options = {} } = input;
   const seatHeight = typeof options.seatHeight === "number" ? options.seatHeight : null;
 
   switch (category) {
     case "dining-chair": {
-      // 椅子：座高優先用 options.seatHeight（更準確），否則退到整體高度推估
       const sh = seatHeight ?? overall.height;
-      const w = check(sh, CHAIR.seatHeight, "seatHeight", "坐高");
+      const w = check(sh, CHAIR.seatHeight, "seatHeight", "坐高", "Seat height", locale);
       if (w) warnings.push(w);
-      // 側向穩定性：用 overall.length 當左右腳距 b（椅子寬）
-      const stab = checkSideStability(sh, overall.length);
+      const stab = checkSideStability(sh, overall.length, locale);
       if (stab) warnings.push(stab);
       break;
     }
     case "round-stool":
     case "square-stool": {
       const sh = seatHeight ?? overall.height;
-      const w = check(sh, STOOL.height, "height", "凳高");
+      const w = check(sh, STOOL.height, "height", "凳高", "Stool height", locale);
       if (w) warnings.push(w);
-      // 凳子側向穩定性更關鍵（無椅背重心更高？人體一樣）
-      const stab = checkSideStability(sh, Math.min(overall.length, overall.width));
+      const stab = checkSideStability(sh, Math.min(overall.length, overall.width), locale);
       if (stab) warnings.push(stab);
       break;
     }
     case "bench": {
       const sh = seatHeight ?? overall.height;
-      const w = check(sh, BENCH.height, "height", "長椅座高");
+      const w = check(sh, BENCH.height, "height", "長椅座高", "Bench seat height", locale);
       if (w) warnings.push(w);
-      // 長椅短邊是側向腳距
-      const stab = checkSideStability(sh, overall.width);
+      const stab = checkSideStability(sh, overall.width, locale);
       if (stab) warnings.push(stab);
       break;
     }
     case "dining-table": {
-      const wh = check(overall.height, TABLE_DINING.height, "height", "餐桌高");
-      const ww = check(overall.width, TABLE_DINING.width, "width", "餐桌深");
+      const wh = check(overall.height, TABLE_DINING.height, "height", "餐桌高", "Dining-table height", locale);
+      const ww = check(overall.width, TABLE_DINING.width, "width", "餐桌深", "Dining-table depth", locale);
       if (wh) warnings.push(wh);
       if (ww) warnings.push(ww);
       break;
@@ -130,22 +128,21 @@ export function checkErgonomics(input: ErgoInput): ErgoWarning[] {
     case "tea-table":
     case "low-table":
     case "round-tea-table": {
-      const wh = check(overall.height, TABLE_TEA.height, "height", "茶几高");
+      const wh = check(overall.height, TABLE_TEA.height, "height", "茶几高", "Tea-table height", locale);
       if (wh) warnings.push(wh);
       break;
     }
     case "side-table":
     case "nightstand": {
-      const wh = check(overall.height, TABLE_SIDE.height, "height", "邊桌高");
+      const wh = check(overall.height, TABLE_SIDE.height, "height", "邊桌高", "Side-table height", locale);
       if (wh) warnings.push(wh);
       break;
     }
     case "wardrobe": {
-      const wh = check(overall.height, WARDROBE.height, "height", "衣櫃總高");
+      const wh = check(overall.height, WARDROBE.height, "height", "衣櫃總高", "Wardrobe total height", locale);
       if (wh) warnings.push(wh);
       break;
     }
-    // 其他類別暫不檢查（書櫃/鞋櫃等高度依空間需求差異大）
   }
 
   return warnings;
@@ -153,13 +150,15 @@ export function checkErgonomics(input: ErgoInput): ErgoWarning[] {
 
 // ---- 輔助：椅桌差檢查（如果同時知道椅子座高與餐桌高度）----
 
-export function checkChairTableGap(seatHeight: number, tableHeight: number): ErgoWarning | null {
+export function checkChairTableGap(seatHeight: number, tableHeight: number, locale: string = "zh-TW"): ErgoWarning | null {
   const diff = tableHeight - seatHeight;
   return check(
     diff,
     { ok: [270, 310] as [number, number], warnPad: 20, errPad: 40 },
     "diff",
-    `桌椅差距`,
+    "桌椅差距",
+    "Chair-table gap",
+    locale,
   );
 }
 
@@ -177,25 +176,34 @@ export function checkChairTableGap(seatHeight: number, tableHeight: number): Erg
  *
  * 用例：吧椅 750mm 高 + 腳距 350mm → θ ≈ 10.4° → ERROR
  */
-export function checkSideStability(seatHeight: number, legSpanB: number): ErgoWarning | null {
+export function checkSideStability(seatHeight: number, legSpanB: number, locale: string = "zh-TW"): ErgoWarning | null {
   if (legSpanB <= 0) return null;
   const hTotal = seatHeight + 180;
   const thetaRad = Math.atan(legSpanB / 2 / hTotal);
   const thetaDeg = (thetaRad * 180) / Math.PI;
+  const isEn = locale === "en";
 
   if (thetaDeg >= 20) return null;
   if (thetaDeg >= 12) {
     return {
       field: "stability",
       level: "WARN",
-      message: `側向穩定性偏弱（θ ≈ ${thetaDeg.toFixed(1)}°，腳距 ${legSpanB} / 座高 ${seatHeight}）`,
-      suggest: `加大左右腳距 ≥ ${Math.ceil(2 * hTotal * Math.tan((20 * Math.PI) / 180))} mm，或降低座面`,
+      message: isEn
+        ? `Side stability weak (θ ≈ ${thetaDeg.toFixed(1)}°, leg span ${legSpanB} / seat height ${seatHeight})`
+        : `側向穩定性偏弱（θ ≈ ${thetaDeg.toFixed(1)}°，腳距 ${legSpanB} / 座高 ${seatHeight}）`,
+      suggest: isEn
+        ? `Widen leg span ≥ ${Math.ceil(2 * hTotal * Math.tan((20 * Math.PI) / 180))} mm, or lower the seat`
+        : `加大左右腳距 ≥ ${Math.ceil(2 * hTotal * Math.tan((20 * Math.PI) / 180))} mm，或降低座面`,
     };
   }
   return {
     field: "stability",
     level: "ERROR",
-    message: `側向會倒！θ ≈ ${thetaDeg.toFixed(1)}°（< 12° 危險）`,
-    suggest: `腳距至少 ${Math.ceil(2 * hTotal * Math.tan((12 * Math.PI) / 180))} mm，或腳底外撇 splay 補償`,
+    message: isEn
+      ? `Will tip sideways! θ ≈ ${thetaDeg.toFixed(1)}° (< 12° unsafe)`
+      : `側向會倒！θ ≈ ${thetaDeg.toFixed(1)}°（< 12° 危險）`,
+    suggest: isEn
+      ? `Min leg span ${Math.ceil(2 * hTotal * Math.tan((12 * Math.PI) / 180))} mm, or splay the feet outward`
+      : `腳距至少 ${Math.ceil(2 * hTotal * Math.tan((12 * Math.PI) / 180))} mm，或腳底外撇 splay 補償`,
   };
 }

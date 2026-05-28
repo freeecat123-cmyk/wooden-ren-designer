@@ -13,16 +13,16 @@ const BACK_PANEL_CLEARANCE = 1;
 const GLASS_FRAME_INSET = 2;
 
 export const photoFrameOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "frameWidth", label: "邊框寬 (mm)", defaultValue: 35, min: 15, max: 60, step: 1, unit: "mm", help: "邊框面寬度（從照片邊緣往外的木料寬）" },
-  { group: "structure", type: "number", key: "frameThickness", label: "邊框厚 (mm)", defaultValue: 25, min: 12, max: 30, step: 1, unit: "mm" },
-  { group: "structure", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 4, min: 3, max: 8, step: 1, unit: "mm", help: "三合板或卡紙板背板厚度" },
-  { group: "structure", type: "number", key: "glassThickness", label: "玻璃厚 (mm)", defaultValue: 2, min: 2, max: 4, step: 1, unit: "mm", help: "玻璃行標準切片，2mm 透明玻璃最常用" },
-  { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深 (mm)", defaultValue: 6, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 2 + 背板 4 = 6mm 已足夠；太深會吃到 frameWidth 強度" },
+  { group: "structure", type: "number", key: "frameWidth", label: "邊框寬", defaultValue: 35, min: 15, max: 60, step: 1, unit: "mm", help: "邊框面寬度（從照片邊緣往外的木料寬）" },
+  { group: "structure", type: "number", key: "frameThickness", label: "邊框厚", defaultValue: 25, min: 12, max: 30, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "backThickness", label: "背板厚", defaultValue: 4, min: 3, max: 8, step: 1, unit: "mm", help: "三合板或卡紙板背板厚度" },
+  { group: "structure", type: "number", key: "glassThickness", label: "玻璃厚", defaultValue: 2, min: 2, max: 4, step: 1, unit: "mm", help: "玻璃行標準切片，2mm 透明玻璃最常用" },
+  { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深", defaultValue: 6, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 2 + 背板 4 = 6mm 已足夠；太深會吃到 frameWidth 強度" },
   { group: "structure", type: "select", key: "frameProfile", label: "邊框輪廓", defaultValue: "flat", choices: [
     { value: "flat", label: "平面（最簡單）" },
     { value: "chamfer-out", label: "外緣 45° 倒角" },
   ], help: "邊框正面輪廓樣式。平面最簡單；外緣倒角讓正面 4 條長邊都帶 45° 斜切" },
-  { group: "structure", type: "number", key: "chamferMm", label: "倒角大小 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "僅外緣倒角模式生效" },
+  { group: "structure", type: "number", key: "chamferMm", label: "倒角大小", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "僅外緣倒角模式生效" },
   { group: "structure", type: "select", key: "cornerJoinery", label: "邊角形狀", defaultValue: "butt", choices: [
     { value: "butt", label: "直角（方角對接，傳統）" },
     { value: "miter", label: "45° 斜角（畫框風）" },

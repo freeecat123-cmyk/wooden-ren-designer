@@ -106,8 +106,8 @@ export const bedOptions: OptionSpec[] = [
 
   // ---------- 腳 ----------
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", help: "床腳要承重，建議 70mm 起跳；明式架子床常 90~100mm" },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 100, step: 5, unit: "mm", help: "腳中心離側板外緣的內縮量；0 = 腳貼齊外緣" },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", help: "床腳要承重，建議 70mm 起跳；明式架子床常 90~100mm" },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 100, step: 5, unit: "mm", help: "腳中心離側板外緣的內縮量；0 = 腳貼齊外緣" },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: "斜腳系列才有效；床腳通常直立（0°）以便對牆。" },
   legEdgeOption("leg", 0),
   legEdgeStyleOption("leg"),
@@ -123,28 +123,28 @@ export const bedOptions: OptionSpec[] = [
     { value: "crested", label: "中央高冠（中段凸起，維多利亞）" },
     { value: "fielded", label: "起線板（板心凸出有斜邊框）" },
   ], help: "8 種床頭樣式。spindled / panel-frame 用多塊木料拼接，其他用單片板加 silhouette 變化。" },
-  { group: "back", type: "number", key: "headboardHeight", label: "床頭板高 (mm)", defaultValue: 800, min: 400, max: 1500, step: 10, unit: "mm", help: "從地板到床頭板頂端的總高度。常見 700~1000；高背床 1100+" },
-  { group: "back", type: "number", key: "headboardThickness", label: "床頭板厚 (mm)", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm" },
+  { group: "back", type: "number", key: "headboardHeight", label: "床頭板高", defaultValue: 800, min: 400, max: 1500, step: 10, unit: "mm", help: "從地板到床頭板頂端的總高度。常見 700~1000；高背床 1100+" },
+  { group: "back", type: "number", key: "headboardThickness", label: "床頭板厚", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm" },
   { group: "back", type: "number", key: "headSpindleCount", label: "直柵欄數", defaultValue: 7, min: 3, max: 15, step: 1, help: "spindled 樣式的直立木條數量", dependsOn: { key: "headStyle", equals: "spindled" } },
-  { group: "back", type: "number", key: "headSpindleSize", label: "直柵欄粗 (mm)", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "spindled 直立木條的粗細（方料）", dependsOn: { key: "headStyle", equals: "spindled" } },
+  { group: "back", type: "number", key: "headSpindleSize", label: "直柵欄粗", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "spindled 直立木條的粗細（方料）", dependsOn: { key: "headStyle", equals: "spindled" } },
 
   // ---------- 床尾板 ----------
   { group: "back", type: "checkbox", key: "withFootboard", label: "加床尾板", defaultValue: false, help: "傳統明式有，現代款常省略。勾選後尾端立板高 = 床尾板高" },
-  { group: "back", type: "number", key: "footboardHeight", label: "床尾板高 (mm)", defaultValue: 500, min: 250, max: 1000, step: 10, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
-  { group: "back", type: "number", key: "footboardThickness", label: "床尾板厚 (mm)", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
+  { group: "back", type: "number", key: "footboardHeight", label: "床尾板高", defaultValue: 500, min: 250, max: 1000, step: 10, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
+  { group: "back", type: "number", key: "footboardThickness", label: "床尾板厚", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
 
   // ---------- 側板 ----------
-  { group: "apron", type: "number", key: "sideRailWidth", label: "側板高 (mm)", defaultValue: 180, min: 120, max: 300, step: 10, unit: "mm", help: "側板上下方向的高度（= 牙條高度）。床承重大，建議 150mm 起跳" },
-  { group: "apron", type: "number", key: "sideRailThickness", label: "側板厚 (mm)", defaultValue: 30, min: 20, max: 50, step: 1, unit: "mm" },
-  { group: "apron", type: "number", key: "mattressClearanceMm", label: "床板距地高 (mm)", defaultValue: 250, min: 150, max: 500, step: 10, unit: "mm", help: "從地板到床板頂面的高度；mattress 上緣 = 此值 + 床墊厚（約 200~300mm）" },
+  { group: "apron", type: "number", key: "sideRailWidth", label: "側板高", defaultValue: 180, min: 120, max: 300, step: 10, unit: "mm", help: "側板上下方向的高度（= 牙條高度）。床承重大，建議 150mm 起跳" },
+  { group: "apron", type: "number", key: "sideRailThickness", label: "側板厚", defaultValue: 30, min: 20, max: 50, step: 1, unit: "mm" },
+  { group: "apron", type: "number", key: "mattressClearanceMm", label: "床板距地高", defaultValue: 250, min: 150, max: 500, step: 10, unit: "mm", help: "從地板到床板頂面的高度；mattress 上緣 = 此值 + 床墊厚（約 200~300mm）" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：側板/床頭板進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
 
   // ---------- 床板條 ----------
-  { group: "stretcher", type: "number", key: "slatGapMm", label: "床板條間距 (mm)", defaultValue: 80, min: 30, max: 100, step: 5, unit: "mm", help: "相鄰 slats 中心距減去 slat 寬。≤100mm 才能護腰避免床墊塌陷" },
-  { group: "stretcher", type: "number", key: "slatWidthMm", label: "床板條寬 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm" },
-  { group: "stretcher", type: "number", key: "slatThicknessMm", label: "床板條厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
-  { group: "stretcher", type: "number", key: "ledgerWidthMm", label: "ledger 撐條寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "釘在側板內側下緣，slats 擱上去。寬度 = 上下方向高度" },
-  { group: "stretcher", type: "number", key: "ledgerThicknessMm", label: "ledger 撐條厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1, unit: "mm", help: "從側板向床中心凸出的厚度" },
+  { group: "stretcher", type: "number", key: "slatGapMm", label: "床板條間距", defaultValue: 80, min: 30, max: 100, step: 5, unit: "mm", help: "相鄰 slats 中心距減去 slat 寬。≤100mm 才能護腰避免床墊塌陷" },
+  { group: "stretcher", type: "number", key: "slatWidthMm", label: "床板條寬", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm" },
+  { group: "stretcher", type: "number", key: "slatThicknessMm", label: "床板條厚", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
+  { group: "stretcher", type: "number", key: "ledgerWidthMm", label: "ledger 撐條寬", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "釘在側板內側下緣，slats 擱上去。寬度 = 上下方向高度" },
+  { group: "stretcher", type: "number", key: "ledgerThicknessMm", label: "ledger 撐條厚", defaultValue: 25, min: 18, max: 40, step: 1, unit: "mm", help: "從側板向床中心凸出的厚度" },
   stretcherEdgeOption("stretcher", 0),
   stretcherEdgeStyleOption("stretcher"),
 ];

@@ -10,10 +10,10 @@ import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOptio
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundTeaTableOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
   seatEdgeOption("top", 1),
   seatEdgeStyleOption("top"),
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
   // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered"] }),
@@ -21,8 +21,8 @@ export const roundTeaTableOptions: OptionSpec[] = [
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤", defaultValue: false, help: "中央加可旋轉小圓盤——需配 8-12 吋軸承", wide: true },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 350, min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
-  { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 350, min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
+  { group: "leg", type: "number", key: "legInset", label: "腳離邊", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "方錐腳（方料下方收窄）" },
@@ -35,10 +35,10 @@ export const roundTeaTableOptions: OptionSpec[] = [
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 6, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙條會跟著腳一起斜同角度。僅外斜系列有效", dependsOn: { key: "legShape", oneOf: ["splayed-tapered", "splayed-round-taper-down", "splayed-round-taper-up"] } },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 150, step: 5, unit: "mm" },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚 (mm)", defaultValue: 20, min: 12, max: 35, step: 1, unit: "mm" },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "茶几較矮，10–15 視覺整體感較佳" },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右牙條下移量，3D 即時顯示。0 = 等高（自動上下半榫）" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, min: 30, max: 150, step: 5, unit: "mm" },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, min: 12, max: 35, step: 1, unit: "mm" },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "茶几較矮，10–15 視覺整體感較佳" },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右牙條下移量，3D 即時顯示。0 = 等高（自動上下半榫）" },
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）" },
@@ -47,12 +47,12 @@ export const roundTeaTableOptions: OptionSpec[] = [
     { value: "h-frame", label: "H 字形（4 條繞 1 圈）" },
     { value: "x-cross", label: "X 字交叉（2 條斜撐穿越中心，明清交杌做法）" },
   ], dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）", dependsOn: { key: "lowerStretcherStyle", equals: "h-frame" } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 35, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 18, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）", dependsOn: { key: "lowerStretcherStyle", equals: "h-frame" } },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 35, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 18, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "checkbox", key: "withLowerShelf", label: "下層圓棚板", defaultValue: false, help: "下橫撐上方放圓棚板，rest-on 設計，收納茶具/雜誌（直徑自動算嵌入 4 腳內）", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerShelfThickness", label: "棚板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerShelf", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerShelfThickness", label: "棚板厚", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerShelf", equals: true } },
 ];
 
 /**

@@ -53,9 +53,9 @@ export const wineRackOptions: OptionSpec[] = [
   ], help: "byCount=user 設橫/縱瓶數、總尺寸自動算（預設）；byOverall=user 設總長 + 縱向層數、橫向瓶數自動算。總高永遠由 bt × cellSize 算出（兩維共用正方格、無法同時鎖兩維）", wide: true },
   { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1, help: "byCount 模式 = 直接決定寬度；byOverall 模式 = 在固定總長內均分多少格（拉大瓶數每格變小、可能塞不下需警告）" },
   { group: "structure", type: "number", key: "bottlesTall", label: "縱向層數", defaultValue: 3, min: 2, max: 6, step: 1 },
-  { group: "structure", type: "number", key: "totalLength", label: "總長 (mm)", defaultValue: 500, min: 200, max: 2000, step: 10, unit: "mm", help: "byOverall 模式：外框總寬（含兩側板 panelT×2）。bw 從 (totalLength − 2×panelT) / cellSize 取整算出", dependsOn: { key: "sizingMode", equals: "byOverall" } },
-  { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑 (mm)", defaultValue: 80, min: 70, max: 150, step: 5, help: "波爾多 75mm，香檳 90mm，Magnum 1.5L 105mm，Jeroboam 3L 145mm" },
-  { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 15, min: 12, max: 25, step: 1, unit: "mm", help: "酒架本來就輕量，15 比 18 視覺更輕巧" },
+  { group: "structure", type: "number", key: "totalLength", label: "總長", defaultValue: 500, min: 200, max: 2000, step: 10, unit: "mm", help: "byOverall 模式：外框總寬（含兩側板 panelT×2）。bw 從 (totalLength − 2×panelT) / cellSize 取整算出", dependsOn: { key: "sizingMode", equals: "byOverall" } },
+  { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑", defaultValue: 80, min: 70, max: 150, step: 5, help: "波爾多 75mm，香檳 90mm，Magnum 1.5L 105mm，Jeroboam 3L 145mm" },
+  { group: "structure", type: "number", key: "panelThickness", label: "板厚", defaultValue: 15, min: 12, max: 25, step: 1, unit: "mm", help: "酒架本來就輕量，15 比 18 視覺更輕巧" },
   { group: "structure", type: "select", key: "bottleOrientation", label: "瓶身擺放方向", defaultValue: "upright", choices: [
     { value: "upright", label: `直立式（深度 ${UPRIGHT_DEPTH}mm，省空間）` },
     { value: "horizontal", label: `橫躺式（深度 ${HORIZONTAL_DEPTH}mm，酒窖經典款）` },
@@ -65,8 +65,8 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "diamond", label: "菱形陣列（bw×bt 等距方菱形，酒窖經典）" },
   ], help: "菱形款用連續 ／ ＼ 對角板交織成 bw×bt 個等距 45° 方菱形，每格放 1 瓶；對角板在每個 lattice corner 切段、兩端 45° 切角 butt 進 90° 內角無縫" },
   { group: "leg", type: "checkbox", key: "withLegs", label: "🦿 安裝櫃腳（關掉 = 貼地）", defaultValue: false, wide: true, help: "勾起：加底座櫃腳，可選腳高 / 樣式；不勾：酒架直接貼地" },
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: LEG_HEIGHT, min: 0, max: 400, step: 10, dependsOn: { key: "withLegs", equals: true } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: LEG_HEIGHT, min: 0, max: 400, step: 10, dependsOn: { key: "withLegs", equals: true } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -77,7 +77,7 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地" },
   ], dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: `底部加抽屜層，與斗櫃同一套抽屜系統（前後板 + 兩側板 + 底板 + 把手），放開瓶器/酒塞/濾酒器等配件`, wide: true },
-  { group: "structure", type: "number", key: "drawerZoneHeight", label: "抽屜層總高 (mm)", defaultValue: DRAWER_ZONE_H, min: 60, max: 400, step: 10, dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "structure", type: "number", key: "drawerZoneHeight", label: "抽屜層總高", defaultValue: DRAWER_ZONE_H, min: 60, max: 400, step: 10, dependsOn: { key: "withPullOutDrawer", equals: true } },
   { group: "structure", type: "number", key: "drawerRows", label: "抽屜層數（縱向）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "withPullOutDrawer", equals: true } },
   { group: "structure", type: "number", key: "drawerCols", label: "抽屜橫向切割數", defaultValue: 1, min: 1, max: 6, step: 1, help: "每一層橫向再切幾個抽屜（1=整列、2=左右兩個、3=三等分…）", dependsOn: { key: "withPullOutDrawer", equals: true } },
   { group: "structure", type: "select", key: "drawerBackMode", label: "抽屜層背板樣式", defaultValue: "none", choices: [
@@ -85,7 +85,7 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "surface", label: "釘背（薄板釘在後緣，覆蓋整個後面）" },
     { value: "rebated", label: "入溝（板嵌進兩側板之間，外觀乾淨）" },
   ], help: "無背板=後面開放；釘背=薄板貼後緣、覆蓋整個外側；入溝=板嵌進兩側板之間、跟櫃身切齊", dependsOn: { key: "withPullOutDrawer", equals: true } },
-  { group: "structure", type: "number", key: "drawerBackThickness", label: "抽屜層背板厚 (mm)", defaultValue: 9, min: 3, max: 18, step: 1, help: "釘背常見 3mm 薄夾板；入溝常見 9mm；用實木一般 12–15mm", dependsOn: { all: [{ key: "withPullOutDrawer", equals: true }, { key: "drawerBackMode", notIn: ["none"] }] } },
+  { group: "structure", type: "number", key: "drawerBackThickness", label: "抽屜層背板厚", defaultValue: 9, min: 3, max: 18, step: 1, help: "釘背常見 3mm 薄夾板；入溝常見 9mm；用實木一般 12–15mm", dependsOn: { all: [{ key: "withPullOutDrawer", equals: true }, { key: "drawerBackMode", notIn: ["none"] }] } },
   // ─── 抽屜系統選項（跟其他櫃子同款，dependsOn withPullOutDrawer）───
   { group: "drawer", type: "select", key: "drawerMount", label: "抽屜面板安裝方式", defaultValue: "inset", choices: [
     { value: "overlay-6", label: "蓋 6 分（全蓋，面板蓋滿）" },
@@ -108,7 +108,7 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "surface", label: "釘底（薄底板釘在側板下緣）" },
     { value: "rebated", label: "入溝（底板嵌進側板下緣溝槽，外觀乾淨）" },
   ], dependsOn: { key: "withPullOutDrawer", equals: true } },
-  { group: "drawer", type: "select", key: "drawerBottomThickness", label: "抽屜底板厚 (mm)", defaultValue: "9", choices: [
+  { group: "drawer", type: "select", key: "drawerBottomThickness", label: "抽屜底板厚", defaultValue: "9", choices: [
     { value: "3", label: "3mm（薄夾板）" },
     { value: "6", label: "6mm" },
     { value: "9", label: "9mm（標準）" },

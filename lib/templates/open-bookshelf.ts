@@ -30,7 +30,7 @@ import {
 } from "./_helpers";
 
 export const openBookshelfOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, min: 9, max: 35, step: 1 },
   // 開放書櫃預設無背板（最常見），但仍可改成釘背 / 入溝
   {
     group: "structure",
@@ -50,8 +50,8 @@ export const openBookshelfOptions: OptionSpec[] = [
     bottomType: "shelves", bottomHeight: 400, bottomCount: 2,
   }),
   ...lockTotalHeightOptions(),
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "鎖定總高時自動算（總高扣三層後的餘量）", dependsOn: { key: "lockTotalHeight", equals: false } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { any: [{ key: "legHeight", notIn: [0] }, { key: "lockTotalHeight", equals: true }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 0, min: 0, max: 400, step: 10, help: "鎖定總高時自動算（總高扣三層後的餘量）", dependsOn: { key: "lockTotalHeight", equals: false } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { any: [{ key: "legHeight", notIn: [0] }, { key: "lockTotalHeight", equals: true }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
@@ -61,24 +61,24 @@ export const openBookshelfOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地（書櫃常見）" },
   ] , dependsOn: { any: [{ key: "legHeight", notIn: [0] }, { key: "lockTotalHeight", equals: true }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { any: [{ key: "legHeight", notIn: [0] }, { key: "lockTotalHeight", equals: true }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { any: [{ key: "legHeight", notIn: [0] }, { key: "lockTotalHeight", equals: true }] } },
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   { group: "structure", type: "checkbox", key: "withLedderRail", label: "頂端 cornice 飾條", defaultValue: false, help: "頂端加線板飾條，書櫃古典感", wide: true },
-  { group: "structure", type: "number", key: "corniceHeight", label: "cornice 高 (mm)", defaultValue: 30, min: 15, max: 80, step: 5, dependsOn: { key: "withLedderRail", equals: true } },
-  { group: "structure", type: "number", key: "corniceDepth", label: "cornice 厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withLedderRail", equals: true } },
-  { group: "structure", type: "number", key: "corniceOverhang", label: "cornice 兩端外伸 (mm)", defaultValue: 15, min: 0, max: 60, step: 1, dependsOn: { key: "withLedderRail", equals: true } },
+  { group: "structure", type: "number", key: "corniceHeight", label: "cornice 高", defaultValue: 30, min: 15, max: 80, step: 5, dependsOn: { key: "withLedderRail", equals: true } },
+  { group: "structure", type: "number", key: "corniceDepth", label: "cornice 厚", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withLedderRail", equals: true } },
+  { group: "structure", type: "number", key: "corniceOverhang", label: "cornice 兩端外伸", defaultValue: 15, min: 0, max: 60, step: 1, dependsOn: { key: "withLedderRail", equals: true } },
   { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "每片層板後緣加實木條，書本不會掉到後面（無背板書櫃常用）", wide: true },
-  { group: "structure", type: "number", key: "bookStopHeight", label: "擋條高 (mm)", defaultValue: 8, min: 4, max: 30, step: 1, dependsOn: { key: "withBookStop", equals: true } },
-  { group: "structure", type: "number", key: "bookStopThickness", label: "擋條厚 (mm)", defaultValue: 12, min: 6, max: 25, step: 1, dependsOn: { key: "withBookStop", equals: true } },
+  { group: "structure", type: "number", key: "bookStopHeight", label: "擋條高", defaultValue: 8, min: 4, max: 30, step: 1, dependsOn: { key: "withBookStop", equals: true } },
+  { group: "structure", type: "number", key: "bookStopThickness", label: "擋條厚", defaultValue: 12, min: 6, max: 25, step: 1, dependsOn: { key: "withBookStop", equals: true } },
   { group: "structure", type: "checkbox", key: "withShelfReinforcement", label: "層板加固橫條（防撓）", defaultValue: false, help: "每片層板下方加實木支撐條，防長層板撓彎，書櫃寬度 >900mm 建議開（有縱向分隔板時自動取消，分隔板已提供支撐）", wide: true, dependsOn: { key: "verticalDividerCount", equals: 0 } },
   { group: "structure", type: "select", key: "reinforcementPosition", label: "加固條位置", defaultValue: "back", choices: [
     { value: "back", label: "後緣（隱藏）" },
     { value: "front", label: "前緣（外露 = 仿英式書櫃面框）" },
     { value: "both", label: "前後雙條（最強）" },
   ], dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
-  { group: "structure", type: "number", key: "reinforcementHeight", label: "加固條高 (mm)", defaultValue: 30, min: 15, max: 60, step: 5, dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
-  { group: "structure", type: "number", key: "reinforcementThickness", label: "加固條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
+  { group: "structure", type: "number", key: "reinforcementHeight", label: "加固條高", defaultValue: 30, min: 15, max: 60, step: 5, dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
+  { group: "structure", type: "number", key: "reinforcementThickness", label: "加固條厚", defaultValue: 18, min: 12, max: 25, step: 1, dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
   { group: "structure", type: "number", key: "verticalDividerCount", label: "縱向分隔板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "0=無；1=中央 1 片切兩格；2=三等分；長書櫃放 1 片同時提供結構支撐（會自動取消加固條）" },
   // 抽屜細節（任一 zone 設成抽屜時才顯示）
   drawerMountOption,

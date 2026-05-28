@@ -16,7 +16,7 @@ const BRACE_HEIGHT_FRAC = 0.6;
 const TENON_SHOULDER = 4;
 
 export const bookendOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", help: "輕書/設計感 15mm；標準 18mm；撐字典/年鑑 25mm" },
+  { group: "structure", type: "number", key: "panelThickness", label: "板厚", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", help: "輕書/設計感 15mm；標準 18mm；撐字典/年鑑 25mm" },
   { group: "structure", type: "checkbox", key: "withBrace", label: "加三角加固", defaultValue: true, help: "底板與背板交界加直角三角支撐，避免重書壓彎" },
 ];
 

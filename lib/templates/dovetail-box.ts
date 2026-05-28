@@ -61,8 +61,8 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "hex", label: "六角盒（6 段斜接，禮品款）" },
     { value: "oct", label: "八角盒（8 段斜接，禮品款）" },
   ], help: "六/八角款用 stave 拼接邊接（六角 60° / 八角 45° 內角），鳩尾改 mitered-spline；不支援滑入式蓋、活動抽板" },
-  { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 5, max: 25, step: 1, unit: "mm" },
-  { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "wallThickness", label: "壁厚", defaultValue: 12, min: 5, max: 25, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "bottomThickness", label: "底厚", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板裝法", defaultValue: "seated", choices: [
     { value: "seated", label: "底板內縮（壁立其上膠合，最簡單）" },
     { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
@@ -88,12 +88,12 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
     { value: "lift-off", label: "掀蓋式（4 牆水平切兩段、上段為蓋、合頁鎖合）" },
   ], help: "影響蓋子做法 + 工序（六/八角盒不適用，蓋型由壁面斜角自動處理）", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }] } },
-  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）。六/八角盒鑲入式：面板上緣距盒頂固定 5mm，不隨厚度跑。", dependsOn: { key: "withLid", equals: true } },
+  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）。六/八角盒鑲入式：面板上緣距盒頂固定 5mm，不隨厚度跑。", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
     { value: "flat", label: "平頂（lid 下沉 sinkMm、壁頂有 cap）" },
     { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、邊條維持卡槽厚）" },
   ], help: "中央凸起 = 一片厚料 lidT+sinkMm，4 邊銑掉 sinkMm 留邊條 lidT 卡進槽；視覺上 lid 中央跟壁頂 flush", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }, { key: "lidType", equals: "sliding" }] } },
-  { group: "lid", type: "number", key: "liftOffLidH", label: "掀蓋段高 (mm)", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "盒蓋段高度（距盒頂切下來的高度）。0 = 自動 = outerH/5。範圍建議 outerH/6 ~ outerH/3。六/八角盒一律上下蓋分離、此選項共用。", dependsOn: { all: [{ key: "withLid", equals: true }, { any: [{ all: [{ key: "boxShape", equals: "rect" }, { key: "lidType", equals: "lift-off" }] }, { key: "boxShape", oneOf: ["hex", "oct"] }] }] } },
+  { group: "lid", type: "number", key: "liftOffLidH", label: "掀蓋段高", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "盒蓋段高度（距盒頂切下來的高度）。0 = 自動 = outerH/5。範圍建議 outerH/6 ~ outerH/3。六/八角盒一律上下蓋分離、此選項共用。", dependsOn: { all: [{ key: "withLid", equals: true }, { any: [{ all: [{ key: "boxShape", equals: "rect" }, { key: "lidType", equals: "lift-off" }] }, { key: "boxShape", oneOf: ["hex", "oct"] }] }] } },
 
   // === Divider 內隔分格 ===
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
@@ -103,9 +103,9 @@ export const dovetailBoxOptions: OptionSpec[] = [
   ], dependsOn: { key: "boxShape", notIn: ["rect"] }, help: "六/八角盒專用。單片穿過盒中心；八角還可以選十字（六角因壁間距 60° 不對齊垂直，不支援）。" },
   { group: "divider", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿長邊方向插入的縱向隔板（把盒內切成數欄）", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "divider", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿短邊方向插入的橫向隔板（與縱向隔板交叉可分多格）", dependsOn: { key: "boxShape", equals: "rect" } },
-  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", help: "rect 用縱/橫向隔板、六/八角用穿心隔板共用此厚度" },
-  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（隔板上緣跟壁頂齊），>0 自訂高度（不可超過壁內高）" },
-  { group: "divider", type: "number", key: "dividerInset", label: "隔板入溝深度 (mm)", defaultValue: 3, min: 0, max: 8, step: 1, unit: "mm", help: "隔板兩端嵌入壁內側 dado 的深度（4 壁內面鋸槽嵌入，固定但可拆）", dependsOn: { key: "boxShape", equals: "rect" } },
+  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", help: "rect 用縱/橫向隔板、六/八角用穿心隔板共用此厚度" },
+  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（隔板上緣跟壁頂齊），>0 自訂高度（不可超過壁內高）" },
+  { group: "divider", type: "number", key: "dividerInset", label: "隔板入溝深度", defaultValue: 3, min: 0, max: 8, step: 1, unit: "mm", help: "隔板兩端嵌入壁內側 dado 的深度（4 壁內面鋸槽嵌入，固定但可拆）", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "divider", type: "checkbox", key: "withInnerTray", label: "活動分隔抽板", defaultValue: false, help: "盒內加一片可拆活動隔板（30mm 高 × 6 格），首飾分類用；與固定隔板可共存", wide: true },
 ];
 
