@@ -1553,12 +1553,12 @@ export function T2Annotations({
         part.shape?.kind === "splayed-tapered" ||
         part.shape?.kind === "splayed-round-tapered";
       const splayMortiseLabel = isSplayLegPart && isMortise;
-      // 仰視 BOTTOM (annView="top") 的「實心框」mortise (isVisibleFromView=true) 才把
-      // vMm 改抓 mortise.width（square stool=12.5、splayed leg=10）。
-      // 虛線框 mortise 維持原 splayMortiseLabel / projection 路徑（= depth 或 box 投影）。
-      // user 2026-05-28：「實心框是 10 虛線框是 25」(splayed) +「12.5×23 跟 12.5×18」(square)
-      const isTopViewVisibleMortise =
-        isMortise && view === "top" && isVisibleFromView;
+      // 正視 FRONT + 仰視 BOTTOM 的「實心框」mortise (isVisibleFromView=true) →
+      // vMm 走 mortise.width（square stool=12.5、splayed leg=10）。
+      // 虛線 mortise + 側視 + tenon 全部維持原規則不動。
+      // user 2026-05-28「12.5×23 跟 12.5×18」「實心框是 10 虛線框是 25」「正視圖也有這個問題」
+      const isFrontOrTopVisibleMortise =
+        isMortise && (view === "top" || view === "front") && isVisibleFromView;
       const mortiseFeature = isMortise ? part.mortises[it.idx] : null;
       const hMm = splayMortiseLabel
         ? round1(mortiseFeature?.length ?? 0)
@@ -1567,7 +1567,7 @@ export function T2Annotations({
           : view === "side"
             ? round1(2 * lb.hz)
             : round1(2 * lb.hx);
-      const vMm = isTopViewVisibleMortise
+      const vMm = isFrontOrTopVisibleMortise
         ? round1(mortiseFeature?.width ?? 0)
         : splayMortiseLabel
         ? round1(mortiseFeature?.depth ?? 0)
@@ -1763,14 +1763,10 @@ export function T2Annotations({
         // 兩個 vMm 數字不一樣、同列左邊難辨。(user 2026-05-26「兩個 25 應該移到榫孔
         // 右邊比較好」)
         <g key={`${it.kind}-${it.idx}-inline-dims`}>
-          {/* L dim label 規則：
-              - 仰視圖 (top view) mortise：dashed 走左、visible 走右
-                兩個 vMm 各坐成對 box 的外側空白，不擠中間（user 2026-05-28）
-              - 其他視圖 mortise：dashed 走右、visible 走左（原規則）
-              - tenon：outerLeft=true 走左、false 走右（凸出側） */}
-          {(!isMortise && !outerLeft) ||
-          (isMortise && view === "top" && isVisibleFromView) ||
-          (isMortise && view !== "top" && !isVisibleFromView) ? (
+          {/* L dim label 原規則：虛線 mortise → box 右邊（不跟同列實線 mortise
+              擠左欄位），其他全 box 左邊。user 2026-05-28 要求「正式圖不要動到」
+              → 把多輪 tenon outerLeft / view==="top" 特殊條件全部還原。 */}
+          {isMortise && !isVisibleFromView ? (
             <text
               x={box.x + box.w + 2}
               y={box.y + box.h / 2 + 3}
