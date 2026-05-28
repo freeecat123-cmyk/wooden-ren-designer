@@ -231,6 +231,211 @@ export const SPEC_HELP_EN: Record<string, string> = {
   seatBendMm: "Whole seat bends like a laminated panel — center dips for comfort; corner mortise positions are unaffected. > 0 overrides saddle / edge profile.",
 };
 
+/**
+ * spec.label 繁中字典 — 用 spec.key 當主鍵，跨 26 個 template 共享。
+ *
+ * 注意：各 template 內 spec.label 仍是 source-of-truth（且可能有 template-
+ * specific 措辭，例如 bar-stool 用「椅腳樣式」、square-stool 用「腳樣式」）。
+ * 這份 ZH map 提供「跨 template 一致」的中性 label，供需要統一顯示的場景使用。
+ * 透過 `specLabel(spec, locale)` 解析時，locale='zh' 一律 fallback 回 spec.label
+ * 以保留 template-specific 措辭；明確要中性 ZH label 時用 `SPEC_LABEL_ZH[key]`。
+ */
+export const SPEC_LABEL_ZH: Record<string, string> = {
+  // === Legs ===
+  legShape: "腳樣式",
+  legSize: "腳粗 (mm)",
+  legWidth: "腳寬 X (mm)",
+  legDepth: "腳深 Z (mm)",
+  legHeight: "腳高 (mm)",
+  legInset: "腳內縮 (mm)",
+  legEdge: "腳邊緣處理",
+  legWidthOverride: "腳寬覆寫 (mm)",
+  legDepthOverride: "腳深覆寫 (mm)",
+  legPenetratingTenon: "腳上榫頭通透（明榫裝飾）",
+  splayAngle: "外斜角度 (°)",
+  withLegs: "🦿 有腳",
+  withFootboard: "加腳踏板",
+
+  // === Top / Seat ===
+  topType: "桌面類型",
+  topThickness: "桌面厚 (mm)",
+  seatThickness: "座板厚 (mm)",
+  seatEdge: "座板邊緣處理",
+  seatEdgeBottom: "座板下緣",
+  seatBendMm: "椅面彎曲 (mm)",
+  seatCornerR: "座板圓角半徑 (mm)",
+  seatPenetratingTenon: "椅面通透（腳頂穿透）",
+
+  // === Apron ===
+  apronWidth: "牙條高度 (mm)",
+  apronThickness: "牙條厚度 (mm)",
+  apronDropFromTop: "牙條距座板 (mm)",
+  apronOffset: "牙條偏移 (mm)",
+  apronStaggerMm: "牙條錯開 (mm)",
+  apronEdge: "牙條邊緣處理",
+  apronEdgeStyle: "牙條邊緣樣式",
+  withApron: "有牙條",
+  spandrelStyle: "牙花樣式",
+  friezePanel: "壁緣板",
+
+  // === Stretchers ===
+  withLowerStretcher: "加下橫撐",
+  withLowerStretchers: "加下橫撐",
+  withCenterStretcher: "加中央橫撐",
+  lowerStretcherStyle: "下橫撐樣式",
+  lowerStretcherWidth: "下橫撐高 (mm)",
+  lowerStretcherThickness: "下橫撐厚 (mm)",
+  lowerStretcherHeight: "下橫撐離地高 (mm)",
+  lowerStretcherStaggerMm: "下橫撐錯開 (mm)",
+  lowerStretcherArrangement: "下橫撐排列",
+  stretcherStyle: "橫撐樣式",
+  stretcherEdge: "橫撐邊緣處理",
+  standingBraceStyle: "立撐樣式",
+
+  // === Back / chair-specific ===
+  backStyle: "椅背樣式",
+  backHeight: "椅背高度 (mm)",
+  backInsetFromEndMm: "椅背距座板端 (mm)",
+  backInsetFromRearMm: "椅背距座板後 (mm)",
+  endSplat: "端板",
+  withArmrest: "加扶手",
+  armrestHeight: "扶手高度 (mm)",
+  armrestPlankWidth: "扶手板寬 (mm)",
+  armrestPlankThickness: "扶手板厚 (mm)",
+  armrestPostWidth: "扶手前柱 X (mm)",
+  armrestPostThickness: "扶手前柱 Z (mm)",
+  rearPostMode: "後柱模式",
+  headStyle: "床頭板樣式",
+
+  // === Carcase / panels ===
+  panelThickness: "板厚 (mm)",
+  bottomThickness: "底板厚 (mm)",
+  bottomType: "底板類型",
+  bottomAttach: "底板固定方式",
+  pedestalTopAttach: "桌墩頂面固定方式",
+  wallThickness: "壁厚 (mm)",
+  cabinetCorner: "櫃體轉角",
+  cornerJoinery: "轉角接合",
+  bodyShape: "本體形狀",
+  boxShape: "盒體形狀",
+  panelStyle: "板樣式",
+
+  // === Layout / zones / columns ===
+  layoutMode: "排列模式",
+  compoundMode: "複合模式",
+  layerCount: "層數",
+  layer1Type: "第 1 層類型",
+  layer2Type: "第 2 層類型",
+  layer3Type: "第 3 層類型",
+  layer4Type: "第 4 層類型",
+  layer5Type: "第 5 層類型",
+  layer6Type: "第 6 層類型",
+  layer7Type: "第 7 層類型",
+  layer8Type: "第 8 層類型",
+  upperType: "上層類型",
+  midType: "中層類型",
+  bottomType_zone: "下層類型",
+  withUpperZone: "加上層",
+  leftType: "左欄類型",
+  rightType: "右欄類型",
+  centerType: "中欄類型",
+  leftCount: "左欄列數",
+  rightCount: "右欄列數",
+  centerCount: "中欄列數",
+  left: "左欄",
+  right: "右欄",
+  front: "前",
+  back: "後",
+  verticalDividerCount: "垂直分隔板數",
+  dividerThickness: "分隔板厚 (mm)",
+  dividerHeight: "分隔板高 (mm)",
+  polygonDividerStyle: "多邊形分隔樣式",
+  gridLayout: "格網排列",
+
+  // === Drawers ===
+  withDrawer: "加抽屜",
+  withPullOutDrawer: "加抽拉屜",
+  drawerCount: "抽屜數",
+  drawerRows: "抽屜列數",
+  drawerStyle: "抽屜樣式",
+  drawerSide: "抽屜方向",
+  drawerFaceStyle: "抽屜面板樣式",
+  drawerBackMode: "抽屜背板模式",
+  drawerHeightStyle: "抽屜高度樣式",
+  ascendingDrawerCount: "抽屜總數",
+  apronDrawerPosition: "牙條抽屜位置",
+  apronDrawerWidth: "牙條抽屜寬 (mm)",
+  apronDrawerFrontInset: "抽屜面板內縮 (mm)",
+
+  // === Doors / handles / hardware ===
+  doorType: "門片類型",
+  doorStyle: "門片樣式",
+  withHandle: "加把手",
+  handleShape: "把手形狀",
+  pullStyle: "把手樣式",
+  withLid: "加蓋",
+  lidType: "蓋體類型",
+
+  // === Misc structure ===
+  hasLowerShelf: "加下層板",
+  withSlatRack: "加條板架",
+  withGalleryRail: "加圍欄",
+  withLedderRail: "加梯式靠背",
+  withBookStop: "加書擋",
+  withLazySusan: "加旋轉盤",
+  withToeKick: "加踢腳",
+  withCrownMolding: "加上緣線板",
+  withGrooveBack: "加凹槽背板",
+  withRebate: "加企口",
+  dropLeaf: "活動桌翼",
+  liveEdge: "自然邊",
+  lockTotalHeight: "🔒 鎖總高",
+  sizingMode: "尺寸模式",
+  useCase: "使用情境",
+  balustradeStyle: "欄杆樣式",
+  angledRack: "傾斜鞋架",
+  angledRackTilt: "傾斜角度 (°)",
+
+  // === Tier-2 long-tail ===
+  backPanelBottomArch: "背板下緣弧高 (mm)",
+  backPanelCornerR: "曲面背板圓角 (mm)",
+  backPanelEmbed: "靠背圓柱嵌入深度 (mm)",
+  backPanelFaceBend: "曲面背板正面彎曲 (mm)",
+  backPanelHeight: "背板高度 (mm)",
+  backPanelInset: "背板內縮 (mm)",
+  backPanelMaterial: "背板材質",
+  leftWidthMm: "左欄寬 (mm)",
+  rightWidthMm: "右欄寬 (mm)",
+  singleLayerLeftWidthMm: "左欄寬 (mm)",
+  singleLayerRightWidthMm: "右欄寬 (mm)",
+  legEdgeStyle: "腳邊緣樣式",
+  pedestalTopGap: "桌墩頂面留縫 (mm)",
+  pedestalStretcherHeight: "桌墩橫撐離地高 (mm)",
+  headHeight: "床頭板高度 (mm)",
+  wallHeight: "天花高度 (mm)",
+  ceilingHeight: "天花高度 (mm)",
+  withFrenchCleat: "加 French cleat",
+
+  // Round-table / lazy-susan / center stretcher
+  withLazySusanBearing: "旋轉盤軸承",
+  withTrim: "加飾條線板",
+  withMolding: "加線板",
+
+  // Box / dovetail-box detail
+  segmentCount: "分段數",
+  angleDeg: "角度 (°)",
+  insideDimsMode: "內尺寸模式",
+
+  // Coat rack
+  hookCount: "掛鉤數",
+  hookHeight: "掛鉤高度 (mm)",
+
+  // Bed
+  mattressLength: "床墊長 (mm)",
+  mattressWidth: "床墊寬 (mm)",
+  slatCount: "床板條數",
+};
+
 export function specLabel(spec: OptionSpec, locale: string): string {
   if (locale === "en") {
     const en = SPEC_LABEL_EN[spec.key];

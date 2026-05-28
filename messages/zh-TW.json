@@ -4376,7 +4376,9 @@
     "ceilingLabel": "木作天花板骨架施工模擬器",
     "ceilingDesc": "輸入長寬高、3 秒算主骨/副骨/矽酸鈣板/螺絲、列印 A4 清單帶到工地",
     "floorLabel": "地板施工模擬器",
-    "floorDesc": "輸入空間尺寸、自動排版、估超耐磨/海島型/實木地板用料、含人字拼演算"
+    "floorDesc": "輸入空間尺寸、自動排版、估超耐磨/海島型/實木地板用料、含人字拼演算",
+    "raisedFloorLabel": "和室架高平台施工模擬器",
+    "raisedFloorDesc": "輸入空間尺寸、自動算主支/副支/夾板/防潮墊、含 2D shelf-packing 拼板優化"
   },
   "threeDExport": {
     "scale1to1": "1:1 原寸（SketchUp / 工業列印 / CNC）",

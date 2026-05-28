@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale } from "next-intl";
 import { MATERIALS, type MaterialSpec, materialName, materialNotes } from "@/lib/materials";
 import type { MaterialId } from "@/lib/types";
 
@@ -139,7 +142,9 @@ interface MaterialAttributesPanelProps {
   locale?: string;
 }
 
-export function MaterialAttributesPanel({ materialId, locale = "zh-TW" }: MaterialAttributesPanelProps) {
+export function MaterialAttributesPanel({ materialId, locale: localeProp }: MaterialAttributesPanelProps) {
+  const intlLocale = useLocale();
+  const locale = localeProp ?? intlLocale;
   const spec = MATERIALS[materialId];
   if (!spec || !spec.attrs) return null;
   const a = spec.attrs;

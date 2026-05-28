@@ -39,10 +39,16 @@ export function ToolUnlockSection() {
     };
   }, []);
 
-  const toolLabel = (id: ToolId): string =>
-    id === "ceiling" ? t("ceilingLabel") : t("floorLabel");
-  const toolDesc = (id: ToolId): string =>
-    id === "ceiling" ? t("ceilingDesc") : t("floorDesc");
+  const toolLabel = (id: ToolId): string => {
+    if (id === "ceiling") return t("ceilingLabel");
+    if (id === "raised-floor") return t("raisedFloorLabel");
+    return t("floorLabel");
+  };
+  const toolDesc = (id: ToolId): string => {
+    if (id === "ceiling") return t("ceilingDesc");
+    if (id === "raised-floor") return t("raisedFloorDesc");
+    return t("floorDesc");
+  };
 
   return (
     <section className="mt-12 max-w-3xl mx-auto">

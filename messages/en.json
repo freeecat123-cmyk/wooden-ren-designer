@@ -4376,7 +4376,9 @@
     "ceilingLabel": "Ceiling framing simulator",
     "ceilingDesc": "Input L×W×H — instantly calculates main/sub joists, calcium silicate sheets, screws. Print an A4 list to take on-site.",
     "floorLabel": "Flooring simulator",
-    "floorDesc": "Input room dimensions — auto-lays out planks, estimates laminate / engineered / solid wood usage, includes herringbone pattern calc"
+    "floorDesc": "Input room dimensions — auto-lays out planks, estimates laminate / engineered / solid wood usage, includes herringbone pattern calc",
+    "raisedFloorLabel": "Raised-floor tatami platform simulator",
+    "raisedFloorDesc": "Input room dimensions — auto-calculates main/sub joists, plywood, moisture barrier, with 2D shelf-packing optimization"
   },
   "threeDExport": {
     "scale1to1": "1:1 actual size (SketchUp / industrial print / CNC)",
