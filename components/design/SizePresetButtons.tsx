@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { getSizePresetsLocalized } from "@/lib/design/size-presets";
 import { formatInchFraction } from "@/lib/units/format";
+import { useUnit } from "@/hooks/useUnit";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -30,9 +31,11 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
   const router = useRouter();
   const searchParams = useSearchParams();
   const allPresets = getSizePresetsLocalized(category, locale);
-  const isEn = locale === "en";
-  // EN tooltip 顯示 1/16" 分數（24"×18"×30"），符合北美師傅習慣。
-  const dim = (mm: number) => (isEn ? formatInchFraction(mm) : `${mm} mm`);
+  // tooltip 顯示單位：用 useUnit() 取得真正的單位偏好（geo cookie / localStorage / fallback）。
+  // inch → 1/16" 分數（24"×18"×30"），mm → 直接 mm。
+  // 過去用 `locale === "en"` 當代理是錯的：EN 訪客在歐洲也可能想看 mm。
+  const unit = useUnit();
+  const dim = (mm: number) => (unit === "inch" ? formatInchFraction(mm) : `${mm} mm`);
   const presets = limits
     ? allPresets.filter((p) => p.length <= limits.length && p.width <= limits.width && p.height <= limits.height)
     : allPresets;
