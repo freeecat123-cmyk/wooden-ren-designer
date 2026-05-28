@@ -50,7 +50,15 @@ export function useUnit(): UnitPref {
     }
     const resolve = () => {
       const local = readLocalUnit();
-      setUnit(local ?? geo.unit);
+      // 優先序: localStorage > locale 預設(en=inch) > geo > fallback
+      // locale 比 geo 強 — 使用者明確選 /en/ URL 表示偏好英寸,不要被台灣 IP 蓋掉
+      if (local) {
+        setUnit(local);
+      } else if (locale === "en") {
+        setUnit("inch");
+      } else {
+        setUnit(geo.unit);
+      }
     };
     resolve();
     // Live update when UnitToggle changes localStorage in same tab,

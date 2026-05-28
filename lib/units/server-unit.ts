@@ -24,6 +24,10 @@ export async function getUnitFromCookies(locale?: string): Promise<UnitPref> {
   const direct = store.get(UNIT_COOKIE)?.value;
   if (direct === "mm" || direct === "inch") return direct;
 
+  // locale=en 不查 geo,直接 inch — 跟 useUnit hook 邏輯一致.
+  // 使用者明確選 /en/ URL 是強意圖,不該被 IP geo(台灣 IP=mm) 蓋掉.
+  if (locale === "en") return "inch";
+
   const geo = parseGeoDefaultsCookie(store.get(GEO_DEFAULTS_COOKIE)?.value);
   if (geo?.unit) return geo.unit;
 
