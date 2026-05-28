@@ -299,6 +299,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `${idBase}-louver-${r + 1}`,
           nameZh: `${baseName}百葉條`,
+          nameEn: `${panel.nameEn ?? "Panel"} louver ${r + 1}`,
           material: panel.material,
           grainDirection: "length",
           visible: { length: slatLen, width: slatFaceH, thickness: slatThick },
@@ -382,6 +383,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `${shelf.id}-stop`,
         nameZh: `${shelf.nameZh} 止擋條`,
+        nameEn: `${shelf.nameEn ?? "Shelf"} stop bar`,
         material: input.material,
         grainDirection: "length",
         visible: { length: shelf.visible.length, width: battenT, thickness: battenH },

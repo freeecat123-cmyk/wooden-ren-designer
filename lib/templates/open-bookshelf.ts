@@ -212,6 +212,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `${shelf.id}-bookstop${segIdSuffix}`,
           nameZh: `${shelf.nameZh}後緣擋條${effectiveDivCount > 0 ? ` ${s + 1}` : ""}`,
+          nameEn: `${shelf.nameEn ?? "Shelf"} rear bookstop${effectiveDivCount > 0 ? ` ${s + 1}` : ""}`,
           material: input.material,
           grainDirection: "length",
           visible: { length: segLen, width: stopT, thickness: stopH },
@@ -247,6 +248,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `${shelf.id}-reinforce-${pos}`,
           nameZh: `${shelf.nameZh}加固條（${pos === "back" ? "後" : "前"}）`,
+          nameEn: `${shelf.nameEn ?? "Shelf"} reinforcement (${pos === "back" ? "rear" : "front"})`,
           material: input.material,
           grainDirection: "length",
           visible: { length: shelf.visible.length, width: reinT, thickness: reinH },
@@ -270,6 +272,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "cornice-front",
       nameZh: "頂端 cornice 飾條（前）",
+      nameEn: "Top cornice trim (front)",
       material: input.material,
       grainDirection: "length",
       visible: { length: input.length + 2 * overhang, width: corniceD, thickness: corniceH },
@@ -286,6 +289,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `cornice-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `頂端 cornice 飾條（${sx < 0 ? "左" : "右"}）`,
+        nameEn: `Top cornice trim (${sx < 0 ? "left" : "right"})`,
         material: input.material,
         grainDirection: "length",
         visible: { length: corniceD, width: input.width, thickness: corniceH },
@@ -344,6 +348,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `vdivider-row${i + 1}-${d + 1}`,
           nameZh: `第${i + 1}層直立分隔板 ${d + 1}`,
+          nameEn: `Row ${i + 1} vertical divider ${d + 1}`,
           material: input.material,
           grainDirection: "length",
           visible: { length: dividerT, width: innerD, thickness: segH },
@@ -380,6 +385,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `${face.id}-raised-panel`,
         nameZh: face.nameZh + " 中央凸鑲板",
+        nameEn: (face.nameEn ?? face.nameZh) + " center raised panel",
         material: input.material,
         grainDirection: "length",
         visible: { length: panelLen, width: panelH, thickness: raisedPanelT },

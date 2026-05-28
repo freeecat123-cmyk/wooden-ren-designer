@@ -175,15 +175,16 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     // 直接以「世界軸尺寸」設 visible：length→X、thickness→Y(垂直)、width→Z，
     // 不用旋轉。避免雙軸 rotation 在 ZYX Euler 下跟 worldExtents 對不上的渲染 bug。
     const pushBand = (params: {
-      id: string; nameZh: string; height: number; thick: number;
+      id: string; nameZh: string; nameEn: string; height: number; thick: number;
       xInset?: number; zInset?: number; yOffset: number;
     }) => {
-      const { id, nameZh, height, thick, xInset = 0, zInset = 0, yOffset } = params;
+      const { id, nameZh, nameEn, height, thick, xInset = 0, zInset = 0, yOffset } = params;
       // 前條：X 軸長、Y 軸高 (height)、Z 軸薄 (thick)
       const frontZ = -W / 2 - proj + thick / 2 + zInset;
       design.parts.push({
         id: `${id}-front`,
         nameZh: `${nameZh} 前條`,
+        nameEn: `${nameEn} front`,
         material: mat, grainDirection: "length",
         visible: { length: L + 2 * proj - 2 * xInset, width: thick, thickness: height },
         origin: { x: 0, y: yTop + yOffset, z: frontZ },
@@ -199,6 +200,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `${id}-${side > 0 ? "right" : "left"}`,
           nameZh: `${nameZh} ${side > 0 ? "右" : "左"}條`,
+          nameEn: `${nameEn} ${side > 0 ? "right" : "left"}`,
           material: mat, grainDirection: "width",
           visible: { length: thick, width: sideLen, thickness: height },
           origin: { x: side * (L / 2 + proj - thick / 2 - xInset), y: yTop + yOffset, z: sideCenterZ },
@@ -208,21 +210,21 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     };
 
     if (topDecor === "flat-band") {
-      pushBand({ id: "top-decor", nameZh: "頂部飾條", height: bandH, thick: trimT, yOffset: 0 });
+      pushBand({ id: "top-decor", nameZh: "頂部飾條", nameEn: "Top trim", height: bandH, thick: trimT, yOffset: 0 });
     }
 
     if (topDecor === "stepped") {
       // 古典 cornice：下層窄、上層 cap 寬外伸（cap 蓋住下層、向外多伸 15mm）
       // 下層：50mm 高，xInset=15、zInset=15（窄）→ 從櫃邊內縮 7mm
-      pushBand({ id: "top-decor-lower", nameZh: "頂部飾條 下層", height: 50, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
+      pushBand({ id: "top-decor-lower", nameZh: "頂部飾條 下層", nameEn: "Top trim lower", height: 50, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
       // 上層：30mm 高，無內縮（寬，外伸跟櫃同 proj=8）→ 比下層往外 15mm 突出
-      pushBand({ id: "top-decor-upper", nameZh: "頂部飾條 上層 cap", height: 30, thick: trimT, yOffset: 50 });
+      pushBand({ id: "top-decor-upper", nameZh: "頂部飾條 上層 cap", nameEn: "Top trim upper cap", height: 30, thick: trimT, yOffset: 50 });
     }
 
     if (topDecor === "dentil") {
       // 古典 dentil cornice：底座（下）→ 齒列（中）→ 上層 cap（最上）
       // 底座：35mm 窄板，xInset/zInset 15 → 比櫃邊內縮 7mm
-      pushBand({ id: "top-decor-base", nameZh: "齒飾 底座", height: 35, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
+      pushBand({ id: "top-decor-base", nameZh: "齒飾 底座", nameEn: "Dentil trim base", height: 35, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
       // 齒列：每齒 22 × 25 × 14，齒寬=齒距 1:1 古典比例
       const toothW = 22, toothH = 25, toothT = 14, gap = 22;
       const pitch = toothW + gap;
@@ -239,6 +241,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `top-decor-tooth-front-${k + 1}`,
           nameZh: `頂部齒飾 前 ${k + 1}`,
+          nameEn: `Dentil tooth front ${k + 1}`,
           material: mat, grainDirection: "length",
           visible: { length: toothW, width: toothT, thickness: toothH },
           origin: { x: startX + k * pitch, y: yToothBase, z: frontZ },
@@ -257,6 +260,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `top-decor-tooth-${side > 0 ? "right" : "left"}-${k + 1}`,
             nameZh: `頂部齒飾 ${side > 0 ? "右" : "左"} ${k + 1}`,
+            nameEn: `Dentil tooth ${side > 0 ? "right" : "left"} ${k + 1}`,
             material: mat, grainDirection: "width",
             visible: { length: toothT, width: toothW, thickness: toothH },
             origin: { x: side * (L / 2 + proj - toothT / 2), y: yToothBase, z: startZ + k * pitch },
@@ -265,14 +269,14 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         }
       }
       // 上層 cap：壓在齒列頂上，無內縮（寬出，蓋住整圈齒）
-      pushBand({ id: "top-decor-cap", nameZh: "齒飾 上層 cap", height: 18, thick: trimT, yOffset: 35 + toothH });
+      pushBand({ id: "top-decor-cap", nameZh: "齒飾 上層 cap", nameEn: "Dentil trim upper cap", height: 18, thick: trimT, yOffset: 35 + toothH });
     }
 
     if (topDecor === "balustrade") {
       // 下橫條 25mm + 立柱 90mm + 上橫條 25mm，三層欄杆
       const baseH = 25, postH = 90, capH = 25;
-      pushBand({ id: "top-decor-base", nameZh: "頂部欄杆 底條", height: baseH, thick: trimT, yOffset: 0 });
-      pushBand({ id: "top-decor-cap", nameZh: "頂部欄杆 頂條", height: capH, thick: trimT, yOffset: baseH + postH });
+      pushBand({ id: "top-decor-base", nameZh: "頂部欄杆 底條", nameEn: "Balustrade base rail", height: baseH, thick: trimT, yOffset: 0 });
+      pushBand({ id: "top-decor-cap", nameZh: "頂部欄杆 頂條", nameEn: "Balustrade cap rail", height: capH, thick: trimT, yOffset: baseH + postH });
       // 立柱：每 70mm 一根，方料 18×18mm
       const postW = 18, postT = 18, pitchP = 70;
       const yPostBase = yTop + baseH;
@@ -287,6 +291,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `top-decor-post-front-${k + 1}`,
           nameZh: `頂部欄杆 前立柱 ${k + 1}`,
+          nameEn: `Balustrade front post ${k + 1}`,
           material: mat, grainDirection: "length",
           visible: { length: postW, width: postT, thickness: postH },
           origin: { x: startXp + k * pitchP, y: yPostBase, z: frontZpost },
@@ -305,6 +310,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `top-decor-post-${side > 0 ? "right" : "left"}-${k + 1}`,
             nameZh: `頂部欄杆 ${side > 0 ? "右" : "左"}立柱 ${k + 1}`,
+            nameEn: `Balustrade ${side > 0 ? "right" : "left"} post ${k + 1}`,
             material: mat, grainDirection: "length",
             visible: { length: postT, width: postW, thickness: postH },
             origin: { x: side * (L / 2 + proj - postT / 2), y: yPostBase, z: startZp + k * pitchP },

@@ -116,6 +116,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seat: Part = {
     id: "seat",
     nameZh: "圓座板",
+    nameEn: "Round seat",
     material,
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: seatThickness },
@@ -231,6 +232,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       return ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
       nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+      nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg`,
       material,
       grainDirection: "length" as const,
       visible: { length: legSize, width: legSize, thickness: legHeight },
@@ -376,10 +378,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const apronGeomZ = apronGeomFor(apronYCenter0);
     const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
     const sides = [
-      { id: "apron-front", nameZh: "前牙條", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-      { id: "apron-back", nameZh: "後牙條", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-      { id: "apron-left", nameZh: "左牙條", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-      { id: "apron-right", nameZh: "右牙條", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+      { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
+      { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
+      { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
+      { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
     ];
     // half-bevel 條件：apronDropFromTop===0（牙板頂面貼椅面）才用 half-bevel 讓頂面水平
     const apronTopAtSeat = apronDropFromTop === 0;
@@ -451,6 +453,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       parts.push({
         id: s.id,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: geom.span, width: apronWidth, thickness: apronThickness },
@@ -496,10 +499,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lsGeomX = lsGeomFor(lsYCenter0);
     const lsGeomZ = lsGeomFor(lsYCenter0_z);
     const lsSides = [
-      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
-      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
-      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
-      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
     ];
     // 下橫撐：trapezoid 是腳幾何要求（兩端縮到腳寬），但**永遠不 bevel**——
     // 上下都跟腳斜（自由邊），客戶手作不用切複合斜面。
@@ -544,6 +547,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       parts.push({
         id: s.id,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: geom.span, width: lowerStretcherWidth, thickness: lowerStretcherThickness },

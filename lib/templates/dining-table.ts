@@ -107,6 +107,7 @@ function buildTrestleDiningTable(input: {
   const top: Part = {
     id: "top",
     nameZh: "桌面",
+    nameEn: "Top",
     material: material as "maple",
     grainDirection: "length",
     visible: { length, width, thickness: topThickness },
@@ -135,6 +136,7 @@ function buildTrestleDiningTable(input: {
       parts.push({
         id: `trestle-${fid}-${sid}-leg`,
         nameZh: `${fLabel}框${sLabel}腳`,
+        nameEn: `${fid === "left" ? "Left" : "Right"} frame ${sid} leg`,
         material: material as "maple",
         grainDirection: "length",
         visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeight - frameFootThickness - frameRailThickness },
@@ -153,6 +155,7 @@ function buildTrestleDiningTable(input: {
     parts.push({
       id: `trestle-${fid}-top-rail`,
       nameZh: `${fLabel}框頂橫木`,
+      nameEn: `${fid === "left" ? "Left" : "Right"} frame top rail`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
@@ -170,6 +173,7 @@ function buildTrestleDiningTable(input: {
     parts.push({
       id: `trestle-${fid}-foot`,
       nameZh: `${fLabel}框底足`,
+      nameEn: `${fid === "left" ? "Left" : "Right"} frame foot`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
@@ -195,6 +199,7 @@ function buildTrestleDiningTable(input: {
   parts.push({
     id: "trestle-center-stretcher",
     nameZh: "中央連接橫木",
+    nameEn: "Center connecting stretcher",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
@@ -434,6 +439,7 @@ export function applyLowerStretcherArrangement(
       design.parts.push({
         id: "ls-center",
         nameZh: "中央下橫撐",
+        nameEn: "Center lower stretcher",
         material: params.material as "maple",
         grainDirection: "length",
         visible: { length: centerLen, width: centerWidth, thickness: centerThick },
@@ -481,6 +487,7 @@ export function applyLowerStretcherArrangement(
         ...ref,
         id: `${ref.id}-low`,
         nameZh: `${ref.nameZh}（下層）`,
+        nameEn: `${ref.nameEn ?? ref.nameZh} (lower)`,
         origin: { ...ref.origin, y: lowerY },
         // tenons 跟原本一樣，mortise 對應加在 leg 上
       });

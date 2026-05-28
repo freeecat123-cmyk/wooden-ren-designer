@@ -237,6 +237,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
         stavesBody.push({
           ...stave,
           nameZh: stave.nameZh + "（盒身段）",
+          nameEn: (stave.nameEn ?? "Stave") + " (body)",
           visible: { ...stave.visible, width: bodyH },
         });
         // 蓋段：origin.y = polyCutY、width = topY - polyCutY
@@ -245,6 +246,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
           ...stave,
           id: stave.id + "-lid",
           nameZh: stave.nameZh.replace("（盒身段）", "") + "（盒蓋段）",
+          nameEn: (stave.nameEn ?? "Stave").replace(" (body)", "") + " (lid)",
           visible: { ...stave.visible, width: lidH },
           origin: { ...stave.origin, y: polyCutY },
         });
@@ -258,6 +260,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     const polyBottom: Part = {
       id: "bottom",
       nameZh: `${sides} 角底板`,
+      nameEn: `${sides}-sided bottom panel`,
       material,
       grainDirection: "length",
       visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
@@ -282,6 +285,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       polygonDividerParts.push({
         id: "divider-1",
         nameZh: "穿心隔板 1（縱）",
+        nameEn: "Through divider 1 (longitudinal)",
         material,
         grainDirection: "length",
         visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThickness },
@@ -294,6 +298,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
         polygonDividerParts.push({
           id: "divider-2",
           nameZh: "穿心隔板 2（橫）",
+          nameEn: "Through divider 2 (transverse)",
           material,
           grainDirection: "length",
           visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThickness },
@@ -342,6 +347,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       polyParts.push({
         id: "lid",
         nameZh: `${sides} 角頂板（鑲板入溝）`,
+        nameEn: `${sides}-sided lid (dadoed panel)`,
         material,
         grainDirection: "length",
         visible: { length: topBbox, width: topBbox, thickness: lidT },
@@ -746,6 +752,7 @@ const polyDesign: FurnitureDesign = {
       design.parts.push({
         id: "lid-plug",
         nameZh: "盒蓋凸唇（rabbet）",
+        nameEn: "Lid rabbet plug",
         material,
         grainDirection: "length",
         visible: {
@@ -765,6 +772,7 @@ const polyDesign: FurnitureDesign = {
         design.parts.push({
           id: `lid-hinge-${i + 1}`,
           nameZh: `小銅鉸鏈 ${i + 1}`,
+          nameEn: `Brass hinge ${i + 1}`,
           material,
           grainDirection: "length",
           visible: { length: hingeL, width: hingeW, thickness: hingeT },
@@ -858,6 +866,7 @@ const polyDesign: FurnitureDesign = {
         design.parts.push({
           id: wallId + "-lid",
           nameZh: wall.nameZh.replace("盒身段", "蓋段"),
+          nameEn: (wall.nameEn ?? wall.nameZh).replace(" (body)", " (lid)"),
           material: wall.material,
           grainDirection: wall.grainDirection,
           visible: { ...wall.visible, width: lidWallH },
@@ -892,6 +901,7 @@ const polyDesign: FurnitureDesign = {
     design.parts.push({
       id: "inner-tray",
       nameZh: "內部活動隔板（jewelry tray）",
+      nameEn: "Inner jewelry tray",
       material,
       grainDirection: "length",
       visible: {

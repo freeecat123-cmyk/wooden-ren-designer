@@ -228,6 +228,7 @@ export const sideTable: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "drawer-bottom-rail",
         nameZh: "抽屜下橫撐",
+        nameEn: "Drawer bottom rail",
         material: input.material,
         grainDirection: "length",
         visible: {
@@ -261,6 +262,7 @@ export const sideTable: FurnitureTemplate = (input) => {
         drawerParts.push({
           id: `drawer-${i + 1}-front`,
           nameZh: `${sideName}抽屜面板`,
+          nameEn: "Drawer front",
           material: input.material,
           grainDirection: "length",
           visible: { length: faceW, width: effectiveDrawerHeight, thickness: drawerFaceThick },
@@ -276,6 +278,7 @@ export const sideTable: FurnitureTemplate = (input) => {
           drawerParts.push({
             id: `drawer-${i + 1}-box-front`,
             nameZh: `${sideName}抽屜箱前板`,
+            nameEn: "Drawer box front",
             material: input.material,
             grainDirection: "length",
             visible: { length: bodyOuterW, width: effectiveDrawerHeight - 4, thickness: innerFrontThick },
@@ -290,6 +293,7 @@ export const sideTable: FurnitureTemplate = (input) => {
           drawerParts.push({
             id: `drawer-${i + 1}-side-${sx < 0 ? "L" : "R"}`,
             nameZh: `${sideName}抽屜${sx < 0 ? "左" : "右"}側板`,
+            nameEn: `Drawer ${sx < 0 ? "left" : "right"} side`,
             material: input.material,
             grainDirection: "length",
             visible: { length: sideThick, width: effectiveDrawerHeight - 4, thickness: drawerDepth },
@@ -307,6 +311,7 @@ export const sideTable: FurnitureTemplate = (input) => {
         drawerParts.push({
           id: `drawer-${i + 1}-back`,
           nameZh: `${sideName}抽屜後板`,
+          nameEn: "Drawer back",
           material: input.material,
           grainDirection: "length",
           visible: { length: bodyOuterW - 2 * sideThick, width: effectiveDrawerHeight - 4, thickness: sideThick },
@@ -319,6 +324,7 @@ export const sideTable: FurnitureTemplate = (input) => {
         drawerParts.push({
           id: `drawer-${i + 1}-bottom`,
           nameZh: `${sideName}抽屜底板`,
+          nameEn: "Drawer bottom",
           material: input.material,
           grainDirection: "length",
           visible: { length: bodyOuterW - 2 * sideThick, width: bottomThick, thickness: drawerDepth - sideThick },
@@ -341,6 +347,7 @@ export const sideTable: FurnitureTemplate = (input) => {
           drawerParts.push({
             id: `drawer-${i + 1}-pull`,
             nameZh: `${sideName}抽屜把手`,
+            nameEn: "Drawer pull",
             material: input.material,
             grainDirection: "length",
             visible: { length: pullW, width: pullH, thickness: pullThick },

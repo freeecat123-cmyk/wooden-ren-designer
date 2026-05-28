@@ -176,6 +176,7 @@ export const bench: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "back-splat",
         nameZh: "椅背立板",
+        nameEn: "Back splat",
         material: mat,
         grainDirection: "length",
         visible: { length: input.length, width: splatHeight, thickness: splatThick },
@@ -231,6 +232,7 @@ export const bench: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背直料 ${i + 1}`,
+          nameEn: `Back slat ${i + 1}`,
           material: mat,
           grainDirection: "length",
           visible: { length: slatW, width: tiltedHeight, thickness: slatT },
@@ -281,6 +283,7 @@ export const bench: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木",
+        nameEn: "Back top rail",
         material: mat,
         grainDirection: "length",
         visible: { length: input.length, width: topRailT, thickness: topRailH },
@@ -341,6 +344,7 @@ export const bench: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `back-rail-${i + 1}`,
           nameZh: isTop ? "椅背頂橫木" : `椅背橫料 ${i + 1}`,
+          nameEn: isTop ? "Back top rail" : `Back rail ${i + 1}`,
           material: mat,
           grainDirection: "length",
           visible: { length: railLength, width: railT, thickness: railH },
@@ -416,6 +420,7 @@ export const bench: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `back-post-${legId}-${suffix}`,
             nameZh: `椅背柱-${suffix}（接後腳 ${legId}）`,
+            nameEn: `Back post-${suffix} (joins rear leg ${legId})`,
             material: mat,
             grainDirection: "length",
             visible: { length: legSize, width: widthAdj, thickness: segH },
@@ -437,6 +442,7 @@ export const bench: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `back-post-${legId}-${suffix}`,
             nameZh: `椅背柱-${suffix}（接後腳 ${legId}）`,
+            nameEn: `Back post-${suffix} (joins rear leg ${legId})`,
             material: mat,
             grainDirection: "length",
             visible: { length: legSize, width: segH, thickness: widthAdj },
@@ -455,6 +461,7 @@ export const bench: FurnitureTemplate = (input) => {
         for (const p of rearLegs) {
           p.visible = { ...p.visible, thickness: p.visible.thickness + postUpExt };
           p.nameZh = `後腳/椅背柱 ${p.id.slice(4)}`;
+          p.nameEn = `Rear leg / back post ${p.id.slice(4)}`;
         }
       } else if (!hasCut) {
         // splayed/tapered + 沒切除 → 加單支立柱（不分段）
@@ -531,6 +538,7 @@ export const bench: FurnitureTemplate = (input) => {
         diameter: number,
         idSuffix: string,
         nameZh: string,
+        nameEn: string,
         kind: "post" | "spindle" = "spindle",
       ) => {
         // BOTTOM 齊座板背緣（不動）；TOP 跟 bow 旋轉後底面中軸線跑
@@ -554,6 +562,7 @@ export const bench: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
+          nameEn,
           material: mat,
           grainDirection: "length",
           visible: { length: diameter, width: diameter, thickness: partHActual },
@@ -601,8 +610,8 @@ export const bench: FurnitureTemplate = (input) => {
       // 預設留 8mm 安全邊距避免邊柱整支懸出
       const stumpInset = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
       const stumpX = input.length / 2 - stumpInset;
-      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）", "post");
-      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）", "post");
+      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）", "Left back stump post (turned)", "post");
+      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）", "Right back stump post (turned)", "post");
 
       // 中央圓料 (spindles)：在兩邊柱「內側邊」之間等距分佈
       // 用 slot-pitch 法：兩端 gap = 中間相鄰 gap，避免端點圓料貼到邊柱
@@ -611,7 +620,7 @@ export const bench: FurnitureTemplate = (input) => {
       const innerLeft = -stumpX + stumpD / 2;
       for (let i = 0; i < spindleN; i++) {
         const x = innerLeft + slotPitch * (i + 1);
-        buildVerticalRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`);
+        buildVerticalRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`, `Back spindle ${i + 1}`);
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
@@ -629,6 +638,7 @@ export const bench: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
+        nameEn: "Back top rail (bow)",
         material: mat,
         grainDirection: "length",
         visible: { length: bowLength, width: topRailT, thickness: topRailH },
@@ -691,6 +701,7 @@ export const bench: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "under-shelf",
       nameZh: "座下層板",
+      nameEn: "Under-seat shelf",
       material: input.material,
       grainDirection: "length",
       visible: { length: shelfLen, width: shelfWid, thickness: shelfT },

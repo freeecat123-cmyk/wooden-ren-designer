@@ -232,6 +232,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     const polyBottom: Part = {
       id: "bottom",
       nameZh: `${sides} 角底板`,
+      nameEn: `${sides}-sided bottom panel`,
       material,
       grainDirection: "length",
       visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
@@ -258,6 +259,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       polygonDividerParts.push({
         id: "divider-1",
         nameZh: "隔板 1（縱）",
+        nameEn: "Divider 1 (longitudinal)",
         material,
         grainDirection: "length",
         visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
@@ -271,6 +273,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         polygonDividerParts.push({
           id: "divider-2",
           nameZh: "隔板 2（橫）",
+          nameEn: "Divider 2 (transverse)",
           material,
           grainDirection: "length",
           visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
@@ -782,6 +785,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       dividerParts.push({
         id: `divider-${i}`,
         nameZh: `縱向隔板 ${i}`,
+        nameEn: `Longitudinal divider ${i}`,
         material,
         grainDirection: "length",
         visible: { length: built.innerW + 2 * dividerInsetOpt, width: dividerH, thickness: dividerThick },
@@ -803,6 +807,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       dividerParts.push({
         id: `cross-divider-${i}`,
         nameZh: `橫向隔板 ${i}`,
+        nameEn: `Transverse divider ${i}`,
         material,
         grainDirection: "length",
         visible: { length: built.innerL + 2 * dividerInsetOpt, width: dividerH, thickness: dividerThick },

@@ -309,6 +309,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `椅腳 ${i + 1}`,
+      nameEn: isBack ? `Rear leg ${i + 1}` : `Leg ${i + 1}`,
       material,
       grainDirection: "length",
       visible: { length: legW, width: legD, thickness: legTotalH },
@@ -428,6 +429,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
+    nameEn: "Seat",
     material,
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
@@ -494,7 +496,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / seatY) : 0;
 
   // 通用：給定該層橫撐的「橫撐料」中軸 Y 與料厚 W，產生四面 sides。
-  const buildSides = (centerY: number, beamWidth: number, namePrefix: string) => {
+  const buildSides = (centerY: number, beamWidth: number, namePrefix: string, namePrefixEn: string) => {
     const botY = centerY - beamWidth / 2;
     const topY = centerY + beamWidth / 2;
     const shiftAt = (yMm: number) => seatY > 0 ? 1 - yMm / seatY : 0;
@@ -519,10 +521,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面（含 taper 補償）
         // = innerSpan(中心到中心) − legW@centerY(扣兩半邊腳) + 2×splayXc（外斜補償）
         // joinery 模式靠 cut-dimensions 加 tenon，3D 不延伸到腳裡。
-        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
-        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
-        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
-        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
+        { key: "front", nameZh: `前${namePrefix}`, nameEn: `Front ${namePrefixEn}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
+        { key: "back", nameZh: `後${namePrefix}`, nameEn: `Back ${namePrefixEn}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
+        { key: "left", nameZh: `左${namePrefix}`, nameEn: `Left ${namePrefixEn}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
+        { key: "right", nameZh: `右${namePrefix}`, nameEn: `Right ${namePrefixEn}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
       ],
       splayXc, splayZc, splayXt, splayZt, splayXb, splayZb,
       lwC, lwT, lwB, ldC, ldT, ldB,
@@ -532,9 +534,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronCenterY = ringY + apronWidth / 2;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
   // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legW/innerSpan，否則接不到腳
-  const apronBZ = buildSides(apronCenterY, apronWidth, "牙條");
+  const apronBZ = buildSides(apronCenterY, apronWidth, "牙條", "apron");
   const apronBX = apronVisuallyStaggered
-    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙條")
+    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙條", "apron")
     : apronBZ;
   // X 軸用 apronBX 的 sides[0,1]（前/後），Z 軸用 apronBZ 的 sides[2,3]（左/右）
   const apronCombinedSides = [
@@ -591,6 +593,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: `apron-${s.key}`,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
@@ -641,7 +644,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   const frCenterY = footrestHeight + footRestWidth / 2;
-  const frB = buildSides(frCenterY, footRestWidth, "腳踏");
+  const frB = buildSides(frCenterY, footRestWidth, "腳踏", "footrest");
   const footRests: Part[] = frB.sides.map((s) => {
     // axis-specific：單向斜也觸發 tenon axis（axis="x" 腳踏只受 splayDx、axis="z" 只受 splayDz）
     const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
@@ -684,6 +687,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: `footrest-${s.key}`,
       nameZh: `腳踏-${s.nameZh.replace("腳踏", "")}`,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: s.visibleLength, width: footRestWidth, thickness: footRestThickness },
@@ -748,6 +752,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       parts.push({
         id: `back-post-${i + 1}`,
         nameZh: `椅背支撐柱 ${i + 1}`,
+        nameEn: `Back support post ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: postW, width: postD, thickness: backHeight },
@@ -770,6 +775,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     parts.push({
       id: "back-rail",
       nameZh: "椅背頂橫木",
+      nameEn: "Back top rail",
       material,
       grainDirection: "length",
       visible: { length: railLen, width: topRailThickness, thickness: topRailH },
@@ -808,6 +814,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         parts.push({
           id: `back-post-${sx > 0 ? "right" : "left"}`,
           nameZh: `椅背圓柱-${sx > 0 ? "右" : "左"}`,
+          nameEn: `Back post (${sx > 0 ? "right" : "left"})`,
           material,
           grainDirection: "length",
           visible: { length: backPostDiameter, width: backPostDiameter, thickness: postH },
@@ -856,6 +863,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       parts.push({
         id: "back-panel",
         nameZh: "椅背弧形板",
+        nameEn: "Curved back panel",
         material,
         grainDirection: "length",
         visible: { length: panelLen, width: backPanelThickness, thickness: backPanelHeight },
@@ -872,6 +880,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背板條 ${i + 1}`,
+          nameEn: `Back slat ${i + 1}`,
           material,
           grainDirection: "length",
           visible: { length: slatLen, width: backSlatWidth, thickness: slatThicknessConst },

@@ -317,6 +317,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `前椅腳 ${i + 1}`,
+      nameEn: isBack ? `Rear leg ${i + 1}` : `Front leg ${i + 1}`,
       material,
       grainDirection: "length",
       visible: { length: legW, width: legD, thickness: isBackContinuous ? seatHeight : legBaseHeight },
@@ -426,6 +427,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     .map((c, i) => ({
       id: `back-post-${i + 1}`,
       nameZh: `背柱 ${i + 1}`,
+      nameEn: `Back post ${i + 1}`,
       material,
       grainDirection: "length",
       visible: { length: legW, width: legD, thickness: height - seatHeight },
@@ -500,6 +502,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
+    nameEn: "Seat",
     material,
     grainDirection: "length",
     visible: { length, width: seatPanelWidth, thickness: seatThickness },
@@ -598,15 +601,15 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0));  // 前後（X）牙板，下移後
 
   type ApronSideDef = {
-    key: string; nameZh: string; visibleLength: number;
+    key: string; nameZh: string; nameEn: string; visibleLength: number;
     axis: "x" | "z"; sx: number; sz: number;
     origin: { x: number; z: number };
   };
   const apronSides: ApronSideDef[] = [
-    { key: "front", nameZh: "前牙條", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronGeomX.splayZc) } },
-    { key: "back",  nameZh: "後牙條", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronGeomX.splayZc } },
-    { key: "left",  nameZh: "左牙條", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronGeomZ.splayXc), z: 0 } },
-    { key: "right", nameZh: "右牙條", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
+    { key: "front", nameZh: "前牙條", nameEn: "Front apron", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronGeomX.splayZc) } },
+    { key: "back",  nameZh: "後牙條", nameEn: "Back apron", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronGeomX.splayZc } },
+    { key: "left",  nameZh: "左牙條", nameEn: "Left apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronGeomZ.splayXc), z: 0 } },
+    { key: "right", nameZh: "右牙條", nameEn: "Right apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
   ];
 
   const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1;
@@ -655,6 +658,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: `apron-${s.key}`,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
@@ -742,6 +746,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         armrestParts.push({
           id: `armrest-front-post-${sideKey}`,
           nameZh: `${sideZh}扶手前支柱`,
+          nameEn: `${sideKey === "right" ? "Right" : "Left"} armrest front post`,
           material,
           grainDirection: "length",
           visible: { length: armrestPostW, width: armrestPostD, thickness: postH },
@@ -760,6 +765,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       armrestParts.push({
         id: `armrest-plank-${sideKey}`,
         nameZh: `${sideZh}扶手板`,
+        nameEn: `${sideKey === "right" ? "Right" : "Left"} armrest plank`,
         material,
         grainDirection: "length",
         visible: { length: plankLength, width: armrestPlankWidth, thickness: armrestPlankThickness },
@@ -776,6 +782,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   let backTopRail: Part = {
     id: "back-top-rail",
     nameZh: "椅背頂橫木",
+    nameEn: "Back top rail",
     material,
     grainDirection: "length",
     // 連做模式背柱跟著 legInset 內縮，分離模式背柱獨立於 legInset，length / z 都要分開
@@ -914,15 +921,15 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const lsGeomZ = lsGeomFor(lowerCenterY + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0));  // 左右（Z）下橫撐，上移後
 
     type SideDef = {
-      key: string; nameZh: string; visibleLength: number;
+      key: string; nameZh: string; nameEn: string; visibleLength: number;
       axis: "x" | "z"; sx: number; sz: number;
       origin: { x: number; z: number };
     };
     const sides: SideDef[] = [
-      { key: "front", nameZh: "前下橫撐", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + lsGeomX.splayZc) } },
-      { key: "back",  nameZh: "後下橫撐", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + lsGeomX.splayZc } },
-      { key: "left",  nameZh: "左下橫撐", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + lsGeomZ.splayXc), z: 0 } },
-      { key: "right", nameZh: "右下橫撐", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + lsGeomZ.splayXc, z: 0 } },
+      { key: "front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + lsGeomX.splayZc) } },
+      { key: "back",  nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + lsGeomX.splayZc } },
+      { key: "left",  nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + lsGeomZ.splayXc), z: 0 } },
+      { key: "right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + lsGeomZ.splayXc, z: 0 } },
     ];
 
     const buildLowerPart = (s: SideDef): Part => {
@@ -963,6 +970,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       return {
         id: `ls-${s.key}`,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
@@ -1080,6 +1088,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       lowerStretchers.push({
         id: "ls-center",
         nameZh: "中央連接橫撐",
+        nameEn: "Center connecting stretcher",
         material,
         grainDirection: "length",
         visible: { length: midBodyLen, width: lowerW, thickness: lowerT },
@@ -1152,6 +1161,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       backParts.push({
         id: `back-slat-${i + 1}`,
         nameZh: `椅背板條 ${i + 1}`,
+        nameEn: `Back slat ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: backSpan + dip, width: slatWidth, thickness: slatThickness },
@@ -1180,6 +1190,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       backParts.push({
         id: `back-rung-${i + 1}`,
         nameZh: `椅背橫檔 ${i + 1}`,
+        nameEn: `Back rung ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: rungBodyLen, width: rungWidth, thickness: rungThickness },
@@ -1200,6 +1211,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     backParts.push({
       id: "back-splat",
       nameZh: "椅背中板",
+      nameEn: "Back splat",
       material,
       grainDirection: "length",
       visible: { length: backSpan + splatDip, width: splatWidth, thickness: splatThickness },
@@ -1223,6 +1235,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       backParts.push({
         id: `back-spindle-${i + 1}`,
         nameZh: `椅背圓棒 ${i + 1}`,
+        nameEn: `Back spindle ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: spindleDia, width: spindleDia, thickness: backSpan + dip },
@@ -1243,6 +1256,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     backParts.push({
       id: "back-curved-splat",
       nameZh: "椅背曲面中板",
+      nameEn: "Curved back splat",
       material,
       grainDirection: "length",
       visible: { length: backSpan + cDip, width: cWidth, thickness: cThickness },

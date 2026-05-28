@@ -233,6 +233,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `${face.id}-raised-panel`,
         nameZh: face.nameZh + " 中央凸鑲板",
+        nameEn: (face.nameEn ?? face.nameZh) + " center raised panel",
         material: input.material,
         grainDirection: "length",
         visible: { length: panelLen, width: panelH, thickness: raisedPanelT },
@@ -281,6 +282,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
           ...pull,
           id: pull.id + "-R",
           nameZh: (pull.nameZh ?? "把手") + "（右）",
+          nameEn: (pull.nameEn ?? "Pull") + " (right)",
           origin: { ...pull.origin, x: origX + dx },
         };
         rightCopies.push(right);
@@ -288,6 +290,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
         pull.origin = { ...pull.origin, x: origX - dx };
         pull.id = pull.id + "-L";
         pull.nameZh = (pull.nameZh ?? "把手") + "（左）";
+        pull.nameEn = (pull.nameEn ?? "Pull") + " (left)";
       }
       design.parts.push(...rightCopies);
     }
@@ -305,6 +308,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "gallery-back",
       nameZh: "頂面圍欄 後條",
+      nameEn: "Gallery rail back",
       material: input.material,
       grainDirection: "length",
       visible: { length: backLen, width: railH, thickness: railT },
@@ -320,6 +324,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `gallery-${side > 0 ? "right" : "left"}`,
         nameZh: `頂面圍欄 ${side > 0 ? "右" : "左"}條`,
+        nameEn: `Gallery rail ${side > 0 ? "right" : "left"}`,
         material: input.material,
         grainDirection: "length",
         visible: { length: sideLen, width: railH, thickness: railT },

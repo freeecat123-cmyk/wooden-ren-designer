@@ -171,6 +171,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
+    nameEn: "Round top",
     material,
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
@@ -223,6 +224,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       return ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
       nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+      nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg`,
       material,
       grainDirection: "length" as const,
       visible: { length: legSize, width: legSize, thickness: legHeight },
@@ -351,10 +353,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronYCenter0);
   const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙條", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-    { id: "apron-back", nameZh: "後牙條", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-    { id: "apron-left", nameZh: "左牙條", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-    { id: "apron-right", nameZh: "右牙條", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
+    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
+    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響
@@ -422,6 +424,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: s.id,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: geom.span, width: apronWidth, thickness: apronThickness },
@@ -464,10 +467,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     const lsGeomX = lsGeomFor(lsYCenter0);
     const lsGeomZ = lsGeomFor(lsYCenter0_z);
     const lsSides = [
-      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
-      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
-      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
-      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
     ];
     // 下橫撐：trapezoid 但無 bevel；左右（Z）整支上移 staggerMm
     for (const s of lsSides) {
@@ -506,6 +509,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       lowerStretchers.push({
         id: s.id,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: geom.span, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
@@ -564,13 +568,14 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     const xcTenonType: "through-tenon" | "shouldered-tenon" =
       lowerTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const diagonals = [
-      { id: "ls-xcross-1", nameZh: "X 撐 1（前左↔後右）", yRot: angle, yLift: 0 },
-      { id: "ls-xcross-2", nameZh: "X 撐 2（前右↔後左）", yRot: -angle, yLift: lowerStretcherThickness * 0.05 },
+      { id: "ls-xcross-1", nameZh: "X 撐 1（前左↔後右）", nameEn: "X-stretcher 1 (FL↔BR)", yRot: angle, yLift: 0 },
+      { id: "ls-xcross-2", nameZh: "X 撐 2（前右↔後左）", nameEn: "X-stretcher 2 (FR↔BL)", yRot: -angle, yLift: lowerStretcherThickness * 0.05 },
     ];
     for (const d of diagonals) {
       lowerStretchers.push({
         id: d.id,
         nameZh: d.nameZh,
+        nameEn: d.nameEn,
         material,
         grainDirection: "length",
         visible: { length: diagLen, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
@@ -608,6 +613,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     lowerShelfParts.push({
       id: "lower-shelf",
       nameZh: "下層圓棚板",
+      nameEn: "Lower round shelf",
       material,
       grainDirection: "length",
       visible: { length: shelfDiameter, width: shelfDiameter, thickness: lowerShelfThickness },
@@ -633,6 +639,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         ? [{
             id: "lazy-susan",
             nameZh: `旋轉盤 (${Math.min(lazySusanDiameter, diameter - 100)}mm)`,
+            nameEn: `Lazy susan (${Math.min(lazySusanDiameter, diameter - 100)}mm)`,
             material,
             grainDirection: "length" as const,
             visible: { length: Math.min(lazySusanDiameter, diameter - 100), width: Math.min(lazySusanDiameter, diameter - 100), thickness: 18 },

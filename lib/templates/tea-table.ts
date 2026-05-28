@@ -219,6 +219,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const topPanel: Part = {
     id: "top",
     nameZh: "桌面板",
+    nameEn: "Top panel",
     material,
     grainDirection: "length",
     visible: { length: topLen, width: topWid, thickness: topThickness },
@@ -242,6 +243,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legs: Part[] = cornerPts.map((c, i) => ({
     id: `leg-${i + 1}`,
     nameZh: `桌腳 ${i + 1}`,
+    nameEn: `Leg ${i + 1}`,
     material,
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
@@ -346,6 +348,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const upperAprons: Part[] = makeApronRing({
     idPrefix: "upper-apron",
     nameZhPrefix: "牙條",
+    nameEnSuffix: "apron",
     span: apronInnerSpan,
     overallLength: length,
     overallWidth: width,
@@ -380,6 +383,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretchers: Part[] = makeApronRing({
     idPrefix: "lower-stretcher",
     nameZhPrefix: "下橫撐",
+    nameEnSuffix: "lower stretcher",
     span: lowerInnerSpan,
     overallLength: length,
     overallWidth: width,
@@ -450,6 +454,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     slatParts.push({
       id: `shelf-slat-${i + 1}`,
       nameZh: `下棚條 ${i + 1}`,
+      nameEn: `Lower shelf slat ${i + 1}`,
       material,
       grainDirection: "length",
       visible: {
@@ -479,6 +484,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       dropLeafParts.push({
         id: `drop-leaf-${sx < 0 ? "left" : "right"}`,
         nameZh: `${sx < 0 ? "左" : "右"}翻板`,
+        nameEn: `${sx < 0 ? "Left" : "Right"} drop leaf`,
         material,
         grainDirection: "length",
         visible: { length: topWid, width: dropLeafWidth, thickness: topThickness },
@@ -551,6 +557,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
 interface ApronRingOpts {
   idPrefix: string;
   nameZhPrefix: string;
+  nameEnSuffix: string;
   span: { x: number; z: number };
   legSize: number;
   overallLength: number;
@@ -591,6 +598,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     {
       key: "front",
       nameZh: "前",
+      nameEn: "Front",
       visibleLength: o.span.x,
       axis: "x" as const,
       origin: { x: 0, z: -edgeZ },
@@ -598,6 +606,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     {
       key: "back",
       nameZh: "後",
+      nameEn: "Back",
       visibleLength: o.span.x,
       axis: "x" as const,
       origin: { x: 0, z: edgeZ },
@@ -605,6 +614,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     {
       key: "left",
       nameZh: "左",
+      nameEn: "Left",
       visibleLength: o.span.z,
       axis: "z" as const,
       origin: { x: -edgeX, z: 0 },
@@ -612,6 +622,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     {
       key: "right",
       nameZh: "右",
+      nameEn: "Right",
       visibleLength: o.span.z,
       axis: "z" as const,
       origin: { x: edgeX, z: 0 },
@@ -637,6 +648,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     return {
       id: `${o.idPrefix}-${s.key}`,
       nameZh: `${s.nameZh}${o.nameZhPrefix}`,
+      nameEn: `${s.nameEn} ${o.nameEnSuffix}`,
       material: o.material,
       grainDirection: "length" as const,
       visible: {

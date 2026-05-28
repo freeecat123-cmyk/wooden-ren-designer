@@ -109,6 +109,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     const backRail: Part = {
       id: "back-rail",
       nameZh: `Shaker peg 背板 ${railWidthMm}mm`,
+      nameEn: `Shaker peg backboard ${railWidthMm}mm`,
       material,
       grainDirection: "length",
       visible: { length: railWidthMm, width: railHeightMm, thickness: railThicknessMm },
@@ -126,6 +127,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       pegs.push({
         id: `peg-${i + 1}`,
         nameZh: `Shaker peg ${i + 1}（⌀${pegHeadDiameter}mm × ${pegLengthMm}mm 圓料）`,
+        nameEn: `Shaker peg ${i + 1} (⌀${pegHeadDiameter}mm × ${pegLengthMm}mm dowel)`,
         material,
         grainDirection: "length",
         visible: { length: pegLengthMm, width: pegHeadDiameter, thickness: pegHeadDiameter },
@@ -140,6 +142,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     const cleat: Part = {
       id: "french-cleat",
       nameZh: `French cleat 吊條（45° 斜切，${railWidthMm}mm）`,
+      nameEn: `French cleat hanger (45° miter, ${railWidthMm}mm)`,
       material,
       grainDirection: "length",
       visible: { length: railWidthMm, width: railHeightMm * 0.6, thickness: cleatThicknessMm },
@@ -211,10 +214,10 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const feet: Part[] = [];
   if (footCount === 4) {
     const dirs = [
-      { id: "foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1, mAngle: -Math.PI / 2 },
-      { id: "foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1, mAngle: Math.PI / 2 },
-      { id: "foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1, mAngle: Math.PI },
-      { id: "foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1, mAngle: 0 },
+      { id: "foot-front", nameZh: "前底爪", nameEn: "Front foot", axis: "z" as const, sign: -1, mAngle: -Math.PI / 2 },
+      { id: "foot-back", nameZh: "後底爪", nameEn: "Back foot", axis: "z" as const, sign: 1, mAngle: Math.PI / 2 },
+      { id: "foot-left", nameZh: "左底爪", nameEn: "Left foot", axis: "x" as const, sign: -1, mAngle: Math.PI },
+      { id: "foot-right", nameZh: "右底爪", nameEn: "Right foot", axis: "x" as const, sign: 1, mAngle: 0 },
     ];
     for (const d of dirs) {
       const isXAxis = d.axis === "x";
@@ -225,6 +228,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       feet.push({
         id: d.id,
         nameZh: d.nameZh,
+        nameEn: d.nameEn,
         material,
         grainDirection: "length",
         visible: { length: len, width: footWidth, thickness: footThickness },
@@ -270,6 +274,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       feet.push({
         id: `foot-${i + 1}`,
         nameZh: `底爪 ${i + 1}`,
+        nameEn: `Foot ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: len, width: footWidth, thickness: footThickness },
@@ -327,6 +332,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     hooks.push({
       id: `hook-${i + 1}`,
       nameZh: `掛鉤 ${i + 1}`,
+      nameEn: `Hook ${i + 1}`,
       material,
       grainDirection: "length",
       visible: { length: hookLength, width: HOOK_SIZE, thickness: HOOK_SIZE },
@@ -372,6 +378,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       hooks.push({
         id: `hook-r2-${i + 1}`,
         nameZh: `下排掛鉤 ${i + 1}`,
+        nameEn: `Lower hook ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: r2Length, width: HOOK_SIZE, thickness: HOOK_SIZE },
@@ -410,6 +417,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const column: Part = {
     id: "column",
     nameZh: "中央立柱",
+    nameEn: "Central column",
     material,
     grainDirection: "length",
     visible: { length: columnSize, width: columnSize, thickness: columnHeight },
@@ -431,6 +439,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "hat-rail",
       nameZh: "頂端帽架橫木",
+      nameEn: "Top hat rail",
       material,
       grainDirection: "length",
       visible: { length: footLength + 200, width: 60, thickness: 30 },
@@ -444,6 +453,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "mirror",
       nameZh: "中段方鏡 300×400mm",
+      nameEn: "Mid-section mirror 300×400mm",
       material,
       grainDirection: "length",
       visible: { length: 300, width: 400, thickness: 4 },
@@ -459,6 +469,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "umbrella-tray",
       nameZh: "底部傘架淺盤 ⌀200mm",
+      nameEn: "Umbrella tray ⌀200mm",
       material,
       grainDirection: "length",
       visible: { length: 200, width: 200, thickness: 30 },
@@ -474,6 +485,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "floor-tray",
       nameZh: "底盤鞋墊托",
+      nameEn: "Floor tray",
       material,
       grainDirection: "length",
       visible: { length: 400, width: 400, thickness: 18 },

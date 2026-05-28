@@ -89,6 +89,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const topRail: Part = {
     id: "frame-top",
     nameZh: "上邊框",
+    nameEn: "Top frame rail",
     material,
     grainDirection: "length",
     visible: { length: outerL, width: frameW, thickness: frameT },
@@ -104,6 +105,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     ...topRail,
     id: "frame-bottom",
     nameZh: "下邊框",
+    nameEn: "Bottom frame rail",
     origin: { x: 0, y: 0, z: -(outerW / 2 - frameW / 2) },
     mortises: useMiter ? [] : [
       cornerMortise(-(outerL / 2 - frameW / 2), +frameW / 2),
@@ -118,6 +120,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const leftRail: Part = {
     id: "frame-left",
     nameZh: "左邊框",
+    nameEn: "Left frame rail",
     material,
     grainDirection: "length",
     visible: { length: sideLen, width: frameW, thickness: frameT },
@@ -131,6 +134,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     ...leftRail,
     id: "frame-right",
     nameZh: "右邊框",
+    nameEn: "Right frame rail",
     origin: { x: outerL / 2 - frameW / 2, y: 0, z: 0 },
     // 跟 leftRail 一樣，但 tenons 內容相同（盲榫對稱）
   };
@@ -179,6 +183,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const glass: Part = {
     id: "glass",
     nameZh: "玻璃",
+    nameEn: "Glass",
     material,
     visual: "glass",
     grainDirection: "length",
@@ -199,6 +204,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const backPanel: Part = {
     id: "back-panel",
     nameZh: "背板（夾板）",
+    nameEn: "Back panel (plywood)",
     material,
     materialOverride: "plywood",
     grainDirection: "length",

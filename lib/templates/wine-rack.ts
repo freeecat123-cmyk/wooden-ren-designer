@@ -232,6 +232,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const top: Part = {
     id: "top",
     nameZh: "頂板",
+    nameEn: "Top panel",
     material,
     grainDirection: "length",
     visible: { length: outerW, width: depth, thickness: panelT },
@@ -245,6 +246,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     ...top,
     id: "bottom",
     nameZh: "底板",
+    nameEn: "Bottom panel",
     visible: { length: innerW, width: depth, thickness: panelT },
     origin: { x: 0, y: 0, z: 0 },
     // 底板兼上下層分隔板。入溝背板時底面開 stopped dado，背板上緣插進來。
@@ -308,6 +310,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const leftSide: Part = {
     id: "side-left",
     nameZh: withPullOutDrawer ? "左側板（含抽屜層）" : "左側板",
+    nameEn: withPullOutDrawer ? "Left side panel (with drawer layer)" : "Left side panel",
     material,
     grainDirection: "length",
     visible: { length: depth, width: sidePanelWidth, thickness: panelT },
@@ -320,6 +323,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     ...leftSide,
     id: "side-right",
     nameZh: withPullOutDrawer ? "右側板（含抽屜層）" : "右側板",
+    nameEn: withPullOutDrawer ? "Right side panel (with drawer layer)" : "Right side panel",
     origin: { x: halfOuterW - panelT / 2, y: panelT - sideExtensionH, z: 0 },
     mortises: shelfMortises(-1),
   };
@@ -330,6 +334,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     horizontalShelves.push({
       id: `shelf-h-${row}`,
       nameZh: `第 ${row} 層水平板`,
+      nameEn: `Row ${row} horizontal shelf`,
       material,
       grainDirection: "length",
       visible: { length: innerW, width: depth, thickness: panelT },
@@ -359,6 +364,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       verticalDividers.push({
         id: `divider-v-r${row + 1}-c${col}`,
         nameZh: `第 ${row + 1} 排第 ${col} 縱向分隔`,
+        nameEn: `Row ${row + 1} divider ${col}`,
         material,
         grainDirection: "length",
         visible: { length: depth, width: segH, thickness: panelT },
@@ -409,6 +415,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       const p: Part = {
         id: `diamond-${rz > 0 ? "pos" : "neg"}-${idCounter}`,
         nameZh: `對角分隔板 ${idCounter}`,
+        nameEn: `Diagonal divider ${idCounter}`,
         material,
         grainDirection: "length",
         visible: { length: len, width: depth, thickness: panelT },
@@ -465,6 +472,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         parts.push({
           id: `side-extension-${sx < 0 ? "left" : "right"}`,
           nameZh: `${sx < 0 ? "左" : "右"}側板延伸腳`,
+          nameEn: `${sx < 0 ? "Left" : "Right"} side panel extension leg`,
           material,
           grainDirection: "length",
           visible: { length: depth - 2 * insetZ, width: legH, thickness: panelT },
@@ -482,6 +490,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         parts.push({
           id: `plinth-${sz < 0 ? "front" : "back"}`,
           nameZh: `${sz < 0 ? "前" : "後"}底座板`,
+          nameEn: `${sz < 0 ? "Front" : "Back"} plinth panel`,
           material,
           grainDirection: "length",
           visible: { length: outerW - 2 * insetX, width: legH, thickness: plinthT },
@@ -495,6 +504,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         parts.push({
           id: `plinth-${sx < 0 ? "left" : "right"}`,
           nameZh: `${sx < 0 ? "左" : "右"}底座板`,
+          nameEn: `${sx < 0 ? "Left" : "Right"} plinth panel`,
           material,
           grainDirection: "length",
           visible: { length: depth - 2 * insetZ - 2 * plinthT, width: legH, thickness: plinthT },
@@ -520,6 +530,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
           parts.push({
             id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
             nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+            nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg`,
             material,
             grainDirection: "width",
             visible: { length: LEG_SIZE, width: LEG_SIZE, thickness: legH },
@@ -533,6 +544,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
             parts.push({
               id: `bracket-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
               nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}托腳牙`,
+              nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg bracket`,
               material,
               grainDirection: "length",
               visible: { length: bracketLen, width: legH * 0.7, thickness: 14 },
@@ -558,6 +570,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     parts.push({
       id: "drawer-floor",
       nameZh: "抽屜室地板",
+      nameEn: "Drawer chamber floor",
       material,
       grainDirection: "length",
       visible: { length: outerW, width: depth, thickness: panelT },
@@ -589,6 +602,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       parts.push({
         id: "drawer-back",
         nameZh: "抽屜層背板（釘背）",
+        nameEn: "Drawer layer back panel (nailed)",
         material,
         grainDirection: "length",
         visible: { length: outerW, width: drawerBackThickness, thickness: drawerZoneH },
@@ -601,6 +615,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       parts.push({
         id: "drawer-back",
         nameZh: "抽屜層背板（入溝）",
+        nameEn: "Drawer layer back panel (dadoed)",
         material,
         grainDirection: "length",
         visible: {

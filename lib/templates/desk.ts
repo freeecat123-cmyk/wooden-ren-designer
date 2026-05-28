@@ -323,6 +323,7 @@ export const desk: FurnitureTemplate = (input) => {
             design.parts.push({
               id: `desk-pedestal-pillar-${sx < 0 ? "L" : "R"}${sz < 0 ? "F" : "B"}`,
               nameZh: `黃銅柱（${sx < 0 ? "左" : "右"}${sz < 0 ? "前" : "後"}）`,
+              nameEn: `Brass pillar (${sx < 0 ? "left" : "right"} ${sz < 0 ? "front" : "back"})`,
               material: input.material,
               materialOverride: "plywood",
               grainDirection: "length",
@@ -352,6 +353,7 @@ export const desk: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `desk-pedestal-extension-${sx < 0 ? "left" : "right"}`,
             nameZh: `懸吊櫃延伸側板（${sx < 0 ? "左" : "右"}）`,
+            nameEn: `Pedestal extension side panel (${sx < 0 ? "left" : "right"})`,
             material: input.material,
             grainDirection: "length",
             visible: { length: PANEL_T, width: caseD, thickness: extensionH },
@@ -443,6 +445,7 @@ export const desk: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
+        nameEn: `H-frame ${sx < 0 ? "left" : "right"} longitudinal stretcher`,
         material: input.material,
         grainDirection: "length",
         visible: { length: sideStretcherLen, width: STRETCHER_H, thickness: STRETCHER_T },
@@ -459,6 +462,7 @@ export const desk: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "desk-h-cross",
         nameZh: "H 框橫向長橫撐",
+        nameEn: "H-frame cross stretcher",
         material: input.material,
         grainDirection: "length",
         visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
@@ -608,6 +612,7 @@ export const desk: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "desk-apron-front-filler-left",
         nameZh: "前牙條填補（左）",
+        nameEn: "Front apron filler (left)",
         material: input.material,
         grainDirection: "length",
         visible: { length: gapLeftW, width: apronWidth, thickness: apronThickness },
@@ -621,6 +626,7 @@ export const desk: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "desk-apron-front-filler-right",
         nameZh: "前牙條填補（右）",
+        nameEn: "Front apron filler (right)",
         material: input.material,
         grainDirection: "length",
         visible: { length: gapRightW, width: apronWidth, thickness: apronThickness },
@@ -644,6 +650,7 @@ export const desk: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `desk-apron-drawer-runner-${r === 0 ? "left" : "right"}`,
         nameZh: `抽屜跑條（${r === 0 ? "左" : "右"}）`,
+        nameEn: `Drawer runner (${r === 0 ? "left" : "right"})`,
         material: input.material,
         grainDirection: "length",
         visible: { length: runnerLen, width: apronWidth, thickness: apronThickness },
@@ -660,6 +667,7 @@ export const desk: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "modesty-panel",
       nameZh: "後飾遮腿板",
+      nameEn: "Modesty panel",
       material: input.material,
       grainDirection: "length",
       visible: { length: input.length - 100, width: 350, thickness: 18 },

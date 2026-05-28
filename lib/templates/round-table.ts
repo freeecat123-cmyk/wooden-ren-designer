@@ -47,6 +47,7 @@ function buildPedestalRoundTable(p: {
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
+    nameEn: "Round top",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
@@ -64,6 +65,7 @@ function buildPedestalRoundTable(p: {
   const column: Part = {
     id: "pedestal-column",
     nameZh: "中央柱",
+    nameEn: "Central pedestal column",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: columnSize, width: columnSize, thickness: legHeight - topCleatThickness },
@@ -80,6 +82,7 @@ function buildPedestalRoundTable(p: {
   const topCleat: Part = {
     id: "pedestal-top-cleat",
     nameZh: "柱頂連接板",
+    nameEn: "Pedestal top cleat",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: topCleatSize, width: topCleatSize, thickness: topCleatThickness },
@@ -93,10 +96,10 @@ function buildPedestalRoundTable(p: {
   // 慣例：part-X 0→length 對應「從柱面往外」，tenon "start"（X=0 端）= 朝柱
   // mesh center = origin、Y 沿 thickness：爪坐地面 → origin.y = footThickness/2
   const feet: Part[] = [
-    { id: "pedestal-foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1 },
-    { id: "pedestal-foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1 },
-    { id: "pedestal-foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1 },
-    { id: "pedestal-foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1 },
+    { id: "pedestal-foot-front", nameZh: "前底爪", nameEn: "Front pedestal foot", axis: "z" as const, sign: -1 },
+    { id: "pedestal-foot-back", nameZh: "後底爪", nameEn: "Back pedestal foot", axis: "z" as const, sign: 1 },
+    { id: "pedestal-foot-left", nameZh: "左底爪", nameEn: "Left pedestal foot", axis: "x" as const, sign: -1 },
+    { id: "pedestal-foot-right", nameZh: "右底爪", nameEn: "Right pedestal foot", axis: "x" as const, sign: 1 },
   ].map((f) => {
     const isXAxis = f.axis === "x";
     // rotation y 把 part-X 對到「從柱中心往 +sign 方向」
@@ -107,6 +110,7 @@ function buildPedestalRoundTable(p: {
     return {
       id: f.id,
       nameZh: f.nameZh,
+      nameEn: f.nameEn,
       material: material as "maple",
       grainDirection: "length" as const,
       visible: { length: footLength, width: footWidth, thickness: footThickness },
@@ -193,6 +197,7 @@ function buildTrestleRoundTable(p: {
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
+    nameEn: "Round top",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
@@ -227,6 +232,7 @@ function buildTrestleRoundTable(p: {
       parts.push({
         id: `trestle-${fid}-${sid}-leg`,
         nameZh: `${fLabel}框${sLabel}腳`,
+        nameEn: `${fid === "front" ? "Front" : "Back"} frame ${sid} leg`,
         material: material as "maple",
         grainDirection: "length",
         visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeightInner },
@@ -242,6 +248,7 @@ function buildTrestleRoundTable(p: {
     parts.push({
       id: `trestle-${fid}-top-rail`,
       nameZh: `${fLabel}框頂橫木`,
+      nameEn: `${fid === "front" ? "Front" : "Back"} frame top rail`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
@@ -260,6 +267,7 @@ function buildTrestleRoundTable(p: {
     parts.push({
       id: `trestle-${fid}-foot`,
       nameZh: `${fLabel}框底足`,
+      nameEn: `${fid === "front" ? "Front" : "Back"} frame foot`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
@@ -289,6 +297,7 @@ function buildTrestleRoundTable(p: {
   parts.push({
     id: "trestle-center-stretcher",
     nameZh: "中央連接橫木",
+    nameEn: "Center connecting stretcher",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
@@ -559,6 +568,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       return ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
       nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+      nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg`,
       material,
       grainDirection: "length" as const,
       visible: { length: legSize, width: legSize, thickness: legHeight },
@@ -694,10 +704,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronYCenter0);
   const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙條", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-    { id: "apron-back", nameZh: "後牙條", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-    { id: "apron-left", nameZh: "左牙條", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-    { id: "apron-right", nameZh: "右牙條", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
+    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
+    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響
@@ -765,6 +775,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: s.id,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: geom.span, width: apronWidth, thickness: apronThickness },
@@ -807,10 +818,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const lsGeomX = lsGeomFor(lsYCenter0);
     const lsGeomZ = lsGeomFor(lsYCenter0_z);
     const lsSides = [
-      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
-      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
-      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
-      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
     ];
     // 下橫撐：trapezoid 但無 bevel；左右（Z）整支上移 staggerMm
     for (const s of lsSides) {
@@ -849,6 +860,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       lowerStretchers.push({
         id: s.id,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: geom.span, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
@@ -870,6 +882,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     lazySusanParts.push({
       id: "lazy-susan",
       nameZh: `旋轉盤 (${dia}mm)`,
+      nameEn: `Lazy susan (${dia}mm)`,
       material,
       grainDirection: "length",
       visible: { length: dia, width: dia, thickness: 22 },

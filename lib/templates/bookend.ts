@@ -46,6 +46,7 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const base: Part = {
     id: "base",
     nameZh: "底板",
+    nameEn: "Base panel",
     material,
     grainDirection: "length",
     visible: { length: baseDepth, width: baseWidth, thickness: panelT },
@@ -60,6 +61,7 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const back: Part = {
     id: "back",
     nameZh: "背板",
+    nameEn: "Back panel",
     material,
     grainDirection: "length",
     visible: { length: baseWidth, width: backPanelH, thickness: panelT },
@@ -91,6 +93,7 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     parts.push({
       id: "brace",
       nameZh: "三角加固",
+      nameEn: "Triangle brace",
       material,
       grainDirection: "length",
       visible: { length: braceLeg, width: braceLeg, thickness: BRACE_THICKNESS },
