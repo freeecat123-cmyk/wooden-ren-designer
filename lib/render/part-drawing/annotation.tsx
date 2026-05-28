@@ -1552,7 +1552,11 @@ export function T2Annotations({
         part.shape?.kind === "splayed" ||
         part.shape?.kind === "splayed-tapered" ||
         part.shape?.kind === "splayed-round-tapered";
-      const splayMortiseLabel = isSplayLegPart && isMortise;
+      // 仰視圖 mortise 也走 logical「沿榫眼長 × 進深」(user 2026-05-28
+      // 「應該是 12.5×23 跟 12.5×18 跟榫長度搞反了」)。只動 view==="top"，
+      // 正視/側視維持原本 box 投影規則不動。
+      const splayMortiseLabel =
+        (isSplayLegPart && isMortise) || (isMortise && view === "top");
       const mortiseFeature = isMortise ? part.mortises[it.idx] : null;
       const hMm = splayMortiseLabel
         ? round1(mortiseFeature?.length ?? 0)
@@ -1755,10 +1759,14 @@ export function T2Annotations({
         // 兩個 vMm 數字不一樣、同列左邊難辨。(user 2026-05-26「兩個 25 應該移到榫孔
         // 右邊比較好」)
         <g key={`${it.kind}-${it.idx}-inline-dims`}>
-          {/* L dim label：tenon 端面凸出時 (outerLeft=false) 走右邊空白處不要蓋
-              part body；虛線 mortise (hidden) 強制走右邊以免跟同列實線擠左欄位；
-              其餘維持原本走左邊 (anchor=end)。 */}
-          {(isMortise && !isVisibleFromView) || (!isMortise && !outerLeft) ? (
+          {/* L dim label 規則：
+              - 仰視圖 (top view) mortise：dashed 走左、visible 走右
+                兩個 vMm 各坐成對 box 的外側空白，不擠中間（user 2026-05-28）
+              - 其他視圖 mortise：dashed 走右、visible 走左（原規則）
+              - tenon：outerLeft=true 走左、false 走右（凸出側） */}
+          {(!isMortise && !outerLeft) ||
+          (isMortise && view === "top" && isVisibleFromView) ||
+          (isMortise && view !== "top" && !isVisibleFromView) ? (
             <text
               x={box.x + box.w + 2}
               y={box.y + box.h / 2 + 3}
