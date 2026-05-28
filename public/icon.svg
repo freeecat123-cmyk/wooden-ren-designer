@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Blueprint navy background -->
-  <rect width="512" height="512" rx="96" ry="96" fill="#1e3a5f"/>
+  <rect width="512" height="512" fill="#1e3a5f"/>
   <!-- Subtle grid hint (only visible at larger sizes) -->
   <g stroke="#ffffff" stroke-width="3" opacity="0.18">
     <line x1="0" y1="128" x2="512" y2="128"/>

@@ -4412,7 +4412,10 @@
     "floorLabel": "地板施工模擬器",
     "floorDesc": "輸入空間尺寸、自動排版、估超耐磨/海島型/實木地板用料、含人字拼演算",
     "raisedFloorLabel": "和室架高平台施工模擬器",
-    "raisedFloorDesc": "輸入空間尺寸、自動算主支/副支/夾板/防潮墊、含 2D shelf-packing 拼板優化"
+    "raisedFloorDesc": "輸入空間尺寸、自動算主支/副支/夾板/防潮墊、含 2D shelf-packing 拼板優化",
+    "noticeAdmin": "✓ 你是管理員帳號，三個工具都已開通使用，不用購買。",
+    "noticeOwned": "✓ 你已經買過這個工具了，可以直接使用。",
+    "adminBtn": "✓ 管理員 (全功能已開通)"
   },
   "threeDExport": {
     "scale1to1": "1:1 原寸（SketchUp / 工業列印 / CNC）",

@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   TOOL_UNLOCK_PRICES,
   VALID_TOOL_IDS,
   type ToolId,
 } from "@/lib/pricing/tool-unlock";
+import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
 
 export function ToolUnlockSection() {
   const t = useTranslations("toolUnlock");
+  const searchParams = useSearchParams();
+  const notice = searchParams.get("tool_notice");
   const [unlocked, setUnlocked] = useState<Set<ToolId>>(new Set());
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +28,9 @@ export function ToolUnlockSection() {
         if (!user) {
           if (!cancelled) setLoading(false);
           return;
+        }
+        if (!cancelled && isAdminEmail(user.email, getPublicAdminEmails())) {
+          setIsAdmin(true);
         }
         const { data } = await supabase
           .from("tool_unlocks")
@@ -57,6 +65,16 @@ export function ToolUnlockSection() {
           {t("h")}
         </h2>
         <p className="mt-2 text-sm text-zinc-600">{t("intro")}</p>
+        {notice === "admin" && (
+          <p className="mt-3 inline-block px-4 py-2 rounded-lg bg-amber-100 text-amber-900 text-sm font-medium">
+            {t("noticeAdmin")}
+          </p>
+        )}
+        {notice === "owned" && (
+          <p className="mt-3 inline-block px-4 py-2 rounded-lg bg-emerald-100 text-emerald-800 text-sm font-medium">
+            {t("noticeOwned")}
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -79,7 +97,15 @@ export function ToolUnlockSection() {
                 <p className="text-xs text-zinc-600 leading-relaxed mb-4">
                   {toolDesc(tool)}
                 </p>
-                {isUnlocked ? (
+                {isAdmin ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-sm font-semibold cursor-default"
+                  >
+                    {t("adminBtn")}
+                  </button>
+                ) : isUnlocked ? (
                   <button
                     type="button"
                     disabled

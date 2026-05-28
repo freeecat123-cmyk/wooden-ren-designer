@@ -39,15 +39,14 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    const loginUrl = new URL(`/login?next=/pricing?unlock_tool=${tool}`, req.url);
+    const next = encodeURIComponent(`/pricing?unlock_tool=${tool}`);
+    const loginUrl = new URL(`/login?next=${next}`, req.url);
     return NextResponse.redirect(loginUrl, 303);
   }
 
   if (isAdminEmail(user.email, getServerAdminEmails())) {
-    return NextResponse.json(
-      { error: "admin_no_purchase", message: "管理員帳號已享有全部功能,無需購買" },
-      { status: 400 },
-    );
+    const url = new URL(`/pricing?tool_notice=admin`, req.url);
+    return NextResponse.redirect(url, 303);
   }
 
   const admin = createAdminClient();
@@ -59,10 +58,8 @@ export async function POST(req: NextRequest) {
     .eq("tool", tool)
     .maybeSingle();
   if (existing) {
-    return NextResponse.json(
-      { error: "already_unlocked", message: "你已經買過這個工具了" },
-      { status: 400 },
-    );
+    const url = new URL(`/pricing?tool_notice=owned`, req.url);
+    return NextResponse.redirect(url, 303);
   }
 
   const amount = TOOL_UNLOCK_PRICES[tool];
