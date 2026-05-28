@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
+import { formatInchFraction } from "@/lib/units/format";
 
 interface CeilingRangeInputProps {
   /** 中文 label,如「長邊」「角材寬」 */
@@ -52,6 +54,12 @@ export function CeilingRangeInput({
   disabled,
 }: CeilingRangeInputProps) {
   const t = useTranslations("numberInput");
+  const unitPref = useUnit();
+  // 只有長度欄位（mm / cm）才在 inch 偏好下顯示英寸換算。
+  const isMmLength = unit === "mm";
+  const isCmLength = unit === "cm";
+  const showInchHelper = unitPref === "inch" && (isMmLength || isCmLength);
+  const valueMm = isCmLength ? value * 10 : value;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +92,11 @@ export function CeilingRangeInput({
         <span className="text-zinc-600 font-medium">{label}</span>
         {sub && <span className="text-[10px] text-zinc-400 font-normal">· {sub}</span>}
       </div>
+      {showInchHelper && Number.isFinite(valueMm) && (
+        <div className="mb-1 text-[10px] text-zinc-500 tabular-nums leading-none">
+          ≈ {formatInchFraction(valueMm)}
+        </div>
+      )}
       <div className="flex items-center gap-1.5">
         <input
           type="range"
@@ -135,7 +148,11 @@ export function CeilingRangeInput({
             className="shrink-0 min-w-[60px] px-2 py-1 rounded-md bg-stone-100 hover:bg-stone-200 font-mono tabular-nums text-zinc-900 disabled:hover:bg-stone-100"
           >
             {value}
-            {unit && <span className="text-zinc-400 ml-0.5">{unit}</span>}
+            {unit && (
+              <span className="text-zinc-400 ml-0.5">
+                {showInchHelper ? "in" : unit}
+              </span>
+            )}
           </button>
         )}
         <button

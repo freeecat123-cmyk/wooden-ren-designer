@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
+import { formatInchFraction } from "@/lib/units/format";
 
 export default function ApronTiltCalc() {
   const t = useTranslations("apronTilt");
+  const unitPref = useUnit();
   const [angle, setAngle] = useState(10);
   const [legHeight, setLegHeight] = useState(425);
+  const showInchHelper = unitPref === "inch";
 
   const tanA = Math.tan((angle * Math.PI) / 180);
   const splayMm = legHeight * tanA;
@@ -39,7 +43,12 @@ export default function ApronTiltCalc() {
           <span className="text-xs text-zinc-400 mt-1">{t("inputAngleHint")}</span>
         </label>
         <label className="flex flex-col">
-          <span className="text-sm text-zinc-700 mb-1">{t("inputLegHeightLabel")}</span>
+          <span className="text-sm text-zinc-700 mb-1">
+            {t("inputLegHeightLabel")}
+            {showInchHelper && (
+              <span className="text-zinc-400 font-normal ml-1">(in)</span>
+            )}
+          </span>
           <input
             type="number"
             min={100}
@@ -49,6 +58,11 @@ export default function ApronTiltCalc() {
             onChange={(e) => setLegHeight(Number(e.target.value))}
             className="border border-zinc-300 rounded px-3 py-2 text-lg font-mono"
           />
+          {showInchHelper && Number.isFinite(legHeight) && (
+            <span className="text-[10px] text-zinc-500 tabular-nums mt-0.5">
+              ≈ {formatInchFraction(legHeight)}
+            </span>
+          )}
           <span className="text-xs text-zinc-400 mt-1">{t("inputLegHeightHint")}</span>
         </label>
       </div>
