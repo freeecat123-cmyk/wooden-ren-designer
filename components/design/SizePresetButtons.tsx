@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { getSizePresetsLocalized } from "@/lib/design/size-presets";
+import { formatInchFraction } from "@/lib/units/format";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -29,6 +30,9 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
   const router = useRouter();
   const searchParams = useSearchParams();
   const allPresets = getSizePresetsLocalized(category, locale);
+  const isEn = locale === "en";
+  // EN tooltip 顯示 1/16" 分數（24"×18"×30"），符合北美師傅習慣。
+  const dim = (mm: number) => (isEn ? formatInchFraction(mm) : `${mm} mm`);
   const presets = limits
     ? allPresets.filter((p) => p.length <= limits.length && p.width <= limits.width && p.height <= limits.height)
     : allPresets;
@@ -51,7 +55,7 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
             key={p.label}
             type="button"
             onClick={() => handleClick(p.length, p.width, p.height)}
-            title={`${p.length}×${p.width}×${p.height} mm${p.hint ? " · " + p.hint : ""}`}
+            title={`${dim(p.length)}×${dim(p.width)}×${dim(p.height)}${p.hint ? " · " + p.hint : ""}`}
             className="shrink-0 px-2.5 py-1 rounded text-[11px] bg-amber-50 text-amber-900 border border-amber-200 active:bg-amber-100 active:border-amber-300"
           >
             {p.label}

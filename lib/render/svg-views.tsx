@@ -6,6 +6,7 @@ import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
 import { JOINERY_LABEL, JOINERY_LABEL_EN } from "@/lib/joinery/details";
 import { partName } from "@/lib/templates/part-names";
+import { formatLengthBare, formatInchFraction } from "@/lib/units/format";
 import {
   MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
@@ -811,6 +812,10 @@ function OrthoViewImpl({
   locale?: string;
 }) {
   const isEn = locale === "en";
+  // EN locale 把長度標籤從「123 mm」改成「4-13/16"」(1/16" 精度).
+  // mm 端保留 Math.round 整數呈現 — 桌長 800.4mm 標 800mm，師傅看到不會多想。
+  const dimMm = (mm: number): string =>
+    isEn ? formatInchFraction(mm) : `${Math.round(mm)} mm`;
   // 仰視 BOTTOM = top view 看「Y 軸鏡像」後的 design。
   // 內部所有 view ===、投影、visibility 邏輯都用 top 跑，使用者標題顯示「仰視」。
   const isBottomView = rawView === "bottom";
@@ -3108,7 +3113,7 @@ function OrthoViewImpl({
           x1={-w / 2}
           x2={w / 2}
           y={drawAreaTop + h + 28}
-          label={isEn ? `${view === "side" ? "Depth" : "Width"} ${w} mm` : `${view === "side" ? "深" : "寬"} ${w} mm`}
+          label={isEn ? `${view === "side" ? "Depth" : "Width"} ${dimMm(w)}` : `${view === "side" ? "深" : "寬"} ${dimMm(w)}`}
         />
       )}
 
@@ -3131,7 +3136,7 @@ function OrthoViewImpl({
             x={w / 2 + 28}
             y1={view === "top" ? -h / 2 : -h}
             y2={view === "top" ? h / 2 : 0}
-            label={isEn ? `${view === "top" ? "Depth" : "Height"} ${h} mm` : `${view === "top" ? "深" : "高"} ${h} mm`}
+            label={isEn ? `${view === "top" ? "Depth" : "Height"} ${dimMm(h)}` : `${view === "top" ? "深" : "高"} ${dimMm(h)}`}
           />
         );
       })()}
@@ -3514,7 +3519,7 @@ function OrthoViewImpl({
                 x1={-w / 2 + panelT}
                 x2={w / 2 - panelT}
                 y={drawAreaTop + h + 80}
-                label={isEn ? `Inner ${Math.round(innerW)} mm` : `內 ${Math.round(innerW)} mm`}
+                label={isEn ? `Inner ${dimMm(innerW)}` : `內 ${dimMm(innerW)}`}
               />
               {/* 內高 — 在右側外高內側再加一條（往內偏 32px） */}
               <VerticalDimensionLine
@@ -3522,7 +3527,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={sTop}
                 y2={sBottom}
-                label={isEn ? `Inner ${Math.round(innerH)} mm` : `內 ${Math.round(innerH)} mm`}
+                label={isEn ? `Inner ${dimMm(innerH)}` : `內 ${dimMm(innerH)}`}
               />
               {/* 腳高 — 右側更靠內，從底板下緣到地面 */}
               {legHeight > 0 && (
@@ -3531,7 +3536,7 @@ function OrthoViewImpl({
                   x={w / 2 + 140}
                   y1={sLegBottom}
                   y2={sFloor}
-                  label={isEn ? `Leg ${Math.round(legHeight)} mm` : `腳 ${Math.round(legHeight)} mm`}
+                  label={isEn ? `Leg ${dimMm(legHeight)}` : `腳 ${dimMm(legHeight)}`}
                 />
               )}
               {/* zone 高度鏈 — 左側堆疊 */}
@@ -3644,7 +3649,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={-topBottomY}
                 y2={-bottomTopY}
-                label={isEn ? `Inner ${Math.round(innerH)} mm` : `內 ${Math.round(innerH)} mm`}
+                label={isEn ? `Inner ${dimMm(innerH)}` : `內 ${dimMm(innerH)}`}
               />
               {legHeight > 0 && (
                 <VerticalDimensionLine
@@ -3652,7 +3657,7 @@ function OrthoViewImpl({
                   x={w / 2 + 140}
                   y1={-legHeight}
                   y2={drawAreaTop + h}
-                  label={isEn ? `Leg ${Math.round(legHeight)} mm` : `腳 ${Math.round(legHeight)} mm`}
+                  label={isEn ? `Leg ${dimMm(legHeight)}` : `腳 ${dimMm(legHeight)}`}
                 />
               )}
             </>
@@ -3669,7 +3674,7 @@ function OrthoViewImpl({
                 x1={-w / 2 + panelT}
                 x2={w / 2 - panelT}
                 y={drawAreaTop + h + 80}
-                label={isEn ? `Inner ${Math.round(innerW)} mm` : `內 ${Math.round(innerW)} mm`}
+                label={isEn ? `Inner ${dimMm(innerW)}` : `內 ${dimMm(innerW)}`}
               />
               {/* 內深 — 右側內側 */}
               <VerticalDimensionLine
@@ -4039,10 +4044,8 @@ export function MaterialList({
   };
   // 顯示尺寸時最多保留 1 位小數，整數就不顯示「.0」。
   // 木工現場 0.1mm 已是極限，130.66666666 這種沒意義反而難讀。
-  const fmt = (n: number): string => {
-    const rounded = Math.round(n * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  };
+  // EN locale → 1/16" 分數（38mm → 1-1/2、19mm → 3/4），對應北美/英國木工慣例。
+  const fmt = (n: number): string => formatLengthBare(n, isEn ? "inch" : "mm");
 
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
@@ -4131,8 +4134,8 @@ export function MaterialList({
         <tr>
           <th className="text-left p-2 sticky left-0 z-30 bg-zinc-100">{isEn ? "Part" : "零件"}</th>
           <th className="text-left p-2">{isEn ? "Material" : "材質"}</th>
-          <th className="text-right p-2">{isEn ? "Visible L × W × T (mm)" : "可見長 × 寬 × 厚 (mm)"}</th>
-          <th className="text-right p-2">{isEn ? "Cut size (mm)" : "切料尺寸 (mm)"}</th>
+          <th className="text-right p-2">{isEn ? "Visible L × W × T (in)" : "可見長 × 寬 × 厚 (mm)"}</th>
+          <th className="text-right p-2">{isEn ? "Cut size (in)" : "切料尺寸 (mm)"}</th>
           <th className="text-right p-2">{isEn ? "Volume (bdft)" : "材積（板才）"}</th>
           <th className="text-left p-2">{isEn ? "Tenon notes" : "榫頭備註"}</th>
         </tr>

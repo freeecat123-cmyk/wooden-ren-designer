@@ -13,8 +13,26 @@ import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { routing } from "./i18n/routing";
+import { GEO_DEFAULTS_COOKIE, resolveGeoDefaults } from "./lib/geo-defaults";
 
 const intlMiddleware = createIntlMiddleware(routing);
+
+/**
+ * 在 response 上設定 wr-geo-defaults cookie（若尚未存在）。
+ * 由 Vercel 邊緣節點注入的 `x-vercel-ip-country` header 推測單位/幣別預設。
+ * 不覆蓋既有 cookie → 使用者切換偏好後不會被 middleware 改回去。
+ */
+function ensureGeoDefaultsCookie(request: NextRequest, response: NextResponse) {
+  if (request.cookies.has(GEO_DEFAULTS_COOKIE)) return;
+  const country = request.headers.get("x-vercel-ip-country");
+  const defaults = resolveGeoDefaults(country);
+  response.cookies.set(GEO_DEFAULTS_COOKIE, JSON.stringify(defaults), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365, // 1 年
+    sameSite: "lax",
+    httpOnly: false, // 需要讓 client hook 讀
+  });
+}
 
 export default async function middleware(request: NextRequest) {
   // 先讓 intl 處理 locale 偵測（可能會 redirect 或 rewrite）
@@ -23,12 +41,19 @@ export default async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isHome = pathname === "/" || pathname === "/en";
 
-  // 非 home 路徑：直接回 intl 的結果，不做 auth 檢查（省 50-200ms TTFB）
-  if (!isHome) return intlResponse;
+  // 非 home 路徑：寫入 geo cookie（若需要）後直接回 intl 結果，不做 auth 檢查（省 50-200ms TTFB）
+  if (!isHome) {
+    const passthrough =
+      intlResponse instanceof NextResponse ? intlResponse : NextResponse.next({ request });
+    ensureGeoDefaultsCookie(request, passthrough);
+    return passthrough;
+  }
 
   // home 路徑才檢查 auth；用 intlResponse 當底以保留它寫入的 cookie
   const response =
     intlResponse instanceof NextResponse ? intlResponse : NextResponse.next({ request });
+
+  ensureGeoDefaultsCookie(request, response);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
