@@ -1733,26 +1733,9 @@ export function T2Annotations({
             strokeWidth={0.3}
           />
         </g>,
-        // L-dim 列：box 兩端 horizontal 延伸到 lDimX（mortise 接 12.5/14.4 shoulder
-        // dim 列；少了這條 shoulderTop/Bot 的 box 端內向箭頭就指向空氣）
-        <g key={`${it.kind}-${it.idx}-Ldim-tics`}>
-          <line
-            x1={outerLeft ? box.x : box.x + box.w}
-            y1={box.y}
-            x2={lDimX}
-            y2={box.y}
-            stroke={stroke}
-            strokeWidth={0.3}
-          />
-          <line
-            x1={outerLeft ? box.x : box.x + box.w}
-            y1={box.y + box.h}
-            x2={lDimX}
-            y2={box.y + box.h}
-            stroke={stroke}
-            strokeWidth={0.3}
-          />
-        </g>,
+        // L-dim tic 延後到 shoulder dedupe 判斷之後再 push（line ~1972 附近）。
+        // shoulder dim 同 cluster 重複值不會畫 → L-dim tic 也跟著跳，避免空指向。
+        // (user 2026-05-28「shoulder 周邊引線太多 期望 2 條」)
         // vMm / hMm label 直接貼在 box 左/上邊（user 2026-05-26 14:17 要求
         // 「直接標在榫孔的左邊跟上方兩側」），不再跟 chain shoulder 共用
         // lLabelX/wLabelY 那個外推欄位，避免多 feature 同欄位疊字。
@@ -1763,10 +1746,11 @@ export function T2Annotations({
         // 兩個 vMm 數字不一樣、同列左邊難辨。(user 2026-05-26「兩個 25 應該移到榫孔
         // 右邊比較好」)
         <g key={`${it.kind}-${it.idx}-inline-dims`}>
-          {/* L dim label 原規則：虛線 mortise → box 右邊（不跟同列實線 mortise
-              擠左欄位），其他全 box 左邊。user 2026-05-28 要求「正式圖不要動到」
-              → 把多輪 tenon outerLeft / view==="top" 特殊條件全部還原。 */}
-          {isMortise && !isVisibleFromView ? (
+          {/* L dim label 位置：實心 mortise → 走 box 右邊、虛線 mortise → 走 box
+              左邊。dashed/solid 成對 cluster（splayed leg 兩面 mortise 投影在同一
+              X）兩個標籤分坐 cluster 外側，避免擠中間互蓋。 tenon 維持 box 左邊。
+              user 2026-05-28「之前改好了怎麼又動到 10/25 又擠在裡面」。 */}
+          {isMortise && isVisibleFromView ? (
             <text
               x={box.x + box.w + 2}
               y={box.y + box.h / 2 + 3}
@@ -1961,6 +1945,38 @@ export function T2Annotations({
       const TH = 2; // mm 門檻
       // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
       const shoulderTopStartY = topBoundary;
+
+      // L-dim tic dedupe：跟 shoulder dim 共用 will-draw 判斷，重複值就跳過
+      // 避免同 cluster 多 mortise 的孤立水平引線（user 2026-05-28
+      // 「正視 4 條 / 仰視 3 條 期望 2 條」）。
+      const shTKeyForTic = `${shoulderTop}`;
+      const shBKeyForTic = `${shoulderBot}`;
+      const willDrawShT = shoulderTop > TH && !renderedShoulderKeys.has(shTKeyForTic);
+      const willDrawShB = shoulderBot > TH && !renderedShoulderKeys.has(shBKeyForTic);
+      partEls.push(
+        <g key={`${it.kind}-${it.idx}-Ldim-tics`}>
+          {willDrawShT && (
+            <line
+              x1={outerLeft ? box.x : box.x + box.w}
+              y1={box.y}
+              x2={lDimX}
+              y2={box.y}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+          )}
+          {willDrawShB && (
+            <line
+              x1={outerLeft ? box.x : box.x + box.w}
+              y1={box.y + box.h}
+              x2={lDimX}
+              y2={box.y + box.h}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+          )}
+        </g>,
+      );
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
       // 原本 mid-chain shoulderTop label 會外推 tightOut + 加斜引線避免跟 box W-dim
