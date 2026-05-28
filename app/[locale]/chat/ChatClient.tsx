@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 /**
  * 木頭仁 AI 木工大師 · 客服 chat UI
@@ -18,6 +18,7 @@ interface Message {
 export default function ChatClient() {
   const t = useTranslations("chat");
   const tErr = useTranslations("woodMaster.errors");
+  const locale = useLocale();
   const ERROR_CODES = new Set([
     "invalid-json",
     "messages-required",
@@ -86,7 +87,7 @@ export default function ChatClient() {
       const res = await fetch("/api/wood-master", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, locale }),
       });
 
       const remHeader = res.headers.get("X-Rate-Remaining");

@@ -28,6 +28,7 @@ interface ChatMessage {
 
 interface ChatBody {
   messages: ChatMessage[];
+  locale?: string;
 }
 
 const SYSTEM_PROMPT_CORE = `你是「木頭仁 Wooden Ren」的 AI 分身——台灣木工 YouTuber、木匠學院創辦人。回答木工問題時：
@@ -176,7 +177,12 @@ export async function POST(req: NextRequest) {
   const files = selectKnowledgeFiles(query);
   const knowledge = await loadKnowledgeMany(files);
 
-  const systemPrompt = `${SYSTEM_PROMPT_CORE}\n\n---\n\n# 知識庫（本次相關片段）\n${knowledge}`;
+  // EN 用戶仍走木頭仁 persona,但要求回應用英文(知識庫保持中文、AI 自己翻譯)
+  const localeInstruction =
+    body.locale === "en"
+      ? "\n\n---\n\n# Language\nThe user is on the English site. Respond in clear English even if the question is in Chinese or the knowledge snippets below are in Chinese. Keep the Wooden Ren persona — Taiwanese woodworker, direct tone, first person. Translate Taiwanese-specific terms (台尺 → \"Taiwanese sun\", 6 分 = 18 mm, 紅檜 → Taiwan red cypress, etc.) inline so English readers understand. Citations like book / video / chapter titles in Chinese can stay as-is plus an English gloss in parentheses."
+      : "";
+  const systemPrompt = `${SYSTEM_PROMPT_CORE}${localeInstruction}\n\n---\n\n# 知識庫(本次相關片段)\n${knowledge}`;
 
   const client = new Anthropic({ apiKey });
 

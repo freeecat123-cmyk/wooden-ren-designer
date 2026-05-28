@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 
 interface SuggestResponse {
@@ -35,6 +35,7 @@ export function AIRefineButton({
 }) {
   const t = useTranslations("aiRefine");
   const tErr = useTranslations("aiRefine.errors");
+  const locale = useLocale();
   const KNOWN_ERROR_CODES = new Set([
     "ai-disabled",
     "missing-fields",
@@ -109,6 +110,7 @@ export function AIRefineButton({
           designSize,
           material,
           userIntent: intent.trim() || undefined,
+          locale,
         }),
       });
       const data = await res.json();

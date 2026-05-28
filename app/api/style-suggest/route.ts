@@ -31,7 +31,8 @@ interface RequestBody {
   currentParams: Record<string, string | number | boolean>;
   designSize: { length: number; width: number; height: number };
   material?: string;
-  userIntent?: string; // 可選：「腳要粗一點」「我做小孩用」等
+  userIntent?: string; // 可選:「腳要粗一點」「我做小孩用」等
+  locale?: string;
 }
 
 interface SuggestResponse {
@@ -83,7 +84,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = (await req.json()) as RequestBody;
-    const { styleId, category, currentParams, designSize, material, userIntent } = body;
+    const { styleId, category, currentParams, designSize, material, userIntent, locale } = body;
+    const isEn = locale === "en";
 
     // 簡單驗證
     if (!styleId || !category || !designSize) {
@@ -138,10 +140,13 @@ ${JSON.stringify(currentParams, null, 2)}
 
 請依「判斷原則」給出 5-10 個 key 的微調建議。回傳純 JSON、不要包 markdown code fence。`;
 
+    const systemForLocale = isEn
+      ? `${SYSTEM_PROMPT}\n\n---\n\n# Language\nThe user is on the English site. Write the "rationale" and "warnings" fields in English. The suggestions object's keys / values stay as-is (OptionSpec keys are technical IDs). Use imperial-friendly wording when discussing dimensions (e.g. "≈ 12 in / 300 mm").`
+      : SYSTEM_PROMPT;
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
-      system: SYSTEM_PROMPT,
+      system: systemForLocale,
       messages: [{ role: "user", content: userMessage }],
     });
 
