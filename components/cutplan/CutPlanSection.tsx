@@ -5,6 +5,7 @@ import type { StockGroup, StockItem } from "@/lib/cutplan";
 import { MATERIALS, materialName } from "@/lib/materials";
 import { SheetBinSvg } from "./SheetBinSvg";
 import { colorForCode } from "@/lib/cutplan/colors";
+import { formatLengthBare } from "@/lib/units/format";
 
 export function CutPlanSection({
   group,
@@ -31,9 +32,13 @@ export function CutPlanSection({
       : kindLabel(group.kind);
   const thicknesses = Array.from(new Set(group.pieces.map((p) => p.thickness)))
     .sort((a, b) => b - a);
+  const isEn = locale === "en";
+  const thicknessLabel = isEn
+    ? `${thicknesses.map((t) => formatLengthBare(t, "inch")).join(" / ")} in`
+    : `${thicknesses.join(" / ")} mm`;
   const title =
     thicknesses.length > 0
-      ? `${matLabel}．${thicknesses.join(" / ")} mm`
+      ? `${matLabel}．${thicknessLabel}`
       : matLabel;
 
   return (

@@ -1128,7 +1128,7 @@ function OrthoViewImpl({
                   fill="#444"
                   textAnchor="end"
                 >
-                  {realMm}mm
+                  {isEn ? formatInchFraction(realMm) : `${realMm}mm`}
                 </text>
               </g>
             );
@@ -3194,14 +3194,14 @@ function OrthoViewImpl({
                       x1={maxX + legSize / 2}
                       x2={w / 2}
                       y={-h / 2 - 16}
-                      label={isEn ? `Overhang ${Math.round(overhangXr)}` : `外伸 ${Math.round(overhangXr)}`}
+                      label={isEn ? `Overhang ${dimMm(overhangXr)}` : `外伸 ${dimMm(overhangXr)}`}
                     />
                     <VerticalDimensionLine
                       arrowId={`arr-${view}`}
                       x={w / 2 + 16}
                       y1={maxZ + legSize / 2}
                       y2={h / 2}
-                      label={isEn ? `Overhang ${Math.round(overhangZb)}` : `外伸 ${Math.round(overhangZb)}`}
+                      label={isEn ? `Overhang ${dimMm(overhangZb)}` : `外伸 ${dimMm(overhangZb)}`}
                     />
                   </>
                 )}
@@ -3255,8 +3255,8 @@ function OrthoViewImpl({
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
                     isEn
-                      ? (mm > 0 ? `Footprint past seat ${Math.round(mm)}` : `Foot inset ${Math.round(-mm)}`)
-                      : (mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`);
+                      ? (mm > 0 ? `Footprint past seat ${dimMm(mm)}` : `Foot inset ${dimMm(-mm)}`)
+                      : (mm > 0 ? `落地超出椅面 ${dimMm(mm)}` : `落地內縮 ${dimMm(-mm)}`);
                   return (
                     <g clipPath={`url(#leftHalf-${view})`}>
                       {/* 橫撐上下緣 Y 的腳框（淺紅）+ 落地點腳框（深紅）
@@ -3504,13 +3504,13 @@ function OrthoViewImpl({
           const zoneSegments: { y1: number; y2: number; label: string }[] = [];
           let prevY = bottomTopY;
           for (const by of boundaryYs) {
-            zoneSegments.push({ y1: -prevY, y2: -by, label: `${Math.round(by - prevY)} mm` });
+            zoneSegments.push({ y1: -prevY, y2: -by, label: dimMm(by - prevY) });
             prevY = by + panelT; // 下一段從 boundary 上緣開始
           }
           zoneSegments.push({
             y1: -prevY,
             y2: -topBottomY,
-            label: `${Math.round(topBottomY - prevY)} mm`,
+            label: dimMm(topBottomY - prevY),
           });
 
           return (
@@ -3555,10 +3555,10 @@ function OrthoViewImpl({
               {/* 板厚標註：頂板 + 底板（小字 + 引線） */}
               <g fontFamily="sans-serif" fill="#444" fontSize={10}>
                 <text x={w / 2 + 4} y={-topBottomY - panelT / 2 - 2} textAnchor="start">
-                  頂板 {panelT} mm
+                  {isEn ? "Top" : "頂板"} {dimMm(panelT)}
                 </text>
                 <text x={w / 2 + 4} y={-bottomTopY + panelT / 2 + 8} textAnchor="start">
-                  底板 {panelT} mm
+                  {isEn ? "Bottom" : "底板"} {dimMm(panelT)}
                 </text>
               </g>
               {/* 紅酒架格子尺寸：只在「左下第一格」標一次，全部格子尺寸都相同。
@@ -3592,7 +3592,7 @@ function OrthoViewImpl({
                         fill="#7a5a2b"
                         fontWeight="600"
                       >
-                        菱形 Ø{inscribed} mm
+                        {isEn ? "Diamond" : "菱形"} Ø{dimMm(inscribed)}
                       </text>
                       <text
                         x={cellCx}
@@ -3617,7 +3617,7 @@ function OrthoViewImpl({
                       fill="#7a5a2b"
                       fontWeight="600"
                     >
-                      格 {rectNet}×{rectNet} mm
+                      {isEn ? "Cell" : "格"} {dimMm(rectNet)}×{dimMm(rectNet)}
                     </text>
                     <text
                       x={cellCx}
@@ -3643,7 +3643,7 @@ function OrthoViewImpl({
                 x1={-w / 2}
                 x2={-w / 2 + innerD}
                 y={drawAreaTop + h + 80}
-                label={isEn ? `Inner depth ${Math.round(innerD)} mm` : `內深 ${Math.round(innerD)} mm`}
+                label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
               />
               {/* 內高 — 右側內側多一條 */}
               <VerticalDimensionLine
@@ -3684,7 +3684,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={-h / 2}
                 y2={-h / 2 + innerD}
-                label={isEn ? `Inner depth ${Math.round(innerD)} mm` : `內深 ${Math.round(innerD)} mm`}
+                label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
               />
             </>
           );
