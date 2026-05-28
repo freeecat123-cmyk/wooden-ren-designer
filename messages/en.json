@@ -2089,6 +2089,15 @@
     "suggestedQ5": "Is the Wegner Y-chair copying the Ming yokeback chair?",
     "suggestedQ6": "How long to steam-bend? What does '1 hour per inch' mean?"
   },
+  "woodMaster": {
+    "errors": {
+      "invalid-json": "Invalid JSON body.",
+      "messages-required": "Please enter a message first.",
+      "conversation-too-long": "Conversation too long — please start a new chat.",
+      "messages-invalid": "Invalid message fields.",
+      "message-too-long": "A single message exceeds 2000 characters."
+    }
+  },
   "changelog": {
     "metaTitle": "Changelog | Wooden Ren Furniture Blueprints",
     "metaDescription": "Every release of Furniture Blueprints — new features, template additions, AI features, checkout system changes — all in one place.",
@@ -3467,6 +3476,18 @@
     "idle": "🔗 Copy public link",
     "alertFailedTpl": "Copy failed: {msg}"
   },
+  "pricingErrors": {
+    "not-logged-in": "Please sign in first",
+    "unknown-plan": "Unknown plan",
+    "unknown-billing-cycle": "Unknown billing cycle",
+    "category-required": "Please choose a template category",
+    "category-not-found": "Template category not found",
+    "free-template-no-purchase": "This template is free — no purchase needed",
+    "template-price-not-found": "Price for this template is unavailable",
+    "invalid-tool": "Tool must be 'ceiling' or 'floor'",
+    "admin-no-purchase": "Admin accounts already have full access — no purchase needed",
+    "already-unlocked": "You already own this item"
+  },
   "pricingPage": {
     "paymentErrorH": "Checkout is temporarily unavailable",
     "paymentErrorBody": "Sorry, payments are offline right now. Please try again later, or ",
@@ -4267,7 +4288,20 @@
     "lblLegSize": "Leg width: ",
     "estimatedWarn": "⚠️ Dimensions are AI estimates, not measurements — adjust to your actual needs after applying",
     "applyBtn": "Apply to designer",
-    "redoBtn": "Redo"
+    "redoBtn": "Redo",
+    "errors": {
+      "ai-disabled": "AI features are disabled (cost control)",
+      "missing-image": "Missing image data",
+      "file-too-large": "Image is too large (please compress under 1MB)",
+      "invalid-format": "Only jpeg / png / webp are accepted",
+      "ai-not-configured": "Photo-to-design is not configured on this server",
+      "unauthenticated": "Please sign in to use photo-to-design",
+      "rate-limited": "Daily AI quota reached ({used}/{limit}). Resets at midnight.",
+      "ai-response-malformed": "AI returned a malformed response",
+      "invalid-category": "AI returned an unsupported category: {category}",
+      "invalid-dimension": "Unreasonable dimension: {key}={value}",
+      "server-error": "Server error — please try again later"
+    }
   },
   "csvExport": {
     "btn": "📋 BOM CSV download",
@@ -4425,6 +4459,17 @@
     "errService": "AI service error",
     "errUpgradeFallback": "See plans →",
     "errNetwork": "Network error",
+    "errors": {
+      "ai-disabled": "AI features are disabled (cost control)",
+      "missing-fields": "Missing required fields",
+      "too-many-params": "Too many parameters",
+      "no-api-key": "AI refine is not configured",
+      "unauthenticated": "Please sign in to use AI refine",
+      "rate-limited": "Daily AI quota reached ({used}/{limit}); resets at midnight",
+      "bad-ai-format": "AI returned malformed output",
+      "bad-ai-fields": "AI response missing fields",
+      "unknown": "Unknown error"
+    },
     "btn": "🤖 AI refine",
     "btnTitle": "Let AI look at the current design and suggest contextual tweaks (uses LLM API)",
     "modalH": "🤖 AI refine current {style} config",

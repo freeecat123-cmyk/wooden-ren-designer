@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const tool = String(form.get("tool") ?? "");
   if (!isValidTool(tool)) {
-    return NextResponse.json({ error: "tool 必須是 ceiling 或 floor" }, { status: 400 });
+    return NextResponse.json({ error: "invalid-tool" }, { status: 400 });
   }
 
   const supabase = await createClient();

@@ -2089,6 +2089,15 @@
     "suggestedQ5": "Wegner Y 椅是不是抄明式圈椅？",
     "suggestedQ6": "蒸彎要蒸多久？1 hour per inch 怎麼算？"
   },
+  "woodMaster": {
+    "errors": {
+      "invalid-json": "JSON 格式錯誤",
+      "messages-required": "請先輸入訊息",
+      "conversation-too-long": "對話過長，請重新開始",
+      "messages-invalid": "訊息欄位錯誤",
+      "message-too-long": "單則訊息超過 2000 字"
+    }
+  },
   "changelog": {
     "metaTitle": "更新日誌｜木頭仁 木作藍圖",
     "metaDescription": "木作藍圖每一版的功能新增與改進。介紹頁、新模板、AI 功能、結帳系統的所有變化都在這。",
@@ -3467,6 +3476,18 @@
     "idle": "🔗 複製公開連結",
     "alertFailedTpl": "複製失敗：{msg}"
   },
+  "pricingErrors": {
+    "not-logged-in": "請先登入",
+    "unknown-plan": "未知方案",
+    "unknown-billing-cycle": "未知計費週期",
+    "category-required": "請選擇範本類別",
+    "category-not-found": "範本類別不存在",
+    "free-template-no-purchase": "免費範本不需要購買",
+    "template-price-not-found": "找不到此範本的買斷價",
+    "invalid-tool": "工具必須是 ceiling 或 floor",
+    "admin-no-purchase": "管理員帳號已享有全部功能，無需購買",
+    "already-unlocked": "你已經買過此項目了"
+  },
   "pricingPage": {
     "paymentErrorH": "結帳系統暫時無法使用",
     "paymentErrorBody": "抱歉，金流目前無法連線。請稍後再試，或",
@@ -4267,7 +4288,20 @@
     "lblLegSize": "腳粗：",
     "estimatedWarn": "⚠️ 尺寸是 AI 估的不是量的，套用後請依實際需求調整",
     "applyBtn": "套用到設計器",
-    "redoBtn": "重來"
+    "redoBtn": "重來",
+    "errors": {
+      "ai-disabled": "AI 功能已關閉（成本控制中）",
+      "missing-image": "缺 imageBase64",
+      "file-too-large": "圖檔太大（請壓到 1MB 以下）",
+      "invalid-format": "格式只接受 jpeg/png/webp",
+      "ai-not-configured": "照片轉設計功能尚未配置",
+      "unauthenticated": "請先登入才能使用照片轉設計",
+      "rate-limited": "今日 AI 用量已達上限（{used}/{limit}），明日凌晨重置",
+      "ai-response-malformed": "AI 回傳格式錯誤",
+      "invalid-category": "AI 回的 category 不在白名單：{category}",
+      "invalid-dimension": "尺寸不合理：{key}={value}",
+      "server-error": "伺服器錯誤，請稍後再試"
+    }
   },
   "csvExport": {
     "btn": "📋 材料單 CSV 下載",
@@ -4425,6 +4459,17 @@
     "errService": "AI 服務錯誤",
     "errUpgradeFallback": "看方案 →",
     "errNetwork": "網路錯誤",
+    "errors": {
+      "ai-disabled": "AI 功能已關閉（成本控制中）",
+      "missing-fields": "缺必要欄位",
+      "too-many-params": "參數過多",
+      "no-api-key": "AI 微調功能尚未配置",
+      "unauthenticated": "請先登入才能使用 AI 微調",
+      "rate-limited": "今日 AI 用量已達上限（{used}/{limit}），明日凌晨重置",
+      "bad-ai-format": "AI 回傳格式錯誤",
+      "bad-ai-fields": "AI 回傳缺欄位",
+      "unknown": "未知錯誤"
+    },
     "btn": "🤖 AI 微調",
     "btnTitle": "AI 看當前設計給情境化的微調建議（會用到 LLM API）",
     "modalH": "🤖 AI 微調當前 {style} 配置",

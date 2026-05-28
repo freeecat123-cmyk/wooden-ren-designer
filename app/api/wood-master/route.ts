@@ -124,22 +124,37 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as ChatBody;
   } catch {
-    return NextResponse.json({ error: "JSON 格式錯誤" }, { status: 400 });
+    return NextResponse.json(
+      { error: "JSON 格式錯誤", code: "invalid-json" },
+      { status: 400 },
+    );
   }
 
   const { messages } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
-    return NextResponse.json({ error: "messages 必填" }, { status: 400 });
+    return NextResponse.json(
+      { error: "messages 必填", code: "messages-required" },
+      { status: 400 },
+    );
   }
   if (messages.length > 20) {
-    return NextResponse.json({ error: "對話過長，請重新開始" }, { status: 400 });
+    return NextResponse.json(
+      { error: "對話過長，請重新開始", code: "conversation-too-long" },
+      { status: 400 },
+    );
   }
   for (const m of messages) {
     if (!m.role || !m.content) {
-      return NextResponse.json({ error: "messages 欄位錯誤" }, { status: 400 });
+      return NextResponse.json(
+        { error: "messages 欄位錯誤", code: "messages-invalid" },
+        { status: 400 },
+      );
     }
     if (m.content.length > 2000) {
-      return NextResponse.json({ error: "單則訊息超過 2000 字" }, { status: 400 });
+      return NextResponse.json(
+        { error: "單則訊息超過 2000 字", code: "message-too-long" },
+        { status: 400 },
+      );
     }
   }
 

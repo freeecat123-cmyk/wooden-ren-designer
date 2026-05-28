@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ ok: false, error: "請先登入" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "not-logged-in" }, { status: 401 });
   }
 
   let body: { code?: string; plan?: string; period?: string };
@@ -31,10 +31,10 @@ export async function POST(req: Request) {
   const period = body.period ?? "";
 
   if (!(plan in PLAN_PRICES)) {
-    return NextResponse.json({ ok: false, error: "未知方案" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "unknown-plan" }, { status: 400 });
   }
   if (period !== "monthly" && period !== "yearly") {
-    return NextResponse.json({ ok: false, error: "未知計費週期" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "unknown-billing-cycle" }, { status: 400 });
   }
 
   const amount = getPlanPrice(plan as CheckoutPlan, period as BillingPeriod);

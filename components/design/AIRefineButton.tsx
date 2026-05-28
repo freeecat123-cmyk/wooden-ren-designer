@@ -34,6 +34,18 @@ export function AIRefineButton({
   designSize: { length: number; width: number; height: number };
 }) {
   const t = useTranslations("aiRefine");
+  const tErr = useTranslations("aiRefine.errors");
+  const KNOWN_ERROR_CODES = new Set([
+    "ai-disabled",
+    "missing-fields",
+    "too-many-params",
+    "no-api-key",
+    "unauthenticated",
+    "rate-limited",
+    "bad-ai-format",
+    "bad-ai-fields",
+    "unknown",
+  ]);
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
@@ -101,7 +113,17 @@ export function AIRefineButton({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? t("errService"));
+        const code = typeof data.errorCode === "string" ? data.errorCode : null;
+        let msg: string;
+        if (code && KNOWN_ERROR_CODES.has(code)) {
+          msg = tErr(code, data.errorValues ?? {});
+        } else if (typeof data.error === "string") {
+          // legacy: server may still return raw `error` string for unmapped paths
+          msg = data.error;
+        } else {
+          msg = t("errService");
+        }
+        setError(msg);
         if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? t("errUpgradeFallback") });
         return;
       }

@@ -2,6 +2,7 @@
 
 import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { studentDaysRemaining } from "@/lib/permissions";
 
@@ -18,6 +19,7 @@ function todayKey(): string {
  * - 過期（daysLeft ≤ 0）不再顯示這個通知（已經被降為 free，由 /my-subscription 內顯示）
  */
 export function StudentExpiryNotice() {
+  const locale = useLocale();
   const { profile, isLoggedIn, isLoading } = useUserPlan();
   const [dismissed, setDismissed] = useState(false);
 
@@ -28,6 +30,7 @@ export function StudentExpiryNotice() {
     }
   }, []);
 
+  if (locale !== "zh-TW") return null;
   if (isLoading || !isLoggedIn) return null;
   if (profile?.plan !== "student") return null;
 

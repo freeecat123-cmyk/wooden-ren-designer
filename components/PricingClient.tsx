@@ -30,6 +30,7 @@ export function PricingClient() {
   const t = useTranslations("pricingPage");
   const tFurn = useTranslations("furniture");
   const tPlans = useTranslations("pricingPlans");
+  const tErr = useTranslations("pricingErrors");
   const tRoot = useTranslations();
   const faqs = tRoot.raw("pricingFaqs") as Array<{ q: string; a: string }>;
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
@@ -131,10 +132,19 @@ export function PricingClient() {
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
+        const code = typeof json.error === "string" ? json.error : "";
+        let msg = t("couponErrFallback");
+        if (code) {
+          try {
+            msg = tErr(code);
+          } catch {
+            msg = code;
+          }
+        }
         setCoupon((c) => ({
           ...c,
           status: "error",
-          error: json.error ?? t("couponErrFallback"),
+          error: msg,
         }));
       } else {
         setCoupon((c) => ({

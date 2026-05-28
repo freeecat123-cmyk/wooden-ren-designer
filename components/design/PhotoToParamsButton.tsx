@@ -61,6 +61,24 @@ async function compressImage(
 
 export function PhotoToParamsButton() {
   const t = useTranslations("photoToParams");
+  const tErr = useTranslations("photoToParams.errors");
+
+  const resolveServerError = (
+    code: unknown,
+    params: Record<string, unknown> | undefined,
+  ): string => {
+    if (typeof code !== "string" || !code) return t("errRecognize");
+    try {
+      // next-intl throws if key is missing; fall back to generic recognition error.
+      return tErr(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        code as any,
+        (params ?? {}) as Record<string, string | number>,
+      );
+    } catch {
+      return t("errRecognize");
+    }
+  };
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [available, setAvailable] = useState(false);
@@ -112,7 +130,7 @@ export function PhotoToParamsButton() {
       const data = await res.json();
       if (!res.ok) {
         if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? t("upgradeFallback") });
-        throw new Error(data.error ?? t("errRecognize"));
+        throw new Error(resolveServerError(data.error, data.errorParams));
       }
       setResult(data as PhotoResponse);
     } catch (e) {

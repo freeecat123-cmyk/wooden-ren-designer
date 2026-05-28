@@ -17,6 +17,14 @@ interface Message {
 
 export default function ChatClient() {
   const t = useTranslations("chat");
+  const tErr = useTranslations("woodMaster.errors");
+  const ERROR_CODES = new Set([
+    "invalid-json",
+    "messages-required",
+    "conversation-too-long",
+    "messages-invalid",
+    "message-too-long",
+  ]);
   const suggestedQuestions = [
     t("suggestedQ1"),
     t("suggestedQ2"),
@@ -86,7 +94,9 @@ export default function ChatClient() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: t("errUnknown") }));
-        setError(errBody.error ?? `HTTP ${res.status}`);
+        const code = typeof errBody.code === "string" ? errBody.code : null;
+        const translated = code && ERROR_CODES.has(code) ? tErr(code) : null;
+        setError(translated ?? errBody.error ?? `HTTP ${res.status}`);
         // 把空白 assistant 拿掉
         setMessages((prev) => prev.slice(0, -1));
         setStreaming(false);

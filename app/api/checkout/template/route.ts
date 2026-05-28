@@ -44,15 +44,15 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const category = String(form.get("category") ?? "");
   if (!category) {
-    return NextResponse.json({ error: "category 必填" }, { status: 400 });
+    return NextResponse.json({ error: "category-required" }, { status: 400 });
   }
 
   const entry = getCatalogEntry(category);
   if (!entry) {
-    return NextResponse.json({ error: "category 不存在" }, { status: 400 });
+    return NextResponse.json({ error: "category-not-found" }, { status: 400 });
   }
   if (!isPaidCategory(category as FurnitureCategory)) {
-    return NextResponse.json({ error: "免費範本不需要購買" }, { status: 400 });
+    return NextResponse.json({ error: "free-template-no-purchase" }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
   const amount = getUnlockPrice(category);
   if (!amount) {
-    return NextResponse.json({ error: "找不到此範本的買斷價" }, { status: 400 });
+    return NextResponse.json({ error: "template-price-not-found" }, { status: 400 });
   }
 
   const difficulty = getDifficulty(category);

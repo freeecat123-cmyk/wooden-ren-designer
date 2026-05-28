@@ -2,6 +2,7 @@
 
 import { Link } from "@/i18n/navigation";
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import {
   PlanCardView,
   STUDENT_PLANS,
@@ -13,7 +14,10 @@ import {
  * 不在公開 /pricing 顯示；不被搜尋引擎收錄（page.tsx 設 robots noindex）。
  */
 export function StudentPricingClient() {
+  const locale = useLocale();
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
+
+  if (locale !== "zh-TW") return null;
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
