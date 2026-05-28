@@ -22,6 +22,13 @@ const AXES = [
 function RadarChart({ values, locale }: { values: number[]; locale: string }) {
   const isEn = locale === "en";
   const size = 140;
+  // EN labels (e.g. "Workability") are much wider than CJK 2-char labels,
+  // so widen the viewBox horizontally in EN mode to give side anchors room
+  // without changing the rendered pixel footprint.
+  const padX = isEn ? 36 : 0;
+  const padY = isEn ? 8 : 0;
+  const vbW = size + padX * 2;
+  const vbH = size + padY * 2;
   const center = size / 2;
   const maxR = size / 2 - 18;
   const n = values.length;
@@ -39,7 +46,7 @@ function RadarChart({ values, locale }: { values: number[]; locale: string }) {
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg width={size} height={size} viewBox={`${-padX} ${-padY} ${vbW} ${vbH}`}>
       {rings.map((verts, i) => (
         <polygon
           key={i}
@@ -73,7 +80,7 @@ function RadarChart({ values, locale }: { values: number[]; locale: string }) {
             y={ty}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={9}
+            fontSize={isEn ? 8 : 9}
             fill="#52525b"
           >
             {isEn ? axis.labelEn : axis.labelZh}
