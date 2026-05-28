@@ -1552,11 +1552,12 @@ export function T2Annotations({
         part.shape?.kind === "splayed" ||
         part.shape?.kind === "splayed-tapered" ||
         part.shape?.kind === "splayed-round-tapered";
-      // 仰視圖 mortise 也走 logical「沿榫眼長 × 進深」(user 2026-05-28
-      // 「應該是 12.5×23 跟 12.5×18 跟榫長度搞反了」)。只動 view==="top"，
-      // 正視/側視維持原本 box 投影規則不動。
-      const splayMortiseLabel =
-        (isSplayLegPart && isMortise) || (isMortise && view === "top");
+      const splayMortiseLabel = isSplayLegPart && isMortise;
+      // 仰視 BOTTOM (annView="top") mortise：vMm 走 mortise.width（= 榫頭厚度），
+      // 不是 mortise.depth（= 榫頭長，跟最右邊獨立 dim「12.5」對不上）。
+      // user 2026-05-28「應該是 12.5×23 跟 12.5×18 跟榫長度搞反了」「12.5 = 榫頭厚度」。
+      // 只動 view==="top"，正視/側視維持原規則。
+      const isTopViewMortise = isMortise && view === "top";
       const mortiseFeature = isMortise ? part.mortises[it.idx] : null;
       const hMm = splayMortiseLabel
         ? round1(mortiseFeature?.length ?? 0)
@@ -1565,7 +1566,9 @@ export function T2Annotations({
           : view === "side"
             ? round1(2 * lb.hz)
             : round1(2 * lb.hx);
-      const vMm = splayMortiseLabel
+      const vMm = isTopViewMortise
+        ? round1(mortiseFeature?.width ?? 0)
+        : splayMortiseLabel
         ? round1(mortiseFeature?.depth ?? 0)
         : tallSwapLabel
           ? round1(2 * lb.hx)

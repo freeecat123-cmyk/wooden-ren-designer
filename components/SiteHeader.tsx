@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { HeaderUser } from "@/components/auth/HeaderUser";
+import { UnitToggle } from "@/components/UnitToggle";
 
 /**
  * 全站頂部導覽列（sticky top:0 z:50）
@@ -47,7 +48,8 @@ export function SiteHeader() {
     pathname?.includes("/quote")
   ) {
     return (
-      <div className="no-print fixed top-4 right-4 z-40">
+      <div className="no-print fixed top-4 right-4 z-40 flex items-center gap-2">
+        <UnitToggle />
         <HeaderUser />
       </div>
     );
@@ -97,8 +99,11 @@ export function SiteHeader() {
           })}
         </nav>
 
-        {/* 右側：HeaderUser + 行動漢堡 */}
+        {/* 右側：UnitToggle + HeaderUser + 行動漢堡 */}
         <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden sm:block">
+            <UnitToggle />
+          </div>
           <HeaderUser />
           <button
             type="button"

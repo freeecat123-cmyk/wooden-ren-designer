@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
 import { OrthoView } from "@/lib/render/svg-views";
 import type { FurnitureDesign } from "@/lib/types";
 
@@ -27,6 +28,7 @@ export function ZoomableThreeViews({
 }) {
   const locale = useLocale();
   const isEn = locale === "en";
+  const unit = useUnit();
   const titleFor = (v: ViewKind) => isEn ? VIEW_TITLES[v].en : VIEW_TITLES[v].zh;
   const titleEnFor = (v: ViewKind) => isEn ? "" : VIEW_TITLES[v].en;
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
@@ -83,6 +85,7 @@ export function ZoomableThreeViews({
               titleEn={titleEnFor(view)}
               joineryMode={joineryMode}
               locale={locale}
+              unit={unit}
             />
             <span className="absolute top-1.5 right-1.5 text-xs bg-zinc-900/70 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
               {isEn ? "🔍 Tap to zoom" : "🔍 點擊放大"}
@@ -178,6 +181,7 @@ export function ZoomableThreeViews({
                   className="bg-white w-full h-full"
                   joineryMode={joineryMode}
                   locale={locale}
+                  unit={unit}
                 />
               </div>
             </div>

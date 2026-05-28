@@ -34,17 +34,30 @@ function readLocalUnit(): UnitPref | null {
   }
 }
 
+export const UNIT_CHANGE_EVENT = "wr-unit-change";
+
 export function useUnit(): UnitPref {
   const geo = useGeoDefaults();
   const [unit, setUnit] = useState<UnitPref>(FALLBACK);
 
   useEffect(() => {
-    const local = readLocalUnit();
-    if (local) {
-      setUnit(local);
-      return;
-    }
-    setUnit(geo.unit);
+    const resolve = () => {
+      const local = readLocalUnit();
+      setUnit(local ?? geo.unit);
+    };
+    resolve();
+    // Live update when UnitToggle changes localStorage in same tab,
+    // or another tab via storage event.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LS_KEY) resolve();
+    };
+    const onCustom = () => resolve();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(UNIT_CHANGE_EVENT, onCustom);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(UNIT_CHANGE_EVENT, onCustom);
+    };
   }, [geo.unit]);
 
   return unit;

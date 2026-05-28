@@ -758,6 +758,7 @@ function OrthoViewImpl({
   paperFrame = true,
   embedded = false,
   locale = "zh-TW",
+  unit,
 }: ViewProps & {
   view: OrthoViewKind;
   title: string;
@@ -810,12 +811,17 @@ function OrthoViewImpl({
   embedded?: boolean;
   /** 'zh-TW'（預設）或 'en'。影響 SVG 內 dim label 文字（寬/深/高/內/外伸…）。 */
   locale?: string;
+  /** 'mm' | 'inch'，控制長度數值格式。未傳時依 locale 推（en→inch、其他→mm），
+   *  讓使用者透過 UnitToggle 可以在中文站切英寸 / 英文站切 mm 不被綁死。 */
+  unit?: "mm" | "inch";
 }) {
   const isEn = locale === "en";
-  // EN locale 把長度標籤從「123 mm」改成「4-13/16"」(1/16" 精度).
+  const effectiveUnit: "mm" | "inch" = unit ?? (isEn ? "inch" : "mm");
+  const useInch = effectiveUnit === "inch";
+  // useInch 時長度標籤從「123 mm」改成「4-13/16"」(1/16" 精度).
   // mm 端保留 Math.round 整數呈現 — 桌長 800.4mm 標 800mm，師傅看到不會多想。
   const dimMm = (mm: number): string =>
-    isEn ? formatInchFraction(mm) : `${Math.round(mm)} mm`;
+    useInch ? formatInchFraction(mm) : `${Math.round(mm)} mm`;
   // 仰視 BOTTOM = top view 看「Y 軸鏡像」後的 design。
   // 內部所有 view ===、投影、visibility 邏輯都用 top 跑，使用者標題顯示「仰視」。
   const isBottomView = rawView === "bottom";
@@ -1128,7 +1134,7 @@ function OrthoViewImpl({
                   fill="#444"
                   textAnchor="end"
                 >
-                  {isEn ? formatInchFraction(realMm) : `${realMm}mm`}
+                  {useInch ? formatInchFraction(realMm) : `${realMm}mm`}
                 </text>
               </g>
             );
@@ -3182,9 +3188,7 @@ function OrthoViewImpl({
                   fill="#444"
                   fontFamily="sans-serif"
                 >
-                  {isEn
-                    ? `Leg ${formatLengthBare(legSize, "inch")}×${formatLengthBare(legSize, "inch")}`
-                    : `腳 ${legSize}×${legSize}`}
+                  {`${isEn ? "Leg " : "腳 "}${useInch ? `${formatLengthBare(legSize, "inch")}×${formatLengthBare(legSize, "inch")}` : `${legSize}×${legSize}`}`}
                 </text>
                 {/* 桌面外伸——只在右上角標一個（4 邊對稱所以只標 1 處夠用）*/}
                 {showOverhang && (
@@ -3927,22 +3931,24 @@ export function ThreeViewLayout({
   design,
   joineryMode = false,
   locale = "zh-TW",
+  unit,
 }: {
   design: FurnitureDesign;
   joineryMode?: boolean;
   locale?: string;
+  unit?: "mm" | "inch";
 }) {
   const isEn = locale === "en";
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="front" title={isEn ? "FRONT VIEW" : "正視圖"} titleEn={isEn ? "" : "FRONT VIEW"} joineryMode={joineryMode} locale={locale} />
+        <OrthoView design={design} view="front" title={isEn ? "FRONT VIEW" : "正視圖"} titleEn={isEn ? "" : "FRONT VIEW"} joineryMode={joineryMode} locale={locale} unit={unit} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="side" title={isEn ? "SIDE VIEW" : "側視圖"} titleEn={isEn ? "" : "SIDE VIEW"} joineryMode={joineryMode} locale={locale} />
+        <OrthoView design={design} view="side" title={isEn ? "SIDE VIEW" : "側視圖"} titleEn={isEn ? "" : "SIDE VIEW"} joineryMode={joineryMode} locale={locale} unit={unit} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="top" title={isEn ? "TOP VIEW" : "俯視圖"} titleEn={isEn ? "" : "TOP VIEW"} joineryMode={joineryMode} locale={locale} />
+        <OrthoView design={design} view="top" title={isEn ? "TOP VIEW" : "俯視圖"} titleEn={isEn ? "" : "TOP VIEW"} joineryMode={joineryMode} locale={locale} unit={unit} />
       </div>
     </div>
   );
@@ -4023,13 +4029,16 @@ export function MaterialList({
   selectedPartId,
   onPartClick,
   locale = "zh-TW",
+  unit,
 }: {
   design: FurnitureDesign;
   selectedPartId?: string | null;
   onPartClick?: (id: string) => void;
   locale?: string;
+  unit?: "mm" | "inch";
 }) {
   const isEn = locale === "en";
+  const effectiveUnit: "mm" | "inch" = unit ?? (isEn ? "inch" : "mm");
   const CATEGORY_LABEL = isEn ? CATEGORY_LABEL_EN : CATEGORY_LABEL_ZH;
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
@@ -4047,7 +4056,7 @@ export function MaterialList({
   // 顯示尺寸時最多保留 1 位小數，整數就不顯示「.0」。
   // 木工現場 0.1mm 已是極限，130.66666666 這種沒意義反而難讀。
   // EN locale → 1/16" 分數（38mm → 1-1/2、19mm → 3/4），對應北美/英國木工慣例。
-  const fmt = (n: number): string => formatLengthBare(n, isEn ? "inch" : "mm");
+  const fmt = (n: number): string => formatLengthBare(n, effectiveUnit);
 
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
@@ -4136,8 +4145,8 @@ export function MaterialList({
         <tr>
           <th className="text-left p-2 sticky left-0 z-30 bg-zinc-100">{isEn ? "Part" : "零件"}</th>
           <th className="text-left p-2">{isEn ? "Material" : "材質"}</th>
-          <th className="text-right p-2">{isEn ? "Visible L × W × T (in)" : "可見長 × 寬 × 厚 (mm)"}</th>
-          <th className="text-right p-2">{isEn ? "Cut size (in)" : "切料尺寸 (mm)"}</th>
+          <th className="text-right p-2">{isEn ? `Visible L × W × T (${effectiveUnit === "inch" ? "in" : "mm"})` : `可見長 × 寬 × 厚 (${effectiveUnit === "inch" ? "in" : "mm"})`}</th>
+          <th className="text-right p-2">{isEn ? `Cut size (${effectiveUnit === "inch" ? "in" : "mm"})` : `切料尺寸 (${effectiveUnit === "inch" ? "in" : "mm"})`}</th>
           <th className="text-right p-2">{isEn ? "Volume (bdft)" : "材積（板才）"}</th>
           <th className="text-left p-2">{isEn ? "Tenon notes" : "榫頭備註"}</th>
         </tr>

@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useLocale } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
 import type { FurnitureDesign } from "@/lib/types";
 import { MaterialList } from "@/lib/render/svg-views";
 import { useSelectedPart, useScrollToSelectedRow } from "./SelectedPartContext";
@@ -14,6 +15,7 @@ export function MaterialListWithSelection({ design }: { design: FurnitureDesign 
   const { selectedPartId, setSelectedPartId } = useSelectedPart();
   const containerRef = useRef<HTMLDivElement>(null);
   const locale = useLocale();
+  const unit = useUnit();
   useScrollToSelectedRow(containerRef);
   return (
     <div ref={containerRef}>
@@ -22,6 +24,7 @@ export function MaterialListWithSelection({ design }: { design: FurnitureDesign 
         selectedPartId={selectedPartId}
         onPartClick={(id) => setSelectedPartId(id === selectedPartId ? null : id)}
         locale={locale}
+        unit={unit}
       />
     </div>
   );
