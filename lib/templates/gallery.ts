@@ -162,9 +162,141 @@ export const TEMPLATE_GALLERY: Partial<Record<FurnitureCategory, GalleryImage[]>
     "X 形交叉格自動算，每格放標準 750ml 紅酒瓶"),
 };
 
+// ── EN 鏡像 ───────────────────────────────────────────────
+const CABINET_INTERNAL_EN: GalleryImage = {
+  src: "/showcase/cabinet-internal-perspective.png",
+  label: "Cabinet interior view",
+  desc: "Toggle hidden-panel mode to see inner dividers, slide positions, shelf structure",
+};
+
+const BENCH_CURVED_BACK_EN: GalleryImage = {
+  src: "/showcase/bench-curved-back.png",
+  label: "Curved-back bench",
+  desc: "Curved back + spindle styles, see the assembled look in 3D",
+};
+
+const WARDROBE_VARIATIONS_EN: GalleryImage = {
+  src: "/showcase/wardrobe-variations.png",
+  label: "Wardrobe configurations",
+  desc: "Hanging rod, drawers, upper shelf, lower shoe grid, top cabinet — mix freely",
+};
+
+function pairEn(slug: string, label3d: string, descWire: string): GalleryImage[] {
+  return [
+    { src: `/showcase/${slug}-3d.png`, label: label3d },
+    {
+      src: `/showcase/${slug}-wireframe.png`,
+      label: "Wireframe — see structure",
+      desc: descWire,
+    },
+  ];
+}
+
+export const TEMPLATE_GALLERY_EN: Partial<Record<FurnitureCategory, GalleryImage[]>> = {
+  stool: pairEn("stool", "Default square stool — 3D",
+    "Wireframe shows mortise / tenon positions on every leg and apron — all auto-computed"),
+  "round-stool": pairEn("round-stool", "Round stool preset",
+    "Splayed legs' true length + compound angles visible in wireframe mode"),
+  "bar-stool": pairEn("bar-stool", "High-back bar stool preset",
+    "Footrest position auto-sized to seat height; wireframe shows interior apron reinforcement"),
+  bench: [
+    ...pairEn("bench", "Bench preset — 3D",
+      "Apron + stretcher under the seat keeps a long bench from sagging"),
+    BENCH_CURVED_BACK_EN,
+  ],
+  "dining-chair": pairEn("dining-chair", "Dining chair preset — 3D",
+    "Back legs splay 6–10° to prevent backward tip; backrest curve visible in wireframe"),
+  "side-table": [
+    ...pairEn("side-table", "Side table preset — 3D",
+      "Lower shelf + apron reinforcement; the most natural cup-grab height beside a sofa"),
+    {
+      src: "/showcase/side-table-drawers.png",
+      label: "Drawer structure cutaway",
+      desc: "Hide the drawer face to see drawer box + slide position — 13-inch spec ready to buy",
+    },
+  ],
+  "tea-table": pairEn("tea-table", "Tea table preset — 3D",
+    "Stretcher + apron double reinforcement, the work surface beside the sofa"),
+  "low-table": pairEn("low-table", "Tatami low table — 3D",
+    "Straight or splayed legs; wireframe shows apron-leg joint"),
+  "round-tea-table": pairEn("round-tea-table", "Round tea table — 3D",
+    "Cross-stretcher under round top adds load-bearing strength"),
+  "round-table": pairEn("round-table", "Round dining table — 3D",
+    "Trestle pedestal or splayed legs; wireframe reveals internal load structure"),
+  "dining-table": pairEn("dining-table", "Dining table preset — 3D",
+    "Auto edge-glue layout; over 40 cm width auto-rips for joinery"),
+  desk: pairEn("desk", "Desk preset — 3D",
+    "Lower shelf + 3 leg styles (straight / panel / A-frame); wireframe shows grommet positions"),
+  "open-bookshelf": pairEn("open-bookshelf", "Open bookshelf — 3D",
+    "Per-shelf height; wireframe confirms 32 mm adjustable shelf-pin layout"),
+  "chest-of-drawers": [
+    ...pairEn("chest-of-drawers", "Chest of drawers — 4-drawer preset",
+      "Three joinery tiers (dovetail / fixed slide / butt); wireframe shows drawer dividers"),
+    {
+      src: "/showcase/chest-of-drawers-drawers.png",
+      label: "Drawer structure cutaway",
+      desc: "Hide drawer faces — 6 drawer boxes positioned for Blum slides",
+    },
+    CABINET_INTERNAL_EN,
+  ],
+  "media-console": [
+    ...pairEn("media-console", "Media console preset — 3D",
+      "Auto grommets + rear louvers — PS5 console stays cool inside"),
+    {
+      src: "/showcase/media-console-drawers.png",
+      label: "Drawer structure cutaway",
+      desc: "Drawers hide controllers, shelves hold the console; wireframe shows internal dividers",
+    },
+    CABINET_INTERNAL_EN,
+  ],
+  wardrobe: [
+    ...pairEn("wardrobe", "Wardrobe preset — 3D",
+      "Hanging rod, drawers, shelf positions adjustable in real time via wireframe"),
+    WARDROBE_VARIATIONS_EN,
+    CABINET_INTERNAL_EN,
+  ],
+  "shoe-cabinet": [
+    ...pairEn("shoe-cabinet", "Shoe cabinet preset — 3D",
+      "Angled shoe storage; wireframe reveals internal slanted shelf angle"),
+    CABINET_INTERNAL_EN,
+  ],
+  nightstand: [
+    ...pairEn("nightstand", "Nightstand preset — 3D",
+      "Upper drawer + lower open shelf; wireframe shows USB cable grommet"),
+    {
+      src: "/showcase/nightstand-drawers.png",
+      label: "Drawer structure cutaway",
+      desc: "Hide drawer face to see drawer box and lower book storage space",
+    },
+  ],
+  "display-cabinet": [
+    ...pairEn("display-cabinet", "Display cabinet preset — 3D",
+      "Glass doors + internal LED wiring routes, visible in wireframe mode"),
+    CABINET_INTERNAL_EN,
+  ],
+  "pencil-holder": pairEn("pencil-holder", "Pencil holder square preset — 3D",
+    "6 presets (square / hex / oct / grid / brush / divided) — one-click switch"),
+  "photo-frame": pairEn("photo-frame", "Picture frame preset — 3D",
+    "Auto 45° miter; rear backer groove visible in wireframe"),
+  tray: pairEn("tray", "Tray preset — 3D",
+    "Side handle cut-outs + grooved bottom for anti-slip; wireframe shows joint positions"),
+  "dovetail-box": [
+    ...pairEn("dovetail-box", "Dovetail box preset — 3D",
+      "Auto dovetail joints on 4 corners; wireframe shows each tail's position and size"),
+    {
+      src: "/showcase/dovetail-box-lid.png",
+      label: "Lift the lid — see inside",
+      desc: "Lid lifted 140 mm reveals interior + dovetail-joint close-up",
+    },
+  ],
+  "wine-rack": pairEn("wine-rack", "Wine rack preset — 3D",
+    "Auto X-cross lattice cells; each cell fits a standard 750 ml wine bottle"),
+};
+
 export function getGallery(
   category: FurnitureCategory,
+  locale: string = "zh-TW",
 ): GalleryImage[] | undefined {
-  const g = TEMPLATE_GALLERY[category];
+  const g = locale === "en" ? TEMPLATE_GALLERY_EN[category] : TEMPLATE_GALLERY[category];
   return g && g.length > 0 ? g : undefined;
 }

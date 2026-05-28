@@ -167,6 +167,164 @@ export const TEMPLATE_HIGHLIGHTS: Partial<Record<FurnitureCategory, Highlight[]>
   ],
 };
 
-export function getHighlights(category: FurnitureCategory): Highlight[] | undefined {
+/** EN translations for all highlights. Locale-aware accessor uses this when locale==='en'. */
+export const TEMPLATE_HIGHLIGHTS_EN: Partial<Record<FurnitureCategory, Highlight[]>> = {
+  stool: [
+    { icon: "🔨", title: "Auto mortise layout", desc: "Through ≤25 mm / blind 2/3 algorithm auto-switches" },
+    { icon: "↔️", title: "X/Z apron stagger", desc: "Tenons never collide in the leg" },
+    { icon: "📐", title: "0–12° splay with compound", desc: "True leg length + table-saw angles given" },
+    { icon: "🆓", title: "Free template", desc: "Capped at 35×35×45 cm, build as many as you want" },
+  ],
+  "pencil-holder": [
+    { icon: "📐", title: "6 presets, one click", desc: "Square / hex / oct / grid / brush / divided" },
+    { icon: "🪚", title: "Auto saw angles", desc: "Hex 30°, oct 22.5° — just set and cut" },
+    { icon: "🪵", title: "Miter / finger / dovetail", desc: "Algorithm picks the most stock-efficient joinery" },
+    { icon: "🆓", title: "Free template", desc: "Capped at 20×20×25 cm, scraps will do" },
+  ],
+  "side-table": [
+    { icon: "🛋️", title: "Auto-fits sofa height", desc: "The most natural cup-grabbing height" },
+    { icon: "🗃️", title: "Auto drawer hardware", desc: "Says \"13-inch slide\" — just buy it" },
+    { icon: "📚", title: "Optional lower shelf", desc: "Magazines or stay flat" },
+    { icon: "🦵", title: "Compound-splay legs", desc: "True length + both cut angles" },
+  ],
+  "dining-chair": [
+    { icon: "🪑", title: "Backrest curve 5–8°", desc: "Most comfortable lean-back angle" },
+    { icon: "🦵", title: "Back legs splay 6–10°", desc: "Anti-tip when leaning back" },
+    { icon: "📐", title: "True leg length auto", desc: "Compound included, mm precision" },
+    { icon: "📏", title: "Seat tips down front", desc: "Doesn't slide forward" },
+    { icon: "🪚", title: "Table-saw settings spelled out", desc: "Both-axis tilt angles ready" },
+  ],
+  desk: [
+    { icon: "📏", title: "Height by body height", desc: "168 → 47 cm, 175 → 50 cm" },
+    { icon: "🗃️", title: "1–3 drawers, your call", desc: "Left / right / center" },
+    { icon: "🔌", title: "60 mm grommet standard", desc: "2–4 positions selectable" },
+    { icon: "⌨️", title: "Keyboard tray support", desc: "1–2 adjustable layers" },
+    { icon: "🪜", title: "Three leg styles", desc: "Straight / panel side / A-frame" },
+  ],
+  "open-bookshelf": [
+    { icon: "📐", title: "Per-shelf height", desc: "Manga 18 cm / A4 32 cm individually" },
+    { icon: "🔩", title: "Adjustable shelves", desc: "32 mm shelf-pin standard" },
+    { icon: "⚠️", title: "Span sag warning", desc: "Over 60 cm auto-suggests thicker" },
+    { icon: "📚", title: "Depth 22–26 cm hint", desc: "Fits A4 + paperback" },
+  ],
+  "chest-of-drawers": [
+    { icon: "🪵", title: "Three joinery tiers", desc: "Dovetail / fixed slide / butt" },
+    { icon: "🔩", title: "Auto hardware spec", desc: "Blum / Hettich SKU listed" },
+    { icon: "📐", title: "Face-width ratio", desc: "Equal / ascending / progressive" },
+    { icon: "🛏️", title: "Height 70–110 hint", desc: "Anchor to wall if taller" },
+  ],
+  "media-console": [
+    { icon: "🔌", title: "Auto 2–4 cable grommets", desc: "60 mm fits any HDMI" },
+    { icon: "🌬️", title: "Vent slots for PS5", desc: "Auto rear louvers" },
+    { icon: "📺", title: "Sized by TV width", desc: "65-inch → 185 cm console" },
+    { icon: "🎮", title: "Drawer + shelf mix", desc: "Hide controllers, vent consoles" },
+  ],
+  wardrobe: [
+    { icon: "📏", title: "Built-in size minus tolerance", desc: "Auto-deducts 1–2 cm install slack" },
+    { icon: "👔", title: "Rod height by gender", desc: "Women 110, men 140" },
+    { icon: "🚪", title: "Sliding / hinged / none", desc: "Auto-suggests by bed distance" },
+    { icon: "🗃️", title: "0–6 drawers", desc: "Mid-lower placement works best" },
+    { icon: "💰", title: "Saves $2.5–3k vs custom", desc: "Materials only $600–900" },
+  ],
+  "dining-table": [
+    { icon: "🪚", title: "Auto edge-glue layout", desc: "Over 40 cm auto-rips for joinery" },
+    { icon: "👥", title: "Sized by seat count", desc: "6 → 180, 8 → 220" },
+    { icon: "🦵", title: "Three leg styles", desc: "4 straight / A-frame / trestle" },
+    { icon: "⚠️", title: "Over 180 + support", desc: "Adds center reinforcement against sag" },
+  ],
+  "tea-table": [
+    { icon: "🛋️", title: "Suggested by sofa ratio", desc: "Width = sofa × 0.5–0.7" },
+    { icon: "📏", title: "5 cm below sofa = perfect", desc: "Easiest cup reach" },
+    { icon: "📚", title: "Optional lower shelf", desc: "For magazines or skip" },
+    { icon: "🗃️", title: "0–2 drawers", desc: "Hide remotes & cables" },
+  ],
+  "shoe-cabinet": [
+    { icon: "🔩", title: "Adjustable shelves", desc: "Seasonal swap (boots vs slippers)" },
+    { icon: "🚪", title: "Sliding / hinged / lift-up", desc: "Pick by entry space" },
+    { icon: "👞", title: "Depth 30–35 cm hint", desc: "Fits men's size 12" },
+    { icon: "💨", title: "Back-panel vent reminder", desc: "Anti-odor" },
+    { icon: "🪑", title: "Optional seat top", desc: "Shoe-tying bench in one" },
+  ],
+  nightstand: [
+    { icon: "🛏️", title: "Height by bed height", desc: "0–5 cm above mattress" },
+    { icon: "🗃️", title: "Drawer / shelf / mix", desc: "Three configurations" },
+    { icon: "🔌", title: "Optional USB charging port", desc: "Phone charges without cable spaghetti" },
+    { icon: "💑", title: "Build two matching", desc: "Classic newlywed bedroom set" },
+  ],
+  bench: [
+    { icon: "📏", title: "Length 90–200 cm", desc: "Over 150 auto-adds stretcher" },
+    { icon: "🦵", title: "Three leg styles", desc: "Straight / A-frame / trestle" },
+    { icon: "🪑", title: "Three uses", desc: "Entry / dining / outdoor" },
+    { icon: "🌲", title: "Teak for outdoor", desc: "5–10 year lifespan" },
+  ],
+  "bar-stool": [
+    { icon: "🏝️", title: "Auto-fit to island height", desc: "Island − 28 cm = stool height" },
+    { icon: "👣", title: "Auto footrest position", desc: "25–30 cm off the floor" },
+    { icon: "⚖️", title: "Splayed legs anti-tip", desc: "6–10° keeps stability" },
+    { icon: "🪑", title: "No / low / high back", desc: "Three back styles" },
+  ],
+  "round-stool": [
+    { icon: "⚖️", title: "3 legs always stable", desc: "Three-point contact, uneven floors OK" },
+    { icon: "📏", title: "Diameter 30–40 cm", desc: "Over 45 becomes a side table" },
+    { icon: "🪚", title: "Auto round-seat layout", desc: "Over 30 cm auto-strips for joinery" },
+    { icon: "🦵", title: "Splay 6–12°", desc: "Visually light, still solid" },
+  ],
+  "low-table": [
+    { icon: "🧎", title: "Leg height 30–38 cm", desc: "Knees clear when sitting cross-legged" },
+    { icon: "🪚", title: "Auto edge-glue", desc: "Over 40 cm auto-rips for joinery" },
+    { icon: "🦵", title: "5–10° splay, visually steady", desc: "Three leg styles" },
+    { icon: "🍵", title: "Optional rim against spills", desc: "Tea-ceremony table specific" },
+  ],
+  "round-tea-table": [
+    { icon: "👶", title: "Round edge, no knee bumps", desc: "Family-with-kids favorite" },
+    { icon: "🏛️", title: "Three structures", desc: "3-leg / 4-leg / pedestal" },
+    { icon: "📐", title: "Auto pedestal diameter", desc: "Top × 0.5–0.6" },
+    { icon: "🪚", title: "Auto round-top layout", desc: "Glue square then trim round" },
+  ],
+  "round-table": [
+    { icon: "👨‍👩‍👧‍👦", title: "No head of the table", desc: "Most egalitarian family vibe" },
+    { icon: "👥", title: "120 / 140 / 150 cm", desc: "6 / 8 / 10 seats with proper clearance" },
+    { icon: "🏛️", title: "Three structures", desc: "Single pedestal / 4 legs / cross base" },
+    { icon: "📐", title: "Top thickness 25 mm+", desc: "Round tables need extra thickness for span" },
+  ],
+  "display-cabinet": [
+    { icon: "📐", title: "Layer height per collection", desc: "Figures 25 cm / wine 35 cm" },
+    { icon: "💡", title: "Reserve LED channels", desc: "12V strip embedded" },
+    { icon: "🪟", title: "Auto glass dimensions", desc: "Spec the glass shop needs" },
+    { icon: "🪞", title: "Three back options", desc: "Solid / glass / mirror" },
+  ],
+  "dovetail-box": [
+    { icon: "🪵", title: "Three joinery options", desc: "Dovetail / finger / rabbet" },
+    { icon: "📐", title: "Dovetail position to 0.5 mm", desc: "Saw to the line" },
+    { icon: "🗝️", title: "Three lid styles", desc: "Lift-off / hinged / sliding" },
+    { icon: "🗃️", title: "Optional interior dividers", desc: "Jewelry / tool / tea boxes" },
+  ],
+  tray: [
+    { icon: "✋", title: "Three handle styles", desc: "Side rails / cut-out / no handles" },
+    { icon: "🪶", title: "Bottom 9–15 mm", desc: "Light, easy to carry" },
+    { icon: "🍵", title: "Food-safe beeswax", desc: "Direct food contact OK" },
+    { icon: "💰", title: "High craft-market ROI", desc: "Cost $3, sell $10" },
+  ],
+  "wine-rack": [
+    { icon: "🍷", title: "Bottle ⌀ 7–8 cm standard", desc: "Champagne reserves 9 cm" },
+    { icon: "📊", title: "6–24 bottles adjustable", desc: "Free choice of rows × columns" },
+    { icon: "🪵", title: "Three lattice styles", desc: "Plain / cross / diamond" },
+    { icon: "🧱", title: "Built-in / freestanding / wall", desc: "Three mounting options" },
+  ],
+  "photo-frame": [
+    { icon: "📐", title: "Auto 45° miter", desc: "Standard print sizes auto-converted" },
+    { icon: "🖼️", title: "Three edge widths", desc: "Slim 2 / mid 3 / wide 5 cm" },
+    { icon: "🪟", title: "Auto glass dimensions", desc: "Spec the glass shop needs" },
+    { icon: "🪝", title: "Cord / kickstand / magnet", desc: "Three hanging options" },
+  ],
+};
+
+export function getHighlights(
+  category: FurnitureCategory,
+  locale: string = "zh-TW",
+): Highlight[] | undefined {
+  if (locale === "en" && TEMPLATE_HIGHLIGHTS_EN[category]) {
+    return TEMPLATE_HIGHLIGHTS_EN[category];
+  }
   return TEMPLATE_HIGHLIGHTS[category];
 }

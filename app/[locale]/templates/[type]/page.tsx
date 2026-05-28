@@ -86,8 +86,8 @@ export default async function TemplateDetail({ params }: PageProps) {
 
   const t = await getTranslations({ locale, namespace: "templateDetail" });
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
-  const highlights = getHighlights(entry.category);
-  const gallery = getGallery(entry.category);
+  const highlights = getHighlights(entry.category, locale);
+  const gallery = getGallery(entry.category, locale);
   const unlockPrice = isFree ? null : getUnlockPrice(entry.category);
   const isEn = locale === "en";
   const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
@@ -300,18 +300,16 @@ export default async function TemplateDetail({ params }: PageProps) {
                       className="object-contain p-2"
                     />
                   </div>
-                  {!isEn && (
-                    <figcaption className="p-5 border-t border-amber-100 bg-amber-50">
-                      <div className="font-bold text-zinc-900 mb-1">
-                        {g.label}
+                  <figcaption className="p-5 border-t border-amber-100 bg-amber-50">
+                    <div className="font-bold text-zinc-900 mb-1">
+                      {g.label}
+                    </div>
+                    {g.desc && (
+                      <div className="text-sm text-zinc-600 leading-relaxed">
+                        {g.desc}
                       </div>
-                      {g.desc && (
-                        <div className="text-sm text-zinc-600 leading-relaxed">
-                          {g.desc}
-                        </div>
-                      )}
-                    </figcaption>
-                  )}
+                    )}
+                  </figcaption>
                 </figure>
               ))}
             </div>
@@ -319,8 +317,8 @@ export default async function TemplateDetail({ params }: PageProps) {
         </section>
       )}
 
-      {/* ============ 設計重點 Highlights(EN 暫不翻譯,hide;v2 補) ============ */}
-      {!isEn && highlights && highlights.length > 0 && (
+      {/* ============ 設計重點 Highlights(EN 已補 24 模板雙語) ============ */}
+      {highlights && highlights.length > 0 && (
         <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
             {t("highlightsH2")}
