@@ -38,6 +38,7 @@ export function CeilingOverviewSvg({
   boardKindFilter = null,
   fixtures = [],
   collisions = [],
+  locale = "zh-TW",
 }: {
   bom: CeilingBom;
   highlight?: HighlightCategory;
@@ -45,7 +46,28 @@ export function CeilingOverviewSvg({
   boardKindFilter?: "full" | "cut" | null;
   fixtures?: Fixture[];
   collisions?: FixtureCollision[];
+  locale?: string;
 }) {
+  const isEn = locale === "en";
+  const LBL = isEn
+    ? {
+        longSide: "Long side",
+        shortSide: "Short side",
+        frame: "Perimeter",
+        main: "Main",
+        sub: "Sub",
+        boardEdgeMain: "Board edge · main center",
+        boardEdge180: "Board edge · 180 long",
+      }
+    : {
+        longSide: "長邊",
+        shortSide: "短邊",
+        frame: "邊框",
+        main: "主支",
+        sub: "副支",
+        boardEdgeMain: "板邊·主支中心",
+        boardEdge180: "板邊·長 180",
+      };
   const { input, trace } = bom;
   // 高亮邏輯:有 highlight 時非匹配的 group 變淡
   const dim = (key: Exclude<HighlightCategory, null>) =>
@@ -179,14 +201,14 @@ export function CeilingOverviewSvg({
       <DimLine
         x1={x0} y1={y0 - 24}
         x2={x1} y2={y0 - 24}
-        label={`長邊 ${L} cm`}
+        label={`${LBL.longSide} ${L} cm`}
         color="#78350f"
       />
       {/* 短邊 — 左側 */}
       <DimLineVertical
         x1={x0 - 30} y1={y0}
         x2={x0 - 30} y2={y1}
-        label={`短邊 ${S} cm`}
+        label={`${LBL.shortSide} ${S} cm`}
         color="#78350f"
       />
 
@@ -206,11 +228,11 @@ export function CeilingOverviewSvg({
 
       {/* ────── 8. 圖例 ────── */}
       <g transform={`translate(${PAD_LEFT}, ${y1 + 22})`}>
-        <LegendBox color="#a16207" label="邊框" x={0} />
-        <LegendBox color="#d97706" label="主支" x={70} />
-        <LegendBox color="#52525b" label="副支" x={140} />
-        <LegendDash color="#1d4ed8" label="板邊·主支中心" x={210} />
-        <LegendDash color="#475569" label="板邊·長 180" x={360} />
+        <LegendBox color="#a16207" label={LBL.frame} x={0} />
+        <LegendBox color="#d97706" label={LBL.main} x={70} />
+        <LegendBox color="#52525b" label={LBL.sub} x={140} />
+        <LegendDash color="#1d4ed8" label={LBL.boardEdgeMain} x={210} />
+        <LegendDash color="#475569" label={LBL.boardEdge180} x={360} />
       </g>
     </svg>
   );

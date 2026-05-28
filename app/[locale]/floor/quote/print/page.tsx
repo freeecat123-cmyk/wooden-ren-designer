@@ -56,7 +56,7 @@ export default async function FloorQuotePrintPage({
       input={engInput}
       breakdown={breakdown}
       customer={customer}
-      overview={<FloorOverviewSvg bom={bom} width={300} />}
+      overview={<FloorOverviewSvg bom={bom} width={300} locale={locale} />}
       viewMode={viewMode === "internal" ? "internal" : "customer"}
     />
   );

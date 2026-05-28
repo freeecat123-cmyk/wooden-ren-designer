@@ -239,7 +239,7 @@ export function FloorDevClient() {
         <div className="space-y-3">
           {/* 2D 預覽 + 摘要數字 — 桌面版 sticky 在畫面最上方,捲動時始終可見 */}
           <div className="md:sticky md:top-4 md:z-10 space-y-3 bg-white md:bg-transparent">
-            <FloorOverviewSvg bom={bom} width={388} />
+            <FloorOverviewSvg bom={bom} width={388} locale={locale} />
             <div className="grid grid-cols-3 gap-2">
               <Stat label={t("statTotalPlanks")} value={`${bom.trace.totalPlankCount}`} unit={t("unitPiece")} />
               <Stat label={t("statWaste")} value={bom.trace.wastePercent.toFixed(1)} unit={t("unitPercent")} />

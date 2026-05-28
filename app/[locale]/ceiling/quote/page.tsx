@@ -73,7 +73,7 @@ export default async function CeilingQuotePage({
     <EngineeringQuoteClient
       quoteType="ceiling"
       encodedSimInput={d ?? ""}
-      overview={<CeilingOverviewSvg bom={bom} />}
+      overview={<CeilingOverviewSvg bom={bom} locale={locale} />}
       base={{
         pingShu: engInput.pingShu,
         areaM2: engInput.areaM2,

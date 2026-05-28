@@ -56,7 +56,7 @@ export default async function CeilingQuotePrintPage({
       input={engInput}
       breakdown={breakdown}
       customer={customer}
-      overview={<CeilingOverviewSvg bom={bom} />}
+      overview={<CeilingOverviewSvg bom={bom} locale={locale} />}
       viewMode={viewMode === "internal" ? "internal" : "customer"}
     />
   );

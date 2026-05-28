@@ -72,7 +72,7 @@ export default async function FloorQuotePage({
     <EngineeringQuoteClient
       quoteType="floor"
       encodedSimInput={d ?? ""}
-      overview={<FloorOverviewSvg bom={bom} width={360} />}
+      overview={<FloorOverviewSvg bom={bom} width={360} locale={locale} />}
       base={{
         pingShu: engInput.pingShu,
         areaM2: engInput.areaM2,

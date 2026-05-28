@@ -10,9 +10,27 @@ interface Props {
   bom: FloorBom;
   /** SVG 寬度 px,高度依房間比例 */
   width?: number;
+  /** dim/legend label 語言;預設 zh-TW */
+  locale?: string;
 }
 
-export function FloorOverviewSvg({ bom, width = 520 }: Props) {
+export function FloorOverviewSvg({ bom, width = 520, locale = "zh-TW" }: Props) {
+  const isEn = locale === "en";
+  const LBL = isEn
+    ? {
+        totalWidth: "Width",
+        totalDepth: "Depth",
+        full: "Full",
+        cut: "Cut",
+        waste: "Waste",
+      }
+    : {
+        totalWidth: "總寬",
+        totalDepth: "總深",
+        full: "整片",
+        cut: "裁切",
+        waste: "損耗",
+      };
   const room = bom.input.room;
   const bb = boundingBox(room);
   const padL = 34;
@@ -103,7 +121,7 @@ export function FloorOverviewSvg({ bom, width = 520 }: Props) {
         fontSize={10}
         fill="#666"
       >
-        總寬 {Math.round(roomW)} cm
+        {LBL.totalWidth} {Math.round(roomW)} cm
       </text>
       {/* 總深尺寸標註(左側,直書) */}
       <text
@@ -114,20 +132,20 @@ export function FloorOverviewSvg({ bom, width = 520 }: Props) {
         fill="#666"
         transform={`rotate(-90 12 ${padT + drawH / 2})`}
       >
-        總深 {Math.round(roomH)} cm
+        {LBL.totalDepth} {Math.round(roomH)} cm
       </text>
 
       {/* 圖例 + 損耗率 */}
       <rect x={padL} y={legendY - 8} width={11} height={11} fill="#e7d8ae" stroke="#bd9955" strokeWidth={0.6} />
       <text x={padL + 15} y={legendY} fontSize={10} fill="#666">
-        整片 {fullCount}
+        {LBL.full} {fullCount}
       </text>
       <rect x={padL + 70} y={legendY - 8} width={11} height={11} fill="#f3d9d4" stroke="#c0392b" strokeWidth={0.6} />
       <text x={padL + 85} y={legendY} fontSize={10} fill="#666">
-        裁切 {cutCount}
+        {LBL.cut} {cutCount}
       </text>
       <text x={width - padR} y={legendY} textAnchor="end" fontSize={10} fill="#c0392b" fontWeight={600}>
-        損耗 {bom.trace.wastePercent.toFixed(1)}%
+        {LBL.waste} {bom.trace.wastePercent.toFixed(1)}%
       </text>
     </svg>
   );

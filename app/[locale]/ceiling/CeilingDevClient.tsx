@@ -327,7 +327,7 @@ export function CeilingDevClient() {
           <div className="p-3 bg-gradient-to-br from-stone-50/40 via-transparent to-amber-50/20">
             {viewKind === "2d" ? (
               <CeilingOverviewSvg bom={bom} highlight={svgHighlight} subLengthFilter={subLengthFilter}
-                boardKindFilter={boardKindFilter} fixtures={fixtures} collisions={collisions} />
+                boardKindFilter={boardKindFilter} fixtures={fixtures} collisions={collisions} locale={locale} />
             ) : (
               <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} subLengthFilter={subLengthFilter} boardKindFilter={boardKindFilter} />
             )}
