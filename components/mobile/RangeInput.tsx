@@ -10,11 +10,16 @@ const SIXTEENTH_MM = MM_PER_INCH / 16;
 
 function snapToSixteenthMm(mm: number, dir: 1 | -1 | 0 = 0): number {
   const sixteenths = mm / SIXTEENTH_MM;
-  const target =
-    dir === 1 ? Math.floor(sixteenths) + 1
-    : dir === -1 ? Math.ceil(sixteenths) - 1
-    : Math.round(sixteenths);
-  return Math.round(target * SIXTEENTH_MM);
+  if (dir === 0) return Math.round(Math.round(sixteenths) * SIXTEENTH_MM);
+  const startSixteenths = Math.round(sixteenths);
+  let target = startSixteenths + dir;
+  let result = Math.round(target * SIXTEENTH_MM);
+  const original = Math.round(mm);
+  while (result === original) {
+    target += dir;
+    result = Math.round(target * SIXTEENTH_MM);
+  }
+  return result;
 }
 
 interface PresetPoint {
@@ -102,19 +107,24 @@ export function RangeInput({
     [min, max],
   );
 
-  /** 寫進 sr-only mm number input,觸發 form auto-submit. 一條路徑取代所有 dispatch/race patch. */
+  /** 寫進 sr-only mm number input,觸發 form auto-submit.
+   *  DOM 同步寫(el.value = str)+ setState 異步,讓快速連點時下一次 readDOM 取到新值.
+   *  early return 防靜默 dispatch — clamped 跟 DOM 現值相同就不發事件. */
   const writeMm = useCallback(
     (newMm: number) => {
       const clamped = clamp(newMm);
-      setValue(clamped);
       const el = inputRef.current;
+      const cur = el ? Number(el.value) : NaN;
+      if (clamped === cur) return;
       if (el) {
-        const tracker = (el as HTMLInputElement & { _valueTracker?: { setValue: (v: string) => void } })._valueTracker;
-        requestAnimationFrame(() => {
-          tracker?.setValue("");
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-        });
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        nativeSetter?.call(el, String(clamped));
+        el.dispatchEvent(new Event("input", { bubbles: true }));
       }
+      setValue(clamped);
     },
     [clamp],
   );
@@ -262,46 +272,57 @@ export function RangeInput({
                 inputMode="decimal"
               />
             ) : (
-              <div className="inline-flex items-center gap-1">
-                <button
-                  type="button"
-                  aria-label={tRange("minus")}
-                  disabled={value <= min}
-                  onClick={() => writeMm(snapToSixteenthMm(value, -1))}
-                  className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
-                >
-                  −
-                </button>
-                <button
-                  type="button"
-                  tabIndex={0}
-                  role="spinbutton"
-                  aria-valuenow={value}
-                  aria-valuemin={min}
-                  aria-valuemax={max}
-                  aria-valuetext={formatInchFraction(value)}
-                  onClick={() => setEditing(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === "ArrowUp") { e.preventDefault(); writeMm(snapToSixteenthMm(value, 1)); }
-                    else if (e.key === "ArrowDown") { e.preventDefault(); writeMm(snapToSixteenthMm(value, -1)); }
-                    else if (e.key === "PageUp") { e.preventDefault(); let n = value; for (let i = 0; i < 4; i++) n = snapToSixteenthMm(n, 1); writeMm(n); }
-                    else if (e.key === "PageDown") { e.preventDefault(); let n = value; for (let i = 0; i < 4; i++) n = snapToSixteenthMm(n, -1); writeMm(n); }
-                    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEditing(true); }
-                  }}
-                  className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs flex items-center justify-center outline-none focus:ring-2 focus:ring-amber-300 cursor-text"
-                >
-                  {formatInchFraction(value)}
-                </button>
-                <button
-                  type="button"
-                  aria-label={tRange("plus")}
-                  disabled={value >= max}
-                  onClick={() => writeMm(snapToSixteenthMm(value, 1))}
-                  className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
-                >
-                  +
-                </button>
-              </div>
+              (() => {
+                // 從 DOM 讀 mm 而不是用 closure 的 value,避免快速連點時 stale closure
+                const readMm = () => (inputRef.current ? Number(inputRef.current.value) : value);
+                const inchStep = (dir: 1 | -1, mag: 1 | 4 = 1) => {
+                  let n = readMm();
+                  for (let i = 0; i < mag; i++) n = snapToSixteenthMm(n, dir);
+                  writeMm(n);
+                };
+                return (
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={tRange("minus")}
+                      disabled={value <= min}
+                      onClick={() => inchStep(-1)}
+                      className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      role="spinbutton"
+                      aria-valuenow={value}
+                      aria-valuemin={min}
+                      aria-valuemax={max}
+                      aria-valuetext={formatInchFraction(value)}
+                      onClick={() => setEditing(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp") { e.preventDefault(); inchStep(1); }
+                        else if (e.key === "ArrowDown") { e.preventDefault(); inchStep(-1); }
+                        else if (e.key === "PageUp") { e.preventDefault(); inchStep(1, 4); }
+                        else if (e.key === "PageDown") { e.preventDefault(); inchStep(-1, 4); }
+                        else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEditing(true); }
+                      }}
+                      className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs flex items-center justify-center outline-none focus:ring-2 focus:ring-amber-300 cursor-text"
+                    >
+                      {formatInchFraction(value)}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={tRange("plus")}
+                      disabled={value >= max}
+                      onClick={() => inchStep(1)}
+                      className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
+                    >
+                      +
+                    </button>
+                  </div>
+                );
+              })()
             )
           ) : editing ? (
             <input

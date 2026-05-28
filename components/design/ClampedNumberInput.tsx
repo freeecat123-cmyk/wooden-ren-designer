@@ -8,14 +8,22 @@ import { formatInchFraction, MM_PER_INCH } from "@/lib/units/format";
 
 const SIXTEENTH_MM = MM_PER_INCH / 16; // 1.5875mm
 
-/** Snap mm value to nearest 1/16" (in mm, rounded to int for clean URLs) */
+/** Snap mm value to nearest 1/16" (in mm, rounded to int for clean URLs).
+ *  dir=+1/-1 必須嚴格單調(結果 mm ≠ 輸入 mm),否則 38mm→snap+1 還是 38 會卡住. */
 function snapToSixteenthMm(mm: number, dir: 1 | -1 | 0 = 0): number {
   const sixteenths = mm / SIXTEENTH_MM;
-  const target =
-    dir === 1 ? Math.floor(sixteenths) + 1
-    : dir === -1 ? Math.ceil(sixteenths) - 1
-    : Math.round(sixteenths);
-  return Math.round(target * SIXTEENTH_MM);
+  if (dir === 0) return Math.round(Math.round(sixteenths) * SIXTEENTH_MM);
+  // 從最近的 1/16" 出發 + 一個 step,再 round 回 int mm
+  const startSixteenths = Math.round(sixteenths);
+  let target = startSixteenths + dir;
+  let result = Math.round(target * SIXTEENTH_MM);
+  const original = Math.round(mm);
+  // 防 int round 衝突 — 某些 mm 值剛好 round 回同一個 int,要再推一格
+  while (result === original) {
+    target += dir;
+    result = Math.round(target * SIXTEENTH_MM);
+  }
+  return result;
 }
 
 interface PresetPoint {
@@ -189,28 +197,38 @@ export function ClampedNumberInput({
   const editRef = useRef<HTMLInputElement>(null);
 
   /** 把新 mm 值直接寫進 sr-only number input,觸發 form auto-submit.
+   *  關鍵:DOM 同步寫(el.value = str)+ setState 異步,讓快速連點時下一次 readDOM 取到新值.
    *  React 的 _valueTracker 認為「值沒變」就不 fire onChange,
-   *  所以先 setValue("") 讓 React 比對時認為「值變了」. */
+   *  所以先 setValue("") 讓 React 比對時認為「值變了」.
+   *  early return 防靜默 dispatch. */
   const writeMm = useCallback(
     (newMm: number) => {
       const clamped = clamp(newMm);
-      const str = String(clamped);
-      setValue(str);
       const el = inputRef.current;
+      const cur = el ? Number(el.value) : NaN;
+      if (clamped === cur) return;
+      const str = String(clamped);
       if (el) {
-        const tracker = (el as HTMLInputElement & { _valueTracker?: { setValue: (v: string) => void } })._valueTracker;
-        requestAnimationFrame(() => {
-          tracker?.setValue("");
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-        });
+        // 用 native HTMLInputElement.prototype.value setter,繞過 React 受控元件攔截,
+        // 確保 React 的 _valueTracker 內部值跟 DOM value 不同,onChange 才會 fire.
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        nativeSetter?.call(el, str);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
       }
+      setValue(str);
     },
     [clamp],
   );
 
+  /** 從 DOM 讀目前 mm 後做 1/16" 步進.
+   *  關鍵:不從 value(state) 讀 — 快速連點時 closure 會被 stale,讀 DOM 永遠是最新值. */
   const inchStep = useCallback(
     (dir: 1 | -1, magnitude: 1 | 4 = 1) => {
-      const n = Number(value);
+      const el = inputRef.current;
+      const n = el ? Number(el.value) : 0;
       const base = Number.isFinite(n) ? n : 0;
       let next = base;
       for (let i = 0; i < magnitude; i++) {
@@ -218,7 +236,7 @@ export function ClampedNumberInput({
       }
       writeMm(next);
     },
-    [value, writeMm],
+    [writeMm],
   );
 
   const enterEdit = useCallback(() => setEditing(true), []);

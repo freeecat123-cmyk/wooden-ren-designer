@@ -4395,7 +4395,7 @@
   "templateUnlock": {
     "h": "🪵 單範本永久買斷",
     "intro": "只想做某張椅子？一次買斷，永久擁有那張藍圖。不訂閱也能用。",
-    "priceChipTpl": "{label} {price}",
+    "priceChipTpl": "{label} NT$ {price}",
     "filterAll": "全部",
     "loading": "載入中…",
     "owned": "✓ 已擁有",

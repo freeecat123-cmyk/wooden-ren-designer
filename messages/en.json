@@ -4395,7 +4395,7 @@
   "templateUnlock": {
     "h": "🪵 One-time template purchase",
     "intro": "Just want a single design? Buy the blueprint once — yours forever. No subscription needed.",
-    "priceChipTpl": "{label} {price}",
+    "priceChipTpl": "{label} NT$ {price}",
     "filterAll": "All",
     "loading": "Loading…",
     "owned": "✓ Owned",
