@@ -217,6 +217,52 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   mattressLength: "Mattress length",
   mattressWidth: "Mattress width",
   slatCount: "Slat count",
+
+  // === Bench / bar-stool / dining-chair back family ===
+  slatSize: "Slat size",
+  slatWidth: "Slat width",
+  topRailSize: "Top rail size",
+  topRailThickness: "Top rail thickness",
+  topRailHeight: "Top rail height",
+  backTopRailHeight: "Top rail height (backrest)",
+  slatBackInset: "Slat back inset",
+  slatEndInset: "Slat end inset",
+  topRailBendMm: "Top rail back-bend",
+  ladderRungs: "Ladder rungs",
+  ladderRailH: "Ladder rail height",
+  ladderRailT: "Ladder rail thickness",
+  ladderRailGap: "Ladder rail gap",
+  ladderRailBendMm: "Ladder rail back-bend",
+  windsorSpindleCount: "Windsor spindle count",
+  windsorPostD: "Windsor post diameter",
+  windsorSpindleD: "Windsor spindle diameter",
+  windsorRakeDeg: "Windsor back rake angle",
+  windsorBowBendMm: "Windsor bow bend",
+  windsorTopRailH: "Windsor top rail width",
+  windsorTopRailT: "Windsor top rail thickness",
+  windsorBackInset: "Windsor back inset from rear",
+  windsorEndInset: "Windsor back inset from ends",
+  windsorHeight: "Windsor backrest height",
+  backPanelThickness: "Panel back thickness",
+  backPanelTopArch: "Top edge arch",
+  backPostDiameter: "Round support post diameter",
+  backReclineDeg: "Back recline angle",
+  backPostFromEdge: "Post distance from end face",
+  backSlats: "Slat count",
+  backSlatWidth: "Slat width",
+  backSlatThickness: "Slat thickness",
+  backRailInsetZ: "Support post distance from seat rear",
+  backRailInsetX: "Support post distance from seat end",
+  backRailPostWidth: "Support post width X",
+  backRailPostThickness: "Support post thickness Z",
+  footrestWidth: "Footrest width",
+  footrestThickness: "Footrest thickness",
+  footrestStaggerMm: "Footrest stagger",
+  seatHeight: "Seat height",
+  seatFrontWaterfall: "Front-edge waterfall",
+  splatWidth: "Splat width",
+  curvedSplatWidth: "Curved splat width",
+  curvedSplatBendMm: "Curved splat bend",
 };
 
 /**
@@ -308,6 +354,12 @@ export const SPEC_HELP_EN: Record<string, string> = {
   withToeKick: "Inset the bottom-front so toes don't hit the case face. Requires leg height = 0 and a leg style other than plinth/side-extended.",
   withCrownMolding: "Adds an outward-projecting molding ring at the top — a classic case-goods detail.",
   backPanelPlywood: "Checked: back panel counts as thin plywood (~3/16–1/4 in / 4–6 mm, saves on lumber). Unchecked: back uses the main material (best visual unity).",
+
+  // === Bench / bar-stool / dining-chair back family ===
+  seatHeight: "Floor to top of seat.",
+  seatFrontWaterfall: "Heavy front-edge round-over (R20–R30) to relieve thigh pressure.",
+  ladderRungs: "Rails sit on the upper half of the back; lowest doesn't touch seat.",
+  rearPostMode: "Split = current; continuous-* = rear leg extends as back post.",
 };
 
 /**
@@ -753,6 +805,14 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "rearPostMode:integral": "Integral with rear leg",
   "rearPostMode:separate": "Separate post",
   "rearPostMode:none": "None",
+  "rearPostMode:split": "Split (separate post)",
+  "rearPostMode:continuous-straight": "Continuous straight (A)",
+  "rearPostMode:continuous-bent": "Continuous bent (B, lean back)",
+
+  // === backStyle (extra variants from bench / bar-stool / dining-chair) ===
+  "backStyle:rail": "Short rail (single bar)",
+  "backStyle:slats": "Vertical slats",
+  "backStyle:curved-splat": "Curved splat",
 };
 
 export function choiceLabel(
