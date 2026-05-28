@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCurrency } from "@/hooks/useCurrency";
-import type { CurrencyPref } from "@/lib/geo-defaults";
+import { formatPrice } from "@/lib/units/fx";
 
 type QuoteStatus = "pending" | "won" | "lost";
 
@@ -63,16 +63,7 @@ function save(list: QuoteHistoryEntry[]): void {
   window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)));
 }
 
-function formatMoney(n: number, currency: CurrencyPref): string {
-  // LABEL only — amount is not auto-converted across currencies.
-  // TODO: when pricing is unified, convert n by an exchange rate here.
-  const locale = currency === "USD" ? "en-US" : "zh-TW";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
-}
+// 金額一律以 TWD 儲存（quote 計算的原始幣別）；顯示時依 currency 用 fx 換算。
 
 function formatDate(iso: string): string {
   try {
@@ -250,7 +241,7 @@ export function QuoteHistory({ current }: Props) {
                       : "text-zinc-900"
                   }`}
                 >
-                  {formatMoney(e.total, currency)}
+                  {formatPrice(e.total, currency)}
                 </span>
               </Link>
               <button

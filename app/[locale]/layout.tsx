@@ -15,6 +15,7 @@ import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
 import { getCurrencyFromCookies } from "@/lib/units/server-currency";
+import { priceAmount } from "@/lib/units/fx";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -181,14 +182,13 @@ export default async function LocaleLayout({
                 locale === "en"
                   ? [
                       { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: currency },
-                      { "@type": "Offer", name: "Pro Monthly", price: "9", priceCurrency: currency },
-                      { "@type": "Offer", name: "Pro Annual", price: "79", priceCurrency: currency },
-                      { "@type": "Offer", name: "Lifetime", price: "129", priceCurrency: currency },
+                      { "@type": "Offer", name: "Personal", price: priceAmount(390, currency), priceCurrency: currency },
+                      { "@type": "Offer", name: "Pro", price: priceAmount(890, currency), priceCurrency: currency },
                     ]
                   : [
                       { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: currency },
-                      { "@type": "Offer", name: "個人版", price: "390", priceCurrency: currency },
-                      { "@type": "Offer", name: "專業版", price: "890", priceCurrency: currency },
+                      { "@type": "Offer", name: "個人版", price: priceAmount(390, currency), priceCurrency: currency },
+                      { "@type": "Offer", name: "專業版", price: priceAmount(890, currency), priceCurrency: currency },
                     ],
               creator: {
                 "@type": "Organization",

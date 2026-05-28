@@ -101,7 +101,7 @@ export function formatBdft(bdft: number): string {
   return bdft.toFixed(2);
 }
 
-/** 格式化新台幣金額，附千分位 */
+/** 格式化新台幣金額，附千分位（傳統 server-only call sites 用）*/
 export function formatTWD(amount: number): string {
   return new Intl.NumberFormat("zh-TW", {
     style: "currency",
@@ -109,3 +109,10 @@ export function formatTWD(amount: number): string {
     maximumFractionDigits: 0,
   }).format(Math.round(amount));
 }
+
+/**
+ * Currency-aware wrapper. `amount` is TWD (canonical); converts to USD via
+ * fixed FX (lib/units/fx) when currency==="USD". 新呼叫端請用這個取代
+ * `formatTWD`，這樣同一份計算結果就能在 zh-TW 顯示 NT$ / 在 EN 顯示 USD。
+ */
+export { formatPrice as formatMoney } from "@/lib/units/fx";

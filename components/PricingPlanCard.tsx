@@ -4,6 +4,8 @@ import { Link } from "@/i18n/navigation";
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { InvoicePreflightModal } from "./InvoicePreflightModal";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 
 export type BillingPeriod = "monthly" | "yearly";
 
@@ -80,6 +82,8 @@ export function PlanCardView({
   couponDiscountPercent?: number | null;
 }) {
   const t = useTranslations("planCard");
+  const currency = useCurrency();
+  const money = (twd: number) => formatPrice(twd, currency);
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
   let belowPrice: React.ReactNode = null;
@@ -130,7 +134,7 @@ export function PlanCardView({
   if (isFree) {
     priceLine = (
       <>
-        <span className="text-2xl sm:text-3xl font-bold text-zinc-900">NT$ 0</span>
+        <span className="text-2xl sm:text-3xl font-bold text-zinc-900">{money(0)}</span>
         <span className="text-sm text-zinc-500">
           {period === "yearly" ? t("perYear") : t("perMonth")}
         </span>
@@ -145,16 +149,16 @@ export function PlanCardView({
     priceLine = (
       <>
         <span className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          NT$ {couponedYearly.toLocaleString()}
+          {money(couponedYearly)}
         </span>
         {hasCoupon && (
           <span className="text-sm text-zinc-400 line-through">
-            NT$ {plan.yearlyPrice.toLocaleString()}
+            {money(plan.yearlyPrice)}
           </span>
         )}
         {!hasCoupon && plan.originalYearly && plan.originalYearly > plan.yearlyPrice && (
           <span className="text-sm text-zinc-400 line-through">
-            NT$ {plan.originalYearly.toLocaleString()}
+            {money(plan.originalYearly)}
           </span>
         )}
         <span className="text-sm text-zinc-500">{t("perYear")}</span>
@@ -183,11 +187,11 @@ export function PlanCardView({
     priceLine = (
       <>
         <span className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          NT$ {plan.monthlyPrice.toLocaleString()}
+          {money(plan.monthlyPrice)}
         </span>
         {plan.originalMonthly && plan.originalMonthly > plan.monthlyPrice && (
           <span className="text-sm text-zinc-400 line-through">
-            NT$ {plan.originalMonthly.toLocaleString()}
+            {money(plan.originalMonthly)}
           </span>
         )}
         <span className="text-sm text-zinc-500">{t("perMonth")}</span>

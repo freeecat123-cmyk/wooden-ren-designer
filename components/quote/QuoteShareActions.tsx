@@ -14,6 +14,7 @@ import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { loadBranding } from "@/components/branding/branding";
 import { QrCode } from "@/components/print/QrCode";
 import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 import type { CurrencyPref } from "@/lib/geo-defaults";
 
 /**
@@ -376,15 +377,7 @@ function readFormState(design: FurnitureDesign, locale: string = "zh-TW") {
 
 /* ─────────────── 訊息與 Email 格式 ─────────────── */
 
-function formatMoney(n: number, currency: CurrencyPref): string {
-  // LABEL only — amount is not auto-converted. TODO: unify pricing across currencies.
-  const locale = currency === "USD" ? "en-US" : "zh-TW";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
-}
+// 金額一律以 TWD 計算，formatPrice 處理 currency label + FX 換算。
 
 interface ShareContent {
   customerName: string;
@@ -404,7 +397,7 @@ interface ShareContent {
 type T = (key: string, vals?: Record<string, string | number>) => string;
 
 function buildLineMessage(t: T, c: ShareContent, currency: CurrencyPref): string {
-  const twd = (n: number) => formatMoney(n, currency);
+  const twd = (n: number) => formatPrice(n, currency);
   const greeting = c.customerName
     ? t("lineGreetingTpl", { name: c.customerName })
     : t("lineGreetingFallback");
@@ -443,7 +436,7 @@ function buildLineMessage(t: T, c: ShareContent, currency: CurrencyPref): string
 }
 
 function buildEmailContent(t: T, c: ShareContent, currency: CurrencyPref): { subject: string; body: string } {
-  const twd = (n: number) => formatMoney(n, currency);
+  const twd = (n: number) => formatPrice(n, currency);
   const greeting = c.customerName
     ? t("lineGreetingTpl", { name: c.customerName })
     : t("lineGreetingFallback");

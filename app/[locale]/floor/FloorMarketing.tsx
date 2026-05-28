@@ -9,6 +9,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
 import { getCurrencyFromCookies } from "@/lib/units/server-currency";
+import { priceAmount } from "@/lib/units/fx";
 
 type UserStatus = "guest" | "loggedInNoAccess";
 
@@ -74,7 +75,7 @@ export async function FloorMarketing({ status }: Props) {
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: isEn ? "9" : "390",
+      price: priceAmount(390, currency),
       priceCurrency: currency,
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,

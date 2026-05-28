@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useBranding } from "./branding";
 import { useCurrency } from "@/hooks/useCurrency";
-import type { CurrencyPref } from "@/lib/geo-defaults";
+import { formatPrice } from "@/lib/units/fx";
 
 function splitLines(s: string): string[] {
   return s
@@ -12,15 +12,7 @@ function splitLines(s: string): string[] {
     .filter(Boolean);
 }
 
-function formatMoney(n: number, currency: CurrencyPref): string {
-  // LABEL only — no FX conversion of amount (TODO: unify pricing).
-  const locale = currency === "USD" ? "en-US" : "zh-TW";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
-}
+// 報價金額以 TWD 儲存，顯示時走 fx.formatPrice 統一換算。
 
 interface TermsProps {
   /** 訂金比例 0–1；0 或 1 表示不做拆分，沿用使用者原文字 */
@@ -44,7 +36,7 @@ export function BrandedTermsBlocks({
   const t = useTranslations("branded");
   const { data } = useBranding();
   const currency = useCurrency();
-  const twd = (n: number) => formatMoney(n, currency);
+  const twd = (n: number) => formatPrice(n, currency);
   const longDashes = t("dashesPlaceholder");
   const shortDashes = t("dashesShort");
 
