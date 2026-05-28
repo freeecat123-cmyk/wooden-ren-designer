@@ -86,7 +86,7 @@ export default async function RaisedFloorQuotePage({
       encodedSimInput={d ?? ""}
       overview={
         <div className="w-full max-w-sm">
-          <RaisedFloorOverviewSvg bom={bom} width={360} />
+          <RaisedFloorOverviewSvg bom={bom} width={360} locale={locale} />
         </div>
       }
       base={{

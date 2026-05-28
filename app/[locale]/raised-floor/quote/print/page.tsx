@@ -84,7 +84,7 @@ export default async function RaisedFloorQuotePrintPage({
         customer={customer}
         overview={
           <div className="w-[300px]">
-            <RaisedFloorOverviewSvg bom={bom} width={300} />
+            <RaisedFloorOverviewSvg bom={bom} width={300} locale={locale} />
           </div>
         }
         viewMode={mode}

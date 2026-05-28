@@ -707,7 +707,7 @@ export function RaisedFloorClient() {
 
             {/* 對應 tab 顯示視圖 */}
             {tab === "frame" && (
-              <RaisedFloorOverviewSvg bom={bom} layers={layers} />
+              <RaisedFloorOverviewSvg bom={bom} layers={layers} locale={locale} />
             )}
             {tab === "plank" && <RaisedFloorPlankSvg bom={bom} width={388} />}
             {tab === "3d" && (

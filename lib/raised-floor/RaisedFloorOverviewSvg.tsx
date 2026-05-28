@@ -35,6 +35,8 @@ interface Props {
   layers?: Record<LayerKey, boolean>;
   /** 預留 prop,不影響繪製(viewBox 是 cm,RWD 自動縮放) */
   width?: number;
+  /** 圖例語言;預設 zh-TW */
+  locale?: string;
 }
 
 const ALL_ON: Record<LayerKey, boolean> = {
@@ -51,7 +53,36 @@ const ALL_ON: Record<LayerKey, boolean> = {
 export function RaisedFloorOverviewSvg({
   bom,
   layers = ALL_ON,
+  locale = "zh-TW",
 }: Props): JSX.Element {
+  const isEn = locale === "en";
+  const LBL = isEn
+    ? {
+        topFrame: "Top frame",
+        bottomFrame: "Bottom frame",
+        topJoistTpl: (n: number) => `Top joists ${n}`,
+        bottomJoist: "Bottom joists",
+        subJoist: "Sub-joists",
+        leg: "Legs",
+        plywoodFull: "Plywood (full)",
+        plywoodCut: "Plywood (cut)",
+        pillarTpl: (n: number) => `Pillar cuts ${n}`,
+        totalWidth: "Width",
+        totalDepth: "Depth",
+      }
+    : {
+        topFrame: "頂框",
+        bottomFrame: "底框",
+        topJoistTpl: (n: number) => `頂主支 ${n}`,
+        bottomJoist: "底主支",
+        subJoist: "副支",
+        leg: "腳柱",
+        plywoodFull: "夾板整片",
+        plywoodCut: "夾板裁切",
+        pillarTpl: (n: number) => `挨柱 ${n}`,
+        totalWidth: "總寬",
+        totalDepth: "總深",
+      };
   const platform = bom.platform;
   const bb = boundingBox(platform);
   const W = bb.maxX - bb.minX;
@@ -486,7 +517,7 @@ export function RaisedFloorOverviewSvg({
         y1={y0 - 24}
         x2={x1}
         y2={y0 - 24}
-        label={`總寬 ${Math.round(W)} cm`}
+        label={`${LBL.totalWidth} ${Math.round(W)} cm`}
         color="#78350f"
       />
       <DimLineVertical
@@ -494,33 +525,33 @@ export function RaisedFloorOverviewSvg({
         y1={y0}
         x2={x0 - 30}
         y2={y1}
-        label={`總深 ${Math.round(D)} cm`}
+        label={`${LBL.totalDepth} ${Math.round(D)} cm`}
         color="#78350f"
       />
 
       {/* ────── 9. 圖例(兩行排版避免擠在一起) ────── */}
       <g transform={`translate(${PAD_LEFT}, ${y1 + 18})`}>
         {/* 第一行:框 + 主支 */}
-        <LegendBox color="#a16207" label="頂框" x={0} />
-        <LegendBox color="#a16207" label="底框" x={48} opacity={0.7} />
-        <LegendBox color="#d97706" label={`頂主支 ${bom.trace.joistRowCount}`} x={100} />
-        <LegendBox color="#8a6d3b" label="底主支" x={170} opacity={0.55} />
+        <LegendBox color="#a16207" label={LBL.topFrame} x={0} />
+        <LegendBox color="#a16207" label={LBL.bottomFrame} x={48} opacity={0.7} />
+        <LegendBox color="#d97706" label={LBL.topJoistTpl(bom.trace.joistRowCount)} x={100} />
+        <LegendBox color="#8a6d3b" label={LBL.bottomJoist} x={170} opacity={0.55} />
         {/* 第二行:副支 / 腳柱 / 夾板(整 + 裁) / 挨柱 */}
         <g transform="translate(0, 14)">
-          <LegendBox color="#a1a1aa" label="副支" x={0} />
-          <LegendBox color="#27272a" label="腳柱" x={48} />
+          <LegendBox color="#a1a1aa" label={LBL.subJoist} x={0} />
+          <LegendBox color="#27272a" label={LBL.leg} x={48} />
           <g transform="translate(96, 0)">
             <rect width={6} height={4} fill="#fde68a" stroke="#a16207" strokeWidth={0.3} />
-            <text x={8} y={3.5} fontSize={9} fill="#52525b">夾板整片</text>
+            <text x={8} y={3.5} fontSize={9} fill="#52525b">{LBL.plywoodFull}</text>
           </g>
           <g transform="translate(156, 0)">
             <rect width={6} height={4} fill="#fda4af" stroke="#be123c" strokeWidth={0.3} />
-            <text x={8} y={3.5} fontSize={9} fill="#52525b">夾板裁切</text>
+            <text x={8} y={3.5} fontSize={9} fill="#52525b">{LBL.plywoodCut}</text>
           </g>
           {hasPillar && (
             <LegendBox
               color="#aaa"
-              label={`挨柱 ${pillarRects.length}`}
+              label={LBL.pillarTpl(pillarRects.length)}
               x={216}
               opacity={0.3}
             />
