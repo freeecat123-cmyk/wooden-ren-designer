@@ -1553,11 +1553,12 @@ export function T2Annotations({
         part.shape?.kind === "splayed-tapered" ||
         part.shape?.kind === "splayed-round-tapered";
       const splayMortiseLabel = isSplayLegPart && isMortise;
-      // 仰視 BOTTOM (annView="top") mortise：vMm 走 mortise.width（= 榫頭厚度），
-      // 不是 mortise.depth（= 榫頭長，跟最右邊獨立 dim「12.5」對不上）。
-      // user 2026-05-28「應該是 12.5×23 跟 12.5×18 跟榫長度搞反了」「12.5 = 榫頭厚度」。
-      // 只動 view==="top"，正視/側視維持原規則。
-      const isTopViewMortise = isMortise && view === "top";
+      // 仰視 BOTTOM (annView="top") 的「實心框」mortise (isVisibleFromView=true) 才把
+      // vMm 改抓 mortise.width（square stool=12.5、splayed leg=10）。
+      // 虛線框 mortise 維持原 splayMortiseLabel / projection 路徑（= depth 或 box 投影）。
+      // user 2026-05-28：「實心框是 10 虛線框是 25」(splayed) +「12.5×23 跟 12.5×18」(square)
+      const isTopViewVisibleMortise =
+        isMortise && view === "top" && isVisibleFromView;
       const mortiseFeature = isMortise ? part.mortises[it.idx] : null;
       const hMm = splayMortiseLabel
         ? round1(mortiseFeature?.length ?? 0)
@@ -1566,7 +1567,7 @@ export function T2Annotations({
           : view === "side"
             ? round1(2 * lb.hz)
             : round1(2 * lb.hx);
-      const vMm = isTopViewMortise
+      const vMm = isTopViewVisibleMortise
         ? round1(mortiseFeature?.width ?? 0)
         : splayMortiseLabel
         ? round1(mortiseFeature?.depth ?? 0)
