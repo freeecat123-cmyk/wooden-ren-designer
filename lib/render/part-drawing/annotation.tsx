@@ -1755,8 +1755,10 @@ export function T2Annotations({
         // 兩個 vMm 數字不一樣、同列左邊難辨。(user 2026-05-26「兩個 25 應該移到榫孔
         // 右邊比較好」)
         <g key={`${it.kind}-${it.idx}-inline-dims`}>
-          {/* L dim label：實線 box 走左邊 (anchor=end)，虛線 box 走右邊 (anchor=start) */}
-          {isMortise && !isVisibleFromView ? (
+          {/* L dim label：tenon 端面凸出時 (outerLeft=false) 走右邊空白處不要蓋
+              part body；虛線 mortise (hidden) 強制走右邊以免跟同列實線擠左欄位；
+              其餘維持原本走左邊 (anchor=end)。 */}
+          {(isMortise && !isVisibleFromView) || (!isMortise && !outerLeft) ? (
             <text
               x={box.x + box.w + 2}
               y={box.y + box.h / 2 + 3}
