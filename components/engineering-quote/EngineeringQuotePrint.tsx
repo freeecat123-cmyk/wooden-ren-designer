@@ -4,7 +4,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import { BrandedSupplier } from "@/components/branding/BrandedSupplier";
 import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
-import { formatTWD } from "@/lib/pricing/catalog";
+import { formatMoney } from "@/lib/pricing/catalog";
+import { useCurrency } from "@/hooks/useCurrency";
 import { computeValidUntil } from "@/lib/engineering-quote/calc";
 import type {
   EngineeringQuoteInput,
@@ -33,6 +34,8 @@ export function EngineeringQuotePrint({
 }: Props) {
   const t = useTranslations("engQuotePrint");
   const locale = useLocale();
+  const currency = useCurrency();
+  const fmt = (n: number) => formatMoney(n, currency);
   const b = breakdown;
   const title = quoteType === "floor" ? t("titleFloor") : t("titleCeiling");
   const validUntil = computeValidUntil(input.validityDays);
@@ -42,9 +45,9 @@ export function EngineeringQuotePrint({
     <div className="mx-auto max-w-[210mm] bg-white p-8 text-zinc-800">
       <BrandedHeader />
       <h1 className="my-3 text-center text-lg font-bold">{title}</h1>
-      {locale === "en" && (
+      {locale === "en" && currency === "USD" && (
         <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-[11px] text-amber-900">
-          All amounts quoted in New Taiwan Dollars (TWD). Conversion at your bank's current rate (≈31 TWD per USD).
+          USD amounts converted from TWD at the rate baked into this build (≈32 TWD per USD). Actual charge in TWD may vary slightly with your bank&apos;s rate.
         </div>
       )}
 
@@ -88,7 +91,7 @@ export function EngineeringQuotePrint({
                 {ln.unpriced ? (
                   <span className="text-zinc-400">{t("unpriced")}</span>
                 ) : (
-                  formatTWD(ln.amount)
+                  fmt(ln.amount)
                 )}
               </td>
             </tr>
@@ -99,21 +102,21 @@ export function EngineeringQuotePrint({
       <div className="mt-3 ml-auto w-64 text-xs">
         {viewMode === "internal" && (
           <>
-            <Row label={t("rowCostSubtotal")} value={formatTWD(b.costSubtotal)} />
-            <Row label={t("rowMargin")} value={formatTWD(b.margin)} />
+            <Row label={t("rowCostSubtotal")} value={fmt(b.costSubtotal)} />
+            <Row label={t("rowMargin")} value={fmt(b.margin)} />
           </>
         )}
-        <Row label={t("rowSubtotalExclVat")} value={formatTWD(b.subtotalExclVat)} />
+        <Row label={t("rowSubtotalExclVat")} value={fmt(b.subtotalExclVat)} />
         {b.discountAmount > 0 && (
-          <Row label={t("rowDiscount")} value={`−${formatTWD(b.discountAmount)}`} />
+          <Row label={t("rowDiscount")} value={`−${fmt(b.discountAmount)}`} />
         )}
         <Row
           label={t("rowVatTpl", { pct: Math.round(input.vatRate * 100) })}
-          value={formatTWD(b.vat)}
+          value={fmt(b.vat)}
         />
-        <Row label={t("rowTotal")} value={formatTWD(b.total)} bold />
-        <Row label={t("rowDeposit")} value={formatTWD(b.depositAmount)} />
-        <Row label={t("rowBalance")} value={formatTWD(b.balanceAmount)} />
+        <Row label={t("rowTotal")} value={fmt(b.total)} bold />
+        <Row label={t("rowDeposit")} value={fmt(b.depositAmount)} />
+        <Row label={t("rowBalance")} value={fmt(b.balanceAmount)} />
       </div>
 
       {b.hasUnpriced && (

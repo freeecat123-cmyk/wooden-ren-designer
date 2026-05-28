@@ -20,7 +20,8 @@ import {
 import { computeEngineeringQuote } from "@/lib/engineering-quote/calc";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
-import { formatTWD } from "@/lib/pricing/catalog";
+import { formatMoney } from "@/lib/pricing/catalog";
+import { useCurrency } from "@/hooks/useCurrency";
 import type { EngLineItem } from "@/lib/engineering-quote/types";
 
 const HISTORY_KEY = "wooden-ren-designer:raisedFloorQuoteHistory:v1";
@@ -89,6 +90,8 @@ export function RaisedFloorQuoteClient({
 }: Props) {
   const t = useTranslations("raisedFloorQuote");
   const locale = useLocale();
+  const currency = useCurrency();
+  const fmt = (n: number) => formatMoney(n, currency);
   const router = useRouter();
   const customerFormRef = useRef<HTMLFormElement>(null);
   const [opts, setOpts] = useState<EngQuoteOpts>(ENGINEERING_QUOTE_DEFAULTS);
@@ -273,14 +276,14 @@ export function RaisedFloorQuoteClient({
                       {ln.unpriced ? (
                         <span className="text-zinc-400">{t("unpriced")}</span>
                       ) : (
-                        formatTWD(ln.amount)
+                        fmt(ln.amount)
                       )}
                     </td>
                   </tr>
                 ))}
                 <tr className="border-t border-zinc-400 font-bold">
                   <td className="py-1">{t("totalWithVat")}</td>
-                  <td className="py-1 text-right">{formatTWD(breakdown.total)}</td>
+                  <td className="py-1 text-right">{fmt(breakdown.total)}</td>
                 </tr>
               </tbody>
             </table>
@@ -320,7 +323,7 @@ export function RaisedFloorQuoteClient({
                       {e.customerName || t("noCustomer")}
                     </span>
                     <span className="ml-auto font-mono text-zinc-700">
-                      {formatTWD(e.total)}
+                      {fmt(e.total)}
                     </span>
                     <button
                       type="button"

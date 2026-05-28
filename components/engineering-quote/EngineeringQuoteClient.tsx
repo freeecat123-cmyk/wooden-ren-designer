@@ -9,7 +9,8 @@ import { EngineeringQuoteForm, type EngQuoteOpts } from "./EngineeringQuoteForm"
 import { computeEngineeringQuote } from "@/lib/engineering-quote/calc";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
-import { formatTWD } from "@/lib/pricing/catalog";
+import { formatMoney } from "@/lib/pricing/catalog";
+import { useCurrency } from "@/hooks/useCurrency";
 import type { EngQuoteType } from "@/lib/engineering-quote/types";
 
 interface Props {
@@ -35,6 +36,8 @@ export function EngineeringQuoteClient({
 }: Props) {
   const t = useTranslations("engQuoteClient");
   const locale = useLocale();
+  const currency = useCurrency();
+  const fmt = (n: number) => formatMoney(n, currency);
   const router = useRouter();
   const customerFormRef = useRef<HTMLFormElement>(null);
   const [opts, setOpts] = useState<EngQuoteOpts>(ENGINEERING_QUOTE_DEFAULTS);
@@ -143,14 +146,14 @@ export function EngineeringQuoteClient({
                       {ln.unpriced ? (
                         <span className="text-zinc-400">{t("unpriced")}</span>
                       ) : (
-                        formatTWD(ln.amount)
+                        fmt(ln.amount)
                       )}
                     </td>
                   </tr>
                 ))}
                 <tr className="border-t border-zinc-400 font-bold">
                   <td className="py-1">{t("totalWithVat")}</td>
-                  <td className="py-1 text-right">{formatTWD(breakdown.total)}</td>
+                  <td className="py-1 text-right">{fmt(breakdown.total)}</td>
                 </tr>
               </tbody>
             </table>

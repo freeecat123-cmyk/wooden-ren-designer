@@ -12,7 +12,8 @@ import {
   generateQuoteNumber,
   addWorkdays,
 } from "@/lib/pricing/quote";
-import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
+import { MATERIAL_PRICE_PER_BDFT, formatMoney } from "@/lib/pricing/catalog";
+import { getCurrencyFromCookies } from "@/lib/units/server-currency";
 import { PrintButton } from "@/components/print/PrintButton";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import {
@@ -117,6 +118,8 @@ export default async function QuotePrintPage({
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const unit = await getUnitFromCookies(locale);
+  const currency = await getCurrencyFromCookies();
+  const fmt = (n: number) => formatMoney(n, currency);
   const quote = calculateQuote(design, laborOpts, locale, unit);
   const finalDeliveryWorkdays =
     laborOpts.deliveryDaysOverride > 0
@@ -189,9 +192,9 @@ export default async function QuotePrintPage({
         data-print-page
         className="px-10 py-6 flex flex-col text-[12px] leading-relaxed"
       >
-        {locale === "en" && (
+        {currency === "USD" && (
           <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-[11px] text-amber-900">
-            All amounts quoted in New Taiwan Dollars (TWD). Conversion at your bank&apos;s current rate (≈31 TWD per USD).
+            USD amounts converted from TWD at the rate baked into this build (≈32 TWD per USD). Actual charge in TWD may vary slightly with your bank&apos;s rate.
           </div>
         )}
         {/* Header — branding + quote meta */}
@@ -287,13 +290,13 @@ export default async function QuotePrintPage({
                 <td className="text-right p-2 font-mono align-top">
                   {quote.quantity > 1 ? (
                     <>
-                      <div>{tp("amountPerUnit", { price: formatTWD(quote.unitPriceExclVat) })}</div>
+                      <div>{tp("amountPerUnit", { price: fmt(quote.unitPriceExclVat) })}</div>
                       <div className="font-semibold">
-                        {tp("amountEquals", { price: formatTWD(quote.subtotalBeforeDiscount) })}
+                        {tp("amountEquals", { price: fmt(quote.subtotalBeforeDiscount) })}
                       </div>
                     </>
                   ) : (
-                    formatTWD(quote.unitPriceExclVat)
+                    fmt(quote.unitPriceExclVat)
                   )}
                 </td>
               </tr>
@@ -316,7 +319,7 @@ export default async function QuotePrintPage({
                     </td>
                     <td className="p-1.5 text-zinc-500">{line.detail}</td>
                     <td className="p-1.5 pr-3 text-right font-mono w-28">
-                      {formatTWD(line.amount)}
+                      {fmt(line.amount)}
                     </td>
                   </tr>
                 ))}
@@ -334,7 +337,7 @@ export default async function QuotePrintPage({
                   <tr className="border-t border-zinc-300">
                     <td className="py-1 text-zinc-600">{tp("rowCostPerUnit")}</td>
                     <td className="py-1 text-right font-mono">
-                      {formatTWD(quote.costSubtotal)}
+                      {fmt(quote.costSubtotal)}
                     </td>
                   </tr>
                   <tr>
@@ -342,7 +345,7 @@ export default async function QuotePrintPage({
                       {tp("rowMargin", { pct: Math.round(laborOpts.marginRate * 100) })}
                     </td>
                     <td className="py-1 text-right font-mono">
-                      + {formatTWD(quote.margin)}
+                      + {fmt(quote.margin)}
                     </td>
                   </tr>
                   {quote.designerMarkupRate > 0 && (
@@ -351,7 +354,7 @@ export default async function QuotePrintPage({
                         {tp("rowDesignerMarkup", { pct: Math.round(quote.designerMarkupRate * 100) })}
                       </td>
                       <td className="py-1 text-right font-mono text-amber-800">
-                        + {formatTWD(quote.designerMarkupAmount)}
+                        + {fmt(quote.designerMarkupAmount)}
                       </td>
                     </tr>
                   )}
@@ -363,7 +366,7 @@ export default async function QuotePrintPage({
                     {tp("rowUnitQuote")}
                   </td>
                   <td className="py-1 text-right font-mono">
-                    {formatTWD(quote.unitPriceExclVat)}
+                    {fmt(quote.unitPriceExclVat)}
                   </td>
                 </tr>
               )}
@@ -373,7 +376,7 @@ export default async function QuotePrintPage({
                     {tp("rowQtyMultiplier", { n: quote.quantity })}
                   </td>
                   <td className="py-1 text-right font-mono">
-                    {formatTWD(quote.subtotalBeforeDiscount)}
+                    {fmt(quote.subtotalBeforeDiscount)}
                   </td>
                 </tr>
               )}
@@ -383,14 +386,14 @@ export default async function QuotePrintPage({
                     {tp("rowDiscount", { pct: (laborOpts.discountRate * 100).toFixed(0) })}
                   </td>
                   <td className="py-1 text-right font-mono text-red-700">
-                    − {formatTWD(quote.discountAmount)}
+                    − {fmt(quote.discountAmount)}
                   </td>
                 </tr>
               )}
               <tr className="border-t border-zinc-400 font-semibold">
                 <td className="py-2">{tp("rowSubtotalExclVat")}</td>
                 <td className="py-2 text-right font-mono">
-                  {formatTWD(quote.subtotalExclVat)}
+                  {fmt(quote.subtotalExclVat)}
                 </td>
               </tr>
               {laborOpts.vatRate > 0 && (
@@ -400,13 +403,13 @@ export default async function QuotePrintPage({
                       {tp("rowVat", { pct: (laborOpts.vatRate * 100).toFixed(0) })}
                     </td>
                     <td className="py-1 text-right font-mono">
-                      + {formatTWD(quote.vat)}
+                      + {fmt(quote.vat)}
                     </td>
                   </tr>
                   <tr className="border-t-2 border-zinc-900 font-bold bg-zinc-900 text-white">
                     <td className="py-2 pl-2">{tp("rowGrandTotal")}</td>
                     <td className="py-2 pr-2 text-right font-mono text-base">
-                      {formatTWD(quote.total)}
+                      {fmt(quote.total)}
                     </td>
                   </tr>
                 </>
@@ -418,7 +421,7 @@ export default async function QuotePrintPage({
                       {tp("rowDeposit", { pct: (laborOpts.depositRate * 100).toFixed(0) })}
                     </td>
                     <td className="pt-3 py-1 text-right font-mono text-emerald-700">
-                      {formatTWD(quote.depositAmount)}
+                      {fmt(quote.depositAmount)}
                     </td>
                   </tr>
                   <tr>
@@ -426,7 +429,7 @@ export default async function QuotePrintPage({
                       {tp("rowBalance", { pct: ((1 - laborOpts.depositRate) * 100).toFixed(0) })}
                     </td>
                     <td className="py-1 text-right font-mono">
-                      {formatTWD(quote.balanceAmount)}
+                      {fmt(quote.balanceAmount)}
                     </td>
                   </tr>
                 </>

@@ -13,7 +13,8 @@ import {
   generateQuoteNumber,
   addWorkdays,
 } from "@/lib/pricing/quote";
-import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
+import { MATERIAL_PRICE_PER_BDFT, formatMoney } from "@/lib/pricing/catalog";
+import { getCurrencyFromCookies } from "@/lib/units/server-currency";
 import { estimateWeight } from "@/lib/design/shipping";
 import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
@@ -178,6 +179,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const unit = await getUnitFromCookies(locale);
+  const currency = await getCurrencyFromCookies();
+  const fmt = (n: number) => formatMoney(n, currency);
   const quote = calculateQuote(design, laborOpts, locale, unit);
   const finalDeliveryWorkdays =
     laborOpts.deliveryDaysOverride > 0
@@ -303,11 +306,11 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 {laborOpts.vatRate > 0 ? t("totalWithVat") : t("totalNoVat")}
               </div>
               <div className="mt-0.5 text-3xl font-mono font-bold">
-                {formatTWD(quote.total)}
+                {fmt(quote.total)}
               </div>
               {quote.quantity > 1 && (
                 <div className="text-[10px] opacity-70 mt-0.5">
-                  {t("unitPriceLine", { qty: quote.quantity, price: formatTWD(quote.unitPriceExclVat) })}
+                  {t("unitPriceLine", { qty: quote.quantity, price: fmt(quote.unitPriceExclVat) })}
                 </div>
               )}
             </div>
@@ -317,7 +320,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                   {t("deposit", { pct: (laborOpts.depositRate * 100).toFixed(0) })}
                 </div>
                 <div className="mt-0.5 text-base font-mono font-semibold text-emerald-900">
-                  {formatTWD(quote.depositAmount)}
+                  {fmt(quote.depositAmount)}
                 </div>
               </div>
               <div className="p-3">
@@ -325,7 +328,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                   {t("balance", { pct: ((1 - laborOpts.depositRate) * 100).toFixed(0) })}
                 </div>
                 <div className="mt-0.5 text-base font-mono font-semibold text-zinc-900">
-                  {formatTWD(quote.balanceAmount)}
+                  {fmt(quote.balanceAmount)}
                 </div>
               </div>
             </div>
@@ -359,7 +362,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
               <li>{t("lowHoursWarn", { hours: quote.laborHours.toFixed(1) })}</li>
             )}
             {laborOpts.overrideUnitPrice > 0 && quote.margin < 0 && (
-              <li>{t("negMarginWarn", { price: formatTWD(laborOpts.overrideUnitPrice), cost: formatTWD(quote.costSubtotal), loss: formatTWD(-quote.margin) })}</li>
+              <li>{t("negMarginWarn", { price: fmt(laborOpts.overrideUnitPrice), cost: fmt(quote.costSubtotal), loss: fmt(-quote.margin) })}</li>
             )}
           </ul>
         </div>
@@ -391,7 +394,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 <td className="p-3 font-medium">{line.label}</td>
                 <td className="p-3 text-zinc-600 text-xs">{line.detail}</td>
                 <td className="p-3 text-right font-mono">
-                  {formatTWD(line.amount)}
+                  {fmt(line.amount)}
                 </td>
               </tr>
             ))}
@@ -402,7 +405,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 {t("subtotalPerUnit")}
               </td>
               <td className="p-3 text-right font-mono">
-                {formatTWD(quote.costSubtotal)}
+                {fmt(quote.costSubtotal)}
               </td>
             </tr>
             <tr>
@@ -424,7 +427,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 }`}
               >
                 {quote.margin < 0 ? "" : "+ "}
-                {formatTWD(quote.margin)}
+                {fmt(quote.margin)}
               </td>
             </tr>
             {quote.designerMarkupRate > 0 && (
@@ -432,11 +435,11 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 <td className="p-3 text-amber-900" colSpan={2}>
                   {t("designerMarkup", { pct: Math.round(quote.designerMarkupRate * 100) })}
                   <span className="ml-1 text-[10px] text-amber-700">
-                    {t("designerMarkupHint", { price: formatTWD(quote.makerUnitPriceExclVat) })}
+                    {t("designerMarkupHint", { price: fmt(quote.makerUnitPriceExclVat) })}
                   </span>
                 </td>
                 <td className="p-3 text-right font-mono text-amber-900">
-                  + {formatTWD(quote.designerMarkupAmount)}
+                  + {fmt(quote.designerMarkupAmount)}
                 </td>
               </tr>
             )}
@@ -445,7 +448,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 {t("unitPriceExclVat")}
               </td>
               <td className="p-3 text-right font-mono font-semibold">
-                {formatTWD(quote.unitPriceExclVat)}
+                {fmt(quote.unitPriceExclVat)}
               </td>
             </tr>
             {quote.quantity > 1 && (
@@ -454,7 +457,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                   {t("qtyMultiplier", { n: quote.quantity })}
                 </td>
                 <td className="p-3 text-right font-mono">
-                  {formatTWD(quote.subtotalBeforeDiscount)}
+                  {fmt(quote.subtotalBeforeDiscount)}
                 </td>
               </tr>
             )}
@@ -464,7 +467,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                   {t("discount", { pct: (laborOpts.discountRate * 100).toFixed(0) })}
                 </td>
                 <td className="p-3 text-right font-mono text-red-600">
-                  − {formatTWD(quote.discountAmount)}
+                  − {fmt(quote.discountAmount)}
                 </td>
               </tr>
             )}
@@ -474,7 +477,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                   {t("subtotalExclVat")}
                 </td>
                 <td className="p-3 text-right font-mono font-semibold text-lg">
-                  {formatTWD(quote.subtotalExclVat)}
+                  {fmt(quote.subtotalExclVat)}
                 </td>
               </tr>
             )}
@@ -485,7 +488,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                     {t("vat", { pct: (laborOpts.vatRate * 100).toFixed(0) })}
                   </td>
                   <td className="p-3 text-right font-mono">
-                    + {formatTWD(quote.vat)}
+                    + {fmt(quote.vat)}
                   </td>
                 </tr>
                 <tr className="border-t-2 border-zinc-900 bg-zinc-900 text-white">
@@ -493,7 +496,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                     {t("totalWithVat")}
                   </td>
                   <td className="p-3 text-right font-mono font-bold text-lg">
-                    {formatTWD(quote.total)}
+                    {fmt(quote.total)}
                   </td>
                 </tr>
               </>
