@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
+import { useUnit } from "@/hooks/useUnit";
+import { formatInchFraction } from "@/lib/units/format";
 
 interface PresetPoint {
   value: number;
@@ -57,6 +59,8 @@ export function RangeInput({
   partIds,
 }: RangeInputProps) {
   const tRange = useTranslations("mobile.range");
+  const unitPref = useUnit();
+  const showInchHelper = unit === "mm" && unitPref === "inch";
   // Part anchor hover/focus → 3D 對應件 emissive 高亮
   const { setHoveredPartIds } = useHoveredParts();
   const hasAnchor = !!(partIds && partIds.length > 0);
@@ -230,7 +234,9 @@ export function RangeInput({
               className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
             >
               {value}
-              <span className="text-zinc-500 ml-0.5">{unit}</span>
+              <span className="text-zinc-500 ml-0.5">
+                {showInchHelper ? "in" : unit}
+              </span>
             </button>
           )}
           {showRange && (
@@ -268,6 +274,12 @@ export function RangeInput({
 
         {!editing && <input type="hidden" name={name} value={value} />}
       </div>
+
+      {showInchHelper && Number.isFinite(value) && (
+        <div className="mt-0.5 ml-[4.25rem] text-[10px] text-zinc-500 tabular-nums leading-none">
+          ≈ {formatInchFraction(value)}
+        </div>
+      )}
 
       {dynamicMaxHint && (
         <div className="mt-1 ml-[4.25rem] text-[11px] text-zinc-500">

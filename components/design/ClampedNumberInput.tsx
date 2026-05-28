@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
+import { useUnit } from "@/hooks/useUnit";
+import { formatInchFraction } from "@/lib/units/format";
 
 interface PresetPoint {
   value: number;
@@ -28,6 +30,12 @@ interface Props {
   partIds?: string[];
   /** 預留以求與 RangeInput 對齊（此元件無 slider，無作用） */
   ticks?: number[];
+  /**
+   * 此輸入是否代表 mm 長度。若是，且使用者單位偏好為 inch，
+   * 會在輸入框右側顯示「≈ 1-1/2"」的英寸分數提示。
+   * 預設 false（避免誤套到度數/數量等非長度欄位）。
+   */
+  isLengthMm?: boolean;
 }
 
 /**
@@ -47,9 +55,12 @@ export function ClampedNumberInput({
   dynamicMaxHint,
   partIds,
   ticks,
+  isLengthMm,
 }: Props) {
   void ticks;
   const t = useTranslations("numberInput");
+  const unit = useUnit();
+  const showInchHelper = !!isLengthMm && unit === "inch";
 
   // Part anchor hover/focus → 3D 對應件 emissive 高亮
   const { setHoveredPartIds } = useHoveredParts();
@@ -160,9 +171,16 @@ export function ClampedNumberInput({
     dynamicMaxHint ||
     label;
 
+  const inchHelperText = showInchHelper
+    ? (() => {
+        const n = Number(value);
+        return Number.isFinite(n) ? `≈ ${formatInchFraction(n)}` : null;
+      })()
+    : null;
+
   // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變（hover 接線除外）
   if (!hasExtras) {
-    return (
+    const bareInput = (
       <input
         type="number"
         name={name}
@@ -183,6 +201,15 @@ export function ClampedNumberInput({
         step={step}
         className={className}
       />
+    );
+    if (!inchHelperText) return bareInput;
+    return (
+      <span className="flex flex-col w-full min-w-0">
+        {bareInput}
+        <span className="mt-0.5 text-[10px] text-zinc-500 tabular-nums leading-none">
+          {inchHelperText}
+        </span>
+      </span>
     );
   }
 
@@ -275,6 +302,12 @@ export function ClampedNumberInput({
           </span>
         )}
       </span>
+
+      {inchHelperText && (
+        <span className="mt-0.5 text-[10px] text-zinc-500 tabular-nums leading-none">
+          {inchHelperText}
+        </span>
+      )}
 
       {dynamicMaxHint && (
         <span className="mt-1 text-[11px] text-zinc-500">

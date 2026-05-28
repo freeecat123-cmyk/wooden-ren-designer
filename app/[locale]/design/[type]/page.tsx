@@ -35,6 +35,7 @@ import { translateSteps } from "@/lib/steps/translations";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
+import { UnitSuffix } from "@/components/design/UnitSuffix";
 import { HeightPresetChips } from "@/components/design/HeightPresetChips";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 import { ErgoHints } from "@/components/ErgoHints";
@@ -1328,7 +1329,11 @@ async function OptionField({
       <label className="flex flex-col text-xs" title={help}>
         <span className="text-zinc-700 mb-0.5 truncate">
           {label}
-          {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
+          {spec.unit === "mm" ? (
+            <UnitSuffix mmLabel="·mm" inchLabel="·in" className="text-zinc-400 ml-1" />
+          ) : (
+            spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>
+          )}
         </span>
         {isLockedZone || isColumnWidth ? (
           <ClampedNumberInput
@@ -1340,6 +1345,7 @@ async function OptionField({
             className="border border-zinc-300 rounded-md px-1.5 py-1 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
             showPlusMinus
+            isLengthMm={spec.unit === "mm"}
             dynamicMaxHint={
               effectiveMax !== spec.max
                 ? (isLockedZone
@@ -1357,6 +1363,7 @@ async function OptionField({
             step={spec.step ?? 1}
             className="border border-zinc-300 rounded-md px-1.5 py-1 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
+            isLengthMm={spec.unit === "mm"}
           />
         )}
         {help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{help}</span>}
@@ -1490,7 +1497,7 @@ function NumberInput({
   return (
     <label className="flex flex-col text-xs">
       <span className="text-zinc-600 mb-1 truncate" title={max && upperLimitTpl ? upperLimitTpl : undefined}>
-        {label}<span className="text-zinc-400 font-normal ml-0.5">mm</span>
+        {label}<UnitSuffix />
         {max && <span className="text-zinc-400 font-normal ml-1">≤{max}</span>}
       </span>
       <ClampedNumberInput
@@ -1503,6 +1510,7 @@ function NumberInput({
         partIds={partIds}
         presetPoints={presetPoints}
         showPlusMinus
+        isLengthMm
       />
     </label>
   );
