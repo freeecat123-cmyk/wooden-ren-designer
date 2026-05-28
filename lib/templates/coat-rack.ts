@@ -108,8 +108,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     // 背板（沿世界 X 跨距，世界 Z 為厚度方向）
     const backRail: Part = {
       id: "back-rail",
-      nameZh: `Shaker peg 背板 ${railWidthMm}mm`,
-      nameEn: `Shaker peg backboard ${railWidthMm}mm`,
+      nameZh: `Shaker peg 背板`,
+      nameEn: `Shaker peg backboard`,
       material,
       grainDirection: "length",
       visible: { length: railWidthMm, width: railHeightMm, thickness: railThicknessMm },
@@ -126,8 +126,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       // 用 Ry(-π/2) 把 X 軸轉到 +Z。shape: round 是純圓柱，沿 length 方向
       pegs.push({
         id: `peg-${i + 1}`,
-        nameZh: `Shaker peg ${i + 1}（⌀${pegHeadDiameter}mm × ${pegLengthMm}mm 圓料）`,
-        nameEn: `Shaker peg ${i + 1} (⌀${pegHeadDiameter}mm × ${pegLengthMm}mm dowel)`,
+        nameZh: `Shaker peg ${i + 1}`,
+        nameEn: `Shaker peg ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: pegLengthMm, width: pegHeadDiameter, thickness: pegHeadDiameter },
@@ -141,8 +141,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     // French cleat 上半條（背板背面 45° 斜切）
     const cleat: Part = {
       id: "french-cleat",
-      nameZh: `French cleat 吊條（45° 斜切，${railWidthMm}mm）`,
-      nameEn: `French cleat hanger (45° miter, ${railWidthMm}mm)`,
+      nameZh: `French cleat 吊條（45° 斜切）`,
+      nameEn: `French cleat hanger (45° miter)`,
       material,
       grainDirection: "length",
       visible: { length: railWidthMm, width: railHeightMm * 0.6, thickness: cleatThicknessMm },

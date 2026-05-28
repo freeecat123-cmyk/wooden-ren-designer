@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
+import { formatMm } from "@/lib/units/format";
 import {
   workbenchByHeight,
   diningSeatByHeight,
@@ -30,6 +32,7 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
   const t = useTranslations("heightToSize");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const unit = useUnit();
   const mapping = CATEGORY_MAP[category];
   const [open, setOpen] = useState(false);
   const [height, setHeight] = useState<number>(DEFAULT_USER_HEIGHT_CM.default);
@@ -45,7 +48,7 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
   };
 
   const previewLines = mapping
-    .map((m) => `${m.kind === "seat" ? t("lblSeat") : t("lblTable")} ${m.calc(height)}mm`)
+    .map((m) => `${m.kind === "seat" ? t("lblSeat") : t("lblTable")} ${formatMm(m.calc(height), unit)}`)
     .join(" / ");
 
   return (

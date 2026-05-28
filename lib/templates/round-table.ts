@@ -881,8 +881,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const dia = Math.min(lazySusanDiameter, diameter - 200);
     lazySusanParts.push({
       id: "lazy-susan",
-      nameZh: `旋轉盤 (${dia}mm)`,
-      nameEn: `Lazy susan (${dia}mm)`,
+      nameZh: `旋轉盤`,
+      nameEn: `Lazy susan`,
       material,
       grainDirection: "length",
       visible: { length: dia, width: dia, thickness: 22 },

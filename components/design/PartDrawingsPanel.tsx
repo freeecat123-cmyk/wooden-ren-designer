@@ -22,17 +22,12 @@ import {
   type PartView,
   type ZoomLevel,
 } from "@/lib/render/part-drawing/drawing";
+import { useUnit } from "@/hooks/useUnit";
+import { formatLengthBare } from "@/lib/units/format";
 
 interface Props {
   design: FurnitureDesign;
 }
-
-// 顯示用：mm 最多保留 1 位小數（feedback_ui_number_precision）。
-// 內部計算保持高精度，只在 render layer round。
-const fmt = (n: number): string => {
-  const rounded = Math.round(n * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-};
 
 // 圓料家族：part.shape.kind 屬於圓族時，dim 用「Ø{直徑}×{長度}」不寫 L×W×T。
 // 規則對齊 `889a38c`（圓料 tenon ellipse）與 annotation.tsx 的 isRoundPart。
@@ -49,7 +44,7 @@ function isRoundFamilyPart(part: Part): boolean {
 
 // 圓料 dim：visible.length = 長軸長；直徑取 width / thickness 較大者
 // （防 thickness=length 的橫躺圓料 edge case）。
-function roundPartDim(part: Part): string {
+function roundPartDim(part: Part, fmt: (n: number) => string): string {
   const len = part.visible.length;
   const diameter = Math.max(part.visible.width, part.visible.thickness);
   return `Ø${fmt(diameter)}×${fmt(len)}`;
@@ -60,6 +55,10 @@ const ZOOM_LEVELS_LOCAL = [1, 2, 3, 5, 8] as const;
 export function PartDrawingsPanel({ design }: Props) {
   const t = useTranslations("partDrawings");
   const locale = useLocale();
+  const unit = useUnit();
+  // 顯示用：依使用者單位偏好（mm / inch）格式化；feedback_ui_number_precision 1 位小數
+  // 內部計算保持高精度，只在 render layer round。
+  const fmt = (n: number): string => formatLengthBare(n, unit);
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // 進入單視圖放大模式：未選 = 顯示 L 型 A4 三視圖（CNS 第三角法）
@@ -104,7 +103,7 @@ export function PartDrawingsPanel({ design }: Props) {
               <div className="text-[10px] text-zinc-500 mt-0.5 tabular-nums">
                 P-{String(idx + 1).padStart(2, "0")} ·{" "}
                 {isRoundFamilyPart(g.representative)
-                  ? roundPartDim(g.representative)
+                  ? roundPartDim(g.representative, fmt)
                   : `${fmt(g.representative.visible.length)}×${fmt(
                       g.representative.visible.width,
                     )}×${fmt(g.representative.visible.thickness)}`}

@@ -6,7 +6,7 @@ import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
 import { JOINERY_LABEL, JOINERY_LABEL_EN } from "@/lib/joinery/details";
 import { partName } from "@/lib/templates/part-names";
-import { formatLengthBare, formatInchFraction } from "@/lib/units/format";
+import { formatLengthBare, formatInchFraction, formatMm } from "@/lib/units/format";
 import {
   MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
@@ -4083,7 +4083,7 @@ export function MaterialList({
     const billable = effectiveBillableMaterial(part);
     const matName = isEn ? (MATERIALS[part.material].nameEn ?? MATERIALS[part.material].nameZh) : MATERIALS[part.material].nameZh;
     const materialLabel = isGlass
-      ? (isEn ? `${cut.thickness} mm tempered glass` : `${cut.thickness}mm 強化玻璃`)
+      ? (isEn ? `${formatMm(cut.thickness, effectiveUnit)} tempered glass` : `${formatMm(cut.thickness, effectiveUnit)} 強化玻璃`)
       : isBrass
         ? (isEn ? "Antiqued-brass hardware (purchased)" : "仿古銅五金（外購）")
         : billable === "plywood" || billable === "mdf"
@@ -4106,7 +4106,7 @@ export function MaterialList({
           ? part.tenons
               .map(
                 (t) =>
-                  `${t.position} ${t.length}mm ${(isEn ? JOINERY_LABEL_EN : JOINERY_LABEL)[t.type] ?? t.type}`,
+                  `${t.position} ${formatMm(t.length, effectiveUnit)} ${(isEn ? JOINERY_LABEL_EN : JOINERY_LABEL)[t.type] ?? t.type}`,
               )
               .join(isEn ? ", " : "、")
           : "—";

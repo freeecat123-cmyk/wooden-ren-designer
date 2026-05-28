@@ -2,6 +2,7 @@ import type { BillableMaterial, FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import { taipeiYMD } from "@/lib/utils/date-tw";
+import { formatMm } from "@/lib/units/format";
 
 /**
  * 倒角 / 圓角加工工時。每條外露邊跑修邊機（V 角 / 圓刀）+ 手工砂磨。
@@ -208,10 +209,10 @@ const QUOTE_COPY = {
     primarySuffix: "（主材）",
     panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
       `${bdft} 板才（含 ${waste}% 切料損耗）× NT$${unitPrice}/板才`,
-    sheetMaterial: (label: string, thickness: number) =>
-      `材料｜${label}（板材，${thickness}mm）`,
-    sheetDetail: (sheets: number, thickness: number, areaM2: string, waste: number, unitPrice: number) =>
-      `${sheets} 張 ${thickness}mm × 2440×1220mm（實用 ${areaM2} m² + ${waste}% 切料損耗 → ceil 成整張）× NT$${unitPrice}/板才`,
+    sheetMaterial: (label: string, thickness: string) =>
+      `材料｜${label}（板材，${thickness}）`,
+    sheetDetail: (sheets: number, thickness: string, sheetDims: string, areaM2: string, waste: number, unitPrice: number) =>
+      `${sheets} 張 ${thickness} × ${sheetDims}（實用 ${areaM2} m² + ${waste}% 切料損耗 → ceil 成整張）× NT$${unitPrice}/板才`,
     labor: "加工工資",
     laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
       `${hours} 小時（手動覆寫;自動估 ${autoHours}h）× NT$${rate}/hr`,
@@ -240,10 +241,10 @@ const QUOTE_COPY = {
     primarySuffix: " (primary)",
     panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
       `${bdft} bd-ft (incl. ${waste}% cut waste) × NT$${unitPrice}/bd-ft`,
-    sheetMaterial: (label: string, thickness: number) =>
-      `Material · ${label} (sheet, ${thickness}mm)`,
-    sheetDetail: (sheets: number, thickness: number, areaM2: string, waste: number, unitPrice: number) =>
-      `${sheets} sheets ${thickness}mm × 2440×1220mm (used ${areaM2} m² + ${waste}% waste → ceil to full sheets) × NT$${unitPrice}/bd-ft`,
+    sheetMaterial: (label: string, thickness: string) =>
+      `Material · ${label} (sheet, ${thickness})`,
+    sheetDetail: (sheets: number, thickness: string, sheetDims: string, areaM2: string, waste: number, unitPrice: number) =>
+      `${sheets} sheets ${thickness} × ${sheetDims} (used ${areaM2} m² + ${waste}% waste → ceil to full sheets) × NT$${unitPrice}/bd-ft`,
     labor: "Labor",
     laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
       `${hours} hr (manual override; auto-est ${autoHours}h) × NT$${rate}/hr`,
@@ -273,6 +274,7 @@ export function calculateQuote(
   design: FurnitureDesign,
   opts: LaborDefaults,
   locale: string = "zh-TW",
+  unit: "mm" | "inch" = "mm",
 ): QuoteBreakdown {
   const C = locale === "en" ? QUOTE_COPY.en : QUOTE_COPY.zhTW;
   // 1. 按計價材料分組加總材積
@@ -364,11 +366,14 @@ export function calculateQuote(
       : (opts.mdfPricePerBdft ?? 0);
     const amount = bdft * unitPrice;
 
+    const thicknessStr = formatMm(thickness, unit);
+    const sheetDimsStr = `${formatMm(2440, unit)}×${formatMm(1220, unit)}`;
     materialLines.push({
-      label: C.sheetMaterial(materialLabel(mat, locale), thickness),
+      label: C.sheetMaterial(materialLabel(mat, locale), thicknessStr),
       detail: C.sheetDetail(
         sheetsNeeded,
-        thickness,
+        thicknessStr,
+        sheetDimsStr,
         (totalAreaMm2 / 1e6).toFixed(2),
         Math.round(wasteRate * 100),
         unitPrice,

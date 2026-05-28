@@ -230,38 +230,38 @@ export const SPEC_HELP_EN: Record<string, string> = {
   withLowerStretcher: "Adds a stretcher ring at the lower 1/4 of leg height — significantly stiffer; classic four-leg stool detail.",
   lowerStretcherHeight: "0 = auto (22% of leg height).",
   lowerStretcherStaggerMm: "How much the left/right lower stretchers ride above the front/back pair. 0 = even-height (auto half-lap to avoid clash).",
-  apronDropFromTop: "Distance from apron's top face down to the seat's bottom edge. Small stools should leave 10–15 mm so it doesn't look top-heavy.",
+  apronDropFromTop: "Distance from apron's top face down to the seat's bottom edge. Small stools should leave a slim gap (~3/8–5/8 in / 10–15 mm) so it doesn't look top-heavy.",
   apronStaggerMm: "How much the front/back aprons drop relative to the left/right pair. 0 = even-height (auto half-lap to avoid clash).",
-  lockTotalHeight: "Locked: total height is fixed; remaining height after each tier becomes the leg, min 30 mm (warning shown if smaller). Unlocked: legs are set directly, lower zone fills remainder.",
+  lockTotalHeight: "Locked: total height is fixed; remaining height after each tier becomes the leg, with a minimum threshold (~1-1/4 in / 30 mm; warning shown if smaller). Unlocked: legs are set directly, lower zone fills remainder.",
   seatBendMm: "Whole seat bends like a laminated panel — center dips for comfort; corner mortise positions are unaffected. > 0 overrides saddle / edge profile.",
 
   // Edge profile hints (shared via _helpers.ts)
   legEdge:
-    "Default 1 mm light ease (anti-splinter); 3–5 mm subtle chamfer; 8 mm+ pronounced octagonal cross-section (Ming/Qing style). Stretchers set separately.",
+    "Default light ease (anti-splinter); subtle chamfer for a refined look; pronounced octagonal cross-section (Ming/Qing style). Stretchers set separately.",
   stretcherEdge:
-    "Default 1 mm light ease (anti-splinter); 3–5 mm subtle chamfer; 8 mm+ pronounced octagonal cross-section.",
+    "Default light ease (anti-splinter); subtle chamfer to pronounced octagonal cross-section.",
   apronEdge:
-    "Default 1 mm light ease (anti-splinter); 3–5 mm subtle chamfer. Tapered / splayed legs turn the apron into a trapezoid and the chamfer is ignored.",
+    "Default light ease (anti-splinter); subtle chamfer for a refined look. Tapered / splayed legs turn the apron into a trapezoid and the chamfer is ignored.",
   seatEdge:
-    "0 = square; 3–5 mm gentle ease (won't press the thigh); 8–15 mm pronounced chamfer / egg-shaped rounded edge. Pick the style (45° / round) below.",
+    "0 = square; gentle ease (won't press the thigh) to a pronounced chamfer / egg-shaped rounded edge. Pick the style (45° / round) below.",
   seatEdgeStyle:
-    "Pairs with “Edge size”. At 0 mm neither setting affects the geometry.",
+    "Pairs with “Edge size”. At 0 neither setting affects the geometry.",
   seatEdgeBottom:
     "Chamfer on the seat/top *underside* edge. Only effective once the legs are inset — the value is auto-clamped to the leg inset so it never cuts into the apron. Style is shared with the top edge.",
   apronEdgeStyle:
-    "Pairs with “Apron edge size”. At 0 mm neither setting affects the geometry.",
+    "Pairs with “Apron edge size”. At 0 neither setting affects the geometry.",
   legEdgeStyle: "Style for the leg edge chamfer (V-bit 45° vs. round-over bit).",
   seatProfile:
     "Whether to scoop the seat. A scooped seat is more comfortable but needs a hand plane or carving router.",
   topPanelPieces:
-    "Affects the cut-list / material display. Solid tops > 300 mm wide should be glued up from narrower pieces to resist cupping.",
+    "Affects the cut-list / material display. Solid tops wider than ~12 in (300 mm) should be glued up from narrower pieces to resist cupping.",
   backRake:
     "How far the back tilts rearward. 0° = fully vertical; 5° is comfortable, 15° is reclined.",
 
   // === Stool / chair family (apron, stretcher, legs, seat) ===
   apronThickness: "Horizontal thickness of the apron (perpendicular to the seat edge).",
   apronOffset: "How far the apron's top edge is pulled down from the seat.",
-  apronWidth: "Apron height. 50–70 mm suits long benches; 80+ paired with a thin top reads top-heavy.",
+  apronWidth: "Apron height. ~2–2-3/4 in (50–70 mm) suits long benches; taller paired with a thin top reads top-heavy.",
   withApron: "Aprons sit beneath the seat and tie the legs together — adds rigidity.",
   withLowerStretchers: "H-frame configuration — sturdier but uses more material.",
   lowerStretcherFromGround: "Distance from the floor up to the bottom face of the lower stretcher.",
@@ -272,10 +272,10 @@ export const SPEC_HELP_EN: Record<string, string> = {
   legDepthOverride: "0 = use “Leg size”. Non-zero = dimension along the seat's short edge Z.",
 
   // === Seat (additional) ===
-  seatCornerR: "Corner radius of the seat in top view. 0 = sharp corner; 30–50 mm is a common soft corner.",
+  seatCornerR: "Corner radius of the seat in top view. 0 = sharp corner; ~1-1/4–2 in (30–50 mm) is a common soft corner.",
 
   // === Footrest (bar stool) ===
-  footrestHeight: "Footrest floor height. Bar-stool standard ≈ 400–450 mm below the seat (seat 750 → footrest 300–350; seat 800 → footrest 350–400). Counter stools sit lower, ~300 mm below the seat.",
+  footrestHeight: "Footrest floor height. Bar-stool standard: ~16–18 in (400–450 mm) below the seat. Counter stools sit lower, ~12 in (300 mm) below the seat.",
   footrestWidth: "Vertical height (thickness) of the footrest rail.",
   footrestThickness: "Horizontal thickness (depth) of the footrest rail.",
   footrestStaggerMm: "How much the left/right footrest pair rides above the front/back pair (live 3D update, tenons follow). 0 = even-height (auto half-lap to avoid clash).",
@@ -286,17 +286,17 @@ export const SPEC_HELP_EN: Record<string, string> = {
   backPanelCornerR: "Corner radius of the back panel.",
   backPanelBottomArch: "Bottom-edge center offset. Positive = arches up (D-shape / crescent); negative = drops down (skirt). 0 = flat bottom.",
   backPanelTopArch: "Top-edge center offset. Positive = arches up (arched top); negative = dips down (concave top). 0 = flat top.",
-  backPanelFaceBend: "How much the panel's large face (front/back) is dished. 0 = flat; larger = more curve (10–30 mm recommended for a lumbar support).",
+  backPanelFaceBend: "How much the panel's large face (front/back) is dished. 0 = flat; larger = more curve (~3/8–1-1/4 in / 10–30 mm recommended for lumbar support).",
   backPanelInset: "Distance from the seat's rear edge forward to the back of the support cylinder. 0 = cylinder rear flush with seat rear.",
   backPanelEmbed: "How deep the back panel embeds into the support cylinders; a flat is removed from each cylinder to match.",
   backPostDiameter: "Diameter of the two round vertical posts supporting the back panel.",
   backPostFromEdge: "Distance from the post's outer face to the left/right end of the back panel. 0 = post outer face flush with panel end.",
   backRailInsetX: "Distance from the seat's left/right end inward to the back post's outer face. 0 = post outer face flush with seat end.",
   backRailInsetZ: "Distance from the seat's rear edge forward to the back post's rear face. 0 = post rear flush with seat rear.",
-  backRailPostWidth: "Defaults to 25 mm — narrower than the leg, visually more separated (common on rail/slat backs). 0 = match leg width.",
-  backRailPostThickness: "Defaults to 25 mm — narrower than the leg. 0 = match leg thickness.",
+  backRailPostWidth: "Defaults to ~1 in (25 mm) — narrower than the leg, visually more separated (common on rail/slat backs). 0 = match leg width.",
+  backRailPostThickness: "Defaults to ~1 in (25 mm) — narrower than the leg. 0 = match leg thickness.",
   backReclineDeg: "How far the back tilts rearward. The front view still reads vertical; only the side view shows the lean (cylinders and panel tilt together).",
-  topRailHeight: "0 = auto (1/3 of back height, max 50 mm). A filled value takes priority.",
+  topRailHeight: "0 = auto (1/3 of back height, capped at ~2 in / 50 mm). A filled value takes priority.",
 
   // === Misc shared ===
   midHeight: "Only used when total height is locked.",
@@ -304,7 +304,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   // === Toe kick / crown molding (case goods) ===
   withToeKick: "Inset the bottom-front so toes don't hit the case face. Requires leg height = 0 and a leg style other than plinth/side-extended.",
   withCrownMolding: "Adds an outward-projecting molding ring at the top — a classic case-goods detail.",
-  backPanelPlywood: "Checked: back panel counts as plywood (4–6 mm, saves on lumber). Unchecked: back uses the main material (best visual unity).",
+  backPanelPlywood: "Checked: back panel counts as thin plywood (~3/16–1/4 in / 4–6 mm, saves on lumber). Unchecked: back uses the main material (best visual unity).",
 };
 
 /**

@@ -638,8 +638,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...(withLazySusan
         ? [{
             id: "lazy-susan",
-            nameZh: `旋轉盤 (${Math.min(lazySusanDiameter, diameter - 100)}mm)`,
-            nameEn: `Lazy susan (${Math.min(lazySusanDiameter, diameter - 100)}mm)`,
+            nameZh: `旋轉盤`,
+            nameEn: `Lazy susan`,
             material,
             grainDirection: "length" as const,
             visible: { length: Math.min(lazySusanDiameter, diameter - 100), width: Math.min(lazySusanDiameter, diameter - 100), thickness: 18 },

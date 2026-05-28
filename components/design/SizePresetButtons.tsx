@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { getSizePresetsLocalized } from "@/lib/design/size-presets";
-import { formatInchFraction } from "@/lib/units/format";
+import { formatInchFraction, formatDimensions } from "@/lib/units/format";
 import { useUnit } from "@/hooks/useUnit";
 import type { FurnitureCategory } from "@/lib/types";
 
@@ -78,7 +78,7 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
           key={p.label}
           type="button"
           onClick={() => handleClick(p.length, p.width, p.height)}
-          title={`${p.length}×${p.width}×${p.height} mm${p.hint ? " · " + p.hint : ""}`}
+          title={`${formatDimensions(p.length, p.width, p.height, unit)}${p.hint ? " · " + p.hint : ""}`}
           className="px-2.5 py-1 rounded text-[11px] bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 hover:border-amber-300"
         >
           {p.label}

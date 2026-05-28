@@ -28,6 +28,8 @@ import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { QrCode } from "@/components/print/QrCode";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { getUnitFromCookies } from "@/lib/units/server-unit";
+import { formatDimensions } from "@/lib/units/format";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -114,7 +116,8 @@ export default async function QuotePrintPage({
     sp.beginnerMode === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
-  const quote = calculateQuote(design, laborOpts, locale);
+  const unit = await getUnitFromCookies(locale);
+  const quote = calculateQuote(design, laborOpts, locale, unit);
   const finalDeliveryWorkdays =
     laborOpts.deliveryDaysOverride > 0
       ? laborOpts.deliveryDaysOverride
@@ -273,7 +276,7 @@ export default async function QuotePrintPage({
                 </td>
                 <td className="p-2 border-r border-zinc-300 align-top text-[10px]">
                   <div>
-                    {tp("specDimension", { length, width, height })}
+                    {tp("specDimension", { dims: formatDimensions(length, width, height, unit) })}
                   </div>
                   <div>{tp("specMaterial", { name: matName })}</div>
                   <div>{tp("specPartCount", { n: design.parts.length })}</div>

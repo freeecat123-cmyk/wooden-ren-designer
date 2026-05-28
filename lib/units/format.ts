@@ -86,3 +86,22 @@ export function formatLengthBare(mm: number, unit: "mm" | "inch"): string {
   const rounded = Math.round(mm * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
+
+/** 「500 mm」/「19-11/16"」單值含單位輸出. */
+export function formatMm(mm: number, unit: "mm" | "inch"): string {
+  return unit === "inch" ? formatInchFraction(mm) : `${Math.round(mm)} mm`;
+}
+
+/** 「100–200 mm」/「3-15/16"–7-7/8"」範圍含單位. */
+export function formatMmRange(lo: number, hi: number, unit: "mm" | "inch"): string {
+  if (unit === "inch") return `${formatInchFraction(lo)}–${formatInchFraction(hi)}`;
+  return `${Math.round(lo)}–${Math.round(hi)} mm`;
+}
+
+/** 「L × W × H mm」/「L × W × H (inch fractions)」整體尺寸. */
+export function formatDimensions(l: number, w: number, h: number, unit: "mm" | "inch"): string {
+  if (unit === "inch") {
+    return `${formatInchFraction(l)} × ${formatInchFraction(w)} × ${formatInchFraction(h)}`;
+  }
+  return `${Math.round(l)} × ${Math.round(w)} × ${Math.round(h)} mm`;
+}

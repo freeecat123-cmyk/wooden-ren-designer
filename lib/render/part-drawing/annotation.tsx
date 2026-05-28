@@ -1729,6 +1729,8 @@ export function T2Annotations({
       // (user 2026-05-26 多輪釐清：「12.5 上面沒用的箭頭可去掉」+「12.5/14.4 引線
       // 要留著」+「10/25 引線還留在右邊」→ 真因＝L-dim tics 是 12.5/14.4 的引線，
       // 不是 10/25 的；只刪 W/L 主線+箭頭、tics 全留。)
+      const skipTicsInSide = view === "side" && isLegPart;
+      if (!skipTicsInSide) {
       partEls.push(
         // W-dim 列：box 兩側 vertical 延伸到 wDimY（mortise 接 chain dim 用）
         <g key={`${it.kind}-${it.idx}-Wdim-tics`}>
@@ -1769,6 +1771,9 @@ export function T2Annotations({
             strokeWidth={0.3}
           />
         </g>,
+      );
+      }
+      partEls.push(
         // vMm / hMm label 直接貼在 box 左/上邊（user 2026-05-26 14:17 要求
         // 「直接標在榫孔的左邊跟上方兩側」），不再跟 chain shoulder 共用
         // lLabelX/wLabelY 那個外推欄位，避免多 feature 同欄位疊字。
@@ -1778,49 +1783,60 @@ export function T2Annotations({
         // 成虛線殘影）尤其明顯——dashed 高度 = mortise.depth、實線高度 = mortise.width
         // 兩個 vMm 數字不一樣、同列左邊難辨。(user 2026-05-26「兩個 25 應該移到榫孔
         // 右邊比較好」)
-        <g key={`${it.kind}-${it.idx}-inline-dims`}>
-          {/* L dim label 規則：
-              - 仰視圖 (top view) mortise：dashed 走左、visible 走右
-                兩個 vMm 各坐成對 box 的外側空白，不擠中間（user 2026-05-28）
-              - 其他視圖 mortise：dashed 走右、visible 走左（原規則）
-              - tenon：outerLeft=true 走左、false 走右（凸出側） */}
-          {(!isMortise && !outerLeft) ||
-          (isMortise && view === "top" && isVisibleFromView) ||
-          (isMortise && view !== "top" && !isVisibleFromView) ? (
-            <text
-              x={box.x + box.w + 2}
-              y={box.y + box.h / 2 + 3}
-              fontSize={7}
-              fill={stroke}
-              fontFamily="monospace"
-              textAnchor="start"
-            >
-              {vMm}
-            </text>
-          ) : (
-            <text
-              x={box.x - 2}
-              y={box.y + box.h / 2 + 3}
-              fontSize={7}
-              fill={stroke}
-              fontFamily="monospace"
-              textAnchor="end"
-            >
-              {vMm}
-            </text>
-          )}
-          {/* W dim label on box TOP side */}
-          <text
-            x={box.x + box.w / 2}
-            y={box.y - 2}
-            fontSize={7}
-            fill={stroke}
-            fontFamily="monospace"
-            textAnchor="middle"
-          >
-            {hMm}
-          </text>
-        </g>,
+        (() => {
+          // 側視 + 腿件 + dashed mortise：vMm/hMm 推開避免跟 solid mortise inline-dim
+          // 撞字（user 2026-05-28「榫頭旁邊的尺寸靠太近 擠在一起看不出來了」）
+          const isSideLegDashed =
+            view === "side" && isLegPart && isMortise && !isVisibleFromView;
+          const rightVMmX = isSideLegDashed ? box.x + box.w + 8 : box.x + box.w + 2;
+          const hMmX = box.x + box.w / 2;
+          const hMmY = isSideLegDashed ? box.y + box.h + 8 : box.y - 2;
+          return (
+            <g key={`${it.kind}-${it.idx}-inline-dims`}>
+              {/* L dim label 規則：
+                  - 仰視圖 (top view) mortise：dashed 走左、visible 走右
+                    兩個 vMm 各坐成對 box 的外側空白，不擠中間（user 2026-05-28）
+                  - 其他視圖 mortise：dashed 走右、visible 走左（原規則）
+                  - tenon：outerLeft=true 走左、false 走右（凸出側） */}
+              {(!isMortise && !outerLeft) ||
+              (isMortise && view === "top" && isVisibleFromView) ||
+              (isMortise && view !== "top" && !isVisibleFromView) ? (
+                <text
+                  x={rightVMmX}
+                  y={box.y + box.h / 2 + 3}
+                  fontSize={7}
+                  fill={stroke}
+                  fontFamily="monospace"
+                  textAnchor="start"
+                >
+                  {vMm}
+                </text>
+              ) : (
+                <text
+                  x={box.x - 2}
+                  y={box.y + box.h / 2 + 3}
+                  fontSize={7}
+                  fill={stroke}
+                  fontFamily="monospace"
+                  textAnchor="end"
+                >
+                  {vMm}
+                </text>
+              )}
+              {/* W dim label on box TOP side (side+leg+dashed: 推到底部) */}
+              <text
+                x={hMmX}
+                y={hMmY}
+                fontSize={7}
+                fill={stroke}
+                fontFamily="monospace"
+                textAnchor="middle"
+              >
+                {hMm}
+              </text>
+            </g>
+          );
+        })(),
       );
 
       // 鏈式 dim：榫到 part 邊緣（user 要求標 shoulder/offset）
@@ -1989,8 +2005,13 @@ export function T2Annotations({
       // dedupe by VALUE only,跨軸跨 mortise 同值只畫第一個(user 2026-05-27
       // 「先刪除一個 12.5」)。同 mortise 的 shoulderTop=12.5 跟 shoulderRgt=12.5
       // 或雙面 mortise 兩個 shoulderRgt=12.5,只留第一個渲染。
+      // 側視 frame 對腿件不需要長軸 shoulder chain dim（cross-section 已用 T1
+      // 寬/厚標完）。splay 件 rotated mortise lb.cz/lb.cx 吃進長軸分量會算出
+      // 10/392/279/301/128/106 這種跟木料長度搞混的數值,直接跳過。
+      // (user 2026-05-28「側視圖很多尺寸數字都跟木料的長度搞混了」)
+      const skipShoulderInSide = view === "side" && isLegPart;
       const shTKey = `${shoulderTop}`;
-      if (shoulderTop > TH && !renderedShoulderKeys.has(shTKey)) {
+      if (shoulderTop > TH && !renderedShoulderKeys.has(shTKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shTKey);
         const segMidY = (shoulderTopStartY + box.y) / 2;
         partEls.push(
@@ -2026,7 +2047,7 @@ export function T2Annotations({
         );
       }
       const shBKey = `${shoulderBot}`;
-      if (shoulderBot > TH && !renderedShoulderKeys.has(shBKey)) {
+      if (shoulderBot > TH && !renderedShoulderKeys.has(shBKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shBKey);
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shB`}>
@@ -2064,25 +2085,26 @@ export function T2Annotations({
       // user:「我是說往下的延伸線」=>「partEdge 角→wDimY」那條垂直延伸不畫
       // （長線視覺雜訊、shoulder 量 + arrow 已能傳達距邊資訊）
       const shLKey = `${shoulderLft}`;
-      if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey)) {
+      if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shLKey);
         const shLOffset =
           view === "top" && isLegPart
-            ? shoulderHYUsed.L.filter((y) => Math.abs(y - wLabelY) <= SHOULDER_Y_TOL).length *
+            ? shoulderHYUsed.L.filter((y) => Math.abs(y - wDimY) <= SHOULDER_Y_TOL).length *
               STAGGER_GAP
             : 0;
-        shoulderHYUsed.L.push(wLabelY);
+        shoulderHYUsed.L.push(wDimY);
+        const shLDimY = wDimY + shLOffset;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shL`}>
             <line
               x1={partLeftX}
-              y1={wDimY}
+              y1={shLDimY}
               x2={box.x}
-              y2={wDimY}
+              y2={shLDimY}
               stroke={stroke}
               strokeWidth={0.5}
             />
-            {inwardArrowsH(partLeftX, box.x, wDimY)}
+            {inwardArrowsH(partLeftX, box.x, shLDimY)}
             <text
               x={(partLeftX + box.x) / 2}
               y={wLabelY + shLOffset}
@@ -2097,25 +2119,26 @@ export function T2Annotations({
         );
       }
       const shRKey = `${shoulderRgt}`;
-      if (shoulderRgt > TH && !renderedShoulderKeys.has(shRKey)) {
+      if (shoulderRgt > TH && !renderedShoulderKeys.has(shRKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shRKey);
         const shROffset =
           view === "top" && isLegPart
-            ? shoulderHYUsed.R.filter((y) => Math.abs(y - wLabelY) <= SHOULDER_Y_TOL).length *
+            ? shoulderHYUsed.R.filter((y) => Math.abs(y - wDimY) <= SHOULDER_Y_TOL).length *
               STAGGER_GAP
             : 0;
-        shoulderHYUsed.R.push(wLabelY);
+        shoulderHYUsed.R.push(wDimY);
+        const shRDimY = wDimY + shROffset;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shR`}>
             <line
               x1={box.x + box.w}
-              y1={wDimY}
+              y1={shRDimY}
               x2={partRightX}
-              y2={wDimY}
+              y2={shRDimY}
               stroke={stroke}
               strokeWidth={0.5}
             />
-            {inwardArrowsH(box.x + box.w, partRightX, wDimY)}
+            {inwardArrowsH(box.x + box.w, partRightX, shRDimY)}
             <text
               x={(box.x + box.w + partRightX) / 2}
               y={wLabelY + shROffset}

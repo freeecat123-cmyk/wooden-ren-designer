@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
+import { formatMm } from "@/lib/units/format";
 
 interface PhotoResponse {
   category: string;
@@ -62,6 +64,7 @@ async function compressImage(
 export function PhotoToParamsButton() {
   const t = useTranslations("photoToParams");
   const tErr = useTranslations("photoToParams.errors");
+  const unit = useUnit();
 
   const resolveServerError = (
     code: unknown,
@@ -256,7 +259,7 @@ export function PhotoToParamsButton() {
                   {result.material && <div><span className="text-zinc-500">{t("lblMaterial")}</span>{result.material}</div>}
                   {result.style && <div><span className="text-zinc-500">{t("lblStyle")}</span>{result.style}</div>}
                   {result.legShape && <div><span className="text-zinc-500">{t("lblLegShape")}</span>{result.legShape}</div>}
-                  {result.legSize && <div><span className="text-zinc-500">{t("lblLegSize")}</span>{result.legSize}mm</div>}
+                  {result.legSize && <div><span className="text-zinc-500">{t("lblLegSize")}</span>{formatMm(result.legSize, unit)}</div>}
                 </div>
 
                 <div className="text-[11px] text-zinc-700 leading-relaxed bg-zinc-50 rounded p-2 border border-zinc-200">

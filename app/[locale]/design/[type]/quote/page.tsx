@@ -26,6 +26,7 @@ import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
+import { getUnitFromCookies } from "@/lib/units/server-unit";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -176,7 +177,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     sp.beginnerMode === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
-  const quote = calculateQuote(design, laborOpts, locale);
+  const unit = await getUnitFromCookies(locale);
+  const quote = calculateQuote(design, laborOpts, locale, unit);
   const finalDeliveryWorkdays =
     laborOpts.deliveryDaysOverride > 0
       ? laborOpts.deliveryDaysOverride

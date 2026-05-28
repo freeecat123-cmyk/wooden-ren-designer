@@ -67,6 +67,8 @@ import { MobileShell } from "@/components/mobile/MobileShell";
 import { calculateQuote } from "@/lib/pricing/quote";
 import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
+import { getUnitFromCookies } from "@/lib/units/server-unit";
+import { formatMm, formatDimensions } from "@/lib/units/format";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -130,6 +132,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "design" });
   const sp = await searchParams;
+  const unit = await getUnitFromCookies(locale);
 
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) notFound();
@@ -340,7 +343,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const howToJsonLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: t("jsonLd.howToName", { name: entryName, length, width, height }),
+    name: t("jsonLd.howToName", { name: entryName, dims: formatDimensions(length, width, height, unit) }),
     description: t("jsonLd.howToDesc", { name: entryName, length, width, height, material: materialName(material, locale) }),
     inLanguage: locale === "en" ? "en" : "zh-TW",
     ...(totalMinutes > 0 ? { totalTime: `PT${totalMinutes}M` } : {}),
@@ -406,7 +409,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <h1 className="font-serif-tc text-[1.7rem] leading-tight font-bold tracking-tight text-zinc-900">{entryName}</h1>
           <p className="mt-1.5 text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span>{entryDesc}</span>
-            <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{length} × {width} × {height} mm</span>
+            <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{formatDimensions(length, width, height, unit)}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{materialName(material, locale)}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.length })}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title={t("header.weightTitle")}>{t("header.weightApprox", { kg: estimateWeight(design) })}</span>
@@ -552,6 +555,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             canUseDesignerMode={canUseDesignerMode}
             allPartIds={design.parts.map((p) => p.id)}
             locale={locale}
+            unit={unit}
           />
         </div>
       </section>
@@ -895,6 +899,7 @@ async function ParameterForm({
   canUseDesignerMode,
   allPartIds,
   locale,
+  unit,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
@@ -906,6 +911,7 @@ async function ParameterForm({
   canUseDesignerMode: boolean;
   allPartIds: string[];
   locale: string;
+  unit: "mm" | "inch";
 }) {
   const t = await getTranslations({ locale, namespace: "design.form" });
   return (
@@ -1040,7 +1046,7 @@ async function ParameterForm({
               defaultValue={defaults.length}
               max={limits?.length}
               partIds={resolvePartIds("length", allPartIds)}
-              upperLimitTpl={t("upperLimit", { max: limits?.length ?? 0 })}
+              upperLimitTpl={t("upperLimit", { max: formatMm(limits?.length ?? 0, unit) })}
               locale={locale}
             />
             {!isRound && (
@@ -1051,7 +1057,7 @@ async function ParameterForm({
                 defaultValue={defaults.width}
                 max={limits?.width}
                 partIds={resolvePartIds("width", allPartIds)}
-                upperLimitTpl={t("upperLimit", { max: limits?.width ?? 0 })}
+                upperLimitTpl={t("upperLimit", { max: formatMm(limits?.width ?? 0, unit) })}
                 locale={locale}
               />
             )}
@@ -1062,7 +1068,7 @@ async function ParameterForm({
               defaultValue={defaults.height}
               max={limits?.height}
               partIds={resolvePartIds("height", allPartIds)}
-              upperLimitTpl={t("upperLimit", { max: limits?.height ?? 0 })}
+              upperLimitTpl={t("upperLimit", { max: formatMm(limits?.height ?? 0, unit) })}
               locale={locale}
             />
           </div>

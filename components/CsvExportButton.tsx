@@ -10,6 +10,8 @@ import {
   SHEET_GOOD_LABEL,
   effectiveBillableMaterial,
 } from "@/lib/pricing/catalog";
+import { useUnit } from "@/hooks/useUnit";
+import { formatMm } from "@/lib/units/format";
 
 interface Props {
   design: FurnitureDesign;
@@ -18,6 +20,7 @@ interface Props {
 export function CsvExportButton({ design }: Props) {
   const t = useTranslations("csvExport");
   const locale = useLocale();
+  const unit = useUnit();
   const download = () => {
     const rows: string[][] = [];
     rows.push([
@@ -53,7 +56,7 @@ export function CsvExportButton({ design }: Props) {
         ? part.tenons
             .map(
               (t) =>
-                `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+                `${t.position} ${formatMm(t.length, unit)} ${JOINERY_LABEL[t.type] ?? t.type}`,
             )
             .join("；")
         : "";
