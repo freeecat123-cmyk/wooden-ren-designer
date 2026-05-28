@@ -8,6 +8,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { Link } from "@/i18n/navigation";
 
 interface LemonSubscriptionRow {
   plan: string;
@@ -49,12 +51,26 @@ function statusBadge(status: string): string {
   }
 }
 
+function statusLabel(t: ReturnType<typeof useTranslations>, status: string): string {
+  switch (status) {
+    case "active": return t("statusActive");
+    case "cancelled": return t("statusCancelled");
+    case "expired": return t("statusExpired");
+    case "unpaid": return t("statusUnpaid");
+    case "paused": return t("statusPaused");
+    default: return status.toUpperCase();
+  }
+}
+
 export function LemonSubscriptionClient() {
   const t = useTranslations("lemon.subscription");
+  const searchParams = useSearchParams();
+  const checkoutSuccess = searchParams.get("checkout") === "success";
   const [sub, setSub] = useState<LemonSubscriptionRow | null>(null);
   const [purchases, setPurchases] = useState<SinglePurchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dismissBanner, setDismissBanner] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +157,23 @@ export function LemonSubscriptionClient() {
       </h1>
       <p className="text-zinc-600 mb-8">{t("intro")}</p>
 
+      {checkoutSuccess && !dismissBanner && (
+        <div className="rounded-2xl bg-emerald-50 ring-1 ring-emerald-300 p-5 mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="font-bold text-emerald-900">{t("checkoutSuccessTitle")}</p>
+            <p className="text-sm text-emerald-800 mt-1">{t("checkoutSuccessBody")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDismissBanner(true)}
+            aria-label={t("checkoutSuccessDismiss")}
+            className="text-emerald-700 hover:text-emerald-900 text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {sub ? (
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 p-6 shadow-sm mb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -156,7 +189,7 @@ export function LemonSubscriptionClient() {
               <span
                 className={`mt-2 inline-block text-xs px-2.5 py-1 rounded-full font-bold ring-1 ${statusBadge(sub.status)}`}
               >
-                {sub.status.toUpperCase()}
+                {statusLabel(t, sub.status)}
               </span>
             </div>
             <a
@@ -191,12 +224,12 @@ export function LemonSubscriptionClient() {
       ) : (
         <section className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 p-6 mb-8">
           <p className="text-amber-900 font-semibold">{t("noActive")}</p>
-          <a
-            href="/en/pricing"
+          <Link
+            href="/pricing"
             className="mt-3 inline-block px-5 py-2.5 rounded-lg bg-amber-700 text-white text-sm font-semibold hover:bg-amber-800"
           >
             {t("viewPlans")}
-          </a>
+          </Link>
         </section>
       )}
 

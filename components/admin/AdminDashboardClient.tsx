@@ -98,6 +98,12 @@ export function AdminDashboardClient() {
             💳 綠界日誌
           </Link>
           <Link
+            href="/admin/lemon-squeezy"
+            className="px-3 py-1.5 rounded bg-yellow-600 text-white text-sm hover:bg-yellow-700"
+          >
+            🍋 Lemon Squeezy
+          </Link>
+          <Link
             href="/admin/refunds"
             className="px-3 py-1.5 rounded bg-rose-700 text-white text-sm hover:bg-rose-800"
           >
