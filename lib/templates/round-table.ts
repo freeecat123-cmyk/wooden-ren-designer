@@ -340,7 +340,7 @@ export const roundTableOptions: OptionSpec[] = [
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配。獨柱／端梁桌型不適用", wide: true, dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 600, unit: "mm", min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },

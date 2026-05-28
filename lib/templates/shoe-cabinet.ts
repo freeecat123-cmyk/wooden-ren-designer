@@ -33,13 +33,13 @@ import {
 } from "./_helpers";
 
 export const shoeCabinetOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   // 單一收納區（不分上下層）：類型 + 數量。topType/topCount 這個 key 名是
   // 為了沿用既有 ANY_ZONE_IS_DOOR 條件 + 共用 door / drawer 子選項。
   // 分上下層 toggle：勾起 = 加上層；取消 = 整個櫃單一收納區（只剩下層 = 全櫃）
   { group: "structure", type: "checkbox", key: "withUpperZone", label: "分上下層（上層+下層獨立配置）", defaultValue: true, wide: true, help: "勾起：上層放小物/抽屜、下層放鞋。取消：整個櫃內單一收納區（無上層）" },
   // ── 上層：upper* 全屬 zone-top，手機 AdvancedSheet 會自動歸到「▲ 上層」section
-  { group: "zone-top", type: "number", key: "upperHeight", label: "上層高度", defaultValue: 220, min: 80, max: 600, step: 10, help: "上層 zone 的垂直空間，建議 180~260mm 給薄抽屜或小物收納", dependsOn: { key: "withUpperZone", equals: true } },
+  { group: "zone-top", type: "number", key: "upperHeight", label: "上層高度", defaultValue: 220, unit: "mm", min: 80, max: 600, step: 10, help: "上層 zone 的垂直空間，建議 180~260mm 給薄抽屜或小物收納", dependsOn: { key: "withUpperZone", equals: true } },
   { group: "zone-top", type: "select", key: "upperType", label: "上層類型", defaultValue: "drawer", choices: [
     { value: "drawer", label: "抽屜" },
     { value: "door", label: "門板" },
@@ -82,8 +82,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
   backModeOption,
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 80, min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 80, unit: "mm", min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 35, unit: "mm", min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -93,10 +93,10 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerSlideOption,
   { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：上層 / 下層高度都明確設、總高扣掉後的餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、下層自動吃剩（原本行為）", wide: true },
-  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度", defaultValue: 600, min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度（不分上下層時 = 整個內部高度）。上層高度請用「上層高度」欄位設定", dependsOn: { key: "lockTotalHeight", equals: true } },
+  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度", defaultValue: 600, unit: "mm", min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度（不分上下層時 = 整個內部高度）。上層高度請用「上層高度」欄位設定", dependsOn: { key: "lockTotalHeight", equals: true } },
   { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。只在類型=開放層板時生效。", wide: true },
   { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),

@@ -33,7 +33,7 @@ import {
 } from "./_helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   backModeOption,
   // 上中下分層 zone 設定：ascending 模式下整組隱藏（攤平改用 ratio 自動分配）
   ...makeZoneOptions({
@@ -58,8 +58,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { all: [{ key: "withLegs", equals: true }, { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] }] } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 70, unit: "mm", min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { all: [{ key: "withLegs", equals: true }, { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] }] } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, unit: "mm", min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（下方收窄）" },
@@ -69,7 +69,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
   drawerMountOption,
   drawerBottomModeOption,
   drawerBottomThicknessOption,
@@ -92,7 +92,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   ], help: "傳統斗櫃下層抽屜較深放衣物棉被、上層較淺放小件；現代款多等高" },
   ...lockTotalHeightOptions({ extraDeps: [{ key: "drawerHeightStyle", notIn: ["ascending"] }] }),
   { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面圍欄", defaultValue: false, help: "頂板左/右/後加 25mm 高木條圍欄（前面不裝避免擋取物），擺放物品防掉落、視覺更精緻", wide: true },
-  { group: "structure", type: "number", key: "galleryInset", label: "圍欄內縮", defaultValue: 0, min: 0, max: 80, step: 5, help: "圍欄從頂板邊緣向內縮的距離，0 = 切齊邊緣", dependsOn: { key: "withGalleryRail", equals: true } },
+  { group: "structure", type: "number", key: "galleryInset", label: "圍欄內縮", defaultValue: 0, unit: "mm", min: 0, max: 80, step: 5, help: "圍欄從頂板邊緣向內縮的距離，0 = 切齊邊緣", dependsOn: { key: "withGalleryRail", equals: true } },
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {

@@ -29,7 +29,7 @@ import {
 
 export const deskOptions: OptionSpec[] = [
   // ───────────── ① 桌面 ─────────────
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, min: 12, max: 60, step: 2 },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, unit: "mm", min: 12, max: 60, step: 2 },
   { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
   { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
   { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }, { key: "liveEdge", notIn: [true] }] } },
@@ -47,17 +47,17 @@ export const deskOptions: OptionSpec[] = [
     { value: "splayed-round-tapered", label: "圓錐斜腳（圓料下收 + 外傾）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
     { value: "shaker", label: "夏克腳（上 1/4 方料、下 3/4 圓錐收）" },
   ] },
-  { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 55, min: 20, max: 120, step: 2 },
-  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, min: 0, max: 400, step: 5 },
+  { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 55, unit: "mm", min: 20, max: 120, step: 2 },
+  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5 },
   // shaker / splayed-round-tapered 是圓料、沒有 4 條長邊；只在方料/方錐/方斜腳顯示
   legEdgeOption("leg", 1, { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
 
   // ───────────── ③ 牙條 ─────────────
   { group: "apron", type: "checkbox", key: "withApron", label: "加牙條", defaultValue: true, help: "牙條連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, unit: "mm", min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
@@ -71,15 +71,15 @@ export const deskOptions: OptionSpec[] = [
     { value: "pair-x", label: "雙條（前/後 2 條，無左右）" },
     { value: "pair-z", label: "雙條（左/右 2 條，無前後）" },
   ], dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 28, min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 0, min: 0, max: 20, step: 1, help: "0 = 自動依桌長算（每 150mm 一條）", dependsOn: { key: "withSlatRack", equals: true } },
-  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬", defaultValue: 35, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
-  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚", defaultValue: 18, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬", defaultValue: 35, unit: "mm", min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚", defaultValue: 18, unit: "mm", min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
 
   // ───────────── ⑤ 抽屜 ─────────────
   { group: "drawer", type: "select", key: "drawerStyle", label: "抽屜形式", defaultValue: "none", choices: [
@@ -105,15 +105,15 @@ export const deskOptions: OptionSpec[] = [
     { value: "none", label: "不接桌底（純靠 H 框支撐）" },
     { value: "brass-pillars", label: "4 隻黃銅柱（現代極簡）" },
   ], dependsOn: { key: "drawerStyle", equals: "pedestal" } },
-  { group: "drawer", type: "number", key: "brassPillarInset", label: "黃銅柱內縮", defaultValue: 80, min: 0, max: 200, step: 5, help: "從櫃邊往內縮的距離（前後 + 左右都套用）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "pedestalTopAttach", equals: "brass-pillars" }] } },
-  { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
-  { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度", defaultValue: 0, min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
+  { group: "drawer", type: "number", key: "brassPillarInset", label: "黃銅柱內縮", defaultValue: 80, unit: "mm", min: 0, max: 200, step: 5, help: "從櫃邊往內縮的距離（前後 + 左右都套用）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "pedestalTopAttach", equals: "brass-pillars" }] } },
+  { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底", defaultValue: 5, unit: "mm", min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
+  { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度", defaultValue: 0, unit: "mm", min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
   { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerStyle", equals: "pedestal" } },
-  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "withHFrame", equals: true }] } },
+  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "withHFrame", equals: true }] } },
   // 牙板抽屜形式（apron）— 面板可微內縮做層次
-  { group: "drawer", type: "number", key: "apronDrawerFrontInset", label: "抽屜面板內縮", defaultValue: 0, min: 0, max: 15, step: 1, help: "面板從牙板外面往內推幾 mm（0 = 跟牙板齊平；3~6 = 微凹陷有層次；max 15 因面板厚 18mm）", dependsOn: { key: "drawerStyle", equals: "apron" } },
+  { group: "drawer", type: "number", key: "apronDrawerFrontInset", label: "抽屜面板內縮", defaultValue: 0, unit: "mm", min: 0, max: 15, step: 1, help: "面板從牙板外面往內推幾 mm（0 = 跟牙板齊平；3~6 = 微凹陷有層次；max 15 因面板厚 18mm）", dependsOn: { key: "drawerStyle", equals: "apron" } },
   // 單抽情況：寬度可調 + 位置（左/中/右）；多抽預設等寬橫向併滿牙板
-  { group: "drawer", type: "number", key: "apronDrawerWidth", label: "牙板抽屜寬", defaultValue: 400, min: 150, max: 800, step: 10, help: "單抽時可調寬度；預設 400mm（A4 紙橫向約 297mm 放得進去 + 邊距）；上限 800 適合大多桌寬", dependsOn: { all: [{ key: "drawerCount", equals: 1 }, { key: "drawerStyle", equals: "apron" }] } },
+  { group: "drawer", type: "number", key: "apronDrawerWidth", label: "牙板抽屜寬", defaultValue: 400, unit: "mm", min: 150, max: 800, step: 10, help: "單抽時可調寬度；預設 400mm（A4 紙橫向約 297mm 放得進去 + 邊距）；上限 800 適合大多桌寬", dependsOn: { all: [{ key: "drawerCount", equals: 1 }, { key: "drawerStyle", equals: "apron" }] } },
   { group: "drawer", type: "select", key: "apronDrawerPosition", label: "牙板抽屜位置", defaultValue: "center", choices: [
     { value: "left", label: "左側" },
     { value: "center", label: "中央" },

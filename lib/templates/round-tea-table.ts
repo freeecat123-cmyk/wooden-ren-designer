@@ -21,7 +21,7 @@ export const roundTeaTableOptions: OptionSpec[] = [
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤", defaultValue: false, help: "中央加可旋轉小圓盤——需配 8-12 吋軸承", wide: true },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 350, min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 350, unit: "mm", min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },

@@ -1338,6 +1338,20 @@ export function T2Annotations({
     // tenon 維持 "4 2"（凸出實體本來就少用 hidden）
     const dash = isVisibleFromView ? undefined : (isMortise ? "6 3" : "4 2");
 
+    // 側視 frame 對腿件完全不顯示 mortise（紅色榫孔），只留 tenon（藍色榫頭）。
+    // 整顆 mortise（box outline + cosmetic 填色 + inline-dims + tics + shoulder）一次跳。
+    // 必須早 return，因為 box outline push 在 1454、isLegPart 計算在 1569。
+    // (user 2026-05-28「只留藍色的」= 側視只看 tenon)
+    const _isSplayLegPartEarly =
+      part.shape?.kind === "splayed" ||
+      part.shape?.kind === "splayed-tapered" ||
+      part.shape?.kind === "splayed-round-tapered";
+    const _isLegPartEarly =
+      part.id?.startsWith("leg-") || part.id === "leg" || _isSplayLegPartEarly;
+    if (view === "side" && _isLegPartEarly && isMortise) {
+      return;
+    }
+
     const cx = box.x + box.w / 2;
     const cy = box.y + box.h / 2;
 
@@ -1576,22 +1590,32 @@ export function T2Annotations({
         (view === "top" || view === "front") &&
         isLegPart;
       const mortiseFeature = isMortise ? part.mortises[it.idx] : null;
-      const hMm = splayMortiseLabel
-        ? round1(mortiseFeature?.length ?? 0)
-        : tallSwapLabel
-          ? round1(2 * lb.hy)
-          : view === "side"
-            ? round1(2 * lb.hz)
-            : round1(2 * lb.hx);
-      const vMm = isFrontOrTopVisibleMortise
-        ? round1(mortiseFeature?.width ?? 0)
+      const tenonFeature = !isMortise ? part.tenons[it.idx] : null;
+      // 側視 + 腿件 + tenon：用 tenon.width × tenon.thickness 的 cross-section
+      // 尺寸，不要走 lb.hy/hz（會把「length 凸出量」當高度標出來，例如顯示
+      // 25×20 而不是正確的 25×12）。(user 2026-05-28「側視圖榫頭尺寸應該是 25×12 才對」)
+      const sideLegTenonOverride =
+        view === "side" && isLegPart && !isMortise && tenonFeature;
+      const hMm = sideLegTenonOverride
+        ? round1(tenonFeature!.width)
         : splayMortiseLabel
-        ? round1(mortiseFeature?.depth ?? 0)
-        : tallSwapLabel
-          ? round1(2 * lb.hx)
-          : view === "top"
-            ? round1(2 * lb.hz)
-            : round1(2 * lb.hy);
+          ? round1(mortiseFeature?.length ?? 0)
+          : tallSwapLabel
+            ? round1(2 * lb.hy)
+            : view === "side"
+              ? round1(2 * lb.hz)
+              : round1(2 * lb.hx);
+      const vMm = sideLegTenonOverride
+        ? round1(tenonFeature!.thickness)
+        : isFrontOrTopVisibleMortise
+          ? round1(mortiseFeature?.width ?? 0)
+          : splayMortiseLabel
+          ? round1(mortiseFeature?.depth ?? 0)
+          : tallSwapLabel
+            ? round1(2 * lb.hx)
+            : view === "top"
+              ? round1(2 * lb.hz)
+              : round1(2 * lb.hy);
       // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）

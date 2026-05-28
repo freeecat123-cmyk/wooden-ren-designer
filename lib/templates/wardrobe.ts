@@ -40,7 +40,7 @@ import {
 } from "./_helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
     // 標準衣櫃：上層層板收納、中層門板（門內掛衣）、下層抽屜
     topType: "shelves", topHeight: 300, topCount: 2,
@@ -57,8 +57,8 @@ export const wardrobeOptions: OptionSpec[] = [
   doorFrameThicknessOption,
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 80, min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
-  { group: "leg", type: "number", key: "legSize", label: "底座腳粗", defaultValue: 50, min: 35, max: 120, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] }, help: "衣櫃高重，建議 50mm 以上" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 80, unit: "mm", min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "底座腳粗", defaultValue: 50, unit: "mm", min: 35, max: 120, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] }, help: "衣櫃高重，建議 50mm 以上" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -68,7 +68,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座（衣櫃常見）" },
     { value: "panel-side", label: "側板延伸落地" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerMountOption,
   drawerBottomModeOption,
   drawerBottomThicknessOption,
