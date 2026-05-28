@@ -58,6 +58,12 @@ interface MobileShellProps {
   canUseDesignerMode?: boolean;
   /** 初始場景 ID（由 server 從 URL ?scene= 解析後傳入） */
   sceneId?: SceneThemeId;
+  /** 掀蓋浮起 mm；正 = 抬起，-1 = 鉸鏈翻開。從 URL ?lidLift= 解析後傳入 */
+  lidLiftMm?: number;
+  /** 爆炸視圖偏移 mm（joineryMode 才有意義） */
+  explodeMm?: number;
+  /** X-ray 透視模式 */
+  xrayMode?: "off" | "face" | "full";
 }
 
 export function MobileShell(props: MobileShellProps) {
@@ -180,7 +186,7 @@ export function MobileShell(props: MobileShellProps) {
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
           <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
             <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} />
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} />
             </div>
           </div>
         </div>

@@ -736,6 +736,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         designerMode={designerMode}
         canUseDesignerMode={canUseDesignerMode}
         sceneId={sceneId}
+        lidLiftMm={lidLiftMm}
+        explodeMm={explodeMm}
+        xrayMode={xrayMode}
       />
     )}
     </>
