@@ -183,69 +183,142 @@ export function ClampedNumberInput({
     dynamicMaxHint ||
     label;
 
-  // Pattern B: inch fraction input with +/- step buttons + hidden mm input
+  // Pattern B: inch fraction display + click-to-edit decimal-inch input
+  // 設計參照 SketchUp / Fusion 360：分數展示 + 小數英寸輸入,避開 fraction parse 雷.
+  const [editing, setEditing] = useState(false);
+  const editRef = useRef<HTMLInputElement>(null);
+
+  /** 把新 mm 值直接寫進 sr-only number input,觸發 form auto-submit.
+   *  React 的 _valueTracker 認為「值沒變」就不 fire onChange,
+   *  所以先 setValue("") 讓 React 比對時認為「值變了」. */
+  const writeMm = useCallback(
+    (newMm: number) => {
+      const clamped = clamp(newMm);
+      const str = String(clamped);
+      setValue(str);
+      const el = inputRef.current;
+      if (el) {
+        const tracker = (el as HTMLInputElement & { _valueTracker?: { setValue: (v: string) => void } })._valueTracker;
+        requestAnimationFrame(() => {
+          tracker?.setValue("");
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+    },
+    [clamp],
+  );
+
   const inchStep = useCallback(
     (dir: 1 | -1, magnitude: 1 | 4 = 1) => {
-      setValue((prev) => {
-        const n = Number(prev);
-        const base = Number.isFinite(n) ? n : 0;
-        let next = base;
-        for (let i = 0; i < magnitude; i++) {
-          next = snapToSixteenthMm(next, dir);
-        }
-        return String(clamp(next));
-      });
-      requestAnimationFrame(fireNativeChange);
+      const n = Number(value);
+      const base = Number.isFinite(n) ? n : 0;
+      let next = base;
+      for (let i = 0; i < magnitude; i++) {
+        next = snapToSixteenthMm(next, dir);
+      }
+      writeMm(next);
     },
-    [clamp, fireNativeChange],
+    [value, writeMm],
   );
+
+  const enterEdit = useCallback(() => setEditing(true), []);
+  const finishEdit = useCallback(() => {
+    const el = editRef.current;
+    if (el) {
+      const raw = Number(el.value);
+      if (Number.isFinite(raw) && raw > 0) {
+        const targetMm = snapToSixteenthMm(raw * MM_PER_INCH, 0);
+        writeMm(targetMm);
+      }
+    }
+    setEditing(false);
+  }, [writeMm]);
 
   const renderInchPatternB = () => {
     const n = Number(value);
     const fraction = Number.isFinite(n) ? formatInchFraction(n) : "—";
     const atMin = min !== undefined && Number.isFinite(n) && n <= min;
     const atMax = max !== undefined && Number.isFinite(n) && n >= max;
+    const inchValue = Number.isFinite(n) ? (n / MM_PER_INCH).toFixed(4).replace(/\.?0+$/, "") : "";
     return (
       <span className="inline-flex items-center gap-1 min-w-0">
         <button
           type="button"
           aria-label={t("decrease")}
-          disabled={atMin}
+          disabled={atMin || editing}
           onClick={() => inchStep(-1)}
           className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
         >
           −
         </button>
-        <span
-          tabIndex={0}
-          role="spinbutton"
-          aria-valuenow={Number.isFinite(n) ? n : undefined}
-          aria-valuemin={min}
-          aria-valuemax={max}
-          aria-valuetext={fraction}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowUp") { e.preventDefault(); inchStep(1); }
-            else if (e.key === "ArrowDown") { e.preventDefault(); inchStep(-1); }
-            else if (e.key === "PageUp") { e.preventDefault(); inchStep(1, 4); }
-            else if (e.key === "PageDown") { e.preventDefault(); inchStep(-1, 4); }
-          }}
-          className="px-2 py-1 min-w-[3.5rem] text-center tabular-nums text-sm rounded border border-zinc-200 bg-white outline-none focus:ring-2 focus:ring-amber-300"
-        >
-          {fraction}
-        </span>
+        {editing ? (
+          <input
+            ref={editRef}
+            type="number"
+            step={0.0625}
+            min={min !== undefined ? min / MM_PER_INCH : undefined}
+            max={max !== undefined ? max / MM_PER_INCH : undefined}
+            defaultValue={inchValue}
+            autoFocus
+            onFocus={(e) => e.target.select()}
+            onBlur={finishEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); finishEdit(); }
+              else if (e.key === "Escape") { e.preventDefault(); setEditing(false); }
+            }}
+            className="px-2 py-1 min-w-[3.5rem] w-20 text-center tabular-nums text-sm rounded border border-amber-400 bg-white outline-none focus:ring-2 focus:ring-amber-300 no-spinner"
+          />
+        ) : (
+          <button
+            type="button"
+            tabIndex={0}
+            role="spinbutton"
+            aria-valuenow={Number.isFinite(n) ? n : undefined}
+            aria-valuemin={min}
+            aria-valuemax={max}
+            aria-valuetext={fraction}
+            onClick={enterEdit}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowUp") { e.preventDefault(); inchStep(1); }
+              else if (e.key === "ArrowDown") { e.preventDefault(); inchStep(-1); }
+              else if (e.key === "PageUp") { e.preventDefault(); inchStep(1, 4); }
+              else if (e.key === "PageDown") { e.preventDefault(); inchStep(-1, 4); }
+              else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enterEdit(); }
+            }}
+            className="px-2 py-1 min-w-[3.5rem] text-center tabular-nums text-sm rounded border border-zinc-200 bg-white outline-none hover:border-amber-300 focus:ring-2 focus:ring-amber-300 cursor-text"
+          >
+            {fraction}
+          </button>
+        )}
         <button
           type="button"
           aria-label={t("increase")}
-          disabled={atMax}
+          disabled={atMax || editing}
           onClick={() => inchStep(1)}
           className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
         >
           +
         </button>
-        <input ref={inputRef} type="hidden" name={name} value={value} />
       </span>
     );
   };
+
+  /** sr-only 但真實存在的 mm number input — form auto-submit 走這個 */
+  const renderSrOnlyMmInput = () => (
+    <input
+      ref={inputRef}
+      type="number"
+      name={name}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      min={min}
+      max={max}
+      step={step}
+      tabIndex={-1}
+      aria-hidden
+      className="sr-only"
+    />
+  );
 
   // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變（hover 接線除外）
   if (!hasExtras) {
@@ -257,6 +330,7 @@ export function ClampedNumberInput({
           onPointerLeave={hasAnchor ? handleLeave : undefined}
         >
           {renderInchPatternB()}
+          {renderSrOnlyMmInput()}
         </span>
       );
     }
@@ -313,7 +387,10 @@ export function ClampedNumberInput({
         )}
 
         {showInchHelper ? (
-          renderInchPatternB()
+          <>
+            {renderInchPatternB()}
+            {renderSrOnlyMmInput()}
+          </>
         ) : (
           <input
             ref={inputRef}

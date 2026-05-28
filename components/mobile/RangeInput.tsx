@@ -87,11 +87,6 @@ export function RangeInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
 
-  // editing 切換時自動 focus
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
-
   // max 從外部縮小（例如鎖定總高時其他層撐滿）→ 立即夾到上限，讓送出的值與顯示一致。
   useEffect(() => {
     setValue((v) => (v > max ? max : v < min ? min : v));
@@ -106,6 +101,35 @@ export function RangeInput({
     (n: number) => (n > max ? max : n < min ? min : n),
     [min, max],
   );
+
+  /** 寫進 sr-only mm number input,觸發 form auto-submit. 一條路徑取代所有 dispatch/race patch. */
+  const writeMm = useCallback(
+    (newMm: number) => {
+      const clamped = clamp(newMm);
+      setValue(clamped);
+      const el = inputRef.current;
+      if (el) {
+        const tracker = (el as HTMLInputElement & { _valueTracker?: { setValue: (v: string) => void } })._valueTracker;
+        requestAnimationFrame(() => {
+          tracker?.setValue("");
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+    },
+    [clamp],
+  );
+
+  const editInchRef = useRef<HTMLInputElement>(null);
+  const finishInchEdit = useCallback(() => {
+    const el = editInchRef.current;
+    if (el) {
+      const raw = Number(el.value);
+      if (Number.isFinite(raw) && raw > 0) {
+        writeMm(snapToSixteenthMm(raw * MM_PER_INCH, 0));
+      }
+    }
+    setEditing(false);
+  }, [writeMm]);
 
   // ±按鈕：點一下走一個 step，按住 500ms 後 80ms auto-repeat
   const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,14 +148,14 @@ export function RangeInput({
 
   const startRepeat = useCallback(
     (delta: number) => {
-      setValue((v) => clamp(v + delta));
+      writeMm((inputRef.current ? Number(inputRef.current.value) : 0) + delta);
       repeatTimerRef.current = setTimeout(() => {
         repeatIntervalRef.current = setInterval(() => {
-          setValue((v) => clamp(v + delta));
+          writeMm((inputRef.current ? Number(inputRef.current.value) : 0) + delta);
         }, 80);
       }, 500);
     },
-    [clamp],
+    [writeMm],
   );
 
   useEffect(() => () => stopRepeat(), [stopRepeat]);
@@ -219,89 +243,84 @@ export function RangeInput({
 
         <div className="shrink-0 flex flex-col items-end gap-0.5">
           {showInchHelper ? (
-            <div className="inline-flex items-center gap-1">
-              <button
-                type="button"
-                aria-label={tRange("minus")}
-                disabled={value <= min}
-                onClick={() => {
-                  setValue((v) => {
-                    const next = clamp(snapToSixteenthMm(v, -1));
-                    requestAnimationFrame(() => {
-                      sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
-                      sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
-                    });
-                    return next;
-                  });
-                }}
-                className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
-              >
-                −
-              </button>
-              <span
-                tabIndex={0}
-                role="spinbutton"
-                aria-valuenow={value}
-                aria-valuemin={min}
-                aria-valuemax={max}
-                aria-valuetext={formatInchFraction(value)}
+            editing ? (
+              <input
+                ref={editInchRef}
+                type="number"
+                step={0.0625}
+                min={min / MM_PER_INCH}
+                max={max / MM_PER_INCH}
+                defaultValue={(value / MM_PER_INCH).toFixed(4).replace(/\.?0+$/, "")}
+                autoFocus
+                onFocus={(e) => e.target.select()}
+                onBlur={finishInchEdit}
                 onKeyDown={(e) => {
-                  const stepInch = (dir: 1 | -1, mag: 1 | 4 = 1) => {
-                    e.preventDefault();
-                    setValue((v) => {
-                      let next = v;
-                      for (let i = 0; i < mag; i++) next = snapToSixteenthMm(next, dir);
-                      next = clamp(next);
-                      requestAnimationFrame(() => {
-                        sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
-                        sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
-                      });
-                      return next;
-                    });
-                  };
-                  if (e.key === "ArrowUp") stepInch(1);
-                  else if (e.key === "ArrowDown") stepInch(-1);
-                  else if (e.key === "PageUp") stepInch(1, 4);
-                  else if (e.key === "PageDown") stepInch(-1, 4);
+                  if (e.key === "Enter") { e.preventDefault(); finishInchEdit(); }
+                  else if (e.key === "Escape") { e.preventDefault(); setEditing(false); }
                 }}
-                className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 font-mono tabular-nums text-zinc-900 text-xs flex items-center justify-center outline-none focus:ring-2 focus:ring-amber-300"
-              >
-                {formatInchFraction(value)}
-              </span>
-              <button
-                type="button"
-                aria-label={tRange("plus")}
-                disabled={value >= max}
-                onClick={() => {
-                  setValue((v) => {
-                    const next = clamp(snapToSixteenthMm(v, 1));
-                    requestAnimationFrame(() => {
-                      sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
-                      sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
-                    });
-                    return next;
-                  });
-                }}
-                className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
-              >
-                +
-              </button>
-            </div>
+                className="w-20 text-right border-b-2 border-amber-500 px-1 py-0.5 font-mono tabular-nums no-spinner"
+                inputMode="decimal"
+              />
+            ) : (
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label={tRange("minus")}
+                  disabled={value <= min}
+                  onClick={() => writeMm(snapToSixteenthMm(value, -1))}
+                  className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  tabIndex={0}
+                  role="spinbutton"
+                  aria-valuenow={value}
+                  aria-valuemin={min}
+                  aria-valuemax={max}
+                  aria-valuetext={formatInchFraction(value)}
+                  onClick={() => setEditing(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp") { e.preventDefault(); writeMm(snapToSixteenthMm(value, 1)); }
+                    else if (e.key === "ArrowDown") { e.preventDefault(); writeMm(snapToSixteenthMm(value, -1)); }
+                    else if (e.key === "PageUp") { e.preventDefault(); let n = value; for (let i = 0; i < 4; i++) n = snapToSixteenthMm(n, 1); writeMm(n); }
+                    else if (e.key === "PageDown") { e.preventDefault(); let n = value; for (let i = 0; i < 4; i++) n = snapToSixteenthMm(n, -1); writeMm(n); }
+                    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEditing(true); }
+                  }}
+                  className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs flex items-center justify-center outline-none focus:ring-2 focus:ring-amber-300 cursor-text"
+                >
+                  {formatInchFraction(value)}
+                </button>
+                <button
+                  type="button"
+                  aria-label={tRange("plus")}
+                  disabled={value >= max}
+                  onClick={() => writeMm(snapToSixteenthMm(value, 1))}
+                  className="w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 border border-amber-200"
+                >
+                  +
+                </button>
+              </div>
+            )
           ) : editing ? (
             <input
-              ref={inputRef}
               type="number"
-              name={name}
               value={value}
               min={min}
               max={max}
               step={step}
+              autoFocus
               onChange={(e) => setValue(Number(e.target.value))}
-              onBlur={() => setEditing(false)}
+              onBlur={() => {
+                // 離開時做一次 clamp 並走 writeMm,讓 URL 推到正確的值
+                writeMm(value);
+                setEditing(false);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  setEditing(false);
+                  (e.target as HTMLInputElement).blur();
                 }
               }}
               className="w-16 text-right border-b-2 border-amber-500 px-1 py-0.5 font-mono tabular-nums"
@@ -314,9 +333,7 @@ export function RangeInput({
               className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
             >
               {value}
-              <span className="text-zinc-500 ml-0.5">
-                {showInchHelper ? "in" : unit}
-              </span>
+              <span className="text-zinc-500 ml-0.5">{unit}</span>
             </button>
           )}
           {showRange && (
@@ -332,17 +349,7 @@ export function RangeInput({
               <button
                 key={`${p.label}-${p.value}`}
                 type="button"
-                onClick={() => {
-                  const v = clamp(p.value);
-                  setValue(v);
-                  // 觸發 form 的 onChange 偵測 — slider 自身的 setter 改 hidden input
-                  // 不會 fire 原生事件，DesignFormShell 的 debounce auto-submit 收不到
-                  requestAnimationFrame(() => {
-                    sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
-                    sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
-                    sliderRef.current?.focus();
-                  });
-                }}
+                onClick={() => writeMm(p.value)}
                 className="h-6 px-1.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
               >
                 {p.label}
@@ -352,7 +359,21 @@ export function RangeInput({
           </div>
         )}
 
-        {(!editing || showInchHelper) && <input type="hidden" name={name} value={value} />}
+        {/* sr-only 真實 number input — form auto-submit 走這個（hidden 不會
+            觸發 React onChange 事件，所以這裡用 sr-only number）。 */}
+        <input
+          ref={inputRef}
+          type="number"
+          name={name}
+          value={value}
+          onChange={(e) => setValue(Number(e.target.value))}
+          min={min}
+          max={max}
+          step={step}
+          tabIndex={-1}
+          aria-hidden
+          className="sr-only"
+        />
       </div>
 
       {dynamicMaxHint && (
