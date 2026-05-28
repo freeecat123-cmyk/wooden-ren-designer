@@ -6,9 +6,9 @@
 export type ToolId = "ceiling" | "floor" | "raised-floor";
 
 export const TOOL_UNLOCK_PRICES: Record<ToolId, number> = {
-  ceiling: 599,
-  floor: 599,
-  "raised-floor": 599,
+  ceiling: 499,
+  floor: 499,
+  "raised-floor": 499,
 };
 
 export const TOOL_LABEL_ZH: Record<ToolId, string> = {
