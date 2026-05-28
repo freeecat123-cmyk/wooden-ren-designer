@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 import {
   TEMPLATE_UNLOCK_PRICES,
   type Difficulty,
@@ -27,6 +29,7 @@ export function TemplateUnlockSection({
   const t = useTranslations("templateUnlock");
   const tDiff = useTranslations("difficulty");
   const tFurn = useTranslations("furniture");
+  const currency = useCurrency();
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | Difficulty>(
@@ -81,7 +84,7 @@ export function TemplateUnlockSection({
         <div className="mt-3 inline-flex gap-2 text-xs flex-wrap justify-center">
           {(Object.keys(TEMPLATE_UNLOCK_PRICES) as Difficulty[]).map((d) => (
             <span key={d} className="px-2.5 py-1 rounded-full bg-amber-50 ring-1 ring-amber-300 text-amber-900">
-              {t("priceChipTpl", { label: tDiff(d), price: TEMPLATE_UNLOCK_PRICES[d] })}
+              {t("priceChipTpl", { label: tDiff(d), price: formatPrice(TEMPLATE_UNLOCK_PRICES[d], currency) })}
             </span>
           ))}
         </div>
@@ -135,7 +138,7 @@ export function TemplateUnlockSection({
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-base font-bold text-amber-900">NT${price}</div>
+                    <div className="text-base font-bold text-amber-900">{formatPrice(price, currency)}</div>
                   </div>
                 </div>
                 {isUnlocked ? (
