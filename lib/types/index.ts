@@ -189,6 +189,10 @@ export type BillableMaterial = MaterialId | SheetGood;
 export interface Part {
   id: string;
   nameZh: string;
+  /** Optional English part name. When present, `partName(part, "en")` returns
+   *  this verbatim — useful for templates whose part ids don't match the
+   *  shared ID_EN map in `lib/templates/part-names.ts`. */
+  nameEn?: string;
   material: MaterialId;
   grainDirection: GrainDirection;
 

@@ -25,7 +25,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   legDepth: "Leg depth Z (mm)",
   legHeight: "Leg height (mm)",
   legInset: "Leg inset (mm)",
-  legEdge: "Leg edge profile",
+  legEdge: "Leg edge size (mm)",
   legWidthOverride: "Leg width override (mm)",
   legDepthOverride: "Leg depth override (mm)",
   legPenetratingTenon: "Through tenons (decorative)",
@@ -37,8 +37,12 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   topType: "Top type",
   topThickness: "Top thickness (mm)",
   seatThickness: "Seat thickness (mm)",
-  seatEdge: "Seat edge profile",
-  seatEdgeBottom: "Seat bottom edge",
+  seatEdge: "Edge size (mm)",
+  seatEdgeStyle: "Edge profile",
+  seatEdgeBottom: "Bottom edge size (mm)",
+  seatProfile: "Seat scoop",
+  topPanelPieces: "Top board glue-up",
+  backRake: "Back rake (°)",
   seatBendMm: "Seat dish (mm)",
   seatCornerR: "Seat corner radius (mm)",
   seatPenetratingTenon: "Through-seat tenon (legs visible on top)",
@@ -49,8 +53,8 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   apronDropFromTop: "Apron drop from top (mm)",
   apronOffset: "Apron offset (mm)",
   apronStaggerMm: "Apron stagger (mm)",
-  apronEdge: "Apron edge profile",
-  apronEdgeStyle: "Apron edge style",
+  apronEdge: "Apron edge size (mm)",
+  apronEdgeStyle: "Apron edge profile",
   withApron: "With apron",
   spandrelStyle: "Spandrel style",
   friezePanel: "Frieze panel",
@@ -66,7 +70,8 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   lowerStretcherStaggerMm: "Lower stretcher stagger (mm)",
   lowerStretcherArrangement: "Lower stretcher layout",
   stretcherStyle: "Stretcher style",
-  stretcherEdge: "Stretcher edge profile",
+  stretcherEdge: "Stretcher edge size (mm)",
+  stretcherEdgeStyle: "Stretcher edge profile",
   standingBraceStyle: "Standing brace style",
 
   // === Back / chair-specific ===
@@ -185,7 +190,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   rightWidthMm: "Right column width (mm)",
   singleLayerLeftWidthMm: "Left column width (mm)",
   singleLayerRightWidthMm: "Right column width (mm)",
-  legEdgeStyle: "Leg edge style",
+  legEdgeStyle: "Leg edge profile",
   pedestalTopGap: "Pedestal-top gap (mm)",
   pedestalStretcherHeight: "Pedestal stretcher floor height (mm)",
   headHeight: "Headboard height (mm)",
@@ -229,6 +234,29 @@ export const SPEC_HELP_EN: Record<string, string> = {
   apronStaggerMm: "How much the front/back aprons drop relative to the left/right pair. 0 = even-height (auto half-lap to avoid clash).",
   lockTotalHeight: "Locked: total height is fixed; remaining height after each tier becomes the leg, min 30 mm (warning shown if smaller). Unlocked: legs are set directly, lower zone fills remainder.",
   seatBendMm: "Whole seat bends like a laminated panel — center dips for comfort; corner mortise positions are unaffected. > 0 overrides saddle / edge profile.",
+
+  // Edge profile hints (shared via _helpers.ts)
+  legEdge:
+    "Default 1 mm light ease (anti-splinter); 3–5 mm subtle chamfer; 8 mm+ pronounced octagonal cross-section (Ming/Qing style). Stretchers set separately.",
+  stretcherEdge:
+    "Default 1 mm light ease (anti-splinter); 3–5 mm subtle chamfer; 8 mm+ pronounced octagonal cross-section.",
+  apronEdge:
+    "Default 1 mm light ease (anti-splinter); 3–5 mm subtle chamfer. Tapered / splayed legs turn the apron into a trapezoid and the chamfer is ignored.",
+  seatEdge:
+    "0 = square; 3–5 mm gentle ease (won't press the thigh); 8–15 mm pronounced chamfer / egg-shaped rounded edge. Pick the style (45° / round) below.",
+  seatEdgeStyle:
+    "Pairs with “Edge size”. At 0 mm neither setting affects the geometry.",
+  seatEdgeBottom:
+    "Chamfer on the seat/top *underside* edge. Only effective once the legs are inset — the value is auto-clamped to the leg inset so it never cuts into the apron. Style is shared with the top edge.",
+  apronEdgeStyle:
+    "Pairs with “Apron edge size”. At 0 mm neither setting affects the geometry.",
+  legEdgeStyle: "Style for the leg edge chamfer (V-bit 45° vs. round-over bit).",
+  seatProfile:
+    "Whether to scoop the seat. A scooped seat is more comfortable but needs a hand plane or carving router.",
+  topPanelPieces:
+    "Affects the cut-list / material display. Solid tops > 300 mm wide should be glued up from narrower pieces to resist cupping.",
+  backRake:
+    "How far the back tilts rearward. 0° = fully vertical; 5° is comfortable, 15° is reclined.",
 };
 
 /**
@@ -634,6 +662,33 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "sizingMode:byOverall": "By overall (count calculated)",
   "sizingMode:auto": "Auto",
   "sizingMode:custom": "Custom",
+
+  // === seatProfile (seat scoop) ===
+  "seatProfile:flat": "Flat (simplest)",
+  "seatProfile:saddle": "Saddle scoop (ergonomic, needs ~5° arc)",
+  "seatProfile:scooped": "Twin scoop (~6 mm each side)",
+  "seatProfile:waterfall": "Waterfall front (won't dig into thighs)",
+  "seatProfile:dished": "Dished centre (single-axis, for long sitting)",
+
+  // === edge style (45° vs rounded) — used by seatEdgeStyle / apronEdgeStyle / stretcherEdgeStyle / legEdgeStyle ===
+  "seatEdgeStyle:chamfered": "45° chamfer (V-bit)",
+  "seatEdgeStyle:rounded": "Round-over (round bit)",
+  "apronEdgeStyle:chamfered": "45° chamfer (V-bit)",
+  "apronEdgeStyle:rounded": "Round-over (round bit)",
+  "stretcherEdgeStyle:chamfered": "45° chamfer (V-bit)",
+  "stretcherEdgeStyle:rounded": "Round-over (round bit)",
+  "legEdgeStyle:chamfered": "45° chamfer (V-bit)",
+  "legEdgeStyle:rounded": "Round-over (round bit)",
+
+  // === topPanelPieces ===
+  "topPanelPieces:1": "Single board (< 300 mm wide)",
+  "topPanelPieces:2": "2-board glue-up",
+  "topPanelPieces:3": "3-board glue-up (most common, ~200–300 mm each)",
+  "topPanelPieces:4": "4-board glue-up (large tops)",
+
+  // === rectLegShape choices (RECT_LEG_SHAPE_CHOICES) ===
+  "legShape:strong-taper": "Strong taper (heavily narrowed at bottom)",
+  "legShape:inverted": "Inverted taper (thicker at bottom)",
 
   // === rearPostMode / headStyle ===
   "rearPostMode:integral": "Integral with rear leg",

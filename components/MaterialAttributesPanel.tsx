@@ -166,9 +166,11 @@ export function MaterialAttributesPanel({ materialId, locale: localeProp }: Mate
       <div className="flex-1 min-w-0 text-[11px] text-zinc-700">
         <div className="font-semibold text-zinc-900 text-xs mb-0.5">
           {materialName(materialId, locale)}
-          <span className="ml-1 text-zinc-400 font-normal">
-            {isEn ? spec.nameZh : spec.nameEn}
-          </span>
+          {!isEn && (
+            <span className="ml-1 text-zinc-400 font-normal">
+              {spec.nameEn}
+            </span>
+          )}
         </div>
         <div className="text-zinc-500 mb-1">
           {isEn

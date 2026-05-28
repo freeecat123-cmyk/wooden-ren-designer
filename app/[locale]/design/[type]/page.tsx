@@ -729,7 +729,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         cutPlanUrl={cutPlanUrl}
         printUrl={printUrl}
         lineShareText={lineShareText}
-        formAction={designUrl}
+        formAction={`/${locale}/design/${entry.category}`}
         wireframeMode={wireframeMode}
         joineryMode={joineryMode}
         designerMode={designerMode}
@@ -905,7 +905,7 @@ async function ParameterForm({
   const t = await getTranslations({ locale, namespace: "design.form" });
   return (
     <DesignFormShell
-      action={`/design/${type}`}
+      action={`/${locale}/design/${type}`}
       className="p-5 rounded-2xl border border-amber-200/70 bg-amber-50/50 shadow-md shadow-amber-900/5"
     >
       {type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (

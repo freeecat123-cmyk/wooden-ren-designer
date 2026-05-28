@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useCallback, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { LABOR_BOUNDS } from "@/lib/pricing/labor";
 import type { CustomerInfo } from "@/components/customer/customer";
@@ -53,6 +53,7 @@ export function QuoteLaborForm({
   autoLaborHours: number;
 }) {
   const t = useTranslations("quoteLaborForm");
+  const locale = useLocale();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -96,7 +97,7 @@ export function QuoteLaborForm({
       params.set("customerEmail", customerOverride.email);
     }
     setPending(false);
-    router.replace(`/design/${type}/quote?${params.toString()}`, { scroll: false });
+    router.replace(`/${locale}/design/${type}/quote?${params.toString()}`, { scroll: false });
   }, [type, router]);
 
   const handleChange = useCallback(() => {
@@ -116,7 +117,7 @@ export function QuoteLaborForm({
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     Object.entries(preset.values).forEach(([k, v]) => params.set(k, v));
-    router.replace(`/design/${type}/quote?${params.toString()}`, { scroll: false });
+    router.replace(`/${locale}/design/${type}/quote?${params.toString()}`, { scroll: false });
   };
 
   const designParams = Object.fromEntries(new URLSearchParams(designQuery)) as Record<string, string>;
@@ -127,7 +128,7 @@ export function QuoteLaborForm({
       ref={formRef}
       onChange={handleChange}
       method="get"
-      action={`/design/${type}/quote`}
+      action={`/${locale}/design/${type}/quote`}
       className="rounded-lg border border-zinc-200 bg-white p-4"
     >
       {Object.entries(designParams).map(([k, v]) => (

@@ -13,7 +13,9 @@
 
 import type { Part } from "@/lib/types";
 
-type PartLike = Pick<Part, "id" | "nameZh"> | { id: string; nameZh: string };
+type PartLike =
+  | Pick<Part, "id" | "nameZh" | "nameEn">
+  | { id: string; nameZh: string; nameEn?: string };
 
 const ID_EN: Record<string, string> = {
   // Aprons
@@ -127,6 +129,10 @@ function idToSpaced(id: string): string {
 
 export function partName(part: PartLike, locale: string): string {
   if (locale !== "en") return part.nameZh;
+  // Per-part nameEn wins over shared ID_EN map (lets templates ship
+  // their own translations for ids like `ls-front` without polluting the
+  // global map).
+  if (part.nameEn) return part.nameEn;
   const direct = ID_EN[part.id];
   if (direct) return direct;
 

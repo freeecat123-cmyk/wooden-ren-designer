@@ -191,6 +191,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
+    nameEn: "Seat",
     material,
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
@@ -249,6 +250,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     return ({
     id: `leg-${i + 1}`,
     nameZh: `凳腳 ${i + 1}`,
+    nameEn: `Leg ${i + 1}`,
     material,
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
@@ -349,19 +351,19 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronCenterY);  // 左右（Z）牙板，靜止
   const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0));  // 前後（X）牙板，下移後
   const apronSides = [
-    { id: "apron-front", nameZh: "前牙條",
+    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
       axis: "x" as const, sx: 0, sz: -1,
       origin: { x: 0, z: -(apronEdgeZ + apronGeomX.splayZ) } },
-    { id: "apron-back", nameZh: "後牙條",
+    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
       axis: "x" as const, sx: 0, sz: 1,
       origin: { x: 0, z: apronEdgeZ + apronGeomX.splayZ } },
-    { id: "apron-left", nameZh: "左牙條",
+    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron",
       visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
       axis: "z" as const, sx: -1, sz: 0,
       origin: { x: -(apronEdgeX + apronGeomZ.splayX), z: 0 } },
-    { id: "apron-right", nameZh: "右牙條",
+    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron",
       visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
       axis: "z" as const, sx: 1, sz: 0,
       origin: { x: apronEdgeX + apronGeomZ.splayX, z: 0 } },
@@ -418,6 +420,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     return {
       id: s.id,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: {
@@ -569,13 +572,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 角度：atan2(halfZ, halfX)，方型凳 = 45°
       const angle = Math.atan2(halfZ, halfX);
       const diagonals = [
-        { id: "ls-x1", nameZh: "X 撐 1（前左↔後右）", yRot: angle, yLift: 0 },
-        { id: "ls-x2", nameZh: "X 撐 2（前右↔後左）", yRot: -angle, yLift: lowerT * 0.05 },
+        { id: "ls-x1", nameZh: "X 撐 1（前左↔後右）", nameEn: "X-stretcher 1 (FL↔BR)", yRot: angle, yLift: 0 },
+        { id: "ls-x2", nameZh: "X 撐 2（前右↔後左）", nameEn: "X-stretcher 2 (FR↔BL)", yRot: -angle, yLift: lowerT * 0.05 },
       ];
       for (const d of diagonals) {
         parts.push({
           id: d.id,
           nameZh: d.nameZh,
+          nameEn: d.nameEn,
           material,
           grainDirection: "length",
           visible: { length: diagLen, width: lowerW, thickness: lowerT },
@@ -593,11 +597,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       // h-frame: 4 條繞 1 圈
       const sides = [
         // 前後（X 軸, 靜止）用原 lsSplay
-        { id: "ls-front", nameZh: "前下橫撐", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplayZ) } },
-        { id: "ls-back", nameZh: "後下橫撐", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplayZ } },
+        { id: "ls-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplayZ) } },
+        { id: "ls-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplayZ } },
         // 左右（Z 軸, 上移）用 lsZSplay（在上移後 Y 重算的腳位置）
-        { id: "ls-left", nameZh: "左下橫撐", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsZSplayX), z: 0 } },
-        { id: "ls-right", nameZh: "右下橫撐", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsZSplayX, z: 0 } },
+        { id: "ls-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsZSplayX), z: 0 } },
+        { id: "ls-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsZSplayX, z: 0 } },
       ];
       for (const s of sides) {
         // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
@@ -632,6 +636,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         parts.push({
           id: s.id,
           nameZh: s.nameZh,
+          nameEn: s.nameEn,
           material,
           grainDirection: "length",
           visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },

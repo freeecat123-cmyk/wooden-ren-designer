@@ -16,6 +16,7 @@ import React, { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { groupPartsForDrawing } from "@/lib/render/part-drawing/grouping";
+import { partName } from "@/lib/templates/part-names";
 import {
   PartDrawing,
   type PartView,
@@ -92,7 +93,7 @@ export function PartDrawingsPanel({ design }: Props) {
               onClick={() => setOpenIdx(idx)}
             >
               <div className="text-sm font-semibold text-zinc-900">
-                {g.representative.nameZh}
+                {partName(g.representative, locale)}
                 {g.count > 1 ? (
                   <span className="text-zinc-500 ml-1">
                     ×{Math.min(g.count, 99)}
@@ -134,7 +135,7 @@ export function PartDrawingsPanel({ design }: Props) {
                     {t("backToTri")}
                   </button>
                 )}
-                {t("modalTitleTpl", { name: groups[openIdx].representative.nameZh })}
+                {t("modalTitleTpl", { name: partName(groups[openIdx].representative, locale) })}
                 {zoomedView && (
                   <span className="text-zinc-500 text-xs">
                     {zoomedView === "front"

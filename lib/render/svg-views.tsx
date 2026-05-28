@@ -3182,7 +3182,9 @@ function OrthoViewImpl({
                   fill="#444"
                   fontFamily="sans-serif"
                 >
-                  腳 {legSize}×{legSize}
+                  {isEn
+                    ? `Leg ${formatLengthBare(legSize, "inch")}×${formatLengthBare(legSize, "inch")}`
+                    : `腳 ${legSize}×${legSize}`}
                 </text>
                 {/* 桌面外伸——只在右上角標一個（4 邊對稱所以只標 1 處夠用）*/}
                 {showOverhang && (
@@ -3343,19 +3345,19 @@ function OrthoViewImpl({
           if (mainKind === "seat") {
             leftStack.push({
               y: mainTopY,
-              label: isEn ? `Seat ${Math.round(mainTopY)}` : `座面 ${Math.round(mainTopY)}`,
+              label: isEn ? `Seat ${dimMm(mainTopY)}` : `座面 ${dimMm(mainTopY)}`,
             });
           }
           for (const s of shelves) {
             leftStack.push({
               y: s.topY,
-              label: `${partName(s, locale)} ${Math.round(s.topY)}`,
+              label: `${partName(s, locale)} ${dimMm(s.topY)}`,
             });
           }
           for (const c of crossPieces) {
             leftStack.push({
               y: c.topY,
-              label: `${partName(c, locale)} ${Math.round(c.topY)}`,
+              label: `${partName(c, locale)} ${dimMm(c.topY)}`,
             });
           }
           // 排序去重（同 Y 只留一個）
@@ -3399,7 +3401,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={-mainTopY}
                 y2={-mainBottomY}
-                label={`${labelMain} ${Math.round(mainT)}`}
+                label={`${labelMain} ${dimMm(mainT)}`}
               />
               {/* 淨高 */}
               <VerticalDimensionLine
@@ -3407,7 +3409,7 @@ function OrthoViewImpl({
                 x={w / 2 + 140}
                 y1={-mainBottomY}
                 y2={sFloor}
-                label={`${labelClear} ${Math.round(mainBottomY)} mm`}
+                label={`${labelClear} ${dimMm(mainBottomY)}`}
               />
               {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同名 + 同尺寸去重只標一次
                   名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」）
@@ -3436,7 +3438,7 @@ function OrthoViewImpl({
                       fill="#444"
                       fontFamily="sans-serif"
                     >
-                      {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {Math.round(c.yExt)}
+                      {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {dimMm(c.yExt)}
                     </text>
                   );
                 });
@@ -3461,7 +3463,7 @@ function OrthoViewImpl({
                       <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
                         markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
                       <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
-                        {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {isEn ? "net" : "淨長"} {Math.round(c.cutLengthMm)}
+                        {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {isEn ? "net" : "淨長"} {dimMm(c.cutLengthMm)}
                         {showAngle ? (isEn ? ` bevel ∠${c.cutAngleDeg.toFixed(1)}°` : ` 切角 ∠${c.cutAngleDeg.toFixed(1)}°`) : ""}
                       </text>
                     </g>
@@ -3700,14 +3702,14 @@ function OrthoViewImpl({
             y={drawAreaTop - 6}
             textAnchor="middle"
           >
-            後 BACK
+            {isEn ? "BACK" : "後 BACK"}
           </text>
           <text
             x={0}
             y={drawAreaTop + h + 110}
             textAnchor="middle"
           >
-            前 FRONT
+            {isEn ? "FRONT" : "前 FRONT"}
           </text>
         </g>
       )}

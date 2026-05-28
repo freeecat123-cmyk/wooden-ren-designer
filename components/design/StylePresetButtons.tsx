@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
 import { getGenericVariantKeys } from "@/lib/knowledge/style-variants";
@@ -49,6 +49,14 @@ export function StylePresetButtons({
   compact?: boolean;
 }) {
   const t = useTranslations("stylePreset");
+  const locale = useLocale();
+  const isEn = locale === "en";
+  const presetLabel = (p: typeof STYLE_PRESETS[string]) => {
+    if (isEn) {
+      return p.labelEn ?? p.nameEn ?? p.nameZh;
+    }
+    return p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
+  };
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
@@ -118,8 +126,7 @@ export function StylePresetButtons({
           {presets.map((p) => {
             const isActive = currentStyle === p.id;
             const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
-            // 截短：去掉括號裡英文翻譯
-            const shortName = p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
+            const shortName = presetLabel(p);
             return (
               <button
                 key={p.id}
@@ -149,7 +156,7 @@ export function StylePresetButtons({
         {presets.map((p) => {
           const isActive = currentStyle === p.id;
           const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
-          const shortName = p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
+          const shortName = presetLabel(p);
           return (
             <button
               key={p.id}

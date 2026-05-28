@@ -24,6 +24,9 @@ export interface StylePreset {
   /** 顯示名 */
   nameZh: string;
   nameEn: string;
+  /** 按鈕短標籤（去掉括號補充） */
+  labelZh?: string;
+  labelEn?: string;
 
   /** 一段話描述視覺特徵（給 UI 預覽 / tooltip 用） */
   visualHint: string;
@@ -84,6 +87,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "shaker",
     nameZh: "簡約細腳（Shaker / 北歐 / 斯堪地）",
     nameEn: "Shaker / Mid-Century / Scandi",
+    labelEn: "Shaker",
     visualHint: "極簡、無裝飾、細料漸縮腳、櫻桃/楓木淺色、through-tenon 加楔片、椅背用 ladder（橫檔）",
     materials: ["maple", "ash", "walnut"],
     legShape: "tapered",
@@ -103,6 +107,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "ming",
     nameZh: "明式（中國傳統）",
     nameEn: "Ming Style",
+    labelEn: "Ming",
     visualHint: "圓料腳、抱肩榫、深色紅木、中板式椅背（圈椅靠背板）、座高偏高",
     materials: ["walnut", "taiwan-cypress"],
     legShape: "round",
@@ -122,6 +127,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "industrial",
     nameZh: "工業風（Loft）",
     nameEn: "Industrial",
+    labelEn: "Industrial",
     visualHint: "厚實粗料 60mm、松木/道格拉斯杉、直角無倒邊、無牙條（鐵腳模擬）、極簡椅背",
     materials: ["pine", "douglas-fir", "white-oak"],
     legShape: "box",
@@ -141,6 +147,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "japanese",
     nameZh: "日式禪風（和家具 / 侘寂）",
     nameEn: "Japanese / Wa / Wabi-Sabi",
+    labelEn: "Japanese",
     visualHint: "檜木淺色、細料 35mm 方腳、極簡無椅背或低矮椅背、無顯著倒邊、藏榫",
     materials: ["taiwan-cypress", "douglas-fir", "ash"],
     legShape: "box",
@@ -160,6 +167,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "farmhouse",
     nameZh: "美式手工（Farmhouse / Mission / Windsor）",
     nameEn: "American Craft (Farmhouse / Mission / Windsor)",
+    labelEn: "American Craft",
     visualHint: "厚粗料 55mm 直方腳、松木 / 橡木深色、X 形下橫撐、寬牙條 85mm、座面平",
     materials: ["pine", "white-oak", "douglas-fir"],
     legShape: "box",
@@ -179,6 +187,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "chippendale",
     nameZh: "古典歐式（Chippendale）",
     nameEn: "Chippendale / 18th C. English",
+    labelEn: "Chippendale",
     visualHint: "粗料 45mm 漸縮腳、深色胡桃、寬牙條 90mm、中板式椅背（splat）、線腳大圓邊",
     materials: ["walnut", "white-oak"],
     legShape: "tapered",
