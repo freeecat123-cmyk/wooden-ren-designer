@@ -63,6 +63,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   withLowerStretcher: "Add lower stretcher",
   withLowerStretchers: "Add lower stretchers",
   withCenterStretcher: "Add center stretcher",
+  withUnderShelf: "Under-seat shelf",
   lowerStretcherStyle: "Lower stretcher style",
   lowerStretcherWidth: "Lower stretcher height",
   lowerStretcherThickness: "Lower stretcher thickness",
@@ -264,6 +265,8 @@ export const SPEC_HELP_EN: Record<string, string> = {
   apronWidth: "Apron height. ~2–2-3/4 in (50–70 mm) suits long benches; taller paired with a thin top reads top-heavy.",
   withApron: "Aprons sit beneath the seat and tie the legs together — adds rigidity.",
   withLowerStretchers: "H-frame configuration — sturdier but uses more material.",
+  withCenterStretcher: "Recommended for benches over 1.2 m to prevent sagging.",
+  withUnderShelf: "Adds a panel between the lower stretchers for storing shoes / books (auto-enables lower stretchers as support).",
   lowerStretcherFromGround: "Distance from the floor up to the bottom face of the lower stretcher.",
 
   // === Leg sizing / shapes ===
@@ -557,6 +560,14 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "legShape:cabriole": "Cabriole",
   "legShape:horse-hoof": "Horse-hoof (Ming)",
   "legShape:reverse-horse-hoof": "Reverse horse-hoof (Qing)",
+
+  // === endSplat (bench backrest style) ===
+  "endSplat:none": "None (plain bench)",
+  "endSplat:low": "Low solid backrest (lumbar support)",
+  "endSplat:high": "High solid backrest (formal seating)",
+  "endSplat:slatted": "High slatted back (vertical bars + top rail)",
+  "endSplat:ladder": "High ladder back (1–3 horizontal rails + 2 posts)",
+  "endSplat:windsor": "Windsor style (turned posts + spindles + bow top rail)",
 
   // === bodyShape / boxShape ===
   "bodyShape:square": "Square",
