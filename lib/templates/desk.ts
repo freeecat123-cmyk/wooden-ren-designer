@@ -125,6 +125,8 @@ export const deskOptions: OptionSpec[] = [
 ];
 
 export const desk: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = deskOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
@@ -382,7 +384,9 @@ export const desk: FurnitureTemplate = (input) => {
     if (pedestalStretcherHeight > maxStretcherY) {
       design.warnings = [
         ...(design.warnings ?? []),
-        `H 框離地高 ${pedestalStretcherHeight}mm 超過上限——已自動縮回 ${maxStretcherY}mm（不能高過櫃底）`,
+        isEn
+          ? `H-frame floor clearance ${pedestalStretcherHeight} mm exceeds the maximum — auto-clamped to ${maxStretcherY} mm (cannot rise above the case bottom).`
+          : `H 框離地高 ${pedestalStretcherHeight}mm 超過上限——已自動縮回 ${maxStretcherY}mm（不能高過櫃底）`,
       ];
     }
     // 縱向橫撐：X 中心在腳中心軸上 + 斜腳補償（splayed 系列腳底比頂位移）
@@ -481,7 +485,9 @@ export const desk: FurnitureTemplate = (input) => {
   if (drawerStyle === "apron" && !withApron) {
     design.warnings = [
       ...(design.warnings ?? []),
-      "選了「牙板位置抽屜」但沒勾「加牙板」— 牙板抽屜需要有牙板帶才能放，請勾起來",
+      isEn
+        ? `"Apron drawer" style selected but "add apron" is off — apron drawers need an apron band to sit in; please enable it.`
+        : "選了「牙板位置抽屜」但沒勾「加牙板」— 牙板抽屜需要有牙板帶才能放，請勾起來",
     ];
   }
   if (drawerCount > 0 && drawerStyle === "apron" && withApron) {
@@ -680,6 +686,6 @@ export const desk: FurnitureTemplate = (input) => {
   applyStandardChecks(design, {
     minLength: 900, minWidth: 400, minHeight: 650,
     maxLength: 2000, maxWidth: 900, maxHeight: 800,
-  });
+  }, locale);
   return design;
 };

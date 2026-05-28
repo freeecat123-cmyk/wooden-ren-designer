@@ -28,7 +28,9 @@ function buildPedestalRoundTable(p: {
   topThickness: number; legSize: number; legHeight: number; radius: number;
   footLengthOverride?: number; footWidth?: number; footThickness?: number;
   seatChamferMm?: number; seatEdgeStyle?: string;
+  locale?: string;
 }): FurnitureDesign {
+  const isEn = p.locale === "en";
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
   const seatChamferMm = p.seatChamferMm ?? 0;
   const chamferStyle = p.seatEdgeStyle === "rounded" ? "rounded" : "chamfered";
@@ -141,7 +143,11 @@ function buildPedestalRoundTable(p: {
 
   const warnings: string[] = [];
   if (diameter > 1100) {
-    warnings.push("獨柱結構承重極限：直徑 > 1100mm 桌面壓力超過單柱接合安全範圍，建議改用端梁（trestle）兩柱結構分散負載。");
+    warnings.push(
+      isEn
+        ? `Single-pedestal load limit: diameter > 1100 mm exceeds the safe range of a single-column joint; switch to a trestle (two-column) structure to spread the load.`
+        : "獨柱結構承重極限：直徑 > 1100mm 桌面壓力超過單柱接合安全範圍，建議改用端梁（trestle）兩柱結構分散負載。",
+    );
   }
   return {
     id: `round-table-pedestal-${diameter}x${height}`,
@@ -396,6 +402,7 @@ function topPanelPiecingHint(diameter: number): string {
 
 export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
   const diameter = input.length;
 
   const o = roundTableOptions;
@@ -443,6 +450,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       footThickness: getOption<number>(input, opt(o, "pedestalFootThickness")),
       seatChamferMm: seatChamferMmEarly,
       seatEdgeStyle,
+      locale,
     });
   }
   if (legShape === "trestle") {
@@ -913,11 +921,11 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         : ""
     }${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter)}`.trim(),
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   applyStandardChecks(design, {
     minLength: 700, minWidth: 700, minHeight: 600,
     maxLength: 1500, maxWidth: 1500, maxHeight: 800,
-  });
+  }, locale);
   return design;
 };

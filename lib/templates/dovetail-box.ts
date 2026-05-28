@@ -115,6 +115,8 @@ export const dovetailBoxOptions: OptionSpec[] = [
  */
 export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = dovetailBoxOptions;
   const boxUse = getOption<string>(input, opt(o, "boxUse"));
   const preset = DOVETAIL_BOX_PRESETS[boxUse];
@@ -978,22 +980,42 @@ const polyDesign: FurnitureDesign = {
   // max bounds + suggestions
   const extraWarnings: string[] = [];
   if (outerL > 400 || outerW > 300 || outerH > 250) {
-    extraWarnings.push(`木盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重`);
+    extraWarnings.push(
+      isEn
+        ? `Wooden box ${outerL}×${outerW}×${outerH} mm exceeds reasonable range (max 400×300×250 mm). Larger sizes count as storage chests and require heavier joinery.`
+        : `木盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重`,
+    );
   }
   if (cornerJoinery === "dovetail" && wallT < 10 && outerL > 250) {
-    extraWarnings.push(`壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`);
+    extraWarnings.push(
+      isEn
+        ? `Wall thickness ${wallT} mm is too thin for a ${outerL} mm long box — dovetail pins/tails get too small to cut cleanly; recommend ≥ 12 mm.`
+        : `壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`,
+    );
   }
   // 段數對盒高的合理性
   if (cornerJoinery === "dovetail" && dovetailInfo && dovetailInfo.segmentCount >= 9 && outerH < 80) {
-    extraWarnings.push(`盒高 ${outerH}mm 配 ${dovetailInfo.segmentCount} 段太密，每段寬度不足；建議減到 5-7 段`);
+    extraWarnings.push(
+      isEn
+        ? `Box height ${outerH} mm with ${dovetailInfo.segmentCount} segments is too dense; each segment is too narrow. Reduce to 5–7 segments.`
+        : `盒高 ${outerH}mm 配 ${dovetailInfo.segmentCount} 段太密，每段寬度不足；建議減到 5-7 段`,
+    );
   }
   // 鳩尾段數偶數 → bump 到奇數（phase=0 halfPin 渲染要求奇數）
   if (cornerJoinery === "dovetail" && dovetailInfo?.bumped) {
-    extraWarnings.push(`鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`);
+    extraWarnings.push(
+      isEn
+        ? `Dovetail segment count ${dovetailSegmentsOpt} is even, auto-bumped to ${dovetailInfo.segmentCount} (halfPin layout with half-pins on both ends requires an odd count for symmetry).`
+        : `鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`,
+    );
   }
   // 隔板高度檢查
   if (dividerHeightRaw > dividerMaxH) {
-    extraWarnings.push(`隔板高度 ${dividerHeightRaw}mm 超過壁內可容空間 ${dividerMaxH}mm，已自動截到上限`);
+    extraWarnings.push(
+      isEn
+        ? `Divider height ${dividerHeightRaw} mm exceeds available interior space ${dividerMaxH} mm; auto-clamped to the maximum.`
+        : `隔板高度 ${dividerHeightRaw}mm 超過壁內可容空間 ${dividerMaxH}mm，已自動截到上限`,
+    );
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   return design;

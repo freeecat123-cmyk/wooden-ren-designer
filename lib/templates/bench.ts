@@ -81,6 +81,8 @@ export const benchOptions: OptionSpec[] = [
 
 export const bench: FurnitureTemplate = (input) => {
   const o = benchOptions;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
@@ -717,10 +719,12 @@ export const bench: FurnitureTemplate = (input) => {
   applyStandardChecks(design, {
     minLength: 600, minWidth: 200, minHeight: 350,
     maxLength: 2000, maxWidth: 550, maxHeight: 550,
-  });
+  }, locale);
   if (input.height > 550) {
     appendSuggestion(design, {
-      text: `坐高 ${input.height}mm 已接近桌面高度——建議用低桌或餐桌模板，含中央橫撐 + 牙板選項。`,
+      text: isEn
+        ? `Seat height ${input.height} mm is near table height — consider the low-table or dining-table template (includes center stretcher + apron options).`
+        : `坐高 ${input.height}mm 已接近桌面高度——建議用低桌或餐桌模板，含中央橫撐 + 牙板選項。`,
       suggestedCategory: input.height >= 700 ? "dining-table" : "low-table",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });
@@ -736,7 +740,7 @@ export const bench: FurnitureTemplate = (input) => {
         ? lowerStretcherHeight
         : undefined,
       hasLowerStretcher: withLowerStretchers || withUnderShelf,
-    }),
+    }, locale),
   );
   return design;
 };

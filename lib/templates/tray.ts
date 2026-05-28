@@ -135,6 +135,8 @@ export const trayOptions: OptionSpec[] = [
  */
 export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = trayOptions;
   const useCase = getOption<string>(input, opt(o, "useCase"));
   const preset = TRAY_PRESETS[useCase];
@@ -962,16 +964,26 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   // 結構檢查 + max bounds
   const warnings: string[] = [];
   if (outerL > 200 || outerW > 200 || outerH > 250) {
-    warnings.push(`托盤 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 200×200×250mm）。再大就比較像鳩尾盒——考慮改用鳩尾盒模板`);
+    warnings.push(
+      isEn
+        ? `Tray ${outerL}×${outerW}×${outerH} mm exceeds reasonable range (max 200×200×250 mm). At this size consider the dovetail box template.`
+        : `托盤 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 200×200×250mm）。再大就比較像鳩尾盒——考慮改用鳩尾盒模板`,
+    );
     design.suggestions = [{
-      text: `${outerL}×${outerW}×${outerH}mm 已超過托盤範圍——鳩尾盒模板支援更大的盒體 + 鳩尾接合選項。`,
+      text: isEn
+        ? `${outerL}×${outerW}×${outerH} mm exceeds the tray range — the dovetail box template supports larger bodies and dovetail joinery options.`
+        : `${outerL}×${outerW}×${outerH}mm 已超過托盤範圍——鳩尾盒模板支援更大的盒體 + 鳩尾接合選項。`,
       suggestedCategory: "dovetail-box",
       presetParams: { length: String(outerL), width: String(outerW), height: String(outerH), material },
     }];
   }
   // 鳩尾段數偶數 → bump 到奇數（phase=0 halfPin 渲染要求奇數）
   if (cornerJoinery === "dovetail" && dovetailInfo?.bumped) {
-    warnings.push(`鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`);
+    warnings.push(
+      isEn
+        ? `Dovetail segment count ${dovetailSegmentsOpt} is even, auto-bumped to ${dovetailInfo.segmentCount} (halfPin layout with half-pins on both ends requires an odd count for symmetry).`
+        : `鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`,
+    );
   }
   if (warnings.length) design.warnings = [...(design.warnings ?? []), ...warnings];
   return design;

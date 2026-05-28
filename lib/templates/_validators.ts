@@ -9,7 +9,8 @@ import type { FurnitureCategory, FurnitureDesign } from "@/lib/types";
  *
  * 回傳 warning 字串陣列，可 push 進 design.warnings 給 UI 顯示。
  */
-export function validateRoundLegJoinery(design: FurnitureDesign): string[] {
+export function validateRoundLegJoinery(design: FurnitureDesign, locale: string = "zh-TW"): string[] {
+  const isEn = locale === "en";
   const warnings: string[] = [];
   for (const part of design.parts) {
     const k = part.shape?.kind;
@@ -20,9 +21,12 @@ export function validateRoundLegJoinery(design: FurnitureDesign): string[] {
     if (!part.id.startsWith("leg")) continue;
     for (const m of part.mortises) {
       if (m.through) {
+        const partName = isEn ? (part.nameEn ?? part.nameZh) : part.nameZh;
         warnings.push(
-          `「${part.nameZh}」是圓腳但 mortise 設為 through（貫穿榫）` +
-            `——圓腳側面是曲面，鑿穿榫眼會在曲面上斜出，請改用 blind / shouldered / stub-joint。`,
+          isEn
+            ? `"${partName}" is a round leg but mortise is through — round leg sides are curved, through-mortise will skew on the curved surface. Use blind / shouldered / stub-joint instead.`
+            : `「${partName}」是圓腳但 mortise 設為 through（貫穿榫）` +
+                `——圓腳側面是曲面，鑿穿榫眼會在曲面上斜出，請改用 blind / shouldered / stub-joint。`,
         );
         break; // 同一隻腳只報一次
       }
@@ -71,40 +75,52 @@ export interface BasicGeometryRules {
 export function validateBasicGeometry(
   design: FurnitureDesign,
   rules: BasicGeometryRules = {},
+  locale: string = "zh-TW",
 ): string[] {
+  const isEn = locale === "en";
   const warnings: string[] = [];
   const { overall } = design;
 
   if (rules.minOverallHeight !== undefined && overall.thickness < rules.minOverallHeight) {
     warnings.push(
-      `整體高度 ${overall.thickness}mm 低於合理下限 ${rules.minOverallHeight}mm——` +
-        `可能無法正常使用，請增加高度。`,
+      isEn
+        ? `Overall height ${overall.thickness} mm is below reasonable minimum ${rules.minOverallHeight} mm — may not be usable, please increase height.`
+        : `整體高度 ${overall.thickness}mm 低於合理下限 ${rules.minOverallHeight}mm——可能無法正常使用，請增加高度。`,
     );
   }
   if (rules.minOverallLength !== undefined && overall.length < rules.minOverallLength) {
     warnings.push(
-      `整體長度 ${overall.length}mm 低於合理下限 ${rules.minOverallLength}mm。`,
+      isEn
+        ? `Overall length ${overall.length} mm is below reasonable minimum ${rules.minOverallLength} mm.`
+        : `整體長度 ${overall.length}mm 低於合理下限 ${rules.minOverallLength}mm。`,
     );
   }
   if (rules.minOverallWidth !== undefined && overall.width < rules.minOverallWidth) {
     warnings.push(
-      `整體寬度 ${overall.width}mm 低於合理下限 ${rules.minOverallWidth}mm。`,
+      isEn
+        ? `Overall width ${overall.width} mm is below reasonable minimum ${rules.minOverallWidth} mm.`
+        : `整體寬度 ${overall.width}mm 低於合理下限 ${rules.minOverallWidth}mm。`,
     );
   }
   if (rules.maxOverallHeight !== undefined && overall.thickness > rules.maxOverallHeight) {
     warnings.push(
-      `整體高度 ${overall.thickness}mm 超過本模板合理上限 ${rules.maxOverallHeight}mm——` +
-        `這個尺寸比較像別種家具，下方會建議切換模板。`,
+      isEn
+        ? `Overall height ${overall.thickness} mm exceeds this template's reasonable maximum ${rules.maxOverallHeight} mm — these dimensions look more like a different furniture type, see suggestion below.`
+        : `整體高度 ${overall.thickness}mm 超過本模板合理上限 ${rules.maxOverallHeight}mm——這個尺寸比較像別種家具，下方會建議切換模板。`,
     );
   }
   if (rules.maxOverallLength !== undefined && overall.length > rules.maxOverallLength) {
     warnings.push(
-      `整體長度 ${overall.length}mm 超過本模板合理上限 ${rules.maxOverallLength}mm。`,
+      isEn
+        ? `Overall length ${overall.length} mm exceeds this template's reasonable maximum ${rules.maxOverallLength} mm.`
+        : `整體長度 ${overall.length}mm 超過本模板合理上限 ${rules.maxOverallLength}mm。`,
     );
   }
   if (rules.maxOverallWidth !== undefined && overall.width > rules.maxOverallWidth) {
     warnings.push(
-      `整體寬度 ${overall.width}mm 超過本模板合理上限 ${rules.maxOverallWidth}mm。`,
+      isEn
+        ? `Overall width ${overall.width} mm exceeds this template's reasonable maximum ${rules.maxOverallWidth} mm.`
+        : `整體寬度 ${overall.width}mm 超過本模板合理上限 ${rules.maxOverallWidth}mm。`,
     );
   }
 
@@ -112,12 +128,16 @@ export function validateBasicGeometry(
     const { wallThickness, outerSpan } = rules;
     if (wallThickness * 2 >= outerSpan.length) {
       warnings.push(
-        `壁厚 ${wallThickness}mm × 2 = ${wallThickness * 2}mm 已超過或等於外長 ${outerSpan.length}mm，內部空間 ≤ 0。`,
+        isEn
+          ? `Wall thickness ${wallThickness} mm × 2 = ${wallThickness * 2} mm meets or exceeds outer length ${outerSpan.length} mm; interior space ≤ 0.`
+          : `壁厚 ${wallThickness}mm × 2 = ${wallThickness * 2}mm 已超過或等於外長 ${outerSpan.length}mm，內部空間 ≤ 0。`,
       );
     }
     if (wallThickness * 2 >= outerSpan.width) {
       warnings.push(
-        `壁厚 ${wallThickness}mm × 2 = ${wallThickness * 2}mm 已超過或等於外寬 ${outerSpan.width}mm，內部空間 ≤ 0。`,
+        isEn
+          ? `Wall thickness ${wallThickness} mm × 2 = ${wallThickness * 2} mm meets or exceeds outer width ${outerSpan.width} mm; interior space ≤ 0.`
+          : `壁厚 ${wallThickness}mm × 2 = ${wallThickness * 2}mm 已超過或等於外寬 ${outerSpan.width}mm，內部空間 ≤ 0。`,
       );
     }
   }
@@ -125,7 +145,11 @@ export function validateBasicGeometry(
   if (rules.requireParts) {
     for (const idFragment of rules.requireParts) {
       if (!design.parts.some((p) => p.id.includes(idFragment))) {
-        warnings.push(`預期應有零件 "${idFragment}" 但 parts 內沒看到。`);
+        warnings.push(
+          isEn
+            ? `Expected part "${idFragment}" not found in parts.`
+            : `預期應有零件 "${idFragment}" 但 parts 內沒看到。`,
+        );
       }
     }
   }
@@ -133,10 +157,18 @@ export function validateBasicGeometry(
   if (rules.partCountRange) {
     const { min, max } = rules.partCountRange;
     if (min !== undefined && design.parts.length < min) {
-      warnings.push(`零件數 ${design.parts.length} 少於預期下限 ${min}。`);
+      warnings.push(
+        isEn
+          ? `Part count ${design.parts.length} is below expected minimum ${min}.`
+          : `零件數 ${design.parts.length} 少於預期下限 ${min}。`,
+      );
     }
     if (max !== undefined && design.parts.length > max) {
-      warnings.push(`零件數 ${design.parts.length} 多於預期上限 ${max}。`);
+      warnings.push(
+        isEn
+          ? `Part count ${design.parts.length} exceeds expected maximum ${max}.`
+          : `零件數 ${design.parts.length} 多於預期上限 ${max}。`,
+      );
     }
   }
 
@@ -219,7 +251,8 @@ export function validateCabinetStructure(rules: CabinetStructureRules): string[]
   return warnings;
 }
 
-export function validateStoolStructure(rules: StoolStructureRules): string[] {
+export function validateStoolStructure(rules: StoolStructureRules, locale: string = "zh-TW"): string[] {
+  const isEn = locale === "en";
   const warnings: string[] = [];
   const { legSize, height } = rules;
 
@@ -227,8 +260,9 @@ export function validateStoolStructure(rules: StoolStructureRules): string[] {
   const minLegSize = Math.ceil(height / 15);
   if (legSize < minLegSize) {
     warnings.push(
-      `腳粗 ${legSize}mm 對 ${height}mm 高的凳子可能太細（建議至少 ${minLegSize}mm，` +
-        `比例 1:15）——坐久會晃，建議加粗或加下橫撐結構補強。`,
+      isEn
+        ? `Leg size ${legSize} mm may be too thin for a ${height} mm tall stool (recommend at least ${minLegSize} mm, 1:15 ratio) — it will wobble after prolonged use. Thicken legs or add a lower stretcher for reinforcement.`
+        : `腳粗 ${legSize}mm 對 ${height}mm 高的凳子可能太細（建議至少 ${minLegSize}mm，比例 1:15）——坐久會晃，建議加粗或加下橫撐結構補強。`,
     );
   }
 
@@ -237,8 +271,9 @@ export function validateStoolStructure(rules: StoolStructureRules): string[] {
     const minThick = Math.ceil(rules.seatSpan / 40);
     if (rules.seatThickness < minThick) {
       warnings.push(
-        `座板厚 ${rules.seatThickness}mm 對 ${rules.seatSpan}mm 跨距偏薄（建議至少 ${minThick}mm）——` +
-          `承重時中央會明顯下凹。建議加厚或加中央橫木支撐。`,
+        isEn
+          ? `Seat thickness ${rules.seatThickness} mm vs ${rules.seatSpan} mm span is thin (recommend at least ${minThick} mm) — center will sag noticeably under load. Consider thicker stock or add a center support rail.`
+          : `座板厚 ${rules.seatThickness}mm 對 ${rules.seatSpan}mm 跨距偏薄（建議至少 ${minThick}mm）——承重時中央會明顯下凹。建議加厚或加中央橫木支撐。`,
       );
     }
   }
@@ -250,15 +285,18 @@ export function validateStoolStructure(rules: StoolStructureRules): string[] {
     rules.lowerStretcherHeight < 80
   ) {
     warnings.push(
-      `下橫撐離地僅 ${rules.lowerStretcherHeight}mm（< 80mm），坐下時容易踢到、清掃地面也麻煩。` +
-        `建議拉高到 100-150mm。`,
+      isEn
+        ? `Lower stretcher is only ${rules.lowerStretcherHeight} mm off the floor (< 80 mm) — easy to kick when seated, hard to clean underneath. Recommend raising to 100–150 mm.`
+        : `下橫撐離地僅 ${rules.lowerStretcherHeight}mm（< 80mm），坐下時容易踢到、清掃地面也麻煩。建議拉高到 100-150mm。`,
     );
   }
 
   // 高凳沒下橫撐
   if (height > 500 && rules.hasLowerStretcher === false) {
     warnings.push(
-      `凳高 ${height}mm 超過 500mm 但沒加下橫撐——高凳結構不穩定，建議勾選「加下橫撐」。`,
+      isEn
+        ? `Stool height ${height} mm exceeds 500 mm but has no lower stretcher — tall stools are structurally unstable; enable "add lower stretcher".`
+        : `凳高 ${height}mm 超過 500mm 但沒加下橫撐——高凳結構不穩定，建議勾選「加下橫撐」。`,
     );
   }
 
@@ -282,6 +320,7 @@ export function applyStandardChecks(
     maxWidth?: number;
     maxHeight?: number;
   },
+  locale: string = "zh-TW",
 ): void {
   appendWarnings(
     design,
@@ -292,7 +331,7 @@ export function applyStandardChecks(
       maxOverallLength: bounds.maxLength,
       maxOverallWidth: bounds.maxWidth,
       maxOverallHeight: bounds.maxHeight,
-    }),
+    }, locale),
   );
 }
 

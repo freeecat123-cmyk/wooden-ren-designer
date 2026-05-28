@@ -56,6 +56,8 @@ export const roundStoolOptions: OptionSpec[] = [
  */
 export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const diameter = input.length;
 
   const o = roundStoolOptions;
@@ -571,15 +573,17 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   applyStandardChecks(design, {
     minLength: 200, minWidth: 200, minHeight: 350,
     maxLength: 600, maxWidth: 600, maxHeight: 550,
-  });
+  }, locale);
   if (input.length > 600) {
     appendSuggestion(design, {
-      text: `直徑 ${input.length}mm 比較像圓茶几——圓茶几模板有牙板、下橫撐選項。`,
+      text: isEn
+        ? `Diameter ${input.length} mm is closer to a round tea table — the round tea table template offers apron and lower-stretcher options.`
+        : `直徑 ${input.length}mm 比較像圓茶几——圓茶几模板有牙板、下橫撐選項。`,
       suggestedCategory: "round-tea-table",
       presetParams: { length: input.length, width: input.length, height: Math.min(input.height, 500), material: input.material },
     });

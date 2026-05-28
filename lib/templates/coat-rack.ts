@@ -86,6 +86,8 @@ export const coatRackOptions: OptionSpec[] = [
  */
 export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = coatRackOptions;
   const mountType = getOption<string>(input, opt(o, "mountType")) as "standing" | "wall-rail";
   const rackStyle = getOption<string>(input, opt(o, "rackStyle"));
@@ -506,18 +508,30 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   // max bounds + 結構檢查
   const extraWarnings: string[] = [];
   if (height > 2000) {
-    extraWarnings.push(`衣帽架高度 ${height}mm 過高（max 2000mm）——重心高 + 容易碰天花，建議縮到 1800mm 以下`);
+    extraWarnings.push(
+      isEn
+        ? `Coat rack height ${height} mm is too tall (max 2000 mm) — high center of gravity, may hit the ceiling; recommend ≤ 1800 mm.`
+        : `衣帽架高度 ${height}mm 過高（max 2000mm）——重心高 + 容易碰天花，建議縮到 1800mm 以下`,
+    );
   }
   if (height < 1500) {
-    extraWarnings.push(`衣帽架高度 ${height}mm 過矮（min 1500mm）——掛長外套會拖地`);
+    extraWarnings.push(
+      isEn
+        ? `Coat rack height ${height} mm is too short (min 1500 mm) — long coats will drag on the floor.`
+        : `衣帽架高度 ${height}mm 過矮（min 1500mm）——掛長外套會拖地`,
+    );
   }
   if (footLength < height / 8) {
-    extraWarnings.push(`底爪長 ${footLength}mm 對 ${height}mm 高度太短——容易倒。建議底爪長 ≥ 高度 / 7`);
+    extraWarnings.push(
+      isEn
+        ? `Foot length ${footLength} mm is too short for ${height} mm height — easy to tip over. Recommend foot length ≥ height / 7.`
+        : `底爪長 ${footLength}mm 對 ${height}mm 高度太短——容易倒。建議底爪長 ≥ 高度 / 7`,
+    );
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   // 邊緣倒角：只套到沒掛其他 shape 的零件（圓柱已是 round shape，不會被覆寫）

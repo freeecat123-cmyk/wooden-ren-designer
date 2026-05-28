@@ -478,6 +478,9 @@ export interface FurnitureTemplateInput {
   material: MaterialId;
   joinery?: JoineryType;
   options?: Record<string, string | number | boolean>;
+  /** Locale (e.g. "en", "zh-TW"). Templates use this to emit locale-aware
+   *  warning strings. Defaults to "zh-TW" when omitted (legacy callers). */
+  locale?: string;
 }
 
 export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesign;

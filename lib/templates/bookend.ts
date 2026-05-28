@@ -31,6 +31,8 @@ export const bookendOptions: OptionSpec[] = [
  */
 export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: baseDepth, width: baseWidth, height: backHeight, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = bookendOptions;
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const withBrace = getOption<boolean>(input, opt(o, "withBrace"));
@@ -84,7 +86,11 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const warnings: string[] = [];
 
   if (backPanelH <= 0) {
-    warnings.push(`背板高度 ≤ 0：總高 ${backHeight}mm 小於板厚 ${panelT}mm。`);
+    warnings.push(
+      isEn
+        ? `Back panel height ≤ 0: overall height ${backHeight} mm is less than panel thickness ${panelT} mm.`
+        : `背板高度 ≤ 0：總高 ${backHeight}mm 小於板厚 ${panelT}mm。`,
+    );
   }
 
   if (withBrace) {
@@ -118,10 +124,18 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用 **45° miter + spline 暗榫**接：底板後緣上頂面、背板前緣下底面各斜切 ${panelT}mm × 45°，對接後縫隙完全隱形；接合面中央開 6×40mm spline 凹槽，內嵌片榫（直紋木條沿短邊方向）膠合 → 既對齊又抗剝離。${withBrace ? "L 角內側再加直角三角加固，承重大幅提升。" : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };
   if (baseDepth > 250 || baseWidth > 300 || backHeight > 350) {
-    warnings.push(`書擋 ${baseDepth}×${baseWidth}×${backHeight}mm 超過合理範圍（max 250×300×350mm）。再大就不是書擋而是 L 型桌或小櫃`);
+    warnings.push(
+      isEn
+        ? `Bookend ${baseDepth}×${baseWidth}×${backHeight} mm exceeds reasonable range (max 250×300×350 mm). Larger than this is no longer a bookend but an L-shaped desk or small cabinet.`
+        : `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm 超過合理範圍（max 250×300×350mm）。再大就不是書擋而是 L 型桌或小櫃`,
+    );
   }
   if (panelT < 12 && backHeight > 200) {
-    warnings.push(`板厚 ${panelT}mm 對 ${backHeight}mm 高背板太薄——重書壓久會彎，建議加厚到 15mm 以上`);
+    warnings.push(
+      isEn
+        ? `Panel ${panelT} mm vs ${backHeight} mm tall back is too thin — heavy books will bend it over time; recommend ≥ 15 mm.`
+        : `板厚 ${panelT}mm 對 ${backHeight}mm 高背板太薄——重書壓久會彎，建議加厚到 15mm 以上`,
+    );
   }
   if (warnings.length) design.warnings = warnings;
   return design;

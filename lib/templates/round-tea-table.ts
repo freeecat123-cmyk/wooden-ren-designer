@@ -62,6 +62,8 @@ export const roundTeaTableOptions: OptionSpec[] = [
  */
 export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const diameter = input.length;
 
   const o = roundTeaTableOptions;
@@ -656,15 +658,17 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLowerStretcher && withLowerShelf ? ` 下層圓棚板 ${lowerShelfParts[0]?.visible.length}mm × ${lowerShelfThickness}mm，rest-on 擱在 4 條下橫撐上。` : ""}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,
     maxLength: 1100, maxWidth: 1100, maxHeight: 500,
-  });
+  }, locale);
   if (input.length > 1100 || input.height > 500) {
     appendSuggestion(design, {
-      text: `直徑 ${input.length}mm × 高 ${input.height}mm 已不算茶几——圓餐桌支援獨柱 / 端梁等大型結構。`,
+      text: isEn
+        ? `Diameter ${input.length} mm × height ${input.height} mm no longer counts as a tea table — the round dining table template supports pedestal / trestle structures for larger sizes.`
+        : `直徑 ${input.length}mm × 高 ${input.height}mm 已不算茶几——圓餐桌支援獨柱 / 端梁等大型結構。`,
       suggestedCategory: "round-table",
       presetParams: { length: input.length, width: input.length, height: Math.max(input.height, 700), material: input.material },
     });

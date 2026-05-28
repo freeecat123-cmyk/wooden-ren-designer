@@ -2020,7 +2020,13 @@ export function T2Annotations({
         : 0;
       const TH = 2; // mm 門檻
       // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
-      const shoulderTopStartY = topBoundary;
+      // splay 腿 + 正視 FRONT (annView="top") + 實線 mortise：起點改回 partTopY
+      // （= 未傾斜方料的 gross top = 「腳輪廓虛線最上緣」），不要走 prevLSibling
+      // chain 規則。leader 從 gross top 拉到 mortise 上緣 = 「12.5 dim 起點往上移」
+      // (user 2026-05-28「腳輪廓虛線最上緣到 18×10 的 mortise 上緣」)
+      const useGrossTopAnchor =
+        isSplayLegPart && view === "top" && isMortise && isVisibleFromView;
+      const shoulderTopStartY = useGrossTopAnchor ? partTopY : topBoundary;
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
       // 原本 mid-chain shoulderTop label 會外推 tightOut + 加斜引線避免跟 box W-dim

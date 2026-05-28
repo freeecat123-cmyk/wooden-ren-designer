@@ -248,7 +248,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       }
     }
   }
-  const rawDesign = entry.template({ length, width, height, material, options });
+  const rawDesign = entry.template({ length, width, height, material, options, locale });
   const design = joineryMode
     ? applyEdgeProtection(rawDesign)
     : toBeginnerMode(rawDesign);

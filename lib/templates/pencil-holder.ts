@@ -105,6 +105,8 @@ export const pencilHolderOptions: OptionSpec[] = [
  */
 export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = pencilHolderOptions;
   // 鑲板入溝（inset-panel）底板統一抬高量。方筒 / 六角 / 八角共用同一個固定值，
   // 否則底板與隔板起點會在三條路徑各自漂移（曾被 revert 拆散成 botT / 5 / 2*botT）。
@@ -501,9 +503,15 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   // 結構檢查 + max bounds
   const warnings: string[] = [];
   if (outerL > 200 || outerW > 200 || outerH > 250) {
-    warnings.push(`筆筒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 200×200×250mm）。再大就比較像鳩尾盒——考慮改用鳩尾盒模板`);
+    warnings.push(
+      isEn
+        ? `Pencil holder ${outerL}×${outerW}×${outerH} mm exceeds reasonable range (max 200×200×250 mm). At this size consider the dovetail box template.`
+        : `筆筒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 200×200×250mm）。再大就比較像鳩尾盒——考慮改用鳩尾盒模板`,
+    );
     design.suggestions = [{
-      text: `${outerL}×${outerW}×${outerH}mm 已超過筆筒範圍——鳩尾盒模板支援更大的盒體 + 鳩尾接合選項。`,
+      text: isEn
+        ? `${outerL}×${outerW}×${outerH} mm exceeds the pencil holder range — the dovetail box template supports larger bodies and dovetail joinery options.`
+        : `${outerL}×${outerW}×${outerH}mm 已超過筆筒範圍——鳩尾盒模板支援更大的盒體 + 鳩尾接合選項。`,
       suggestedCategory: "dovetail-box",
       presetParams: { length: String(outerL), width: String(outerW), height: String(outerH), material },
     }];
