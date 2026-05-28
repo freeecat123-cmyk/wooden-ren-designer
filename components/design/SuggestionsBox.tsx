@@ -1,9 +1,9 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
-import { getCategoryLabel } from "@/lib/templates/labels";
+import { categoryLabel as categoryLabelFromLib } from "@/lib/templates/labels";
 import { isPaidCategory } from "@/lib/permissions";
 import type { FurnitureCategory } from "@/lib/types";
 
@@ -26,6 +26,7 @@ interface Suggestion {
 export function SuggestionsBox({ suggestions }: { suggestions: Suggestion[] }) {
   const t = useTranslations("suggestionsBox");
   const tFurn = useTranslations("furniture");
+  const locale = useLocale();
   const { plan, isLoading } = useUserPlan();
   if (isLoading || suggestions.length === 0) return null;
 
@@ -35,7 +36,7 @@ export function SuggestionsBox({ suggestions }: { suggestions: Suggestion[] }) {
     try {
       return tFurn(c);
     } catch {
-      return getCategoryLabel(c);
+      return categoryLabelFromLib(c, locale);
     }
   }
 

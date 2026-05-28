@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { getCategoryLabel } from "@/lib/templates/labels";
+import { categoryLabel } from "@/lib/templates/labels";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { materialName } from "@/lib/materials";
 
@@ -25,7 +25,7 @@ export function AskMasterButton({
       try {
         return tFurn(category);
       } catch {
-        return getCategoryLabel(category);
+        return categoryLabel(category, locale);
       }
     })();
 

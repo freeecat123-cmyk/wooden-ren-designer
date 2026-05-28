@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { getCategoryLabel } from "@/lib/templates/labels";
+import { useTranslations, useLocale } from "next-intl";
+import { categoryLabel } from "@/lib/templates/labels";
 import type { FurnitureCategory } from "@/lib/types";
 
 export function ShareDesignButton({
@@ -15,6 +15,7 @@ export function ShareDesignButton({
 }) {
   const t = useTranslations("shareDesign");
   const tFurn = useTranslations("furniture");
+  const locale = useLocale();
   const sp = useSearchParams();
   const [state, setState] = useState<"idle" | "copied" | "shared">("idle");
 
@@ -22,7 +23,7 @@ export function ShareDesignButton({
     try {
       return tFurn(category);
     } catch {
-      return getCategoryLabel(category);
+      return categoryLabel(category, locale);
     }
   };
 
