@@ -18,6 +18,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { getUnlockPrice } from "@/lib/pricing/template-unlock";
 import type { FurnitureCategory } from "@/lib/types";
 import { routing } from "@/i18n/routing";
+import { getCurrencyFromCookies } from "@/lib/units/server-currency";
 
 /**
  * /templates/[type] — 單模板介紹頁
@@ -103,6 +104,10 @@ export default async function TemplateDetail({ params }: PageProps) {
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
     .slice(0, 3);
 
+  // priceCurrency label only — amount is still locale-keyed business decision.
+  // TODO: unify pricing across currencies and derive amount from `currency`.
+  const currency = await getCurrencyFromCookies();
+
   // JSON-LD Product schema
   const productSchema = {
     "@context": "https://schema.org",
@@ -117,7 +122,7 @@ export default async function TemplateDetail({ params }: PageProps) {
     offers: {
       "@type": "Offer",
       price: isFree ? "0" : isEn ? "9" : "390",
-      priceCurrency: isEn ? "USD" : "TWD",
+      priceCurrency: currency,
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },

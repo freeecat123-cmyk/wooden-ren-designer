@@ -8,6 +8,7 @@ import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
+import { getCurrencyFromCookies } from "@/lib/units/server-currency";
 
 type UserStatus = "guest" | "loggedInNoAccess";
 
@@ -62,6 +63,9 @@ export async function RaisedFloorMarketing({ status }: Props) {
   const tierPersonal = t.raw("pricingSection.tierPersonal") as TierBlock;
   const tierPro = t.raw("pricingSection.tierPro") as TierBlock;
 
+  // priceCurrency label only — amount stays locale-keyed (TODO: unify pricing).
+  const currency = await getCurrencyFromCookies();
+
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -72,7 +76,7 @@ export async function RaisedFloorMarketing({ status }: Props) {
     offers: {
       "@type": "Offer",
       price: isEn ? "9" : "390",
-      priceCurrency: isEn ? "USD" : "TWD",
+      priceCurrency: currency,
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },

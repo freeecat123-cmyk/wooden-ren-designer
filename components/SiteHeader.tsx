@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { HeaderUser } from "@/components/auth/HeaderUser";
 import { UnitToggle } from "@/components/UnitToggle";
+import { CurrencyToggle } from "@/components/CurrencyToggle";
 
 /**
  * 全站頂部導覽列（sticky top:0 z:50）
@@ -50,6 +51,7 @@ export function SiteHeader() {
     return (
       <div className="no-print fixed top-4 right-4 z-40 flex items-center gap-2">
         <UnitToggle />
+        <CurrencyToggle />
         <HeaderUser />
       </div>
     );
@@ -101,8 +103,9 @@ export function SiteHeader() {
 
         {/* 右側：UnitToggle + HeaderUser + 行動漢堡 */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex items-center gap-2">
             <UnitToggle />
+            <CurrencyToggle />
           </div>
           <HeaderUser />
           <button

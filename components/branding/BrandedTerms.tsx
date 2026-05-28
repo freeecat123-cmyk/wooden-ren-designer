@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useBranding } from "./branding";
+import { useCurrency } from "@/hooks/useCurrency";
+import type { CurrencyPref } from "@/lib/geo-defaults";
 
 function splitLines(s: string): string[] {
   return s
@@ -10,10 +12,12 @@ function splitLines(s: string): string[] {
     .filter(Boolean);
 }
 
-function twd(n: number): string {
-  return new Intl.NumberFormat("zh-TW", {
+function formatMoney(n: number, currency: CurrencyPref): string {
+  // LABEL only — no FX conversion of amount (TODO: unify pricing).
+  const locale = currency === "USD" ? "en-US" : "zh-TW";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "TWD",
+    currency,
     maximumFractionDigits: 0,
   }).format(Math.round(n));
 }
@@ -39,6 +43,8 @@ export function BrandedTermsBlocks({
 }: TermsProps = {}) {
   const t = useTranslations("branded");
   const { data } = useBranding();
+  const currency = useCurrency();
+  const twd = (n: number) => formatMoney(n, currency);
   const longDashes = t("dashesPlaceholder");
   const shortDashes = t("dashesShort");
 

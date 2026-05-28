@@ -14,6 +14,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
+import { getCurrencyFromCookies } from "@/lib/units/server-currency";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -147,6 +148,11 @@ export default async function LocaleLayout({
 
   const m = META[locale];
 
+  // Currency for JSON-LD priceCurrency labels. NOTE: this controls the LABEL only —
+  // amounts below are still locale-keyed (business decision; TWD 390 ≠ USD 12 swap).
+  // TODO: when pricing is unified across currencies, derive amounts from this too.
+  const currency = await getCurrencyFromCookies();
+
   return (
     <html
       lang={m.htmlLang}
@@ -174,15 +180,15 @@ export default async function LocaleLayout({
               offers:
                 locale === "en"
                   ? [
-                      { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: "USD" },
-                      { "@type": "Offer", name: "Pro Monthly", price: "9", priceCurrency: "USD" },
-                      { "@type": "Offer", name: "Pro Annual", price: "79", priceCurrency: "USD" },
-                      { "@type": "Offer", name: "Lifetime", price: "129", priceCurrency: "USD" },
+                      { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: currency },
+                      { "@type": "Offer", name: "Pro Monthly", price: "9", priceCurrency: currency },
+                      { "@type": "Offer", name: "Pro Annual", price: "79", priceCurrency: currency },
+                      { "@type": "Offer", name: "Lifetime", price: "129", priceCurrency: currency },
                     ]
                   : [
-                      { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: "TWD" },
-                      { "@type": "Offer", name: "個人版", price: "390", priceCurrency: "TWD" },
-                      { "@type": "Offer", name: "專業版", price: "890", priceCurrency: "TWD" },
+                      { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: currency },
+                      { "@type": "Offer", name: "個人版", price: "390", priceCurrency: currency },
+                      { "@type": "Offer", name: "專業版", price: "890", priceCurrency: currency },
                     ],
               creator: {
                 "@type": "Organization",

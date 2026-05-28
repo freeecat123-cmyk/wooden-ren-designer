@@ -13,6 +13,8 @@ import { taipeiIsoDate } from "@/lib/utils/date-tw";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { loadBranding } from "@/components/branding/branding";
 import { QrCode } from "@/components/print/QrCode";
+import { useCurrency } from "@/hooks/useCurrency";
+import type { CurrencyPref } from "@/lib/geo-defaults";
 
 /**
  * 分享按鈕列（LINE / Email / PDF）。
@@ -64,6 +66,7 @@ export function QuoteShareActions({
 }: Props) {
   const t = useTranslations("quoteShareActions");
   const locale = useLocale();
+  const currency = useCurrency();
   const [copied, setCopied] = useState<CopiedState>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
@@ -101,7 +104,7 @@ export function QuoteShareActions({
       expiryDate: expiryIso,
       quoteNo,
       printUrl,
-    });
+    }, currency);
     await copyToClipboard(message);
     setCopied("line");
     setTimeout(() => setCopied(null), 2000);
@@ -148,7 +151,7 @@ export function QuoteShareActions({
       expiryDate: expiryIso,
       quoteNo,
       printUrl,
-    });
+    }, currency);
     const mailto = `mailto:${encodeURIComponent(customer.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
   };
@@ -373,10 +376,12 @@ function readFormState(design: FurnitureDesign, locale: string = "zh-TW") {
 
 /* ─────────────── 訊息與 Email 格式 ─────────────── */
 
-function twd(n: number): string {
-  return new Intl.NumberFormat("zh-TW", {
+function formatMoney(n: number, currency: CurrencyPref): string {
+  // LABEL only — amount is not auto-converted. TODO: unify pricing across currencies.
+  const locale = currency === "USD" ? "en-US" : "zh-TW";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "TWD",
+    currency,
     maximumFractionDigits: 0,
   }).format(Math.round(n));
 }
@@ -398,7 +403,8 @@ interface ShareContent {
 
 type T = (key: string, vals?: Record<string, string | number>) => string;
 
-function buildLineMessage(t: T, c: ShareContent): string {
+function buildLineMessage(t: T, c: ShareContent, currency: CurrencyPref): string {
+  const twd = (n: number) => formatMoney(n, currency);
   const greeting = c.customerName
     ? t("lineGreetingTpl", { name: c.customerName })
     : t("lineGreetingFallback");
@@ -436,7 +442,8 @@ function buildLineMessage(t: T, c: ShareContent): string {
   ].join("\n");
 }
 
-function buildEmailContent(t: T, c: ShareContent): { subject: string; body: string } {
+function buildEmailContent(t: T, c: ShareContent, currency: CurrencyPref): { subject: string; body: string } {
+  const twd = (n: number) => formatMoney(n, currency);
   const greeting = c.customerName
     ? t("lineGreetingTpl", { name: c.customerName })
     : t("lineGreetingFallback");

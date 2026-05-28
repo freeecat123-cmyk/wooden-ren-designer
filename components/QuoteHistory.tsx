@@ -4,6 +4,8 @@ import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useCurrency } from "@/hooks/useCurrency";
+import type { CurrencyPref } from "@/lib/geo-defaults";
 
 type QuoteStatus = "pending" | "won" | "lost";
 
@@ -61,10 +63,13 @@ function save(list: QuoteHistoryEntry[]): void {
   window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)));
 }
 
-function formatTWD(n: number): string {
-  return new Intl.NumberFormat("zh-TW", {
+function formatMoney(n: number, currency: CurrencyPref): string {
+  // LABEL only — amount is not auto-converted across currencies.
+  // TODO: when pricing is unified, convert n by an exchange rate here.
+  const locale = currency === "USD" ? "en-US" : "zh-TW";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "TWD",
+    currency,
     maximumFractionDigits: 0,
   }).format(Math.round(n));
 }
@@ -108,6 +113,7 @@ interface Props {
  */
 export function QuoteHistory({ current }: Props) {
   const t = useTranslations("quoteHistory");
+  const currency = useCurrency();
   const statusLabel = (s: QuoteStatus): string =>
     s === "pending" ? t("statusPending") : s === "won" ? t("statusWon") : t("statusLost");
   const [entries, setEntries] = useState<QuoteHistoryEntry[]>([]);
@@ -244,7 +250,7 @@ export function QuoteHistory({ current }: Props) {
                       : "text-zinc-900"
                   }`}
                 >
-                  {formatTWD(e.total)}
+                  {formatMoney(e.total, currency)}
                 </span>
               </Link>
               <button
