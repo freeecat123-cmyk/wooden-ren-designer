@@ -15,8 +15,8 @@ export function CurrencyToggle() {
   const locale = useLocale();
   const currency = useCurrency();
 
-  // 國外版（en）強制 USD,不給切 — 對外不顯示 TWD 選項
-  if (locale === "en") return null;
+  // 國外版（en）強制 USD,台灣版（zh-TW）強制 TWD,皆隱藏不給切
+  if (locale === "en" || locale === "zh-TW") return null;
 
   const setCurrency = (next: CurrencyPref) => {
     try {

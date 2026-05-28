@@ -1,14 +1,20 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useUnit, UNIT_CHANGE_EVENT } from "@/hooks/useUnit";
 import type { UnitPref } from "@/lib/geo-defaults";
 
 /**
  * mm / inch 切換按鈕。寫 localStorage[wr-unit]，廣播 UNIT_CHANGE_EVENT
- * 讓所有 useUnit() 訂閱者即時換顯示。不綁語系（中文站也可切英寸；英文站也可切 mm）。
+ * 讓所有 useUnit() 訂閱者即時換顯示。
+ * 台灣版(zh-TW)強制 mm,隱藏不顯示;國際版(/en)可切。
  */
 export function UnitToggle() {
+  const locale = useLocale();
   const unit = useUnit();
+
+  // 台灣版不顯示 — 強制 mm,不給切英寸
+  if (locale === "zh-TW") return null;
 
   const setUnit = (next: UnitPref) => {
     try {

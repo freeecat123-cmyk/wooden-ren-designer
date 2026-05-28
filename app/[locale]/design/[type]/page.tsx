@@ -12,6 +12,7 @@ import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
+import { RangeInput } from "@/components/mobile/RangeInput";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
@@ -1027,8 +1028,10 @@ async function ParameterForm({
       {(() => {
         const isRound =
           type === "round-stool" || type === "round-table" || type === "round-tea-table";
+        const isEn = locale === "en";
+        const gridCols = isEn ? "grid-cols-1" : (isRound ? "grid-cols-2" : "grid-cols-3");
         return (
-          <div className={`grid ${isRound ? "grid-cols-2" : "grid-cols-3"} gap-2 mb-3 items-end`}>
+          <div className={`grid ${gridCols} gap-2 mb-3 items-end`}>
             {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
             <NumberInput
               key={`length-${defaults.length}`}
@@ -1038,6 +1041,7 @@ async function ParameterForm({
               max={limits?.length}
               partIds={resolvePartIds("length", allPartIds)}
               upperLimitTpl={t("upperLimit", { max: limits?.length ?? 0 })}
+              locale={locale}
             />
             {!isRound && (
               <NumberInput
@@ -1048,6 +1052,7 @@ async function ParameterForm({
                 max={limits?.width}
                 partIds={resolvePartIds("width", allPartIds)}
                 upperLimitTpl={t("upperLimit", { max: limits?.width ?? 0 })}
+                locale={locale}
               />
             )}
             <NumberInput
@@ -1058,6 +1063,7 @@ async function ParameterForm({
               max={limits?.height}
               partIds={resolvePartIds("height", allPartIds)}
               upperLimitTpl={t("upperLimit", { max: limits?.height ?? 0 })}
+              locale={locale}
             />
           </div>
         );
@@ -1480,6 +1486,22 @@ function getHeightPresetsForCategory(type: string, locale: string): { value: num
   return [];
 }
 
+/** 算 6-8 個 tick mark 位置(從 mobile MobileShell 借同款 logic) */
+function makeTicksForOverallDim(minV: number, maxV: number, step: number): number[] {
+  const span = maxV - minV;
+  if (span <= 0) return [];
+  const targetCount = 7;
+  const rawInterval = span / targetCount;
+  const candidates = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+  const interval = candidates.find((c) => c >= rawInterval) ?? Math.ceil(rawInterval / step) * step;
+  const out: number[] = [];
+  const start = Math.ceil(minV / interval) * interval;
+  for (let t = start; t <= maxV; t += interval) {
+    if (t > minV && t < maxV) out.push(t);
+  }
+  return out;
+}
+
 function NumberInput({
   name,
   label,
@@ -1488,6 +1510,7 @@ function NumberInput({
   partIds,
   presetPoints,
   upperLimitTpl,
+  locale,
 }: {
   name: string;
   label: string;
@@ -1496,7 +1519,29 @@ function NumberInput({
   partIds?: string[];
   presetPoints?: { value: number; label: string }[];
   upperLimitTpl?: string;
+  locale: string;
 }) {
+  // 國際版桌面端 W/D/H 改用 slider + chip 組合(對齊 IKEA / Roomle / Mebway 配置器 UX);
+  // 中文版維持純 number input(台灣使用者習慣打 mm 數字).
+  if (locale === "en") {
+    const effMax = max ?? 4000;
+    return (
+      <RangeInput
+        name={name}
+        label={label}
+        defaultValue={defaultValue}
+        unit="mm"
+        min={20}
+        max={effMax}
+        step={10}
+        ticks={makeTicksForOverallDim(20, effMax, 10)}
+        showRange
+        partIds={partIds}
+        presetPoints={presetPoints}
+        help={upperLimitTpl}
+      />
+    );
+  }
   return (
     <label className="flex flex-col text-xs">
       <span className="text-zinc-600 mb-1 truncate" title={max && upperLimitTpl ? upperLimitTpl : undefined}>

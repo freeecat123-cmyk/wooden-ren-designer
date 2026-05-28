@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useGeoDefaults } from "./useGeoDefaults";
 import type { UnitPref } from "@/lib/geo-defaults";
 
@@ -37,10 +38,16 @@ function readLocalUnit(): UnitPref | null {
 export const UNIT_CHANGE_EVENT = "wr-unit-change";
 
 export function useUnit(): UnitPref {
+  const locale = useLocale();
   const geo = useGeoDefaults();
   const [unit, setUnit] = useState<UnitPref>(FALLBACK);
 
   useEffect(() => {
+    // 台灣版(zh-TW)強制 mm,不給切英寸
+    if (locale === "zh-TW") {
+      setUnit("mm");
+      return;
+    }
     const resolve = () => {
       const local = readLocalUnit();
       setUnit(local ?? geo.unit);
@@ -58,7 +65,7 @@ export function useUnit(): UnitPref {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener(UNIT_CHANGE_EVENT, onCustom);
     };
-  }, [geo.unit]);
+  }, [geo.unit, locale]);
 
   return unit;
 }

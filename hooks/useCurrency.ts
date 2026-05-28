@@ -46,10 +46,13 @@ export function useCurrency(): CurrencyPref {
   const [currency, setCurrency] = useState<CurrencyPref>(FALLBACK);
 
   useEffect(() => {
-    // 國外版（locale=en）強制 USD，無視 localStorage / geo cookie。
-    // 對外不顯示 TWD 選項，避免英文使用者看到台幣困惑。
+    // 國外版（locale=en）強制 USD,台灣版（zh-TW）強制 TWD,皆不給切。
     if (locale === "en") {
       setCurrency("USD");
+      return;
+    }
+    if (locale === "zh-TW") {
+      setCurrency("TWD");
       return;
     }
     const resolve = () => {
