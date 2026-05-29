@@ -31,9 +31,11 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = sanitizeNext(searchParams.get("next"));
+  // 從 next 推 locale prefix → /en 訪客的錯誤頁也保持 EN
+  const localePrefix = next.startsWith("/en/") || next === "/en" ? "/en" : "";
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/auth/error?reason=missing`);
+    return NextResponse.redirect(`${origin}${localePrefix}/auth/error?reason=missing`);
   }
 
   const supabase = await createClient();
@@ -90,5 +92,5 @@ export async function GET(request: Request) {
       : msg.includes("used") || msg.includes("already")
       ? "used"
       : "unknown";
-  return NextResponse.redirect(`${origin}/auth/error?reason=${reason}`);
+  return NextResponse.redirect(`${origin}${localePrefix}/auth/error?reason=${reason}`);
 }
