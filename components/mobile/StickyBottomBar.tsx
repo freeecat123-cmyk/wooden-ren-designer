@@ -1,7 +1,9 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 
 interface StickyBottomBarProps {
   /** 總價（NTD，已含稅毛利） */
@@ -21,8 +23,7 @@ export function StickyBottomBar({
   lineShareText,
 }: StickyBottomBarProps) {
   const t = useTranslations("mobile.bottom");
-  const locale = useLocale();
-  const isEn = locale === "en";
+  const currency = useCurrency();
   const handleLineShare = () => {
     if (typeof window === "undefined") return;
     const fullText = `${lineShareText} ${window.location.href}`;
@@ -33,8 +34,7 @@ export function StickyBottomBar({
     );
   };
 
-  const formattedPrice = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(totalPrice);
-  const currencyPrefix = isEn ? "TWD " : "NT$ ";
+  const formattedTotal = formatPrice(totalPrice, currency);
 
   return (
     <div
@@ -45,7 +45,7 @@ export function StickyBottomBar({
         <div className="flex flex-col">
           <span className="text-[11px] text-zinc-500 tracking-wide">{t("totalLabel")}</span>
           <span className="text-xl font-bold text-amber-900 tabular-nums leading-tight">
-            {currencyPrefix}{formattedPrice}
+            {formattedTotal}
           </span>
           <span className="text-[11px] text-zinc-500">{t("weight", { kg: weight.toFixed(1) })}</span>
         </div>

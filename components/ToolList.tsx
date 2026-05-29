@@ -117,7 +117,9 @@ export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
                     <td className="px-4 py-2.5 text-zinc-600">{rt.reason}</td>
                     <td className="px-4 py-2.5 text-right text-zinc-700 tabular-nums">
                       {rt.tool.priceCached
-                        ? `${isEn ? "TWD " : "NT$ "}${rt.tool.priceCached.toLocaleString()}`
+                        ? isEn
+                          ? `$${(rt.tool.priceCached / 32).toFixed(2)}`
+                          : `NT$ ${rt.tool.priceCached.toLocaleString()}`
                         : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right">
