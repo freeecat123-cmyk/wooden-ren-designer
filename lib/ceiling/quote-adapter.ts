@@ -27,7 +27,7 @@ export function ceilingBomToEngInput(
     {
       label: isEn ? "Ceiling system materials" : "天花板系統材料",
       detail: isEn
-        ? `NT$${materialPerPing.toLocaleString()}/ping × ${ping} ping (${summary})`
+        ? `$${(materialPerPing / 32).toFixed(2)}/ping × ${ping} ping (${summary})`
         : `每坪 NT$${materialPerPing.toLocaleString()} × ${ping} 坪(${summary})`,
       amount: materialCost,
       unpriced: materialPerPing <= 0,

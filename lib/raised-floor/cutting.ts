@@ -574,7 +574,7 @@ export function bomToCsvRows(
         title: "Raised platform — material list & cutting plan",
         summaryPing: "ping",
         section1: "━━ Material list ━━",
-        bomHeader: ["Category", "Name", "Spec", "Qty", "Total length (m)", "Note", "Subtotal (NT$)"],
+        bomHeader: ["Category", "Name", "Spec", "Qty", "Total length (m)", "Note", "Subtotal (USD)"],
         total: "Total",
         section2: "━━ Cutting plan ① Joists (1D FFD) ━━",
         stockInfoTpl: (len: number, kerf: number, splice: number) =>
@@ -637,6 +637,8 @@ export function bomToCsvRows(
   // 1. BOM 主表
   out.push([L.section1]);
   out.push(L.bomHeader);
+  const money = (twd: number): string =>
+    isEn ? (twd / 32).toFixed(2) : String(Math.round(twd));
   for (const it of bom.items) {
     out.push([
       it.category,
@@ -645,7 +647,7 @@ export function bomToCsvRows(
       it.count != null ? String(it.count) : "",
       it.totalLengthM != null ? it.totalLengthM.toFixed(1) : "",
       (isEn && it.noteEn ? it.noteEn : it.note) ?? "",
-      it.subtotal != null ? String(Math.round(it.subtotal)) : "",
+      it.subtotal != null ? money(it.subtotal) : "",
     ]);
   }
   out.push([
@@ -655,7 +657,7 @@ export function bomToCsvRows(
     "",
     "",
     L.total,
-    bom.cost.total > 0 ? String(Math.round(bom.cost.total)) : "",
+    bom.cost.total > 0 ? money(bom.cost.total) : "",
   ]);
   out.push([]);
 

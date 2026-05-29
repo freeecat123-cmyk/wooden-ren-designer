@@ -3,6 +3,9 @@ import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import { taipeiYMD } from "@/lib/utils/date-tw";
 import { formatMm } from "@/lib/units/format";
+import { convertTwdToUsd } from "@/lib/units/fx";
+
+const usd = (twd: number): string => `$${convertTwdToUsd(twd).toFixed(2)}`;
 
 /**
  * 倒角 / 圓角加工工時。每條外露邊跑修邊機（V 角 / 圓刀）+ 手工砂磨。
@@ -240,19 +243,19 @@ const QUOTE_COPY = {
     materialPrefix: "Material · ",
     primarySuffix: " (primary)",
     panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
-      `${bdft} bd-ft (incl. ${waste}% cut waste) × NT$${unitPrice}/bd-ft`,
+      `${bdft} bd-ft (incl. ${waste}% cut waste) × ${usd(unitPrice)}/bd-ft`,
     sheetMaterial: (label: string, thickness: string) =>
       `Material · ${label} (sheet, ${thickness})`,
     sheetDetail: (sheets: number, thickness: string, sheetDims: string, areaM2: string, waste: number, unitPrice: number) =>
-      `${sheets} sheets ${thickness} × ${sheetDims} (used ${areaM2} m² + ${waste}% waste → ceil to full sheets) × NT$${unitPrice}/bd-ft`,
+      `${sheets} sheets ${thickness} × ${sheetDims} (used ${areaM2} m² + ${waste}% waste → ceil to full sheets) × ${usd(unitPrice)}/bd-ft`,
     labor: "Labor",
     laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
-      `${hours} hr (manual override; auto-est ${autoHours}h) × NT$${rate}/hr`,
+      `${hours} hr (manual override; auto-est ${autoHours}h) × ${usd(rate)}/hr`,
     laborDetailChamfer: (base: string, ch: string, chDetail: string, rate: number) =>
-      `Build ${base}h + edge profiling ${ch}h (${chDetail}) × NT$${rate}/hr`,
-    laborDetailBasic: (hours: string, rate: number) => `${hours} hr × NT$${rate}/hr`,
+      `Build ${base}h + edge profiling ${ch}h (${chDetail}) × ${usd(rate)}/hr`,
+    laborDetailBasic: (hours: string, rate: number) => `${hours} hr × ${usd(rate)}/hr`,
     equipment: "Equipment depreciation",
-    equipmentDetail: (hours: string, rate: number) => `${hours} hr × NT$${rate}/hr`,
+    equipmentDetail: (hours: string, rate: number) => `${hours} hr × ${usd(rate)}/hr`,
     consumables: "Consumables",
     consumablesDetail: "Glue, sandpaper, bit wear, etc.",
     finishing: "Finishing",

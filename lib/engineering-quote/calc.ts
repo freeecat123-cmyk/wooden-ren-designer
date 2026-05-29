@@ -52,8 +52,14 @@ export function computeEngineeringQuote(
   locale: string = "zh-TW",
 ): EngineeringQuoteBreakdown {
   const C = locale === "en" ? LABEL_COPY.en : LABEL_COPY.zhTW;
-  const moneyPrefix = locale === "en" ? "NT$" : "NT$";
-  const fmtPer = (n: number) => `${moneyPrefix}${n.toLocaleString()}`;
+  const fmtPer = (n: number) => {
+    if (locale === "en") {
+      // unit prices passed in TWD; convert to USD for EN locale
+      const usdAmt = n / 32;
+      return `$${usdAmt.toFixed(2)}`;
+    }
+    return `NT$${n.toLocaleString()}`;
+  };
   const r = (n: number) => Math.round(n);
 
   const materialCost = r(input.materialCost);
