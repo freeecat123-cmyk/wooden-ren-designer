@@ -2178,8 +2178,73 @@ function OrthoViewImpl({
           const poly = projectPartPolygon(part, view, polyAllParts);
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
-          // Splayed top view: projectPartPolygon 現在已直接回 union outline
-          // （頂面 + 底面偏移的凸包六邊形），不再需要另畫 footprint dashed rect。
+          // Splayed top view 雙條 shoulder（user 2026-05-29「俯視應該看到 2 條線
+          // 單斜起點 + 切好終點」）:外輪廓 polygon 已含 bottom 面偏移,補上 top 面
+          // 兩端 shoulder 線(未偏移)。X 軸 dxMm 才有 X 方向偏移、TOP view 看得到
+          // 雙線;dzMm 單斜在 TOP view 投影沒 X 偏移、不畫(保留判斷簡單)。
+          if (
+            view === "top" &&
+            (part.shape?.kind === "splayed" ||
+              part.shape?.kind === "splayed-tapered" ||
+              part.shape?.kind === "splayed-round-tapered")
+          ) {
+            const dxMm = part.shape.dxMm ?? 0;
+            const dzMm = part.shape.dzMm ?? 0;
+            if (Math.abs(dxMm) > 0.5 || Math.abs(dzMm) > 0.5) {
+              const r = projectPart(part, view);
+              // top 面(無偏移)是 projectPart 回的 r;bottom 面偏 (Dx, Dy)
+              // 跟 geometry.ts:651-652 同慣例:Dx=-dxMm, Dy=dzMm
+              const Dx = -dxMm;
+              const Dy = dzMm;
+              // 兩端各畫 top 面 shoulder(若跟 bottom 面 shoulder X 偏移 > 1.5 svg
+              // 才畫,避免雙線疊在一起看不出來)
+              if (Math.abs(Dx) > 1.5) {
+                extras.push(
+                  <line
+                    key={`${part.id}-topshoulder-L`}
+                    x1={r.x}
+                    x2={r.x}
+                    y1={-r.y}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                  <line
+                    key={`${part.id}-topshoulder-R`}
+                    x1={r.x + r.w}
+                    x2={r.x + r.w}
+                    y1={-r.y}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                );
+              }
+              // Z 偏移時補 top 面前/後 shoulder(沿 length 軸的水平線)
+              if (Math.abs(Dy) > 1.5) {
+                extras.push(
+                  <line
+                    key={`${part.id}-topshoulder-F`}
+                    x1={r.x}
+                    x2={r.x + r.w}
+                    y1={-r.y}
+                    y2={-r.y}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                  <line
+                    key={`${part.id}-topshoulder-B`}
+                    x1={r.x}
+                    x2={r.x + r.w}
+                    y1={-(r.y + r.h)}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                );
+              }
+            }
+          }
           // Arch-bent 側視：在未彎時的端面後緣多畫一條垂直實線，標示
           // 端面（cross-section）邊界——讓看圖的人分得出料的真實厚度 vs 彎弧延伸
           if (part.shape?.kind === "arch-bent" && view === "side") {

@@ -109,12 +109,13 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   // session 取自 cookie（middleware 已驗 JWT），免 HTTP roundtrip。
   const user = await getSessionUser();
   const supabase = await createClient();
+  const prefix = locale === "en" ? "/en" : "";
   if (!user) {
-    const next = `/design/${type}/quote`;
-    redirect(`/login?next=${encodeURIComponent(next)}`);
+    const next = `${prefix}/design/${type}/quote`;
+    redirect(`${prefix}/login?next=${encodeURIComponent(next)}`);
   }
   if (!(await isPaidUser(user.id))) {
-    redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+    redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
   const length = parseInt(sp.length ?? "") || entry.defaults.length;

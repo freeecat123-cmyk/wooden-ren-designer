@@ -66,11 +66,12 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   // session 取自 cookie（middleware 已驗 JWT），無 HTTP roundtrip
   const user = await getSessionUser();
   const supabase = await createClient();
+  const prefix = rawLocale === "en" ? "/en" : "";
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/design/${type}/print`)}`);
+    redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/print`)}`);
   }
   if (!(await isPaidUser(user.id))) {
-    redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+    redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
   const spStr = (k: string): string | undefined => {

@@ -40,11 +40,12 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const user = await getSessionUser();
   const supabase = await createClient();
   if (!isThumbShoot) {
+    const prefix = locale === "en" ? "/en" : "";
     if (!user) {
-      redirect(`/login?next=${encodeURIComponent(`/design/${type}/cut-plan`)}`);
+      redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/cut-plan`)}`);
     }
     if (!(await isPaidUser(user.id))) {
-      redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+      redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
     }
   }
 

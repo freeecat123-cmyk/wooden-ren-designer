@@ -10,7 +10,7 @@
  * 任何輸入變更 → useMemo 即時 computeRaisedFloorBom 重算。
  */
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
