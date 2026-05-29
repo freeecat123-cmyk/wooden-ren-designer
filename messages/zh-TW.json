@@ -3751,7 +3751,7 @@
     "monthly": "月",
     "yearly": "年",
     "downgradeCancel": "降級請先取消當前訂閱",
-    "upgradeNowTpl": "立刻升級 · 退舊版 NT$ {amount}",
+    "upgradeNowTpl": "立刻升級 · 退舊版 {amount}",
     "upgradeNow": "立刻升級",
     "checking": "確認中…",
     "refundDetailTpl": "舊方案剩 {days} 天未用，升級後自動退 NT$ {amount} 回原信用卡（3-7 個工作日入帳）",

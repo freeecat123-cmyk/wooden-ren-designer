@@ -3751,7 +3751,7 @@
     "monthly": "monthly",
     "yearly": "yearly",
     "downgradeCancel": "Cancel current subscription to downgrade",
-    "upgradeNowTpl": "Upgrade now · refund NT$ {amount} for old plan",
+    "upgradeNowTpl": "Upgrade now · refund {amount} for old plan",
     "upgradeNow": "Upgrade now",
     "checking": "Checking…",
     "refundDetailTpl": "{days} days unused on the old plan — NT$ {amount} will be auto-refunded to the original card (3-7 business days).",

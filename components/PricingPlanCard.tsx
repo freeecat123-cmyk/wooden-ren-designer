@@ -340,7 +340,7 @@ export function PlanCardView({
         })();
         const ctaText =
           isUpgrade && refundCalc.state === "loaded" && refundCalc.refundAmount > 0
-            ? t("upgradeNowTpl", { amount: refundCalc.refundAmount })
+            ? t("upgradeNowTpl", { amount: money(refundCalc.refundAmount) })
             : isUpgrade
             ? t("upgradeNow")
             : plan.cta;
