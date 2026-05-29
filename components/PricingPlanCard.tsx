@@ -169,15 +169,15 @@ export function PlanCardView({
         {hasCoupon
           ? t("couponAppliedTpl", {
               pct: couponDiscountPercent!,
-              amount: (plan.yearlyPrice - couponedYearly).toLocaleString(),
+              amount: money(plan.yearlyPrice - couponedYearly),
             })
           : (
             <>
-              {t("monthlyEqTpl", { price: monthlyEq })}
+              {t("monthlyEqTpl", { price: money(monthlyEq) })}
               {plan.originalYearly &&
                 plan.originalYearly > plan.yearlyPrice &&
                 t("savingsTpl", {
-                  amount: (plan.originalYearly - plan.yearlyPrice).toLocaleString(),
+                  amount: money(plan.originalYearly - plan.yearlyPrice),
                 })}
             </>
           )}

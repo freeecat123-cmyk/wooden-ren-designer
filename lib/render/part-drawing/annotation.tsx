@@ -1816,7 +1816,12 @@ export function T2Annotations({
             view === "side" && isLegPart && isMortise && !isVisibleFromView;
           const rightVMmX = isSideLegDashed ? box.x + box.w + 8 : box.x + box.w + 2;
           const hMmX = box.x + box.w / 2;
-          const hMmY = isSideLegDashed ? box.y + box.h + 8 : box.y - 2;
+          const hMmAboveY = box.y - 2;
+          // mortise 緊貼 part 頂緣時 hMmAboveY 會撞 part 輪廓黑線(2026-05-29
+          // SIDE view 短料 apron 截圖)。clamp 到 partTopSvg - 4 確保字頭在
+          // part 邊上方留空。
+          const hMmClearedY = Math.min(hMmAboveY, partTopSvg - 4);
+          const hMmY = isSideLegDashed ? box.y + box.h + 8 : hMmClearedY;
           return (
             <g key={`${it.kind}-${it.idx}-inline-dims`}>
               {/* L dim label 規則：
