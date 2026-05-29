@@ -3754,7 +3754,7 @@
     "upgradeNowTpl": "立刻升級 · 退舊版 {amount}",
     "upgradeNow": "立刻升級",
     "checking": "確認中…",
-    "refundDetailTpl": "舊方案剩 {days} 天未用，升級後自動退 NT$ {amount} 回原信用卡（3-7 個工作日入帳）",
+    "refundDetailTpl": "舊方案剩 {days} 天未用，升級後自動退 {amount} 回原信用卡（3-7 個工作日入帳）",
     "refundZero": "舊方案已無剩餘天數可退，新方案立刻啟用",
     "refundLoading": "升級後將自動退舊版未使用部分回原信用卡",
     "checkoutGatewayTplMonthly": "將跳轉綠界 ECPay 付款 · 信用卡（每月自動扣款）",

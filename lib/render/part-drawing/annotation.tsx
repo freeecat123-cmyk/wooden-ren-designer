@@ -132,7 +132,9 @@ export function T1Dimensions({
         : t.position === "left" || t.position === "right"),
   );
   const HORIZ_OFFSET = hasVertTenon ? 30 : 18;
-  const VERT_OFFSET = 50;
+  // VERT_OFFSET 從 50 拉到 70：避開短料側視圖（寬/厚軸）的「厚 20 / 寬 60」
+  // 撞到內側 tenon 標籤（user 2026-05-29 後牙條側視圖）
+  const VERT_OFFSET = 70;
   const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
 
   // 8 corners 投影
@@ -2263,6 +2265,10 @@ export function GrainArrow({
   part: Part;
   view: PartView;
 }) {
+  // 零件圖隱藏順紋箭頭：常與右下角榫頭/尺寸標籤重疊（user 2026-05-29）
+  // 順紋資訊已在材料表/spec 欄位呈現，此處不再畫小箭頭。
+  return null;
+  // eslint-disable-next-line no-unreachable
   const dir = grainArrowDir(part.grainDirection, view);
   const x0 = ctx.vbX + ctx.vbW - 38;
   const y0 = ctx.vbY + ctx.vbH - 18;

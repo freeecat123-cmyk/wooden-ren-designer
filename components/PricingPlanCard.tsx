@@ -370,7 +370,7 @@ export function PlanCardView({
               <p className="mt-2 text-[11px] text-emerald-700 text-center leading-snug">
                 {t("refundDetailTpl", {
                   days: refundCalc.remainingDays,
-                  amount: refundCalc.refundAmount,
+                  amount: money(refundCalc.refundAmount),
                 })}
               </p>
             )}
