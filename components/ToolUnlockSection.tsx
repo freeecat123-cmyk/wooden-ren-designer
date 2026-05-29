@@ -9,9 +9,12 @@ import {
   type ToolId,
 } from "@/lib/pricing/tool-unlock";
 import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 
 export function ToolUnlockSection() {
   const t = useTranslations("toolUnlock");
+  const currency = useCurrency();
   const searchParams = useSearchParams();
   const notice = searchParams.get("tool_notice");
   const [unlocked, setUnlocked] = useState<Set<ToolId>>(new Set());
@@ -91,7 +94,7 @@ export function ToolUnlockSection() {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <h3 className="font-semibold text-zinc-900">{toolLabel(tool)}</h3>
                   <div className="text-lg font-bold text-amber-900 shrink-0">
-                    NT${TOOL_UNLOCK_PRICES[tool]}
+                    {formatPrice(TOOL_UNLOCK_PRICES[tool], currency)}
                   </div>
                 </div>
                 <p className="text-xs text-zinc-600 leading-relaxed mb-4">

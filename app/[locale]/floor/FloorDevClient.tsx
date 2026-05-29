@@ -33,14 +33,18 @@ import {
 import { FloorOverviewSvg } from "@/lib/floor/FloorOverviewSvg";
 import { FloorCanvasEditor } from "./FloorCanvasEditor";
 import { FloorRangeInput } from "./FloorRangeInput";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 
 export function FloorDevClient() {
   const router = useRouter();
   const t = useTranslations("floorTool");
   const locale = useLocale();
+  const currency = useCurrency();
   const [input, setInput] = useState<FloorInput>(DEFAULT_FLOOR_INPUT);
   const bom = useMemo(() => computeFloorBom(input, locale), [input, locale]);
   const [copied, setCopied] = useState(false);
+  const fmt = (n: number) => formatPrice(n, currency);
 
   const set = <K extends keyof FloorInput>(k: K, v: FloorInput[K]) =>
     setInput((p) => ({ ...p, [k]: v }));
@@ -77,13 +81,12 @@ export function FloorDevClient() {
               : it.totalAreaM2 != null
                 ? `${it.totalAreaM2.toFixed(1)} ${t("unitSquareMeter")}`
                 : "";
-        const money =
-          it.subtotal != null ? `  NT$ ${Math.round(it.subtotal).toLocaleString()}` : "";
+        const money = it.subtotal != null ? `  ${fmt(it.subtotal)}` : "";
         return `${floorBomItemName(it, locale)} ${floorBomItemSpec(it, locale)}  ${qty}${money}`;
       }),
       t("copyDivider"),
       bom.cost.total > 0
-        ? t("copyTotalLine", { total: Math.round(bom.cost.total).toLocaleString() }) +
+        ? t("copyTotalLine", { total: fmt(bom.cost.total) }) +
           (bom.cost.hasUnpriced ? t("copyTotalUnpricedSuffix") : "")
         : t("copyNoQuoteLine"),
       t("copyWasteLine", { waste: bom.trace.wastePercent.toFixed(1) }),
@@ -299,9 +302,7 @@ export function FloorDevClient() {
                       {it.totalAreaM2 != null && `${it.totalAreaM2.toFixed(1)} ${t("unitSquareMeter")}`}
                     </td>
                     <td className="py-1 pl-2 text-right whitespace-nowrap text-zinc-700">
-                      {it.subtotal != null
-                        ? `NT$ ${Math.round(it.subtotal).toLocaleString()}`
-                        : t("noPrice")}
+                      {it.subtotal != null ? fmt(it.subtotal) : t("noPrice")}
                     </td>
                   </tr>
                 ))}
@@ -310,9 +311,7 @@ export function FloorDevClient() {
                     {t("totalRow")}
                   </td>
                   <td className="py-1 pl-2 text-right font-semibold whitespace-nowrap">
-                    {bom.cost.total > 0
-                      ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                      : t("noPrice")}
+                    {bom.cost.total > 0 ? fmt(bom.cost.total) : t("noPrice")}
                   </td>
                 </tr>
               </tbody>
@@ -345,9 +344,7 @@ export function FloorDevClient() {
           <div className="rounded-lg border border-[#bd9955]/40 bg-[#bd9955]/10 p-3">
             <div className="text-xs text-zinc-500">{t("estimatedTotal")}</div>
             <div className="text-2xl font-bold text-[#8a6d3b]">
-              {bom.cost.total > 0
-                ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                : t("noQuote")}
+              {bom.cost.total > 0 ? fmt(bom.cost.total) : t("noQuote")}
             </div>
             {bom.cost.total > 0 && bom.cost.hasUnpriced && (
               <div className="text-[11px] text-amber-600">{t("partiallyPriced")}</div>

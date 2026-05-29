@@ -2687,7 +2687,7 @@
     "copyRoomLine": "Room {area} m² / {ping} ping · perimeter {perimeter} m",
     "copyPatternLine": "Pattern: {pattern} · plank {lengthCm}×{widthCm}cm",
     "copyDivider": "──────────",
-    "copyTotalLine": "Total NT$ {total}",
+    "copyTotalLine": "Total {total}",
     "copyTotalUnpricedSuffix": " (some items not priced)",
     "copyNoQuoteLine": "(no quote set)",
     "copyWasteLine": "Waste {waste}%"
@@ -2872,7 +2872,7 @@
       "copyShapeLine": "Shape: {shape} {width}×{depth} cm",
       "copyPillarSuffix": " · {count} column notches",
       "copyDivider": "──────────",
-      "copyTotalLine": "Total NT$ {total}",
+      "copyTotalLine": "Total {total}",
       "copyTotalUnpricedSuffix": " (some items not priced)",
       "copyNoQuoteLine": "(no quote set)",
       "csvFilename": "raised_floor_{width}x{depth}_H{height}.csv"

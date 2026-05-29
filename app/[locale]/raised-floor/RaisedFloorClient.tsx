@@ -38,6 +38,8 @@ import type {
   ViewMode,
 } from "@/lib/raised-floor/RaisedFloorScene3D";
 import { FloorRangeInput } from "@/app/[locale]/floor/FloorRangeInput";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 import { UnderlaySkirtingSection } from "./UnderlaySkirtingSection";
 import {
   bomToCuttingPieces,
@@ -76,6 +78,8 @@ export function RaisedFloorClient() {
     return t(map[c]);
   };
   const locale = useLocale();
+  const currency = useCurrency();
+  const fmt = (n: number) => formatPrice(n, currency);
   const [input, setInput] = useState<RaisedFloorInput>(DEFAULT_RAISED_FLOOR_INPUT);
   const bom = useMemo(() => computeRaisedFloorBom(input, locale), [input, locale]);
   const [copied, setCopied] = useState(false);
@@ -181,14 +185,13 @@ export function RaisedFloorClient() {
             : it.totalLengthM != null
               ? `${it.totalLengthM.toFixed(1)} ${t("unitMeter")}`
               : "";
-        const money =
-          it.subtotal != null ? `  NT$ ${Math.round(it.subtotal).toLocaleString()}` : "";
+        const money = it.subtotal != null ? `  ${fmt(it.subtotal)}` : "";
         const displayName = locale === "en" && it.nameEn ? it.nameEn : it.nameZh;
         return `${displayName} ${it.spec}  ${qty}${money}`;
       }),
       t("copyDivider"),
       bom.cost.total > 0
-        ? t("copyTotalLine", { total: Math.round(bom.cost.total).toLocaleString() }) +
+        ? t("copyTotalLine", { total: fmt(bom.cost.total) }) +
           (bom.cost.hasUnpriced ? t("copyTotalUnpricedSuffix") : "")
         : t("copyNoQuoteLine"),
     ];
@@ -855,9 +858,7 @@ export function RaisedFloorClient() {
                         {it.totalLengthM != null && `${it.totalLengthM.toFixed(1)} ${t("unitMeter")}`}
                       </td>
                       <td className="py-1 pl-2 text-right whitespace-nowrap text-zinc-700">
-                        {it.subtotal != null
-                          ? `NT$ ${Math.round(it.subtotal).toLocaleString()}`
-                          : t("noPrice")}
+                        {it.subtotal != null ? fmt(it.subtotal) : t("noPrice")}
                       </td>
                     </tr>
                   ))}
@@ -866,9 +867,7 @@ export function RaisedFloorClient() {
                       {t("totalRow")}
                     </td>
                     <td className="py-1 pl-2 text-right font-semibold whitespace-nowrap">
-                      {bom.cost.total > 0
-                        ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                        : t("noPrice")}
+                      {bom.cost.total > 0 ? fmt(bom.cost.total) : t("noPrice")}
                     </td>
                   </tr>
                 </tbody>
@@ -881,9 +880,7 @@ export function RaisedFloorClient() {
                 <div>
                   <div className="text-xs text-zinc-500">{t("estimatedTotal")}</div>
                   <div className="text-2xl font-bold text-[#8a6d3b]">
-                    {bom.cost.total > 0
-                      ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                      : t("noQuote")}
+                    {bom.cost.total > 0 ? fmt(bom.cost.total) : t("noQuote")}
                   </div>
                 </div>
                 {bom.cost.total > 0 && bom.cost.hasUnpriced && (
