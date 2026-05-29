@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -102,6 +103,8 @@ export const diningChairOptions: OptionSpec[] = [
  */
 export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = diningChairOptions;
 
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -1369,15 +1372,23 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes:
-      `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
-      ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}` +
-      (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
-      (seatFrontWaterfall ? " 座板前緣 R25 大圓化（waterfall edge），減少對大腿後側壓迫。" : "") +
-      (backStyle === "windsor" ? " Windsor spindle 椅背：5-7 支車旋圓棒由座板上緣插入頂橫木。" : "") +
-      (backStyle === "curved-splat" ? " 曲面中板：中央單片寬板用蒸彎木 R600 弧度成型，貼合背部曲線。" : "") +
-      (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
-      " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
+    notes: isEn
+      ? `Leg style: ${legShapeLabel(legShape)}. Front legs join seat with through tenon; rear legs extend up as backrest posts; aprons to legs with blind tenons; back slats use top/bottom tenons into the crest rail and rear apron.` +
+        ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}` +
+        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+        (seatFrontWaterfall ? " Seat front R25 waterfall edge to reduce thigh pressure." : "") +
+        (backStyle === "windsor" ? " Windsor spindle back: 5-7 turned spindles socketed from seat top into the crest rail." : "") +
+        (backStyle === "curved-splat" ? " Curved center splat: single wide steam-bent panel at R600 to follow the back curve." : "") +
+        (withArmrest ? ` Armrests added: front meets a raised post above the front leg (at ${formatMm(armrestHeight, "inch")}), rear blind-tenons into the back post. Adds 4 parts + 2-3 hrs labor.` : "") +
+        " Rear legs are drawn straight; for build, saw a 10-15° backward curve from a template for better seating comfort."
+      : `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
+        ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}` +
+        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+        (seatFrontWaterfall ? " 座板前緣 R25 大圓化（waterfall edge），減少對大腿後側壓迫。" : "") +
+        (backStyle === "windsor" ? " Windsor spindle 椅背：5-7 支車旋圓棒由座板上緣插入頂橫木。" : "") +
+        (backStyle === "curved-splat" ? " 曲面中板：中央單片寬板用蒸彎木 R600 弧度成型，貼合背部曲線。" : "") +
+        (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
+        " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };
   applyStandardChecks(design, {
     minLength: 350, minWidth: 350, minHeight: 700,

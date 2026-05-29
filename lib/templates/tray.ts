@@ -7,6 +7,7 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
+import { formatMm } from "@/lib/units/format";
 
 /** 使用情境 preset */
 interface TrayPresetConfig {
@@ -206,13 +207,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       const grooveDepth = Math.min(5, wallT - 1);
       const bottomApothem = (apothem - wallT) + grooveDepth;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**鑲板入溝**（壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm）`;
+      bottomAttachDesc = isEn
+        ? `**panel-in-groove** (full-height walls, bottom edge floats in a ${formatMm(grooveDepth, "inch")} groove on the inside of each stave)`
+        : `**鑲板入溝**（壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm）`;
     } else if (bottomAttach === "flush-glued") {
       stavesOuterH = outerH;
       stavesBaseY = botT;
       bottomOriginY = 0;
       bottomVertexR = outerWallVertexR; // 底板外緣跟壁外緣齊
-      bottomAttachDesc = "**整塊膠合**（底板外緣與框體齊邊）";
+      bottomAttachDesc = isEn
+        ? "**flush-glued** (bottom flush with the outside of the walls)"
+        : "**整塊膠合**（底板外緣與框體齊邊）";
     } else { // seated
       stavesOuterH = outerH;
       stavesBaseY = botT;
@@ -221,7 +226,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       const seatOverlap = wallT / 2;
       const bottomApothem = (apothem - wallT) + seatOverlap;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，N 段壁壓在底板邊緣膠合）`;
+      bottomAttachDesc = isEn
+        ? `**seated bottom** (bottom edge recessed ${formatMm(seatOverlap, "inch")} inside the walls, ${sides} staves glued onto the bottom's edge)`
+        : `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，N 段壁壓在底板邊緣膠合）`;
     }
     const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
     // 每塊壁的端面是 miter（角度 = π/N，相鄰兩壁總共 2π/N = 外角）。
@@ -308,11 +315,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         addStaveMortise((3 * sides) / 4);
       }
     }
-    const polyDividerDesc = polyDividerStyleStr === "single"
-      ? "，內部 1 片穿心隔板分 2 區"
-      : polyDividerStyleStr === "cross"
-        ? "，內部十字隔板分 4 區"
-        : "";
+    const polyDividerDesc = isEn
+      ? polyDividerStyleStr === "single"
+        ? ", with 1 through-divider splitting the interior into 2 bays"
+        : polyDividerStyleStr === "cross"
+          ? ", with a cross divider splitting the interior into 4 bays"
+          : ""
+      : polyDividerStyleStr === "single"
+        ? "，內部 1 片穿心隔板分 2 區"
+        : polyDividerStyleStr === "cross"
+          ? "，內部十字隔板分 4 區"
+          : "";
 
     return {
       id: `tray-${bodyShape}-${outerD}x${outerH}`,
@@ -323,7 +336,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `${sides} 角托盤，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板為 ${sides} 邊形，採 ${bottomAttachDesc}${polyDividerDesc}。`,
+      notes: isEn
+        ? `${sides}-sided tray, outer-circle ⌀${formatMm(outerD, "inch")} × ${formatMm(outerH, "inch")} tall, wall thickness ${formatMm(wallT, "inch")}. ${sides} upright staves meet at ${(360 / sides).toFixed(1)}° miters (${sides === 6 ? "60° interior" : "45° interior"}); adjacent edges are reinforced with glue + biscuits or splines. Bottom is a ${sides}-sided panel using ${bottomAttachDesc}${polyDividerDesc}.`
+        : `${sides} 角托盤，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板為 ${sides} 邊形，採 ${bottomAttachDesc}${polyDividerDesc}。`,
     };
   }
 
@@ -944,7 +959,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `托盤 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，新手練習指接的最佳對象）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : cornerJoinery === "dovetail" ? `**鳩尾榫**（dovetail，最強最美——梯形互鎖、純機械接合甚至不上膠都能拉緊）${dovetailInfo ? `；共 ${dovetailInfo.segmentCount} 段（pin/tail）、鳩尾角 ${dovetailInfo.angleDeg}°、每段高 ${dovetailInfo.segH.toFixed(1)}mm；兩端為半 pin 不破角` : ""}` : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
+    notes: isEn
+      ? `Tray ${formatMm(outerL, "inch")}×${formatMm(outerW, "inch")}×${formatMm(outerH, "inch")}, built from ${5 + dividers + crossDividers} solid-wood pieces. Bottom ${bottomAttach === "inset-panel" ? "**floats in grooves** (5mm dado on the inside lower edge of all 4 walls, bottom floats — leaves room for seasonal movement)" : bottomAttach === "flush-glued" ? "**flush-glued** (bottom flush with the outside, just glue and clamp)" : "**inset bottom** (bottom seated inside the frame, the 4 walls press onto its edge and glue)"}. Corners use ${cornerJoinery === "finger-joint" ? `**finger joints** (exposed interlocking fingers — best practice project for box joints)${fingerJointInfo ? `; ${fingerJointInfo.segmentCount} fingers, ${formatMm(fingerJointInfo.fingerW, "inch")} each` : ""}` : cornerJoinery === "miter" ? "**miters** (45° butt — cleanest look but demands a miter sled, glue + brads to reinforce)" : cornerJoinery === "dovetail" ? `**dovetails** (the strongest and most beautiful — trapezoidal interlock pulls itself tight even dry)${dovetailInfo ? `; ${dovetailInfo.segmentCount} pin/tail pairs, ${dovetailInfo.angleDeg}° slope, ${formatMm(dovetailInfo.segH, "inch")} per pair; half-pins at both ends so no corner blows out` : ""}` : "**rabbets** (simplest — just glue)"}. Interior ${formatMm(built.innerL, "inch")}×${formatMm(built.innerW, "inch")} ≈ ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} pens worth of room.${dividers > 0 ? ` ${dividers} lengthwise divider${dividers > 1 ? "s" : ""} (${formatMm(dividerThick, "inch")} thick).` : ""}${crossDividers > 0 ? ` ${crossDividers} crosswise divider${crossDividers > 1 ? "s" : ""} (${formatMm(dividerThick, "inch")} thick).` : ""}${dividers > 0 && crossDividers > 0 ? ` Grid layout: ${(dividers + 1) * (crossDividers + 1)} compartments.` : ""}`
+      : `托盤 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，新手練習指接的最佳對象）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : cornerJoinery === "dovetail" ? `**鳩尾榫**（dovetail，最強最美——梯形互鎖、純機械接合甚至不上膠都能拉緊）${dovetailInfo ? `；共 ${dovetailInfo.segmentCount} 段（pin/tail）、鳩尾角 ${dovetailInfo.angleDeg}°、每段高 ${dovetailInfo.segH.toFixed(1)}mm；兩端為半 pin 不破角` : ""}` : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];

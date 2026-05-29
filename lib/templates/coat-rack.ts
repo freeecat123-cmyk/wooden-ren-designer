@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery } from "./_validators";
+import { formatMm } from "@/lib/units/format";
 
 /** 底爪相對立柱粗的縮放：腳厚 = columnSize × FOOT_THICKNESS_RATIO */
 const FOOT_THICKNESS_RATIO = 0.6;
@@ -162,7 +163,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       defaultJoinery: "blind-tenon",
       useButtJointConvention: true,
       primaryMaterial: material,
-      notes: `Shaker 傳統壁掛衣帽架。背板 ${railWidthMm}×${railHeightMm}×${railThicknessMm}mm，等距 ${pegCount} 個 Shaker peg（總長 ${pegLengthMm}mm，頂端錐形 ⌀${pegHeadDiameter}mm）。背板正面預鑽 ⌀12 緊配孔（peg 榫⌀12.7 干涉 0.7mm，敲入即固，傳統不用膠）。背板背面加 ${cleatThicknessMm}mm × 45° 斜切 French cleat 與牆面對應 cleat 配對掛上——拆掉很容易、承重 30kg+。Shaker 傳統用 milk paint，現代款上木蠟油即可。`,
+      notes: isEn
+        ? `Traditional Shaker wall-mounted coat rack. Back rail ${formatMm(railWidthMm, "inch")}×${formatMm(railHeightMm, "inch")}×${formatMm(railThicknessMm, "inch")}, ${pegCount} evenly spaced Shaker pegs (overall ${formatMm(pegLengthMm, "inch")} long, tapered head ⌀${formatMm(pegHeadDiameter, "inch")}). Drill the rail face at ⌀12mm for a press-fit (peg tenon ⌀12.7 = 0.7mm interference — tap home dry, no glue, Shaker-style). The back of the rail carries a ${formatMm(cleatThicknessMm, "inch")} × 45° French cleat that mates with a matching cleat on the wall — lifts off easily, holds 30kg+. Traditional finish is milk paint; modern builds take a hardwax oil.`
+        : `Shaker 傳統壁掛衣帽架。背板 ${railWidthMm}×${railHeightMm}×${railThicknessMm}mm，等距 ${pegCount} 個 Shaker peg（總長 ${pegLengthMm}mm，頂端錐形 ⌀${pegHeadDiameter}mm）。背板正面預鑽 ⌀12 緊配孔（peg 榫⌀12.7 干涉 0.7mm，敲入即固，傳統不用膠）。背板背面加 ${cleatThicknessMm}mm × 45° 斜切 French cleat 與牆面對應 cleat 配對掛上——拆掉很容易、承重 30kg+。Shaker 傳統用 milk paint，現代款上木蠟油即可。`,
     };
   }
 
@@ -506,7 +509,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
+    notes: isEn
+      ? `Standing coat rack, overall height ${formatMm(height, "inch")}, column ${formatMm(columnSize, "inch")} (${styleLabel}), ${footCount} feet${footCount === 3 ? " (120° tripod — most stable)" : " (4-way radial)"}, ${totalHooks} hooks${wallMode ? " (wall-hugging mode on — rear hooks omitted)" : ""}. Feet are blind-tenoned into the column (tenon depth ${formatMm(footTenonDepth, "inch")}). Hooks are ${formatMm(HOOK_SIZE, "inch")} round stock blind-tenoned into the column (tenon depth ${formatMm(hookTenonDepth, "inch")}) — never through-tenon a round post; blind tenons are the strongest option here.${columnStyle === "lathe-turned" ? ` Lathe-turn the column from stock ≥ ${formatMm(columnSize, "inch")} diameter to shape the vase profile.` : ""}${withUmbrellaBase ? " Drop a 200mm metal or plastic shallow tray between the feet (~$3 at hardware stores) to catch umbrella drips." : ""}${withMirror ? " Mount a 300×400mm mirror midway up the column (1500mm off the floor) using 4 mirror screws — order edge-polished glass from a glazier." : ""}${withHatRail ? " Add a 60mm-wide top crossbar (200mm overhang each end) with round hooks — keeps fedoras and newsboy caps from deforming." : ""}${withFloorTray ? " Add a ⌀400mm round shoe-mat catcher on top of the feet to keep wet boots off the floor." : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` Chamfer the 4 long arrises of the square post by ${formatMm(edgeChamfer, "inch")} to soften the edges.` : ""}`
+      : `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
   };
   const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

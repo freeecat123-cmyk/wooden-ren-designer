@@ -94,6 +94,8 @@ export const openBookshelfOptions: OptionSpec[] = [
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = openBookshelfOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
@@ -152,7 +154,10 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     drawerBoxJoinery: resolveDrawerBoxJoinery(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${effectiveReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${verticalDividerCount > 0 ? `每層加 ${verticalDividerCount} 片直立分隔板，把每格切成 ${verticalDividerCount + 1} 等份。` : ""} ${pullStyleNote(pullStyle)} ${drawerFaceStyle === "raised-panel" ? "抽屜面板採凸版（中央凸 6mm 雕花板）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: (isEn
+      ? `${notesLine}${effectiveLegHeight > 0 ? `; ${effectiveLegHeight}mm ${legShape} legs${legInset > 0 ? ` (inset ${legInset}mm)` : ""}` : ""}. ${withLedderRail ? `Top cornice ${corniceHeight}mm tall (traditional molding + ogee router bit).` : ""} ${withBookStop ? `Solid wood stop ${bookStopHeight}×${bookStopThickness}mm along rear edge of each shelf — keeps books from falling behind.` : ""} ${effectiveReinforcement ? `${reinforcementHeight}×${reinforcementThickness}mm stiffener under each shelf (${reinforcementPosition === "back" ? "rear" : reinforcementPosition === "front" ? "front" : "front + rear pair"}) to prevent long-shelf sag.` : ""} ${verticalDividerCount > 0 ? `${verticalDividerCount} vertical divider(s) per row, splitting each bay into ${verticalDividerCount + 1} equal parts.` : ""} ${pullStyleNote(pullStyle, locale)} ${drawerFaceStyle === "raised-panel" ? "Drawer faces are raised-panel (central 6mm raised carving panel)." : ""} ${withToeKick ? `Toe kick: ${toeKickHeight}mm tall × ${toeKickRecess}mm recess.` : ""} ${withCrownMolding ? `Crown molding: ${crownProjection}mm overhang (ogee/cove/chamfer profile).` : ""}`
+      : `${notesLine}${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${effectiveReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${verticalDividerCount > 0 ? `每層加 ${verticalDividerCount} 片直立分隔板，把每格切成 ${verticalDividerCount + 1} 等份。` : ""} ${pullStyleNote(pullStyle, locale)} ${drawerFaceStyle === "raised-panel" ? "抽屜面板採凸版（中央凸 6mm 雕花板）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`
+    ).trim(),
     warnings,
   });
   // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面

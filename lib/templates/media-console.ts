@@ -173,6 +173,8 @@ const toColumn = (t: ColType, count: number, drawerCols = 1, doorCols = 1, doorI
  * 電視櫃（media console）— 縱向 1/2 層或橫向 2/3 欄分區。
  */
 export const mediaConsole: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = mediaConsoleOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const layoutMode = getOption<string>(input, opt(o, "layoutMode"));
@@ -418,14 +420,24 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     pullStyle,
     doorPullStyle,
-    notes: [
-      `電視櫃：${noteParts.join("；")}。`,
-      `門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。`,
-      `底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
-      pullStyleNote(pullStyle),
-      toeKickNote(withToeKick, toeKickHeight, toeKickRecess),
-      crownMoldingNote(withCrownMolding, crownProjection),
-    ].filter((s) => s && s.trim()).join(" ").trim(),
+    notes: (isEn
+      ? [
+          `Media console: ${noteParts.join("; ")}.`,
+          `Door: ${doorMountLabel(doorMount)} (Euro hinge ${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"}).`,
+          `Base legs ${legHeight}mm (${legShape})${legInset > 0 ? `, inset ${legInset}mm` : ""}.`,
+          pullStyleNote(pullStyle, locale),
+          withToeKick ? `Toe kick: ${toeKickHeight}mm tall × ${toeKickRecess}mm recess.` : "",
+          withCrownMolding ? `Crown molding: ${crownProjection}mm overhang (ogee/cove/chamfer profile).` : "",
+        ]
+      : [
+          `電視櫃：${noteParts.join("；")}。`,
+          `門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。`,
+          `底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
+          pullStyleNote(pullStyle, locale),
+          toeKickNote(withToeKick, toeKickHeight, toeKickRecess),
+          crownMoldingNote(withCrownMolding, crownProjection),
+        ]
+    ).filter((s) => s && s.trim()).join(" ").trim(),
   });
 
   applyStandardChecks(design, {

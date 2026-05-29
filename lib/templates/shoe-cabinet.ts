@@ -104,6 +104,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = shoeCabinetOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
@@ -269,7 +271,10 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${effectiveLegHeight > 0 ? `；加 ${Math.round(effectiveLegHeight)}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}${lockTotalHeight ? "（鎖定總高自動算）" : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""}`.trim(),
+    notes: (isEn
+      ? `${notesLine}; door: ${doorMountLabel(doorMount)} (Euro hinge ${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"})${effectiveLegHeight > 0 ? `; ${Math.round(effectiveLegHeight)}mm base legs (${legShape})${legInset > 0 ? `, inset ${legInset}mm` : ""}${lockTotalHeight ? " (auto-calc from locked total height)" : ""}` : ""}. ${pullStyleNote(pullStyle, locale)} ${doorType === "louvered" ? "Louvered door: horizontal slats cut in panel (8mm slat thickness, 15mm spacing, 25° tilt) for ventilation against shoe odor." : ""}`
+      : `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${effectiveLegHeight > 0 ? `；加 ${Math.round(effectiveLegHeight)}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}${lockTotalHeight ? "（鎖定總高自動算）" : ""}` : ""}。${pullStyleNote(pullStyle, locale)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""}`
+    ).trim(),
     warnings,
   });
   // 百葉門：把每片門的木鑲板換成「N 片橫向實心百葉條」（真實葉片，非裝飾凹槽）。

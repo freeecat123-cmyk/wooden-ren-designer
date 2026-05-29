@@ -8,6 +8,7 @@ import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
 const TABLE_TYPE_LABEL: Record<string, string> = {
@@ -159,7 +160,9 @@ function buildPedestalRoundTable(p: {
     primaryMaterial: material as "maple",
     useButtJointConvention: true,
     warnings: warnings.length ? warnings : undefined,
-    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}${topPanelPiecingHint(diameter)}`,
+    notes: isEn
+      ? `Pedestal round table: ${formatMm(columnSize, "inch")} central column + 4 feet ${formatMm(footLength, "inch")} long. Column = legSize × 2.5 (${formatMm(legSize, "inch")} → ${formatMm(columnSize, "inch")}) for visual support. The ${formatMm(topCleatSize, "inch")} cleat at the column top is **glued + 8 screws** under the top (round tops have radial grain — never use tenons or seasonal movement will crack the top). Feet shoulder-tenoned into the column in 4 directions.${diameter >= 1100 ? ` Tops ≥ 43" dia. should switch to a 2-pillar (trestle) base — too much load for a single-column joint.` : ""}${topPanelPiecingHint(diameter, "en")}`
+      : `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}${topPanelPiecingHint(diameter)}`,
   };
 }
 
@@ -174,7 +177,10 @@ function buildTrestleRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
   seatChamferMm?: number; seatEdgeStyle?: string;
+  locale?: string;
 }): FurnitureDesign {
+  const isEn = p.locale === "en";
+  const locale = p.locale ?? "zh-TW";
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
   const seatChamferMm = p.seatChamferMm ?? 0;
   const chamferStyle = p.seatEdgeStyle === "rounded" ? "rounded" : "chamfered";
@@ -329,7 +335,9 @@ function buildTrestleRoundTable(p: {
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
     warnings: trestleWarnings.length ? trestleWarnings : undefined,
-    notes: `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。${topPanelPiecingHint(diameter)}`,
+    notes: isEn
+      ? `Trestle round table: two end frames (front / back, each 2 legs + top rail + foot) + center stretcher. Leg ${formatMm(trestleLegSize, "inch")} (base × 1.3). Frame length ${formatMm(frameRailLen, "inch")}, frame spacing ${formatMm(2 * frameZ, "inch")}. Use this structure for tops ≥ 40" dia. — smaller tops look frame-heavy.${topPanelPiecingHint(diameter, locale)}`
+      : `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。${topPanelPiecingHint(diameter, locale)}`,
   };
 }
 
@@ -394,15 +402,18 @@ export const roundTableOptions: OptionSpec[] = [
  * 市場很難買到 > 300mm 寬的整片實木，硬訂單片寬料會嚴重翹曲。
  * 規則：每片寬度約 250~300mm，計算需要幾片。
  */
-function topPanelPiecingHint(diameter: number): string {
+function topPanelPiecingHint(diameter: number, locale: string = "zh-TW"): string {
   if (diameter < 600) return "";
   const pieces = Math.ceil(diameter / 280);
-  return ` ⚠️ 桌面直徑 ${diameter}mm，建議分 ${pieces} 片實木拼板膠合（每片寬度約 ${Math.ceil(diameter / pieces)}mm，避免單片寬度過大翹曲）。`;
+  return locale === "en"
+    ? ` ⚠️ Top dia. ${formatMm(diameter, "inch")} — glue up from ${pieces} boards (each ~${formatMm(Math.ceil(diameter / pieces), "inch")} wide) to keep any single board from cupping.`
+    : ` ⚠️ 桌面直徑 ${diameter}mm，建議分 ${pieces} 片實木拼板膠合（每片寬度約 ${Math.ceil(diameter / pieces)}mm，避免單片寬度過大翹曲）。`;
 }
 
 export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
   const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const diameter = input.length;
 
   const o = roundTableOptions;
@@ -458,6 +469,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       diameter, height, material, topThickness, legSize, legHeight, radius,
       seatChamferMm: seatChamferMmEarly,
       seatEdgeStyle,
+      locale,
     });
   }
 
@@ -911,15 +923,26 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。${
-      legShape === "fluted-square"
-        ? `古典方腿：腳的 4 面各刨 3-5 道垂直凹槽（reed/flute），凹槽寬 5-8mm、深 3-5mm，從腳頂下 30mm 起到地面上 50mm 止（端不通到底，留實木）。`
-        : ""
-    }${
-      legShape === "lathe-turned"
-        ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
-        : ""
-    }${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter)}`.trim(),
+    notes: (isEn
+      ? `Round dining table dia. ${formatMm(diameter, "inch")} × H ${formatMm(height, "inch")}, 4 ${legShapeLabel(legShape)} legs with shouldered apron.${
+          legShape === "fluted-square"
+            ? ` Classical square leg: plane 3–5 vertical flutes on each of the 4 faces, 5–8 mm wide × 3–5 mm deep, starting 30 mm below the top and stopping 50 mm above the floor (stopped, not through).`
+            : ""
+        }${
+          legShape === "lathe-turned"
+            ? ` Turned leg: turn a stack of beads/balls + main shaft on the lathe — start from blanks ≥ legSize (${formatMm(legSize, "inch")} or thicker) so there's stock to remove.`
+            : ""
+        }${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${withLazySusan ? ` Center lazy susan dia. ${formatMm(Math.min(lazySusanDiameter, diameter - 200), "inch")}, fits a 12–16" metal bearing (sized to the susan).` : ""}${topPanelPiecingHint(diameter, locale)}`
+      : `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。${
+          legShape === "fluted-square"
+            ? `古典方腿：腳的 4 面各刨 3-5 道垂直凹槽（reed/flute），凹槽寬 5-8mm、深 3-5mm，從腳頂下 30mm 起到地面上 50mm 止（端不通到底，留實木）。`
+            : ""
+        }${
+          legShape === "lathe-turned"
+            ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
+            : ""
+        }${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter, locale)}`
+    ).trim(),
   };
   const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

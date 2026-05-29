@@ -1,6 +1,7 @@
 import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part, Tenon } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
+import { formatMm } from "@/lib/units/format";
 
 /**
  * 中式方角櫃（Chinese square-corner cabinet）
@@ -276,6 +277,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const o = chineseCabinetOptions;
   const { length, width, material } = input;
   const heightInput = input.height;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const cabinetPresetEarly = getOption<string>(input, opt(o, "cabinetPreset"));
   const presetEarly = CABINET_PRESETS[cabinetPresetEarly];
   // preset 帶的 compoundMode / cabinetCorner 等高階形制：user 沒主動選非 default 時就以 preset 為準
@@ -2018,7 +2021,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `${isCompound ? "中式頂箱櫃（compound）" : isRoundCorner ? "中式圓角櫃（splay-leg）" : "中式方角櫃"}（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ ${skirtStyle === "arched" ? "壼門" : skirtStyle === "cloud-head" ? "雲頭" : "直線素牙"}（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；4 立柱頂角為粽角榫（三向交會：上抹+側抹+頂蓋）—明式櫃靈魂榫卯，傳統做法是立柱頂端開十字槽容納兩條抹頭+頂蓋；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。${balustradeStyle !== "none" ? "頂層設 shelf 配圍欄即成万歷櫃形制。" : ""}${standingBraceStyle !== "none" ? "立柱底加站牙穩固。" : ""}${friezePanel !== "none" ? "頂蓋下絛環板裝飾橫帶。" : ""}${panelInlayActive ? "板心嵌屏心（中央開光）。" : ""}`,
+    notes: isEn
+      ? `${isCompound ? "Ming/Qing compound cabinet (top chest + base)" : isRoundCorner ? "Ming round-corner cabinet (splay-leg)" : "Ming square-corner cabinet"} — frame-and-panel construction: 4 posts ${formatMm(postSize, "inch")} + 6 framed sides (rails ${formatMm(railWidth, "inch")}×${formatMm(railThickness, "inch")} + floating panel ${formatMm(panelThickness, "inch")}) + ${skirtStyle === "arched" ? "arched (humen) skirt" : skirtStyle === "cloud-head" ? "cloud-head skirt" : "plain straight skirt"} (height ${formatMm(skirtHeight, "inch")}). ${layerCount}-tier layout: ${layerSummary}. All frames use shouldered tenons; the four top corners use the three-way mitered-and-tenoned joint (zòngjiǎo) tying upper rails + side rails + top board — the signature Ming joint. Panels float in 5mm-deep grooves, never glued, so seasonal movement won't split them. ${balustradeStyle !== "none" ? "Top tier has an open shelf with gallery rail (wanli-style display)." : ""}${standingBraceStyle !== "none" ? "Standing braces at the post bases for stability." : ""}${friezePanel !== "none" ? "Decorative frieze panel beneath the top." : ""}${panelInlayActive ? "Door panels feature a center-medallion (kaiguang) inlay." : ""}`
+      : `${isCompound ? "中式頂箱櫃（compound）" : isRoundCorner ? "中式圓角櫃（splay-leg）" : "中式方角櫃"}（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ ${skirtStyle === "arched" ? "壼門" : skirtStyle === "cloud-head" ? "雲頭" : "直線素牙"}（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；4 立柱頂角為粽角榫（三向交會：上抹+側抹+頂蓋）—明式櫃靈魂榫卯，傳統做法是立柱頂端開十字槽容納兩條抹頭+頂蓋；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。${balustradeStyle !== "none" ? "頂層設 shelf 配圍欄即成万歷櫃形制。" : ""}${standingBraceStyle !== "none" ? "立柱底加站牙穩固。" : ""}${friezePanel !== "none" ? "頂蓋下絛環板裝飾橫帶。" : ""}${panelInlayActive ? "板心嵌屏心（中央開光）。" : ""}`,
   };
 
   applyStandardChecks(design, {

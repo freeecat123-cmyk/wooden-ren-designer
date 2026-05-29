@@ -25,6 +25,7 @@ import {
 } from "./_helpers";
 import { applyStandardChecks, appendSuggestion } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -90,6 +91,8 @@ export const teaTableOptions: OptionSpec[] = [
  */
 export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
 
   const o = teaTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -512,8 +515,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes:
-      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板拆 ${slatCount} 條 slat 平鋪在下橫撐上面（不開榫，靠重力卡位）。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
+    notes: isEn
+      ? `Top tenons sized off material thickness; upper/lower stretchers half-lap-staggered into legs (Z upper / X lower); the lower shelf is broken into ${slatCount} slats resting on the lower stretchers (no joinery — gravity-held).${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "Single" : "Double"}-side drop leaf (each ${formatMm(dropLeafWidth, "inch")} wide, 1.5\" butterfly hinges).` : ""}${liveEdge ? " Live edge (bark-line kept)." : ""}`
+      : `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板拆 ${slatCount} 條 slat 平鋪在下橫撐上面（不開榫，靠重力卡位）。${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
   };
   // 拼板花紋（herringbone / chevron / book-match / end-grain）：3D 視覺化做法
   applyStandardChecks(design, {

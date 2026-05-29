@@ -96,6 +96,8 @@ export const displayCabinetOptions: OptionSpec[] = [
 ];
 
 export const displayCabinet: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = displayCabinetOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
@@ -159,7 +161,10 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? "；門用 5mm 強化玻璃" : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${topDecor === "none" ? "" : `頂部加裝飾條（${topDecor === "flat-band" ? "平直線板 60mm" : topDecor === "stepped" ? "兩層階梯線板" : topDecor === "dentil" ? "齒狀古典線板" : "欄杆飾條"}），前+左+右三面包覆。`}`.trim(),
+    notes: (isEn
+      ? `${notesLine}; door: ${doorMountLabel(doorMount)} (Euro hinge ${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"})${doorType === "glass" ? "; 5mm tempered glass door" : ""}${legInset > 0 ? `; legs inset ${legInset}mm` : ""}. ${pullStyleNote(pullStyle, locale)} ${doorType === "glass" && doorMullion !== "none" ? `Glass door with ${doorMullion === "cross" ? "cross 4-pane" : doorMullion === "vertical-3" ? "3 vertical pane" : doorMullion === "colonial" ? "Colonial 6-pane" : "Art Deco geometric"} wood mullion.` : ""} ${withToeKick ? `Toe kick: ${toeKickHeight}mm tall × ${toeKickRecess}mm recess.` : ""} ${withCrownMolding ? `Crown molding: ${crownProjection}mm overhang (ogee/cove/chamfer profile).` : ""} ${topDecor === "none" ? "" : `Top decorative trim (${topDecor === "flat-band" ? "flat band 60mm" : topDecor === "stepped" ? "stepped two-tier" : topDecor === "dentil" ? "classical dentil" : "gallery rail"}), wraps front + left + right.`}`
+      : `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? "；門用 5mm 強化玻璃" : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle, locale)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${topDecor === "none" ? "" : `頂部加裝飾條（${topDecor === "flat-band" ? "平直線板 60mm" : topDecor === "stepped" ? "兩層階梯線板" : topDecor === "dentil" ? "齒狀古典線板" : "欄杆飾條"}），前+左+右三面包覆。`}`
+    ).trim(),
     warnings,
   });
   // 頂部裝飾條：前 + 左 + 右三面包覆（後方靠牆省略）

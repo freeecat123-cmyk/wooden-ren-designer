@@ -12,6 +12,7 @@ import {
   apronEdgeOption,
   apronEdgeStyleOption,
 } from "./_helpers";
+import { formatMm } from "@/lib/units/format";
 
 export const lowTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -52,6 +53,8 @@ export const lowTableOptions: OptionSpec[] = [
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = lowTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
@@ -110,7 +113,9 @@ export const lowTable: FurnitureTemplate = (input) => {
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}`,
+    notes: isEn
+      ? `Tatami / floor table; sit-on-floor height ~350 mm (13-3/4").${liveEdge ? " Live edge." : ""}${dropLeaf !== "none" ? ` Includes ${dropLeaf === "one-side" ? "one-side" : "two-side"} drop leaf (each ${formatMm(dropLeafWidth, "inch")} wide).` : ""}`
+      : `和室矮桌、地板桌；席地而坐高度約 350mm。${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}`,
   });
 
   applyStandardChecks(design, {

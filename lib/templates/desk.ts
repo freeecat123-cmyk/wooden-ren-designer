@@ -5,6 +5,7 @@ import { caseFurniture } from "./_builders/case-furniture";
 import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-row";
 import { applyLowerStretcherArrangement } from "./dining-table";
 import { applyStandardChecks } from "./_validators";
+import { formatMm } from "@/lib/units/format";
 import {
   seatEdgeOption,
   seatEdgeBottomOption,
@@ -216,7 +217,9 @@ export const desk: FurnitureTemplate = (input) => {
     apronEdge,
     apronEdgeStyle,
     liveEdge,
-    notes: `書桌/辦公桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : legShape === "shaker" ? "（夏克）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerStyle === "pedestal" ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : drawerStyle === "apron" ? `、牙板抽屜 ${drawerCount} 個` : "、無抽屜"}。${liveEdge ? " Live edge 原木邊。" : ""}${withModestyPanel ? " 後方加 350mm 高 modesty 飾遮腿板。" : ""}`,
+    notes: isEn
+      ? `Desk / writing table: ${formatMm(legSize, "inch")} legs${legShape === "tapered" ? " (tapered)" : legShape === "shaker" ? " (Shaker)" : ""}, apron ${formatMm(apronWidth, "inch")}×${formatMm(apronThickness, "inch")}${drawerStyle === "pedestal" ? `, ${drawerSide === "center" ? "center" : drawerSide === "left" ? "left" : "right"} pedestal with ${drawerCount} drawer${drawerCount > 1 ? "s" : ""}` : drawerStyle === "apron" ? `, ${drawerCount} apron drawer${drawerCount > 1 ? "s" : ""}` : ", no drawer"}.${liveEdge ? " Live edge." : ""}${withModestyPanel ? ` Modesty panel ${formatMm(350, "inch")} tall behind the legs.` : ""}`
+      : `書桌/辦公桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : legShape === "shaker" ? "（夏克）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerStyle === "pedestal" ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : drawerStyle === "apron" ? `、牙板抽屜 ${drawerCount} 個` : "、無抽屜"}。${liveEdge ? " Live edge 原木邊。" : ""}${withModestyPanel ? " 後方加 350mm 高 modesty 飾遮腿板。" : ""}`,
   });
 
   // 下橫撐排列方式（box-frame 預設無動作，跟 dining-table 同一條 post-process）

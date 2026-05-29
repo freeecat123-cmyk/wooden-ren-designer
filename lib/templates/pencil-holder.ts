@@ -7,6 +7,7 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
+import { formatMm } from "@/lib/units/format";
 
 /** 使用情境 preset — exported 以便 lib/templates/index.ts applyPresets 用 */
 export interface PencilHolderPresetConfig {
@@ -284,7 +285,9 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `${sides} 角筆筒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板⌀${outerD - 2}mm 圓盤從底嵌入或膠合。`,
+      notes: isEn
+        ? `${sides}-sided pencil cup, outer-circle ⌀${formatMm(outerD, "inch")} × ${formatMm(outerH, "inch")} tall, wall thickness ${formatMm(wallT, "inch")}. ${sides} upright staves meet at ${(360 / sides).toFixed(1)}° miters (${sides === 6 ? "60° interior" : "45° interior"}); adjacent edges are reinforced with glue + biscuits or splines. The ⌀${formatMm(outerD - 2, "inch")} round bottom is seated from below or flush-glued.`
+        : `${sides} 角筆筒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板⌀${outerD - 2}mm 圓盤從底嵌入或膠合。`,
     };
   }
 
@@ -496,7 +499,9 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**坐地疊裝**（底板坐地、4 壁立其上膠合）"}，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
+    notes: isEn
+      ? `Pencil cup ${formatMm(outerL, "inch")}×${formatMm(outerW, "inch")}×${formatMm(outerH, "inch")}, built from ${5 + dividers + crossDividers} solid-wood pieces. Bottom ${bottomAttach === "inset-panel" ? "**floats in grooves** (5mm dado on the inside lower edge of all 4 walls, bottom floats — leaves room for seasonal movement, no splits)" : bottomAttach === "flush-glued" ? "**flush-glued** (bottom flush with the outside of the box, just glue and clamp)" : "**sits on the deck** (bottom on the ground, 4 walls glued on top of it)"}. Corners use ${cornerJoinery === "finger-joint" ? "**finger joints** (exposed interlocking fingers — the best practice project for box joints)" : cornerJoinery === "miter" ? "**miters** (45° butt — cleanest look but demands a miter sled, glue + brads to reinforce)" : "**rabbets** (simplest — just glue)"}. Interior ${formatMm(built.innerL, "inch")}×${formatMm(built.innerW, "inch")} holds roughly ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} pens.${dividers > 0 ? ` ${dividers} lengthwise divider${dividers > 1 ? "s" : ""} (${formatMm(dividerThick, "inch")} thick).` : ""}${crossDividers > 0 ? ` ${crossDividers} crosswise divider${crossDividers > 1 ? "s" : ""} (${formatMm(dividerThick, "inch")} thick).` : ""}${dividers > 0 && crossDividers > 0 ? ` Grid layout: ${(dividers + 1) * (crossDividers + 1)} compartments.` : ""}`
+      : `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**坐地疊裝**（底板坐地、4 壁立其上膠合）"}，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];

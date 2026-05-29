@@ -96,6 +96,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = chestOfDrawersOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const legHeight = resolveLegHeight(input, o);
@@ -177,6 +179,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     notes: buildChestNotes({
+      isEn,
+      locale,
       notesLine,
       legHeight, legShape, legInset,
       pullStyle, pullPosition,
@@ -373,6 +377,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
 
 // 把超長 notes 字串拆成可讀 helper
 function buildChestNotes(cfg: {
+  isEn: boolean;
+  locale: string;
   notesLine: string;
   legHeight: number; legShape: string; legInset: number;
   pullStyle: string; pullPosition: string;
@@ -382,19 +388,30 @@ function buildChestNotes(cfg: {
   drawerHeightStyle: string;
   withGalleryRail: boolean;
 }): string {
+  const { isEn, locale } = cfg;
   const parts: string[] = [cfg.notesLine];
   if (cfg.legHeight > 0) {
-    parts.push(`底座加 ${cfg.legHeight}mm ${cfg.legShape} 腳${cfg.legInset > 0 ? `（內縮 ${cfg.legInset}mm）` : ""}`);
+    parts.push(isEn
+      ? `${cfg.legHeight}mm ${cfg.legShape} base legs${cfg.legInset > 0 ? ` (inset ${cfg.legInset}mm)` : ""}`
+      : `底座加 ${cfg.legHeight}mm ${cfg.legShape} 腳${cfg.legInset > 0 ? `（內縮 ${cfg.legInset}mm）` : ""}`);
   }
   if (cfg.pullStyle && cfg.pullStyle !== "none") {
-    parts.push(`${pullStyleNote(cfg.pullStyle)}${cfg.pullPosition === "dual" ? "（左右各 1 顆）" : ""}`);
+    parts.push(isEn
+      ? `${pullStyleNote(cfg.pullStyle, locale)}${cfg.pullPosition === "dual" ? " (one on each side)" : ""}`
+      : `${pullStyleNote(cfg.pullStyle, locale)}${cfg.pullPosition === "dual" ? "（左右各 1 顆）" : ""}`);
   }
-  const tk = toeKickNote(cfg.withToeKick, cfg.toeKickHeight, cfg.toeKickRecess);
-  if (tk) parts.push(tk);
-  const cm = crownMoldingNote(cfg.withCrownMolding, cfg.crownProjection);
-  if (cm) parts.push(cm);
-  if (cfg.drawerFaceStyle === "raised-panel") parts.push("抽屜面板採凸版（中央凸 6mm 雕花板）");
-  if (cfg.drawerHeightStyle === "ascending") parts.push("抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
-  if (cfg.withGalleryRail) parts.push("頂面加 25mm 高圍欄");
-  return parts.filter(Boolean).join("；") + "。";
+  if (cfg.withToeKick) {
+    parts.push(isEn
+      ? `Toe kick: ${cfg.toeKickHeight}mm tall × ${cfg.toeKickRecess}mm recess so toes don't hit cabinet`
+      : toeKickNote(cfg.withToeKick, cfg.toeKickHeight, cfg.toeKickRecess).replace(/。$/, ""));
+  }
+  if (cfg.withCrownMolding) {
+    parts.push(isEn
+      ? `Crown molding: ${cfg.crownProjection}mm overhang (ogee/cove/chamfer router profile), glue around cabinet before finishing`
+      : crownMoldingNote(cfg.withCrownMolding, cfg.crownProjection).replace(/。$/, ""));
+  }
+  if (cfg.drawerFaceStyle === "raised-panel") parts.push(isEn ? "Drawer faces are raised-panel (central 6mm raised carving panel)" : "抽屜面板採凸版（中央凸 6mm 雕花板）");
+  if (cfg.drawerHeightStyle === "ascending") parts.push(isEn ? "Drawer heights: large at bottom, small at top (traditional Ming/Qing 1.4 : 1.2 : 1 ratio)" : "抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
+  if (cfg.withGalleryRail) parts.push(isEn ? "Top gallery rail, 25mm tall" : "頂面加 25mm 高圍欄");
+  return parts.filter(Boolean).join(isEn ? "; " : "；") + (isEn ? "." : "。");
 }

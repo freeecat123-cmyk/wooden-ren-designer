@@ -13,6 +13,7 @@ import {
   apronEdgeStyleOption,
 } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
+import { formatMm } from "@/lib/units/format";
 
 export const diningTableOptions: OptionSpec[] = [
   // 桌腳 (leg)
@@ -82,9 +83,10 @@ export const diningTableOptions: OptionSpec[] = [
  */
 function buildTrestleDiningTable(input: {
   length: number; width: number; height: number; material: string;
-  topThickness: number; legSize: number;
+  topThickness: number; legSize: number; locale?: string;
 }): FurnitureDesign {
   const { length, width, height, material, topThickness, legSize } = input;
+  const isEn = input.locale === "en";
   const legHeight = height - topThickness;
   // 端框位置：x = ±frameX（沿長邊內縮 22%，工程經驗值）
   const frameX = Math.round(length * 0.28);
@@ -220,11 +222,15 @@ function buildTrestleDiningTable(input: {
     parts,
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
-    notes: `對柱腳餐桌：兩端梁框（左/右 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。框長 ${frameRailLen}mm，框間距 ${2 * frameX}mm。坐人膝蓋空間大、無 4 腳干擾，建議桌長 ≥ 1500mm 才用此結構。`,
+    notes: isEn
+      ? `Trestle dining table: two end frames (left / right, each 2 legs + top rail + foot) + center stretcher. Leg ${formatMm(trestleLegSize, "inch")} (base × 1.3). Frame length ${formatMm(frameRailLen, "inch")}, frame spacing ${formatMm(2 * frameX, "inch")}. Roomy knee clearance, no 4-leg interference — use this structure when the top is ≥ 60" long.`
+      : `對柱腳餐桌：兩端梁框（左/右 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。框長 ${frameRailLen}mm，框間距 ${2 * frameX}mm。坐人膝蓋空間大、無 4 腳干擾，建議桌長 ≥ 1500mm 才用此結構。`,
   };
 }
 
 export const diningTable: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = diningTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
@@ -239,6 +245,7 @@ export const diningTable: FurnitureTemplate = (input) => {
       material: input.material,
       topThickness,
       legSize,
+      locale,
     });
     applyStandardChecks(design, {
       minLength: 900, minWidth: 600, minHeight: 600,
@@ -308,7 +315,9 @@ export const diningTable: FurnitureTemplate = (input) => {
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}`,
+    notes: isEn
+      ? `Dining table: ${formatMm(legSize, "inch")} legs (${legShapeLabel(legShape)}), apron ${formatMm(apronWidth, "inch")}×${formatMm(apronThickness, "inch")}, top ${formatMm(topThickness, "inch")} thick.${liveEdge ? ` Top with live edge: keep the bark line — use a single wide slab (> 24") or leave the outer edge of a glued panel unjointed.` : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "One" : "Two"}-side drop leaf (each ${formatMm(dropLeafWidth, "inch")} wide, one pair of 1.5" steel butterfly hinges per end).` : ""}`
+      : `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}`,
   });
   // 下橫撐排列方式（box-frame 預設無動作）
   if (withLowerStretchers && lowerStretcherArrangement !== "box-frame") {

@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { formatMm } from "@/lib/units/format";
 
 /** 三角加固板厚（恆 12mm，過厚反而難切斜邊） */
 const BRACE_THICKNESS = 12;
@@ -121,7 +122,9 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "mitered-spline",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用 **45° miter + spline 暗榫**接：底板後緣上頂面、背板前緣下底面各斜切 ${panelT}mm × 45°，對接後縫隙完全隱形；接合面中央開 6×40mm spline 凹槽，內嵌片榫（直紋木條沿短邊方向）膠合 → 既對齊又抗剝離。${withBrace ? "L 角內側再加直角三角加固，承重大幅提升。" : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
+    notes: isEn
+      ? `Bookend ${formatMm(baseDepth, "inch")}×${formatMm(baseWidth, "inch")}×${formatMm(backHeight, "inch")}. Base and back join with a **45° miter + hidden spline**: chamfer the top-rear edge of the base and the bottom-front edge of the back at ${formatMm(panelT, "inch")} × 45°, so the seam disappears once mated; cut a 6×40mm spline groove down the center of both faces and glue in a straight-grain spline (grain running across the short axis) — keeps the corner aligned and resists peeling.${withBrace ? " A right-angle triangular brace on the inside of the L corner adds serious load capacity." : ""} **Bookends always come in pairs** — this cut list is per piece; order ×2.`
+      : `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用 **45° miter + spline 暗榫**接：底板後緣上頂面、背板前緣下底面各斜切 ${panelT}mm × 45°，對接後縫隙完全隱形；接合面中央開 6×40mm spline 凹槽，內嵌片榫（直紋木條沿短邊方向）膠合 → 既對齊又抗剝離。${withBrace ? "L 角內側再加直角三角加固，承重大幅提升。" : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };
   if (baseDepth > 250 || baseWidth > 300 || backHeight > 350) {
     warnings.push(

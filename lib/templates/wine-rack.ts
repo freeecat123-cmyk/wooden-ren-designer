@@ -7,6 +7,7 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { renderDrawerZone } from "./_builders/drawer-row";
 import { worldExtents } from "@/lib/render/geometry";
+import { formatMm } from "@/lib/units/format";
 
 /** 每個瓶位的左右間隙（mm）—— 瓶徑 + 此值 = cellSize（格 pitch、含分隔板厚）。
  * panelT 預設 15mm + 5mm 餘量 = 20mm 起跳，確保 default 矩形格能塞下瓶子。
@@ -124,6 +125,8 @@ export const wineRackOptions: OptionSpec[] = [
  */
 export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = wineRackOptions;
   const bottleType = getOption<string>(input, opt(o, "bottleType"));
   const bottlePreset = BOTTLE_TYPE_PRESETS[bottleType];
@@ -691,10 +694,16 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     useButtJointConvention: true,
     primaryMaterial: material,
     warnings: warnings.length ? warnings : undefined,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
-      gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式。為讓 ${bd}mm 瓶身塞得進菱形內接圓，pitch 自動拉大到 ${cellSize}mm（外尺寸比方格款大約 ${Math.round((Math.SQRT2 - 1) * 100)}%）。` : ""
-    }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
-      hasLegs ? ` 底部加${legShape === "plinth" ? "平台底座" : legShape === "panel-side" ? "側板延伸落地" : legShape === "bracket" ? "帶托腳牙的方柱腳" : legShape === "tapered" ? "錐形方柱腳" : legShape === "round" ? "圓柱腳" : legShape === "round-tapered" ? "圓錐腳" : "方柱腳"}架高 ${legH}mm，離地通風防潮、好清掃。` : ""
-    }${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
+    notes: isEn
+      ? `Wine rack ${bw} wide × ${bt} tall = ${totalBottles} bottle slots, outer ${formatMm(outerW, "inch")}×${formatMm(depth, "inch")}×${formatMm(totalH, "inch")}. **${netFitDesc} vs bottle ⌀${formatMm(bd, "inch")}** (clearance ${formatMm(netFitDim - bd, "inch")}${fitTooSmall ? " — won't fit!" : ""}). Each slot is ${formatMm(cellSize, "inch")}×${formatMm(cellSize, "inch")} pitch (bottle ⌀${formatMm(bd, "inch")} + ${formatMm(cellClearance, "inch")} gap). Internal dividers slot into dadoes in the side panels — they hold solid without glue, so you can knock it down to move.${
+          gridLayout === "diamond" ? ` Diamond layout: ${bw}×${bt} 45°-rotated cells, bottles rest in the V; diagonal dividers are crosscut with 45° miters into the lattice corners for a seamless cellar look. Pitch is bumped to ${formatMm(cellSize, "inch")} so a ${formatMm(bd, "inch")} bottle fits the inscribed circle (overall ~${Math.round((Math.SQRT2 - 1) * 100)}% bigger than the square grid).` : ""
+        }${orientation === "horizontal" ? ` Depth ${formatMm(depth, "inch")} lets the bottle lie down full-length — proper for wine storage.` : ` Depth ${formatMm(depth, "inch")} suits upright standard 750ml Bordeaux bottles.`}${
+          hasLegs ? ` ${legShape === "plinth" ? "Plinth base" : legShape === "panel-side" ? "Side panels run to the floor" : legShape === "bracket" ? "Square legs with bracket aprons" : legShape === "tapered" ? "Tapered square legs" : legShape === "round" ? "Round legs" : legShape === "round-tapered" ? "Tapered round legs" : "Square legs"} lift the rack ${formatMm(legH, "inch")} for floor clearance — airflow underneath and easier to sweep.` : ""
+        }${withPullOutDrawer ? ` A ${formatMm(DRAWER_ZONE_H, "inch")}-tall pull-out drawer at the bottom (same drawer system as the dresser — front/back + sides + bottom + pull, side-mount slides) for openers, stoppers, and aerators.` : ""}`
+      : `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
+          gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式。為讓 ${bd}mm 瓶身塞得進菱形內接圓，pitch 自動拉大到 ${cellSize}mm（外尺寸比方格款大約 ${Math.round((Math.SQRT2 - 1) * 100)}%）。` : ""
+        }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
+          hasLegs ? ` 底部加${legShape === "plinth" ? "平台底座" : legShape === "panel-side" ? "側板延伸落地" : legShape === "bracket" ? "帶托腳牙的方柱腳" : legShape === "tapered" ? "錐形方柱腳" : legShape === "round" ? "圓柱腳" : legShape === "round-tapered" ? "圓錐腳" : "方柱腳"}架高 ${legH}mm，離地通風防潮、好清掃。` : ""
+        }${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
   };
 };

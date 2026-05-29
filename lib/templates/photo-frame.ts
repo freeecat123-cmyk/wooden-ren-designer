@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 /** 背板卡入裕度（rabbet 深度減此值 = 實際 overlap，每邊 mm）：1mm 留滑入餘量 */
 const BACK_PANEL_CLEARANCE = 1;
@@ -35,6 +36,8 @@ export const photoFrameOptions: OptionSpec[] = [
  */
 export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: photoW, width: photoH, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = photoFrameOptions;
   const frameW = getOption<number>(input, opt(o, "frameWidth"));
   const frameT = getOption<number>(input, opt(o, "frameThickness"));
@@ -236,6 +239,8 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: useMiter ? "mitered" : "blind-tenon",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,
-    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。${useMiter ? "4 角 45° 斜接 + 膠合（夾具夾緊靜置 24 小時）；想要更強可在 4 角另加 spline 木片或對角木釘加固——目前材料單未含 spline，需自行裁切。" : "4 角 90° 對接 + 隱榫補強。"}${frameProfile === "chamfer-out" ? `邊框正面 4 條長邊各倒 ${chamferMm}mm × 45°（修邊機 V 型刀或砂帶機）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
+    notes: isEn
+      ? `Picture frame (fits a ${formatMm(photoW, "inch")}×${formatMm(photoH, "inch")} photo), outer ${formatMm(outerL, "inch")}×${formatMm(outerW, "inch")}×${formatMm(frameT, "inch")}. Cut a ${formatMm(glassGrooveDepth, "inch")}×${formatMm(glassT + backT + 2, "inch")} rebate on the inside back of all 4 rails so the glass + backer board slide in from behind. ${useMiter ? "Corners are 45° miters + glue (clamp and leave 24 hr); add splines or corner brads for more strength — splines are not in the cut list, cut your own from offcuts." : "Corners are 90° butt joints with hidden dowels for reinforcement."}${frameProfile === "chamfer-out" ? ` Chamfer the front face long edges ${formatMm(chamferMm, "inch")} × 45° with a router V-bit or sander.` : ""} **Glass not included**: have a glazier cut ${formatMm(photoW, "inch")}×${formatMm(photoH, "inch")} × ${formatMm(glassT, "inch")} clear glass. The glass groove is set back ${formatMm(GLASS_FRAME_INSET, "inch")} so the rebate isn't visible from the front.`
+      : `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。${useMiter ? "4 角 45° 斜接 + 膠合（夾具夾緊靜置 24 小時）；想要更強可在 4 角另加 spline 木片或對角木釘加固——目前材料單未含 spline，需自行裁切。" : "4 角 90° 對接 + 隱榫補強。"}${frameProfile === "chamfer-out" ? `邊框正面 4 條長邊各倒 ${chamferMm}mm × 45°（修邊機 V 型刀或砂帶機）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };

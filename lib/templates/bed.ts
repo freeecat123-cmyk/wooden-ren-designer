@@ -23,6 +23,7 @@ import {
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 /**
  * 床（bed）—— 木製傳統 4 腳床架
@@ -151,6 +152,8 @@ export const bedOptions: OptionSpec[] = [
 
 export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
 
   const o = bedOptions;
   const bedPreset = getOption<string>(input, opt(o, "bedPreset"));
@@ -726,11 +729,15 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: sideRailTenonType === "through-tenon" ? "through-tenon" : "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes:
-      `腳樣式：${legShapeLabel(legShape)}。側板與床頭板皆套用方凳基礎榫卯規則` +
-      `（≤25mm 通榫 +5mm、>25mm 盲榫 2/3 深）。${withFootboard ? "含床尾板。" : "純床頭款（無床尾板）。"}` +
-      ` 床板條 ${slatCount} 片擱在 ledger 上（不開榫，可拆換洗）。` +
-      ` 床板距地 ${mattressClearanceMm}mm，床頭板總高 ${headboardPlateHeight}mm。`,
+    notes: isEn
+      ? `Leg style: ${legShapeLabel(legShape)}. Side rails and headboard follow the square-stool joinery rules` +
+        ` (through-tenon +5mm for legs ≤25mm, blind tenon 2/3 depth for >25mm). ${withFootboard ? "Includes footboard." : "Headboard-only (no footboard)."}` +
+        ` ${slatCount} slats rest on ledger strips (not joined — lift out to air mattress).` +
+        ` Slat surface ${formatMm(mattressClearanceMm, "inch")} off the floor; headboard total height ${formatMm(headboardPlateHeight, "inch")}.`
+      : `腳樣式：${legShapeLabel(legShape)}。側板與床頭板皆套用方凳基礎榫卯規則` +
+        `（≤25mm 通榫 +5mm、>25mm 盲榫 2/3 深）。${withFootboard ? "含床尾板。" : "純床頭款（無床尾板）。"}` +
+        ` 床板條 ${slatCount} 片擱在 ledger 上（不開榫，可拆換洗）。` +
+        ` 床板距地 ${mattressClearanceMm}mm，床頭板總高 ${headboardPlateHeight}mm。`,
   };
 
   applyStandardChecks(design, {

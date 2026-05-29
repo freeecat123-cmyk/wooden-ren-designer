@@ -7,6 +7,7 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
+import { formatMm } from "@/lib/units/format";
 
 /** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合
  *  全部統一為「鑲板入溝底板 + 掀蓋式上下分離」style：
@@ -192,14 +193,18 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
       const bottomApothem = (apothem - wallT) + grooveDepth;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm、底板下緣距盒底 ${polyBotSkirt}mm，季節伸縮免裂）`;
+      bottomAttachDesc = isEn
+        ? `**panel-in-groove** (full-height walls, bottom edge floats in a ${formatMm(grooveDepth, "inch")} groove on the inside of each stave, ${formatMm(polyBotSkirt, "inch")} reveal under the bottom, room for seasonal movement)`
+        : `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm、底板下緣距盒底 ${polyBotSkirt}mm，季節伸縮免裂）`;
     } else if (bottomAttach === "flush-glued") {
       // 整塊膠合：底板外緣與框體齊邊、整面塗膠
       stavesOuterH = outerH;
       stavesBaseY = botT;
       bottomOriginY = 0;
       bottomVertexR = outerWallVertexR;
-      bottomAttachDesc = "**整塊膠合**（底板外緣與框體齊邊，整面塗膠）";
+      bottomAttachDesc = isEn
+        ? "**flush-glued** (bottom flush with the outside of the walls, full-face glue-up)"
+        : "**整塊膠合**（底板外緣與框體齊邊，整面塗膠）";
     } else { // seated
       // 底板內縮：底板邊緣壓入壁內 wallT/2，N 段壁壓在底板邊緣膠合
       stavesOuterH = outerH;
@@ -208,7 +213,9 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       const seatOverlap = wallT / 2;
       const bottomApothem = (apothem - wallT) + seatOverlap;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，${sides} 段壁壓在底板邊緣膠合）`;
+      bottomAttachDesc = isEn
+        ? `**seated bottom** (bottom edge recessed ${formatMm(seatOverlap, "inch")} inside the walls, ${sides} staves glued onto the bottom's edge)`
+        : `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，${sides} 段壁壓在底板邊緣膠合）`;
     }
     const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
     // 端面 mitre（角度 = π/N，相鄰兩壁總共 2π/N = 外角）
@@ -331,11 +338,17 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
         addStaveMortise((3 * sides) / 4);
       }
     }
-    const polyDividerDesc = polyDividerStyleStr === "single"
-      ? "，內部 1 片穿心隔板分 2 區"
-      : polyDividerStyleStr === "cross"
-        ? "，內部十字隔板分 4 區"
-        : "";
+    const polyDividerDesc = isEn
+      ? polyDividerStyleStr === "single"
+        ? ", with 1 through-divider splitting the interior into 2 bays"
+        : polyDividerStyleStr === "cross"
+          ? ", with a cross divider splitting the interior into 4 bays"
+          : ""
+      : polyDividerStyleStr === "single"
+        ? "，內部 1 片穿心隔板分 2 區"
+        : polyDividerStyleStr === "cross"
+          ? "，內部十字隔板分 4 區"
+          : "";
 
     const polyParts: Part[] = [polyBottom, ...staves, ...polygonDividerParts];
 
@@ -369,7 +382,9 @@ const polyDesign: FurnitureDesign = {
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `上下蓋分離式：${sides} 段壁水平切成身段 + 蓋段，頂板鑲入壁內側溝槽、上緣距盒頂 5mm。` : ""}`,
+      notes: isEn
+        ? `${sides === 6 ? "Hexagonal" : "Octagonal"} dovetailed box, outer-circle ⌀${formatMm(outerD, "inch")} × ${formatMm(outerH, "inch")} tall, wall thickness ${formatMm(wallT, "inch")}. ${sides} upright staves meet at ${(180 / sides).toFixed(1)}° miters (${sides === 6 ? "60° interior" : "45° interior"}); adjacent edges are reinforced with mitered-splines (miter + hidden dovetail key) — harder to cut than square-box dovetails but the most striking visually. Bottom uses ${bottomAttachDesc}${polyDividerDesc}.${withLid ? ` Two-part body + lid: the ${sides} staves are crosscut into body + lid sections; the top panel sits in a groove on the inside of the lid wall, 5mm down from the rim.` : ""}`
+        : `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `上下蓋分離式：${sides} 段壁水平切成身段 + 蓋段，頂板鑲入壁內側溝槽、上緣距盒頂 5mm。` : ""}`,
     };
 
     // polygon 也跑壁厚 / 尺寸合理性檢查
@@ -542,20 +557,36 @@ const polyDesign: FurnitureDesign = {
   }
 
 // 接合文案：四套說法依 cornerJoinery 分支
-  const joineryDesc = cornerJoinery === "dovetail"
-    ? `**鳩尾接合**（dovetail，${dovetailInfo ? `每角 ${dovetailInfo.segmentCount} 段、傾角 ${dovetailInfo.angleDeg}°` : ""}），傳統工藝展示款，從盒外能看到指狀鳩尾紋路。`
-    : cornerJoinery === "finger-joint"
-      ? `**指接**（finger joint，${fingerJointInfo ? `每角 ${fingerJointInfo.segmentCount} 段、每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}），外露指狀紋路，新手練習鳩尾前的最佳基本款。`
-      : cornerJoinery === "miter"
-        ? "**斜角拼**（45° 對接，最隱形但需鋸台或斜切片切精準對齊，膠合 + 細釘 / 餅乾榫加固）。"
-        : "**搭接**（rabbet，最簡單：長壁端面銑 wallT/2 深的槽，短壁端面留厚塊嵌入，膠合即可）。";
-  const joineryClosing = cornerJoinery === "dovetail"
-    ? "**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。"
-    : cornerJoinery === "finger-joint"
-      ? "**指接是鳩尾的入門練習**——熟練後可進階到鳩尾。"
-      : cornerJoinery === "miter"
-        ? "**斜角拼最考驗精度**——鋸切角度差 0.5° 就會留縫，建議用斜切片切。"
-        : "**搭接最快上手**——適合工具盒 / 收納箱等不講究外觀的用途。";
+  const joineryDesc = isEn
+    ? cornerJoinery === "dovetail"
+      ? `**dovetails**${dovetailInfo ? ` (${dovetailInfo.segmentCount} per corner, ${dovetailInfo.angleDeg}° slope)` : ""} — traditional show-joint, the pin/tail pattern is visible from outside.`
+      : cornerJoinery === "finger-joint"
+        ? `**finger joints** (box joints${fingerJointInfo ? `, ${fingerJointInfo.segmentCount} per corner, ${formatMm(fingerJointInfo.fingerW, "inch")} per finger` : ""}) — exposed interlocking fingers, the best practice joint before tackling dovetails.`
+        : cornerJoinery === "miter"
+          ? "**miter** (45° butt — the cleanest look but demands precise tablesaw or sled cuts; reinforce with glue + brads or biscuits)."
+          : "**rabbet** (simplest — cut a wallT/2 rebate on the long walls, the short walls drop in; just glue)."
+    : cornerJoinery === "dovetail"
+      ? `**鳩尾接合**（dovetail，${dovetailInfo ? `每角 ${dovetailInfo.segmentCount} 段、傾角 ${dovetailInfo.angleDeg}°` : ""}），傳統工藝展示款，從盒外能看到指狀鳩尾紋路。`
+      : cornerJoinery === "finger-joint"
+        ? `**指接**（finger joint，${fingerJointInfo ? `每角 ${fingerJointInfo.segmentCount} 段、每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}），外露指狀紋路，新手練習鳩尾前的最佳基本款。`
+        : cornerJoinery === "miter"
+          ? "**斜角拼**（45° 對接，最隱形但需鋸台或斜切片切精準對齊，膠合 + 細釘 / 餅乾榫加固）。"
+          : "**搭接**（rabbet，最簡單：長壁端面銑 wallT/2 深的槽，短壁端面留厚塊嵌入，膠合即可）。";
+  const joineryClosing = isEn
+    ? cornerJoinery === "dovetail"
+      ? "**A dovetailed box is the gateway to drawer-making** — nail this one and you've got every dovetail skill you'll ever need."
+      : cornerJoinery === "finger-joint"
+        ? "**Finger joints are the warm-up for dovetails** — get fluent here, then graduate."
+        : cornerJoinery === "miter"
+          ? "**Miters reward precision** — half a degree off and you'll see the gap; use a dedicated miter sled."
+          : "**Rabbets get you running fast** — perfect for tool totes and shop storage where looks don't matter."
+    : cornerJoinery === "dovetail"
+      ? "**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。"
+      : cornerJoinery === "finger-joint"
+        ? "**指接是鳩尾的入門練習**——熟練後可進階到鳩尾。"
+        : cornerJoinery === "miter"
+          ? "**斜角拼最考驗精度**——鋸切角度差 0.5° 就會留縫，建議用斜切片切。"
+          : "**搭接最快上手**——適合工具盒 / 收納箱等不講究外觀的用途。";
 
   const design: FurnitureDesign = {
     id: `dovetail-box-${outerL}x${outerW}x${outerH}`,
@@ -566,19 +597,33 @@ const polyDesign: FurnitureDesign = {
     defaultJoinery: cornerJoinery === "miter" ? "mitered-spline" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `木盒 ${outerL}×${outerW}×${outerH}mm，${joineryDesc}${
-      bottomAttach === "inset-panel"
-        ? "底板鑲板入溝：4 壁全高，內側鋸 5mm 槽、底板浮嵌（季節伸縮免裂，不上膠）。"
-        : bottomAttach === "flush-glued"
-          ? "底板與 4 壁齊邊整塊膠合（整面塗膠，固定但不可拆）。"
-          : "底板內縮：底板嵌入壁內、4 壁壓在底板邊緣膠合（最簡單）。"
-    }${withLid ? `蓋子做${
-      lidType === "sliding"
-        ? "**滑入式**（蓋兩側下緣鋸凸條，前後壁內側上緣鋸對應槽，從前面滑入）"
-        : lidType === "hinged"
-          ? "**鉸鏈式**（後壁裝小銅鉸鏈一對，B&Q 有售 NT$ 50/對）"
-          : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝形成凸唇，蓋下扣盒口、凸唇伸入盒內登錄對位）"
-    }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${joineryClosing}`,
+    notes: isEn
+      ? `Wooden box ${formatMm(outerL, "inch")}×${formatMm(outerW, "inch")}×${formatMm(outerH, "inch")}, ${joineryDesc}${
+          bottomAttach === "inset-panel"
+            ? " Bottom is a floating panel in a 5mm groove on the inside of all 4 walls (no glue — lets the bottom move seasonally without splitting)."
+            : bottomAttach === "flush-glued"
+              ? " Bottom is flush-glued to all 4 walls (full-face glue-up, solid but not removable)."
+              : " Bottom seated inside the walls — the 4 walls press down onto the bottom's edge and glue."
+        }${withLid ? ` Lid is ${
+          lidType === "sliding"
+            ? "**sliding** — tongue cut on each long edge of the lid, matching grooves in the inside top of the front and back walls; slides on from the front"
+            : lidType === "hinged"
+              ? "**hinged** — pair of small brass butt hinges on the back wall (~$2/pair at hardware stores)"
+              : "**lift-off rebated** — a 4mm rebate around the lid edge forms a lip that drops into the box opening for self-aligning fit"
+        }.` : ""}${withInnerTray ? " A removable inner tray (30mm tall, 6 compartments) sits inside as a jewelry tray; add 4 rubber feet underneath so it doesn't scratch the bottom." : ""}${(dividers > 0 || crossDividers > 0) ? ` Interior gets${dividers > 0 ? ` ${dividers} lengthwise divider${dividers > 1 ? "s" : ""}` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} crosswise divider${crossDividers > 1 ? "s" : ""}` : ""} (${formatMm(dividerThickness, "inch")} thick, seated ${formatMm(dividerInset, "inch")} into dadoes on the inside of all 4 walls).` : ""} ${joineryClosing}`
+      : `木盒 ${outerL}×${outerW}×${outerH}mm，${joineryDesc}${
+          bottomAttach === "inset-panel"
+            ? "底板鑲板入溝：4 壁全高，內側鋸 5mm 槽、底板浮嵌（季節伸縮免裂，不上膠）。"
+            : bottomAttach === "flush-glued"
+              ? "底板與 4 壁齊邊整塊膠合（整面塗膠，固定但不可拆）。"
+              : "底板內縮：底板嵌入壁內、4 壁壓在底板邊緣膠合（最簡單）。"
+        }${withLid ? `蓋子做${
+          lidType === "sliding"
+            ? "**滑入式**（蓋兩側下緣鋸凸條，前後壁內側上緣鋸對應槽，從前面滑入）"
+            : lidType === "hinged"
+              ? "**鉸鏈式**（後壁裝小銅鉸鏈一對，B&Q 有售 NT$ 50/對）"
+              : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝形成凸唇，蓋下扣盒口、凸唇伸入盒內登錄對位）"
+        }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${joineryClosing}`,
   };
   // 蓋型差異化：sliding / rabbeted / hinged 各做出特徵零件
   // buildBox 給的 lid 是 outerL × outerW × lidT 純 box，依 lidType 改 lid + 加配件

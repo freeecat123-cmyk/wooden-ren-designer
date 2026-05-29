@@ -83,6 +83,8 @@ export const wardrobeOptions: OptionSpec[] = [
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = wardrobeOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
@@ -149,7 +151,10 @@ export const wardrobe: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}（${doorMountLabel(doorMount)}）${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${hasDrawers ? "、抽屜滑軌" : ""}。${pullStyleNote(pullStyle)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: (isEn
+      ? `${notesLine} (${doorMountLabel(doorMount)})${effectiveLegHeight > 0 ? `; ${effectiveLegHeight}mm ${legShape} base${legInset > 0 ? ` (inset ${legInset}mm)` : ""}` : ""}. Hanging rod + Euro hinges (${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"})${hasDrawers ? " + drawer slides" : ""} required. ${pullStyleNote(pullStyle, locale)} ${withToeKick ? `Toe kick: ${toeKickHeight}mm tall × ${toeKickRecess}mm recess so toes don't hit cabinet.` : ""} ${withCrownMolding ? `Crown molding: ${crownProjection}mm overhang (ogee/cove/chamfer router profile), glue around cabinet before finishing.` : ""}`
+      : `${notesLine}（${doorMountLabel(doorMount)}）${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${hasDrawers ? "、抽屜滑軌" : ""}。${pullStyleNote(pullStyle, locale)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`
+    ).trim(),
     warnings,
   });
   applyStandardChecks(design, {

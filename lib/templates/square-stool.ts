@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -69,6 +70,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     height,
     material,
   } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
 
   const o = squareStoolOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -768,15 +771,23 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "through-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes:
-      `腳樣式：${legShapeLabel(legShape)}。座板與凳腳用通榫，凳腳與橫撐用半榫。` +
-      (withLowerStretcher
-        ? lowerStretcherStyle === "x-cross"
-          ? " 加 X 字交叉橫撐（明清交杌做法）。"
-          : " 加 H 字下橫撐結構。"
-        : "") +
-      ` ${seatEdgeNote(seatEdge)}` +
-      (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
+    notes: isEn
+      ? `Leg style: ${legShapeLabel(legShape)}. Seat-to-leg through tenon, leg-to-stretcher blind tenon.` +
+        (withLowerStretcher
+          ? lowerStretcherStyle === "x-cross"
+            ? " Plus X-cross stretchers (Ming/Qing folding-stool style)."
+            : " Plus H-form lower stretchers."
+          : "") +
+        ` ${seatEdgeNote(seatEdge, undefined, locale)}` +
+        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "")
+      : `腳樣式：${legShapeLabel(legShape)}。座板與凳腳用通榫，凳腳與橫撐用半榫。` +
+        (withLowerStretcher
+          ? lowerStretcherStyle === "x-cross"
+            ? " 加 X 字交叉橫撐（明清交杌做法）。"
+            : " 加 H 字下橫撐結構。"
+          : "") +
+        ` ${seatEdgeNote(seatEdge, undefined, locale)}` +
+        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
   };
   applyStandardChecks(design, {
     minLength: 250, minWidth: 250, minHeight: 350,

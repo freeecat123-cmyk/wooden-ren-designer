@@ -83,6 +83,8 @@ export const nightstandOptions: OptionSpec[] = [
  * 兩段式：上層 / 下層皆可獨立設為層板 / 抽屜 / 門片。
  */
 export const nightstand: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = nightstandOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
@@ -148,7 +150,10 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${effectiveLegHeight}mm${lockTotalHeight ? "（鎖定總高自動算）" : ""}（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)}`.trim(),
+    notes: (isEn
+      ? `${notesLine}; door: ${doorMountLabel(doorMount)}; leg height ${effectiveLegHeight}mm${lockTotalHeight ? " (auto-calc from locked total height)" : ""} (${legShape})${legInset > 0 ? `, inset ${legInset}mm` : ""}. ${pullStyleNote(pullStyle, locale)}`
+      : `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${effectiveLegHeight}mm${lockTotalHeight ? "（鎖定總高自動算）" : ""}（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle, locale)}`
+    ).trim(),
     warnings,
   });
 

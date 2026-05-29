@@ -502,9 +502,12 @@ export function apronEdgeStyleOption(
   };
 }
 
-export function apronEdgeNote(apronEdge: string | number, style: string = "chamfered"): string {
+export function apronEdgeNote(apronEdge: string | number, style: string = "chamfered", locale: string = "zh-TW"): string {
   const mm = parseLegChamferMm(apronEdge);
   if (mm <= 0) return "";
+  if (locale === "en") {
+    return ` Apron edges (4) ${style === "rounded" ? `R${mm} rounded` : `${mm}mm chamfer`}.`;
+  }
   return ` 牙板 4 邊${style === "rounded" ? `R${mm} 圓角` : `${mm}mm 倒角`}。`;
 }
 
@@ -583,22 +586,35 @@ export function legEdgeStyleOption(
   };
 }
 
-export function legEdgeNote(legEdge: string | number, style: string = "chamfered"): string {
+export function legEdgeNote(legEdge: string | number, style: string = "chamfered", locale: string = "zh-TW"): string {
   const mm = parseLegChamferMm(legEdge);
   if (mm <= 0) return "";
+  if (locale === "en") {
+    const styleLabel = style === "rounded" ? `R${mm} rounded (round bit)` : `${mm}mm × 45° chamfer (V bit)`;
+    return `Legs (4 long edges each): ${styleLabel}.`;
+  }
   const styleLabel = style === "rounded" ? `R${mm} 圓角（圓刀）` : `${mm}mm × 45° 倒角（V 型刀）`;
   return `腳 4 條長邊各做 ${styleLabel}。`;
 }
 
-export function stretcherEdgeNote(stretcherEdge: string | number, style: string = "chamfered"): string {
+export function stretcherEdgeNote(stretcherEdge: string | number, style: string = "chamfered", locale: string = "zh-TW"): string {
   const mm = parseLegChamferMm(stretcherEdge);
   if (mm <= 0) return "";
+  if (locale === "en") {
+    const styleLabel = style === "rounded" ? `R${mm} rounded` : `${mm}mm × 45° chamfer`;
+    return `Stretchers (4 long edges each): ${styleLabel}.`;
+  }
   const styleLabel = style === "rounded" ? `R${mm} 圓角` : `${mm}mm × 45° 倒角`;
   return `橫撐 4 條長邊各做 ${styleLabel}。`;
 }
 
-export function seatEdgeNote(seatEdge: string | number, style: string = "chamfered"): string {
+export function seatEdgeNote(seatEdge: string | number, style: string = "chamfered", locale: string = "zh-TW"): string {
   const mm = parseSeatChamferMm(seatEdge);
+  if (locale === "en") {
+    if (mm <= 0) return "Seat edges kept square 90° (fastest to build, but pressure on thighs after sitting a while).";
+    const styleLabel = style === "rounded" ? `R${mm} rounded (router ${mm}mm round bit)` : `${mm}mm × 45° chamfer (router V bit)`;
+    return `Seat edges: ${styleLabel}. Breaks the sharp edge — better comfort, no leg pressure.`;
+  }
   if (mm <= 0) return "座板邊緣保持 90° 直角（最快做，但坐久邊緣會壓腿）。";
   const styleLabel = style === "rounded" ? `R${mm} 圓角（修邊機 ${mm}mm 圓刀）` : `${mm}mm × 45° 倒角（修邊機 V 型刀）`;
   return `座板邊緣${styleLabel}，去除銳邊不壓腿、手感佳。`;
@@ -1038,22 +1054,37 @@ export function doorPullStyleOption(group: OptionGroup = "door"): OptionSpec {
   };
 }
 
-export function pullStyleNote(style: string): string {
+export function pullStyleNote(style: string, locale: string = "zh-TW"): string {
+  const isEn = locale === "en";
   switch (style) {
     case "knob":
-      return "抽屜 / 門板配黃銅圓把手（Φ30mm，B&Q 五金 NT$ 30-100/個），鎖在中央或對稱位置。";
+      return isEn
+        ? "Drawer / door brass round knob (Φ30mm, ~$1-3 each at hardware stores), centered or symmetric."
+        : "抽屜 / 門板配黃銅圓把手（Φ30mm，B&Q 五金 NT$ 30-100/個），鎖在中央或對稱位置。";
     case "wood-knob":
-      return "車床旋削木製蘑菇形 knob（Φ35mm × 凸 28mm，自家車床做），與櫃體同材手感溫潤、無金屬五金費。";
+      return isEn
+        ? "Lathe-turned mushroom-shaped wood knob (Φ35mm × 28mm proud, turn it yourself). Same wood as the case, warm hand-feel, zero hardware cost."
+        : "車床旋削木製蘑菇形 knob（Φ35mm × 凸 28mm，自家車床做），與櫃體同材手感溫潤、無金屬五金費。";
     case "bar":
-      return "抽屜 / 門板配長條把手（96/128/160mm 規格，NT$ 50-200/個），現代風常見。";
+      return isEn
+        ? "Drawer / door bar pull (96/128/160mm sizes, ~$2-6 each). Common on modern pieces."
+        : "抽屜 / 門板配長條把手（96/128/160mm 規格，NT$ 50-200/個），現代風常見。";
     case "ring-chinese":
-      return "中式古銅吊環（面葉 Φ38mm + 銅環 Φ30mm，凸出 21mm，黃銅古銅色 NT$ 150-400/組），明清櫃門 / 抽屜標配。";
+      return isEn
+        ? "Chinese-style antique brass ring pull (Φ38mm backplate + Φ30mm ring, proud 21mm, antiqued brass ~$5-12 each). Standard for Ming/Qing cabinet doors and drawers."
+        : "中式古銅吊環（面葉 Φ38mm + 銅環 Φ30mm，凸出 21mm，黃銅古銅色 NT$ 150-400/組），明清櫃門 / 抽屜標配。";
     case "drop-bail":
-      return "古典吊環（Hepplewhite bail pull，橢圓底座 76×60mm + 黃銅吊環垂 22mm，凸出 25mm，中心距 64mm，NT$ 200-500/組），18 世紀英美書桌 / 斗櫃標配。";
+      return isEn
+        ? "Classical bail pull (Hepplewhite style, 76×60mm oval backplate + 22mm brass drop, proud 25mm, 64mm centers, ~$6-15 each). Standard for 18th-century English/American desks and chests."
+        : "古典吊環（Hepplewhite bail pull，橢圓底座 76×60mm + 黃銅吊環垂 22mm，凸出 25mm，中心距 64mm，NT$ 200-500/組），18 世紀英美書桌 / 斗櫃標配。";
     case "finger-pull":
-      return "面板挖半月弧形指槽 80×25×深 12mm，無外露五金，北歐 / 日式極簡。";
+      return isEn
+        ? "Crescent-shaped finger pull cut into the panel (80×25mm, 12mm deep). No exposed hardware — Scandinavian / Japanese minimalist."
+        : "面板挖半月弧形指槽 80×25×深 12mm，無外露五金，北歐 / 日式極簡。";
     case "none":
-      return "不裝把手（純展示 / 客戶後續自選）。";
+      return isEn
+        ? "No pulls fitted (display-only / customer to choose later)."
+        : "不裝把手（純展示 / 客戶後續自選）。";
   }
   return "";
 }

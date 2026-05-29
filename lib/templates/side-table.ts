@@ -16,6 +16,7 @@ import {
 } from "./_helpers";
 import type { Part } from "@/lib/types";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 export const sideTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -57,6 +58,8 @@ export const sideTableOptions: OptionSpec[] = [
 ];
 
 export const sideTable: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = sideTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
@@ -118,7 +121,9 @@ export const sideTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     apronEdge,
     apronEdgeStyle,
-    notes: `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（面板高 ${drawerHeight}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 12.5mm 鎖滑軌）" : "無滑軌（兩側 1mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
+    notes: isEn
+      ? `Bedside storage table; add lower stretchers for stability.${withDrawer ? ` Includes 1 front-rail drawer (face height ${formatMm(drawerHeight, "inch")}, ${drawerFaceOffset === 0 ? "flush with front" : drawerFaceOffset > 0 ? `proud by ${formatMm(drawerFaceOffset, "inch")}` : `inset by ${formatMm(-drawerFaceOffset, "inch")}`}). ${drawerSlideType === "side-mount" ? "Full-extension side-mount slides (12.5 mm clearance each side)" : "Wood-on-wood runners (1 mm slip-fit each side, no metal slides)"}. Pull: ${pullStyle === "none" ? "none" : pullStyle === "knob" ? "round knob" : "bar pull"}.` : ""}`
+      : `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（面板高 ${drawerHeight}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 12.5mm 鎖滑軌）" : "無滑軌（兩側 1mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
   });
 
   // 前緣抽屜：面板 + 抽屜箱（替代前牙板）
