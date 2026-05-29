@@ -2364,6 +2364,48 @@ function OrthoViewImpl({
             part.shape?.kind === "splayed-round-tapered";
           const splaySwapShape =
             isolatePartId && isSplayFamilyShape && (view === "front" || view === "side");
+          // 帶斜接 start/end tenon + 俯視 TOP 面板(view="front"):跳過垂直
+          // 端邊,只畫上下水平,讓 overlay 加的 shoulder 雙線當端邊。放寬到
+          // 任何 shape kind(box / chamfered-edges / apron-trapezoid 都行),
+          // 只要 tenon 帶斜接 axis 就觸發(user 2026-05-29「還在」)。
+          // leg 件不受影響(其 tenon 在 top/bottom 不在 start/end)。
+          const hasTiltedEndTenon =
+            view === "front" &&
+            part.tenons.some(
+              (t) =>
+                t.axis &&
+                (t.position === "start" || t.position === "end") &&
+                Math.abs(t.axis.x ?? 0) > 0.001 &&
+                Math.abs(t.axis.y ?? 0) > 0.001,
+            );
+          if (hasTiltedEndTenon) {
+            const r = projectPart(part, view);
+            const yTop = -(r.y + r.h);
+            const yBot = -r.y;
+            return (
+              <g key={part.id}>
+                <line
+                  x1={r.x}
+                  x2={r.x + r.w}
+                  y1={yTop}
+                  y2={yTop}
+                  stroke={effStroke}
+                  strokeWidth={sw}
+                  strokeDasharray={effDash}
+                />
+                <line
+                  x1={r.x}
+                  x2={r.x + r.w}
+                  y1={yBot}
+                  y2={yBot}
+                  stroke={effStroke}
+                  strokeWidth={sw}
+                  strokeDasharray={effDash}
+                />
+                {extras}
+              </g>
+            );
+          }
           return (
             <g key={part.id}>
               <polygon
@@ -2491,6 +2533,18 @@ function OrthoViewImpl({
         const r = projectPart(part, view);
         // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
         // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
+        // user 2026-05-29「中間那條」: view="front" 帶斜接 start/end tenon 的料
+        // 跳過垂直端邊(overlay 會加 shoulder 雙線取代)。fallback rect path
+        // 適用 shape=box/undefined 的 apron。
+        const hasTiltedEndTenonRect =
+          view === "front" &&
+          part.tenons.some(
+            (t) =>
+              t.axis &&
+              (t.position === "start" || t.position === "end") &&
+              Math.abs(t.axis.x ?? 0) > 0.001 &&
+              Math.abs(t.axis.y ?? 0) > 0.001,
+          );
         if (hidden) {
           // 改畫成 4 條獨立 line + 同步 dashoffset（不再用 single rect path）
           // 同 Y / 同 X 的多 part hidden 邊就能 phase 對齊不鋸齒
@@ -2503,15 +2557,19 @@ function OrthoViewImpl({
               <line x1={r.x} y1={ry} x2={r.x + r.w} y2={ry}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
                 strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
-              <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
-                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
+              {!hasTiltedEndTenonRect && (
+                <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
+                  stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                  strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
+              )}
               <line x1={r.x} y1={ry + r.h} x2={r.x + r.w} y2={ry + r.h}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
                 strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
-              <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
-                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
+              {!hasTiltedEndTenonRect && (
+                <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
+                  stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                  strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
+              )}
             </g>
           );
         }
@@ -2539,6 +2597,9 @@ function OrthoViewImpl({
               : 0.9;
         const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
+          // 跳過 view="front" 帶斜接 tenon 的料的左右垂直端邊
+          // (i=1 右垂直 / i=3 左垂直,corners 順序:TL→TR→BR→BL)
+          if (hasTiltedEndTenonRect && (i === 1 || i === 3)) continue;
           const a = corners[i];
           const b = corners[(i + 1) % 4];
           const segs = classifyEdgeVisibility(a, b, isHiddenAt);
@@ -2600,38 +2661,20 @@ function OrthoViewImpl({
         const r = projectPart(p, view);
         const yTopSvg = -(r.y + r.h);
         const yBotSvg = -r.y;
-        const covers: React.ReactNode[] = [];
         const lines: React.ReactNode[] = [];
         for (const t of tilts) {
           const ax = t.axis!.x ?? 0;
           const ay = t.axis!.y ?? 0;
           const delta = (ay / ax) * T / 2;
-          let xBody: number;
           let xTop: number;
           let xBot: number;
           if (t.position === "end") {
-            xBody = r.x;
             xTop = r.x + delta;
             xBot = r.x - delta;
           } else {
-            xBody = r.x + r.w;
             xTop = r.x + r.w + delta;
             xBot = r.x + r.w - delta;
           }
-          // 白色蓋線:蓋掉 polygon 在 xBody 那條垂直邊。寬度設小於 |delta|×2
-          // 避免吃到 shoulder 線(shoulder 在 xBody ± |delta|)。
-          const coverW = Math.min(Math.abs(delta) * 1.2, 2.0);
-          covers.push(
-            <line
-              key={`${p.id}-${t.position}-cover`}
-              x1={xBody}
-              x2={xBody}
-              y1={yTopSvg}
-              y2={yBotSvg}
-              stroke="#fff"
-              strokeWidth={coverW}
-            />,
-          );
           lines.push(
             <line
               key={`${p.id}-${t.position}-shoulder-top`}
@@ -2653,12 +2696,7 @@ function OrthoViewImpl({
             />,
           );
         }
-        return (
-          <g key={`${p.id}-tilt-shoulders`}>
-            {covers}
-            {lines}
-          </g>
-        );
+        return <g key={`${p.id}-tilt-shoulders`}>{lines}</g>;
       })}
 
       {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓
