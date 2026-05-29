@@ -181,9 +181,11 @@ export default async function LocaleLayout({
               offers:
                 locale === "en"
                   ? [
-                      { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: currency },
-                      { "@type": "Offer", name: "Personal", price: priceAmount(390, currency), priceCurrency: currency },
-                      { "@type": "Offer", name: "Pro", price: priceAmount(890, currency), priceCurrency: currency },
+                      // EN 用 LemonSqueezy 手動定的 USD 價位（非 FX 換算）：
+                      // Personal $9/月、Pro $79/年。跟 app/[locale]/page.tsx 顯示對齊。
+                      { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: "USD" },
+                      { "@type": "Offer", name: "Personal", price: "9", priceCurrency: "USD" },
+                      { "@type": "Offer", name: "Pro", price: "79", priceCurrency: "USD" },
                     ]
                   : [
                       { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: currency },

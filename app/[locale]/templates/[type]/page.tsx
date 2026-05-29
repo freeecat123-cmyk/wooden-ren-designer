@@ -121,8 +121,9 @@ export default async function TemplateDetail({ params }: PageProps) {
     },
     offers: {
       "@type": "Offer",
-      price: isFree ? "0" : priceAmount(390, currency),
-      priceCurrency: currency,
+      // EN 用手動 USD 定價(Personal $9/月)對齊 LemonSqueezy + 首頁顯示
+      price: isFree ? "0" : isEn ? "9" : priceAmount(390, currency),
+      priceCurrency: isEn ? "USD" : currency,
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },

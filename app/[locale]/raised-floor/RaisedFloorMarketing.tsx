@@ -76,8 +76,8 @@ export async function RaisedFloorMarketing({ status }: Props) {
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: priceAmount(390, currency),
-      priceCurrency: currency,
+      price: isEn ? "9" : priceAmount(390, currency),
+      priceCurrency: isEn ? "USD" : currency,
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },
