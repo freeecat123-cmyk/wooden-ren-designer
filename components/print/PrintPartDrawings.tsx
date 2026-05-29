@@ -9,6 +9,7 @@ import { PartDrawing } from "@/lib/render/part-drawing/drawing";
 interface Props {
   design: FurnitureDesign;
   locale?: string;
+  unit?: "mm" | "inch";
 }
 
 /**
@@ -41,7 +42,7 @@ function isHardPart(g: PartDrawingGroup): boolean {
  * Hard-shape parts (HARD_SHAPES) take `col-span-2` so their richer
  * annotations (Phase 3) get a full row; lighter parts stay 2-up.
  */
-export function PrintPartDrawings({ design, locale = "zh-TW" }: Props) {
+export function PrintPartDrawings({ design, locale = "zh-TW", unit = "mm" }: Props) {
   const groups = groupPartsForDrawing(design);
 
   if (!groups.length) return null;
@@ -64,7 +65,7 @@ export function PrintPartDrawings({ design, locale = "zh-TW" }: Props) {
             key={g.hash}
             className={isHardPart(g) ? "col-span-2" : undefined}
           >
-            <PartDrawing group={g} design={design} index={idx} locale={locale} />
+            <PartDrawing group={g} design={design} index={idx} locale={locale} unit={unit} />
           </div>
         ))}
       </div>

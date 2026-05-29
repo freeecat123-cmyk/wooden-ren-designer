@@ -14,6 +14,8 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { useUnit } from "@/hooks/useUnit";
+import { formatDimensions } from "@/lib/units/format";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
 import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
@@ -70,6 +72,7 @@ export function MobileShell(props: MobileShellProps) {
   const t = useTranslations("mobile");
   const locale = useLocale();
   const isEn = locale === "en";
+  const unit = useUnit();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
@@ -331,7 +334,7 @@ export function MobileShell(props: MobileShellProps) {
                     </h4>
                   </div>
                   <p className="text-xs text-zinc-500 mb-2">
-                    {t("joinery.tenon")} {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                    {t("joinery.tenon")} {formatDimensions(u.tenon.length, u.tenon.width, u.tenon.thickness, unit)}
                   </p>
                   <p className="text-xs text-zinc-700 leading-relaxed">{joineryDescription(u.type, locale)}</p>
                 </div>
@@ -438,7 +441,7 @@ export function MobileShell(props: MobileShellProps) {
                         </span>
                       </h3>
                       <p className="text-[10px] text-zinc-400">
-                        {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                        {formatDimensions(u.tenon.length, u.tenon.width, u.tenon.thickness, unit)}
                       </p>
                     </div>
                     <p className="text-xs text-zinc-500 mb-2">{joineryDescription(u.type, locale)}</p>

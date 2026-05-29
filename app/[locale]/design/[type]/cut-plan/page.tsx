@@ -18,6 +18,8 @@ import {
   parseDesignSearchParams,
   designParamsToQuery,
 } from "@/lib/design/parse-search-params";
+import { getUnitFromCookies } from "@/lib/units/server-unit";
+import { formatDimensions } from "@/lib/units/format";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -52,7 +54,9 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const parsed = parseDesignSearchParams(sp, entry);
   const { length, width, height, material, options, joineryMode } = parsed;
 
-  const rawDesign = entry.template({ length, width, height, material, options });
+  const rawDesign = entry.template({ length, width, height, material, options, locale });
+  const unit = await getUnitFromCookies(locale);
+  const dims = formatDimensions(length, width, height, unit);
   const design = joineryMode
     ? applyEdgeProtection(rawDesign)
     : toBeginnerMode(rawDesign);
@@ -89,7 +93,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
       <CutPlanApp
         initialSpecs={initialSpecs}
         initialConfig={DEFAULT_NEST_CONFIG}
-        entryNameZh={`${entryName} ${length}×${width}×${height}mm ${matName}`}
+        entryNameZh={`${entryName} ${dims} ${matName}`}
       />
     </main>
   );

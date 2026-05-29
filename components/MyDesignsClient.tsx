@@ -7,6 +7,8 @@ import { useUserPlan } from "@/hooks/useUserPlan";
 import { createClient } from "@/lib/supabase/client";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
+import { useUnit } from "@/hooks/useUnit";
+import { formatDimensions } from "@/lib/units/format";
 
 interface DesignRow {
   id: string;
@@ -43,6 +45,7 @@ function buildEditHref(row: DesignRow): string {
 export function MyDesignsClient() {
   const t = useTranslations("myDesignsPage");
   const tFurn = useTranslations("furniture");
+  const unit = useUnit();
   const { isLoading: planLoading, isLoggedIn, userId } = useUserPlan();
   const [rows, setRows] = useState<DesignRow[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -198,7 +201,7 @@ export function MyDesignsClient() {
                   </div>
                   <p className="text-xs text-zinc-500 mt-1">
                     {[length, width, height].every((v) => typeof v === "number")
-                      ? `${length}×${width}×${height} mm`
+                      ? formatDimensions(length as number, width as number, height as number, unit)
                       : t("noDim")}
                     {material ? ` · ${String(material)}` : ""}
                     <span className="ml-2">{t("updatedTpl", { date: formatDate(row.updated_at) })}</span>

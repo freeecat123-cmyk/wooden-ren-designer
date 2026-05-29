@@ -30,6 +30,7 @@ import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
 import { pickScaleForPaper } from "./paper-fit";
 import { computeBrokenViewSpec } from "./broken-view";
 import { PartDrawingPaperSheet } from "./paper-sheet";
+import { formatLengthBare } from "@/lib/units/format";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -92,6 +93,8 @@ interface PartDrawingProps {
   onViewZoom?: (view: PartView, zoom: ZoomLevel) => void;
   /** 標題/材料/比例 label 語言;預設 zh-TW。 */
   locale?: string;
+  /** 標題塊尺寸單位 — 預設 mm。EN 列印通常傳 "inch"。 */
+  unit?: "mm" | "inch";
 }
 
 /**
@@ -117,6 +120,7 @@ export function PartDrawing({
   perViewZoom,
   onViewZoom,
   locale = "zh-TW",
+  unit = "mm",
 }: PartDrawingProps) {
   const isEn = locale === "en";
   const scalePrefix = isEn ? "Scale " : "比例 ";
@@ -270,7 +274,7 @@ export function PartDrawing({
                     materialLabel: isEn
                       ? (material?.nameEn ?? material?.nameZh ?? part.material)
                       : (material?.nameZh ?? part.material),
-                    dimsLabel: `${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`,
+                    dimsLabel: `${formatLengthBare(part.visible.length, unit)}×${formatLengthBare(part.visible.width, unit)}×${formatLengthBare(part.visible.thickness, unit)}`,
                   }}
                   overlayContent={(ctx) => {
                     // 仰視 BOTTOM：annotation 在「Y 鏡像後的 part」+ view='top' 下渲染，

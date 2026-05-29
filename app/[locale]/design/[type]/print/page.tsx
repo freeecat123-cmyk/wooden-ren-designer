@@ -23,6 +23,8 @@ import { PrintPartDrawings } from "@/components/print/PrintPartDrawings";
 import { PartDrawingsIndex } from "@/components/print/PartDrawingsIndex";
 import { isLocalhost } from "@/lib/dev-only";
 import { PrintTemplates } from "@/components/print/PrintTemplates";
+import { getUnitFromCookies } from "@/lib/units/server-unit";
+import { formatDimensions } from "@/lib/units/format";
 import { PrintAccessGate, PrintWatermarkLayer } from "@/components/PrintAccessGate";
 import {
   deriveBuildSteps,
@@ -106,7 +108,8 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     spStr("joineryMode") === "true" ||
     spStr("joineryMode") === "1" ||
     spStr("beginnerMode") === "false";
-  const rawDesign = entry.template({ length, width, height, material, options });
+  const unit = await getUnitFromCookies(rawLocale);
+  const rawDesign = entry.template({ length, width, height, material, options, locale: rawLocale });
   const design = joineryMode
     ? applyEdgeProtection(rawDesign)
     : toBeginnerMode(rawDesign);
@@ -164,7 +167,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           <p className="mt-4 text-xl text-zinc-700">{getEntryDescription(entry, locale) ?? ""}</p>
 
           <dl className="mt-12 grid grid-cols-2 gap-y-4 gap-x-12 text-base max-w-xl">
-            <CoverField label={isEn ? "Size" : "尺寸"} value={`${length} × ${width} × ${height} mm`} />
+            <CoverField label={isEn ? "Size" : "尺寸"} value={formatDimensions(length, width, height, unit)} />
             <CoverField label={isEn ? "Wood" : "木材"} value={materialName(material, locale)} />
             <CoverField
               label={isEn ? "Difficulty" : "難度"}
@@ -247,7 +250,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                     </span>
                   </h3>
                   <p className="text-xs text-zinc-500">
-                    {isEn ? "Tenon" : "榫頭"} {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                    {isEn ? "Tenon" : "榫頭"} {formatDimensions(u.tenon.length, u.tenon.width, u.tenon.thickness, unit)}
                   </p>
                 </div>
                 <p className="text-xs text-zinc-600 mb-3">
@@ -279,7 +282,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           <PartDrawingsIndex design={design} locale={locale} />
 
           {/* ================= Page N+: Part drawings (零件圖) ================= */}
-          <PrintPartDrawings design={design} locale={locale} />
+          <PrintPartDrawings design={design} locale={locale} unit={unit} />
         </>
       )}
 

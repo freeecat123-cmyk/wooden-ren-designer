@@ -849,6 +849,7 @@ async function JoinerySection({ design, locale }: { design: FurnitureDesign; loc
   const motherLabel = t("motherPart");
   const spotsLabel = (n: number) => t("spotsLabel", { n });
   const tenonLabel = t("tenon");
+  const unit = await getUnitFromCookies(locale);
   return (
     <div className="space-y-6">
       <JoineryRulesCallout locale={locale} />
@@ -865,7 +866,7 @@ async function JoinerySection({ design, locale }: { design: FurnitureDesign; loc
               </span>
             </h3>
             <p className="text-xs text-zinc-500">
-              {tenonLabel} {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+              {tenonLabel} {formatDimensions(u.tenon.length, u.tenon.width, u.tenon.thickness, unit)}
             </p>
           </div>
           <p className="text-xs text-zinc-600 mb-3">{joineryDescription(u.type, locale)}</p>

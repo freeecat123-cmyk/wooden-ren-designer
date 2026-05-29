@@ -1227,7 +1227,7 @@ function OrthoViewImpl({
                   { label: "Material", value: paperTitleBlock?.materialLabel ?? "—" },
                   { label: "Qty", value: `×${paperTitleBlock?.count ?? 1}` },
                   { label: "Scale", value: `1:${paperScaleN}` },
-                  { label: "Size mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+                  { label: useInch ? "Size in" : "Size mm", value: paperTitleBlock?.dimsLabel ?? "—" },
                 ]
               : [
                   { label: "件號", value: paperTitleBlock?.partNo ?? "—" },
@@ -1235,7 +1235,7 @@ function OrthoViewImpl({
                   { label: "材料", value: paperTitleBlock?.materialLabel ?? "—" },
                   { label: "數量", value: `×${paperTitleBlock?.count ?? 1}` },
                   { label: "比例", value: `1:${paperScaleN}` },
-                  { label: "尺寸 mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+                  { label: useInch ? "尺寸 in" : "尺寸 mm", value: paperTitleBlock?.dimsLabel ?? "—" },
                 ];
             return cols.map((c, i) => {
               const cx = 10 + colW * i + colW / 2;
@@ -2237,6 +2237,43 @@ function OrthoViewImpl({
                     x1={r.x}
                     x2={r.x + r.w}
                     y1={-(r.y + r.h)}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                );
+              }
+            }
+          }
+          // apron-trapezoid TOP view 雙 shoulder(user 2026-05-29):
+          // apron 本體上下面 length 不同(top 配 splayed leg 內縮)→ 兩端 shoulder
+          // X 偏移。outer polygon 用較長那面作 silhouette,較短面 shoulder 內縮 →
+          // 加細灰線標較短面 shoulder。
+          if (view === "top" && part.shape?.kind === "apron-trapezoid") {
+            const topScale = part.shape.topLengthScale ?? 1;
+            const botScale = part.shape.bottomLengthScale ?? 1;
+            if (Math.abs(topScale - botScale) > 0.001) {
+              const r = projectPart(part, view);
+              const maxScale = Math.max(topScale, botScale);
+              const minScale = Math.min(topScale, botScale);
+              const shortRatio = minScale / maxScale;
+              const innerInset = (r.w * (1 - shortRatio)) / 2;
+              if (innerInset > 1.5) {
+                extras.push(
+                  <line
+                    key={`${part.id}-aproninner-L`}
+                    x1={r.x + innerInset}
+                    x2={r.x + innerInset}
+                    y1={-r.y}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                  <line
+                    key={`${part.id}-aproninner-R`}
+                    x1={r.x + r.w - innerInset}
+                    x2={r.x + r.w - innerInset}
+                    y1={-r.y}
                     y2={-(r.y + r.h)}
                     stroke="#444"
                     strokeWidth={0.6}

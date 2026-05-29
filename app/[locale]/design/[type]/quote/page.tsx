@@ -28,6 +28,7 @@ import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
+import { formatDimensions } from "@/lib/units/format";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -177,7 +178,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     sp.joineryMode === "true" ||
     sp.joineryMode === "1" ||
     sp.beginnerMode === "false";
-  const rawDesign = entry.template({ length, width, height, material, options });
+  const rawDesign = entry.template({ length, width, height, material, options, locale });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const unit = await getUnitFromCookies(locale);
   const currency = await getCurrencyFromCookies();
@@ -259,7 +260,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             <span className="ml-2 text-sm font-normal text-zinc-700">{t("customQuote")}</span>
           </h1>
           <p className="mt-0.5 text-xs text-zinc-700">
-            {length} × {width} × {height} mm · {matName}
+            {formatDimensions(length, width, height, unit)} · {matName}
             <span className="ml-1.5 text-zinc-600" title={t("weightTitle")}>{t("weightApprox", { kg: estimateWeight(design) })}</span>
             <span className="ml-2 text-zinc-600">#{quoteNo}</span>
           </p>
@@ -270,7 +271,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             design={design}
             type={type}
             furnitureNameZh={entryName}
-            dimensionsLabel={`${length} × ${width} × ${height} mm`}
+            dimensionsLabel={formatDimensions(length, width, height, unit)}
             materialName={matName}
           />
         </div>

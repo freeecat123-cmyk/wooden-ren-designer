@@ -210,6 +210,7 @@ export function PartDrawingsPanel({ design }: Props) {
                 orthoClassName="bg-white w-full h-auto"
                 zoom={zoomedView !== null ? zoom : 1}
                 locale={locale}
+                unit={unit}
               />
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
