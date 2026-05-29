@@ -2245,43 +2245,6 @@ function OrthoViewImpl({
               }
             }
           }
-          // apron-trapezoid TOP view 雙 shoulder(user 2026-05-29):
-          // apron 本體上下面 length 不同(top 配 splayed leg 內縮)→ 兩端 shoulder
-          // X 偏移。outer polygon 用較長那面作 silhouette,較短面 shoulder 內縮 →
-          // 加細灰線標較短面 shoulder。
-          if (view === "top" && part.shape?.kind === "apron-trapezoid") {
-            const topScale = part.shape.topLengthScale ?? 1;
-            const botScale = part.shape.bottomLengthScale ?? 1;
-            if (Math.abs(topScale - botScale) > 0.001) {
-              const r = projectPart(part, view);
-              const maxScale = Math.max(topScale, botScale);
-              const minScale = Math.min(topScale, botScale);
-              const shortRatio = minScale / maxScale;
-              const innerInset = (r.w * (1 - shortRatio)) / 2;
-              if (innerInset > 1.5) {
-                extras.push(
-                  <line
-                    key={`${part.id}-aproninner-L`}
-                    x1={r.x + innerInset}
-                    x2={r.x + innerInset}
-                    y1={-r.y}
-                    y2={-(r.y + r.h)}
-                    stroke="#444"
-                    strokeWidth={0.6}
-                  />,
-                  <line
-                    key={`${part.id}-aproninner-R`}
-                    x1={r.x + r.w - innerInset}
-                    x2={r.x + r.w - innerInset}
-                    y1={-r.y}
-                    y2={-(r.y + r.h)}
-                    stroke="#444"
-                    strokeWidth={0.6}
-                  />,
-                );
-              }
-            }
-          }
           // Arch-bent 側視：在未彎時的端面後緣多畫一條垂直實線，標示
           // 端面（cross-section）邊界——讓看圖的人分得出料的真實厚度 vs 彎弧延伸
           if (part.shape?.kind === "arch-bent" && view === "side") {
@@ -2615,6 +2578,88 @@ function OrthoViewImpl({
         return <g key={part.id}>{lines}</g>;
       });
       })()}
+
+      {/* 單斜 apron tenon shoulder 俯視 TOP 面板雙線(user 2026-05-29):
+          零件圖「俯視 TOP」面板 = OrthoView view="front" = X-Y 投影。
+          每個 start/end tenon 帶 axis 的 → 兩條黑色垂直直線:
+            top 面 shoulder + bottom 面 shoulder
+          兩條 X 偏移 = (ay/ax) × T(全厚度的 tan)。
+          先用白線蓋掉 polygon 本體在 shoulder 處的垂直端邊(避免變 3 條線),
+          再畫黑色 shoulder 雙線。 */}
+      {view === "front" && renderDesign.parts.map((p) => {
+        const tilts = p.tenons.filter((t) => {
+          if (!t.axis) return false;
+          if (t.position !== "start" && t.position !== "end") return false;
+          const ax = t.axis.x ?? 0;
+          const ay = t.axis.y ?? 0;
+          if (Math.abs(ax) < 0.001) return false;
+          return Math.abs((ay / ax) * p.visible.thickness / 2) >= 0.5;
+        });
+        if (tilts.length === 0) return null;
+        const T = p.visible.thickness;
+        const r = projectPart(p, view);
+        const yTopSvg = -(r.y + r.h);
+        const yBotSvg = -r.y;
+        const covers: React.ReactNode[] = [];
+        const lines: React.ReactNode[] = [];
+        for (const t of tilts) {
+          const ax = t.axis!.x ?? 0;
+          const ay = t.axis!.y ?? 0;
+          const delta = (ay / ax) * T / 2;
+          let xBody: number;
+          let xTop: number;
+          let xBot: number;
+          if (t.position === "end") {
+            xBody = r.x;
+            xTop = r.x + delta;
+            xBot = r.x - delta;
+          } else {
+            xBody = r.x + r.w;
+            xTop = r.x + r.w + delta;
+            xBot = r.x + r.w - delta;
+          }
+          // 白色蓋線:蓋掉 polygon 在 xBody 那條垂直邊。寬度設小於 |delta|×2
+          // 避免吃到 shoulder 線(shoulder 在 xBody ± |delta|)。
+          const coverW = Math.min(Math.abs(delta) * 1.2, 2.0);
+          covers.push(
+            <line
+              key={`${p.id}-${t.position}-cover`}
+              x1={xBody}
+              x2={xBody}
+              y1={yTopSvg}
+              y2={yBotSvg}
+              stroke="#fff"
+              strokeWidth={coverW}
+            />,
+          );
+          lines.push(
+            <line
+              key={`${p.id}-${t.position}-shoulder-top`}
+              x1={xTop}
+              x2={xTop}
+              y1={yTopSvg}
+              y2={yBotSvg}
+              stroke="#000"
+              strokeWidth={0.8}
+            />,
+            <line
+              key={`${p.id}-${t.position}-shoulder-bot`}
+              x1={xBot}
+              x2={xBot}
+              y1={yTopSvg}
+              y2={yBotSvg}
+              stroke="#000"
+              strokeWidth={0.8}
+            />,
+          );
+        }
+        return (
+          <g key={`${p.id}-tilt-shoulders`}>
+            {covers}
+            {lines}
+          </g>
+        );
+      })}
 
       {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓
            俯視看不到挖型不畫；曲線從矩形頂緣往下凹（最深點 = depthMm） */}
