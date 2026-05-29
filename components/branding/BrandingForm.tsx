@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { useTranslations } from "next-intl";
-import { DEFAULT_BRANDING, useBranding } from "./branding";
+import { useTranslations, useLocale } from "next-intl";
+import { DEFAULT_BRANDING, DEFAULT_BRANDING_EN, useBranding } from "./branding";
 
 const MAX_LOGO_BYTES = 300_000;
 
@@ -10,6 +10,7 @@ export function BrandingForm({
   defaultOpen = false,
 }: { defaultOpen?: boolean } = {}) {
   const t = useTranslations("brandingForm");
+  const locale = useLocale();
   const { data, hydrated, syncedAt, pendingPush, update, reset, flush } =
     useBranding();
   const [logoError, setLogoError] = useState<string>("");
@@ -64,8 +65,8 @@ export function BrandingForm({
 
   const clearLogo = () => update({ logoDataUrl: "" });
 
-  const isDefault =
-    JSON.stringify(data) === JSON.stringify(DEFAULT_BRANDING);
+  const def = locale === "en" ? DEFAULT_BRANDING_EN : DEFAULT_BRANDING;
+  const isDefault = JSON.stringify(data) === JSON.stringify(def);
 
   return (
     <section className="mt-3 rounded-lg border border-zinc-200 bg-white">
