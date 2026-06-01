@@ -242,6 +242,100 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
   const entryName = getEntryName(entry, locale);
   const matName = materialName(material, locale);
+  const isEn = locale === "en";
+
+  // International (EN) — DIY-oriented "Estimate cost" page.
+  // Hides Taiwan business-quote machinery (labour hrs, deposit, customer info,
+  // warranty terms, internal margin view). Shows material cost + BOM only.
+  if (isEn) {
+    return (
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        <Link
+          href={`/design/${type}?${designQuery}`}
+          className="text-sm text-zinc-700 hover:underline"
+        >
+          {t("backLink", { name: entryName })}
+        </Link>
+        <QuoteAccessGate>
+          <header className="mt-2 mb-4 flex items-baseline justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900">
+                {entryName}
+                <span className="ml-2 text-sm font-normal text-zinc-700">{t("customQuote")}</span>
+              </h1>
+              <p className="mt-0.5 text-xs text-zinc-700">
+                {formatDimensions(length, width, height, unit)} · {matName}
+                <span className="ml-1.5 text-zinc-600" title={t("weightTitle")}>{t("weightApprox", { kg: estimateWeight(design) })}</span>
+              </p>
+            </div>
+            <QuoteShareActions
+              design={design}
+              type={type}
+              furnitureNameZh={entryName}
+              dimensionsLabel={formatDimensions(length, width, height, unit)}
+              materialName={matName}
+            />
+          </header>
+
+          <section className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50/50 p-3">
+            <div className="text-[10px] text-zinc-700 mb-2 font-medium tracking-wider flex items-center justify-between">
+              <span>{t("previewTitle")}</span>
+              <span className="text-zinc-600 normal-case">{t("previewHint")}</span>
+            </div>
+            <ZoomableThreeViews design={design} joineryMode={joineryMode} />
+          </section>
+
+          <section className="rounded-xl border-2 border-zinc-900 bg-white overflow-hidden shadow-sm">
+            <div className="bg-zinc-900 text-white px-5 py-4">
+              <div className="text-[10px] uppercase tracking-wider opacity-70">
+                Estimated material cost
+              </div>
+              <div className="mt-1 text-4xl font-mono font-bold">
+                {fmt(quote.materialCost)}
+              </div>
+              <div className="mt-1 text-[11px] opacity-70">
+                {quote.totalBdft.toFixed(1)} bd-ft · solid wood + sheet goods, 10% cutting waste included
+              </div>
+            </div>
+            <div className="px-5 py-3 bg-amber-50 border-t border-amber-200 text-[12px] text-amber-900 leading-relaxed">
+              <strong>DIY estimate.</strong> Lumber cost only — does <em>not</em> include hardware, fasteners, finish, sandpaper, glue, blades, or your time.
+              Per-board-foot pricing reflects Taiwan retail; US/EU lumberyard prices for softwoods (pine/SPF) are typically 40–60% of this number. Get a local quote for the actual figure.
+            </div>
+          </section>
+
+          <section className="mt-6 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-200 text-sm font-medium text-zinc-800">
+              Bill of materials ({design.parts.length} parts)
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200 text-xs text-zinc-600">
+                <tr>
+                  <th className="text-left p-2.5">Part</th>
+                  <th className="text-left p-2.5">Material</th>
+                  <th className="text-right p-2.5">L × W × T</th>
+                </tr>
+              </thead>
+              <tbody>
+                {design.parts.map((part, i) => (
+                  <tr key={part.id ?? i} className="border-b border-zinc-100">
+                    <td className="p-2.5">{part.nameEn ?? part.nameZh}</td>
+                    <td className="p-2.5 text-zinc-600 text-xs">{materialName(part.material ?? material, locale)}</td>
+                    <td className="p-2.5 text-right font-mono text-xs">
+                      {formatDimensions(part.visible.length, part.visible.width, part.visible.thickness, unit)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <div className="mt-4 text-[11px] text-zinc-500">
+            Tip: click <strong>Print / PDF</strong> above to save this estimate as a PDF, or share via Email / Copy link.
+          </div>
+        </QuoteAccessGate>
+      </main>
+    );
+  }
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-8">

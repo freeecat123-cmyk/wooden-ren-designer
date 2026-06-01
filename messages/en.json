@@ -662,7 +662,7 @@
       "piecesCount": "{count} parts",
       "weightApprox": "≈ {kg} kg",
       "weightTitle": "Actual weight = part volume × wood density + 12% packaging",
-      "quoteBtn": "💰 Generate quote",
+      "quoteBtn": "💰 Estimate cost",
       "printBtn": "🖨️ Print / PDF"
     },
     "clamp": {
@@ -787,7 +787,7 @@
     "bottom": {
       "totalLabel": "Est. total",
       "weight": "≈ {kg} kg",
-      "quoteBtn": "💰 Quote"
+      "quoteBtn": "💰 Estimate"
     },
     "form": {
       "style": "Style",

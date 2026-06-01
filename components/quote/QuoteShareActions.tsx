@@ -170,16 +170,18 @@ export function QuoteShareActions({
   return (
     <div className="relative">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={handleLine}
-          className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
-            copied === "line" ? "bg-emerald-600" : "bg-green-500 hover:bg-green-600"
-          }`}
-          title={t("btnLineTitle")}
-        >
-          {copied === "line" ? t("btnLineCopied") : t("btnLine")}
-        </button>
+        {locale !== "en" && (
+          <button
+            type="button"
+            onClick={handleLine}
+            className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
+              copied === "line" ? "bg-emerald-600" : "bg-green-500 hover:bg-green-600"
+            }`}
+            title={t("btnLineTitle")}
+          >
+            {copied === "line" ? t("btnLineCopied") : t("btnLine")}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleEmail}
