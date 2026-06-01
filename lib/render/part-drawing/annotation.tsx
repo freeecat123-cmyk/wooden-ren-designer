@@ -204,6 +204,22 @@ export function T1Dimensions({
   const horizLabel = labelByAxis[horizAxisName];
   const vertLabel = labelByAxis[vertAxisName];
 
+  // 梯形 apron length 端：主「長」標的 dim 線跨 body silhouette 頂緣 = 接座(上)邊
+  // （body 已統一成真實比例 length×topLengthScale）。原本 horiz=visible.length
+  // 是肩到肩中線(168.3)，跟主三視圖標的上邊(160.9)+下邊對不上(user 2026-06-01
+  // 「數字不一樣」)。梯形件主標改顯示上邊長度,跟主三視圖/下邊標註同基準。
+  // ⚠️ 只在「正視」(view="top",看得到梯形上下邊)把主「長」改標上邊+dim 端點
+  // 貼上邊。俯視(view="front")/側視 body 是矩形,主「長」維持投影 bbox(horiz)。
+  const trapForMain =
+    view === "top" &&
+    part.shape?.kind === "apron-trapezoid" &&
+    horizAxisName === "L"
+      ? part.shape
+      : null;
+  const horizMainDisplay = trapForMain
+    ? round1(part.visible.length * trapForMain.topLengthScale)
+    : horiz;
+
   // 連榫頭總長：把所有 tenon bbox 8 corners 投影併入 → 算 gross 比 partBody 大多少
   const grossCorners: { x: number; y: number }[] = [...allCorners];
   for (const t of part.tenons) {
@@ -284,8 +300,20 @@ export function T1Dimensions({
   // 自己畫 dim line + extension（DimensionLine 預設 extension 朝上、不適合
   // 我們 dim line 在 part 上方的場景——應該朝 part 下方延伸）
   const sortedX = [horizP1.x, horizP2.x].sort((a, b) => a - b);
-  const hxLo = sortedX[0];
-  const hxHi = sortedX[1];
+  let hxLo = sortedX[0];
+  let hxHi = sortedX[1];
+  // 梯形 apron 主「長」標的是上邊(接座),dim 線端點要貼上邊實際端點
+  // (±L/2 × topLengthScale),而非 allCorners bbox 的 visible.length 端(±L/2)。
+  // 否則線跨 168.3、標籤寫 160.9,線比數字長、端點抓到中心外(user 2026-06-01
+  // 「短邊抓到中心」)。用 ctx 投影上邊兩端覆蓋。
+  if (trapForMain) {
+    const hL = (part.visible.length / 2) * trapForMain.topLengthScale;
+    const e1 = ctx.partLocalToSvg(-hL, part.visible.thickness / 2, +part.visible.width / 2);
+    const e2 = ctx.partLocalToSvg(+hL, part.visible.thickness / 2, +part.visible.width / 2);
+    const xs = [e1.x, e2.x].sort((a, b) => a - b);
+    hxLo = xs[0];
+    hxHi = xs[1];
+  }
   const hPartY = Math.min(horizP1.y, horizP2.y); // part edge SVG y（dim line 下方就是 part）
   const sortedY = [vertP1.y, vertP2.y].sort((a, b) => a - b);
   const vyLo = sortedY[0];
@@ -310,7 +338,7 @@ export function T1Dimensions({
       <polygon points={`${hxLo},${horizY} ${hxLo + ARROW},${horizY - ARROW} ${hxLo + ARROW},${horizY + ARROW}`} />
       <polygon points={`${hxHi},${horizY} ${hxHi - ARROW},${horizY - ARROW} ${hxHi - ARROW},${horizY + ARROW}`} />
       <text x={(hxLo + hxHi) / 2} y={horizY - 4} textAnchor="middle" fontSize={11} stroke="none">
-        {`${horizLabel} ${horiz}`}
+        {`${horizLabel} ${horizMainDisplay}`}
       </text>
 
       {/* 連榫頭總長 dim：在水平 dim 上方再加一條，跨整個 gross bbox */}
@@ -364,18 +392,19 @@ export function T1Dimensions({
       {(() => {
         const trap =
           part.shape?.kind === "apron-trapezoid" ? part.shape : null;
+        // 只在「正視」(零件圖內部 view="top",看 length×width 立面)畫下邊：
+        // 梯形上下寬窄差異在 width(高度)軸,只有正視看得到。俯視/側視是矩形。
+        if (view !== "top") return null;
         if (!trap || horizAxisName !== "L") return null;
-        // 接地邊端點要跟 body polygon「同源」：零件圖 isolate 模式下，svg-views
-        // 把接座面對齊 tenon 端面(±L/2)、接地面用相對比例 ratio = bot/top 展開
-        // （svg-views.tsx「零件圖 apron-trapezoid 專屬」單斜梯形 outline）。
-        // 之前用 L × bottomLengthScale 漏掉分母 topLengthScale，dim 沒貼到含
-        // bevel 的最長邊（user 2026-06-01）。改用同一個 ratio 公式。
-        const ratio = trap.bottomLengthScale / trap.topLengthScale;
-        const otherLen = round1(L * ratio);
+        // 接地邊 = doc §A10.4 真實比例 length × bottomLengthScale（相對肩到肩
+        // 中心），跟 svg-views body outline + 俯視 silhouette + 主三視圖同源
+        // （2026-06-01 統一：先前用 ratio=bot/top 數值偏大且跟俯視不一致）。
+        const otherLen = round1(L * trap.bottomLengthScale);
         if (Math.abs(otherLen - horiz) < 0.5) return null; // 上下等長 → 不重複標
-        // 接地邊(local z=+W/2)兩端投影；用 +T/2 面取一致基準
-        const eL = ctx.partLocalToSvg((-L / 2) * ratio, +T / 2, +W / 2);
-        const eR = ctx.partLocalToSvg((+L / 2) * ratio, +T / 2, +W / 2);
+        // 接地邊端點 x = ±L/2 × bottomLengthScale,貼 body 接地實際端點
+        // (W 面投影寬度兩面相同,取 +W/2)。
+        const eL = ctx.partLocalToSvg((-L / 2) * trap.bottomLengthScale, +T / 2, +W / 2);
+        const eR = ctx.partLocalToSvg((+L / 2) * trap.bottomLengthScale, +T / 2, +W / 2);
         const xs = [eL.x, eR.x].sort((a, b) => a - b);
         const bxLo = xs[0];
         const bxHi = xs[1];
@@ -1506,6 +1535,69 @@ export function T2Annotations({
       }
     }
     const isRoundFeature = mortiseIsRound || tenonIsRound;
+
+    // 單斜梯形牙板（apron-trapezoid）length 端榫頭：body 端面是斜的（接座窄、
+    // 接地寬），但榫頭框走 axis-aligned rect → 內側竪邊沒貼斜端面、被 body 斜
+    // 出去的角蓋住（user 2026-06-01）。改畫平行四邊形，內側兩頂點貼 body 斜邊。
+    // 只處理：梯形 apron + start/end 榫頭 + 非圓 + 矩形分支(無 box rotation)。
+    const trapShape =
+      !isMortise && part.shape?.kind === "apron-trapezoid"
+        ? part.shape
+        : null;
+    const tenonForTrap = !isMortise ? (part.tenons[it.idx] as Tenon) : null;
+    const isTrapEndTenon =
+      !!trapShape &&
+      !isRoundFeature &&
+      !!tenonForTrap &&
+      (tenonForTrap.position === "start" || tenonForTrap.position === "end") &&
+      !((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ);
+    const trapTenonPolyPoints = ((): string | null => {
+      if (!isTrapEndTenon || !trapShape) return null;
+      const Lp = part.visible.length;
+      const Wp = part.visible.width;
+      const Tp = part.visible.thickness;
+      // ⚠️ part 可能已 mirrorYPart 翻過(零件圖正視)，左右/上下/W 面對應都會翻，
+      // 不能直推。實證對照(annView=top + mirror)：+W/2 面投影到接座(窄)、
+      // -W/2 面投影到接地(寬)。body 用 doc §A10.4 真實比例(接座 L/2×topScale、
+      // 接地 L/2×bottomScale，2026-06-01 統一基準)，這裡 seat/ground 同步。
+      // 用 partLocalToSvg(跟榫頭框 box 同系、自洽)投影兩端，再挑跟榫頭框同側
+      // (x 同號)的那條 length 端斜邊。
+      const tenonOnPlusX = box.x + box.w / 2 >= 0;
+      const edges = [1, -1].map((s) => ({
+        seat: ctx.partLocalToSvg((s * Lp) / 2 * trapShape.topLengthScale, Tp / 2, +Wp / 2),
+        ground: ctx.partLocalToSvg((s * Lp) / 2 * trapShape.bottomLengthScale, Tp / 2, -Wp / 2),
+      }));
+      const edge =
+        edges.find((e) => e.seat.x >= 0 === tenonOnPlusX) ?? edges[0];
+      const { seat, ground } = edge;
+      // 內側 = box 靠中心那條竪邊、外側 = 凸出尖端
+      const innerX = tenonOnPlusX ? box.x : box.x + box.w;
+      const outerX = tenonOnPlusX ? box.x + box.w : box.x;
+      const yTop = box.y;
+      const yBot = box.y + box.h;
+      // body 斜邊參數式 seat + t*(ground-seat)，解給定 svg y 的 x
+      const dy = ground.y - seat.y;
+      const xAtY = (yv: number): number => {
+        if (Math.abs(dy) < 0.01) return innerX;
+        const t = (yv - seat.y) / dy;
+        return seat.x + t * (ground.x - seat.x);
+      };
+      const inTop = xAtY(yTop);
+      const inBot = xAtY(yBot);
+      // 只有 body 斜邊比榫頭內側更外(蓋住榫頭)時才補正
+      const widen = tenonOnPlusX
+        ? Math.max(inTop, inBot) - innerX
+        : innerX - Math.min(inTop, inBot);
+      if (widen < 0.3) return null;
+      // 4 頂點：外側上 → 外側下 → 內側下(貼斜) → 內側上(貼斜)
+      return [
+        `${outerX.toFixed(2)},${yTop.toFixed(2)}`,
+        `${outerX.toFixed(2)},${yBot.toFixed(2)}`,
+        `${inBot.toFixed(2)},${yBot.toFixed(2)}`,
+        `${inTop.toFixed(2)},${yTop.toFixed(2)}`,
+      ].join(" ");
+    })();
+
     const partEls: React.ReactNode[] = [
       isRoundFeature ? (
         <g key={`${it.kind}-${it.idx}-box`}>
@@ -1543,6 +1635,15 @@ export function T2Annotations({
         <polygon
           key={`${it.kind}-${it.idx}-box`}
           points={convexHull2D(projectBoxCorners(lb as any)).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={1.2}
+          strokeDasharray={dash}
+        />
+      ) : trapTenonPolyPoints ? (
+        <polygon
+          key={`${it.kind}-${it.idx}-box`}
+          points={trapTenonPolyPoints}
           fill={fill}
           stroke={stroke}
           strokeWidth={1.2}

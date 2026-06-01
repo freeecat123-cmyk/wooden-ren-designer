@@ -130,6 +130,10 @@ function extractFurnitureDims(design: FurnitureDesign) {
       const trapBotLen = trap ? p.visible.length * trap.bottomLengthScale : p.visible.length;
       const trapTopLen = trap ? p.visible.length * trap.topLengthScale : p.visible.length;
       const cutLengthMm = Math.max(trapBotLen, trapTopLen);
+      // 梯形件兩端不等長：保留上邊(接座)/下邊(接地)讓主三視圖也標兩個數,
+      // 跟零件圖一致(user 2026-06-01「三視圖也改標上下邊」)。非梯形 = null。
+      const trapTopMm = trap ? trapTopLen : null;
+      const trapBotMm = trap ? trapBotLen : null;
       const cutAngleDeg = trap
         ? (Math.atan(Math.abs(trapBotLen - trapTopLen) / 2 / p.visible.width) *
             180) /
@@ -147,6 +151,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
         topY: p.origin.y + yExt,
         yExt,
         cutLengthMm,
+        trapTopMm,
+        trapBotMm,
         cutAngleDeg,
         isZAxis,
         archBendMm,
@@ -851,6 +857,10 @@ function OrthoViewImpl({
   // mm 端保留 Math.round 整數呈現 — 桌長 800.4mm 標 800mm，師傅看到不會多想。
   const dimMm = (mm: number): string =>
     useInch ? formatInchFraction(mm) : `${Math.round(mm)} mm`;
+  // 小數一位版：梯形橫撐上/下邊長度要跟零件圖(round1)同精度,整數會跟
+  // 零件圖的 285.2 對不上(user 2026-06-01)。inch 模式沿用分數。
+  const dimMm1 = (mm: number): string =>
+    useInch ? formatInchFraction(mm) : `${(Math.round(mm * 10) / 10).toFixed(1)} mm`;
   // 仰視 BOTTOM = top view 看「Y 軸鏡像」後的 design。
   // 內部所有 view ===、投影、visibility 邏輯都用 top 跑，使用者標題顯示「仰視」。
   const isBottomView = rawView === "bottom";
@@ -1934,9 +1944,14 @@ function OrthoViewImpl({
               // 內側位置（±lx/2）短 3mm → top edge 跟 tenon 之間有三角形缺口；
               // bot corner 則凸過 tenon。改成把 body top 對齊 tenon 端面（±lx/2），
               // bottom 用相對比例延伸（physical：splay 是底面往外開、頂面接腳）。
-              const ratio = trap.bottomLengthScale / trap.topLengthScale;
-              const halfTop = lx / 2;                  // 接座面 = tenon 端面 X 位置
-              const halfBot = (lx / 2) * ratio;        // 接地面相對 top 的展開比例
+              // ⚠️ 2026-06-01 改：接座/接地一律用 doc §A10.4 真實比例
+              // （length × top/bottomLengthScale，相對肩到肩中心），跟俯視
+              // silhouette + 主三視圖同源。先前用 ratio=bot/top 把接座對齊 tenon
+              // 端面、接地放大，數值偏大(師傅照切會切長)、且跟俯視不一致
+              // (user 2026-06-01「俯視短一節」)。寧可接座 < tenon 端面有小縫,
+              // 也要三視圖/零件圖數值一致且符合 doc。
+              const halfTop = (lx / 2) * trap.topLengthScale; // 接座(窄)
+              const halfBot = (lx / 2) * trap.bottomLengthScale; // 接地(寬)
               const corners = [
                 { x: -halfTop, y: +lz / 2 }, // 接座面左（畫面上方，跟 tenon 左內側對齊）
                 { x: +halfTop, y: +lz / 2 }, // 接座面右
@@ -2393,24 +2408,11 @@ function OrthoViewImpl({
             part.shape?.kind === "splayed-round-tapered";
           const splaySwapShape =
             isolatePartId && isSplayFamilyShape && (view === "front" || view === "side");
-          // 帶斜接 start/end tenon + 俯視 TOP 面板(view="front"):跳過垂直
-          // 端邊,只畫上下水平,讓 overlay 加的 shoulder 雙線當端邊。放寬到
-          // 任何 shape kind(box / chamfered-edges / apron-trapezoid 都行),
-          // 只要 tenon 帶斜接 axis 就觸發(user 2026-05-29「還在」)。
-          // leg 件不受影響(其 tenon 在 top/bottom 不在 start/end)。
-          // ⚠️ 只在零件圖(isolatePartId)生效——主三視圖(整套家具)套這個會
-          //    讓牙板端邊被 shoulder 雙線取代,看起來像「腳接合處多兩條線」
-          //    (user 2026-06-01 回報)。
-          const hasTiltedEndTenon =
-            !!isolatePartId &&
-            view === "front" &&
-            part.tenons.some(
-              (t) =>
-                t.axis &&
-                (t.position === "start" || t.position === "end") &&
-                Math.abs(t.axis.x ?? 0) > 0.001 &&
-                Math.abs(t.axis.y ?? 0) > 0.001,
-            );
+          // 〔已停用 2026-06-01〕原本(9adb6ee2)為斜接 apron 俯視 TOP 把垂直端邊
+          // 換成 overlay 的 shoulder 雙線。但 body 已統一成真實比例梯形/矩形 outline,
+          // 這套 shoulder 雙線多餘且讓俯視端部多出榫頭肩線、看起來亂
+          // (user 2026-06-01「俯視不畫榫頭肩線」)。直接停用,俯視走正常 body outline。
+          const hasTiltedEndTenon = false;
           if (hasTiltedEndTenon) {
             const r = projectPart(part, view);
             const yTop = -(r.y + r.h);
@@ -2566,20 +2568,9 @@ function OrthoViewImpl({
         const r = projectPart(part, view);
         // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
         // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
-        // user 2026-05-29「中間那條」: view="front" 帶斜接 start/end tenon 的料
-        // 跳過垂直端邊(overlay 會加 shoulder 雙線取代)。fallback rect path
-        // 適用 shape=box/undefined 的 apron。
-        // ⚠️ 同上,只在零件圖(isolatePartId)生效,不污染主三視圖。
-        const hasTiltedEndTenonRect =
-          !!isolatePartId &&
-          view === "front" &&
-          part.tenons.some(
-            (t) =>
-              t.axis &&
-              (t.position === "start" || t.position === "end") &&
-              Math.abs(t.axis.x ?? 0) > 0.001 &&
-              Math.abs(t.axis.y ?? 0) > 0.001,
-          );
+        // 〔已停用 2026-06-01〕同 hasTiltedEndTenon：shoulder 雙線機制移除,
+        // 俯視 fallback rect 走正常四邊。
+        const hasTiltedEndTenonRect = false;
         if (hidden) {
           // 改畫成 4 條獨立 line + 同步 dashoffset（不再用 single rect path）
           // 同 Y / 同 X 的多 part hidden 邊就能 phase 對齊不鋸齒
@@ -2682,7 +2673,10 @@ function OrthoViewImpl({
           兩條 X 偏移 = (ay/ax) × T(全厚度的 tan)。
           先用白線蓋掉 polygon 本體在 shoulder 處的垂直端邊(避免變 3 條線),
           再畫黑色 shoulder 雙線。 */}
-      {view === "front" && !!isolatePartId && renderDesign.parts.map((p) => {
+      {/* 〔已停用 2026-06-01〕斜接 apron 俯視 shoulder 雙線 overlay 移除:
+          body 已用真實比例 outline,此 overlay 多出榫頭肩線、俯視看起來亂
+          (user「俯視不畫榫頭肩線」)。 */}
+      {false && view === "front" && !!isolatePartId && renderDesign.parts.map((p) => {
         const tilts = p.tenons.filter((t) => {
           if (!t.axis) return false;
           if (t.position !== "start" && t.position !== "end") return false;
@@ -3687,7 +3681,14 @@ function OrthoViewImpl({
                       <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
                         markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
                       <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
-                        {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {isEn ? "net" : "淨長"} {dimMm(c.cutLengthMm)}
+                        {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)}{" "}
+                        {c.trapTopMm != null &&
+                        c.trapBotMm != null &&
+                        Math.abs(c.trapBotMm - c.trapTopMm) > 0.5
+                          ? isEn
+                            ? `top ${dimMm1(c.trapTopMm)} / btm ${dimMm1(c.trapBotMm)}`
+                            : `上 ${dimMm1(c.trapTopMm)} 下 ${dimMm1(c.trapBotMm)}`
+                          : `${isEn ? "net" : "淨長"} ${dimMm(c.cutLengthMm)}`}
                         {showAngle ? (isEn ? ` bevel ∠${c.cutAngleDeg.toFixed(1)}°` : ` 切角 ∠${c.cutAngleDeg.toFixed(1)}°`) : ""}
                       </text>
                     </g>
