@@ -255,13 +255,13 @@ export default async function AboutPage({
             no="2"
             title={t("steps.step2Title")}
             desc={t("steps.step2Desc")}
-            visual={<StepVisualSliders alt={t("steps.step2Alt")} />}
+            visual={isEn ? <StepVisualEmoji emoji="📏" /> : <StepVisualSliders alt={t("steps.step2Alt")} />}
           />
           <StepCard
             no="3"
             title={t("steps.step3Title")}
             desc={t("steps.step3Desc")}
-            visual={<StepVisualPdf alt={t("steps.step3Alt")} />}
+            visual={isEn ? <StepVisualEmoji emoji="🖨️" /> : <StepVisualPdf alt={t("steps.step3Alt")} />}
           />
         </div>
       </section>
@@ -928,6 +928,14 @@ function StepVisualSliders({ alt }: { alt: string }) {
       sizes="(min-width:768px) 320px, 100vw"
       style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
     />
+  );
+}
+
+function StepVisualEmoji({ emoji }: { emoji: string }) {
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-amber-50 to-stone-100">
+      <span className="text-6xl sm:text-7xl" aria-hidden>{emoji}</span>
+    </div>
   );
 }
 
