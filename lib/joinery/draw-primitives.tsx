@@ -261,14 +261,17 @@ export function GrainArrow({
   y,
   length,
   angle = 0,
-  label = "木紋",
+  label,
+  locale,
 }: {
   x: number;
   y: number;
   length: number;
   angle?: 0 | 90;
   label?: string;
+  locale?: string;
 }): JSX.Element {
+  const resolvedLabel = label ?? (locale === "en" ? "Grain" : "木紋");
   const isHoriz = angle === 0;
   const x1 = x;
   const y1 = y;
@@ -297,7 +300,7 @@ export function GrainArrow({
         textAnchor={isHoriz ? "middle" : "start"}
         stroke="none"
       >
-        {label}
+        {resolvedLabel}
       </text>
     </g>
   );

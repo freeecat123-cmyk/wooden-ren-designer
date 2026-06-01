@@ -862,7 +862,7 @@ async function JoinerySection({ design, locale }: { design: FurnitureDesign; loc
             <h3 className="font-semibold">
               {joineryLabel(u.type, locale)}{" "}
               <span className="text-xs font-normal text-zinc-500">
-                · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : motherLabel} · {spotsLabel(u.count)}
+                · {locale === "en" ? u.partNameEn : u.partNameZh} ↔ {(locale === "en" ? u.motherPartNamesEn : u.motherPartNames).length > 0 ? (locale === "en" ? u.motherPartNamesEn : u.motherPartNames).join(" / ") : motherLabel} · {spotsLabel(u.count)}
               </span>
             </h3>
             <p className="text-xs text-zinc-500">

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
-import { JoineryDetail, JOINERY_LABEL, type JoineryDetailParams } from "@/lib/joinery/details";
+import { useLocale, useTranslations } from "next-intl";
+import { JoineryDetail, JOINERY_LABEL, JOINERY_LABEL_EN, type JoineryDetailParams } from "@/lib/joinery/details";
 import type { JoineryType } from "@/lib/types";
 
 type ViewKind = "front" | "side" | "top" | "iso";
@@ -27,6 +27,8 @@ export function ZoomableJoineryDetail({
   zModal?: string;
 }) {
   const t = useTranslations("joineryDetail");
+  const locale = useLocale();
+  const joineryLabelMap = locale === "en" ? JOINERY_LABEL_EN : JOINERY_LABEL;
   const VIEW_TITLES: Record<ViewKind, string> = {
     front: t("viewFront"),
     side: t("viewSide"),
@@ -77,10 +79,10 @@ export function ZoomableJoineryDetail({
             type="button"
             onClick={() => setZoomed(view)}
             className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm cursor-zoom-in hover:border-amber-400 hover:shadow-md transition relative group text-left"
-            aria-label={t("zoomAriaTpl", { type: JOINERY_LABEL[type], view: VIEW_TITLES[view] })}
+            aria-label={t("zoomAriaTpl", { type: joineryLabelMap[type], view: VIEW_TITLES[view] })}
             title={t("zoomTitle")}
           >
-            <JoineryDetail type={type} params={params} singleView={view} />
+            <JoineryDetail type={type} params={{ ...params, locale }} singleView={view} locale={locale} />
             <span className="absolute top-1.5 right-1.5 text-[10px] bg-zinc-900/70 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
               {t("zoomHint")}
             </span>
@@ -101,7 +103,7 @@ export function ZoomableJoineryDetail({
           >
             <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200">
               <div className="text-sm font-semibold text-zinc-800">
-                {JOINERY_LABEL[type]} · {VIEW_TITLES[zoomed]}
+                {joineryLabelMap[type]} · {VIEW_TITLES[zoomed]}
               </div>
               <div className="flex items-center gap-2">
                 {VIEW_ORDER.map((v) => (
@@ -170,7 +172,7 @@ export function ZoomableJoineryDetail({
                 className="flex items-center justify-center p-6"
               >
                 <div className="w-full h-full flex items-center justify-center" style={{ aspectRatio: "475 / 325" }}>
-                  <JoineryDetail type={type} params={params} singleView={zoomed} />
+                  <JoineryDetail type={type} params={{ ...params, locale }} singleView={zoomed} locale={locale} />
                 </div>
               </div>
             </div>

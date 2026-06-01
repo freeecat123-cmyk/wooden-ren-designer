@@ -600,8 +600,8 @@ function LegacyV2ThroughTenonDetail(p: JoineryDetailParams) {
       <DimLine x1={fMx + fMw + 14} y1={fMy} x2={fMx + fMw + 14} y2={fMy + fMh} label={`${mt}`} side="right" />
 
       {/* 木紋方向：母件水平、公件垂直 */}
-      <GrainArrow x={fMx + 8} y={fMy + fMh / 2 - 4} length={Math.min(60, fMw - 16)} angle={0} />
-      <GrainArrow x={fLx - 14} y={fMy + fMh + 8} length={Math.min(50, PX(legBody) - 16)} angle={90} />
+      <GrainArrow locale={p.locale} x={fMx + 8} y={fMy + fMh / 2 - 4} length={Math.min(60, fMw - 16)} angle={0} />
+      <GrainArrow locale={p.locale} x={fLx - 14} y={fMy + fMh + 8} length={Math.min(50, PX(legBody) - 16)} angle={90} />
 
       {/* 工法警示 */}
       <WarningCallout x={5} y={QUAD_H - 18} text={`貫穿端應微凸 1mm 後修平；楔片厚 ≈ ${Math.round(tw * 0.12)}mm`} />
@@ -640,8 +640,8 @@ function LegacyV2ThroughTenonDetail(p: JoineryDetailParams) {
       <DimLine x1={sLx} y1={sMy + PX(mt) + PX(legBody) + 18} x2={sLx + PX(ct) } y2={sMy + PX(mt) + PX(legBody) + 18} label={`${ct}`} side="bottom" />
       <DimLine x1={sMx + PX(panelW) + 14} y1={sMy} x2={sMx + PX(panelW) + 14} y2={sMy + PX(mt)} label={`${mt}`} side="right" />
 
-      <GrainArrow x={sMx + 8} y={sMy + PX(mt) / 2 - 4} length={Math.min(60, PX(panelW) - 16)} angle={0} />
-      <GrainArrow x={sLx - 14} y={sMy + PX(mt) + 8} length={Math.min(50, PX(legBody) - 16)} angle={90} />
+      <GrainArrow locale={p.locale} x={sMx + 8} y={sMy + PX(mt) / 2 - 4} length={Math.min(60, PX(panelW) - 16)} angle={0} />
+      <GrainArrow locale={p.locale} x={sLx - 14} y={sMy + PX(mt) + 8} length={Math.min(50, PX(legBody) - 16)} angle={90} />
     </g>
   );
 
@@ -1417,8 +1417,8 @@ function LegacyV2BlindTenonDetail(p: JoineryDetailParams) {
       <DimLine x1={fLegX} y1={fLegY + fLegH + 30} x2={fTenonX} y2={fLegY + fLegH + 30} label={`${Math.round(baseRest)}`} side="bottom" />
 
       {/* 木紋方向 */}
-      <GrainArrow x={fLegX + fLegW / 2 - 10} y={fLegY + 8} length={Math.min(60, fLegH - 16)} angle={90} />
-      <GrainArrow x={fApronX0 + 8} y={fApronY - 10} length={Math.min(60, fApronW - 16)} angle={0} />
+      <GrainArrow locale={p.locale} x={fLegX + fLegW / 2 - 10} y={fLegY + 8} length={Math.min(60, fLegH - 16)} angle={90} />
+      <GrainArrow locale={p.locale} x={fApronX0 + 8} y={fApronY - 10} length={Math.min(60, fApronW - 16)} angle={0} />
 
       {/* 工法警示 */}
       {wasClamped ? (
@@ -1494,7 +1494,7 @@ function LegacyV2BlindTenonDetail(p: JoineryDetailParams) {
       <DimLine x1={sLegX + sLegW + 14} y1={sApronY} x2={sLegX + sLegW + 14} y2={sApronY + sApronH} label={`${ct}`} side="right" />
       <DimLine x1={sLegX} y1={sLegY + sLegH + 14} x2={sLegX + sLegW} y2={sLegY + sLegH + 14} label={`${mt}`} side="bottom" />
 
-      <GrainArrow x={sLegX + sLegW / 2 - 10} y={sLegY + 8} length={Math.min(60, sLegH - 16)} angle={90} />
+      <GrainArrow locale={p.locale} x={sLegX + sLegW / 2 - 10} y={sLegY + 8} length={Math.min(60, sLegH - 16)} angle={90} />
     </g>
   );
 
@@ -2027,7 +2027,7 @@ function LegacyV2HalfLapDetail(p: JoineryDetailParams) {
       {/* 中心線：水平軸 */}
       <CenterLine x1={frontA_x - 10} y1={frontA_y + PX(mt) / 2} x2={lapEndX + 10} y2={frontA_y + PX(mt) / 2} />
       {/* 木紋（A 件水平方向） */}
-      <GrainArrow x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, frontPieceLen / 3)} angle={0} />
+      <GrainArrow locale={p.locale} x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, frontPieceLen / 3)} angle={0} />
       {/* 剖面標記 A-A：在搭接中央切一刀 */}
       <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y - 16} label="A" direction="down" />
       <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y + PX(mt) + 16} label="A" direction="up" />
@@ -2090,7 +2090,7 @@ function LegacyV2HalfLapDetail(p: JoineryDetailParams) {
             <CenterLine x1={aX - 10} y1={aY + sideA_h / 2} x2={aX + aLen + 10} y2={aY + sideA_h / 2} />
             <CenterLine x1={bX + sideB_w / 2} y1={bTop - 10} x2={bX + sideB_w / 2} y2={bBottom + 10} />
             {/* 木紋（B 件垂直方向） */}
-            <GrainArrow x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
+            <GrainArrow locale={p.locale} x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
             {/* 尺寸：A 件寬 cw */}
             <DimLine x1={aX} y1={aY + sideA_h + 22} x2={aX + aLen} y2={aY + sideA_h + 22} label={`板寬 ${cw}`} side="bottom" />
             {/* 尺寸：B 件厚 ct */}
@@ -2710,8 +2710,8 @@ function LegacyV2TongueAndGrooveDetail(p: JoineryDetailParams) {
             {/* 中心線（共用 centreline 顯示對齊） */}
             <CenterLine x1={motherX - 10} y1={motherY + PX(mt) / 2} x2={childX + pieceLen + 10} y2={motherY + PX(mt) / 2} />
             {/* 木紋 */}
-            <GrainArrow x={motherX + 4} y={motherY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
-            <GrainArrow x={childX + PX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+            <GrainArrow locale={p.locale} x={motherX + 4} y={motherY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+            <GrainArrow locale={p.locale} x={childX + PX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
             {/* 剖面標記 A-A */}
             <SectionMark x={grooveX + PX(grooveDepth) / 2} y={motherY - 16} label="A" direction="down" />
             <SectionMark x={grooveX + PX(grooveDepth) / 2} y={motherY + PX(mt) + 16} label="A" direction="up" />
@@ -2796,7 +2796,7 @@ function LegacyV2TongueAndGrooveDetail(p: JoineryDetailParams) {
             </text>
             <text x={childX + boardLen / 2} y={childY + PX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">公件（舌連續）</text>
             <CenterLine x1={motherX - 10} y1={motherY + PX(mt) / 2} x2={motherX + boardLen + 10} y2={motherY + PX(mt) / 2} />
-            <GrainArrow x={motherX + 4} y={motherY - 14} length={Math.min(80, boardLen - 10)} angle={0} />
+            <GrainArrow locale={p.locale} x={motherX + 4} y={motherY - 14} length={Math.min(80, boardLen - 10)} angle={0} />
             <DimLine x1={motherX - 14} y1={motherY} x2={motherX - 14} y2={motherY + PX(mt)} label={`母厚 ${mt}`} side="left" />
             <DimLine x1={childX - 14} y1={childY} x2={childX - 14} y2={childY + PX(ct)} label={`公厚 ${ct}`} side="left" />
           </>
@@ -2877,7 +2877,7 @@ function LegacyV2TongueAndGrooveDetail(p: JoineryDetailParams) {
               ← 舌頭嵌入位（隱藏）
             </text>
             {/* 木紋方向（每片同向） */}
-            <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLen - 12)} angle={0} />
+            <GrainArrow locale={p.locale} x={startX + 8} y={startY - 12} length={Math.min(80, stripLen - 12)} angle={0} />
             {/* 尺寸：拼接寬 */}
             <DimLine x1={startX - 14} y1={startY} x2={startX - 14} y2={startY + strips * stripH + (strips - 1) * 4} label={`拼板總寬 ${totalWidthMm}`} side="left" />
             <DimLine x1={startX} y1={startY + strips * stripH + (strips - 1) * 4 + 14} x2={startX + stripLen} y2={startY + strips * stripH + (strips - 1) * 4 + 14} label={`板長 ${boardLenMm}`} side="bottom" />
@@ -3564,7 +3564,7 @@ function LegacyV2ShoulderedTenonDetail(p: JoineryDetailParams) {
             {/* 中心線 */}
             <CenterLine x1={ax - 10} y1={ay + apronH / 2} x2={tenonRight + 10} y2={ay + apronH / 2} />
             {/* 木紋 */}
-            <GrainArrow x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
+            <GrainArrow locale={p.locale} x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
             {/* 剖面 A-A：在榫的中段切 */}
             <SectionMark x={tenonX + PX(tl) / 2} y={ay - 18} label="A" direction="down" />
             <SectionMark x={tenonX + PX(tl) / 2} y={ay + apronH + 18} label="A" direction="up" />
@@ -3889,8 +3889,8 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           side={safeDimSide("bottom", `${cw}`, { x: fLx + PX(cw) / 2, y: fMy + fMh + PX(legBodyMm) }, qBounds)} />
         <DimLine x1={fMx + fMw} y1={fMy} x2={fMx + fMw} y2={fMy + fMh} label={`${mt}`}
           side={safeDimSide("right", `${mt}`, { x: fMx + fMw, y: fMy + fMh / 2 }, qBounds)} />
-        <GrainArrow x={fMx + 8} y={fMy + fMh / 2 - 4} length={Math.min(60, fMw - 16)} angle={0} />
-        <GrainArrow x={fLx - 14} y={fMy + fMh + 8} length={Math.min(50, PX(legBodyMm) - 16)} angle={90} />
+        <GrainArrow locale={p.locale} x={fMx + 8} y={fMy + fMh / 2 - 4} length={Math.min(60, fMw - 16)} angle={0} />
+        <GrainArrow locale={p.locale} x={fLx - 14} y={fMy + fMh + 8} length={Math.min(50, PX(legBodyMm) - 16)} angle={90} />
       </g>
     );
   })();
@@ -3922,8 +3922,8 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           side={safeDimSide("bottom", `${ct}`, { x: sLx + PX(ct) / 2, y: sMy + PX(mt) + PX(legBodyMm) }, qBounds)} />
         <DimLine x1={sMx + objW} y1={sMy} x2={sMx + objW} y2={sMy + PX(mt)} label={`${mt}`}
           side={safeDimSide("right", `${mt}`, { x: sMx + objW, y: sMy + PX(mt) / 2 }, qBounds)} />
-        <GrainArrow x={sMx + 8} y={sMy + PX(mt) / 2 - 4} length={Math.min(60, objW - 16)} angle={0} />
-        <GrainArrow x={sLx - 14} y={sMy + PX(mt) + 8} length={Math.min(50, PX(legBodyMm) - 16)} angle={90} />
+        <GrainArrow locale={p.locale} x={sMx + 8} y={sMy + PX(mt) / 2 - 4} length={Math.min(60, objW - 16)} angle={0} />
+        <GrainArrow locale={p.locale} x={sLx - 14} y={sMy + PX(mt) + 8} length={Math.min(50, PX(legBodyMm) - 16)} angle={90} />
       </g>
     );
   })();
@@ -4161,8 +4161,8 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           side={safeDimSide("top", `${safeTl}`, { x: (fTenonX + fLegX + fLegW) / 2, y: fLegY }, qBounds)} />
         <DimLine x1={fLegX} y1={fLegY + fLegH} x2={fLegX + fLegW} y2={fLegY + fLegH} label={`${mt}`}
           side={safeDimSide("bottom", `${mt}`, { x: fLegX + fLegW / 2, y: fLegY + fLegH }, qBounds)} />
-        <GrainArrow x={fLegX + fLegW / 2 - 10} y={fLegY + 8} length={Math.min(60, fLegH - 16)} angle={90} />
-        <GrainArrow x={fApronX0 + 8} y={fApronY - 10} length={Math.min(60, fApronW - 16)} angle={0} />
+        <GrainArrow locale={p.locale} x={fLegX + fLegW / 2 - 10} y={fLegY + 8} length={Math.min(60, fLegH - 16)} angle={90} />
+        <GrainArrow locale={p.locale} x={fApronX0 + 8} y={fApronY - 10} length={Math.min(60, fApronW - 16)} angle={0} />
       </g>
     );
   })();
@@ -4207,7 +4207,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           side={safeDimSide("right", `${ct}`, { x: sLegX + sLegW, y: sApronY + sApronH / 2 }, qBounds)} />
         <DimLine x1={sLegX} y1={sLegY + sLegH} x2={sLegX + sLegW} y2={sLegY + sLegH} label={`${mt}`}
           side={safeDimSide("bottom", `${mt}`, { x: sLegX + sLegW / 2, y: sLegY + sLegH }, qBounds)} />
-        <GrainArrow x={sLegX + sLegW / 2 - 10} y={sLegY + 8} length={Math.min(60, sLegH - 16)} angle={90} />
+        <GrainArrow locale={p.locale} x={sLegX + sLegW / 2 - 10} y={sLegY + 8} length={Math.min(60, sLegH - 16)} angle={90} />
       </g>
     );
   })();
@@ -4432,7 +4432,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
           {isEn ? "Lap interface (hidden)" : "搭接介面（隱藏）"}
         </text>
         <CenterLine x1={frontA_x - 10} y1={frontA_y + FPX(mt) / 2} x2={lapEndX + 10} y2={frontA_y + FPX(mt) / 2} />
-        <GrainArrow x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, objW / 3)} angle={0} />
+        <GrainArrow locale={p.locale} x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, objW / 3)} angle={0} />
         <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y - 16} label="A" direction="down" />
         <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y + FPX(mt) + 16} label="A" direction="up" />
         <DimLine x1={lapStartX} y1={frontA_y + FPX(mt)} x2={lapEndX} y2={frontA_y + FPX(mt)} label={`${isEn ? "Lap L" : "搭長"} ${tl}`}
@@ -4468,7 +4468,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
         <HiddenEdge x1={bX} y1={aY + cutDepthA * ss} x2={bX + sideB_w} y2={aY + cutDepthA * ss} />
         <CenterLine x1={aX - 10} y1={aY + sideA_h / 2} x2={aX + aLen + 10} y2={aY + sideA_h / 2} />
         <CenterLine x1={bX + sideB_w / 2} y1={bTop - 10} x2={bX + sideB_w / 2} y2={bBottom + 10} />
-        <GrainArrow x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
+        <GrainArrow locale={p.locale} x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
         <DimLine x1={aX} y1={aY + sideA_h} x2={aX + aLen} y2={aY + sideA_h} label={`${isEn ? "Width" : "板寬"} ${cw}`}
           side={safeDimSide("bottom", `${isEn ? "Width" : "板寬"} ${cw}`, { x: aX + aLen / 2, y: aY + sideA_h }, qBounds)} />
         <DimLine x1={bX} y1={bTop} x2={bX + sideB_w} y2={bTop} label={`${isEn ? "B T" : "B 厚"} ${ct}`}
@@ -4702,8 +4702,8 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
         <rect x={childX + FPX(tl)} y={childY} width={pieceLen - FPX(tl)} height={FPX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <rect x={tongueX} y={tongueY} width={FPX(tl)} height={FPX(tt)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <CenterLine x1={motherX - 10} y1={motherY + FPX(mt) / 2} x2={childX + pieceLen + 10} y2={motherY + FPX(mt) / 2} />
-        <GrainArrow x={motherX + 4} y={motherY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
-        <GrainArrow x={childX + FPX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+        <GrainArrow locale={p.locale} x={motherX + 4} y={motherY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+        <GrainArrow locale={p.locale} x={childX + FPX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
         <SectionMark x={grooveX + FPX(grooveDepth) / 2} y={motherY - 16} label="A" direction="down" />
         <SectionMark x={grooveX + FPX(grooveDepth) / 2} y={motherY + FPX(mt) + 16} label="A" direction="up" />
         <DimLine x1={tongueX} y1={tongueY + FPX(tt)} x2={tongueX + FPX(tl)} y2={tongueY + FPX(tt)} label={`${isEn ? "Tongue L" : "舌長"} ${tl}`}
@@ -4768,7 +4768,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
         </text>
         <text x={childX + actualBoardLen / 2} y={childY + SPX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">{isEn ? "Tenon piece (continuous tongue)" : "公件（舌連續）"}</text>
         <CenterLine x1={motherX - 10} y1={motherY + SPX(mt) / 2} x2={motherX + actualBoardLen + 10} y2={motherY + SPX(mt) / 2} />
-        <GrainArrow x={motherX + 4} y={motherY - 14} length={Math.min(80, actualBoardLen - 10)} angle={0} />
+        <GrainArrow locale={p.locale} x={motherX + 4} y={motherY - 14} length={Math.min(80, actualBoardLen - 10)} angle={0} />
         <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + SPX(mt)} label={`${isEn ? "Mortise-piece T" : "母厚"} ${mt}`}
           side={safeDimSide("left", `${isEn ? "Mortise-piece T" : "母厚"} ${mt}`, { x: motherX, y: motherY + SPX(mt) / 2 }, qBounds)} />
         <DimLine x1={childX} y1={childY} x2={childX} y2={childY + SPX(ct)} label={`${isEn ? "Tenon-piece T" : "公厚"} ${ct}`}
@@ -4820,7 +4820,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK} fontWeight="bold">
           ← 舌頭嵌入位（隱藏）
         </text>
-        <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLenPx - 12)} angle={0} />
+        <GrainArrow locale={p.locale} x={startX + 8} y={startY - 12} length={Math.min(80, stripLenPx - 12)} angle={0} />
         <DimLine x1={startX} y1={startY} x2={startX} y2={startY + strips * stripH + (strips - 1) * 4}
           label={`${isEn ? "Glue-up width" : "拼板總寬"} ${totalWidthMm}`}
           side={safeDimSide("left", `${isEn ? "Glue-up width" : "拼板總寬"} ${totalWidthMm}`, { x: startX, y: startY + (strips * stripH) / 2 }, qBounds)} />
@@ -4987,7 +4987,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           );
         })()}
         <CenterLine x1={ax - 10} y1={ay + apronH / 2} x2={tenonRight + 10} y2={ay + apronH / 2} />
-        <GrainArrow x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
+        <GrainArrow locale={p.locale} x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
         <SectionMark x={tenonX + FPX(tl) / 2} y={ay - 18} label="A" direction="down" />
         <SectionMark x={tenonX + FPX(tl) / 2} y={ay + apronH + 18} label="A" direction="up" />
         <DimLine x1={tenonX} y1={tenonY + tenonH} x2={tenonRight} y2={tenonY + tenonH} label={`${isEn ? "Tenon L" : "榫長"} ${tl}`}
@@ -5999,7 +5999,7 @@ function LegacyV2DovetailDetail(p: JoineryDetailParams) {
       })()}
 
       {/* 木紋方向 — tail board 沿板寬 cw 方向 */}
-      <GrainArrow x={fBoardX + 8} y={fBodyY1 - 14} length={Math.min(60, fBoardW - 16)} angle={0} />
+      <GrainArrow locale={p.locale} x={fBoardX + 8} y={fBodyY1 - 14} length={Math.min(60, fBoardW - 16)} angle={0} />
 
       {/* 角度標 + 工法警示 */}
       <text x={fBoardX + fBoardW / 2} y={fTailRowY1 - 6} fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM}>{angleLabel}</text>
@@ -6280,7 +6280,7 @@ function DovetailDetail(p: JoineryDetailParams) {
               side={safeDimSide("top", `${Math.round(cw / (nTails * 1.55))}`, { x: (t1L + t1R) / 2, y: fTailRowY0 }, qBounds)} />
           );
         })()}
-        <GrainArrow x={fBoardX + 8} y={fBodyY1 - 14} length={Math.min(60, fBoardW - 16)} angle={0} />
+        <GrainArrow locale={p.locale} x={fBoardX + 8} y={fBodyY1 - 14} length={Math.min(60, fBoardW - 16)} angle={0} />
         <text x={fBoardX + fBoardW / 2} y={fTailRowY1 - 6} fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM}>{angleLabel}</text>
       </g>
     );
@@ -6749,8 +6749,8 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
         <CenterLine x1={bOX + PX(cw) / 2} y1={bOY - 8} x2={bOX + PX(cw) / 2} y2={bOY + PX(fingerLen + mt) + 6} />
 
         {/* 木紋方向（沿板長方向） */}
-        <GrainArrow x={aOX + PX(cw) + 10} y={aOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
-        <GrainArrow x={bOX + PX(cw) + 10} y={bOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+        <GrainArrow locale={p.locale} x={aOX + PX(cw) + 10} y={aOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+        <GrainArrow locale={p.locale} x={bOX + PX(cw) + 10} y={bOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
 
         {/* 剖面標 A-A（沿中軸切） */}
         <SectionMark x={aOX + PX(cw) / 2 - 14} y={aOY - 18} label="A" direction="right" />
@@ -7127,8 +7127,8 @@ function FingerJointDetail(p: JoineryDetailParams) {
         <CenterLine x1={bOX + PX(cw) / 2} y1={bOY - 6} x2={bOX + PX(cw) / 2} y2={bOY + PX(mt + fingerLen) + 6} />
 
         {/* 木紋方向 */}
-        <GrainArrow x={aOX + 8} y={aOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
-        <GrainArrow x={bOX + 8} y={bOY + PX(mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+        <GrainArrow locale={p.locale} x={aOX + 8} y={aOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+        <GrainArrow locale={p.locale} x={bOX + 8} y={bOY + PX(mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
 
         {/* 剖面 A-A */}
         <SectionMark x={aOX + PX(cw) / 2 - 14} y={aOY - 14} label="A" direction="right" />
@@ -7563,7 +7563,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
         <SectionMark x={oX + PX(mt) + 14} y={oY + PX(ct) + 30} label="A" direction="left" />
 
         {/* 木紋 */}
-        <GrainArrow x={oX} y={oY + PX(ct) + 22} length={Math.min(40, PX(mt) * 0.6)} angle={0} />
+        <GrainArrow locale={p.locale} x={oX} y={oY + PX(ct) + 22} length={Math.min(40, PX(mt) * 0.6)} angle={0} />
       </g>
     );
   })();
@@ -8347,8 +8347,8 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
       <SectionMark x={fCx + fT * 0.5 + 14} y={fCy + fLenV - 30} label="A" direction="up" />
 
       {/* 木紋：A 件水平、B 件垂直 */}
-      <GrainArrow x={fCx + 30} y={fCy - fT - 10} length={fLenH - 40} angle={0} />
-      <GrainArrow x={fCx + fT + 10} y={fCy + 30} length={fLenV - 40} angle={90} />
+      <GrainArrow locale={p.locale} x={fCx + 30} y={fCy - fT - 10} length={fLenH - 40} angle={0} />
+      <GrainArrow locale={p.locale} x={fCx + fT + 10} y={fCy + 30} length={fLenV - 40} angle={90} />
 
       {/* 尺寸 */}
       <DimLine
@@ -8564,7 +8564,7 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
       </text>
 
       {/* 木紋方向 */}
-      <GrainArrow x={tCx + 6} y={tCy + tPlateH + 18} length={tPlateW - 12} angle={0} />
+      <GrainArrow locale={p.locale} x={tCx + 6} y={tCy + tPlateH + 18} length={tPlateW - 12} angle={0} />
 
       {/* 尺寸：板厚 */}
       <DimLine
@@ -8754,8 +8754,8 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
         })()}
 
         {/* 木紋方向 */}
-        <GrainArrow x={fCx + fT + 8} y={fCy - fT - 8} length={Math.max(20, fLenH - fT - 16)} angle={0} />
-        <GrainArrow x={fCx + fT + 8} y={fCy + 8} length={Math.max(20, fLenV - 16)} angle={90} />
+        <GrainArrow locale={p.locale} x={fCx + fT + 8} y={fCy - fT - 8} length={Math.max(20, fLenH - fT - 16)} angle={0} />
+        <GrainArrow locale={p.locale} x={fCx + fT + 8} y={fCy + 8} length={Math.max(20, fLenV - 16)} angle={90} />
 
         {/* 尺寸：B 件厚 (左下) */}
         <DimLine
@@ -8935,7 +8935,7 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
         </text>
 
         {/* 木紋方向（在 A 件下方） */}
-        <GrainArrow x={tCx + 4} y={tCy + tPlateH + 14} length={Math.max(20, tPlateW - 8)} angle={0} />
+        <GrainArrow locale={p.locale} x={tCx + 4} y={tCy + tPlateH + 14} length={Math.max(20, tPlateW - 8)} angle={0} />
 
         {/* 尺寸：板厚 */}
         <DimLine
@@ -9148,7 +9148,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
       <SectionMark x={fCx + fAW / 2 - PX(pitch / 2) - 22} y={fCy + fBH - 18} label="A" direction="up" />
 
       {/* 木紋 */}
-      <GrainArrow x={fCx + 8} y={fCy - fAT - 14} length={fAW - 16} angle={0} />
+      <GrainArrow locale={p.locale} x={fCx + 8} y={fCy - fAT - 14} length={fAW - 16} angle={0} />
 
       {/* 尺寸：A 厚 / 孔距 / B 厚 */}
       <DimLine
@@ -9416,7 +9416,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
       />
 
       {/* 木紋 */}
-      <GrainArrow x={tCx + 6} y={tCy + tAH + 18} length={tAW - 12} angle={0} />
+      <GrainArrow locale={p.locale} x={tCx + 6} y={tCy + tAH + 18} length={tAW - 12} angle={0} />
 
       {/* 尺寸：孔距、邊距 */}
       <DimLine
@@ -9585,7 +9585,7 @@ function PocketHoleDetail(p: JoineryDetailParams) {
         {/* 剖面 A-A */}
         <SectionMark x={fCx + fAW / 2 - PX(pitch / 2) - 22} y={fCy - fAT - 8} label="A" direction="down" />
         <SectionMark x={fCx + fAW / 2 - PX(pitch / 2) - 22} y={fCy + fBH - 18} label="A" direction="up" />
-        <GrainArrow x={fCx + 8} y={fCy - fAT - 14} length={fAW - 16} angle={0} />
+        <GrainArrow locale={p.locale} x={fCx + 8} y={fCy - fAT - 14} length={fAW - 16} angle={0} />
         {/* dim */}
         <DimLine
           x1={fCx + fAW / 2 - PX(pitch / 2)} y1={fCy + fBH}
@@ -9717,7 +9717,7 @@ function PocketHoleDetail(p: JoineryDetailParams) {
         <CenterLine x1={tCx + tAW / 2} y1={tCy - 8} x2={tCx + tAW / 2} y2={tCy + tAH + 8} />
         <HiddenEdge d={`M ${tCx + tAW / 2 - PX(mt / 2)},${tCy} L ${tCx + tAW / 2 - PX(mt / 2)},${tCy + tAH}`} />
         <HiddenEdge d={`M ${tCx + tAW / 2 + PX(mt / 2)},${tCy} L ${tCx + tAW / 2 + PX(mt / 2)},${tCy + tAH}`} />
-        <GrainArrow x={tCx + 6} y={tCy + tAH + 18} length={tAW - 12} angle={0} />
+        <GrainArrow locale={p.locale} x={tCx + 6} y={tCy + tAH + 18} length={tAW - 12} angle={0} />
 
         <DimLine x1={tCx + tAW / 2 - PX(pitch / 2)} y1={tCy + tAH} x2={tCx + tAW / 2 + PX(pitch / 2)} y2={tCy + tAH}
           label={`${isEn ? "Hole spacing" : "孔距"} ${pitch}`}
@@ -9949,7 +9949,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
       <SectionMark x={fCx + fAW / 2 - PX(40) - 18} y={fCy + fAT + fBH + 4} label="A" direction="up" />
 
       {/* 木紋 */}
-      <GrainArrow x={fCx + 8} y={fCy - 12} length={fAW - 16} angle={0} />
+      <GrainArrow locale={p.locale} x={fCx + 8} y={fCy - 12} length={fAW - 16} angle={0} />
 
       {/* 尺寸 */}
       <DimLine
@@ -10208,7 +10208,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
       />
 
       {/* 木紋 */}
-      <GrainArrow x={tCx + 8} y={tCy + tAH + 18} length={tAW - 16} angle={0} />
+      <GrainArrow locale={p.locale} x={tCx + 8} y={tCy + tAH + 18} length={tAW - 16} angle={0} />
 
       {/* 尺寸：孔距 */}
       <DimLine
@@ -10379,7 +10379,7 @@ function ScrewDetail(p: JoineryDetailParams) {
         {/* 剖面 A-A */}
         <SectionMark x={fCx + fAW / 2 - PX(40) - 18} y={fCy - 10} label="A" direction="down" />
         <SectionMark x={fCx + fAW / 2 - PX(40) - 18} y={fCy + fAT + fBH + 4} label="A" direction="up" />
-        <GrainArrow x={fCx + 8} y={fCy - 12} length={fAW - 16} angle={0} />
+        <GrainArrow locale={p.locale} x={fCx + 8} y={fCy - 12} length={fAW - 16} angle={0} />
 
         <DimLine x1={fCx} y1={fCy} x2={fCx} y2={fCy + fAT}
           label={`${ct}`}
@@ -10500,7 +10500,7 @@ function ScrewDetail(p: JoineryDetailParams) {
         })}
         <HiddenEdge d={`M ${tCx + tAW / 2 - PX(mt) / 2},${tCy} L ${tCx + tAW / 2 - PX(mt) / 2},${tCy + tAH}`} />
         <HiddenEdge d={`M ${tCx + tAW / 2 + PX(mt) / 2},${tCy} L ${tCx + tAW / 2 + PX(mt) / 2},${tCy + tAH}`} />
-        <GrainArrow x={tCx + 8} y={tCy + tAH + 18} length={tAW - 16} angle={0} />
+        <GrainArrow locale={p.locale} x={tCx + 8} y={tCy + tAH + 18} length={tAW - 16} angle={0} />
 
         <DimLine x1={tCx + tAW / 2 - PX(40)} y1={tCy + tAH} x2={tCx + tAW / 2 + PX(40)} y2={tCy + tAH}
           label={`${isEn ? "Hole spacing" : "孔距"} 80`}
@@ -10846,7 +10846,7 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
         <SectionMark x={oX + motherW / 2 + 14} y={oY - 22} label="A" direction="left" />
 
         {/* 木紋 */}
-        <GrainArrow x={oX + motherW + 50 + oX} y={oY + motherH + 24} length={Math.min(60, PX(cw) * 0.5)} angle={0} />
+        <GrainArrow locale={p.locale} x={oX + motherW + 50 + oX} y={oY + motherH + 24} length={Math.min(60, PX(cw) * 0.5)} angle={0} />
       </g>
     );
   })();
