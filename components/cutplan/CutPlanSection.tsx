@@ -100,6 +100,8 @@ function UnplacedNotice({
   onSplitSpec?: (specId: string) => void;
 }) {
   const t = useTranslations("cutPlanSection");
+  const locale = useLocale();
+  const isEn = locale === "en";
   const matching = inventory.filter((s) => {
     if (s.kind !== group.kind) return false;
     if (group.kind === "solid" && s.material !== group.material) return false;
@@ -137,7 +139,7 @@ function UnplacedNotice({
               </span>
             )}
             <span>
-              {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
+              {isEn ? p.partNameEn : p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
             </span>
             {onSplitSpec && (
               <button

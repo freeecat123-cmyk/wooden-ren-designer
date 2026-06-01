@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { CutPiece, SheetBin } from "@/lib/cutplan";
 
 export function SheetBinSvg({
@@ -259,6 +259,8 @@ function CutListTable({
   colorFor: (piece: CutPiece) => string;
 }) {
   const t = useTranslations("sheetBinSvg");
+  const locale = useLocale();
+  const isEn = locale === "en";
   // 收集所有零件 + 順序 + 位置
   const rows: Array<{
     order: number;
@@ -277,7 +279,7 @@ function CutListTable({
       rows.push({
         order: p.order ?? 0,
         code: p.piece.code,
-        name: p.piece.partNameZh,
+        name: isEn ? p.piece.partNameEn : p.piece.partNameZh,
         L: Math.round(p.w),
         W: Math.round(p.h),
         T: Math.round(p.piece.thickness),

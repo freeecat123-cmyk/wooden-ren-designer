@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { NestConfig, StockItem } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { planFromSpecs, splitSpecPrompt } from "@/lib/cutplan/piece-spec";
@@ -23,6 +23,8 @@ export function CutPlanApp({
 }) {
   const t = useTranslations("cutPlanApp");
   const tCsv = useTranslations("cutPlanApp.csv");
+  const locale = useLocale();
+  const isEn = locale === "en";
   const [specs, setSpecs] = useState<PieceSpec[]>(initialSpecs);
   const [config, setConfig] = useState<NestConfig>(initialConfig);
 
@@ -215,7 +217,7 @@ export function CutPlanApp({
                 bin.stockLength,
                 bin.stockWidth,
                 p.piece.code ?? "",
-                p.piece.partNameZh,
+                isEn ? p.piece.partNameEn : p.piece.partNameZh,
                 p.piece.length,
                 p.piece.width,
                 p.x,
@@ -239,7 +241,7 @@ export function CutPlanApp({
               "",
               "",
               piece.code ?? "",
-              piece.partNameZh,
+              isEn ? piece.partNameEn : piece.partNameZh,
               piece.length,
               piece.width,
               "",
@@ -351,7 +353,7 @@ export function CutPlanApp({
                       : t("kindMdf");
                 return (
                   <li key={`unp-${gi}-${pi}-${p.partId}`} className="font-mono">
-                    · {p.partNameZh}　{p.length} × {p.width} × {p.thickness} mm
+                    · {isEn ? p.partNameEn : p.partNameZh}　{p.length} × {p.width} × {p.thickness} mm
                     <span className="text-red-600 ml-1">
                       {t("kindParenTpl", { label: kindLabel })}
                     </span>

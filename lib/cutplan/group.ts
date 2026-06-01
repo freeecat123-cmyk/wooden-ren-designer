@@ -2,6 +2,7 @@ import type { FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { effectiveBillableMaterial } from "@/lib/pricing/catalog";
 import { MATERIALS } from "@/lib/materials";
+import { partName } from "@/lib/templates/part-names";
 import type { CutPiece } from "./types";
 
 /**
@@ -37,6 +38,7 @@ export function buildCutPieces(design: FurnitureDesign): {
       const piece: CutPiece = {
         partId: pieces > 1 ? `${part.id}-piece-${i + 1}` : part.id,
         partNameZh: `${part.nameZh}${suffix}`,
+        partNameEn: `${partName(part, "en")}${suffix}`,
         length: longSide,
         width: midSide,
         thickness: shortSide,

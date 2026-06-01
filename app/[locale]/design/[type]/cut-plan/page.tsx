@@ -68,7 +68,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
     ...Array.from(lumberGroups.values()).flat(),
     ...Array.from(sheetGroups.values()).flat(),
   ];
-  const initialSpecs = collapseIntoSpecs(allPieces);
+  const initialSpecs = collapseIntoSpecs(allPieces, locale);
 
   const designQuery = designParamsToQuery(parsed, entry);
   const entryName = getEntryName(entry, locale);

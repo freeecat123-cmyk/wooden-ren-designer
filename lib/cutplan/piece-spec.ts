@@ -27,11 +27,13 @@ export interface PieceSpec {
  * 把設計匯入的 CutPiece 陣列合併成 PieceSpec：
  * 以 (name 去數字+billable+長寬厚) 為 key 群聚，每個 key 的 qty = 出現次數
  */
-export function collapseIntoSpecs(pieces: CutPiece[]): PieceSpec[] {
+export function collapseIntoSpecs(pieces: CutPiece[], locale: string = "zh-TW"): PieceSpec[] {
   const map = new Map<string, PieceSpec>();
+  const isEn = locale === "en";
   for (const p of pieces) {
     // 跟 extract.ts 同規則：去掉所有數字、合併空白（「下層抽屜1 面板」→「下層抽屜 面板」）
-    const nameBase = p.partNameZh
+    const sourceName = isEn ? p.partNameEn : p.partNameZh;
+    const nameBase = sourceName
       .replace(/\d+/g, "")
       .replace(/\s+/g, " ")
       .trim();
@@ -77,9 +79,11 @@ export function expandSpecs(specs: PieceSpec[]): CutPiece[] {
     const baseCode = indexToCode(idx);
     for (let i = 0; i < s.quantity; i++) {
       const code = s.quantity === 1 ? baseCode : `${baseCode}${i + 1}`;
+      const displayName = s.quantity === 1 ? s.name : `${s.name} ${i + 1}`;
       out.push({
         partId: s.quantity === 1 ? s.id : `${s.id}-${i}`,
-        partNameZh: s.quantity === 1 ? s.name : `${s.name} ${i + 1}`,
+        partNameZh: displayName,
+        partNameEn: displayName,
         code,
         length: s.length,
         width: s.width,
