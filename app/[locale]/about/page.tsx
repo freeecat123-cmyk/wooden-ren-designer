@@ -164,6 +164,7 @@ export default async function AboutPage({
             panel3Label: t("triptych.panel3Label"),
             panel3Sub: t("triptych.panel3Sub"),
             panel3Alt: t("triptych.panel3Alt"),
+            isEn,
           }}
         />
         <p className="mt-3 text-xs text-zinc-500 text-center">
@@ -255,13 +256,13 @@ export default async function AboutPage({
             no="2"
             title={t("steps.step2Title")}
             desc={t("steps.step2Desc")}
-            visual={isEn ? <StepVisualEmoji emoji="📏" /> : <StepVisualSliders alt={t("steps.step2Alt")} />}
+            visual={<StepVisualSliders alt={t("steps.step2Alt")} src={isEn ? "/about-assets/en/step-design.png" : "/about-assets/step-design.png"} />}
           />
           <StepCard
             no="3"
             title={t("steps.step3Title")}
             desc={t("steps.step3Desc")}
-            visual={isEn ? <StepVisualEmoji emoji="🖨️" /> : <StepVisualPdf alt={t("steps.step3Alt")} />}
+            visual={<StepVisualPdf alt={t("steps.step3Alt")} src={isEn ? "/about-assets/en/feat-threeview.png" : "/about-assets/feat-threeview.png"} />}
           />
         </div>
       </section>
@@ -274,50 +275,38 @@ export default async function AboutPage({
         </h2>
         <p className="text-center text-zinc-600 mb-10">{t("outputs.intro")}</p>
 
-        {/* zh-TW: 螢幕截圖 feature card；EN：emoji-only 直到 /about-assets/en 截圖補齊（screenshots are zh-TW UI only for now） */}
-        {isEn ? (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 mb-6">
-            <FeatureCard emoji="📐" title={t("outputs.threeview.title")} desc={t("outputs.threeview.desc")} />
-            <FeatureCard emoji="📋" title={t("outputs.cutlist.title")} desc={t("outputs.cutlist.desc")} />
-            <FeatureCard emoji="🪵" title={t("outputs.cutplan.title")} desc={t("outputs.cutplan.desc")} />
-            <FeatureCard emoji="📑" title={t("outputs.process.title")} desc={t("outputs.process.desc")} />
-            <FeatureCard emoji="💰" title={t("outputs.quote.title")} desc={t("outputs.quote.desc")} />
-            <FeatureCard emoji="🪑" title={t("outputs.perspective.title")} desc={t("outputs.perspective.desc")} />
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-5 sm:gap-6 mb-6">
-            <ImageFeatureCard
-              src="/about-assets/feat-threeview.png"
-              title={t("outputs.threeview.title")}
-              desc={t("outputs.threeview.desc")}
-            />
-            <ImageFeatureCard
-              src="/about-assets/feat-cutlist.png"
-              title={t("outputs.cutlist.title")}
-              desc={t("outputs.cutlist.desc")}
-            />
-            <ImageFeatureCard
-              src="/about-assets/feat-cutplan-full.png"
-              title={t("outputs.cutplan.title")}
-              desc={t("outputs.cutplan.desc")}
-            />
-            <ImageFeatureCard
-              src="/about-assets/feat-steps.png"
-              title={t("outputs.process.title")}
-              desc={t("outputs.process.desc")}
-            />
-            <ImageFeatureCard
-              src="/about-assets/feat-quote.png"
-              title={t("outputs.quote.title")}
-              desc={t("outputs.quote.desc")}
-            />
-            <ImageFeatureCard
-              src="/about-assets/hero-3d.png"
-              title={t("outputs.perspective.title")}
-              desc={t("outputs.perspective.desc")}
-            />
-          </div>
-        )}
+        <div className="grid md:grid-cols-2 gap-5 sm:gap-6 mb-6">
+          <ImageFeatureCard
+            src={isEn ? "/about-assets/en/feat-threeview.png" : "/about-assets/feat-threeview.png"}
+            title={t("outputs.threeview.title")}
+            desc={t("outputs.threeview.desc")}
+          />
+          <ImageFeatureCard
+            src={isEn ? "/about-assets/en/feat-cutlist.png" : "/about-assets/feat-cutlist.png"}
+            title={t("outputs.cutlist.title")}
+            desc={t("outputs.cutlist.desc")}
+          />
+          <ImageFeatureCard
+            src={isEn ? "/about-assets/en/feat-cutlist.png" : "/about-assets/feat-cutplan-full.png"}
+            title={t("outputs.cutplan.title")}
+            desc={t("outputs.cutplan.desc")}
+          />
+          <ImageFeatureCard
+            src={isEn ? "/about-assets/en/feat-steps.png" : "/about-assets/feat-steps.png"}
+            title={t("outputs.process.title")}
+            desc={t("outputs.process.desc")}
+          />
+          <ImageFeatureCard
+            src={isEn ? "/about-assets/en/feat-threeview.png" : "/about-assets/feat-quote.png"}
+            title={t("outputs.quote.title")}
+            desc={t("outputs.quote.desc")}
+          />
+          <ImageFeatureCard
+            src={isEn ? "/about-assets/en/hero-3d.png" : "/about-assets/hero-3d.png"}
+            title={t("outputs.perspective.title")}
+            desc={t("outputs.perspective.desc")}
+          />
+        </div>
 
         <div className="grid sm:grid-cols-3 gap-4 mb-6">
           <FeatureCard emoji="🔩" title={t("outputs.joinery.title")} desc={t("outputs.joinery.desc")} />
@@ -656,23 +645,25 @@ function HeroTriptych({
     panel3Label: string;
     panel3Sub: string;
     panel3Alt: string;
+    isEn?: boolean;
   };
 }) {
+  const prefix = labels.isEn ? "/about-assets/en" : "/about-assets";
   const panels = [
     {
-      src: "/about-assets/hero-3d.png",
+      src: `${prefix}/hero-3d.png`,
       alt: labels.panel1Alt,
       label: labels.panel1Label,
       sub: labels.panel1Sub,
     },
     {
-      src: "/about-assets/feat-threeview.png",
+      src: `${prefix}/feat-threeview.png`,
       alt: labels.panel2Alt,
       label: labels.panel2Label,
       sub: labels.panel2Sub,
     },
     {
-      src: "/about-assets/feat-cutlist.png",
+      src: `${prefix}/feat-cutlist.png`,
       alt: labels.panel3Alt,
       label: labels.panel3Label,
       sub: labels.panel3Sub,
@@ -916,10 +907,10 @@ function StepVisualCatalog() {
   );
 }
 
-function StepVisualSliders({ alt }: { alt: string }) {
+function StepVisualSliders({ alt, src = "/about-assets/step-design.png" }: { alt: string; src?: string }) {
   return (
     <Image
-      src="/about-assets/step-design.png"
+      src={src}
       alt={alt}
       width={600}
       height={300}
@@ -939,10 +930,10 @@ function StepVisualEmoji({ emoji }: { emoji: string }) {
   );
 }
 
-function StepVisualPdf({ alt }: { alt: string }) {
+function StepVisualPdf({ alt, src = "/about-assets/feat-threeview.png" }: { alt: string; src?: string }) {
   return (
     <Image
-      src="/about-assets/feat-threeview.png"
+      src={src}
       alt={alt}
       width={600}
       height={300}
