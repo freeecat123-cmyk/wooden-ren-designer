@@ -8,8 +8,6 @@ import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
-import { getCurrencyFromCookies } from "@/lib/units/server-currency";
-import { priceAmount } from "@/lib/units/fx";
 
 type UserStatus = "guest" | "loggedInNoAccess";
 
@@ -63,9 +61,7 @@ export async function CeilingMarketing({ status }: Props) {
   const tierPersonal = t.raw("pricingSection.tierPersonal") as TierBlock;
   const tierPro = t.raw("pricingSection.tierPro") as TierBlock;
 
-  // priceCurrency label only — amount stays locale-keyed (TODO: unify pricing).
-  const currency = await getCurrencyFromCookies();
-
+  // JSON-LD 價格鎖 locale，對齊實際付款系統（ZH→ECPay TWD、EN→LemonSqueezy USD）。
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -75,8 +71,8 @@ export async function CeilingMarketing({ status }: Props) {
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: isEn ? "9" : priceAmount(390, currency),
-      priceCurrency: isEn ? "USD" : currency,
+      price: isEn ? "9" : "390",
+      priceCurrency: isEn ? "USD" : "TWD",
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
     },

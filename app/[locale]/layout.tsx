@@ -14,8 +14,6 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
-import { getCurrencyFromCookies } from "@/lib/units/server-currency";
-import { priceAmount } from "@/lib/units/fx";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -149,10 +147,9 @@ export default async function LocaleLayout({
 
   const m = META[locale];
 
-  // Currency for JSON-LD priceCurrency labels. NOTE: this controls the LABEL only —
-  // amounts below are still locale-keyed (business decision; TWD 390 ≠ USD 12 swap).
-  // TODO: when pricing is unified across currencies, derive amounts from this too.
-  const currency = await getCurrencyFromCookies();
+  // JSON-LD 價格鎖 locale，不跟著 CurrencyToggle cookie 變。
+  // 理由：付款系統是 locale-pinned（ZH→ECPay TWD、EN→LemonSqueezy USD），
+  // Google 看到的價格必須等於使用者實際被收的金額。
 
   return (
     <html
@@ -188,9 +185,9 @@ export default async function LocaleLayout({
                       { "@type": "Offer", name: "Pro", price: "79", priceCurrency: "USD" },
                     ]
                   : [
-                      { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: currency },
-                      { "@type": "Offer", name: "個人版", price: priceAmount(390, currency), priceCurrency: currency },
-                      { "@type": "Offer", name: "專業版", price: priceAmount(890, currency), priceCurrency: currency },
+                      { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: "TWD" },
+                      { "@type": "Offer", name: "個人版", price: "390", priceCurrency: "TWD" },
+                      { "@type": "Offer", name: "專業版", price: "890", priceCurrency: "TWD" },
                     ],
               creator: {
                 "@type": "Organization",
