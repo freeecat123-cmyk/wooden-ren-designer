@@ -186,10 +186,17 @@ export function QuoteShareActions({
     const ctx = await prepareShareUrl();
     if (!ctx) return;
     const message = buildEnShareMessage(ctx);
-    // sms: scheme — opens Messages on iOS (iMessage when available), default SMS on Android
-    window.location.href = `sms:?body=${encodeURIComponent(message)}`;
+    // Always copy to clipboard so the user has the text regardless of platform.
+    await copyToClipboard(message);
     setCopied("sms");
-    setTimeout(() => setCopied(null), 2000);
+    setTimeout(() => setCopied(null), 2500);
+    // Try to open Messages / SMS app. iOS Safari → Messages (iMessage when
+    // available). Android Chrome → default SMS app. Desktop browsers silently
+    // ignore sms: — the clipboard already has the message for paste.
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = `sms:?body=${encodeURIComponent(message)}`;
+    }
   };
 
   const handlePdf = () => {
@@ -235,9 +242,9 @@ export function QuoteShareActions({
               className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
                 copied === "sms" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-600"
               }`}
-              title="Share via Messages / iMessage / SMS"
+              title="Copy share text — opens Messages on mobile, copies to clipboard on desktop"
             >
-              💬 Messages
+              {copied === "sms" ? "✓ Copied" : "💬 Messages"}
             </button>
           </>
         )}
