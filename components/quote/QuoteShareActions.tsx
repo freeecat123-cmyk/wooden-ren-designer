@@ -38,7 +38,7 @@ interface Props {
   materialName: string;
 }
 
-type CopiedState = "line" | "link" | null;
+type CopiedState = "line" | "link" | "whatsapp" | "sms" | null;
 
 async function copyToClipboard(text: string): Promise<void> {
   try {
@@ -157,6 +157,41 @@ export function QuoteShareActions({
     window.location.href = mailto;
   };
 
+  // EN-only DIY share message: short, no Taiwan business template.
+  const buildEnShareMessage = (ctx: Awaited<ReturnType<typeof prepareShareUrl>>): string => {
+    if (!ctx) return "";
+    const { quote, printUrl } = ctx;
+    return [
+      `${furnitureNameZh} — material estimate`,
+      ``,
+      `Dimensions: ${dimensionsLabel}`,
+      `Material: ${materialName}`,
+      `Estimated cost: ${formatPrice(quote.total, currency)}`,
+      ``,
+      printUrl,
+    ].join("\n");
+  };
+
+  const handleWhatsApp = async () => {
+    const ctx = await prepareShareUrl();
+    if (!ctx) return;
+    const message = buildEnShareMessage(ctx);
+    // wa.me universal share — no phone = user picks contact in WhatsApp
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+    setCopied("whatsapp");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleSms = async () => {
+    const ctx = await prepareShareUrl();
+    if (!ctx) return;
+    const message = buildEnShareMessage(ctx);
+    // sms: scheme — opens Messages on iOS (iMessage when available), default SMS on Android
+    window.location.href = `sms:?body=${encodeURIComponent(message)}`;
+    setCopied("sms");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
   const handlePdf = () => {
     const state = readFormState(design, locale);
     if (!state) {
@@ -181,6 +216,30 @@ export function QuoteShareActions({
           >
             {copied === "line" ? t("btnLineCopied") : t("btnLine")}
           </button>
+        )}
+        {locale === "en" && (
+          <>
+            <button
+              type="button"
+              onClick={handleWhatsApp}
+              className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
+                copied === "whatsapp" ? "bg-emerald-700" : "bg-emerald-500 hover:bg-emerald-600"
+              }`}
+              title="Share via WhatsApp"
+            >
+              💬 WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={handleSms}
+              className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
+                copied === "sms" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-600"
+              }`}
+              title="Share via Messages / iMessage / SMS"
+            >
+              💬 Messages
+            </button>
+          </>
         )}
         <button
           type="button"
