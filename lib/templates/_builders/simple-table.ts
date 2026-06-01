@@ -777,14 +777,20 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         mortises: [],
       });
     }
-    // 補腳上下橫撐 mortise（簡單 simple-table 原本沒加，現在加齊）
-    // Z 面 mortise 接 Z apron（左右下橫撐）— 上半榫
-    // X 面 mortise 接 X apron（前後下橫撐）— 下半榫
+    // 補腳上下橫撐 mortise（套 b3f09ad 公約跟 apron 一致）
+    // Z 面 mortise 接 Z 軸下橫撐（左右）— 上半榫，rotX 跟 splayDz
+    // X 面 mortise 接 X 軸下橫撐（前後）— 下半榫，rotZ 跟 splayDx
     const lsCenterY = stretcherY + stretcherWidth / 2;
     const lsThrough = lowerTenonType === "through-tenon";
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
+      const lsZRotX = (splayDz > 0 && legHeight > 0)
+        ? Math.sign(cz || 1) * Math.atan(splayDz / legHeight)
+        : 0;
+      const lsXRotZ = (splayDx > 0 && legHeight > 0)
+        ? -Math.sign(cx || 1) * Math.atan(splayDx / legHeight)
+        : 0;
       leg.mortises.push(
         {
           origin: { x: 0, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
@@ -792,6 +798,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,
           through: lsThrough,
+          ...(Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {}),
         },
         {
           origin: { x: cx > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
@@ -799,6 +806,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,
           through: lsThrough,
+          ...(Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {}),
         },
       );
     }

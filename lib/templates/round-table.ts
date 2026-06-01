@@ -662,32 +662,40 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
           ...(Math.abs(xFaceRotZApron) > 0.001 ? { rotZ: xFaceRotZApron } : {}),
         },
         ...(withLowerStretcher
-          ? [
-              // X 面（前後對, 靜止）— 下半榫
-              {
-                origin: {
-                  x: -sx * (legSize / 2),
-                  y: lsYCenter0 + lowerLowerTenonOffset,
-                  z: 0,
+          ? (() => {
+              const lsZRotX = (legSplayDzForMortise !== 0 && legHeight > 0)
+                ? Math.sign(corner.z || 1) * Math.atan(Math.abs(legSplayDzForMortise) / legHeight)
+                : 0;
+              const lsXRotZ = xFaceApronMortiseRotZ(corner, legSplayDxForMortise, legHeight);
+              return [
+                // X 面（前後對, 靜止）— 下半榫，rotZ 跟 splayDx
+                {
+                  origin: {
+                    x: -sx * (legSize / 2),
+                    y: lsYCenter0 + lowerLowerTenonOffset,
+                    z: 0,
+                  },
+                  depth: lsTenonLen,
+                  length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
+                  width: lsTenonThick,
+                  through: lowerTenonType === "through-tenon",
+                  ...(Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {}),
                 },
-                depth: lsTenonLen,
-                length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
-                width: lsTenonThick,
-                through: lowerTenonType === "through-tenon",
-              },
-              // Z 面（左右對, 上移）— 上半榫
-              {
-                origin: {
-                  x: 0,
-                  y: lsYCenter0 + lowerUpperTenonOffset + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0),
-                  z: -sz * (legSize / 2),
+                // Z 面（左右對, 上移）— 上半榫，rotX 跟 splayDz
+                {
+                  origin: {
+                    x: 0,
+                    y: lsYCenter0 + lowerUpperTenonOffset + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0),
+                    z: -sz * (legSize / 2),
+                  },
+                  depth: lsTenonLen,
+                  length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
+                  width: lsTenonThick,
+                  through: lowerTenonType === "through-tenon",
+                  ...(Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {}),
                 },
-                depth: lsTenonLen,
-                length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
-                width: lsTenonThick,
-                through: lowerTenonType === "through-tenon",
-              },
-            ]
+              ];
+            })()
           : []),
       ],
       });

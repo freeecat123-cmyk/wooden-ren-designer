@@ -1041,6 +1041,17 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
+      const cornerLs = { x: cx, z: cz };
+      // 下橫撐 mortise 套同套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx
+      const _splayDxLs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(cx) * splayMm : 0;
+      const _splayDzLs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(cz) * splayMm : 0;
+      const _legHLs = Math.max(1, legBaseHeight);
+      const lsZRotX = (_splayDzLs !== 0 && _legHLs > 0)
+        ? Math.sign(cz || 1) * Math.atan(Math.abs(_splayDzLs) / _legHLs)
+        : 0;
+      const lsXRotZ = xFaceApronMortiseRotZ(cornerLs, _splayDxLs, _legHLs);
+      const lsZRotProp = Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {};
+      const lsXRotProp = Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {};
       if (lowerCanHalfStagger) {
         if (needZFace) {
           leg.mortises.push({
@@ -1049,6 +1060,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerUpperTenonH,
             width: lowerTenonThick,
             through: lsThrough,
+            ...lsZRotProp,
           });
         }
         if (needXFace) {
@@ -1058,6 +1070,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerLowerTenonH,
             width: lowerTenonThick,
             through: lsThrough,
+            ...lsXRotProp,
           });
         }
       } else {
@@ -1068,6 +1081,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerTenonW,
             width: lowerTenonThick,
             through: lsThrough,
+            ...lsZRotProp,
           });
         }
         if (needXFace) {
@@ -1077,6 +1091,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerTenonW,
             width: lowerTenonThick,
             through: lsThrough,
+            ...lsXRotProp,
           });
         }
       }
