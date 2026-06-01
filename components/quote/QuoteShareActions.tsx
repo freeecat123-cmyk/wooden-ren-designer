@@ -135,6 +135,17 @@ export function QuoteShareActions({
     const ctx = await prepareShareUrl();
     if (!ctx) return;
     const { customer, quote, opts, deliveryIso, expiryIso, printUrl, quoteNo } = ctx;
+
+    // EN DIY flow: no customer form, no business email template.
+    // Open the user's mail client with a blank "To:" and the simple DIY
+    // share text pre-filled in body. User types in whatever recipient.
+    if (locale === "en") {
+      const subject = `${furnitureNameZh} — material estimate`;
+      const body = buildEnShareMessage(ctx);
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      return;
+    }
+
     if (!customer.email || !customer.email.includes("@")) {
       alert(t("alertNoEmail"));
       return;

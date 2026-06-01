@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "./AuthProvider";
 import { LoginButton } from "./LoginButton";
 import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
@@ -32,6 +32,8 @@ function UserDropdown({
   signOut: () => Promise<void>;
 }) {
   const t = useTranslations("headerUser");
+  const locale = useLocale();
+  const isEn = locale === "en";
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -49,12 +51,18 @@ function UserDropdown({
   const avatar = user.user_metadata?.avatar_url;
   const isAdmin = isAdminEmail(user.email, getPublicAdminEmails());
 
+  // /projects (Taiwan-style multi-piece job tracking), /customers (CRM-style
+  // address book), /settings/branding (deposit %, bank account, warranty
+  // template) are all part of the Taiwan business-quote flow. On /en the
+  // user is a DIY hobbyist with no clients, so hide those entries.
   const navItems: Array<{ href: string; icon: string; label: string }> = [
     { href: "/", icon: "🪑", label: t("navHome") },
     { href: "/account/designs", icon: "🗂", label: t("navMyDesigns") },
-    { href: "/projects", icon: "📁", label: t("navProjects") },
-    { href: "/customers", icon: "👥", label: t("navCustomers") },
-    { href: "/settings/branding", icon: "🏢", label: t("navBranding") },
+    ...(isEn ? [] : [
+      { href: "/projects", icon: "📁", label: t("navProjects") },
+      { href: "/customers", icon: "👥", label: t("navCustomers") },
+      { href: "/settings/branding", icon: "🏢", label: t("navBranding") },
+    ]),
     { href: "/my-subscription", icon: "💎", label: t("navSubscription") },
     { href: "/pricing", icon: "💰", label: t("navPricing") },
   ];
