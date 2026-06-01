@@ -103,7 +103,7 @@
   "pricingStub": {
     "metadata": {
       "title": "Pricing · Wooden Ren Designer",
-      "description": "International USD pricing launching later in 2026 via LemonSqueezy. Join the waitlist for early access."
+      "description": "USD subscription with worldwide tax-inclusive billing via LemonSqueezy. Personal $12.99/mo, Pro $27.99/mo. Cancel anytime."
     },
     "badge": "International pricing",
     "h1": "USD billing coming soon",
@@ -4888,7 +4888,8 @@
       "statusPaused": "Paused",
       "checkoutSuccessTitle": "Payment received — you're all set.",
       "checkoutSuccessBody": "Your purchase is unlocked. If your subscription or single-template access doesn't appear within a minute, refresh this page.",
-      "checkoutSuccessDismiss": "Dismiss"
+      "checkoutSuccessDismiss": "Dismiss",
+      "signInPrompt": "Please sign in to view your subscription."
     }
   },
   "admin": {

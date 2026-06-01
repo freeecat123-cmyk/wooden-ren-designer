@@ -83,7 +83,7 @@ export function LemonSubscriptionClient() {
         } = await supabase.auth.getUser();
         if (!user) {
           if (!cancelled) {
-            setError("Please sign in.");
+            setError(t("signInPrompt"));
             setLoading(false);
           }
           return;

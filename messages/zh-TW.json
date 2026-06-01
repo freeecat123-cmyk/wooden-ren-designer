@@ -4873,7 +4873,8 @@
       "statusPaused": "Paused",
       "checkoutSuccessTitle": "Payment received — you're all set.",
       "checkoutSuccessBody": "Your purchase is unlocked. If your subscription or single-template access doesn't appear within a minute, refresh this page.",
-      "checkoutSuccessDismiss": "Dismiss"
+      "checkoutSuccessDismiss": "Dismiss",
+      "signInPrompt": "請先登入以查看訂閱資訊。"
     }
   },
   "admin": {

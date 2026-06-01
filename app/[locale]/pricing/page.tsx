@@ -21,10 +21,18 @@ export async function generateMetadata({
 
   if (locale !== routing.defaultLocale) {
     const t = await getTranslations({ locale, namespace: "pricingStub.metadata" });
+    const title = t("title");
+    const description = t("description");
     return {
-      title: t("title"),
-      description: t("description"),
+      title,
+      description,
       alternates: alt,
+      openGraph: {
+        title,
+        description,
+        url: alt.canonical,
+        images: [{ url: "/og.png", width: 1200, height: 630 }],
+      },
     };
   }
 
