@@ -368,9 +368,18 @@ function parseOptNum(
 
 function readFormState(design: FurnitureDesign, locale: string = "zh-TW") {
   const form = document.getElementById(FORM_ID) as HTMLFormElement | null;
-  if (!form) return null;
-  const data = new FormData(form);
-  const get = (k: string) => data.get(k) as string | null;
+  // EN DIY page doesn't render the labour form. Fall back to URL search
+  // params (carries dimensions/material/options from the design page) +
+  // LABOR_DEFAULTS for everything else.
+  const urlParams = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search)
+    : new URLSearchParams();
+  const data = form ? new FormData(form) : null;
+  const get = (k: string): string | null => {
+    if (data) return data.get(k) as string | null;
+    return urlParams.get(k);
+  };
+  if (!form && locale !== "en") return null;
 
   const catalogPrimary = MATERIAL_PRICE_PER_BDFT[design.primaryMaterial] ?? 300;
 
@@ -424,12 +433,20 @@ function readFormState(design: FurnitureDesign, locale: string = "zh-TW") {
 
   // 組出當下完整 URL params（給 print page 用）；checkbox 沒勾的要從 params 移除
   const params = new URLSearchParams();
-  for (const [k, v] of data.entries()) {
-    params.set(k, v as string);
+  if (data && form) {
+    for (const [k, v] of data.entries()) {
+      params.set(k, v as string);
+    }
+    form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((cb) => {
+      if (!cb.checked) params.delete(cb.name);
+    });
+  } else {
+    // EN DIY: only design-shape params matter (length/width/height/material/options).
+    // Labour/customer fields don't render → no need to bake them into the share URL.
+    for (const [k, v] of urlParams.entries()) {
+      params.set(k, v);
+    }
   }
-  form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((cb) => {
-    if (!cb.checked) params.delete(cb.name);
-  });
   // 確保短連結帶 quotedAt，給客人的有效期就鎖死了
   params.set("quotedAt", todayIso);
 
