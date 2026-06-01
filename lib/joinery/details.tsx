@@ -2662,6 +2662,7 @@ function LegacyTongueAndGrooveDetail(p: JoineryDetailParams) {
  *   俯視畫多片拼接示意（3 片條板拼面板）。
  * ---------------------------------------------------------------- */
 function LegacyV2TongueAndGrooveDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const mt = p.motherThickness;
   const tt = p.tenonThickness ?? Math.max(3, Math.round(mt / 3));
   const tl = p.tenonLength;
@@ -2862,7 +2863,7 @@ function LegacyV2TongueAndGrooveDetail(p: JoineryDetailParams) {
                       />
                     </>
                   )}
-                  <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">板 {i + 1}</text>
+                  <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">{isEn ? `Piece ${i + 1}` : `板 ${i + 1}`}</text>
                 </g>
               );
             })}
@@ -4197,7 +4198,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           {isEn ? "Mortise/tenon (hidden)" : "榫眼/榫頭（隱藏）"}
         </text>
         <text x={sMortX + sMortW / 2} y={sMortY + sMortH + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR}>
-          ⊗ 向內延伸 {safeTl}mm
+          {isEn ? `⊗ Extends inward ${safeTl}mm` : `⊗ 向內延伸 ${safeTl}mm`}
         </text>
         <DimLine x1={sMortX} y1={sLegY} x2={sMortX + sMortW} y2={sLegY} label={`${tt}`}
           side={safeDimSide("top", `${tt}`, { x: sMortX + sMortW / 2, y: sLegY }, qBounds)} />
@@ -4744,7 +4745,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
         {/* Wave 4 fix P2：凹槽（隱藏）label 中央錨點 clamp，避免觸右框邊 */}
         {(() => {
-          const labelText = "凹槽（隱藏）";
+          const labelText = isEn ? "Groove (hidden)" : "凹槽（隱藏）";
           const labelHalfW = labelText.length * FONT.CALLOUT * 0.55;
           const rawX = motherX + actualBoardLen - SPX(grooveDepth) / 2;
           const maxX = QUADRANT.W - labelHalfW - 6;
@@ -4764,7 +4765,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
         <text x={childX + actualBoardLen - 30} y={childY + SPX(ct) / 2 + SPX(tt) / 2 + 12}
           fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
-          舌頭（隱藏）
+          {isEn ? "Tongue (hidden)" : "舌頭（隱藏）"}
         </text>
         <text x={childX + actualBoardLen / 2} y={childY + SPX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">{isEn ? "Tenon piece (continuous tongue)" : "公件（舌連續）"}</text>
         <CenterLine x1={motherX - 10} y1={motherY + SPX(mt) / 2} x2={motherX + actualBoardLen + 10} y2={motherY + SPX(mt) / 2} />
@@ -4812,13 +4813,13 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
                     stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
                 </>
               )}
-              <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">板 {i + 1}</text>
+              <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">{isEn ? `Piece ${i + 1}` : `板 ${i + 1}`}</text>
             </g>
           );
         })}
         <text x={startX + stripLenPx + 8} y={startY + stripH + 4}
           fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK} fontWeight="bold">
-          ← 舌頭嵌入位（隱藏）
+          {isEn ? "← Tongue seat (hidden)" : "← 舌頭嵌入位（隱藏）"}
         </text>
         <GrainArrow locale={p.locale} x={startX + 8} y={startY - 12} length={Math.min(80, stripLenPx - 12)} angle={0} />
         <DimLine x1={startX} y1={startY} x2={startX} y2={startY + strips * stripH + (strips - 1) * 4}
@@ -4966,12 +4967,12 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                 stroke={COLOR.DIM} strokeWidth={STROKE.HIDDEN} strokeDasharray="2 2" />
               <text x={colX + FPX(tl) / 2} y={tenonY - 4} fontSize={FONT.CALLOUT}
                 textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
-                榫頭（隱藏）
+                {isEn ? "Tenon (hidden)" : "榫頭（隱藏）"}
               </text>
               {/* Wave 4 fix P2：柱身 label 中央錨點 + 估算 label 半寬，clamp 避免觸右框邊 */}
               {(() => {
-                const labelText = "柱身";
-                const labelHalfW = labelText.length * FONT.CALLOUT * 0.55; // 中文字寬
+                const labelText = isEn ? "Post" : "柱身";
+                const labelHalfW = labelText.length * FONT.CALLOUT * 0.55;
                 const rawX = colX + colW / 2;
                 const minX = labelHalfW + 6;
                 const maxX = QUADRANT.W - labelHalfW - 6;
@@ -4979,7 +4980,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                 return (
                   <text x={safeX} y={colY + colH + 12} fontSize={FONT.CALLOUT}
                     textAnchor="middle" fill="#666">
-                    柱身
+                    {labelText}
                   </text>
                 );
               })()}
@@ -5021,7 +5022,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         <rect x={tenonX} y={tenonY} width={tenonW} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <CenterLine x1={xsX - 8} y1={xsY + xsCh / 2} x2={xsX + xsCw + 8} y2={xsY + xsCh / 2} />
         <CenterLine x1={xsX + xsCw / 2} y1={xsY - 8} x2={xsX + xsCw / 2} y2={xsY + xsCh + 8} />
-        <text x={xsX + 4} y={xsY + 12} fontSize={FONT.CALLOUT} fill={COLOR.GRAIN}>⊙ 木紋</text>
+        <text x={xsX + 4} y={xsY + 12} fontSize={FONT.CALLOUT} fill={COLOR.GRAIN}>{isEn ? "⊙ Grain" : "⊙ 木紋"}</text>
         <DimLine x1={xsX} y1={xsY + xsCh} x2={xsX + xsCw} y2={xsY + xsCh} label={`${isEn ? "Thickness" : "板厚"} ${ct}`}
           side={safeDimSide("bottom", `${isEn ? "Thickness" : "板厚"} ${ct}`, { x: xsX + xsCw / 2, y: xsY + xsCh }, qBounds)} />
         <DimLine x1={tenonX} y1={tenonY} x2={tenonX + tenonW} y2={tenonY} label={`${isEn ? "Tenon T" : "榫厚"} ${tt}`}
@@ -5077,7 +5078,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           side={safeDimSide("bottom", `${isEn ? "Tenon L" : "榫長"} ${tl}`, { x: tenonX + TPX(tl) / 2, y: tenonY + TPX(tt) }, qBounds)} />
         <DimLine x1={legX} y1={legY} x2={legX + legW} y2={legY} label={`${isEn ? "Post W" : "柱寬"} ${mt}`}
           side={safeDimSide("top", `${isEn ? "Post W" : "柱寬"} ${mt}`, { x: legX + legW / 2, y: legY }, qBounds)} />
-        <text x={apronX + 4} y={apronY - TPX(shoulderW) - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>← 肩面（承力）</text>
+        <text x={apronX + 4} y={apronY - TPX(shoulderW) - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>{isEn ? "← Shoulder (load)" : "← 肩面（承力）"}</text>
       </g>
     );
   })();
@@ -5102,7 +5103,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                   strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
                 {isRound && (
                   <text x={-mt / 2} y={mt + 14} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>
-                    圓腳柱簡化為方柱顯示（直徑 = {mt}mm）
+                    {isEn ? `Round leg shown as square (Ø = ${mt}mm)` : `圓腳柱簡化為方柱顯示（直徑 = ${mt}mm）`}
                   </text>
                 )}
                 <IsoMortise faceX={mt / 2} faceY={0} faceZ={0}
