@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 import { formatMm } from "@/lib/units/format";
 
@@ -208,9 +208,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
-  // Z 面 mortise splay 修正（套 square-stool 2f5f3ff 公式，抽到 splayedLegMortiseGeom helper）
+  // Apron mortise（b3f09ad 公約）：Z 面 rotX 跟 splayDz；X 面 rotZ 跟 splayDx
   const isSplayedLeg = legShape.startsWith("splayed-");
   const legSplayDxForMortise = isSplayedLeg ? splayDx : 0;
+  const legSplayDzForMortise = isSplayedLeg ? splayDz : 0;
 
   // 4 隻腳
   const legs: Part[] = [-1, 1].flatMap((sx) =>
@@ -218,12 +219,13 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       const corner = { x: sx * cornerOffset, z: sz * cornerOffset };
       const zFaceGeom = splayedLegMortiseGeom({
         corner,
-        splayDx: legSplayDxForMortise,
+        splayDz: legSplayDzForMortise,
         legHeight,
         legSize,
         zCenterY: apronYCenter0,
         tenonOffset: apronUpperTenonOffset,
       });
+      const xFaceRotZApron = xFaceApronMortiseRotZ(corner, legSplayDxForMortise, legHeight);
       return ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
       nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
@@ -267,17 +269,16 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         },
       ],
       mortises: [
-        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
-        // splay 修正：tenon 反推位置（square-stool 2f5f3ff 公式）
+        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫，rotX 跟 splayDz
         {
           origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
           depth: apronTenonLen,
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
-          ...(zFaceGeom.rotZ !== undefined && Math.abs(zFaceGeom.rotZ) > 0.001 ? { rotZ: zFaceGeom.rotZ } : {}),
+          ...(zFaceGeom.rotX !== undefined && Math.abs(zFaceGeom.rotX) > 0.001 ? { rotX: zFaceGeom.rotX } : {}),
         },
-        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
+        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫，rotZ 跟 splayDx
         {
           origin: {
             x: -sx * (legSize / 2),
@@ -288,6 +289,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(Math.abs(xFaceRotZApron) > 0.001 ? { rotZ: xFaceRotZApron } : {}),
         },
         // X-cross 模式：腳上不加軸對齊 mortise（對角榫頭做法手作端要自行決定，
         // 通常用 45° 盲榫或暗銷；3D 視覺仍接合，不影響材料單）

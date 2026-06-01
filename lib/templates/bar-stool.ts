@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -337,13 +337,14 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 牙板：靜止 Z（左右）= 上半榫；移動 X（前後，下移）= 下半榫
       // 腳踏：靜止 X（前後）= 下半榫；移動 Z（左右，上移）= 上半榫
       mortises: (() => {
-        // Z 面 mortise 從 tenon 反推位置（公式移到 _helpers.splayedLegMortiseGeom）
+        // Apron mortise（b3f09ad 公約）：Z 面 rotX 跟 splayDz；X 面 rotZ 跟 splayDx
         const _legHeight = seatY;
         const _splayDxForLegs = (legShape === "splayed" || legShape === "splayed-length") ? splayMmFor(c).x : 0;
+        const _splayDzForLegs = (legShape === "splayed" || legShape === "splayed-width") ? splayMmFor(c).z : 0;
         const _zApronCenterY = seatY - apronOffset - apronWidth / 2;
         const _zFaceGeom = splayedLegMortiseGeom({
           corner: c,
-          splayDx: _splayDxForLegs,
+          splayDz: _splayDzForLegs,
           legHeight: _legHeight,
           legSize: legD,
           zCenterY: _zApronCenterY,
@@ -353,13 +354,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         const _zFaceMortiseX = _zFaceGeom.x;
         const _zFaceMortiseY = _zFaceGeom.y;
         const _zFaceMortiseZ = _zFaceGeom.z;
-        const _zFaceRotZ = _zFaceGeom.rotZ ?? 0;
+        const _zFaceRotX = _zFaceGeom.rotX ?? 0;
+        const _xFaceRotZ = xFaceApronMortiseRotZ(c, _splayDxForLegs, _legHeight);
         return [
         // === 牙板 ===
         // 無牙板（apronWidth=0）→ skip 兩個牙板榫眼
         ...(!withApron ? [] : [
-        // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
-        // 從 tenon 反推位置（square-stool 2f5f3ff B 路線、只動這一面）
+        // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫，rotX 跟 splayDz
         {
           origin: {
             x: _zFaceMortiseX,
@@ -370,9 +371,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronUpperTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
-          ...(Math.abs(_zFaceRotZ) > 0.001 ? { rotZ: _zFaceRotZ } : {}),
+          ...(Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {}),
         },
-        // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
+        // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫，rotZ 跟 splayDx
         {
           origin: {
             x: c.x > 0 ? -1 : 1,
@@ -384,6 +385,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronLowerTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
         },
         ]),
         // === 腳踏 ===

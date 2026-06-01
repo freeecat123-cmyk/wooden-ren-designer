@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "../_helpers";
+import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "../_helpers";
 import {
   LOWER_STRETCHER_HEIGHT_RATIO,
   TENON_THICKNESS_RATIO,
@@ -349,22 +349,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           return { x: x / mag, y: y / mag, z: z / mag };
         })()
       : undefined;
-    // Z 面 mortise 從 tenon 反推位置（套自 square-stool 2f5f3ff，只動接左右
-    // 牙板的這一面，X 面跟下橫撐 mortise 都不動）：
-    // - apron 繞自己 length 軸 tilt = sign(corner.x) × tiltX
-    // - tenon 經 rotation 後 X 偏移 = -apronUpperTenonOffset × sin(tiltX)
-    // - 腳的 splayed shape deform 在 apron Y 的位移 = (1 − zCenterY/legHeight) × |splayDx|
-    // 對 splayDx === 0 完全不影響（tiltX=0、splayShift=0、rotZ=0）
+    // Apron mortise：套 square-stool b3f09ad 公約
+    //   Z 面（左右牙板）→ rotX based on splayDz（FRONT 看不到 tilt，維持直矩形）
+    //   X 面（前後牙板）→ rotZ based on splayDx（FRONT 看到 tilt，平行四邊形）
+    // origin 鎖回腳中心軸（不做 splayShift offset），讓 maker 製作見對稱矩形
     const zCenterY = legHeight - apronOffset - apronWidth / 2;
     const zFaceGeom = splayedLegMortiseGeom({
       corner: c,
-      splayDx: _splayDxPre,
+      splayDz: _splayDzPre,
       legHeight,
       legSize,
       zCenterY,
       tenonOffset: apronUpperTenonOffset,
       fallbackZ: LEG_FACE_INSET,
     });
+    const xFaceRotZ = xFaceApronMortiseRotZ(c, _splayDxPre, legHeight);
     return ({
     id: `leg-${i + 1}`,
     nameZh: `${legNameZh} ${i + 1}`,
@@ -393,24 +392,23 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       },
     ],
     mortises: !withApron ? [] : [
-      // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
-      // splayDx !== 0 時從 tenon 反推位置（套自 square-stool 2f5f3ff）；
-      // splayDx === 0 時公式退化為原本的 { x: 0, y: apronCenterY+offset, z: ±LEG_FACE_INSET, rotZ: 0 }
+      // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫，rotX 跟 splayDz
       {
         origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
         through: apronTenonType === "through-tenon",
-        ...(zFaceGeom.rotZ !== undefined && Math.abs(zFaceGeom.rotZ) > 0.001 ? { rotZ: zFaceGeom.rotZ } : {}),
+        ...(zFaceGeom.rotX !== undefined && Math.abs(zFaceGeom.rotX) > 0.001 ? { rotX: zFaceGeom.rotX } : {}),
       },
-      // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
+      // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫，rotZ 跟 splayDx
       {
         origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
         through: apronTenonType === "through-tenon",
+        ...(Math.abs(xFaceRotZ) > 0.001 ? { rotZ: xFaceRotZ } : {}),
       },
     ],
   });
