@@ -713,14 +713,42 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
  * 仰視 BOTTOM view：把 design 沿 XZ 平面（Y=0）鏡像，內部當作 top view 渲染。
  *
  * 鏡像 = 每個 part 的 origin.y 反號 + 繞 part-local X 軸再轉 180°。後者讓 part
- * 局部「底面」（local +Y）轉到世界 -Y 方向，等同從下方看的視角。joinery
- * (tenons/mortises) 都在 part-local 座標、跟著 rotation 自動翻面，不必再
- * 個別翻 origin.y。
+ * 局部「底面」（local +Y）轉到世界 -Y 方向，等同從下方看的視角。
+ *
+ * ⚠️ tenon 的中心偏移（offsetWidth / offsetThickness）不會「自動」被 rotation
+ * 翻對：tenonLocalBox 把 offset 套進 part-local 的 cx/cy/cz，而繞 local X 轉
+ * 180° 只翻 cy/cz、不翻 cx。所以 offset 落在被翻軸（cy/cz）時要手動反號補正，
+ * 否則牙板「上半榫/下半榫」在仰視(BOTTOM)/零件圖正視會上下顛倒
+ * （user 2026-06-01 回報：3D 前後牙條榫在下、零件圖卻畫在上）。
+ * 按 position 分軸（對齊 tenonLocalBox §A10）：
+ *   - start/end ：offsetWidth→cz、offsetThickness→cy，兩者都被翻 → 都反號
+ *   - top/bottom：offsetWidth→cx（不翻）、offsetThickness→cz（翻）→ 只反 offsetThickness
+ *   - left/right：offsetWidth→cy（翻）、offsetThickness→cx（不翻）→ 只反 offsetWidth
+ * leg 頂榫(top, offsetWidth→cx)實測不受影響，驗證見 commit 訊息。
  *
  * 此處不動 part.shape 的 Y 不對稱參數（如 tapered.bottomScale）；
  * π rotation 已把 local +Y 轉到世界 -Y，幾何 silhouette 會自然從反面看。
  */
 export function mirrorYPart(p: import("@/lib/types").Part): import("@/lib/types").Part {
+  const flipTenonOffset = (
+    t: import("@/lib/types").Tenon,
+  ): import("@/lib/types").Tenon => {
+    const flipW =
+      t.position === "start" ||
+      t.position === "end" ||
+      t.position === "left" ||
+      t.position === "right";
+    const flipT =
+      t.position === "start" ||
+      t.position === "end" ||
+      t.position === "top" ||
+      t.position === "bottom";
+    const next = { ...t };
+    if (flipW && t.offsetWidth != null) next.offsetWidth = -t.offsetWidth;
+    if (flipT && t.offsetThickness != null)
+      next.offsetThickness = -t.offsetThickness;
+    return next;
+  };
   return {
     ...p,
     origin: { x: p.origin.x, y: -p.origin.y, z: p.origin.z },
@@ -729,6 +757,7 @@ export function mirrorYPart(p: import("@/lib/types").Part): import("@/lib/types"
       y: p.rotation?.y ?? 0,
       z: p.rotation?.z ?? 0,
     },
+    tenons: p.tenons?.map(flipTenonOffset) ?? p.tenons,
   };
 }
 function mirrorYDesign(d: import("@/lib/types").FurnitureDesign): import("@/lib/types").FurnitureDesign {
@@ -2369,7 +2398,11 @@ function OrthoViewImpl({
           // 任何 shape kind(box / chamfered-edges / apron-trapezoid 都行),
           // 只要 tenon 帶斜接 axis 就觸發(user 2026-05-29「還在」)。
           // leg 件不受影響(其 tenon 在 top/bottom 不在 start/end)。
+          // ⚠️ 只在零件圖(isolatePartId)生效——主三視圖(整套家具)套這個會
+          //    讓牙板端邊被 shoulder 雙線取代,看起來像「腳接合處多兩條線」
+          //    (user 2026-06-01 回報)。
           const hasTiltedEndTenon =
+            !!isolatePartId &&
             view === "front" &&
             part.tenons.some(
               (t) =>
@@ -2536,7 +2569,9 @@ function OrthoViewImpl({
         // user 2026-05-29「中間那條」: view="front" 帶斜接 start/end tenon 的料
         // 跳過垂直端邊(overlay 會加 shoulder 雙線取代)。fallback rect path
         // 適用 shape=box/undefined 的 apron。
+        // ⚠️ 同上,只在零件圖(isolatePartId)生效,不污染主三視圖。
         const hasTiltedEndTenonRect =
+          !!isolatePartId &&
           view === "front" &&
           part.tenons.some(
             (t) =>
@@ -2647,7 +2682,7 @@ function OrthoViewImpl({
           兩條 X 偏移 = (ay/ax) × T(全厚度的 tan)。
           先用白線蓋掉 polygon 本體在 shoulder 處的垂直端邊(避免變 3 條線),
           再畫黑色 shoulder 雙線。 */}
-      {view === "front" && renderDesign.parts.map((p) => {
+      {view === "front" && !!isolatePartId && renderDesign.parts.map((p) => {
         const tilts = p.tenons.filter((t) => {
           if (!t.axis) return false;
           if (t.position !== "start" && t.position !== "end") return false;

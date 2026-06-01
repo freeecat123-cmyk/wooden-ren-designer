@@ -356,6 +356,45 @@ export function T1Dimensions({
         </g>
       )}
 
+      {/* 梯形斜接牙板的「另一邊」長度（user 2026-06-01）：T1「長」標的是
+          part.visible.length（apron-trapezoid 的上邊/肩到肩基準）；斜接件上下
+          兩邊不等長，師傅切兩端斜肩要知道另一邊多長。下邊 = length ×
+          bottomLengthScale，畫在 part 下方再標一條「長 XXX」。
+          只在水平軸 = 長度(L) 的 view（front/top）顯示，側視(看 W×T)不畫。 */}
+      {(() => {
+        const trap =
+          part.shape?.kind === "apron-trapezoid" ? part.shape : null;
+        if (!trap || horizAxisName !== "L") return null;
+        // 接地邊端點要跟 body polygon「同源」：零件圖 isolate 模式下，svg-views
+        // 把接座面對齊 tenon 端面(±L/2)、接地面用相對比例 ratio = bot/top 展開
+        // （svg-views.tsx「零件圖 apron-trapezoid 專屬」單斜梯形 outline）。
+        // 之前用 L × bottomLengthScale 漏掉分母 topLengthScale，dim 沒貼到含
+        // bevel 的最長邊（user 2026-06-01）。改用同一個 ratio 公式。
+        const ratio = trap.bottomLengthScale / trap.topLengthScale;
+        const otherLen = round1(L * ratio);
+        if (Math.abs(otherLen - horiz) < 0.5) return null; // 上下等長 → 不重複標
+        // 接地邊(local z=+W/2)兩端投影；用 +T/2 面取一致基準
+        const eL = ctx.partLocalToSvg((-L / 2) * ratio, +T / 2, +W / 2);
+        const eR = ctx.partLocalToSvg((+L / 2) * ratio, +T / 2, +W / 2);
+        const xs = [eL.x, eR.x].sort((a, b) => a - b);
+        const bxLo = xs[0];
+        const bxHi = xs[1];
+        // 畫在 part 下緣外側（grossMaxY 之下）
+        const botY = grossMaxY + GROSS_GAP;
+        return (
+          <g>
+            <line x1={bxLo} y1={grossMaxY + 2} x2={bxLo} y2={botY + 2} strokeWidth={0.25} stroke="#888" />
+            <line x1={bxHi} y1={grossMaxY + 2} x2={bxHi} y2={botY + 2} strokeWidth={0.25} stroke="#888" />
+            <line x1={bxLo} y1={botY} x2={bxHi} y2={botY} />
+            <polygon points={`${bxLo},${botY} ${bxLo + ARROW},${botY - ARROW} ${bxLo + ARROW},${botY + ARROW}`} />
+            <polygon points={`${bxHi},${botY} ${bxHi - ARROW},${botY - ARROW} ${bxHi - ARROW},${botY + ARROW}`} />
+            <text x={(bxLo + bxHi) / 2} y={botY + 11} textAnchor="middle" fontSize={11} stroke="none">
+              {`長 ${otherLen}`}
+            </text>
+          </g>
+        );
+      })()}
+
       {/* 垂直 dim line：dim line 在 part 右方、extension 從 dim line 往左拉到
           part edge 外側（留 2mm gap、不越過 part 邊）。 */}
       <line x1={vertX + 2} y1={vyLo} x2={vPartX + 2} y2={vyLo} strokeWidth={0.25} stroke="#888" />
