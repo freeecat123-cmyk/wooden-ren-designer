@@ -246,7 +246,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                   <h3 className="font-semibold">
                     {joineryLabel(u.type, locale)}{" "}
                     <span className="text-xs font-normal text-zinc-500">
-                      · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : (isEn ? "mother part" : "接頭母件")} · {isEn ? `× ${u.count}` : `共 ${u.count} 處`}
+                      · {isEn ? u.partNameEn : u.partNameZh} ↔ {(isEn ? u.motherPartNamesEn : u.motherPartNames).length > 0 ? (isEn ? u.motherPartNamesEn : u.motherPartNames).join(" / ") : (isEn ? "mother part" : "接頭母件")} · {isEn ? `× ${u.count}` : `共 ${u.count} 處`}
                     </span>
                   </h3>
                   <p className="text-xs text-zinc-500">
@@ -258,6 +258,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                 </p>
                 <JoineryDetail
                   type={u.type}
+                  locale={locale}
                   params={{
                     tenonLength: u.tenon.length,
                     tenonWidth: u.tenon.width,
@@ -267,6 +268,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                     childWidth: u.childWidth,
                     motherShape: u.motherShape,
                     material: design.parts.find((part) => part.id === u.partId)?.material ?? material,
+                    locale,
                   }}
                 />
               </div>

@@ -65,6 +65,8 @@ export interface JoineryDetailParams {
   motherShape?: "box" | "round";
   /** 公件材料（給燕尾榫決定 1:6 軟木 vs 1:8 硬木 標準斜度） */
   material?: import("@/lib/types").MaterialId;
+  /** Locale for SVG text labels ("zh-TW" | "en"). Defaults to zh-TW. */
+  locale?: string;
 }
 
 // 顏色常數改為從 draw-primitives 引入後的本地別名（避免改 100+ 處 call site）。
@@ -3813,6 +3815,7 @@ function LegacyV2ShoulderedTenonDetail(p: JoineryDetailParams) {
 
 /* === BEGIN through-tenon-detail v2 (Wave 2b Group A) === */
 function ThroughTenonDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -4086,6 +4089,7 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
 
 /* === BEGIN blind-tenon-detail v2 (Wave 2b Group A) === */
 function BlindTenonDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -4149,7 +4153,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         <SectionMark x={fLegX - 14} y={fLegY + fLegH / 2} label="A" direction="right" />
         <SectionMark x={fApronX0 + fApronW + 14} y={fLegY + fLegH / 2} label="A" direction="left" />
         <text x={fTenonX + fTenonW / 2} y={fTenonY - 4} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
-          榫眼/榫頭（隱藏）
+          {isEn ? "Mortise/tenon (hidden)" : "榫眼/榫頭（隱藏）"}
         </text>
         <DimLine x1={fLegX} y1={fTenonY} x2={fLegX} y2={fTenonY + fTenonH} label={`${tw}`}
           side={safeDimSide("left", `${tw}`, { x: fLegX, y: fTenonY + fTenonH / 2 }, qBounds)} />
@@ -4190,7 +4194,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         <CenterLine x1={sLegX - 10} y1={sLegY + sLegH / 2} x2={sLegX + sLegW + 10} y2={sLegY + sLegH / 2} />
         <CenterLine x1={sLegX + sLegW / 2} y1={sLegY - 10} x2={sLegX + sLegW / 2} y2={sLegY + sLegH + 10} />
         <text x={sMortX + sMortW / 2} y={sMortY - 4} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
-          榫眼/榫頭（隱藏）
+          {isEn ? "Mortise/tenon (hidden)" : "榫眼/榫頭（隱藏）"}
         </text>
         <text x={sMortX + sMortW / 2} y={sMortY + sMortH + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR}>
           ⊗ 向內延伸 {safeTl}mm
@@ -4268,7 +4272,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
               <rect x={tTenonX} y={tTenonY} width={tTenonW} height={tTenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
               <rect x={tApronX} y={tApronY} width={tApronLen} height={tApronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
               <text x={tTenonX - 4} y={tTenonY - 4} fontSize={FONT.CALLOUT} textAnchor="end" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
-                榫眼底
+                {isEn ? "Mortise base" : "榫眼底"}
               </text>
               <CenterLine x1={tLegX - 10} y1={tCy} x2={tApronX + tApronLen + 10} y2={tCy} />
               <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSideY + 10} />
@@ -4370,6 +4374,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
 
 /* === BEGIN half-lap-detail v2 (Wave 2b Group A) === */
 function HalfLapDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const mt = p.motherThickness;
   const ct = p.childThickness ?? mt;
@@ -4424,19 +4429,19 @@ function HalfLapDetail(p: JoineryDetailParams) {
         )}
         <text x={(lapStartX + lapEndX) / 2} y={frontA_y + cutDepthA * fs - 4}
           fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
-          搭接介面（隱藏）
+          {isEn ? "Lap interface (hidden)" : "搭接介面（隱藏）"}
         </text>
         <CenterLine x1={frontA_x - 10} y1={frontA_y + FPX(mt) / 2} x2={lapEndX + 10} y2={frontA_y + FPX(mt) / 2} />
         <GrainArrow x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, objW / 3)} angle={0} />
         <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y - 16} label="A" direction="down" />
         <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y + FPX(mt) + 16} label="A" direction="up" />
-        <DimLine x1={lapStartX} y1={frontA_y + FPX(mt)} x2={lapEndX} y2={frontA_y + FPX(mt)} label={`搭長 ${tl}`}
-          side={safeDimSide("bottom", `搭長 ${tl}`, { x: (lapStartX + lapEndX) / 2, y: frontA_y + FPX(mt) }, qBounds)} />
-        <DimLine x1={frontA_x} y1={frontA_y} x2={frontA_x} y2={frontA_y + FPX(mt)} label={`板厚 ${mt}`}
-          side={safeDimSide("left", `板厚 ${mt}`, { x: frontA_x, y: frontA_y + FPX(mt) / 2 }, qBounds)} />
+        <DimLine x1={lapStartX} y1={frontA_y + FPX(mt)} x2={lapEndX} y2={frontA_y + FPX(mt)} label={`${isEn ? "Lap L" : "搭長"} ${tl}`}
+          side={safeDimSide("bottom", `${isEn ? "Lap L" : "搭長"} ${tl}`, { x: (lapStartX + lapEndX) / 2, y: frontA_y + FPX(mt) }, qBounds)} />
+        <DimLine x1={frontA_x} y1={frontA_y} x2={frontA_x} y2={frontA_y + FPX(mt)} label={`${isEn ? "Thickness" : "板厚"} ${mt}`}
+          side={safeDimSide("left", `${isEn ? "Thickness" : "板厚"} ${mt}`, { x: frontA_x, y: frontA_y + FPX(mt) / 2 }, qBounds)} />
         <DimLine x1={lapEndX} y1={frontA_y - FPX(mt) + cutDepthA * fs} x2={lapEndX} y2={frontA_y + cutDepthA * fs}
-          label={`削厚 ${Math.round(cutDepthB)}`}
-          side={safeDimSide("right", `削厚 ${Math.round(cutDepthB)}`, { x: lapEndX, y: frontA_y - FPX(mt) / 2 + cutDepthA * fs }, qBounds)} />
+          label={`${isEn ? "Cut depth" : "削厚"} ${Math.round(cutDepthB)}`}
+          side={safeDimSide("right", `${isEn ? "Cut depth" : "削厚"} ${Math.round(cutDepthB)}`, { x: lapEndX, y: frontA_y - FPX(mt) / 2 + cutDepthA * fs }, qBounds)} />
       </g>
     );
   })();
@@ -4464,10 +4469,10 @@ function HalfLapDetail(p: JoineryDetailParams) {
         <CenterLine x1={aX - 10} y1={aY + sideA_h / 2} x2={aX + aLen + 10} y2={aY + sideA_h / 2} />
         <CenterLine x1={bX + sideB_w / 2} y1={bTop - 10} x2={bX + sideB_w / 2} y2={bBottom + 10} />
         <GrainArrow x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
-        <DimLine x1={aX} y1={aY + sideA_h} x2={aX + aLen} y2={aY + sideA_h} label={`板寬 ${cw}`}
-          side={safeDimSide("bottom", `板寬 ${cw}`, { x: aX + aLen / 2, y: aY + sideA_h }, qBounds)} />
-        <DimLine x1={bX} y1={bTop} x2={bX + sideB_w} y2={bTop} label={`B 厚 ${ct}`}
-          side={safeDimSide("top", `B 厚 ${ct}`, { x: bX + sideB_w / 2, y: bTop }, qBounds)} />
+        <DimLine x1={aX} y1={aY + sideA_h} x2={aX + aLen} y2={aY + sideA_h} label={`${isEn ? "Width" : "板寬"} ${cw}`}
+          side={safeDimSide("bottom", `${isEn ? "Width" : "板寬"} ${cw}`, { x: aX + aLen / 2, y: aY + sideA_h }, qBounds)} />
+        <DimLine x1={bX} y1={bTop} x2={bX + sideB_w} y2={bTop} label={`${isEn ? "B T" : "B 厚"} ${ct}`}
+          side={safeDimSide("top", `${isEn ? "B T" : "B 厚"} ${ct}`, { x: bX + sideB_w / 2, y: bTop }, qBounds)} />
       </g>
     );
   })();
@@ -4512,18 +4517,18 @@ function HalfLapDetail(p: JoineryDetailParams) {
             <g>
               <rect x={slotX} y={slotY} width={slotW} height={slotH} fill="white" stroke={COLOR.DIM_TICK} strokeDasharray={DASH.AUX} strokeWidth={STROKE.HIDDEN} />
               <text x={slotX + slotW / 2} y={slotY - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK} textAnchor="middle">
-                切刀位
+                {isEn ? "Saw kerf" : "切刀位"}
               </text>
             </g>
           );
         })()}
-        <text x={ax + aLen / 2} y={ay - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">A 件</text>
+        <text x={ax + aLen / 2} y={ay - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">{isEn ? "Piece A" : "A 件"}</text>
         <rect x={bx} y={by} width={bWide} height={bLen}
           fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-        <text x={bx + bWide / 2} y={by - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">B 件</text>
+        <text x={bx + bWide / 2} y={by - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">{isEn ? "Piece B" : "B 件"}</text>
         <CenterLine x1={ax - 10} y1={ay + aWide / 2} x2={ax + aLen + 10} y2={ay + aWide / 2} />
-        <DimLine x1={ax} y1={ay} x2={ax + aLen} y2={ay} label={`A 長 ${cw}`}
-          side={safeDimSide("top", `A 長 ${cw}`, { x: ax + aLen / 2, y: ay }, qBounds)} />
+        <DimLine x1={ax} y1={ay} x2={ax + aLen} y2={ay} label={`${isEn ? "A L" : "A 長"} ${cw}`}
+          side={safeDimSide("top", `${isEn ? "A L" : "A 長"} ${cw}`, { x: ax + aLen / 2, y: ay }, qBounds)} />
       </g>
     );
   })();
@@ -4650,6 +4655,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
 
 /* === BEGIN tongue-and-groove-detail v2 (Wave 2b Group A) === */
 function TongueAndGrooveDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const mt = p.motherThickness;
   const tt = p.tenonThickness ?? Math.max(3, Math.round(mt / 3));
   const tl = p.tenonLength;
@@ -4700,17 +4706,17 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
         <GrainArrow x={childX + FPX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
         <SectionMark x={grooveX + FPX(grooveDepth) / 2} y={motherY - 16} label="A" direction="down" />
         <SectionMark x={grooveX + FPX(grooveDepth) / 2} y={motherY + FPX(mt) + 16} label="A" direction="up" />
-        <DimLine x1={tongueX} y1={tongueY + FPX(tt)} x2={tongueX + FPX(tl)} y2={tongueY + FPX(tt)} label={`舌長 ${tl}`}
-          side={safeDimSide("bottom", `舌長 ${tl}`, { x: tongueX + FPX(tl) / 2, y: tongueY + FPX(tt) }, qBounds)} />
-        <DimLine x1={grooveX} y1={grooveY} x2={grooveX + FPX(grooveDepth)} y2={grooveY} label={`槽深 ${grooveDepth}`}
-          side={safeDimSide("top", `槽深 ${grooveDepth}`, { x: grooveX + FPX(grooveDepth) / 2, y: grooveY }, qBounds)} />
-        <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + FPX(mt)} label={`母厚 ${mt}`}
-          side={safeDimSide("left", `母厚 ${mt}`, { x: motherX, y: motherY + FPX(mt) / 2 }, qBounds)} />
-        <DimLine x1={tongueX} y1={tongueY} x2={tongueX} y2={tongueY + FPX(tt)} label={`舌厚 ${tt}`}
-          side={safeDimSide("left", `舌厚 ${tt}`, { x: tongueX, y: tongueY + FPX(tt) / 2 }, qBounds)} />
+        <DimLine x1={tongueX} y1={tongueY + FPX(tt)} x2={tongueX + FPX(tl)} y2={tongueY + FPX(tt)} label={`${isEn ? "Tongue L" : "舌長"} ${tl}`}
+          side={safeDimSide("bottom", `${isEn ? "Tongue L" : "舌長"} ${tl}`, { x: tongueX + FPX(tl) / 2, y: tongueY + FPX(tt) }, qBounds)} />
+        <DimLine x1={grooveX} y1={grooveY} x2={grooveX + FPX(grooveDepth)} y2={grooveY} label={`${isEn ? "Groove depth" : "槽深"} ${grooveDepth}`}
+          side={safeDimSide("top", `${isEn ? "Groove depth" : "槽深"} ${grooveDepth}`, { x: grooveX + FPX(grooveDepth) / 2, y: grooveY }, qBounds)} />
+        <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + FPX(mt)} label={`${isEn ? "Mortise-piece T" : "母厚"} ${mt}`}
+          side={safeDimSide("left", `${isEn ? "Mortise-piece T" : "母厚"} ${mt}`, { x: motherX, y: motherY + FPX(mt) / 2 }, qBounds)} />
+        <DimLine x1={tongueX} y1={tongueY} x2={tongueX} y2={tongueY + FPX(tt)} label={`${isEn ? "Tongue T" : "舌厚"} ${tt}`}
+          side={safeDimSide("left", `${isEn ? "Tongue T" : "舌厚"} ${tt}`, { x: tongueX, y: tongueY + FPX(tt) / 2 }, qBounds)} />
         {shoulderThickness > 0 && (
-          <DimLine x1={childX + pieceLen} y1={childY} x2={childX + pieceLen} y2={childY + FPX(shoulderThickness)} label={`舌肩 ${Math.round(shoulderThickness)}`}
-            side={safeDimSide("right", `舌肩 ${Math.round(shoulderThickness)}`, { x: childX + pieceLen, y: childY + FPX(shoulderThickness) / 2 }, qBounds)} />
+          <DimLine x1={childX + pieceLen} y1={childY} x2={childX + pieceLen} y2={childY + FPX(shoulderThickness)} label={`${isEn ? "Tongue shoulder" : "舌肩"} ${Math.round(shoulderThickness)}`}
+            side={safeDimSide("right", `${isEn ? "Tongue shoulder" : "舌肩"} ${Math.round(shoulderThickness)}`, { x: childX + pieceLen, y: childY + FPX(shoulderThickness) / 2 }, qBounds)} />
         )}
       </g>
     );
@@ -4747,11 +4753,11 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           return (
             <text x={safeX} y={motherY + SPX(mt) / 2 - SPX(tt) / 2 - 4}
               fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
-              凹槽（隱藏）
+              {isEn ? "Groove (hidden)" : "凹槽（隱藏）"}
             </text>
           );
         })()}
-        <text x={motherX + actualBoardLen / 2} y={motherY - 4} fontSize={FONT.DIM} fill="#666" textAnchor="middle">母件（凹槽連續）</text>
+        <text x={motherX + actualBoardLen / 2} y={motherY - 4} fontSize={FONT.DIM} fill="#666" textAnchor="middle">{isEn ? "Mortise piece (continuous groove)" : "母件（凹槽連續）"}</text>
         <rect x={childX} y={childY} width={actualBoardLen} height={SPX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <HiddenEdge x1={childX} y1={childY + SPX(ct) / 2 - SPX(tt) / 2} x2={childX + actualBoardLen} y2={childY + SPX(ct) / 2 - SPX(tt) / 2} />
         <rect x={childX} y={childY + SPX(ct) / 2 - SPX(tt) / 2} width={actualBoardLen} height={SPX(tt)}
@@ -4760,13 +4766,13 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
           舌頭（隱藏）
         </text>
-        <text x={childX + actualBoardLen / 2} y={childY + SPX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">公件（舌連續）</text>
+        <text x={childX + actualBoardLen / 2} y={childY + SPX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">{isEn ? "Tenon piece (continuous tongue)" : "公件（舌連續）"}</text>
         <CenterLine x1={motherX - 10} y1={motherY + SPX(mt) / 2} x2={motherX + actualBoardLen + 10} y2={motherY + SPX(mt) / 2} />
         <GrainArrow x={motherX + 4} y={motherY - 14} length={Math.min(80, actualBoardLen - 10)} angle={0} />
-        <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + SPX(mt)} label={`母厚 ${mt}`}
-          side={safeDimSide("left", `母厚 ${mt}`, { x: motherX, y: motherY + SPX(mt) / 2 }, qBounds)} />
-        <DimLine x1={childX} y1={childY} x2={childX} y2={childY + SPX(ct)} label={`公厚 ${ct}`}
-          side={safeDimSide("left", `公厚 ${ct}`, { x: childX, y: childY + SPX(ct) / 2 }, qBounds)} />
+        <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + SPX(mt)} label={`${isEn ? "Mortise-piece T" : "母厚"} ${mt}`}
+          side={safeDimSide("left", `${isEn ? "Mortise-piece T" : "母厚"} ${mt}`, { x: motherX, y: motherY + SPX(mt) / 2 }, qBounds)} />
+        <DimLine x1={childX} y1={childY} x2={childX} y2={childY + SPX(ct)} label={`${isEn ? "Tenon-piece T" : "公厚"} ${ct}`}
+          side={safeDimSide("left", `${isEn ? "Tenon-piece T" : "公厚"} ${ct}`, { x: childX, y: childY + SPX(ct) / 2 }, qBounds)} />
       </g>
     );
   })();
@@ -4816,11 +4822,11 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
         </text>
         <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLenPx - 12)} angle={0} />
         <DimLine x1={startX} y1={startY} x2={startX} y2={startY + strips * stripH + (strips - 1) * 4}
-          label={`拼板總寬 ${totalWidthMm}`}
-          side={safeDimSide("left", `拼板總寬 ${totalWidthMm}`, { x: startX, y: startY + (strips * stripH) / 2 }, qBounds)} />
+          label={`${isEn ? "Glue-up width" : "拼板總寬"} ${totalWidthMm}`}
+          side={safeDimSide("left", `${isEn ? "Glue-up width" : "拼板總寬"} ${totalWidthMm}`, { x: startX, y: startY + (strips * stripH) / 2 }, qBounds)} />
         <DimLine x1={startX} y1={startY + strips * stripH + (strips - 1) * 4} x2={startX + stripLenPx} y2={startY + strips * stripH + (strips - 1) * 4}
-          label={`板長 ${boardLenMm}`}
-          side={safeDimSide("bottom", `板長 ${boardLenMm}`, { x: startX + stripLenPx / 2, y: startY + strips * stripH + (strips - 1) * 4 }, qBounds)} />
+          label={`${isEn ? "Length" : "板長"} ${boardLenMm}`}
+          side={safeDimSide("bottom", `${isEn ? "Length" : "板長"} ${boardLenMm}`, { x: startX + stripLenPx / 2, y: startY + strips * stripH + (strips - 1) * 4 }, qBounds)} />
       </g>
     );
   })();
@@ -4896,6 +4902,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
 
 /* === BEGIN shouldered-tenon-detail v2 (Wave 2b Group A) === */
 function ShoulderedTenonDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -4983,12 +4990,12 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         <GrainArrow x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
         <SectionMark x={tenonX + FPX(tl) / 2} y={ay - 18} label="A" direction="down" />
         <SectionMark x={tenonX + FPX(tl) / 2} y={ay + apronH + 18} label="A" direction="up" />
-        <DimLine x1={tenonX} y1={tenonY + tenonH} x2={tenonRight} y2={tenonY + tenonH} label={`榫長 ${tl}`}
-          side={safeDimSide("bottom", `榫長 ${tl}`, { x: tenonX + FPX(tl) / 2, y: tenonY + tenonH }, qBounds)} />
-        <DimLine x1={tenonRight} y1={tenonY} x2={tenonRight} y2={tenonY + tenonH} label={`榫寬 ${tw}`}
-          side={safeDimSide("right", `榫寬 ${tw}`, { x: tenonRight, y: tenonY + tenonH / 2 }, qBounds)} />
-        <DimLine x1={ax} y1={ay} x2={ax} y2={ay + apronH} label={`板寬 ${cw}`}
-          side={safeDimSide("left", `板寬 ${cw}`, { x: ax, y: ay + apronH / 2 }, qBounds)} />
+        <DimLine x1={tenonX} y1={tenonY + tenonH} x2={tenonRight} y2={tenonY + tenonH} label={`${isEn ? "Tenon L" : "榫長"} ${tl}`}
+          side={safeDimSide("bottom", `${isEn ? "Tenon L" : "榫長"} ${tl}`, { x: tenonX + FPX(tl) / 2, y: tenonY + tenonH }, qBounds)} />
+        <DimLine x1={tenonRight} y1={tenonY} x2={tenonRight} y2={tenonY + tenonH} label={`${isEn ? "Tenon W" : "榫寬"} ${tw}`}
+          side={safeDimSide("right", `${isEn ? "Tenon W" : "榫寬"} ${tw}`, { x: tenonRight, y: tenonY + tenonH / 2 }, qBounds)} />
+        <DimLine x1={ax} y1={ay} x2={ax} y2={ay + apronH} label={`${isEn ? "Width" : "板寬"} ${cw}`}
+          side={safeDimSide("left", `${isEn ? "Width" : "板寬"} ${cw}`, { x: ax, y: ay + apronH / 2 }, qBounds)} />
       </g>
     );
   })();
@@ -5015,18 +5022,18 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         <CenterLine x1={xsX - 8} y1={xsY + xsCh / 2} x2={xsX + xsCw + 8} y2={xsY + xsCh / 2} />
         <CenterLine x1={xsX + xsCw / 2} y1={xsY - 8} x2={xsX + xsCw / 2} y2={xsY + xsCh + 8} />
         <text x={xsX + 4} y={xsY + 12} fontSize={FONT.CALLOUT} fill={COLOR.GRAIN}>⊙ 木紋</text>
-        <DimLine x1={xsX} y1={xsY + xsCh} x2={xsX + xsCw} y2={xsY + xsCh} label={`板厚 ${ct}`}
-          side={safeDimSide("bottom", `板厚 ${ct}`, { x: xsX + xsCw / 2, y: xsY + xsCh }, qBounds)} />
-        <DimLine x1={tenonX} y1={tenonY} x2={tenonX + tenonW} y2={tenonY} label={`榫厚 ${tt}`}
-          side={safeDimSide("top", `榫厚 ${tt}`, { x: tenonX + tenonW / 2, y: tenonY }, qBounds)} />
-        <DimLine x1={xsX} y1={xsY} x2={xsX} y2={xsY + xsCh} label={`板寬 ${cw}`}
-          side={safeDimSide("left", `板寬 ${cw}`, { x: xsX, y: xsY + xsCh / 2 }, qBounds)} />
+        <DimLine x1={xsX} y1={xsY + xsCh} x2={xsX + xsCw} y2={xsY + xsCh} label={`${isEn ? "Thickness" : "板厚"} ${ct}`}
+          side={safeDimSide("bottom", `${isEn ? "Thickness" : "板厚"} ${ct}`, { x: xsX + xsCw / 2, y: xsY + xsCh }, qBounds)} />
+        <DimLine x1={tenonX} y1={tenonY} x2={tenonX + tenonW} y2={tenonY} label={`${isEn ? "Tenon T" : "榫厚"} ${tt}`}
+          side={safeDimSide("top", `${isEn ? "Tenon T" : "榫厚"} ${tt}`, { x: tenonX + tenonW / 2, y: tenonY }, qBounds)} />
+        <DimLine x1={xsX} y1={xsY} x2={xsX} y2={xsY + xsCh} label={`${isEn ? "Width" : "板寬"} ${cw}`}
+          side={safeDimSide("left", `${isEn ? "Width" : "板寬"} ${cw}`, { x: xsX, y: xsY + xsCh / 2 }, qBounds)} />
         {!noShoulder && (
           <>
-            <DimLine x1={xsX + xsCw} y1={xsY} x2={xsX + xsCw} y2={tenonY} label={`上肩 ${Math.round(shoulderW)}`}
-              side={safeDimSide("right", `上肩 ${Math.round(shoulderW)}`, { x: xsX + xsCw, y: (xsY + tenonY) / 2 }, qBounds)} />
-            <DimLine x1={xsX + xsCw} y1={tenonY + tenonH} x2={xsX + xsCw} y2={xsY + xsCh} label={`下肩 ${Math.round(shoulderW)}`}
-              side={safeDimSide("right", `下肩 ${Math.round(shoulderW)}`, { x: xsX + xsCw, y: (tenonY + tenonH + xsY + xsCh) / 2 }, qBounds)} />
+            <DimLine x1={xsX + xsCw} y1={xsY} x2={xsX + xsCw} y2={tenonY} label={`${isEn ? "Top sh." : "上肩"} ${Math.round(shoulderW)}`}
+              side={safeDimSide("right", `${isEn ? "Top sh." : "上肩"} ${Math.round(shoulderW)}`, { x: xsX + xsCw, y: (xsY + tenonY) / 2 }, qBounds)} />
+            <DimLine x1={xsX + xsCw} y1={tenonY + tenonH} x2={xsX + xsCw} y2={xsY + xsCh} label={`${isEn ? "Bot. sh." : "下肩"} ${Math.round(shoulderW)}`}
+              side={safeDimSide("right", `${isEn ? "Bot. sh." : "下肩"} ${Math.round(shoulderW)}`, { x: xsX + xsCw, y: (tenonY + tenonH + xsY + xsCh) / 2 }, qBounds)} />
           </>
         )}
       </g>
@@ -5066,10 +5073,10 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         <CenterLine x1={legX - 10} y1={legY + legH / 2} x2={apronX + apronLen + 10} y2={legY + legH / 2} />
         <HiddenEdge x1={tenonX} y1={tenonY} x2={legX} y2={tenonY} />
         <HiddenEdge x1={tenonX} y1={tenonY + TPX(tt)} x2={legX} y2={tenonY + TPX(tt)} />
-        <DimLine x1={tenonX} y1={tenonY + TPX(tt)} x2={tenonX + TPX(tl)} y2={tenonY + TPX(tt)} label={`榫長 ${tl}`}
-          side={safeDimSide("bottom", `榫長 ${tl}`, { x: tenonX + TPX(tl) / 2, y: tenonY + TPX(tt) }, qBounds)} />
-        <DimLine x1={legX} y1={legY} x2={legX + legW} y2={legY} label={`柱寬 ${mt}`}
-          side={safeDimSide("top", `柱寬 ${mt}`, { x: legX + legW / 2, y: legY }, qBounds)} />
+        <DimLine x1={tenonX} y1={tenonY + TPX(tt)} x2={tenonX + TPX(tl)} y2={tenonY + TPX(tt)} label={`${isEn ? "Tenon L" : "榫長"} ${tl}`}
+          side={safeDimSide("bottom", `${isEn ? "Tenon L" : "榫長"} ${tl}`, { x: tenonX + TPX(tl) / 2, y: tenonY + TPX(tt) }, qBounds)} />
+        <DimLine x1={legX} y1={legY} x2={legX + legW} y2={legY} label={`${isEn ? "Post W" : "柱寬"} ${mt}`}
+          side={safeDimSide("top", `${isEn ? "Post W" : "柱寬"} ${mt}`, { x: legX + legW / 2, y: legY }, qBounds)} />
         <text x={apronX + 4} y={apronY - TPX(shoulderW) - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>← 肩面（承力）</text>
       </g>
     );
@@ -5145,9 +5152,10 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
 /* === END shouldered-tenon-detail v2 === */
 
 function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
+  const isEn = p.locale === "en";
   return (
     <div className="p-4 text-sm text-zinc-600 bg-zinc-50 rounded">
-      {p.typeLabel} 細節圖開發中。預計尺寸：榫 {p.tenonLength}×{p.tenonWidth}×{p.tenonThickness} mm
+      {p.typeLabel} {isEn ? "detail drawing in development. Planned size: tenon" : "細節圖開發中。預計尺寸：榫"} {p.tenonLength}×{p.tenonWidth}×{p.tenonThickness} mm
     </div>
   );
 }
@@ -5166,6 +5174,7 @@ function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
  * ============================================================ */
 /* === BEGIN dovetail-detail (owner: agent-A, group: A) === */
 function LegacyDovetailDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tw = p.tenonWidth;          // joint 總寬（沿板寬方向）
   const tt = p.tenonThickness;
@@ -5296,7 +5305,7 @@ function LegacyDovetailDetail(p: JoineryDetailParams) {
               y1={mAy}
               x2={mAx - 10}
               y2={mBodyTop}
-              label={`榫深 ${tl}mm`}
+              label={`${isEn ? "Tenon D" : "榫深"} ${tl}mm`}
               side="left"
             />
             <DimLine
@@ -5304,7 +5313,7 @@ function LegacyDovetailDetail(p: JoineryDetailParams) {
               y1={mBodyBot + 36}
               x2={mAx + pieceLen}
               y2={mBodyBot + 36}
-              label={`板寬 ${tw || "—"}mm`}
+              label={`${isEn ? "Width" : "板寬"} ${tw || "—"}mm`}
               side="bottom"
             />
             {/* 尾寬與銷寬（單一標註，避免擠）*/}
@@ -5318,7 +5327,7 @@ function LegacyDovetailDetail(p: JoineryDetailParams) {
                     y1={mAy - 12}
                     x2={firstTailRight}
                     y2={mAy - 12}
-                    label={`尾寬 ≈ ${Math.round((tw || pieceLen) / (N_TAILS * 1.55))}mm`}
+                    label={`${isEn ? "Tail W" : "尾寬"} ≈ ${Math.round((tw || pieceLen) / (N_TAILS * 1.55))}mm`}
                     side="top"
                   />
                   <DimLine
@@ -5326,7 +5335,7 @@ function LegacyDovetailDetail(p: JoineryDetailParams) {
                     y1={mAy - 28}
                     x2={firstTailRight + pinW}
                     y2={mAy - 28}
-                    label={`銷寬 ≈ ${Math.round(((tw || pieceLen) / (N_TAILS * 1.55)) * 0.55)}mm`}
+                    label={`${isEn ? "Pin W" : "銷寬"} ≈ ${Math.round(((tw || pieceLen) / (N_TAILS * 1.55)) * 0.55)}mm`}
                     side="top"
                   />
                 </>
@@ -5409,7 +5418,7 @@ function LegacyDovetailDetail(p: JoineryDetailParams) {
               y1={peY}
               x2={peX + peW + 10}
               y2={peY + peH}
-              label={`板厚 ${ct}mm`}
+              label={`${isEn ? "Thickness" : "板厚"} ${ct}mm`}
               side="right"
             />
             <DimLine
@@ -5417,7 +5426,7 @@ function LegacyDovetailDetail(p: JoineryDetailParams) {
               y1={peY + peH + 36}
               x2={peX + peW}
               y2={peY + peH + 36}
-              label={`板寬 ${tw || "—"}mm`}
+              label={`${isEn ? "Width" : "板寬"} ${tw || "—"}mm`}
               side="bottom"
             />
             {/* 角度標註（visual exaggerated 1:3，但實際工法是 1:8 硬木 / 1:6 軟木）*/}
@@ -5884,6 +5893,7 @@ function DovetailAxon3D({
  *   - 三視圖採 L 型轉角構圖：tail board（母件）+ pin board（公件）端面對端面
  */
 function LegacyV2DovetailDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tw = p.tenonWidth;          // joint 總寬（沿板寬方向）
   const tt = p.tenonThickness;
@@ -5959,7 +5969,7 @@ function LegacyV2DovetailDetail(p: JoineryDetailParams) {
   const front = (
     <g>
       <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（FRONT — 母件尾板 face）</text>
+      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "FRONT (mortise piece end-board face)" : "正視圖（FRONT — 母件尾板 face）"}</text>
 
       {/* tail board 鋸齒外形 */}
       <polygon points={tailPoints.map((pt) => pt.join(",")).join(" ")} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -6008,7 +6018,7 @@ function LegacyV2DovetailDetail(p: JoineryDetailParams) {
   const side = (
     <g>
       <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（SIDE — 公件銷板 end-face 剖面）</text>
+      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "SIDE (tenon-piece end-face section)" : "側視圖（SIDE — 公件銷板 end-face 剖面）"}</text>
 
       {/* pin board 端面整片（先填銷顏色） */}
       <rect x={sBoardX} y={sBoardY} width={sBoardW} height={sBoardH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -6058,7 +6068,7 @@ function LegacyV2DovetailDetail(p: JoineryDetailParams) {
   const top = (
     <g>
       <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（TOP — 組合 L 型轉角剖面）</text>
+      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "TOP (assembled L-corner section)" : "俯視圖（TOP — 組合 L 型轉角剖面）"}</text>
 
       {/* 水平 tail board（橫向延伸） */}
       <rect x={tCx - tBoardLen} y={tCy - tTailDepth / 2} width={tBoardLen} height={tTailDepth} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -6117,7 +6127,7 @@ function LegacyV2DovetailDetail(p: JoineryDetailParams) {
         </clipPath>
       </defs>
       <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（ISO 30° — L 型轉角組合）</text>
+      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "AXONOMETRIC (ISO 30°, L-corner assembled)" : "等角圖（ISO 30° — L 型轉角組合）"}</text>
       {/* 用 nested SVG 把 DovetailAxon3D 縮放置入此 quadrant，並 clip 到 quadrant 範圍 */}
       <g clipPath={`url(#${isoClipId})`}>
         <svg
@@ -6181,6 +6191,7 @@ function LegacyV2DovetailDetail(p: JoineryDetailParams) {
  * iso 用既有 DovetailAxon3D（不重寫 axon 邏輯，包進 nested svg）
  * ============================================================ */
 function DovetailDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -6463,6 +6474,7 @@ function DovetailDetail(p: JoineryDetailParams) {
  *   兩塊板端面對端面 L 型接合，方齒交錯。指厚 = 板厚 / 2 是常見比例。
  * ============================================================ */
 function LegacyFingerJointDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const ct = p.childThickness ?? p.tenonThickness;
   const N = 5; // 視覺示意，非真實計算
@@ -6513,7 +6525,7 @@ function LegacyFingerJointDetail(p: JoineryDetailParams) {
               y1={eY - tl - 4}
               x2={eX + 3 * fingerW}
               y2={eY - tl - 4}
-              label={`指寬 ${Math.round(ct)}`}
+              label={`${isEn ? "Finger W" : "指寬"} ${Math.round(ct)}`}
               side="top"
             />
             <DimLine
@@ -6521,7 +6533,7 @@ function LegacyFingerJointDetail(p: JoineryDetailParams) {
               y1={eY - tl}
               x2={eX - 10}
               y2={eY}
-              label={`指長 ${tl}`}
+              label={`${isEn ? "Finger L" : "指長"} ${tl}`}
               side="left"
             />
           </g>
@@ -6605,6 +6617,7 @@ function LegacyFingerJointDetail(p: JoineryDetailParams) {
  * 指數 = floor(cw / tt)（剩餘均分到兩端肩）；指長 = mt（板厚相當）
  */
 function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tt = p.tenonThickness;
   const mt = p.motherThickness;
@@ -6695,7 +6708,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（分解 A / B 兩件）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "FRONT (exploded A / B)" : "正視圖（分解 A / B 兩件）"}</text>
         {/* A 件 */}
         <polygon points={buildAPoints(aOX, aOY)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <text x={aOX + PX(cw) / 2} y={aOY + PX(fingerLen + mt) + 14} fontSize={FONT.DIM} textAnchor="middle" fill="#666">
@@ -6767,7 +6780,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（L 型轉角斷面 A-A）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "SIDE (L-corner section A-A)" : "側視圖（L 型轉角斷面 A-A）"}</text>
         <defs>
           <Hatching id="hatch-finger-side" color={COLOR.SECTION_HATCH} />
         </defs>
@@ -6798,7 +6811,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
         <DimLine x1={oX + PX(armLen) + PX(ct) + 6} y1={oY} x2={oX + PX(armLen) + PX(ct) + 6} y2={oY + PX(ct)} label={`${ct}`} side="right" />
         <DimLine x1={oX} y1={oY + PX(ct) + 6} x2={oX + PX(armLen)} y2={oY + PX(ct) + 6} label={`${Math.round(armLen)}`} side="bottom" />
         <text x={oX + PX(armLen) / 2} y={oY + PX(ct) / 2 + 3} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>A 件（剖面）</text>
-        <text x={oX + PX(armLen) + PX(ct) / 2} y={oY + PX(armLen) + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>B 件</text>
+        <text x={oX + PX(armLen) + PX(ct) / 2} y={oY + PX(armLen) + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>{isEn ? "Piece B" : "B 件"}</text>
 
         {/* 警示 */}
         <WarningCallout x={pad} y={innerH - 70} text={`指齒尖角應磨 R0.5 防爆裂`} severity="warn" />
@@ -6826,7 +6839,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（指齒交錯排列）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "TOP (interlocking fingers)" : "俯視圖（指齒交錯排列）"}</text>
         {/* A 件指齒（俯視 = 看到 N 個方齒突出） */}
         <g>
           {/* A 件本體 */}
@@ -6874,7 +6887,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
         </g>
 
         {/* dim chain：兩端肩 + N×指 */}
-        <DimLine x1={oX} y1={oY - PX(fingerLen) - 8} x2={oX + PX(cw)} y2={oY - PX(fingerLen) - 8} label={`板寬 ${cw}`} side="top" />
+        <DimLine x1={oX} y1={oY - PX(fingerLen) - 8} x2={oX + PX(cw)} y2={oY - PX(fingerLen) - 8} label={`${isEn ? "Width" : "板寬"} ${cw}`} side="top" />
       </g>
     );
   })();
@@ -6894,7 +6907,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測，A/B 兩件互補拆解）</text>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "AXONOMETRIC (30°, A/B complementary explode)" : "等角圖（30° 軸測，A/B 兩件互補拆解）"}</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           指數 = floor({cw}/{tt}) = {fingerCount}，指長 {fingerLen} mm
         </text>
@@ -6978,8 +6991,8 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
             strokeDasharray={ISO_DASH.ARROW}
           />
         </IsometricGroup>
-        <text x={isoOriginX - 60} y={isoOriginY - 70} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>B 件</text>
-        <text x={isoOriginX - 60} y={isoOriginY + 50} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>A 件</text>
+        <text x={isoOriginX - 60} y={isoOriginY - 70} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>{isEn ? "Piece B" : "B 件"}</text>
+        <text x={isoOriginX - 60} y={isoOriginY + 50} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>{isEn ? "Piece A" : "A 件"}</text>
       </g>
     );
   })();
@@ -7016,6 +7029,7 @@ function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
  * 指接榫 finger-joint — MasterDetailLayout + 統一 helper（unified-visual-spec）
  * ============================================================ */
 function FingerJointDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tt = p.tenonThickness;
   const mt = p.motherThickness;
   const ct = p.childThickness ?? tt;
@@ -7166,7 +7180,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
           label={`${Math.round(armLen)}`}
           side={safeDimSide("bottom", `${Math.round(armLen)}`, { x: oX + PX(armLen / 2), y: oY + PX(ct) }, qBounds)} />
         <text x={oX + PX(armLen) / 2} y={oY + PX(ct) / 2 + 3} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>A 件（剖面）</text>
-        <text x={oX + PX(armLen) + PX(ct) / 2} y={oY + PX(armLen) + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>B 件</text>
+        <text x={oX + PX(armLen) + PX(ct) / 2} y={oY + PX(armLen) + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>{isEn ? "Piece B" : "B 件"}</text>
       </g>
     );
   })();
@@ -7217,8 +7231,8 @@ function FingerJointDetail(p: JoineryDetailParams) {
 
         {/* 板寬 dim */}
         <DimLine x1={oX} y1={oY - PX(fingerLen)} x2={oX + PX(cw)} y2={oY - PX(fingerLen)}
-          label={`板寬 ${cw}`}
-          side={safeDimSide("top", `板寬 ${cw}`, { x: oX + PX(cw) / 2, y: oY - PX(fingerLen) }, qBounds)} />
+          label={`${isEn ? "Width" : "板寬"} ${cw}`}
+          side={safeDimSide("top", `${isEn ? "Width" : "板寬"} ${cw}`, { x: oX + PX(cw) / 2, y: oY - PX(fingerLen) }, qBounds)} />
       </g>
     );
   })();
@@ -7306,6 +7320,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
  *   長 = 徑 × 1.5 + 1/16" 餘量。
  * ============================================================ */
 function LegacyDowelDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tt = p.tenonThickness; // 釘徑
   const ct = p.childThickness ?? p.tenonThickness;
@@ -7465,6 +7480,7 @@ function LegacyDowelDetail(p: JoineryDetailParams) {
  */
 /** Legacy V2（previous unified pre-MasterDetailLayout version, kept as escape hatch for Wave 2a try-water） */
 function LegacyV2DowelDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tt = p.tenonThickness; // 釘徑 Ø
   const mt = p.motherThickness;
@@ -7502,7 +7518,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（對接 + 木釘剖面）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "FRONT (butt joint + dowel section)" : "正視圖（對接 + 木釘剖面）"}</text>
 
         {/* A 件（左） */}
         <rect x={oX} y={oY} width={PX(mt)} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -7537,10 +7553,10 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
         })}
 
         {/* 尺寸 */}
-        <DimLine x1={oX} y1={oY - 8} x2={oX + PX(mt)} y2={oY - 8} label={`A厚 ${mt}`} side="top" />
-        <DimLine x1={oX + PX(mt)} y1={oY - 8} x2={oX + PX(mt * 2)} y2={oY - 8} label={`B厚 ${mt}`} side="top" />
-        <DimLine x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(ct) + 8} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(ct) + 8} label={`釘長 ${tl}`} side="bottom" />
-        <DimLine x1={oX - 8} y1={oY} x2={oX - 8} y2={oY + PX(ct)} label={`板寬 ${ct}`} side="left" />
+        <DimLine x1={oX} y1={oY - 8} x2={oX + PX(mt)} y2={oY - 8} label={`${isEn ? "A T" : "A厚"} ${mt}`} side="top" />
+        <DimLine x1={oX + PX(mt)} y1={oY - 8} x2={oX + PX(mt * 2)} y2={oY - 8} label={`${isEn ? "B T" : "B厚"} ${mt}`} side="top" />
+        <DimLine x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(ct) + 8} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(ct) + 8} label={`${isEn ? "Dowel L" : "釘長"} ${tl}`} side="bottom" />
+        <DimLine x1={oX - 8} y1={oY} x2={oX - 8} y2={oY + PX(ct)} label={`${isEn ? "Width" : "板寬"} ${ct}`} side="left" />
 
         {/* 剖面 A-A */}
         <SectionMark x={oX + PX(mt) - 14} y={oY + PX(ct) + 30} label="A" direction="right" />
@@ -7571,7 +7587,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（端面孔位）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "SIDE (end-face hole positions)" : "側視圖（端面孔位）"}</text>
         <defs>
           <Hatching id="hatch-dowel-side" color={COLOR.SECTION_HATCH} />
         </defs>
@@ -7595,20 +7611,20 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
 
         {/* dim 釘徑 / 板厚 / 板寬 / 間距（縱向錯開避免重疊） */}
         <DimLine x1={oX + PX(ct) + 8} y1={oY + PX(spacing) - PX(tt) / 2} x2={oX + PX(ct) + 8} y2={oY + PX(spacing) + PX(tt) / 2} label={`Ø ${tt}`} side="right" />
-        <DimLine x1={oX} y1={oY + PX(cw) + 20} x2={oX + PX(ct)} y2={oY + PX(cw) + 20} label={`板厚 ${ct}`} side="bottom" />
-        <DimLine x1={oX - 20} y1={oY} x2={oX - 20} y2={oY + PX(cw)} label={`板寬 ${cw}`} side="left" />
+        <DimLine x1={oX} y1={oY + PX(cw) + 20} x2={oX + PX(ct)} y2={oY + PX(cw) + 20} label={`${isEn ? "Thickness" : "板厚"} ${ct}`} side="bottom" />
+        <DimLine x1={oX - 20} y1={oY} x2={oX - 20} y2={oY + PX(cw)} label={`${isEn ? "Width" : "板寬"} ${cw}`} side="left" />
         {dowelCount >= 2 && (
           <DimLine
             x1={oX + PX(ct) + 48}
             y1={oY + PX(spacing)}
             x2={oX + PX(ct) + 48}
             y2={oY + PX(spacing * 2)}
-            label={`間距 ${Math.round(spacing)}`}
+            label={`${isEn ? "Spacing" : "間距"} ${Math.round(spacing)}`}
             side="right"
           />
         )}
 
-        <WarningCallout x={pad} y={innerH - 60} text={`孔位誤差 <= 0.3mm`} severity="warn" />
+        <WarningCallout x={pad} y={innerH - 60} text={`${isEn ? "Hole position tolerance" : "孔位誤差"} <= 0.3mm`} severity="warn" />
       </g>
     );
   })();
@@ -7632,7 +7648,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（孔位 + 白膠塗佈面）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "TOP (hole positions + glue face)" : "俯視圖（孔位 + 白膠塗佈面）"}</text>
         {/* A 件俯視 */}
         <rect x={oX} y={oY} width={PX(mt)} height={PX(cw)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         {/* B 件俯視 */}
@@ -7664,7 +7680,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
           y1={oY + PX(cw) + 8}
           x2={oX + PX(mt)}
           y2={oY + PX(cw) + 8}
-          label={`孔深 ${Math.round(holeDepthSafe)}`}
+          label={`${isEn ? "Hole depth" : "孔深"} ${Math.round(holeDepthSafe)}`}
           side="bottom"
         />
         <DimLine
@@ -7672,7 +7688,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
           y1={oY + PX(cw) + 8}
           x2={oX + PX(mt + holeDepthSafe)}
           y2={oY + PX(cw) + 8}
-          label={`孔深 ${Math.round(holeDepthSafe)}`}
+          label={`${isEn ? "Hole depth" : "孔深"} ${Math.round(holeDepthSafe)}`}
           side="bottom"
         />
 
@@ -7696,7 +7712,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測，木釘陣列拆解）</text>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "AXONOMETRIC (30°, dowel array explode)" : "等角圖（30° 軸測，木釘陣列拆解）"}</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           {dowelCount} 釘陣列 · Ø {tt} · 釘長 {tl} (= 兩側孔深 {Math.round(drawHd)} ×2)
         </text>
@@ -7817,6 +7833,7 @@ function LegacyV2DowelDetail(p: JoineryDetailParams) {
  * 物件嚴格在 quadrant viewable area 內居中。
  */
 function DowelDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const tt = p.tenonThickness; // 釘徑 Ø
   const mt = p.motherThickness;
@@ -7877,23 +7894,23 @@ function DowelDetail(p: JoineryDetailParams) {
         {/* 尺寸 */}
         <DimLine
           x1={oX} y1={oY} x2={oX + PX(mt)} y2={oY}
-          label={`A厚 ${mt}`}
-          side={safeDimSide("top", `A厚 ${mt}`, { x: oX + PX(mt) / 2, y: oY }, qBounds)}
+          label={`${isEn ? "A T" : "A厚"} ${mt}`}
+          side={safeDimSide("top", `${isEn ? "A T" : "A厚"} ${mt}`, { x: oX + PX(mt) / 2, y: oY }, qBounds)}
         />
         <DimLine
           x1={oX + PX(mt)} y1={oY} x2={oX + PX(mt * 2)} y2={oY}
-          label={`B厚 ${mt}`}
-          side={safeDimSide("top", `B厚 ${mt}`, { x: oX + PX(mt * 1.5), y: oY }, qBounds)}
+          label={`${isEn ? "B T" : "B厚"} ${mt}`}
+          side={safeDimSide("top", `${isEn ? "B T" : "B厚"} ${mt}`, { x: oX + PX(mt * 1.5), y: oY }, qBounds)}
         />
         <DimLine
           x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(ct)} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(ct)}
-          label={`釘長 ${tl}`}
-          side={safeDimSide("bottom", `釘長 ${tl}`, { x: oX + PX(mt), y: oY + PX(ct) }, qBounds)}
+          label={`${isEn ? "Dowel L" : "釘長"} ${tl}`}
+          side={safeDimSide("bottom", `${isEn ? "Dowel L" : "釘長"} ${tl}`, { x: oX + PX(mt), y: oY + PX(ct) }, qBounds)}
         />
         <DimLine
           x1={oX} y1={oY} x2={oX} y2={oY + PX(ct)}
-          label={`板寬 ${ct}`}
-          side={safeDimSide("left", `板寬 ${ct}`, { x: oX, y: oY + PX(ct) / 2 }, qBounds)}
+          label={`${isEn ? "Width" : "板寬"} ${ct}`}
+          side={safeDimSide("left", `${isEn ? "Width" : "板寬"} ${ct}`, { x: oX, y: oY + PX(ct) / 2 }, qBounds)}
         />
 
         {/* 剖面 A-A（在物件下方） */}
@@ -7943,19 +7960,19 @@ function DowelDetail(p: JoineryDetailParams) {
         {/* dim */}
         <DimLine
           x1={oX} y1={oY + PX(cw)} x2={oX + PX(ct)} y2={oY + PX(cw)}
-          label={`板厚 ${ct}`}
-          side={safeDimSide("bottom", `板厚 ${ct}`, { x: oX + PX(ct) / 2, y: oY + PX(cw) }, qBounds)}
+          label={`${isEn ? "Thickness" : "板厚"} ${ct}`}
+          side={safeDimSide("bottom", `${isEn ? "Thickness" : "板厚"} ${ct}`, { x: oX + PX(ct) / 2, y: oY + PX(cw) }, qBounds)}
         />
         <DimLine
           x1={oX} y1={oY} x2={oX} y2={oY + PX(cw)}
-          label={`板寬 ${cw}`}
-          side={safeDimSide("left", `板寬 ${cw}`, { x: oX, y: oY + PX(cw) / 2 }, qBounds)}
+          label={`${isEn ? "Width" : "板寬"} ${cw}`}
+          side={safeDimSide("left", `${isEn ? "Width" : "板寬"} ${cw}`, { x: oX, y: oY + PX(cw) / 2 }, qBounds)}
         />
         {dowelCount >= 2 && (
           <DimLine
             x1={oX + PX(ct)} y1={oY + PX(spacing)} x2={oX + PX(ct)} y2={oY + PX(spacing * 2)}
-            label={`間距 ${Math.round(spacing)}`}
-            side={safeDimSide("right", `間距 ${Math.round(spacing)}`, { x: oX + PX(ct), y: oY + PX(spacing * 1.5) }, qBounds)}
+            label={`${isEn ? "Spacing" : "間距"} ${Math.round(spacing)}`}
+            side={safeDimSide("right", `${isEn ? "Spacing" : "間距"} ${Math.round(spacing)}`, { x: oX + PX(ct), y: oY + PX(spacing * 1.5) }, qBounds)}
           />
         )}
         <DimLine
@@ -8006,13 +8023,13 @@ function DowelDetail(p: JoineryDetailParams) {
         {/* dim 孔深 */}
         <DimLine
           x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(cw)} x2={oX + PX(mt)} y2={oY + PX(cw)}
-          label={`孔深 ${Math.round(holeDepthSafe)}`}
-          side={safeDimSide("bottom", `孔深 ${Math.round(holeDepthSafe)}`, { x: oX + PX(mt - holeDepthSafe / 2), y: oY + PX(cw) }, qBounds)}
+          label={`${isEn ? "Hole depth" : "孔深"} ${Math.round(holeDepthSafe)}`}
+          side={safeDimSide("bottom", `${isEn ? "Hole depth" : "孔深"} ${Math.round(holeDepthSafe)}`, { x: oX + PX(mt - holeDepthSafe / 2), y: oY + PX(cw) }, qBounds)}
         />
         <DimLine
           x1={oX + PX(mt)} y1={oY + PX(cw)} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(cw)}
-          label={`孔深 ${Math.round(holeDepthSafe)}`}
-          side={safeDimSide("bottom", `孔深 ${Math.round(holeDepthSafe)}`, { x: oX + PX(mt + holeDepthSafe / 2), y: oY + PX(cw) }, qBounds)}
+          label={`${isEn ? "Hole depth" : "孔深"} ${Math.round(holeDepthSafe)}`}
+          side={safeDimSide("bottom", `${isEn ? "Hole depth" : "孔深"} ${Math.round(holeDepthSafe)}`, { x: oX + PX(mt + holeDepthSafe / 2), y: oY + PX(cw) }, qBounds)}
         />
       </g>
     );
@@ -8128,7 +8145,7 @@ function DowelDetail(p: JoineryDetailParams) {
       topView={top}
       isoView={iso}
       warnings={[
-        `孔位誤差 <= 0.3mm`,
+        `${isEn ? "Hole position tolerance" : "孔位誤差"} <= 0.3mm`,
         `${dowelCount} 釘 × Ø ${tt} mm，間距 ${Math.round(spacing)} mm`,
       ]}
     />
@@ -8141,6 +8158,7 @@ function DowelDetail(p: JoineryDetailParams) {
  * 斜接餅乾榫 mitered-spline (Legacy, 保留作 escape hatch)
  * ============================================================ */
 function LegacyMiteredSplineDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const ct = p.childThickness ?? p.tenonThickness;
 
@@ -8203,6 +8221,7 @@ function LegacyMiteredSplineDetail(p: JoineryDetailParams) {
  * ============================================================ */
 /** Legacy V2（previous unified pre-MasterDetailLayout version, kept as escape hatch for Wave 2a try-water） */
 function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;        // 餅乾深 (mm)
   const tt = p.tenonThickness;     // 餅乾厚 (mm)
   const mt = p.motherThickness;    // 母件厚（同 ct，因兩件對等）
@@ -8361,7 +8380,7 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
       </text>
 
       <WarningCallout x={10} y={VH - 38} text="45° 切面誤差 ≤ 0.5°" />
-      <WarningCallout x={10} y={VH - 22} text="餅片膠合後不需夾具" severity="info" />
+      <WarningCallout x={10} y={VH - 22} text={isEn ? "No clamp needed after biscuit glue-up" : "餅片膠合後不需夾具"} severity="info" />
     </g>
   );
 
@@ -8440,7 +8459,7 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
         y1={sCy + sBoardT * 2 + 24}
         x2={sCx + sBoardLen / 2 + sBiscuitLen / 2}
         y2={sCy + sBoardT * 2 + 24}
-        label={`餅乾長 ${tl * 2}`}
+        label={`${isEn ? "Biscuit L" : "餅乾長"} ${tl * 2}`}
         side="bottom"
       />
       <DimLine
@@ -8448,7 +8467,7 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
         y1={sCy + sBoardT - PX(ms)}
         x2={sCx + sBoardLen + 18}
         y2={sCy + sBoardT}
-        label={`槽深 ${ms}`}
+        label={`${isEn ? "Groove depth" : "槽深"} ${ms}`}
         side="right"
       />
       <DimLine
@@ -8468,7 +8487,7 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
       <text x={10} y={VH - 36} fontSize={FONT.CALLOUT} fill="#666">
         餅厚 = {tt}mm · 餅深 = {tl}mm · 槽深 = {ms}mm
       </text>
-      <WarningCallout x={10} y={VH - 18} text={`槽深 ${ms}mm 留 1mm 漲縮`} severity="info" />
+      <WarningCallout x={10} y={VH - 18} text={`${isEn ? "Groove depth" : "槽深"} ${ms}mm 留 1mm 漲縮`} severity="info" />
     </g>
   );
 
@@ -8654,6 +8673,7 @@ function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
  *   4. TitleBlock 被等角圖蓋過 → MasterDetailLayout 內部固定 TitleBlock 在 footer 區
  */
 function MiteredSplineDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;        // 餅乾深 (mm)
   const tt = p.tenonThickness;     // 餅乾厚 (mm)
   const ct = p.childThickness ?? p.tenonThickness;
@@ -8821,14 +8841,14 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
         <DimLine
           x1={sCx + sBoardLen / 2 - sBiscuitLen / 2} y1={sCy + sBoardT * 2 + 2}
           x2={sCx + sBoardLen / 2 + sBiscuitLen / 2} y2={sCy + sBoardT * 2 + 2}
-          label={`餅長 ${tl * 2}`}
-          side={safeDimSide("bottom", `餅長 ${tl * 2}`, { x: sCx + sBoardLen / 2, y: sCy + sBoardT * 2 + 2 }, qBounds)}
+          label={`${isEn ? "Spline L" : "餅長"} ${tl * 2}`}
+          side={safeDimSide("bottom", `${isEn ? "Spline L" : "餅長"} ${tl * 2}`, { x: sCx + sBoardLen / 2, y: sCy + sBoardT * 2 + 2 }, qBounds)}
         />
         <DimLine
           x1={sCx + sBoardLen} y1={sCy + sBoardT - PX(ms)}
           x2={sCx + sBoardLen} y2={sCy + sBoardT}
-          label={`槽深 ${ms}`}
-          side={safeDimSide("right", `槽深 ${ms}`, { x: sCx + sBoardLen, y: sCy + sBoardT - PX(ms) / 2 }, qBounds)}
+          label={`${isEn ? "Groove depth" : "槽深"} ${ms}`}
+          side={safeDimSide("right", `${isEn ? "Groove depth" : "槽深"} ${ms}`, { x: sCx + sBoardLen, y: sCy + sBoardT - PX(ms) / 2 }, qBounds)}
         />
         <DimLine
           x1={sCx} y1={sCy} x2={sCx} y2={sCy + sBoardT}
@@ -9006,7 +9026,7 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
       isoView={iso}
       warnings={[
         `45° 切面誤差 ≤ 0.5°`,
-        `槽深 ${ms}mm 留 1mm 漲縮`,
+        `${isEn ? "Groove depth" : "槽深"} ${ms}mm 留 1mm 漲縮`,
         `餅厚 ${tt}mm · 餅深 ${tl}mm`,
       ]}
     />
@@ -9019,6 +9039,7 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
  * 口袋孔螺絲 pocket-hole (Legacy, 保留作 escape hatch)
  * ============================================================ */
 function LegacyPocketHoleDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const ct = p.childThickness ?? p.tenonThickness;
 
   const w = 720;
@@ -9054,6 +9075,7 @@ function LegacyPocketHoleDetail(p: JoineryDetailParams) {
  *   注：傳統中式無此工法，老師圖庫無 ref，純 wrd 自繪。
  * ============================================================ */
 function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const ct = p.childThickness ?? p.tenonThickness;   // A 件厚（鑽斜孔的板）
   const mt = p.motherThickness;                       // B 件厚（被鎖入的板）
   const screwLen = Math.round(ct / 2 + mt - 5);       // 螺絲長 (mm)
@@ -9134,7 +9156,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
         y1={fCy + fBH + 16}
         x2={fCx + fAW / 2 + PX(pitch / 2)}
         y2={fCy + fBH + 16}
-        label={`孔距 ${pitch}`}
+        label={`${isEn ? "Hole spacing" : "孔距"} ${pitch}`}
         side="bottom"
       />
       <DimLine
@@ -9154,7 +9176,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
         side="right"
       />
 
-      <WarningCallout x={10} y={VH - 18} text={`孔距 50-75mm，邊距 ${edgeOffset}mm`} severity="info" />
+      <WarningCallout x={10} y={VH - 18} text={`${isEn ? "Hole spacing" : "孔距"} 50-75mm，邊距 ${edgeOffset}mm`} severity="info" />
     </g>
   );
 
@@ -9311,7 +9333,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
         y1={holeStartY - Math.cos(angle15) * PX(holeDepth)}
         x2={sCx - 16}
         y2={holeStartY}
-        label={`孔深 ${holeDepth}`}
+        label={`${isEn ? "Hole depth" : "孔深"} ${holeDepth}`}
         side="left"
       />
 
@@ -9319,8 +9341,8 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
         {/* // @joinery-dim-allow */}
         螺絲長 = A/2 + B − 5 = {screwLen}mm（Kreg 自攻）
       </text>
-      <WarningCallout x={10} y={VH - 32} text={`孔深 = 板厚 − 5mm 保留底面`} />
-      <WarningCallout x={10} y={VH - 16} text="自攻螺絲粗牙、尖頭、不需先導孔" severity="info" />
+      <WarningCallout x={10} y={VH - 32} text={isEn ? `Hole depth = board T − 5mm (preserve bottom face)` : `孔深 = 板厚 − 5mm 保留底面`} />
+      <WarningCallout x={10} y={VH - 16} text={isEn ? "Self-tapping screws: coarse thread, sharp point, no pilot needed" : "自攻螺絲粗牙、尖頭、不需先導孔"} severity="info" />
     </g>
   );
 
@@ -9402,7 +9424,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
         y1={tCy + tAH + 36}
         x2={tCx + tAW / 2 + PX(pitch / 2)}
         y2={tCy + tAH + 36}
-        label={`孔距 ${pitch}`}
+        label={`${isEn ? "Hole spacing" : "孔距"} ${pitch}`}
         side="bottom"
       />
       <DimLine
@@ -9410,7 +9432,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
         y1={tCy - 12}
         x2={tCx + tAW / 2 - PX(pitch / 2)}
         y2={tCy + tAH * 0.55}
-        label={`邊距 ${edgeOffset}`}
+        label={`${isEn ? "Edge dist" : "邊距"} ${edgeOffset}`}
         side="left"
       />
 
@@ -9516,6 +9538,7 @@ function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
  * dead code（沒模板觸發），仍補完整 4 quadrant + TitleBlock
  * ============================================================ */
 function PocketHoleDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const ct = p.childThickness ?? p.tenonThickness;
   const mt = p.motherThickness;
   const screwLen = Math.round(ct / 2 + mt - 5);
@@ -9567,8 +9590,8 @@ function PocketHoleDetail(p: JoineryDetailParams) {
         <DimLine
           x1={fCx + fAW / 2 - PX(pitch / 2)} y1={fCy + fBH}
           x2={fCx + fAW / 2 + PX(pitch / 2)} y2={fCy + fBH}
-          label={`孔距 ${pitch}`}
-          side={safeDimSide("bottom", `孔距 ${pitch}`, { x: fCx + fAW / 2, y: fCy + fBH }, qBounds)} />
+          label={`${isEn ? "Hole spacing" : "孔距"} ${pitch}`}
+          side={safeDimSide("bottom", `${isEn ? "Hole spacing" : "孔距"} ${pitch}`, { x: fCx + fAW / 2, y: fCy + fBH }, qBounds)} />
         <DimLine x1={fCx} y1={fCy - fAT} x2={fCx} y2={fCy}
           label={`${ct}`}
           side={safeDimSide("left", `${ct}`, { x: fCx, y: fCy - fAT / 2 }, qBounds)} />
@@ -9653,8 +9676,8 @@ function PocketHoleDetail(p: JoineryDetailParams) {
           label={`B=${mt}`}
           side={safeDimSide("right", `B=${mt}`, { x: sCx + sAW, y: sCy + sAT + sBH / 2 }, qBounds)} />
         <DimLine x1={sCx} y1={holeStartY - Math.cos(angle15) * PX(holeDepth)} x2={sCx} y2={holeStartY}
-          label={`孔深 ${holeDepth}`}
-          side={safeDimSide("left", `孔深 ${holeDepth}`, { x: sCx, y: holeStartY - Math.cos(angle15) * PX(holeDepth) / 2 }, qBounds)} />
+          label={`${isEn ? "Hole depth" : "孔深"} ${holeDepth}`}
+          side={safeDimSide("left", `${isEn ? "Hole depth" : "孔深"} ${holeDepth}`, { x: sCx, y: holeStartY - Math.cos(angle15) * PX(holeDepth) / 2 }, qBounds)} />
       </g>
     );
   })();
@@ -9697,11 +9720,11 @@ function PocketHoleDetail(p: JoineryDetailParams) {
         <GrainArrow x={tCx + 6} y={tCy + tAH + 18} length={tAW - 12} angle={0} />
 
         <DimLine x1={tCx + tAW / 2 - PX(pitch / 2)} y1={tCy + tAH} x2={tCx + tAW / 2 + PX(pitch / 2)} y2={tCy + tAH}
-          label={`孔距 ${pitch}`}
-          side={safeDimSide("bottom", `孔距 ${pitch}`, { x: tCx + tAW / 2, y: tCy + tAH }, qBounds)} />
+          label={`${isEn ? "Hole spacing" : "孔距"} ${pitch}`}
+          side={safeDimSide("bottom", `${isEn ? "Hole spacing" : "孔距"} ${pitch}`, { x: tCx + tAW / 2, y: tCy + tAH }, qBounds)} />
         <DimLine x1={tCx + tAW / 2 - PX(pitch / 2)} y1={tCy} x2={tCx + tAW / 2 - PX(pitch / 2)} y2={tCy + tAH * 0.55}
-          label={`邊距 ${edgeOffset}`}
-          side={safeDimSide("left", `邊距 ${edgeOffset}`, { x: tCx + tAW / 2 - PX(pitch / 2), y: tCy + tAH * 0.275 }, qBounds)} />
+          label={`${isEn ? "Edge dist" : "邊距"} ${edgeOffset}`}
+          side={safeDimSide("left", `${isEn ? "Edge dist" : "邊距"} ${edgeOffset}`, { x: tCx + tAW / 2 - PX(pitch / 2), y: tCy + tAH * 0.275 }, qBounds)} />
       </g>
     );
   })();
@@ -9757,7 +9780,7 @@ function PocketHoleDetail(p: JoineryDetailParams) {
       isoView={iso}
       warnings={[
         `Kreg 標準 15° 斜孔（不可改角度）`,
-        `孔距 ${pitch}mm，邊距 ${edgeOffset}mm，螺絲長 ${screwLen}mm`,
+        `${isEn ? "Hole spacing" : "孔距"} ${pitch}mm，邊距 ${edgeOffset}mm，螺絲長 ${screwLen}mm`,
       ]}
     />
   );
@@ -9769,6 +9792,7 @@ function PocketHoleDetail(p: JoineryDetailParams) {
  * 螺絲 + 白膠 screw (Legacy, 保留作 escape hatch)
  * ============================================================ */
 function LegacyScrewDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const ct = p.childThickness ?? p.tenonThickness;
 
   const w = 720;
@@ -9817,6 +9841,7 @@ function pickPilotHoleRule(materialId?: import("@/lib/types").MaterialId): {
  *   注：傳統中式無此工法，老師圖庫無 ref，純 wrd 自繪。
  * ============================================================ */
 function LegacyV2ScrewDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tt = p.tenonThickness;                     // 螺桿徑示意 (mm)
   const tl = p.tenonLength;                        // 螺絲全長 (mm)
   const mt = p.motherThickness;                    // 母件 (B 件) 厚 mm
@@ -9916,7 +9941,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
         strokeDasharray="2 1"
       />
       <text x={fCx + fAW + 4} y={fCy + fAT + 2} fontSize={FONT.CALLOUT} fill="#a36">
-        白膠
+        {isEn ? "Glue" : "白膠"}
       </text>
 
       {/* 剖面標記 */}
@@ -9944,7 +9969,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
         side="right"
       />
 
-      <WarningCallout x={10} y={VH - 18} text={`先導孔 = 螺桿徑 × ${rule.ratioLabel}（${rule.hardness}）`} />
+      <WarningCallout x={10} y={VH - 18} text={`${isEn ? "Pilot hole" : "先導孔"} = 螺桿徑 × ${rule.ratioLabel}（${rule.hardness}）`} />
     </g>
   );
 
@@ -10073,7 +10098,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
         y1={sCy}
         x2={sCx + sAW + 10}
         y2={sCy + PX(csDepth)}
-        label={`埋頭 ${csDepth}`}
+        label={`${isEn ? "Countersink" : "埋頭"} ${csDepth}`}
         side="right"
       />
       <DimLine
@@ -10089,7 +10114,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
         y1={sCy + sAT + 2}
         x2={sCx + sAW + 36}
         y2={sCy + PX(screwLen)}
-        label={`螺長 ${screwLen}`}
+        label={`${isEn ? "Screw L" : "螺長"} ${screwLen}`}
         side="right"
       />
       <DimLine
@@ -10191,7 +10216,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
         y1={tCy + tAH + 36}
         x2={tCx + tAW / 2 + PX(40)}
         y2={tCy + tAH + 36}
-        label={`孔距 80`}
+        label={`${isEn ? "Hole spacing" : "孔距"} 80`}
         side="bottom"
       />
 
@@ -10294,6 +10319,7 @@ function LegacyV2ScrewDetail(p: JoineryDetailParams) {
  * dead code（沒模板觸發），仍補完整 4 quadrant + TitleBlock
  * ============================================================ */
 function ScrewDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tt = p.tenonThickness;
   const tl = p.tenonLength;
   const mt = p.motherThickness;
@@ -10348,7 +10374,7 @@ function ScrewDetail(p: JoineryDetailParams) {
         {/* 白膠縫 */}
         <line x1={fCx} y1={fCy + fAT - 1} x2={fCx + fAW} y2={fCy + fAT - 1}
           stroke="#e8a" strokeWidth={0.8} strokeDasharray="2 1" />
-        <text x={fCx + fAW + 4} y={fCy + fAT + 2} fontSize={FONT.CALLOUT} fill="#a36">白膠</text>
+        <text x={fCx + fAW + 4} y={fCy + fAT + 2} fontSize={FONT.CALLOUT} fill="#a36">{isEn ? "Glue" : "白膠"}</text>
 
         {/* 剖面 A-A */}
         <SectionMark x={fCx + fAW / 2 - PX(40) - 18} y={fCy - 10} label="A" direction="down" />
@@ -10426,11 +10452,11 @@ function ScrewDetail(p: JoineryDetailParams) {
         <CenterLine x1={screwCx} y1={sCy - 6} x2={screwCx} y2={sCy + PX(screwLen) + 8} />
 
         <DimLine x1={sCx + sAW} y1={sCy} x2={sCx + sAW} y2={sCy + PX(csDepth)}
-          label={`埋頭 ${csDepth}`}
-          side={safeDimSide("right", `埋頭 ${csDepth}`, { x: sCx + sAW, y: sCy + PX(csDepth) / 2 }, qBounds)} />
+          label={`${isEn ? "Countersink" : "埋頭"} ${csDepth}`}
+          side={safeDimSide("right", `${isEn ? "Countersink" : "埋頭"} ${csDepth}`, { x: sCx + sAW, y: sCy + PX(csDepth) / 2 }, qBounds)} />
         <DimLine x1={sCx + sAW} y1={sCy + sAT + 2} x2={sCx + sAW} y2={sCy + PX(screwLen)}
-          label={`螺長 ${screwLen}`}
-          side={safeDimSide("right", `螺長 ${screwLen}`, { x: sCx + sAW, y: sCy + sAT + PX(screwLen / 2) }, qBounds)} />
+          label={`${isEn ? "Screw L" : "螺長"} ${screwLen}`}
+          side={safeDimSide("right", `${isEn ? "Screw L" : "螺長"} ${screwLen}`, { x: sCx + sAW, y: sCy + sAT + PX(screwLen / 2) }, qBounds)} />
         <DimLine x1={sCx} y1={sCy + sAT + 2} x2={sCx} y2={sCy + sAT + sBH + 2}
           label={`B=${mt}`}
           side={safeDimSide("left", `B=${mt}`, { x: sCx, y: sCy + sAT + sBH / 2 }, qBounds)} />
@@ -10477,8 +10503,8 @@ function ScrewDetail(p: JoineryDetailParams) {
         <GrainArrow x={tCx + 8} y={tCy + tAH + 18} length={tAW - 16} angle={0} />
 
         <DimLine x1={tCx + tAW / 2 - PX(40)} y1={tCy + tAH} x2={tCx + tAW / 2 + PX(40)} y2={tCy + tAH}
-          label={`孔距 80`}
-          side={safeDimSide("bottom", `孔距 80`, { x: tCx + tAW / 2, y: tCy + tAH }, qBounds)} />
+          label={`${isEn ? "Hole spacing" : "孔距"} 80`}
+          side={safeDimSide("bottom", `${isEn ? "Hole spacing" : "孔距"} 80`, { x: tCx + tAW / 2, y: tCy + tAH }, qBounds)} />
       </g>
     );
   })();
@@ -10533,7 +10559,7 @@ function ScrewDetail(p: JoineryDetailParams) {
       topView={top}
       isoView={iso}
       warnings={[
-        `先導孔 = 螺桿徑 × ${rule.ratioLabel}（${rule.hardness}）= Ø${pilot}mm`,
+        `${isEn ? "Pilot hole" : "先導孔"} = 螺桿徑 × ${rule.ratioLabel}（${rule.hardness}）= Ø${pilot}mm`,
         `埋頭孔深 ≥ 螺頭高，可加木塞封口`,
       ]}
     />
@@ -10552,6 +10578,7 @@ function ScrewDetail(p: JoineryDetailParams) {
  * - 圓腳時母件畫圓、榫眼是內接的長方形
  */
 function LegacyStubJointDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tl = p.tenonLength;
   const cw = p.childWidth ?? p.tenonWidth;
   const ct = p.childThickness ?? p.tenonThickness;
@@ -10627,7 +10654,7 @@ function LegacyStubJointDetail(p: JoineryDetailParams) {
         <text x={cAx + childBodyLen / 2} y={cAy + PX(ct) + 14} fontSize={9} textAnchor="middle" fill="#666">
           公件（牙條 / 橫撐）— 整支端面 = 榫，無肩
         </text>
-        <DimLine x1={cAx + childBodyLen} y1={cAy + PX(ct) + 4} x2={cAx + childBodyLen + PX(tl)} y2={cAy + PX(ct) + 4} label={`卡入深 ${tl}`} side="bottom" />
+        <DimLine x1={cAx + childBodyLen} y1={cAy + PX(ct) + 4} x2={cAx + childBodyLen + PX(tl)} y2={cAy + PX(ct) + 4} label={`${isEn ? "Seat depth" : "卡入深"} ${tl}`} side="bottom" />
       </g>
 
       {/* ========= ASSEMBLED ========= */}
@@ -10666,8 +10693,8 @@ function LegacyStubJointDetail(p: JoineryDetailParams) {
               整支端面 = 榫，無縮小、無肩
             </text>
             <DimLine x1={asmLegX} y1={asmLegY - 22} x2={asmLegX + asmLegSide} y2={asmLegY - 22} label={`母件${isRound ? "直徑" : "寬"} ${mt}`} side="top" />
-            <DimLine x1={mortiseLeft} y1={asmLegY + asmLegSide + 34} x2={asmLegX + asmLegSide} y2={asmLegY + asmLegSide + 34} label={`卡入深 ${tl}`} side="bottom" />
-            <DimLine x1={apronOuterRight + 10} y1={mortiseTop} x2={apronOuterRight + 10} y2={mortiseTop + mortiseT} label={`板厚 ${ct}`} side="right" />
+            <DimLine x1={mortiseLeft} y1={asmLegY + asmLegSide + 34} x2={asmLegX + asmLegSide} y2={asmLegY + asmLegSide + 34} label={`${isEn ? "Seat depth" : "卡入深"} ${tl}`} side="bottom" />
+            <DimLine x1={apronOuterRight + 10} y1={mortiseTop} x2={apronOuterRight + 10} y2={mortiseTop + mortiseT} label={`${isEn ? "Thickness" : "板厚"} ${ct}`} side="right" />
           </g>
         );
       })()}
@@ -10687,6 +10714,7 @@ function LegacyStubJointDetail(p: JoineryDetailParams) {
  * 強制：tl ≤ min(mt - 3, ct / 2)；圓腳 motherShape="round" 保留圓畫法
  */
 function LegacyV2StubJointDetail(p: JoineryDetailParams) {
+  const isEn = p.locale === "en";
   const tlRaw = p.tenonLength;
   const cw = p.childWidth ?? p.tenonWidth;
   const ct = p.childThickness ?? p.tenonThickness;
@@ -10723,7 +10751,7 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（母件側面 + 公件分解）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "FRONT (mortise side + exploded tenon piece)" : "正視圖（母件側面 + 公件分解）"}</text>
 
         {/* 母件側面 */}
         {isRound ? (
@@ -10809,7 +10837,7 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
           y1={oY + motherH + 30}
           x2={oX + motherW}
           y2={oY + motherH + 30}
-          label={`卡入深 ${Math.round(tl)}`}
+          label={`${isEn ? "Seat depth" : "卡入深"} ${Math.round(tl)}`}
           side="bottom"
         />
 
@@ -10873,10 +10901,10 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（剖面 A-A，並排對比「無肩 vs 有肩」）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "SIDE (section A-A, no-shoulder vs shoulder)" : "側視圖（剖面 A-A，並排對比「無肩 vs 有肩」）"}</text>
         {drawDiagram(pad + 6, pad + 38, false, "無肩 stub", "noshoulder")}
         {drawDiagram(pad + 6 + eachW + 20, pad + 38, true, "有肩參考", "withshoulder")}
-        <WarningCallout x={pad} y={innerH - 60} text={`卡入深 <= min(母厚-3, 板厚/2) = ${Math.round(tl)} mm`} severity="warn" />
+        <WarningCallout x={pad} y={innerH - 60} text={`${isEn ? "Seat depth" : "卡入深"} <= min(母厚-3, 板厚/2) = ${Math.round(tl)} mm`} severity="warn" />
       </g>
     );
   })();
@@ -10907,7 +10935,7 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（上視切面）</text>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "TOP (plan section)" : "俯視圖（上視切面）"}</text>
         <defs>
           <Hatching id="hatch-stub-top" color={COLOR.SECTION_HATCH} />
         </defs>
@@ -10952,8 +10980,8 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
 
         {/* 尺寸 */}
         <DimLine x1={oX} y1={oY - 22} x2={oX + legSide} y2={oY - 22} label={`${mt}`} side="top" />
-        <DimLine x1={oX + legSide - tenonLen} y1={oY + legSide + 10} x2={oX + legSide} y2={oY + legSide + 10} label={`卡入 ${Math.round(tl)}`} side="bottom" />
-        <DimLine x1={oX + legSide + apronLen + 10} y1={cy - tenonT / 2} x2={oX + legSide + apronLen + 10} y2={cy + tenonT / 2} label={`板厚 ${ct}`} side="right" />
+        <DimLine x1={oX + legSide - tenonLen} y1={oY + legSide + 10} x2={oX + legSide} y2={oY + legSide + 10} label={`${isEn ? "Seat" : "卡入"} ${Math.round(tl)}`} side="bottom" />
+        <DimLine x1={oX + legSide + apronLen + 10} y1={cy - tenonT / 2} x2={oX + legSide + apronLen + 10} y2={cy + tenonT / 2} label={`${isEn ? "Thickness" : "板厚"} ${ct}`} side="right" />
       </g>
     );
   })();
@@ -10977,7 +11005,7 @@ function LegacyV2StubJointDetail(p: JoineryDetailParams) {
     return (
       <g>
         <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測，整支端面卡榫拆解）</text>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>{isEn ? "AXONOMETRIC (30°, whole-end housing explode)" : "等角圖（30° 軸測，整支端面卡榫拆解）"}</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           {isRound ? "圓腳" : "方腳"}：整支端面（無肩）卡入母件深 {Math.round(drawTl)}mm
         </text>
@@ -11109,6 +11137,7 @@ function StubJointDetail(p: JoineryDetailParams) {
   const mt = p.motherThickness;
   const isRound = p.motherShape === "round";
   const tl = Math.max(2, Math.min(tlRaw, Math.min(mt - 3, ct / 2)));
+  const isEn = p.locale === "en";
 
   // ===== Q1 正視圖：母件側面 + 公件分解 =====
   const front = (() => {
@@ -11180,8 +11209,8 @@ function StubJointDetail(p: JoineryDetailParams) {
           label={`${cw}`}
           side={safeDimSide("left", `${cw}`, { x: oX, y: oY + motherH / 2 }, qBounds)} />
         <DimLine x1={oX + motherW - mortiseW} y1={oY + motherH} x2={oX + motherW} y2={oY + motherH}
-          label={`卡入 ${Math.round(tl)}`}
-          side={safeDimSide("bottom", `卡入 ${Math.round(tl)}`, { x: oX + motherW - mortiseW / 2, y: oY + motherH }, qBounds)} />
+          label={`${isEn ? "Seat" : "卡入"} ${Math.round(tl)}`}
+          side={safeDimSide("bottom", `${isEn ? "Seat" : "卡入"} ${Math.round(tl)}`, { x: oX + motherW - mortiseW / 2, y: oY + motherH }, qBounds)} />
 
         {/* 剖面 A-A */}
         <SectionMark x={oX + motherW / 2 - 14} y={oY - 14} label="A" direction="right" />
@@ -11244,8 +11273,8 @@ function StubJointDetail(p: JoineryDetailParams) {
         <DimLine
           x1={place.x + PX(mt - tl)} y1={oY + PX(ct * 2) + 12}
           x2={place.x + PX(mt)} y2={oY + PX(ct * 2) + 12}
-          label={`卡入深 ${Math.round(tl)}`}
-          side={safeDimSide("bottom", `卡入深 ${Math.round(tl)}`, { x: place.x + PX(mt - tl / 2), y: oY + PX(ct * 2) + 12 }, qBounds)} />
+          label={`${isEn ? "Seat depth" : "卡入深"} ${Math.round(tl)}`}
+          side={safeDimSide("bottom", `${isEn ? "Seat depth" : "卡入深"} ${Math.round(tl)}`, { x: place.x + PX(mt - tl / 2), y: oY + PX(ct * 2) + 12 }, qBounds)} />
       </g>
     );
   })();
@@ -11295,8 +11324,8 @@ function StubJointDetail(p: JoineryDetailParams) {
           label={`${mt}`}
           side={safeDimSide("top", `${mt}`, { x: cx, y: oY }, qBounds)} />
         <DimLine x1={oX + legSide - tenonLen} y1={oY + legSide} x2={oX + legSide} y2={oY + legSide}
-          label={`卡入 ${Math.round(tl)}`}
-          side={safeDimSide("bottom", `卡入 ${Math.round(tl)}`, { x: oX + legSide - tenonLen / 2, y: oY + legSide }, qBounds)} />
+          label={`${isEn ? "Seat" : "卡入"} ${Math.round(tl)}`}
+          side={safeDimSide("bottom", `${isEn ? "Seat" : "卡入"} ${Math.round(tl)}`, { x: oX + legSide - tenonLen / 2, y: oY + legSide }, qBounds)} />
         <DimLine x1={oX + legSide + apronLen} y1={cy - tenonT / 2} x2={oX + legSide + apronLen} y2={cy + tenonT / 2}
           label={`${ct}`}
           side={safeDimSide("right", `${ct}`, { x: oX + legSide + apronLen, y: cy }, qBounds)} />
@@ -11380,7 +11409,7 @@ function StubJointDetail(p: JoineryDetailParams) {
       topView={top}
       isoView={iso}
       warnings={[
-        `卡入深 ≤ min(母厚-3, 板厚/2) = ${Math.round(tl)}mm`,
+        `${isEn ? "Seat depth" : "卡入深"} ≤ min(母厚-3, 板厚/2) = ${Math.round(tl)}mm`,
         `${isRound ? "圓腳曲面：禁通榫，整支端面卡入" : "方腳：可選整支卡入或加肩"}`,
       ]}
     />
@@ -11409,16 +11438,21 @@ export function JoineryDetail({
   type,
   params,
   singleView,
+  locale,
 }: {
   type: JoineryType;
   params: JoineryDetailParams;
   /** 只渲染單一視圖（front/side/top/iso），用於 ZoomableJoineryDetail 4 圖分開。 */
   singleView?: "front" | "side" | "top" | "iso";
+  locale?: string;
 }) {
   const renderer = RENDERERS[type];
+  const effectiveLocale = locale ?? params.locale ?? "zh-TW";
+  const resolvedParams = { ...params, locale: effectiveLocale };
+  const isEn = effectiveLocale === "en";
   const result = renderer
-    ? renderer(params)
-    : <GenericTenonDetail {...params} typeLabel={JOINERY_LABEL[type] ?? type} />;
+    ? renderer(resolvedParams)
+    : <GenericTenonDetail {...resolvedParams} typeLabel={(isEn ? JOINERY_LABEL_EN[type] : JOINERY_LABEL[type]) ?? type} />;
   if (singleView && isValidElement(result)) {
     return cloneElement(result as ReactElement<{ singleView?: typeof singleView }>, { singleView });
   }

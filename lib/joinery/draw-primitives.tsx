@@ -377,6 +377,110 @@ export function ScaleBar({
   );
 }
 
+/**
+ * Translate a common joinery dimension/callout label between zh and en.
+ * Used inside renderers to keep SVG text locale-aware without threading a t()
+ * function through every helper.
+ */
+const JOINERY_LABEL_MAP: Record<string, string> = {
+  板寬: "Width",
+  板厚: "Thickness",
+  板深: "Depth",
+  板長: "Length",
+  榫長: "Tenon L",
+  榫寬: "Tenon W",
+  榫厚: "Tenon T",
+  榫頭: "Tenon",
+  榫眼: "Mortise",
+  柱身: "Post",
+  柱寬: "Post W",
+  柱厚: "Post T",
+  柱深: "Post D",
+  上肩: "Top shoulder",
+  下肩: "Bot. shoulder",
+  靠肩: "Shoulder",
+  邊距: "Edge dist",
+  木紋: "Grain",
+  公件: "Tenon piece",
+  母件: "Mortise piece",
+  端面: "End face",
+  縱面: "Long face",
+  分解: "Exploded",
+  組合: "Assembled",
+  剖面: "Section",
+  正視: "Front",
+  側視: "Side",
+  俯視: "Top",
+  深度: "Depth",
+  長度: "Length",
+  寬度: "Width",
+  厚度: "Thickness",
+  直徑: "Diameter",
+  半徑: "Radius",
+  間距: "Spacing",
+  斜度: "Slope",
+  軟木: "Softwood",
+  硬木: "Hardwood",
+  圓腳: "Round leg",
+  方腳: "Square leg",
+  圓榫: "Round tenon",
+  方榫: "Square tenon",
+  通榫: "Through tenon",
+  盲榫: "Blind tenon",
+  半榫: "Half tenon",
+  帶肩: "Haunched",
+  舌槽: "Tongue & groove",
+  舌: "Tongue",
+  槽: "Groove",
+  鳩尾: "Dovetail",
+  指接: "Finger joint",
+  搭接: "Lap",
+  半搭: "Half lap",
+  企口: "Tongue & groove",
+  斜接: "Miter",
+  餅乾片: "Biscuit",
+  木釘: "Dowel",
+  螺絲: "Screw",
+  鎖點: "Screw point",
+  口袋孔: "Pocket hole",
+  膠合: "Glue",
+  白膠: "PVA glue",
+  夾具: "Clamp",
+  示意圖: "Schematic",
+  參考: "Reference",
+  隱藏: "Hidden",
+  顯示: "Visible",
+  虛線: "Dashed",
+  實線: "Solid",
+  注意: "Note",
+  警告: "Warning",
+  最小: "Min",
+  最大: "Max",
+  圓潛板: "Round stretcher",
+  牙板: "Apron",
+  橫撐: "Stretcher",
+  椅腳: "Chair leg",
+  桌腳: "Table leg",
+  側板: "Side panel",
+  背板: "Back panel",
+  頂板: "Top panel",
+  底板: "Bottom panel",
+  層板: "Shelf",
+  抽屜: "Drawer",
+  框體: "Carcass",
+  全斷面: "Full section",
+  斷面: "Cross-section",
+  外觀: "Appearance",
+  尺寸: "Dimension",
+};
+
+/** Translate a Chinese joinery label to English. Returns the English string if
+ * mapped, otherwise the original (so unrecognized strings fall through). */
+export function jt(zh: string, locale = "zh-TW"): string {
+  if (locale !== "en") return zh;
+  return JOINERY_LABEL_MAP[zh] ?? zh;
+}
+
 /** 圖框右下角標題欄：圖名/比例/繪圖/圖號 三行顯示。 */
 export function TitleBlock({
   x,
@@ -384,19 +488,29 @@ export function TitleBlock({
   width,
   joineryType,
   joineryNameZh,
+  joineryNameEn,
   scale,
   drawnBy,
   drawingNumber,
+  locale = "zh-TW",
 }: {
   x: number;
   y: number;
   width: number;
   joineryType: string;
   joineryNameZh: string;
+  joineryNameEn?: string;
   scale?: string;
   drawnBy?: string;
   drawingNumber?: string;
+  locale?: string;
 }): JSX.Element {
+  const isEn = locale === "en";
+  const name = isEn ? (joineryNameEn ?? joineryNameZh) : joineryNameZh;
+  const labelTitle = isEn ? "Name" : "圖名";
+  const labelScale = isEn ? "Scale" : "比例";
+  const labelDrawn = isEn ? "Drawn by" : "繪圖";
+  const labelDwgNo = isEn ? "Drawing No." : "圖號";
   const rowH = 16;
   const totalH = rowH * 3 + 2;
   const pad = 6;
@@ -428,7 +542,7 @@ export function TitleBlock({
         strokeWidth={0.5}
       />
       <text x={x + pad} y={y + rowH - 4} fontSize={FONT.LABEL} fill={COLOR.OUTLINE}>
-        圖名：{joineryNameZh}（{joineryType}）
+        {labelTitle}: {name}（{joineryType}）
       </text>
       <text
         x={x + pad}
@@ -436,7 +550,7 @@ export function TitleBlock({
         fontSize={FONT.DIM}
         fill={COLOR.OUTLINE}
       >
-        比例：{scale ?? "1:1"} ｜ 繪圖：{drawnBy ?? "wrd-auto"}
+        {labelScale}: {scale ?? "1:1"} ｜ {labelDrawn}: {drawnBy ?? "wrd-auto"}
       </text>
       <text
         x={x + pad}
@@ -444,7 +558,7 @@ export function TitleBlock({
         fontSize={FONT.DIM}
         fill={COLOR.OUTLINE}
       >
-        圖號：{drawingNumber ?? "—"}
+        {labelDwgNo}: {drawingNumber ?? "—"}
       </text>
     </g>
   );
@@ -1699,6 +1813,7 @@ export function QuadrantFrame({ title }: { title: string }): JSX.Element {
 export interface MasterDetailLayoutProps {
   type: string;
   joineryNameZh: string;
+  joineryNameEn?: string;
   drawingNumber: string;
   frontView: ReactNode;
   sideView: ReactNode;
@@ -1709,18 +1824,27 @@ export interface MasterDetailLayoutProps {
   warnings?: string[];
   /** 只渲染單一視圖（給 ZoomableJoineryDetail 拆 4 張獨立可點擊用）。 */
   singleView?: "front" | "side" | "top" | "iso";
+  locale?: string;
 }
 
-const SINGLE_VIEW_TITLE: Record<"front" | "side" | "top" | "iso", string> = {
+const SINGLE_VIEW_TITLE_ZH: Record<"front" | "side" | "top" | "iso", string> = {
   front: "正視圖 FRONT",
   side: "側視圖 SIDE",
   top: "俯視圖 TOP",
   iso: "等角圖 AXONOMETRIC",
 };
 
+const SINGLE_VIEW_TITLE_EN: Record<"front" | "side" | "top" | "iso", string> = {
+  front: "FRONT VIEW",
+  side: "SIDE VIEW",
+  top: "TOP VIEW",
+  iso: "AXONOMETRIC",
+};
+
 export function MasterDetailLayout({
   type,
   joineryNameZh,
+  joineryNameEn,
   drawingNumber,
   frontView,
   sideView,
@@ -1730,7 +1854,14 @@ export function MasterDetailLayout({
   drawnBy = "wrd-auto",
   warnings = [],
   singleView,
+  locale = "zh-TW",
 }: MasterDetailLayoutProps): JSX.Element {
+  const isEn = locale === "en";
+  const SINGLE_VIEW_TITLE = isEn ? SINGLE_VIEW_TITLE_EN : SINGLE_VIEW_TITLE_ZH;
+  const titleFront = isEn ? "FRONT VIEW" : "正視圖 FRONT";
+  const titleSide = isEn ? "SIDE VIEW" : "側視圖 SIDE";
+  const titleTop = isEn ? "TOP VIEW" : "俯視圖 TOP";
+  const titleIso = isEn ? "AXONOMETRIC" : "等角圖 AXONOMETRIC";
   if (singleView) {
     const viewMap = { front: frontView, side: sideView, top: topView, iso: isoView };
     return (
@@ -1757,7 +1888,7 @@ export function MasterDetailLayout({
     >
       {/* Q1 正視 */}
       <g transform={`translate(${QUADRANT_POS.Q1_FRONT.x} ${QUADRANT_POS.Q1_FRONT.y})`}>
-        <QuadrantFrame title="正視圖 FRONT" />
+        <QuadrantFrame title={titleFront} />
         <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>
           {/* clipPath 防止物件溢出 quadrant */}
           {frontView}
@@ -1766,19 +1897,19 @@ export function MasterDetailLayout({
 
       {/* Q2 側視 */}
       <g transform={`translate(${QUADRANT_POS.Q2_SIDE.x} ${QUADRANT_POS.Q2_SIDE.y})`}>
-        <QuadrantFrame title="側視圖 SIDE" />
+        <QuadrantFrame title={titleSide} />
         <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{sideView}</g>
       </g>
 
       {/* Q3 俯視 */}
       <g transform={`translate(${QUADRANT_POS.Q3_TOP.x} ${QUADRANT_POS.Q3_TOP.y})`}>
-        <QuadrantFrame title="俯視圖 TOP" />
+        <QuadrantFrame title={titleTop} />
         <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{topView}</g>
       </g>
 
       {/* Q4 等角 */}
       <g transform={`translate(${QUADRANT_POS.Q4_ISO.x} ${QUADRANT_POS.Q4_ISO.y})`}>
-        <QuadrantFrame title="等角圖 AXONOMETRIC" />
+        <QuadrantFrame title={titleIso} />
         <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{isoView}</g>
       </g>
 
@@ -1797,9 +1928,11 @@ export function MasterDetailLayout({
         width={CANVAS.W}
         joineryType={type}
         joineryNameZh={joineryNameZh}
+        joineryNameEn={joineryNameEn}
         scale={scale}
         drawnBy={drawnBy}
         drawingNumber={drawingNumber}
+        locale={locale}
       />
     </svg>
   );
