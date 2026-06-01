@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { BrandingForm } from "@/components/branding/BrandingForm";
 
@@ -18,6 +19,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BrandingSettingsPage({ params }: PageProps) {
   const { locale } = await params;
+  // Branding only applies to the Taiwan business-quote flow; EN users have a
+  // simplified DIY Estimate cost page with no payment terms / warranty.
+  if (locale === "en") {
+    redirect("/en/app");
+  }
   const t = await getTranslations({ locale, namespace: "settingsBranding" });
   return (
     <main className="max-w-4xl mx-auto px-4 py-6">

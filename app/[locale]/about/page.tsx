@@ -274,38 +274,50 @@ export default async function AboutPage({
         </h2>
         <p className="text-center text-zinc-600 mb-10">{t("outputs.intro")}</p>
 
-        <div className="grid md:grid-cols-2 gap-5 sm:gap-6 mb-6">
-          <ImageFeatureCard
-            src="/about-assets/feat-threeview.png"
-            title={t("outputs.threeview.title")}
-            desc={t("outputs.threeview.desc")}
-          />
-          <ImageFeatureCard
-            src="/about-assets/feat-cutlist.png"
-            title={t("outputs.cutlist.title")}
-            desc={t("outputs.cutlist.desc")}
-          />
-          <ImageFeatureCard
-            src="/about-assets/feat-cutplan-full.png"
-            title={t("outputs.cutplan.title")}
-            desc={t("outputs.cutplan.desc")}
-          />
-          <ImageFeatureCard
-            src="/about-assets/feat-steps.png"
-            title={t("outputs.process.title")}
-            desc={t("outputs.process.desc")}
-          />
-          <ImageFeatureCard
-            src="/about-assets/feat-quote.png"
-            title={t("outputs.quote.title")}
-            desc={t("outputs.quote.desc")}
-          />
-          <ImageFeatureCard
-            src="/about-assets/hero-3d.png"
-            title={t("outputs.perspective.title")}
-            desc={t("outputs.perspective.desc")}
-          />
-        </div>
+        {/* zh-TW: 螢幕截圖 feature card；EN：emoji-only 直到 /about-assets/en 截圖補齊（screenshots are zh-TW UI only for now） */}
+        {isEn ? (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 mb-6">
+            <FeatureCard emoji="📐" title={t("outputs.threeview.title")} desc={t("outputs.threeview.desc")} />
+            <FeatureCard emoji="📋" title={t("outputs.cutlist.title")} desc={t("outputs.cutlist.desc")} />
+            <FeatureCard emoji="🪵" title={t("outputs.cutplan.title")} desc={t("outputs.cutplan.desc")} />
+            <FeatureCard emoji="📑" title={t("outputs.process.title")} desc={t("outputs.process.desc")} />
+            <FeatureCard emoji="💰" title={t("outputs.quote.title")} desc={t("outputs.quote.desc")} />
+            <FeatureCard emoji="🪑" title={t("outputs.perspective.title")} desc={t("outputs.perspective.desc")} />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-5 sm:gap-6 mb-6">
+            <ImageFeatureCard
+              src="/about-assets/feat-threeview.png"
+              title={t("outputs.threeview.title")}
+              desc={t("outputs.threeview.desc")}
+            />
+            <ImageFeatureCard
+              src="/about-assets/feat-cutlist.png"
+              title={t("outputs.cutlist.title")}
+              desc={t("outputs.cutlist.desc")}
+            />
+            <ImageFeatureCard
+              src="/about-assets/feat-cutplan-full.png"
+              title={t("outputs.cutplan.title")}
+              desc={t("outputs.cutplan.desc")}
+            />
+            <ImageFeatureCard
+              src="/about-assets/feat-steps.png"
+              title={t("outputs.process.title")}
+              desc={t("outputs.process.desc")}
+            />
+            <ImageFeatureCard
+              src="/about-assets/feat-quote.png"
+              title={t("outputs.quote.title")}
+              desc={t("outputs.quote.desc")}
+            />
+            <ImageFeatureCard
+              src="/about-assets/hero-3d.png"
+              title={t("outputs.perspective.title")}
+              desc={t("outputs.perspective.desc")}
+            />
+          </div>
+        )}
 
         <div className="grid sm:grid-cols-3 gap-4 mb-6">
           <FeatureCard emoji="🔩" title={t("outputs.joinery.title")} desc={t("outputs.joinery.desc")} />

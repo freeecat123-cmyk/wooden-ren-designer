@@ -323,8 +323,8 @@
         "desc": "Full 19-step sequence, time estimates, stock selection notes, moisture content, grain direction — more detailed than the textbook."
       },
       "quote": {
-        "title": "💰 Customer quote",
-        "desc": "Furniture price, tax, deposit / final split, installment terms, customer info table — print it and hand it to the customer."
+        "title": "💰 Material cost estimate",
+        "desc": "Board feet total, lumber cost in USD, parts list with dimensions — know roughly what the wood will set you back before you head to the lumberyard."
       },
       "perspective": {
         "title": "🪑 3D perspective preview",
