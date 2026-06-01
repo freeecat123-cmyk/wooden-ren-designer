@@ -21,7 +21,7 @@
  */
 
 import { type NextRequest, after } from "next/server";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmail, FROM_EN } from "@/lib/email/send";
 import { lemonPaymentFailedEmail } from "@/lib/email/templates/lemon-payment-failed";
 import { lemonSubscriptionActivatedEmail } from "@/lib/email/templates/lemon-subscription-activated";
 import { lemonUnlockSuccessEmail } from "@/lib/email/templates/lemon-single-template-success";
@@ -278,6 +278,7 @@ async function handleOrderCreated(
     });
     await sendEmail({
       to: userEmail,
+      from: FROM_EN,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -370,6 +371,7 @@ async function handleSubscriptionCreated(
     });
     await sendEmail({
       to: email,
+      from: FROM_EN,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -596,6 +598,7 @@ async function handleSubscriptionPaymentFailed(
     });
     await sendEmail({
       to: email,
+      from: FROM_EN,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,

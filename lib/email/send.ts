@@ -15,6 +15,14 @@ import { createAdminClient } from "@/lib/supabase/server";
 const FROM_DEFAULT =
   process.env.EMAIL_FROM ?? "木頭仁 木作藍圖 <noreply@designer.woodenren.com>";
 
+/**
+ * 英文(國際版 / Lemon Squeezy)寄件人。LS 買家收到的確認信內文全英文,
+ * 寄件人顯示名也要是英文品牌 "Furniture Blueprints",不能掉回中文 FROM_DEFAULT。
+ * 寄 LS 相關信時把這個傳進 sendEmail({ from: FROM_EN, ... })。
+ */
+export const FROM_EN =
+  process.env.EMAIL_FROM_EN ?? "Furniture Blueprints <noreply@designer.woodenren.com>";
+
 let _client: Resend | null = null;
 function getClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
