@@ -10,6 +10,7 @@ import {
 } from "@/lib/lemon-squeezy/tier-map";
 import { createClient } from "@/lib/supabase/server";
 import { FURNITURE_CATALOG } from "@/lib/templates";
+import { getEffectivePlan, type UserPlanProfile } from "@/lib/permissions";
 
 export async function generateMetadata({
   params,
@@ -73,6 +74,20 @@ export default async function PricingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 抓 user 方案，算出有效方案 → 已是付費版(全模板解鎖)就別再推單模板買斷。
+  // free = 沒擁有全部；其餘(personal/pro/student/lifetime)= 全模板已含。
+  let effectivePlan: ReturnType<typeof getEffectivePlan> = "free";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select(
+        "plan,subscription_status,subscription_expires_at,student_activated_at,student_expires_at",
+      )
+      .eq("id", user.id)
+      .single();
+    effectivePlan = getEffectivePlan(profile as UserPlanProfile | null);
+  }
+
   // /design/[type] paywall 會 redirect 過來 ?locked=stool — 高亮對應卡。
   // 工具銷售頁(Ceiling/Floor/RaisedFloor Marketing)用 ?upgrade=<tool> 同樣意思。
   const sp = await searchParams;
@@ -110,6 +125,7 @@ export default async function PricingPage({
   return (
     <LemonSqueezyPricingClient
       isAuthed={!!user}
+      effectivePlan={effectivePlan}
       loginHref={`/${locale}/login?next=/${locale}/pricing`}
       catalog={catalog}
       lockedCategory={lockedCategory}

@@ -32,6 +32,8 @@ interface Props {
   /** ?locked=stool 帶來，高亮這張卡 */
   lockedCategory?: string | null;
   isAuthed: boolean;
+  /** 付費版已含全部模板 → 整區做防呆，按鈕全標 Owned + 顯示提示 banner */
+  ownsAllTemplates?: boolean;
   loginHref: string;
 }
 
@@ -50,6 +52,7 @@ export function LemonSingleTemplateSection({
   catalog,
   lockedCategory,
   isAuthed,
+  ownsAllTemplates = false,
   loginHref,
 }: Props) {
   const t = useTranslations("lemon.singleTemplate");
@@ -59,11 +62,12 @@ export function LemonSingleTemplateSection({
     studio: t("tierStudio"),
   };
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(isAuthed);
+  // 已擁有全部模板就不必查 unlock 清單（每張卡一律 Owned），避免 Loading 閃爍。
+  const [loading, setLoading] = useState(isAuthed && !ownsAllTemplates);
   const [filter, setFilter] = useState<"all" | TemplateTier>("all");
 
   useEffect(() => {
-    if (!isAuthed) return;
+    if (!isAuthed || ownsAllTemplates) return;
     let cancelled = false;
     (async () => {
       try {
@@ -92,7 +96,7 @@ export function LemonSingleTemplateSection({
     return () => {
       cancelled = true;
     };
-  }, [isAuthed]);
+  }, [isAuthed, ownsAllTemplates]);
 
   const items = useMemo(() => {
     const enriched = catalog.map((c) => {
@@ -112,6 +116,11 @@ export function LemonSingleTemplateSection({
           {t("heading")}
         </h2>
         <p className="mt-2 text-sm text-zinc-600">{t("intro")}</p>
+        {ownsAllTemplates && (
+          <p className="mt-4 inline-block rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
+            {t("planIncludesAll")}
+          </p>
+        )}
         <div className="mt-3 inline-flex gap-2 text-xs flex-wrap justify-center">
           {(Object.keys(TIER_PRICE_USD) as TemplateTier[]).map((tier) => (
             <span
@@ -146,7 +155,7 @@ export function LemonSingleTemplateSection({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {items.map((item) => {
-            const isUnlocked = unlocked.has(item.id);
+            const isUnlocked = ownsAllTemplates || unlocked.has(item.id);
             const isLockedHighlight = lockedCategory === item.id;
             const price = TIER_PRICE_USD[item.tier];
             return (

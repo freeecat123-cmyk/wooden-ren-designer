@@ -4834,6 +4834,7 @@
       "lifetimeCta": "Buy lifetime",
       "lifetimeFeatures": ["All current templates", "All future templates", "Unlimited designs forever", "No recurring charges"],
       "signInPrefix": "Sign in to ",
+      "alreadyOwned": "You already own this",
       "redirecting": "Redirecting…",
       "footerPaymentsBy": "Payments processed securely by",
       "footerMoR": "(merchant of record). VAT/sales tax handled automatically."
@@ -4841,6 +4842,7 @@
     "singleTemplate": {
       "heading": "Just want one template?",
       "intro": "Buy lifetime access to a single template. No subscription.",
+      "planIncludesAll": "Your plan already includes every template — no need to buy individually.",
       "tierBasic": "Basic",
       "tierPro": "Pro",
       "tierStudio": "Studio",

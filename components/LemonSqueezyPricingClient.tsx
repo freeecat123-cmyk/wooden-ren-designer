@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import type { PlanId } from "@/lib/permissions";
 import { LemonSingleTemplateSection } from "./LemonSingleTemplateSection";
 
 interface CatalogItem {
@@ -21,6 +22,8 @@ interface CatalogItem {
 
 interface Props {
   isAuthed: boolean;
+  /** 有效方案：free=尚未擁有全部；其餘付費版=全模板已含 */
+  effectivePlan: PlanId;
   loginHref: string;
   catalog: CatalogItem[];
   lockedCategory?: string | null;
@@ -30,11 +33,16 @@ const CHECKOUT_ENDPOINT = "/api/lemon-squeezy/checkout";
 
 export function LemonSqueezyPricingClient({
   isAuthed,
+  effectivePlan,
   loginHref,
   catalog,
   lockedCategory,
 }: Props) {
   const t = useTranslations("lemon.pricing");
+  // 付費版已解鎖全部模板 → 單模板區與訂閱卡都做防呆，避免重複付款。
+  const ownsAllTemplates = effectivePlan !== "free";
+  // Lifetime = 永久擁有一切，連訂閱方案都不該再推。
+  const isLifetime = effectivePlan === "lifetime";
   return (
     <main className="min-h-[calc(100vh-120px)] mx-auto max-w-5xl px-6 py-16 text-zinc-800">
       <div className="text-center mb-12">
@@ -56,6 +64,7 @@ export function LemonSqueezyPricingClient({
           ctaLabel={t("monthlyCta")}
           checkoutType="sub_monthly"
           isAuthed={isAuthed}
+          alreadyOwned={isLifetime}
           loginHref={loginHref}
         />
         <PlanCard
@@ -67,6 +76,7 @@ export function LemonSqueezyPricingClient({
           ctaLabel={t("annualCta")}
           checkoutType="sub_yearly"
           isAuthed={isAuthed}
+          alreadyOwned={isLifetime}
           loginHref={loginHref}
           highlighted
           bestValueLabel={t("bestValue")}
@@ -80,6 +90,7 @@ export function LemonSqueezyPricingClient({
           ctaLabel={t("lifetimeCta")}
           checkoutType="lifetime"
           isAuthed={isAuthed}
+          alreadyOwned={isLifetime}
           loginHref={loginHref}
         />
       </div>
@@ -88,6 +99,7 @@ export function LemonSqueezyPricingClient({
         catalog={catalog}
         lockedCategory={lockedCategory}
         isAuthed={isAuthed}
+        ownsAllTemplates={ownsAllTemplates}
         loginHref={loginHref}
       />
 
@@ -118,6 +130,8 @@ interface PlanCardProps {
   ctaLabel: string;
   checkoutType: "sub_monthly" | "sub_yearly" | "lifetime";
   isAuthed: boolean;
+  /** 已是 Lifetime → 連訂閱方案都已涵蓋，置灰防重複付款 */
+  alreadyOwned?: boolean;
   loginHref: string;
   highlighted?: boolean;
   bestValueLabel?: string;
@@ -132,6 +146,7 @@ function PlanCard({
   ctaLabel,
   checkoutType,
   isAuthed,
+  alreadyOwned,
   loginHref,
   highlighted,
   bestValueLabel,
@@ -168,7 +183,15 @@ function PlanCard({
         ))}
       </ul>
 
-      {isAuthed ? (
+      {alreadyOwned ? (
+        <button
+          type="button"
+          disabled
+          className="mt-6 w-full px-6 py-3 rounded-lg font-semibold bg-emerald-100 text-emerald-800 cursor-default"
+        >
+          {t("alreadyOwned")}
+        </button>
+      ) : isAuthed ? (
         <form
           method="POST"
           action={CHECKOUT_ENDPOINT}
