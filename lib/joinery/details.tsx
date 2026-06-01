@@ -4073,6 +4073,8 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="through-tenon"
       joineryNameZh={isRound ? "通榫（圓榫變體）" : "通榫"}
+      joineryNameEn={isRound ? "Through tenon (round)" : "Through tenon"}
+      locale={p.locale}
       drawingNumber={`TT-${tw}x${tt}x${tl}`}
       scale={scaleStr}
       frontView={front}
@@ -4357,6 +4359,8 @@ function BlindTenonDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="blind-tenon"
       joineryNameZh={isRound ? "盲榫（圓腳變體）" : "半隱榫（盲榫）"}
+      joineryNameEn={isRound ? "Blind tenon (round)" : "Blind tenon"}
+      locale={p.locale}
       drawingNumber={`BT-${tw}x${tt}x${safeTl}`}
       scale={scaleStr}
       frontView={front}
@@ -4639,6 +4643,8 @@ function HalfLapDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="half-lap"
       joineryNameZh={`半搭榫（${lapFormZh}）`}
+      joineryNameEn={`Half lap (${lapForm === "cross" ? "cross" : lapForm === "tee" ? "tee" : "L"})`}
+      locale={p.locale}
       drawingNumber={`HL-${ct}-${cw}-${mt}`}
       scale={scaleStr}
       frontView={front}
@@ -4886,6 +4892,8 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="tongue-and-groove"
       joineryNameZh="企口榫（舌槽接）"
+      joineryNameEn="Tongue and groove"
+      locale={p.locale}
       drawingNumber={`TG-${tt}-${tl}-${mt}`}
       scale={scaleStr}
       frontView={front}
@@ -5136,6 +5144,8 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="shouldered-tenon"
       joineryNameZh={noShoulder ? "帶肩榫（fallback：純通榫）" : "帶肩榫（雙肩防扭）"}
+      joineryNameEn={noShoulder ? "Haunched tenon (fallback: through tenon)" : "Haunched tenon (double shoulder)"}
+      locale={p.locale}
       drawingNumber={`ST-${tw}x${tt}-${cw}`}
       scale={scaleStr}
       frontView={front}
@@ -6454,6 +6464,8 @@ function DovetailDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="dovetail"
       joineryNameZh={`鳩尾榫（${nTails} 尾 + 兩端半銷，${angleLabel}）`}
+      joineryNameEn={`Dovetail (${nTails} tails + 2 half-pins, ${angleLabel})`}
+      locale={p.locale}
       drawingNumber={`DT-${nTails}T-${tw}x${tl}`}
       scale={scaleStr}
       frontView={front}
@@ -7299,6 +7311,8 @@ function FingerJointDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="finger-joint"
       joineryNameZh="指接（box joint）"
+      joineryNameEn="Finger joint (box joint)"
+      locale={p.locale}
       drawingNumber={`FJ-${tt}-${cw}-N${fingerCount}`}
       scale={scaleStr}
       frontView={front}
@@ -8139,6 +8153,8 @@ function DowelDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="dowel"
       joineryNameZh="木釘（dowel joint）"
+      joineryNameEn="Dowel joint"
+      locale={p.locale}
       drawingNumber={`DW-Ø${tt}xL${tl}-N${dowelCount}`}
       scale={scaleStr}
       frontView={front}
@@ -9018,6 +9034,8 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type={p.material ? `mitered-spline · ${p.material}` : "mitered-spline"}
       joineryNameZh="斜接餅乾榫"
+      joineryNameEn="Mitered spline"
+      locale={p.locale}
       drawingNumber={`MS-${ct}-${tl}-${tt}`}
       scale={scaleStr}
       drawnBy="wrd-modern-joinery"
@@ -9772,6 +9790,8 @@ function PocketHoleDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="pocket-hole"
       joineryNameZh="斜孔螺絲（口袋孔）"
+      joineryNameEn="Pocket-hole screw"
+      locale={p.locale}
       drawingNumber={`PH-${ct}-${mt}-L${screwLen}`}
       scale={scaleStr}
       drawnBy="wrd-modern-joinery"
@@ -10552,6 +10572,8 @@ function ScrewDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type={p.material ? `screw · ${p.material}` : "screw"}
       joineryNameZh="螺絲 + 白膠"
+      joineryNameEn="Screw + glue"
+      locale={p.locale}
       drawingNumber={`SC-${ct}-${mt}-Ø${tt}-L${screwLen}`}
       scale={scaleStr}
       drawnBy="wrd-modern-joinery"
@@ -11403,6 +11425,8 @@ function StubJointDetail(p: JoineryDetailParams) {
     <MasterDetailLayout
       type="stub-joint"
       joineryNameZh={`整支卡榫（housing joint，${isRound ? "圓腳" : "方腳"}）`}
+      joineryNameEn={`Housing joint (${isRound ? "round leg" : "square leg"})`}
+      locale={p.locale}
       drawingNumber={`SJ-${cw}x${ct}-${mt}${isRound ? "-R" : ""}`}
       scale={scaleStr}
       frontView={front}
