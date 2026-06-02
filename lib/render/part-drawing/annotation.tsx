@@ -1610,12 +1610,11 @@ export function T2Annotations({
       };
       const inTop = xAtY(yTop);
       const inBot = xAtY(yBot);
-      // user 2026-06-02：不管 body 斜邊在榫頭內外，全部 tenon 內側肩都要
-      // 跟著斜（不只「補縫」的場景）。上半 stagger 榫的內側肩跟下半同條 body
-      // 斜邊，這樣兩個榫看起來都跟 body 接合面對齊。
-      // 防退化：如果 body 在此 Y 段內 X 完全不變（直料），仍 fallback 到 rect。
-      const tilt = Math.abs(inTop - inBot);
-      if (tilt < 0.3) return null;
+      // 只有 body 斜邊比榫頭內側更外(蓋住榫頭)時才補正
+      const widen = tenonOnPlusX
+        ? Math.max(inTop, inBot) - innerX
+        : innerX - Math.min(inTop, inBot);
+      if (widen < 0.3) return null;
       // 4 頂點：外側上 → 外側下 → 內側下(貼斜) → 內側上(貼斜)
       return [
         `${outerX.toFixed(2)},${yTop.toFixed(2)}`,
