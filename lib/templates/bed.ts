@@ -266,10 +266,19 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [],
       // mortises：side-rail（X 面，朝家具中心）+ headboard/footboard（Z 面對齊）
       // side rail 中心 Y = mattressClearance - sideRailWidth/2
+      // splay 公約（b3f09ad）：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 -sign(corner.x)×splayDx
       mortises: (() => {
         const mortises: Part["mortises"] = [];
         const sideRailCenterY_local = mattressClearanceMm - sideRailWidth / 2;
-        // side-rail mortise 在腳的 X 面（接 side rail 沿 X 軸跑）
+        const _splayDx = (legShape === "splayed" || legShape === "splayed-length") ? splayMm : 0;
+        const _splayDz = (legShape === "splayed" || legShape === "splayed-width") ? splayMm : 0;
+        const _zRotX = (_splayDz !== 0 && legHeight > 0)
+          ? Math.sign(c.z || 1) * Math.atan(_splayDz / legHeight)
+          : 0;
+        const _xRotZ = (_splayDx !== 0 && legHeight > 0)
+          ? -Math.sign(c.x || 1) * Math.atan(_splayDx / legHeight)
+          : 0;
+        // side-rail mortise 在腳的 X 面（接 side rail 沿 X 軸跑），rotZ 跟 splayDx
         // origin.x = ±1 朝家具中心（c.x > 0 → -1）
         mortises.push({
           origin: { x: c.x > 0 ? -1 : 1, y: sideRailCenterY_local, z: 0 },
@@ -277,8 +286,9 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           length: sideRailTenonStd.width,
           width: sideRailTenonStd.thickness,
           through: sideRailTenonType === "through-tenon",
+          ...(Math.abs(_xRotZ) > 0.001 ? { rotZ: _xRotZ } : {}),
         });
-        // headboard mortise 在頭端腳的 Z 面（接 headboard 沿 Z 軸跑）
+        // headboard mortise 在頭端腳的 Z 面（接 headboard 沿 Z 軸跑），rotX 跟 splayDz
         if (isHead) {
           mortises.push({
             origin: { x: 0, y: sideRailCenterY_local, z: c.z > 0 ? -1 : 1 },
@@ -286,9 +296,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
             length: headboardTenonStd.width,
             width: headboardTenonStd.thickness,
             through: headboardTenonType === "through-tenon",
+            ...(Math.abs(_zRotX) > 0.001 ? { rotX: _zRotX } : {}),
           });
         }
-        // footboard mortise（可選）
+        // footboard mortise（可選），Z 面同 headboard
         if (isFoot && withFootboard) {
           mortises.push({
             origin: { x: 0, y: sideRailCenterY_local, z: c.z > 0 ? -1 : 1 },
@@ -296,6 +307,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
             length: footboardTenonStd.width,
             width: footboardTenonStd.thickness,
             through: footboardTenonType === "through-tenon",
+            ...(Math.abs(_zRotX) > 0.001 ? { rotX: _zRotX } : {}),
           });
         }
         return mortises;
