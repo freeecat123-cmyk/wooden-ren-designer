@@ -2102,6 +2102,65 @@ function OrthoViewImpl({
             part.shape?.kind === "splayed-round-tapered";
           const splaySwap =
             isolatePartId && isSplayFamily && (view === "front" || view === "side");
+          // 零件圖 apron-trapezoid 俯視(view="front"): silhouette = 下邊長
+          // (290.4)，但師傅要看得到上邊(280)位置才知道兩端要切多少。加兩條
+          // 虛線「肩線」標 ±L/2×topLengthScale = 上邊端點 X 位置。
+          // user 2026-06-02「單斜俯視看得到框形的榫肩樣子」。
+          const trapForTop =
+            isolatePartId &&
+            view === "front" &&
+            part.shape?.kind === "apron-trapezoid"
+              ? part.shape
+              : null;
+          let trapShoulderOverlay: React.ReactNode = null;
+          if (trapForTop && Math.abs(trapForTop.topLengthScale - trapForTop.bottomLengthScale) > 0.0001) {
+            const lx = part.visible.length;
+            const ly = part.visible.thickness;
+            const halfTop = (lx / 2) * trapForTop.topLengthScale;
+            // 俯視 view="front" 投影：(wx, wy) → (-wx, wy)；apron 原點 0、
+            // rotation reset 後 part-local X→世界 X、Y→世界 Y。
+            const xL = halfTop; // 螢幕 = -wx → 左肩在 -(-halfTop) = +halfTop
+            const xR = -halfTop;
+            // 內邊用 Y span = 投影後 thickness 上下緣
+            const ySvgTop = -ly / 2;
+            const ySvgBot = +ly / 2;
+            trapShoulderOverlay = (
+              <g key={`${part.id}-trap-shoulder`}>
+                <line
+                  x1={xL}
+                  x2={xL}
+                  y1={ySvgTop}
+                  y2={ySvgBot}
+                  stroke="#000"
+                  strokeWidth={sw * 0.7}
+                  strokeDasharray="3 2"
+                />
+                <line
+                  x1={xR}
+                  x2={xR}
+                  y1={ySvgTop}
+                  y2={ySvgBot}
+                  stroke="#000"
+                  strokeWidth={sw * 0.7}
+                  strokeDasharray="3 2"
+                />
+              </g>
+            );
+          }
+          if (trapShoulderOverlay) {
+            return (
+              <g key={part.id}>
+                <polygon
+                  points={points}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={sw}
+                  strokeDasharray={dash}
+                />
+                {trapShoulderOverlay}
+              </g>
+            );
+          }
           return (
             <polygon
               key={part.id}
