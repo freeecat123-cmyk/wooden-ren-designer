@@ -3076,38 +3076,7 @@ function OrthoViewImpl({
                 // beveled）變形——apron 斜的話榫頭也跟著斜。
                 // 俯視 用 axis-aligned rect——避免 apron-trapezoid 讓 top/bot
                 // 端 length scale 差距產生疊影 mess。
-                // **apron-trapezoid 例外**：俯視/正視看得到梯形，start/end 榫的
-                // 內側肩（接 body 那邊）要跟著 body 左/右斜邊，否則 tenon 跟 body
-                // 接點在 top 邊有縫（user 2026-06-02「左右牙條藍色榫沒跟零件完全
-                // 接上 上方還有點縫」）。畫成平行四邊形 4 corners。
-                // **apron-trapezoid 例外**：俯視/正視看得到梯形，start/end 榫的
-                // 內側肩（接 body 那邊）要跟著 body 左/右斜邊，否則 tenon 跟 body
-                // 接點在端面有縫（user 2026-06-02「左右牙條藍色榫沒跟零件完全接上
-                // 上方還有點縫」+「參考前後牙條畫法」）。
-                // 套 body 的 deform（apron-trapezoid xScale + bevel shear）給 tenon 8 個
-                // box corners，然後 projectFeaturePolygon 一致處理。
-                const trapForTenon =
-                  view === "top" &&
-                  part.shape?.kind === "apron-trapezoid" &&
-                  (t.position === "start" || t.position === "end")
-                    ? part.shape
-                    : null;
-                if (trapForTenon) {
-                  // 直接用 projectFeaturePolygon 但 isFeature=false → 套 trap scale + bev shear
-                  // 讓 tenon 跟著 body 同套變形
-                  const tPoly = projectFeaturePolygon(part, lb, view, false);
-                  const tPoints = tPoly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
-                  elements.push(
-                    <polygon
-                      key={`${part.id}-t${i}`}
-                      points={tPoints}
-                      fill="none"
-                      stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
-                      strokeWidth={0.6}
-                      strokeDasharray={isVisibleTenon ? undefined : "3 2"}
-                    />,
-                  );
-                } else if (view === "top") {
+                if (view === "top") {
                   elements.push(
                     <rect
                       key={`${part.id}-t${i}`}
