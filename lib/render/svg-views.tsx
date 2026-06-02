@@ -2101,7 +2101,7 @@ function OrthoViewImpl({
             part.shape?.kind === "splayed-tapered" ||
             part.shape?.kind === "splayed-round-tapered";
           const splaySwap =
-            isolatePartId && isSplayFamily && (view === "front" || view === "side");
+            isolatePartId && isSplayFamily && (view === "front" || view === "side" || view === "top");
           // 零件圖 apron-trapezoid 俯視(view="front"): silhouette = 下邊長
           // (290.4)，但師傅要看得到上邊(280)位置才知道兩端要切多少。加兩條
           // 虛線「肩線」標 ±L/2×topLengthScale = 上邊端點 X 位置。
@@ -2468,7 +2468,7 @@ function OrthoViewImpl({
             part.shape?.kind === "splayed-tapered" ||
             part.shape?.kind === "splayed-round-tapered";
           const splaySwapShape =
-            isolatePartId && isSplayFamilyShape && (view === "front" || view === "side");
+            isolatePartId && isSplayFamilyShape && (view === "front" || view === "side" || view === "top");
           // 〔已停用 2026-06-01〕原本(9adb6ee2)為斜接 apron 俯視 TOP 把垂直端邊
           // 換成 overlay 的 shoulder 雙線。但 body 已統一成真實比例梯形/矩形 outline,
           // 這套 shoulder 雙線多餘且讓俯視端部多出榫頭肩線、看起來亂
@@ -2854,7 +2854,7 @@ function OrthoViewImpl({
           (isolatedPart.shape?.kind === "splayed" ||
             isolatedPart.shape?.kind === "splayed-tapered" ||
             isolatedPart.shape?.kind === "splayed-round-tapered") &&
-          (view === "front" || view === "side");
+          (view === "front" || view === "side" || view === "top");
         return (
           <rect
             x={-w / 2}
