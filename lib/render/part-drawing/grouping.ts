@@ -100,9 +100,12 @@ function normalizeShape(shape: Part["shape"]): string {
   if (!shape) return "box";
   // 把 shape 內所有 sign-bearing 欄位取絕對值（dx/dz/corner sign 等）。
   // shape.kind 跟其他離散參數保持原樣。
+  // bevelAngle: 前/後牙條 bevel 反向 (sz=±1) → 抽 abs 才能讓鏡像對的牙條合併
+  // (user 2026-06-02「前後牙條一樣」)。
   const SIGN_KEYS = new Set([
     "dxMm", "dzMm",          // splayed / splayed-tapered
     "x", "y", "z",            // legAxis 等向量
+    "bevelAngle",             // apron-trapezoid bevel half-shear（front/back 鏡像）
   ]);
   const norm: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(shape)) {
@@ -141,6 +144,11 @@ export function hashPart(part: Part): string {
         // shoulderOn 也要 normalize：mirror leg shoulderOn=[top,bottom,left] vs
         // [top,bottom,right] 圖面同一張。
         `sh:${(t.shoulderOn ?? []).map(mirrorNormSide).slice().sort().join(",")}`,
+        // axis：分前後 vs 左右牙條/橫撐用（X 軸 axis 跟 Z 軸 axis 主分量不同）。
+        // 取每軸絕對值，鏡像對 (前↔後 或 左↔右) hash 仍合併。
+        // user 2026-06-02「前後橫撐長依樣 左右橫撐一樣」: 下橫撐沒 bevelAngle 又
+        // 對稱方凳所以 4 條 hash 全同 → 合併成 1；加 axis 後分成 2 群。
+        `a:${t.axis ? `${Math.abs(t.axis.x ?? 0).toFixed(3)},${Math.abs(t.axis.y ?? 0).toFixed(3)},${Math.abs(t.axis.z ?? 0).toFixed(3)}` : "0"}`,
       ].join("|"),
     )
     .sort()
