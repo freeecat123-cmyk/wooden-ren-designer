@@ -114,6 +114,10 @@ export async function generateMetadata({
       description: m.description,
       images: ["/og.png"],
     },
+    // Pinterest 網域認領（解鎖 Rich Pins）— 整站共用
+    other: {
+      "p:domain_verify": "73e5f47e3f4c52852e6d215f04c8251e",
+    },
   };
 }
 
