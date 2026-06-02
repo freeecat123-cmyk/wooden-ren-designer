@@ -220,7 +220,7 @@ export function PartDrawing({
           }
           dimsLabel={(() => {
             const g = grossPartDims(part);
-            return `${Math.round(g.L)}×${Math.round(g.W)}×${Math.round(g.T)}`;
+            return `${round1(g.L)}×${round1(g.W)}×${round1(g.T)}`;
           })()}
           title={part.nameZh}
           className="bg-white w-full h-auto"
