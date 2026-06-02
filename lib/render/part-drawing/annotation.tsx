@@ -311,12 +311,16 @@ export function T1Dimensions({
   const sortedX = [horizP1.x, horizP2.x].sort((a, b) => a - b);
   let hxLo = sortedX[0];
   let hxHi = sortedX[1];
-  // 梯形 apron 主「長」標的是上邊(接座),dim 線端點要貼上邊實際端點
-  // (±L/2 × topLengthScale),而非 allCorners bbox 的 visible.length 端(±L/2)。
-  // 否則線跨 168.3、標籤寫 160.9,線比數字長、端點抓到中心外(user 2026-06-01
-  // 「短邊抓到中心」)。用 ctx 投影上邊兩端覆蓋。
-  if (trapForMain) {
-    const hL = (part.visible.length / 2) * trapForMain.topLengthScale;
+  // 梯形 apron 主「長」dim 線端點要貼真實邊（不是 allCorners bbox 中線）：
+  //   view="top" → 上邊端點 ±L/2 × topLengthScale (跟 horizMainDisplay 一致)
+  //   view="front" → 下邊端點 ±L/2 × bottomLengthScale (silhouette = max)
+  // 否則線比數字長、user 2026-06-02「290.4 引線還在中線」回報。
+  if (trapShapeForMain) {
+    const scaleForMain =
+      view === "top"
+        ? trapShapeForMain.topLengthScale
+        : trapShapeForMain.bottomLengthScale;
+    const hL = (part.visible.length / 2) * scaleForMain;
     const e1 = ctx.partLocalToSvg(-hL, part.visible.thickness / 2, +part.visible.width / 2);
     const e2 = ctx.partLocalToSvg(+hL, part.visible.thickness / 2, +part.visible.width / 2);
     const xs = [e1.x, e2.x].sort((a, b) => a - b);
