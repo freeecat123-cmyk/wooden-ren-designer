@@ -388,8 +388,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
         },
         ]),
-        // === 腳踏 ===
-        // Z 面 mortise（接 Z 軸 = 左右腳踏, 上移）— 上榫
+        // === 腳踏 ===（套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx）
+        // Z 面 mortise（接 Z 軸 = 左右腳踏, 上移）— 上榫，rotX 跟 splayDz
         {
           origin: {
             x: 0,
@@ -401,8 +401,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: frCanHalfStagger ? frUpperTenonH : frTenonW,
           width: frTenonThick,
           through: frTenonType === "through-tenon",
+          ...(Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {}),
         },
-        // X 面 mortise（接 X 軸 = 前後腳踏, 靜止）— 下榫
+        // X 面 mortise（接 X 軸 = 前後腳踏, 靜止）— 下榫，rotZ 跟 splayDx
         {
           origin: {
             x: c.x > 0 ? -1 : 1,
@@ -413,6 +414,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: frCanHalfStagger ? frLowerTenonH : frTenonW,
           width: frTenonThick,
           through: frTenonType === "through-tenon",
+          ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
         },
         // 背腳：椅背頂橫木的母榫眼
         ...(isBack
