@@ -61,6 +61,8 @@ export function rawStockSize(part: Part): { L: number; W: number; T: number } {
   } else if (s?.kind === "arch-bent") {
     L = (v.length ?? 0) + ext.L;
     L = L * 1.1;
+    // 弧線在 W 軸延伸 bendMm（矢高）→ 毛料寬要含弧高才切得出弧形
+    W = (v.width ?? 0) + ext.W + (s.bendMm ?? 0) + 4;
   } else if (s?.kind === "splayed-tapered") {
     const dx = s.dxMm ?? 0;
     const dz = s.dzMm ?? 0;

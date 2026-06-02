@@ -52,9 +52,12 @@ function grossPartDims(part: Part): { L: number; W: number; T: number } {
     else if (t.position === "left" || t.position === "right") extW += t.length;
     else if (t.position === "top" || t.position === "bottom") extT += t.length;
   }
+  // arch-bent (椅背頂橫木 bow 彎弧)：弧線會在 W 軸延伸 bendMm，毛料厚必須含
+  // 弧高才切得出弧形（user 2026-06-02「沒有寫最厚厚度」）。
+  const archBend = part.shape?.kind === "arch-bent" ? (part.shape.bendMm ?? 0) : 0;
   return {
     L: (part.visible.length ?? 0) + extL,
-    W: (part.visible.width ?? 0) + extW,
+    W: (part.visible.width ?? 0) + extW + archBend,
     T: (part.visible.thickness ?? 0) + extT,
   };
 }
