@@ -2214,7 +2214,12 @@ export function T2Annotations({
       // 10/392/279/301/128/106 這種跟木料長度搞混的數值,直接跳過。
       // (user 2026-05-28「側視圖很多尺寸數字都跟木料的長度搞混了」)
       const skipShoulderInSide = view === "side" && isLegPart;
-      const shTKey = `${shoulderTop}`;
+      // dedup key 含 lDimX / wDimY 位置 (符合 line 1382 comment 約定)，
+      // 避免不同 mortise 同值但位置不同的 shoulder label 被誤吃掉
+      // (user 2026-06-02「下面的 10 跟 315 接反了」案例：兩 mortise 的 shoulderLft=10
+      // 跟 shoulderRgt=315 跨 mortise dedup → 只留第一個的 label，第二個的位置
+      // 沒對應 label 撞上隔壁 mortise 的 dim 線)。
+      const shTKey = `T|${lDimX}|${shoulderTop}`;
       if (shoulderTop > TH && !renderedShoulderKeys.has(shTKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shTKey);
         const segMidY = (shoulderTopStartY + box.y) / 2;
@@ -2250,7 +2255,7 @@ export function T2Annotations({
           </g>,
         );
       }
-      const shBKey = `${shoulderBot}`;
+      const shBKey = `B|${lDimX}|${shoulderBot}`;
       if (shoulderBot > TH && !renderedShoulderKeys.has(shBKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shBKey);
         partEls.push(
@@ -2288,7 +2293,7 @@ export function T2Annotations({
       // W dim 線（horizontal）左右延伸：partLeft→box.x 和 box.x+box.w→partRight
       // user:「我是說往下的延伸線」=>「partEdge 角→wDimY」那條垂直延伸不畫
       // （長線視覺雜訊、shoulder 量 + arrow 已能傳達距邊資訊）
-      const shLKey = `${shoulderLft}`;
+      const shLKey = `L|${wDimY}|${shoulderLft}`;
       if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shLKey);
         const shLOffset =
@@ -2322,7 +2327,7 @@ export function T2Annotations({
           </g>,
         );
       }
-      const shRKey = `${shoulderRgt}`;
+      const shRKey = `R|${wDimY}|${shoulderRgt}`;
       if (shoulderRgt > TH && !renderedShoulderKeys.has(shRKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shRKey);
         const shROffset =
