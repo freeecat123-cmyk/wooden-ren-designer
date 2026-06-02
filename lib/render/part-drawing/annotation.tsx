@@ -441,21 +441,25 @@ export function T1Dimensions({
       <line x1={vertX} y1={vyLo} x2={vertX} y2={vyHi} />
       <polygon points={`${vertX},${vyLo} ${vertX - ARROW},${vyLo + ARROW} ${vertX + ARROW},${vyLo + ARROW}`} />
       <polygon points={`${vertX},${vyHi} ${vertX - ARROW},${vyHi - ARROW} ${vertX + ARROW},${vyHi - ARROW}`} />
-      {/* 側視 T 軸 vert 標籤可能撞到部件本身 — 把 label 推到 viewBox 右邊空白
-          區（dim 線 + 箭頭仍貼 part 邊）。user 2026-06-02「厚 20 大字移到右邊
-          空白 不要擋到圖」。其他 view 維持貼 dim 線右。 */}
-      <text
-        x={
-          view === "side"
-            ? Math.max(vertX + 4, ctx.vbX + ctx.vbW - 40)
-            : vertX + 4
-        }
-        y={(vyLo + vyHi) / 2 + 4}
-        fontSize={11}
-        stroke="none"
-      >
-        {`${vertLabel} ${vert}`}
-      </text>
+      {/* 側視 T 軸 vert 標籤可能撞到部件本身 — 把 label 推到 viewBox 右邊（dim
+          線 + 箭頭仍貼 part 邊）。user 2026-06-02「厚 20 大字移到右邊空白 不要
+          擋到圖」。textAnchor="end" 從右邊對齊、x = viewBox 右緣留 6px margin。
+          其他 view 維持貼 dim 線右。 */}
+      {view === "side" ? (
+        <text
+          x={ctx.vbX + ctx.vbW - 6}
+          y={(vyLo + vyHi) / 2 + 4}
+          fontSize={11}
+          stroke="none"
+          textAnchor="end"
+        >
+          {`${vertLabel} ${vert}`}
+        </text>
+      ) : (
+        <text x={vertX + 4} y={(vyLo + vyHi) / 2 + 4} fontSize={11} stroke="none">
+          {`${vertLabel} ${vert}`}
+        </text>
+      )}
 
       {/* 連榫頭總長 dim（垂直）：vertical dim 右方再加一條 */}
       {showVertGross && (
