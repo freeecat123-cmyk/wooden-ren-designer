@@ -2115,15 +2115,19 @@ function OrthoViewImpl({
           let trapShoulderOverlay: React.ReactNode = null;
           if (trapForTop && Math.abs(trapForTop.topLengthScale - trapForTop.bottomLengthScale) > 0.0001) {
             const lx = part.visible.length;
-            const ly = part.visible.thickness;
             const halfTop = (lx / 2) * trapForTop.topLengthScale;
             // 俯視 view="front" 投影：(wx, wy) → (-wx, wy)；apron 原點 0、
             // rotation reset 後 part-local X→世界 X、Y→世界 Y。
             const xL = halfTop; // 螢幕 = -wx → 左肩在 -(-halfTop) = +halfTop
             const xR = -halfTop;
-            // 內邊用 Y span = 投影後 thickness 上下緣
-            const ySvgTop = -ly / 2;
-            const ySvgBot = +ly / 2;
+            // user 2026-06-02「應該跟 290.4 一樣 是連接整個零件的實心線」：
+            // 不是虛線、不是短肩線。Y 用 silhouette polygon 上下緣（含 splay/
+            // tenon 延伸）才是「整個零件」高度。
+            const polyYs = poly.map((p) => p.y);
+            const polyYMin = Math.min(...polyYs);
+            const polyYMax = Math.max(...polyYs);
+            const ySvgTop = -polyYMax;
+            const ySvgBot = -polyYMin;
             trapShoulderOverlay = (
               <g key={`${part.id}-trap-shoulder`}>
                 <line
@@ -2131,18 +2135,16 @@ function OrthoViewImpl({
                   x2={xL}
                   y1={ySvgTop}
                   y2={ySvgBot}
-                  stroke="#000"
-                  strokeWidth={sw * 0.7}
-                  strokeDasharray="3 2"
+                  stroke={stroke}
+                  strokeWidth={sw}
                 />
                 <line
                   x1={xR}
                   x2={xR}
                   y1={ySvgTop}
                   y2={ySvgBot}
-                  stroke="#000"
-                  strokeWidth={sw * 0.7}
-                  strokeDasharray="3 2"
+                  stroke={stroke}
+                  strokeWidth={sw}
                 />
               </g>
             );
