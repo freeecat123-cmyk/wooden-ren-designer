@@ -2288,6 +2288,12 @@ export function T2Annotations({
       // W dim 線（horizontal）左右延伸：partLeft→box.x 和 box.x+box.w→partRight
       // user:「我是說往下的延伸線」=>「partEdge 角→wDimY」那條垂直延伸不畫
       // （長線視覺雜訊、shoulder 量 + arrow 已能傳達距邊資訊）
+      // 修正：所有 part-drawing view 的投影都做 x_svg = -x_local 翻轉，所以
+      // SVG MIN x (= partLeftX) 對應 part-local 右邊，MAX x (= partRightX) 對應
+      // part-local 左邊。shoulderLft 值（part-local 左肩）→ 線端要落在 SVG 右側
+      // (box.x+box.w → partRightX)；shoulderRgt 值（part-local 右肩）→ 線端要落在
+      // SVG 左側 (partLeftX → box.x)。原本左右搞反，導致 user 2026-06-02「下面
+      // 10 跟 315 接反了」。
       const shLKey = `${shoulderLft}`;
       if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shLKey);
@@ -2298,19 +2304,20 @@ export function T2Annotations({
             : 0;
         shoulderHYUsed.L.push(wDimY);
         const shLDimY = wDimY + shLOffset;
+        // 線段 = box.x+box.w → partRightX（短，對應 LEFT mortise 的 shoulderLft=10）
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shL`}>
             <line
-              x1={partLeftX}
+              x1={box.x + box.w}
               y1={shLDimY}
-              x2={box.x}
+              x2={partRightX}
               y2={shLDimY}
               stroke={stroke}
               strokeWidth={0.5}
             />
-            {inwardArrowsH(partLeftX, box.x, shLDimY)}
+            {inwardArrowsH(box.x + box.w, partRightX, shLDimY)}
             <text
-              x={(partLeftX + box.x) / 2}
+              x={(box.x + box.w + partRightX) / 2}
               y={wLabelY + shLOffset}
               fontSize={7}
               fill={stroke}
@@ -2332,19 +2339,20 @@ export function T2Annotations({
             : 0;
         shoulderHYUsed.R.push(wDimY);
         const shRDimY = wDimY + shROffset;
+        // 線段 = partLeftX → box.x（長，對應 LEFT mortise 的 shoulderRgt=315）
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shR`}>
             <line
-              x1={box.x + box.w}
+              x1={partLeftX}
               y1={shRDimY}
-              x2={partRightX}
+              x2={box.x}
               y2={shRDimY}
               stroke={stroke}
               strokeWidth={0.5}
             />
-            {inwardArrowsH(box.x + box.w, partRightX, shRDimY)}
+            {inwardArrowsH(partLeftX, box.x, shRDimY)}
             <text
-              x={(box.x + box.w + partRightX) / 2}
+              x={(partLeftX + box.x) / 2}
               y={wLabelY + shROffset}
               fontSize={7}
               fill={stroke}
