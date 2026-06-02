@@ -2756,9 +2756,12 @@ function ArchBentChord({
     const envThick = round1(W + sagitta);
     // 弧峰在 part-local (0, +W/2+sagitta, 0)，弦端最低點在 (±L/2, -W/2, 0)
     const top = ctx.partLocalToSvg(0, W / 2 + sagitta, 0);
-    const bot = ctx.partLocalToSvg(-chord / 2, -W / 2, 0);
-    // dim 線放在零件最左端外側 30px 處
-    const dimX = bot.x - 30;
+    const botL = ctx.partLocalToSvg(-chord / 2, -W / 2, 0);
+    const botR = ctx.partLocalToSvg(+chord / 2, -W / 2, 0);
+    // dim 線放在零件最左端外側 30px 處（SVG x-flip：取 min x 才是畫面左端）
+    const leftSvgX = Math.min(top.x, botL.x, botR.x);
+    const dimX = leftSvgX - 30;
+    const bot = botL.y > botR.y ? botL : botR;
     const yLo = Math.min(top.y, bot.y);
     const yHi = Math.max(top.y, bot.y);
     const SZ = 3;
