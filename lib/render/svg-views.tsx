@@ -3080,6 +3080,12 @@ function OrthoViewImpl({
                 // 內側肩（接 body 那邊）要跟著 body 左/右斜邊，否則 tenon 跟 body
                 // 接點在 top 邊有縫（user 2026-06-02「左右牙條藍色榫沒跟零件完全
                 // 接上 上方還有點縫」）。畫成平行四邊形 4 corners。
+                // **apron-trapezoid 例外**：俯視/正視看得到梯形，start/end 榫的
+                // 內側肩（接 body 那邊）要跟著 body 左/右斜邊，否則 tenon 跟 body
+                // 接點在端面有縫（user 2026-06-02「左右牙條藍色榫沒跟零件完全接上
+                // 上方還有點縫」+「參考前後牙條畫法」）。
+                // 套 body 的 deform（apron-trapezoid xScale + bevel shear）給 tenon 8 個
+                // box corners，然後 projectFeaturePolygon 一致處理。
                 const trapForTenon =
                   view === "top" &&
                   part.shape?.kind === "apron-trapezoid" &&
@@ -3087,56 +3093,14 @@ function OrthoViewImpl({
                     ? part.shape
                     : null;
                 if (trapForTenon) {
-                  const lx = part.visible.length;
-                  const ly = part.visible.thickness;
-                  const lz = part.visible.width;
-                  const topScale = trapForTenon.topLengthScale;
-                  const botScale = trapForTenon.bottomLengthScale;
-                  const bev = trapForTenon.bevelAngle ?? 0;
-                  const halfMode = trapForTenon.bevelMode === "half";
-                  const bevShear = Math.tan(bev);
-                  // 對齊 body silhouette（俯視 Y 收，但 body 有 bevel shear → Z 端被
-                  // T/2×bevShear 撐開；halfMode 只 z<0 端套）。tenon Z 範圍要對齊 body
-                  // 在投影後的 Z 邊緣，否則 tenon 跟 body 接合會缺一塊（user 2026-06-02
-                  // 「左右牙條藍色榫沒跟零件完全接上 上方還有點縫」+「參考前後牙條畫法」）。
-                  //
-                  // body 左/右邊在 (zL, yL=+T/2) silhouette boundary 的位置：
-                  //   Z_screen = zL - yL × bevShear
-                  //   X = ±L/2 × scale(zL)
-                  // 我們直接吃 body 的 zL 端點（-L/2, +L/2）+ body 對應的 Z_screen 邊
-                  // (= zL - T/2 × bevShear at top, zL + T/2 × bevShear at bot)。
-                  const isEnd = t.position === "end";
-                  const sgn = isEnd ? +1 : -1;
-                  // body silhouette 投影後 Z 兩端（取對應 yL=±T/2 的最大延伸）
-                  const zTopBody = -lz / 2;
-                  const zBotBody = +lz / 2;
-                  const zTopScreen = halfMode
-                    ? zTopBody - (ly / 2) * Math.abs(bevShear)
-                    : zTopBody - (ly / 2) * Math.abs(bevShear);
-                  const zBotScreen = halfMode
-                    ? zBotBody // halfMode 只 z<0 套，z>=0 不偏
-                    : zBotBody + (ly / 2) * Math.abs(bevShear);
-                  // body 左/右邊在 zTopBody / zBotBody 對應的 X 位置（trap scale）
-                  const innerXTop = sgn * (lx / 2) * topScale;
-                  const innerXBot = sgn * (lx / 2) * botScale;
-                  const tenonLen = lb.hx * 2;
-                  const outerXTop = innerXTop + sgn * tenonLen;
-                  const outerXBot = innerXBot + sgn * tenonLen;
-                  const proj = (xL: number, zL: number) => ({
-                    x: -(xL + part.origin.x),
-                    y: zL + part.origin.z,
-                  });
-                  const pTopInner = proj(innerXTop, zTopScreen);
-                  const pTopOuter = proj(outerXTop, zTopScreen);
-                  const pBotOuter = proj(outerXBot, zBotScreen);
-                  const pBotInner = proj(innerXBot, zBotScreen);
-                  const pts = [pTopInner, pTopOuter, pBotOuter, pBotInner]
-                    .map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`)
-                    .join(" ");
+                  // 直接用 projectFeaturePolygon 但 isFeature=false → 套 trap scale + bev shear
+                  // 讓 tenon 跟著 body 同套變形
+                  const tPoly = projectFeaturePolygon(part, lb, view, false);
+                  const tPoints = tPoly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
                   elements.push(
                     <polygon
                       key={`${part.id}-t${i}`}
-                      points={pts}
+                      points={tPoints}
                       fill="none"
                       stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
                       strokeWidth={0.6}
