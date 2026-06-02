@@ -2749,18 +2749,80 @@ function ArchBentChord({
     );
   }
 
-  // 正視 FRONT (view="top")：右下角加「毛料厚 = W + bendMm」標示
-  // user 2026-06-02「沒有寫最厚厚度 要直接在上面標尺寸」
+  // 正視 FRONT (view="top")：直接在零件上畫垂直 dim 線標「毛料厚 ≥ W + bendMm」
+  // user 2026-06-02「要直接在上面標尺寸」
   if (view === "top") {
-    const envThick = round1((part.visible.width ?? 0) + sagitta);
-    const x0 = ctx.vbX + ctx.vbW - 90;
-    const y0 = ctx.vbY + ctx.vbH - 14;
+    const W = part.visible.width ?? 0;
+    const envThick = round1(W + sagitta);
+    // 弧峰在 part-local (0, +W/2+sagitta, 0)，弦端最低點在 (±L/2, -W/2, 0)
+    const top = ctx.partLocalToSvg(0, W / 2 + sagitta, 0);
+    const bot = ctx.partLocalToSvg(-chord / 2, -W / 2, 0);
+    // dim 線放在零件最左端外側 30px 處
+    const dimX = bot.x - 30;
+    const yLo = Math.min(top.y, bot.y);
+    const yHi = Math.max(top.y, bot.y);
+    const SZ = 3;
+    const stroke = "#b45309";
     return (
-      <g className="arch-bent-envelope" style={{ fontSize: 9 }}>
-        <text x={x0} y={y0} fill="#b45309" fontWeight={600}>
-          毛料厚 ≥ {envThick} mm
+      <g className="arch-bent-envelope">
+        {/* 延伸線：弧峰水平延到 dimX */}
+        <line
+          x1={top.x}
+          y1={top.y}
+          x2={dimX}
+          y2={top.y}
+          stroke={stroke}
+          strokeDasharray="3 2"
+          strokeWidth={0.6}
+        />
+        {/* 延伸線：弦端水平延到 dimX */}
+        <line
+          x1={bot.x}
+          y1={bot.y}
+          x2={dimX}
+          y2={bot.y}
+          stroke={stroke}
+          strokeDasharray="3 2"
+          strokeWidth={0.6}
+        />
+        {/* dim 主線 */}
+        <line
+          x1={dimX}
+          y1={yLo}
+          x2={dimX}
+          y2={yHi}
+          stroke={stroke}
+          strokeWidth={0.8}
+        />
+        {/* 上下向內箭頭 */}
+        <polygon
+          points={`${dimX},${yLo} ${dimX - SZ},${yLo + SZ + 1} ${dimX + SZ},${yLo + SZ + 1}`}
+          fill={stroke}
+        />
+        <polygon
+          points={`${dimX},${yHi} ${dimX - SZ},${yHi - SZ - 1} ${dimX + SZ},${yHi - SZ - 1}`}
+          fill={stroke}
+        />
+        {/* 文字標籤：垂直置於 dim 線旁 */}
+        <text
+          x={dimX - 5}
+          y={(yLo + yHi) / 2}
+          textAnchor="end"
+          dominantBaseline="middle"
+          fill={stroke}
+          fontWeight={600}
+          fontSize={9}
+        >
+          毛料厚 ≥ {envThick}
         </text>
-        <text x={x0} y={y0 + 11} fontSize={7} fill="#6b7280">
+        <text
+          x={dimX - 5}
+          y={(yLo + yHi) / 2 + 11}
+          textAnchor="end"
+          dominantBaseline="middle"
+          fill="#6b7280"
+          fontSize={7}
+        >
           （含弧高 {round1(sagitta)}）
         </text>
       </g>
