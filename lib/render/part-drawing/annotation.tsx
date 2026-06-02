@@ -204,20 +204,29 @@ export function T1Dimensions({
   const horizLabel = labelByAxis[horizAxisName];
   const vertLabel = labelByAxis[vertAxisName];
 
-  // 梯形 apron length 端：主「長」標的 dim 線跨 body silhouette 頂緣 = 接座(上)邊
-  // （body 已統一成真實比例 length×topLengthScale）。原本 horiz=visible.length
-  // 是肩到肩中線(168.3)，跟主三視圖標的上邊(160.9)+下邊對不上(user 2026-06-01
-  // 「數字不一樣」)。梯形件主標改顯示上邊長度,跟主三視圖/下邊標註同基準。
-  // ⚠️ 只在「正視」(view="top",看得到梯形上下邊)把主「長」改標上邊+dim 端點
-  // 貼上邊。俯視(view="front")/側視 body 是矩形,主「長」維持投影 bbox(horiz)。
-  const trapForMain =
-    view === "top" &&
+  // 梯形 apron length 端：主「長」標 silhouette 對應的真實邊（不是肩到肩中線）。
+  //
+  //   正視 (annotation view="top",看得到梯形)：主「長」= 上邊 topLengthScale×L
+  //     (短邊),dim 線端點貼上邊；下邊由第二條 dim 補。
+  //   俯視 (annotation view="front",Y 軸壓掉變矩形 silhouette)：
+  //     silhouette 寬 = max(top,bot)×L = 下邊 bottomLengthScale×L (長邊)。
+  //     主「長」改標下邊 (290.4),跟可見矩形等長；上邊 (280) 由第二條 dim 補。
+  //     user 2026-06-02：「不要中線 285.2,要 290.4(最長邊)跟 280(短邊)」
+  //   側視 body 是矩形 W×T,主「長」維持 horiz (跟 L 無關)。
+  const trapShapeForMain =
+    (view === "top" || view === "front") &&
     part.shape?.kind === "apron-trapezoid" &&
     horizAxisName === "L"
       ? part.shape
       : null;
-  const horizMainDisplay = trapForMain
-    ? round1(part.visible.length * trapForMain.topLengthScale)
+  const trapForMain = view === "top" ? trapShapeForMain : null;
+  const horizMainDisplay = trapShapeForMain
+    ? round1(
+        part.visible.length *
+          (view === "top"
+            ? trapShapeForMain.topLengthScale
+            : trapShapeForMain.bottomLengthScale),
+      )
     : horiz;
 
   // 連榫頭總長：把所有 tenon bbox 8 corners 投影併入 → 算 gross 比 partBody 大多少
@@ -384,27 +393,24 @@ export function T1Dimensions({
         </g>
       )}
 
-      {/* 梯形斜接牙板的「另一邊」長度（user 2026-06-01）：T1「長」標的是
-          part.visible.length（apron-trapezoid 的上邊/肩到肩基準）；斜接件上下
-          兩邊不等長，師傅切兩端斜肩要知道另一邊多長。下邊 = length ×
-          bottomLengthScale，畫在 part 下方再標一條「長 XXX」。
-          只在水平軸 = 長度(L) 的 view（front/top）顯示，側視(看 W×T)不畫。 */}
+      {/* 梯形斜接牙板的「另一邊」長度：
+          - 正視 (view="top",梯形可見)：主標上邊 = topLengthScale×L,
+            這條補下邊 = bottomLengthScale×L
+          - 俯視 (view="front",silhouette 矩形 = max scale = 下邊)：
+            主標下邊 = bottomLengthScale×L,這條補上邊 = topLengthScale×L
+          user 2026-06-02：「俯視不要 285.2 中線,要 290.4 跟 280」 */}
       {(() => {
         const trap =
           part.shape?.kind === "apron-trapezoid" ? part.shape : null;
-        // 只在「正視」(零件圖內部 view="top",看 length×width 立面)畫下邊：
-        // 梯形上下寬窄差異在 width(高度)軸,只有正視看得到。俯視/側視是矩形。
-        if (view !== "top") return null;
+        if (view !== "top" && view !== "front") return null;
         if (!trap || horizAxisName !== "L") return null;
-        // 接地邊 = doc §A10.4 真實比例 length × bottomLengthScale（相對肩到肩
-        // 中心），跟 svg-views body outline + 俯視 silhouette + 主三視圖同源
-        // （2026-06-01 統一：先前用 ratio=bot/top 數值偏大且跟俯視不一致）。
-        const otherLen = round1(L * trap.bottomLengthScale);
-        if (Math.abs(otherLen - horiz) < 0.5) return null; // 上下等長 → 不重複標
-        // 接地邊端點 x = ±L/2 × bottomLengthScale,貼 body 接地實際端點
-        // (W 面投影寬度兩面相同,取 +W/2)。
-        const eL = ctx.partLocalToSvg((-L / 2) * trap.bottomLengthScale, +T / 2, +W / 2);
-        const eR = ctx.partLocalToSvg((+L / 2) * trap.bottomLengthScale, +T / 2, +W / 2);
+        // 另一邊 scale = 跟主標相反那一邊
+        const otherScale = view === "top" ? trap.bottomLengthScale : trap.topLengthScale;
+        const otherLen = round1(L * otherScale);
+        if (Math.abs(otherLen - horizMainDisplay) < 0.5) return null; // 兩邊等長 → 不重複標
+        // 端點 x = ±L/2 × otherScale
+        const eL = ctx.partLocalToSvg((-L / 2) * otherScale, +T / 2, +W / 2);
+        const eR = ctx.partLocalToSvg((+L / 2) * otherScale, +T / 2, +W / 2);
         const xs = [eL.x, eR.x].sort((a, b) => a - b);
         const bxLo = xs[0];
         const bxHi = xs[1];
