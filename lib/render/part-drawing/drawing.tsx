@@ -34,6 +34,31 @@ import { formatLengthBare } from "@/lib/units/format";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/**
+ * 計算 part 含榫總尺寸（gross：把 tenon 延伸加進三軸）。
+ * - L: 含 start/end tenon
+ * - W: 含 left/right tenon
+ * - T: 含 top/bottom tenon
+ * visible.length 在 butt-joint 慣例下 = 兩端肩到肩的裸露對接長度，
+ * maker 切料看的「實際下料長」需要再 + 兩端榫頭長。
+ */
+function grossPartDims(part: Part): { L: number; W: number; T: number } {
+  let extL = 0;
+  let extW = 0;
+  let extT = 0;
+  for (const t of part.tenons) {
+    if (t.length <= 0) continue;
+    if (t.position === "start" || t.position === "end") extL += t.length;
+    else if (t.position === "left" || t.position === "right") extW += t.length;
+    else if (t.position === "top" || t.position === "bottom") extT += t.length;
+  }
+  return {
+    L: (part.visible.length ?? 0) + extL,
+    W: (part.visible.width ?? 0) + extW,
+    T: (part.visible.thickness ?? 0) + extT,
+  };
+}
+
 // 圓料家族：part shape 屬於圓族時 dim 用 Ø{直徑}×{長度}（跟 PartDrawingsPanel.tsx 對偶）
 const isRoundFamilyShape = (part: Part): boolean => {
   const k = part.shape?.kind;
@@ -193,7 +218,10 @@ export function PartDrawing({
               ? (material?.nameEn ?? material?.nameZh ?? part.material)
               : (material?.nameZh ?? part.material)
           }
-          dimsLabel={`${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`}
+          dimsLabel={(() => {
+            const g = grossPartDims(part);
+            return `${Math.round(g.L)}×${Math.round(g.W)}×${Math.round(g.T)}`;
+          })()}
           title={part.nameZh}
           className="bg-white w-full h-auto"
           locale={locale}
@@ -274,7 +302,10 @@ export function PartDrawing({
                     materialLabel: isEn
                       ? (material?.nameEn ?? material?.nameZh ?? part.material)
                       : (material?.nameZh ?? part.material),
-                    dimsLabel: `${formatLengthBare(part.visible.length, unit)}×${formatLengthBare(part.visible.width, unit)}×${formatLengthBare(part.visible.thickness, unit)}`,
+                    dimsLabel: (() => {
+                      const g = grossPartDims(part);
+                      return `${formatLengthBare(g.L, unit)}×${formatLengthBare(g.W, unit)}×${formatLengthBare(g.T, unit)}`;
+                    })(),
                   }}
                   overlayContent={(ctx) => {
                     // 仰視 BOTTOM：annotation 在「Y 鏡像後的 part」+ view='top' 下渲染，
@@ -404,16 +435,31 @@ export function PartDrawing({
             <span className="text-zinc-500">{isEn ? "Tolerance " : "公差 "}</span>±1mm
           </div>
         </div>
-        {/* Phase 2.5 Task 2: 成品 vs 毛料雙標 */}
-        <div className="text-zinc-500 mt-0.5">
-          {isEn ? "Finished " : "成品 "}
-          {isRoundFamilyShape(part)
-            ? `Ø${round1(
-                Math.max(part.visible.width, part.visible.thickness),
-              )}×${round1(part.visible.length)}`
-            : `${round1(part.visible.length)}×${round1(part.visible.width)}×${round1(part.visible.thickness)}`}
-          　|　{isEn ? "Stock " : "毛料 "}{raw.L}×{raw.W}×{raw.T}
-        </div>
+        {/* Phase 2.5 Task 2: 成品 / 含榫 / 毛料 三標 */}
+        {(() => {
+          const g = grossPartDims(part);
+          const finishedStr = isRoundFamilyShape(part)
+            ? `Ø${round1(Math.max(part.visible.width, part.visible.thickness))}×${round1(part.visible.length)}`
+            : `${round1(part.visible.length)}×${round1(part.visible.width)}×${round1(part.visible.thickness)}`;
+          const grossStr = isRoundFamilyShape(part)
+            ? `Ø${round1(Math.max(g.W, g.T))}×${round1(g.L)}`
+            : `${round1(g.L)}×${round1(g.W)}×${round1(g.T)}`;
+          const hasTenonExt =
+            Math.abs(g.L - part.visible.length) > 0.5 ||
+            Math.abs(g.W - part.visible.width) > 0.5 ||
+            Math.abs(g.T - part.visible.thickness) > 0.5;
+          return (
+            <div className="text-zinc-500 mt-0.5">
+              {isEn ? "Finished " : "成品 "}{finishedStr}
+              {hasTenonExt && (
+                <>
+                  　|　{isEn ? "With tenons " : "含榫 "}{grossStr}
+                </>
+              )}
+              　|　{isEn ? "Stock " : "毛料 "}{raw.L}×{raw.W}×{raw.T}
+            </div>
+          );
+        })()}
         {design.useButtJointConvention !== false && (
           <div className="text-[8px] text-zinc-400 italic mt-0.5">
             {part.shape?.kind === "dovetail-ends"
@@ -421,8 +467,8 @@ export function PartDrawing({
                 ? "※ visible.length = stock cut length (incl. dovetail tail tips on both ends)"
                 : "※ visible.length = stock 裁切長（含兩端鳩尾 tail tip）"
               : isEn
-                ? "※ visible.length = with tenon overlap; exposed = visible.length − 2 × tenon length"
-                : "※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長"}
+                ? "※ Finished = exposed butt-joint length (shoulder-to-shoulder); With tenons = Finished + 2 × tenon length (actual cut length); Stock = With tenons + trimming margin"
+                : "※ 成品 = 裸露對接長度（肩到肩）；含榫 = 成品 + 兩端榫長（實際下料長）；毛料 = 含榫 + 修整餘量"}
           </div>
         )}
         {part.shape?.kind === "hoof" && (

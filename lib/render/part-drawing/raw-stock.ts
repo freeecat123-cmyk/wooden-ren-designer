@@ -1,10 +1,11 @@
 /**
  * rawStockSize — 估算 part 的「毛料」尺寸（Phase 2.5 Task 2）。
  *
- * 成品 = visible.length × visible.width × visible.thickness（圖上實際尺寸）
- * 毛料 = 成品 + 餘量（per-shape；木匠買料要含刨光/車旋/弧形外接矩形）
+ * 成品 = visible.length × visible.width × visible.thickness（裸露對接尺寸）
+ * 含榫 = 成品 + 兩端榫頭長（=實際下料長，maker 切料用）
+ * 毛料 = 含榫 + 餘量（per-shape；木匠買料要含刨光/車旋/弧形外接矩形）
  *
- * Per-shape rule：
+ * Per-shape rule（基礎餘量，再加 tenon 延伸）：
  * - default: L +12（兩端各 ~5mm）/ W +4 / T +2（單面刨光）
  * - lathe-turned: 徑向 ×1.15、長 +20mm（端面車削留量）
  * - hoof: 徑向 × hoofScale（含腳趾外撇段）
@@ -16,18 +17,36 @@
  */
 import type { Part } from "@/lib/types";
 
+/**
+ * 三軸 tenon 延伸量（butt-joint 慣例：visible.length 不含榫，maker 切料要加）。
+ * 跟 drawing.tsx 的 grossPartDims 對齊。
+ */
+function tenonExt(part: Part): { L: number; W: number; T: number } {
+  let L = 0;
+  let W = 0;
+  let T = 0;
+  for (const t of part.tenons) {
+    if (t.length <= 0) continue;
+    if (t.position === "start" || t.position === "end") L += t.length;
+    else if (t.position === "left" || t.position === "right") W += t.length;
+    else if (t.position === "top" || t.position === "bottom") T += t.length;
+  }
+  return { L, W, T };
+}
+
 export function rawStockSize(part: Part): { L: number; W: number; T: number } {
   const v = part.visible;
   const s = part.shape as any;
+  const ext = tenonExt(part);
 
-  let L = (v.length ?? 0) + 12;
-  let W = (v.width ?? 0) + 4;
-  let T = (v.thickness ?? 0) + 2;
+  let L = (v.length ?? 0) + ext.L + 12;
+  let W = (v.width ?? 0) + ext.W + 4;
+  let T = (v.thickness ?? 0) + ext.T + 2;
 
   if (s?.kind === "lathe-turned") {
     W = (v.width ?? 0) * 1.15;
     T = (v.thickness ?? 0) * 1.15;
-    L = (v.length ?? 0) + 20;
+    L = (v.length ?? 0) + ext.L + 20;
   } else if (s?.kind === "hoof") {
     const hoofScale = s.hoofScale ?? 1.4;
     W = (v.width ?? 0) * hoofScale;
@@ -40,11 +59,12 @@ export function rawStockSize(part: Part): { L: number; W: number; T: number } {
     W = (v.width ?? 0) + 6;
     T = (v.thickness ?? 0) + 6;
   } else if (s?.kind === "arch-bent") {
-    L = (v.length ?? 0) * 1.1;
+    L = (v.length ?? 0) + ext.L;
+    L = L * 1.1;
   } else if (s?.kind === "splayed-tapered") {
     const dx = s.dxMm ?? 0;
     const dz = s.dzMm ?? 0;
-    L = Math.sqrt((v.length ?? 0) ** 2 + dx * dx + dz * dz) + 12;
+    L = Math.sqrt((v.length ?? 0) ** 2 + dx * dx + dz * dz) + ext.L + 12;
   }
 
   return { L: Math.round(L), W: Math.round(W), T: Math.round(T) };
