@@ -2726,27 +2726,48 @@ function ArchBentChord({
   part: Part;
   view: PartView;
 }) {
-  if (view !== "front") return null;
   if (part.shape?.kind !== "arch-bent") return null;
   const chord = part.visible.length;
   const sagitta = part.shape.bendMm ?? 0;
 
-  const x0 = ctx.vbX + 14;
-  const y0 = ctx.vbY + ctx.vbH - 40;
+  // 俯視 TOP (view="front")：左下角放弦長 + 矢高 + 走紋小字
+  if (view === "front") {
+    const x0 = ctx.vbX + 14;
+    const y0 = ctx.vbY + ctx.vbH - 40;
+    return (
+      <g className="arch-bent-chord" style={{ fontSize: 8 }}>
+        <text x={x0} y={y0} fill="#374151">
+          弦長 {round1(chord)}
+        </text>
+        <text x={x0} y={y0 + 10} fill="#374151">
+          矢高 {round1(sagitta)}
+        </text>
+        <text x={x0} y={y0 + 20} fontSize={6} fill="#6b7280">
+          （順弦切向木紋）
+        </text>
+      </g>
+    );
+  }
 
-  return (
-    <g className="arch-bent-chord" style={{ fontSize: 8 }}>
-      <text x={x0} y={y0} fill="#374151">
-        弦長 {round1(chord)}
-      </text>
-      <text x={x0} y={y0 + 10} fill="#374151">
-        矢高 {round1(sagitta)}
-      </text>
-      <text x={x0} y={y0 + 20} fontSize={6} fill="#6b7280">
-        （順弦切向木紋）
-      </text>
-    </g>
-  );
+  // 正視 FRONT (view="top")：右下角加「毛料厚 = W + bendMm」標示
+  // user 2026-06-02「沒有寫最厚厚度 要直接在上面標尺寸」
+  if (view === "top") {
+    const envThick = round1((part.visible.width ?? 0) + sagitta);
+    const x0 = ctx.vbX + ctx.vbW - 90;
+    const y0 = ctx.vbY + ctx.vbH - 14;
+    return (
+      <g className="arch-bent-envelope" style={{ fontSize: 9 }}>
+        <text x={x0} y={y0} fill="#b45309" fontWeight={600}>
+          毛料厚 ≥ {envThick} mm
+        </text>
+        <text x={x0} y={y0 + 11} fontSize={7} fill="#6b7280">
+          （含弧高 {round1(sagitta)}）
+        </text>
+      </g>
+    );
+  }
+
+  return null;
 }
 
 /**
