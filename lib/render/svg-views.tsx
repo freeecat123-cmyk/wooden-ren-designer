@@ -3076,7 +3076,64 @@ function OrthoViewImpl({
                 // beveled）變形——apron 斜的話榫頭也跟著斜。
                 // 俯視 用 axis-aligned rect——避免 apron-trapezoid 讓 top/bot
                 // 端 length scale 差距產生疊影 mess。
-                if (view === "top") {
+                // **apron-trapezoid 例外**：俯視/正視看得到梯形，start/end 榫的
+                // 內側肩（接 body 那邊）要跟著 body 左/右斜邊，否則 tenon 跟 body
+                // 接點在 top 邊有縫（user 2026-06-02「左右牙條藍色榫沒跟零件完全
+                // 接上 上方還有點縫」）。畫成平行四邊形 4 corners。
+                const trapForTenon =
+                  view === "top" &&
+                  part.shape?.kind === "apron-trapezoid" &&
+                  (t.position === "start" || t.position === "end")
+                    ? part.shape
+                    : null;
+                if (trapForTenon) {
+                  const lx = part.visible.length;
+                  const topScale = trapForTenon.topLengthScale;
+                  const botScale = trapForTenon.bottomLengthScale;
+                  // body 左/右邊在 part-local (X, Z) 隨 Z 改變：x = ±L/2 × scale(Z)
+                  // 套到 tenon 的 Z 範圍 [cz-hz, cz+hz]，補 tenon 自身長度 L → 平行四邊形
+                  const isEnd = t.position === "end";
+                  const sgn = isEnd ? +1 : -1;
+                  const tenonHz = lb.hz;
+                  const zTop = lb.cz - tenonHz;
+                  const zBot = lb.cz + tenonHz;
+                  const tZTopFromCenter = (zTop + part.visible.width / 2) / part.visible.width;
+                  const tZBotFromCenter = (zBot + part.visible.width / 2) / part.visible.width;
+                  const scaleAtTop = topScale + (botScale - topScale) * tZTopFromCenter;
+                  const scaleAtBot = topScale + (botScale - topScale) * tZBotFromCenter;
+                  // body 左/右邊在 tenon Z 範圍的 X 位置
+                  const innerXTop = sgn * (lx / 2) * scaleAtTop;
+                  const innerXBot = sgn * (lx / 2) * scaleAtBot;
+                  // tenon 外端 = inner 再 ±L_tenon
+                  const tenonLen = lb.hx * 2;
+                  const outerXTop = innerXTop + sgn * tenonLen;
+                  const outerXBot = innerXBot + sgn * tenonLen;
+                  // 投影：svg-views view="top" 投 (x, z)，y_svg = z；x_svg = -x（projection 慣例）
+                  // 但 lb 在 part-local，projectFeatureRect 之前已套 origin。為了跟其他 rect
+                  // 行為一致，直接用 r.x/r.y 推：r.x = -inner_x_centerline、r.w = tenon length
+                  // 簡化：用 part-local 自己投影
+                  const proj = (xL: number, zL: number) => ({
+                    x: -(xL + part.origin.x),
+                    y: zL + part.origin.z,
+                  });
+                  const pTopInner = proj(innerXTop, zTop);
+                  const pTopOuter = proj(outerXTop, zTop);
+                  const pBotOuter = proj(outerXBot, zBot);
+                  const pBotInner = proj(innerXBot, zBot);
+                  const pts = [pTopInner, pTopOuter, pBotOuter, pBotInner]
+                    .map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`)
+                    .join(" ");
+                  elements.push(
+                    <polygon
+                      key={`${part.id}-t${i}`}
+                      points={pts}
+                      fill="none"
+                      stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                      strokeWidth={0.6}
+                      strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                    />,
+                  );
+                } else if (view === "top") {
                   elements.push(
                     <rect
                       key={`${part.id}-t${i}`}
