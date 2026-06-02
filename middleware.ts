@@ -18,6 +18,24 @@ import { GEO_DEFAULTS_COOKIE, resolveGeoDefaults } from "./lib/geo-defaults";
 const intlMiddleware = createIntlMiddleware(routing);
 
 /**
+ * 智慧語言偵測：根 `/` 路徑時，若使用者沒手動選過語言、且 Accept-Language 不是 zh-*，
+ * 跳轉到 /en。避免英文行銷流量（Reddit / blog / pin）落到中文首頁秒跳走。
+ *
+ * 不跳轉的情況：
+ * - 用戶 cookie 顯示已選過語言（NEXT_LOCALE 存在）
+ * - Accept-Language 為空（多半是爬蟲，保留 zh-TW 為 canonical SEO）
+ * - 主要語言以 zh 開頭（zh-TW / zh-CN / zh-HK / zh-SG）
+ */
+function shouldRedirectToEn(request: NextRequest): boolean {
+  if (request.cookies.has("NEXT_LOCALE")) return false;
+  const acceptLang = request.headers.get("accept-language") ?? "";
+  if (!acceptLang.trim()) return false;
+  const primary = acceptLang.split(",")[0]?.trim().toLowerCase() ?? "";
+  if (primary.startsWith("zh")) return false;
+  return true;
+}
+
+/**
  * 在 response 上設定 wr-geo-defaults cookie（若尚未存在）。
  * 由 Vercel 邊緣節點注入的 `x-vercel-ip-country` header 推測單位/幣別預設。
  * 不覆蓋既有 cookie → 使用者切換偏好後不會被 middleware 改回去。
@@ -35,10 +53,16 @@ function ensureGeoDefaultsCookie(request: NextRequest, response: NextResponse) {
 }
 
 export default async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // 根 `/` 智慧語言跳轉（在 intl 處理之前；只針對 `/`，不包含 `/en` 或其他路徑）
+  if (pathname === "/" && shouldRedirectToEn(request)) {
+    return NextResponse.redirect(new URL("/en", request.url));
+  }
+
   // 先讓 intl 處理 locale 偵測（可能會 redirect 或 rewrite）
   const intlResponse = intlMiddleware(request);
 
-  const pathname = request.nextUrl.pathname;
   const isHome = pathname === "/" || pathname === "/en";
 
   // 非 home 路徑：寫入 geo cookie（若需要）後直接回 intl 結果，不做 auth 檢查（省 50-200ms TTFB）
