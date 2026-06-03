@@ -20,6 +20,9 @@ export function categorizePart(id: string): PartCategory {
   if (/-door-.*-(rail|stile|panel|glass)/.test(id)) return "door";
   if (id === "top" || id === "bottom" || id === "back") return "case";
   if (/^side-(left|right)$/.test(id)) return "case";
+  // 工具牆：法式斜切條（牆條/掛條）+ 三帶側立板歸結構（case）
+  if (/-cleat-\d+$/.test(id) || /^tool-\w+-cleat$/.test(id)) return "case";
+  if (/-side-(left|right)$/.test(id)) return "case";
   if (
     /^shelf-/.test(id) ||
     /-shelf-/.test(id) ||

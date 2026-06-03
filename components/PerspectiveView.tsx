@@ -562,6 +562,7 @@ const Part = memo(function PartInner({
     shape?.kind === "regular-polygon" ||
     shape?.kind === "right-triangle" ||
     shape?.kind === "mitered-corner" ||
+    shape?.kind === "french-cleat" ||
     (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0) ||
     hasCosmeticCut ||
     hasDovetailCut;
@@ -1215,6 +1216,14 @@ export function PerspectiveView({
             // edgesGeometry useMemo 內早 return 分支抓得到、跳 ±X tip 兩條
             // z 軸 side edge（紅酒架菱形 lattice wireframe 不進框關鍵）。
             shape = { kind: "pointed-ends" };
+          } else if (part.shape?.kind === "french-cleat") {
+            // bevelAngle 是角度（免 SCALE）、orientation 是字串；bevelDrop 由
+            // size（已 scaled 的 thickness/width）算出，故純 passthrough。
+            shape = {
+              kind: "french-cleat",
+              bevelAngle: part.shape.bevelAngle,
+              orientation: part.shape.orientation,
+            };
           }
           // joineryMode：每個 tenon 凸出當小盒子畫，用 part 的 rotation +
           // tenon local center（含 offset）算 world position；box 跟 part 同

@@ -36,7 +36,8 @@ export type FurnitureCategory =
   | "tray"
   | "dovetail-box"
   | "wine-rack"
-  | "coat-rack";
+  | "coat-rack"
+  | "wall-mounted-tool-storage";
 
 export type JoineryType =
   | "through-tenon"
@@ -408,7 +409,15 @@ export interface Part {
      *  X 端各收成一個尖點（兩個 45° 斜面）。沿 width 軸（Z）擠出成六角柱。
      *  用於菱形酒窖格的 45° 斜板：板斜 45° 時兩個 45° 端面在世界座標變成
      *  一鉛直一水平 → 尖端完美卡進格子的 90° 內角。 */
-    | { kind: "pointed-ends" };
+    | { kind: "pointed-ends" }
+    /** 法式斜切條（French cleat）：壁掛工具牆用。直角梯形截面——一面垂直貼牆、
+     *  一面 45° 斜切。沿零件 length 軸（X，水平左右）擠出。
+     *  local Y = thickness（凸出牆面朝前），local Z = width（條高，上下）。
+     *  - orientation="upper"：牆條，斜口朝上（前面比背面矮），固定上牆。
+     *  - orientation="lower"：活動掛座條，斜口朝下倒扣，咬住 upper 的斜面（互鎖）。
+     *  bevelAngle = 斜切角（radians，預設 Math.PI/4 = 45°）。
+     *  截面點由共用函式 frenchCleatSection() 算出，3D / 三視圖 / SVG 同源。 */
+    | { kind: "french-cleat"; bevelAngle: number; orientation: "upper" | "lower" };
 
   /**
    * 榫接版專用幾何覆寫：joineryMode 開啟時，渲染端會以此覆寫 part 的

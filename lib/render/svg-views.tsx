@@ -1915,17 +1915,21 @@ function OrthoViewImpl({
         const isArchBentSideFront =
           part.shape?.kind === "arch-bent" && view !== "top";
         const isTiltZ = part.shape?.kind === "tilt-z" && view !== "top";
+        // french-cleat：直角梯形（側視看到斜邊），全視角走 projectPartSilhouette
+        // → 側視梯形、正視/俯視矩形。俯視不走下方 apron 特例（cleat 非傾斜料）。
+        const isFrenchCleat = part.shape?.kind === "french-cleat";
         if (
           isTiltedBox ||
           isApronTrapezoid ||
           isApronBeveled ||
           isApronHalfBeveled ||
           isArchBentSideFront ||
-          isTiltZ
+          isTiltZ ||
+          isFrenchCleat
         ) {
           // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
           // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
-          if (view === "top") {
+          if (view === "top" && !isFrenchCleat) {
             const lx = part.visible.length;
             const ly = part.visible.thickness;
             const lz = part.visible.width;

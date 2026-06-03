@@ -403,6 +403,31 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       ],
     });
   }
+  const cleatParts = design.parts.filter((p) => p.shape?.kind === "french-cleat");
+  if (cleatParts.length > 0) {
+    const upperCount = cleatParts.filter(
+      (p) => p.shape?.kind === "french-cleat" && p.shape.orientation === "upper",
+    ).length;
+    const lowerCount = cleatParts.length - upperCount;
+    steps.push({
+      id: "step-05-french-cleat",
+      phase: "cut-joinery",
+      title: `鋸製法式斜切條（French cleat，牆條 ${upperCount} 條 + 活動座 ${lowerCount} 條）`,
+      description:
+        `把料以 **45° 縱向鋸開成兩半**——一半斜口朝上釘上牆（牆條），`
+        + `另一半斜口朝下倒扣咬合（掛在工具座底部）。重力把活動座往下壓進牆條斜面，`
+        + `愈重咬愈緊，這就是法式斜切的原理。`,
+      toolIds: ["all-purpose-saw", "magnetic-saw-guide", "marking-gauge", "drill", "drill-bits"],
+      estimatedMinutes: 8 + cleatParts.length * 6,
+      bullets: [
+        "鋸台或軌道鋸把鋸片/導板設 45°，一刀縱剖整條料 → 同時得到牆條與活動座兩半，斜面自然吻合",
+        "牆條斜口朝上、活動座斜口朝下，兩者 45° 面相對才能互鎖（裝反就掛不住）",
+        "牆條鎖牆前先用水平儀抓平，每條間距固定（本設計已算好），活動座才能任意換位",
+        "鎖牆務必鎖進壁柱或加膨脹螺栓——工具牆滿載重量不輕",
+      ],
+      warnings: ["45° 縱剖長料時務必用導板/推板，手扶離鋸片遠一點"],
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // 4b. 組裝版：斜孔 / 木釘 / DOMINO（榫接版的對偶 phase）

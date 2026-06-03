@@ -30,6 +30,7 @@ import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
 import { wineRack, wineRackOptions } from "./wine-rack";
 import { coatRack, coatRackOptions } from "./coat-rack";
 import { bed, bedOptions } from "./bed";
+import { wallMountedToolStorage, wallMountedToolStorageOptions } from "./wall-mounted-tool-storage";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -394,6 +395,18 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 280, width: 280, height: 1700 },
     limits: { length: 1000, width: 1000, height: 2200 },
     optionSchema: coatRackOptions,
+  },
+  {
+    category: "wall-mounted-tool-storage",
+    nameZh: "木工工具牆",
+    nameEn: "Wall-mounted tool storage",
+    description: "壁掛工具牆，三帶可自訂（法式斜切條 / 開放層板 / 掛桁掛鉤）+ 通用工具座，工作室必備",
+    descriptionEn: "Wall-mounted tool storage — three customizable bands (French cleat / open shelves / hooks) plus generic holders. Workshop essential.",
+    difficulty: "intermediate",
+    template: wallMountedToolStorage,
+    defaults: { length: 1200, width: 200, height: 1200 },
+    limits: { length: 2400, width: 400, height: 2000 },
+    optionSchema: wallMountedToolStorageOptions,
   },
 ];
 

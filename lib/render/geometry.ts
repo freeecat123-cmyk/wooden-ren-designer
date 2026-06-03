@@ -21,6 +21,40 @@ export function worldExtents(part: Part) {
 export type OrthoView = "front" | "side" | "top" | "bottom";
 
 /**
+ * 法式斜切條截面（共用，3D / 三視圖 / SVG 同源，杜絕梯形 vs 方塊漂移）。
+ * 直角梯形，在 part-local Y–Z 平面（Y=thickness 凸出牆面、Z=width 條高）。
+ * 回傳 4 個 [y, z] 點，CCW（從 +X 端往 -X 看）。
+ * - upper（牆條）：斜口朝上 → 前面（+Y）比背面（-Y）矮 bevelDrop。
+ * - lower（活動掛座）：斜口朝下 → 與 upper 上下鏡像，倒扣咬合。
+ * 背面（-Y，貼牆側）永遠是垂直滿邊，從 -hz 到 +hz。
+ * 純函式、無 three.js 依賴，故放在 2D geometry 模組讓 part-geometry 與 svg-views 共用。
+ */
+export function frenchCleatSection(
+  thickness: number,
+  width: number,
+  bevelAngle: number,
+  orientation: "upper" | "lower",
+): Array<[number, number]> {
+  const hy = thickness / 2;
+  const hz = width / 2;
+  // 45° → bevelDrop = 2*hy（斜面在 Z 上吃掉 = 在 Y 上凸出量）。clamp 不超過全高。
+  const bevelDrop = Math.min(2 * hz, (2 * hy) / Math.tan(bevelAngle));
+  return orientation === "upper"
+    ? [
+        [-hy, -hz],            // 背下
+        [hy, -hz],             // 前下
+        [hy, hz - bevelDrop],  // 前上（斜面起點，前面較矮）
+        [-hy, hz],             // 背上
+      ]
+    : [
+        [-hy, hz],             // 背上
+        [hy, hz],              // 前上
+        [hy, -hz + bevelDrop], // 前下（斜面起點）
+        [-hy, -hz],            // 背下
+      ];
+}
+
+/**
  * 通用零件 silhouette：取零件 local-frame 採樣點 → 套形狀修飾（taper/splay/
  * arch-bent/tilt-z/apron-trapezoid/apron-beveled）→ 套 rotation → 加 origin →
  * 投影到 view 平面 → convex hull → 剪影 polygon。
@@ -134,6 +168,17 @@ export function projectPartSilhouette(
     ];
     for (const zL of [-lz / 2, lz / 2]) {
       for (const [xL, yL] of hexXY) pushPoint(xL, yL, zL);
+    }
+    return convexHull2D(projected);
+  }
+
+  // french-cleat：直角梯形截面在 Y-Z 平面（ly=thickness, lz=width），沿 X 擠出。
+  // 直接給 8 個 part-local 頂點（截面 4 點 × 兩個 X 端），不走 bbox 角採樣
+  // （否則梯形被補成方塊）。側視看到梯形斜邊、正視/俯視自然成矩形。
+  if (part.shape?.kind === "french-cleat") {
+    const sec = frenchCleatSection(ly, lz, part.shape.bevelAngle, part.shape.orientation);
+    for (const xL of [-lx / 2, lx / 2]) {
+      for (const [yL, zL] of sec) pushPoint(xL, yL, zL);
     }
     return convexHull2D(projected);
   }

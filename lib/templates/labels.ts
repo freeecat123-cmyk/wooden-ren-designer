@@ -42,6 +42,7 @@ export const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
   "wine-rack": "紅酒架",
   bed: "床架",
   "coat-rack": "立式衣帽架",
+  "wall-mounted-tool-storage": "木工工具牆",
 };
 
 export function getCategoryLabel(category: FurnitureCategory): string {
@@ -77,6 +78,7 @@ export const CATEGORY_LABELS_EN: Record<FurnitureCategory, string> = {
   "wine-rack": "Wine rack",
   bed: "Bed frame",
   "coat-rack": "Coat rack",
+  "wall-mounted-tool-storage": "Wall-mounted tool storage",
 };
 
 export function categoryLabel(category: FurnitureCategory, locale: string): string {

@@ -59,7 +59,8 @@ const CATEGORY_GROUPS: Array<{
     match: (c) =>
       c === "open-bookshelf" || c === "chest-of-drawers" ||
       c === "shoe-cabinet" || c === "display-cabinet" ||
-      c === "wardrobe" || c === "media-console" || c === "nightstand",
+      c === "wardrobe" || c === "media-console" || c === "nightstand" ||
+      c === "wall-mounted-tool-storage",
   },
   {
     id: "small",
@@ -77,7 +78,7 @@ const CATEGORY_GROUPS: Array<{
 ];
 
 const DEV_SET = new Set<FurnitureCategory>([
-  "chinese-cabinet", "bed", "coat-rack",
+  "chinese-cabinet", "bed", "coat-rack", "wall-mounted-tool-storage",
 ]);
 
 interface InteriorTool {

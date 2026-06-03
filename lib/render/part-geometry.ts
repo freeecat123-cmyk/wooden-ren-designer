@@ -17,6 +17,7 @@ import {
   Vector2,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { frenchCleatSection } from "./geometry";
 
 /**
  * 車旋腳輪廓（古典花瓶/baluster 風格）：
@@ -78,7 +79,8 @@ export type ShapeSpec =
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
   | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number }
-  | { kind: "pointed-ends" };
+  | { kind: "pointed-ends" }
+  | { kind: "french-cleat"; bevelAngle: number; orientation: "upper" | "lower" };
 
 
 /**
@@ -210,6 +212,39 @@ export function buildApronTrapezoidGeometry(
     ...f(2, 3, 7, 6), // +y face
     ...f(1, 2, 6, 5), // +x face
     ...f(3, 0, 4, 7), // -x face
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * 法式斜切條幾何（French cleat）：沿 local X（length）軸擠出直角梯形截面。
+ * 截面由 frenchCleatSection() 提供（Y–Z 平面）。8 頂點 = -hx 端 4 點 + +hx 端 4 點，
+ * winding 與 buildApronTrapezoidGeometry 同手法（端面反向、側面 quad 繞行）。
+ */
+export function buildFrenchCleatGeometry(
+  size: [number, number, number],
+  bevelAngle: number,
+  orientation: "upper" | "lower",
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const sec = frenchCleatSection(ly, lz, bevelAngle, orientation);
+  // 8 verts: 0..3 = x=-hx 端，4..7 = x=+hx 端（各取截面 4 點的 y,z）
+  const v: number[] = [];
+  for (const [y, z] of sec) v.push(-hx, y, z);
+  for (const [y, z] of sec) v.push(hx, y, z);
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1), // -x end face (outward = -X)
+    ...f(4, 5, 6, 7), // +x end face (outward = +X)
+    ...f(0, 1, 5, 4), // section edge 0→1
+    ...f(1, 2, 6, 5), // edge 1→2
+    ...f(2, 3, 7, 6), // edge 2→3 (斜面 / 背面其一)
+    ...f(3, 0, 4, 7), // edge 3→0
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
@@ -2212,6 +2247,9 @@ export function buildShapeGeometry(
   }
   if (shape.kind === "pointed-ends") {
     return buildPointedEndsGeometry(size);
+  }
+  if (shape.kind === "french-cleat") {
+    return buildFrenchCleatGeometry(size, shape.bevelAngle, shape.orientation);
   }
   return null;
 }
