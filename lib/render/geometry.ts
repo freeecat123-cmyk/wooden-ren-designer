@@ -39,6 +39,9 @@ export function frenchCleatSection(
   const hz = width / 2;
   // 45° → bevelDrop = 2*hy（斜面在 Z 上吃掉 = 在 Y 上凸出量）。clamp 不超過全高。
   const bevelDrop = Math.min(2 * hz, (2 * hy) / Math.tan(bevelAngle));
+  // lower = upper 的「截面 180° 點反射」(y,z)→(-y,-z)。配 part 同一個 rotation
+  // 後，世界座標等於把 upper 牆條繞長度軸轉 180° → 斜面與牆條平行、可真正咬合
+  // （單純上下鏡像會讓斜面方向相反、扣不住）。
   return orientation === "upper"
     ? [
         [-hy, -hz],            // 背下
@@ -47,10 +50,10 @@ export function frenchCleatSection(
         [-hy, hz],             // 背上
       ]
     : [
-        [-hy, hz],             // 背上
-        [hy, hz],              // 前上
-        [hy, -hz + bevelDrop], // 前下（斜面起點）
-        [-hy, -hz],            // 背下
+        [hy, hz],              // = upper 各點 (y,z)→(-y,-z)
+        [-hy, hz],
+        [-hy, -hz + bevelDrop],
+        [hy, -hz],
       ];
 }
 
