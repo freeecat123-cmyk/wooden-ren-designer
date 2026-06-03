@@ -60,6 +60,9 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 書擋：三角加固 brace 用 right-triangle shape 倚靠 back panel 立面、
   // 物理上是「靠著」不是「穿進」，audit 用 brace bbox 偵測誤判結構 overlap
   "bookend:default",
+  // 木工工具牆：法式斜切條牆條 × 工具座掛條 45° 斜面完全重合貼合（互鎖），
+  // AABB 相交但實體只在斜面相切、不互穿——shape-aware silhouette 判 0 重疊
+  "wall-mounted-tool-storage:default",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";

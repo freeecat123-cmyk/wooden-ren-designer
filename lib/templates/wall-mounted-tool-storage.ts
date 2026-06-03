@@ -314,12 +314,12 @@ function buildToolHolder(
 ) {
   const { mountZ, cleatHeight, cleatThickness, material } = ctx;
   const holderW = kind === "shelf" ? 250 : kind === "chisel" ? 300 : 320;
-  // 整個工具座往上抬 (cleatHeight - cleatThickness)，讓 lower cleat 的「背下斜面」
-  // 剛好落在牆條「前上斜面」同一高度、同一 z=mountZ-T 平面 → 兩個 -1 斜率斜面
-  // 貼合咬住（倒扣），而非單純並排在前面。
+  // lower cleat 與牆條「同 z 深度、上抬 (cleatHeight - cleatThickness)」→ 兩條的
+  // 45° 斜面在世界中完全重合（不是平行有縫）：牆條占斜面下半(靠牆)、掛座占上半
+  // (靠房間)，沿斜面貼合倒扣咬住。兩者 AABB 會相交但實體只在斜面相切（互不穿
+  // 入），靠 audit 的 shape-aware silhouette 判定為 0 重疊。
   const cy = cleatY + (cleatHeight - cleatThickness);
-  // lower cleat 掛在牆條前方（更靠房間 -Z），倒扣咬合
-  const lowerCleatZ = mountZ - cleatThickness * 1.5;
+  const lowerCleatZ = mountZ - cleatThickness / 2;
   const cleatId = `tool-${kind}-cleat`;
   parts.push({
     id: cleatId,
@@ -334,14 +334,14 @@ function buildToolHolder(
     tenons: [],
     mortises: [],
   });
-  // 機能件前緣 z（再往房間側 -Z）
-  const frontZ = lowerCleatZ - cleatThickness;
+  // 機能件前緣 z = 掛座前面（房間側），機能件由此往 -Z 伸出
+  const frontZ = lowerCleatZ - cleatThickness / 2;
 
   if (kind === "shelf") {
     // 平台架：水平層板 + 兩側三角托（right-triangle）
     const plateDepth = 150;
     const plateT = 15;
-    const plateY = cy - cleatHeight / 2;
+    const plateY = cy - plateT;
     const plateZ = frontZ - plateDepth / 2;
     parts.push({
       id: "tool-shelf-plate",
@@ -374,7 +374,7 @@ function buildToolHolder(
     const frontH = 70;
     const frontT = 18;
     const baseDepth = 90;
-    const topY = cy - cleatHeight / 2;
+    const topY = cy;
     const baseY = topY - frontH;
     const baseZ = frontZ - baseDepth / 2;
     // 底托
@@ -419,7 +419,7 @@ function buildToolHolder(
     // 掛鉤條：橫木條 + N 個圓掛鉤
     const stripT = 22;
     const stripH = 40;
-    const stripY = cy - cleatHeight / 2 - stripH;
+    const stripY = cy - stripH;
     parts.push({
       id: "tool-hook-strip",
       nameZh: "掛鉤條橫木",
