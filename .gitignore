@@ -45,3 +45,6 @@ next-env.d.ts
 logs-dev.txt
 .bot-out/
 .bot-in/
+# detached dev-server logs (debug artifacts)
+.dev*.log
+.devserver*.log
