@@ -18,7 +18,9 @@ import { applyStandardChecks } from "./_validators";
  *           才能把「凸出量→Z 深度、條高→Y 上下」擺正（3D 與三視圖同步，因共用截面）。
  */
 
-const CLEAT_ROT = { x: -Math.PI / 2, y: 0, z: 0 } as const;
+// 斜切條繞「長向」(X 軸) 轉，把凸出量擺到 Z 深度、條高擺到 Y。
+// x = +π/2 讓 45° 斜面朝外上（牆條斜口朝上、活動座斜口朝下倒扣），符合法式斜切。
+const CLEAT_ROT = { x: Math.PI / 2, y: 0, z: 0 } as const;
 
 // 任一帶設成某型時才顯示的 dependsOn
 const anyZoneIs = (value: string): OptionDependency => ({
@@ -318,7 +320,7 @@ function buildToolHolder(
   // 45° 斜面在世界中完全重合（不是平行有縫）：牆條占斜面下半(靠牆)、掛座占上半
   // (靠房間)，沿斜面貼合倒扣咬住。兩者 AABB 會相交但實體只在斜面相切（互不穿
   // 入），靠 audit 的 shape-aware silhouette 判定為 0 重疊。
-  const cy = cleatY + (cleatHeight - cleatThickness);
+  const cy = cleatY - (cleatHeight - cleatThickness);
   const lowerCleatZ = mountZ - cleatThickness / 2;
   const cleatId = `tool-${kind}-cleat`;
   parts.push({
