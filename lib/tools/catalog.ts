@@ -36,7 +36,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "5m Tape Measure (Giant German Premium)",
     category: "measure",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%BE%B7%E5%9C%8B%E8%A3%BD%E7%A8%8Bgiant%E5%8D%87%E7%B4%9A%E6%8D%B2%E5%B0%BA5%E5%85%AC%E5%B0%BA-%E5%B0%88%E6%A5%AD%E9%87%8D%E5%9E%8B%E6%8D%B2%E5%B0%BA-%E9%AB%98%E5%93%81%E8%B3%AA%E8%87%AA%E9%8E%96-%E9%AB%98%E7%B2%BE%E5%BA%A6%E6%8A%97%E6%91%94",
+      "https://woodenren.easy.co/products/giantop-5m-heavy-duty-auto-lock-tape-measure",
   },
   "try-square": {
     id: "try-square",
@@ -44,7 +44,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Stainless Steel Ruler 30cm",
     category: "measure",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%8B%BC%E5%B0%BA-%E4%B8%8D%E9%8F%BD%E9%8B%BC%E7%9B%B4%E5%B0%BA-%E9%90%B5%E9%8B%BC%E5%B0%BA-%E5%8A%A0%E5%8E%9A%E7%A1%AC%E5%B0%BA30cm%E9%AB%98%E7%B2%BE%E5%BA%A6%E9%8B%BC%E6%9D%BF%E5%B0%BA",
+      "https://woodenren.easy.co/products/stainless-steel-ruler-30cm-woodworking",
   },
   "marking-gauge": {
     id: "marking-gauge",
@@ -52,7 +52,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Single-Beam Marking Gauge (Essential for Joinery)",
     category: "marking",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%96%AE%E6%A1%BF%E5%8A%83%E7%B7%9A%E8%A6%8F-%E5%8A%83%E7%B7%9A%E5%88%80-%E6%A6%AB%E5%8D%AF%E5%BF%85%E5%82%99-%E6%9C%A8%E5%B7%A5%E5%B7%A5%E5%85%B7-%E5%8A%83%E7%B7%9A%E5%88%80-%E8%A3%9D%E6%BD%A2",
+      "https://woodenren.easy.co/products/single-bar-marking-gauge-woodworking",
   },
   "dovetail-marker": {
     id: "dovetail-marker",
@@ -60,7 +60,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Sliding Bevel / Universal Angle Gauge",
     category: "marking",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E8%87%AA%E7%94%B1%E8%A7%92%E8%A6%8F-%E5%A4%9A%E5%8A%9F%E8%83%BD%E5%B0%BA%E8%A6%8F-%E8%90%AC%E7%94%A8%E8%A7%92%E5%BA%A6%E8%A6%8F-%E6%9C%A8%E5%B7%A5%E5%8A%83%E7%B7%9A%E9%87%8F%E5%99%A8-%E5%A4%9A%E5%8A%9F%E8%83%BD%E7%B5%84%E5%90%88%E8%A7%92%E5%B0%BA-%E6%9C%A8%E5%B7%A5%E6%B4%BB%E5%8B%95%E8%A7%92%E5%B0%BA",
+      "https://woodenren.easy.co/products/sliding-t-bevel-angle-gauge",
   },
 
   // ----- 鑿刀 -----
@@ -70,7 +70,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Western Chisel Set",
     category: "chisel",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E8%A5%BF%E5%BC%8F%E9%91%BF%E5%88%80%E5%A5%97%E8%A3%9D%E7%B5%84-%E9%91%BF%E5%88%80-%E6%89%93%E9%91%BF-%E4%BF%AE%E9%91%BF",
+      "https://woodenren.easy.co/products/western-bevel-edge-chisel-set",
   },
   "chisel-hardwood": {
     id: "chisel-hardwood",
@@ -78,7 +78,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Lukang 10-Piece Bench Chisel Set (Hardwood)",
     category: "chisel",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%B9%BF%E6%B8%AF%E6%89%93%E9%91%BF%E5%8D%81%E6%9C%AC%E7%B5%84-%E4%BF%AE%E9%91%BF-%E6%9C%A8%E5%B7%A5%E9%91%BF-%E9%91%BF%E5%88%80-%E6%89%93%E9%91%BF-%E6%9C%A8%E5%B7%A5%E9%91%BF%E5%88%80-%E5%8F%B0%E7%81%A3%E8%A3%BD",
+      "https://woodenren.easy.co/products/lukang-mortise-chisel-set-10pcs",
     notes: "硬木需高碳鋼或台製手工鑿，普通鑿刀易崩刃",
   },
 
@@ -89,7 +89,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Temple Tool 180mm Double-Edge Ryoba Saw (Rip + Crosscut, Japanese Steel)",
     category: "saw",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-180mm-%E9%9B%99%E5%88%83%E9%8B%B8-%E6%97%A5%E5%BC%8F%E6%89%8B%E9%8B%B8-%E7%B8%B1%E5%88%87-%E6%A9%AB%E5%88%87%E5%85%A9%E7%94%A8-%E9%9B%99%E9%9D%A2%E9%8B%B8-%E6%97%A5%E6%9C%AC%E9%8B%BC%E6%9D%90-%E9%9D%88%E5%B7%A7%E5%9E%8B-%E7%B2%BE%E5%AF%86%E6%9C%A8%E4%BD%9C",
+      "https://woodenren.easy.co/products/temple-tool-180mm-double-edge-ryoba-saw",
   },
   "dovetail-saw": {
     id: "dovetail-saw",
@@ -97,7 +97,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Temple Tool 240mm Rip Dozuki Saw (Japanese Back Saw, for Dovetails)",
     category: "saw",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-240mm-%E7%B8%B1%E5%88%87%E5%B0%8E%E4%BB%98%E9%8B%B8-%E6%97%A5%E5%BC%8F%E5%A4%BE%E8%83%8C%E9%8B%B8-%E7%87%95%E5%B0%BE%E6%A6%AB%E5%B0%88%E7%94%A8-%E6%9C%A8%E5%B7%A5%E9%8B%B8-%E6%A5%B5%E7%B4%B0%E9%BD%92%E6%97%A5%E6%9C%AC%E9%8B%BC%E6%9D%90-%E5%A4%BE%E8%83%8C%E9%8B%B8",
+      "https://woodenren.easy.co/products/temple-tool-240mm-rip-dozuki-dovetail-saw",
   },
   "all-purpose-saw": {
     id: "all-purpose-saw",
@@ -105,7 +105,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Temple Tool 150mm All-Purpose Dozuki Saw (Japanese Back Saw, Ultra-Fine Teeth)",
     category: "saw",
     shopUrl:
-      "https://woodenren.easy.co/products/%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-150mm-%E5%85%A8%E8%83%BD%E5%B0%8E%E4%BB%98%E9%8B%B8-%E6%97%A5%E5%BC%8F%E5%A4%BE%E8%83%8C%E9%8B%B8-%E6%B3%9B%E7%94%A8%E5%9E%8B%E6%A5%B5%E7%B4%B0%E9%BD%92-%E5%AE%B6%E5%85%B7%E5%B8%AB%E9%96%8B%E7%99%BC-%E6%97%A5%E6%9C%AC%E9%8B%BC%E6%9D%90-%E7%B2%BE%E5%AF%86%E6%A6%AB%E6%8E%A5-%E5%BE%AE%E5%9E%8B",
+      "https://woodenren.easy.co/products/temple-tool-150mm-dozuki-dovetail-saw",
   },
   "flush-cut-saw": {
     id: "flush-cut-saw",
@@ -113,7 +113,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Temple Tool 150mm Flush-Cut Saw (Japanese Kugihiki, No-Set Teeth)",
     category: "saw",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-150mm-%E9%BD%8A%E5%B9%B3%E5%89%AA%E5%88%87%E9%8B%B8-%E6%97%A5%E5%BC%8F%E6%89%8B%E5%B7%A5%E9%87%98%E5%BC%95%E9%8B%B8-%E7%84%A1%E6%92%A5%E9%BD%92%E8%A8%AD%E8%A8%88-%E5%AE%B6%E5%85%B7%E5%B8%AB%E9%96%8B%E7%99%BC-%E4%B8%8D%E5%82%B7%E6%9C%A8%E9%9D%A2-%E6%A5%B5%E8%96%84%E5%BD%88%E6%80%A7%E9%8B%B8",
+      "https://woodenren.easy.co/products/flush-cut-saw-150mm-japanese-kugihiki-no-set",
     notes: "無撥齒設計，鋸身可貼平木面切除突出榫頭/木釘而不刮傷表面",
   },
 
@@ -124,7 +124,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Router Plane / Plough Plane",
     category: "plane",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%9C%A8%E5%B7%A5%E6%B8%85%E5%BA%95%E9%89%8B-%E9%96%8B%E6%A7%BD%E9%89%8B-%E6%A6%AB%E8%82%A9%E9%89%8B-%E5%87%B9%E6%A7%BD%E4%BF%AE%E6%95%B4%E6%89%8B%E9%89%8B-%E7%9B%B4%E8%A7%92%E9%89%8B-%E6%89%8B%E5%8B%95%E9%96%8B%E6%A7%BD-%E7%B2%BE%E6%BA%96%E6%B8%85%E5%BA%95-",
+      "https://woodenren.easy.co/products/groove-shoulder-cleaning-plane",
   },
 
   // ----- 木槌 / 夾具 -----
@@ -134,7 +134,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "White Rubber Mallet (Non-Marring)",
     category: "chisel",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%99%BD%E8%86%A0%E9%8E%9A-%E4%B8%8D%E7%95%99%E7%97%95%E8%B7%A1-%E8%86%A0%E9%8C%98-%E6%9C%A8%E6%9F%84%E8%86%A0%E9%8E%9A-%E9%8E%9A%E5%AD%90-%E5%AE%B6%E5%85%B7%E7%B5%84%E8%A3%9D%E9%8E%9A",
+      "https://woodenren.easy.co/products/white-rubber-mallet-wood-handle",
   },
   "f-clamp-x4": {
     id: "f-clamp-x4",
@@ -142,7 +142,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Heavy-Duty Malleable Iron F-Clamps × 4",
     category: "clamp",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%9C%A8%E5%B7%A5%E5%BF%85%E5%82%99%E5%BF%AB%E9%80%9F%E5%A4%BE-%E5%8A%A0%E5%8E%9A%E7%91%AA%E9%8B%BC%E7%BE%8E%E5%BC%8Ff%E5%A4%BE-%E9%87%8D%E5%9E%8B%E6%9C%A8%E5%B7%A5%E5%A4%BE%E5%85%B7-%E7%9F%B3%E6%9D%90%E5%BF%AB%E9%80%9F%E5%A4%BE",
+      "https://woodenren.easy.co/products/f-clamp-malleable-iron-heavy-duty-woodworking",
   },
   "long-clamp-x2": {
     id: "long-clamp-x2",
@@ -150,7 +150,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "German Heavy-Duty Long F-Clamps × 2",
     category: "clamp",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%87%8D%E5%9E%8B%E6%9C%A8%E5%B7%A5%E5%A4%BE%E5%AD%90-f%E5%A4%BE-%E9%98%B2%E6%BB%91%E6%A9%A1%E8%86%A0%E6%8A%8A%E6%89%8B-%E5%A4%BE%E9%89%97%E5%9B%BA%E5%AE%9A%E5%B7%A5%E5%85%B7-%E5%A3%93%E7%B7%8A%E5%99%A8%E6%A8%A1%E5%85%B7%E5%A4%BE%E5%BF%AB%E9%80%9F-%E5%BE%B7%E5%BC%8F%E9%87%8D%E5%9E%8Bf%E5%A4%BE",
+      "https://woodenren.easy.co/products/heavy-duty-german-f-clamp",
   },
 
   // ----- 砂磨 / 膠合 / 塗裝 -----
@@ -160,7 +160,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Fuji Star Japanese Sandpaper Set 120–600 Grit",
     category: "sand",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%97%A5%E6%9C%AC%E5%AF%8C%E5%A3%AB%E6%98%9F%E6%96%B9%E5%9E%8B%E7%A0%82%E7%B4%99-%E7%A0%82%E7%A3%A8%E7%A5%9E%E5%99%A8-%E8%99%9F%E6%95%B8120-600%E8%99%9F-%E4%B9%BE%E7%A3%A8%E7%A0%82%E7%B4%99-%E6%9C%A8%E5%B7%A5%E7%A0%82%E7%B4%99-%E5%AE%B6%E5%85%B7%E7%A0%82%E7%B4%99",
+      "https://woodenren.easy.co/products/fujistar-square-sandpaper-120-600-dry",
   },
   "sandpaper-coarse-60": {
     id: "sandpaper-coarse-60",
@@ -168,7 +168,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Coarse Sandpaper 60–80 Grit (Hardwood Plane Mark Removal)",
     category: "sand",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%97%A5%E6%9C%AC%E5%AF%8C%E5%A3%AB%E6%98%9F%E6%96%B9%E5%9E%8B%E7%A0%82%E7%B4%99-%E7%A0%82%E7%A3%A8%E7%A5%9E%E5%99%A8-%E8%99%9F%E6%95%B8120-600%E8%99%9F-%E4%B9%BE%E7%A3%A8%E7%A0%82%E7%B4%99-%E6%9C%A8%E5%B7%A5%E7%A0%82%E7%B4%99-%E5%AE%B6%E5%85%B7%E7%A0%82%E7%B4%99",
+      "https://woodenren.easy.co/products/fujistar-square-sandpaper-120-600-dry",
   },
   "pva-glue": {
     id: "pva-glue",
@@ -176,7 +176,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Taibang No.2 PVA Wood Glue",
     category: "glue",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%9C%A8%E5%B7%A5%E8%86%A0-%E5%A4%AA%E6%A3%92%E6%9C%A8%E5%B7%A5%E8%86%A0-%E6%8B%BC%E6%9D%BF%E8%86%A0-%E5%96%AE%E6%B6%B2%E8%86%A0-%E5%AE%B6%E5%85%B7%E8%86%A0%E6%B0%B4-%E5%88%86%E8%A3%9D%E7%93%B6%E8%86%A0%E6%B0%B4",
+      "https://woodenren.easy.co/products/taibang-wood-glue-pva-panel-glue",
   },
   "wood-oil": {
     id: "wood-oil",
@@ -184,7 +184,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Otani Vaton Wood Protection Oil",
     category: "finish",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%A4%A7%E8%B0%B7%E5%A1%97%E6%96%99-vaton-%E6%9C%A8%E8%B3%AA%E4%BF%9D%E8%AD%B7%E6%B2%B9-%E6%BD%91%E6%B0%B4%E5%8A%91-501-511-519%E5%9C%B0%E6%9D%BF%E4%BF%9D%E8%AD%B7-%E5%AE%B6%E5%85%B7%E4%BF%9D%E9%A4%8A",
+      "https://woodenren.easy.co/products/vaton-wood-protection-oil-501-511-519",
   },
 
   // ----- 電動 -----
@@ -194,7 +194,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Aluminum Trim Router Table",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%8B%81%E5%90%88%E9%87%91%E4%BF%AE%E9%82%8A%E6%A9%9F%E5%80%92%E8%A3%9D%E5%8F%B0-%E6%9C%A8%E5%B7%A5%E9%9B%95%E5%88%BB-%E9%96%8B%E6%A7%BD%E5%B7%A5%E5%85%B7-%E5%A4%9A%E5%8A%9F%E8%83%BD%E4%BF%AE%E9%82%8A%E6%A9%9F%E5%80%92%E8%A3%9D%E5%8D%87%E9%99%8D%E5%8F%B0-%E5%BE%AE%E8%AA%BF%E5%8D%87%E9%99%8D-%E9%8A%91%E5%88%80%E5%80%92%E8%A7%92%E5%B7%A5%E4%BD%9C%E5%8F%B0",
+      "https://woodenren.easy.co/products/router-table-aluminum-lift-base",
   },
   drill: {
     id: "drill",
@@ -202,7 +202,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Drill + Tapping Cantilever Positioning Stand",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%94%BB%E7%B5%B2%E6%87%B8%E8%87%82%E6%94%AF%E6%9E%B6-%E6%89%8B%E9%9B%BB%E9%91%BD%E6%94%BB%E7%89%99%E5%AE%9A%E4%BD%8D%E5%99%A8-%E9%8B%81%E5%90%88%E9%87%91%E5%9E%82%E7%9B%B4-%E6%B0%B4%E5%B9%B3%E6%94%BB%E7%B5%B2%E5%99%A8-%E9%8B%81%E5%9E%8B%E6%9D%90-diy-%E9%91%BD%E5%AD%94%E5%B0%8E%E5%90%91-%E7%B2%BE%E5%AF%86%E5%B0%8E%E8%BB%8C-%E4%B8%8D%E6%AD%AA%E6%96%9C-%E9%AB%98%E7%A9%A9%E5%AE%9A%E5%BA%A6",
+      "https://woodenren.easy.co/products/tapping-cantilever-drill-guide-aluminum",
   },
   "drill-bits": {
     id: "drill-bits",
@@ -210,7 +210,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "6.35mm Hex Shank Brad Point Drill Bit Set",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%A5%97%E8%A3%9D-6-35mm%E7%B2%97%E5%85%AD%E8%A7%92%E6%9F%84-%E4%B8%89%E5%B0%96%E6%9C%A8%E5%B7%A5%E9%91%BD%E9%A0%AD-%E5%96%AE%E9%9A%BB%E9%B3%A5%E7%B1%A0%E9%91%BD%E9%A0%AD-%E4%BD%9B%E7%8F%A0%E9%91%BD%E9%A0%AD-diy%E6%89%8B%E5%B7%A5%E9%91%BD%E9%A0%AD",
+      "https://woodenren.easy.co/products/three-point-wood-drill-bit-6-35mm-hex",
   },
   "dowel-jig": {
     id: "dowel-jig",
@@ -218,7 +218,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Doweling Jig (For Dowel Joinery)",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%9C%A8%E6%9D%BF%E6%89%93%E5%AD%94%E5%AE%9A%E4%BD%8D%E5%99%A8-%E7%9B%B4%E5%AD%94%E9%91%BD%E5%AD%94-%E5%AE%9A%E4%BD%8D%E5%99%A8%E5%9C%93%E6%9C%A8%E6%A6%AB-%E6%8B%BC%E6%8E%A5%E6%9C%A8%E5%B7%A5%E5%B0%88%E7%94%A8",
+      "https://woodenren.easy.co/products/dowel-jig-alignment-tool",
   },
   "pocket-hole-jig": {
     id: "pocket-hole-jig",
@@ -226,7 +226,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Gen-2 Pocket-Hole Jig",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%8F%B0%E7%81%A3%E5%87%BA%E8%B2%A8-%E6%9C%A8%E5%B7%A5%E6%96%B0%E6%AC%BE%E4%BA%8C%E4%BB%A3%E6%96%9C%E5%AD%94%E5%AE%9A%E4%BD%8D%E5%99%A8%E9%96%8B%E5%AD%94%E5%99%A8%E6%89%93%E6%96%9C%E7%9C%BC%E6%A9%9F%E9%91%BD%E9%A0%AD%E6%89%93%E6%96%9C%E5%8F%A3%E6%A8%A1%E5%85%B7%E5%B7%A5%E5%85%B7",
+      "https://woodenren.easy.co/products/pocket-hole-jig-gen2-angled-drill-guide",
   },
   "groove-blade": {
     id: "groove-blade",
@@ -234,7 +234,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Straight Grooving Bit (Trim Router, 6mm Shank)",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%B0%88%E6%A5%AD%E7%B4%9A%E7%9B%B4%E5%88%80-6%E6%9F%84-%E9%B3%A9%E5%B0%BE%E5%88%80-%E5%9C%93%E8%A7%92%E5%88%80-45%E5%BA%A6%E5%88%80-%E5%9C%93%E5%BA%95%E5%88%80-%E4%BF%AE%E9%82%8A%E5%88%80-%E4%BB%BF%E5%9E%8B%E5%88%80-%E4%BF%AE%E9%82%8A%E6%A9%9F-%E8%B7%AF%E9%81%94%E5%88%80-%E9%96%8B%E6%A7%BD%E9%8A%91%E5%88%80-%E4%BF%AE%E9%82%8A%E5%88%80-t%E5%9E%8B%E5%88%80",
+      "https://woodenren.easy.co/products/router-bit-set-6pcs-trimmer-dovetail-roundover",
   },
 
   // ----- 五金 (家具特殊) -----
@@ -253,7 +253,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Japanese 13-Pocket Canvas Chisel Roll",
     category: "chisel",
     shopUrl:
-      "https://woodenren.easy.co/collections/%EF%B8%8F-%E6%9C%A8%E5%B7%A5%E9%98%B2%E8%AD%B7/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%97%A5%E5%BC%8F13%E6%A0%BC%E5%B8%86%E5%B8%83%E9%91%BF%E5%88%80%E5%8C%85-%E5%B7%A5%E5%85%B7%E5%8C%85-%E9%9B%95%E5%88%BB%E5%88%80%E5%8C%85-%E5%B8%86%E5%B8%83%E5%8C%85-%E9%91%BF%E5%88%80%E8%A2%8B",
+      "https://woodenren.easy.co/products/japanese-13-slot-canvas-chisel-roll-bag",
     notes: "鑿刀收納捲包，13 格能裝完整一套；保護刀刃也方便攜帶",
   },
   "silicone-lubricant": {
@@ -262,7 +262,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Takumi Silicone Lubricant Spray 450ml (Made in Taiwan)",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/collections/feature-on-homepage/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%8C%A0%E4%B9%8B%E6%BB%91-%E9%AB%98%E6%95%88%E8%83%BD%E7%9F%BD%E8%B3%AA%E6%BD%A4%E6%BB%91%E5%99%B4%E9%9C%A7-450ml%EF%BD%9C%E5%B8%B6%E9%8B%B8%E6%A9%9F-%E5%8F%B0%E9%8B%B8-%E5%B9%B3%E5%88%A8%E6%A9%9F-%E6%9C%A8%E5%B7%A5%E6%A9%9F%E5%85%B7%E6%BD%A4%E6%BB%91%E5%8A%91-%E9%98%B2%E9%8F%BD-%E9%9B%A2%E5%9E%8B%E5%8A%91-taiwan%E8%A3%BD",
+      "https://woodenren.easy.co/products/silicone-lubricant-spray-450ml",
     notes: "帶鋸／台鋸／平刨機台面防鏽＋離型；木屑不沾、推料順暢",
   },
   "dovetail-jig": {
@@ -271,7 +271,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Through-Dovetail Jig",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/collections/feature-on-homepage/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%B3%A9%E5%B0%BE%E6%A6%AB%E6%AA%AF-%E9%B3%A9%E5%B0%BE%E6%A6%AB%E7%89%87-%E7%87%95%E5%B0%BE%E6%A6%AB%E6%AA%AF-%E6%A6%AB%E7%89%87-%E5%85%A8%E9%80%8F%E9%B3%A9%E5%B0%BE%E6%A6%AB-%E6%9C%A8%E5%B7%A5diy",
+      "https://woodenren.easy.co/products/dovetail-jig-marking-template-set",
     notes: "修邊機配燕尾刀做全透鳩尾榫的定位治具；木盒／抽屜箱大量重複用",
   },
   "tenz-screw-set": {
@@ -280,7 +280,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "TENZ Low-Torque Star-Drive Wood Screws (2024)",
     category: "hardware",
     shopUrl:
-      "https://woodenren.easy.co/collections/feature-on-homepage/products/tenz-%E7%99%BB%E9%A6%B3%E8%9E%BA%E7%B5%B2-%E4%BD%8E%E8%80%97%E8%83%BD%E8%9E%BA%E7%B5%B2-2024%E6%96%B0%E6%AC%BE%E7%99%BB%E9%A6%B3-%E6%98%9F%E5%9E%8B%E8%9E%BA%E7%B5%B2-%E6%9C%A8%E5%B7%A5%E8%9E%BA%E7%B5%B2-%E5%8F%B0%E7%81%A3%E7%B2%BE%E5%93%81%E7%8D%8E",
+      "https://woodenren.easy.co/products/tenz-low-energy-star-drive-wood-screws",
     notes: "台灣精品獎；星型頭省力不咬合，pocket-hole / 直鎖通用",
   },
   "sharpening-jig": {
@@ -289,7 +289,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Aluminum Honing Guide (Chisels & Plane Irons)",
     category: "sharpening",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%8B%81%E5%90%88%E9%87%91%E5%AE%9A%E8%A7%92%E7%A3%A8%E5%88%80%E5%99%A8-%E6%9C%A8%E5%B7%A5%E7%A3%A8%E5%88%80%E6%9E%B6-%E9%89%8B%E5%88%80-%E9%91%BF%E5%AD%90%E5%AE%9A%E8%A7%92%E5%99%A8-%E6%89%8B%E5%8B%95%E9%96%8B%E5%88%83%E5%99%A8-%E9%AB%98%E7%B2%BE%E5%BA%A6-%E9%98%B2%E6%BB%91%E6%BB%BE%E8%BC%AA-",
+      "https://woodenren.easy.co/products/aluminum-honing-guide-plane-chisel",
     notes: "夾住鑿刀／鉋刀刃口，搭配磨刀石維持固定角度（25°/30°）；新手必備",
   },
   "glue-tray-set": {
@@ -298,7 +298,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Silicone Glue Tray + Brush Set",
     category: "glue",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%9F%BD%E8%86%A0%E8%86%A0%E6%B0%B4%E6%89%98%E7%9B%A4-%E5%88%B7%E8%86%A0%E5%B7%A5%E5%85%B7%E7%B5%84-%E6%9C%A8%E5%B7%A5%E5%A1%97%E8%86%A0%E5%AE%B9%E5%99%A8-%E6%BB%BE%E7%AD%92%E5%88%B7-%E7%9F%BD%E8%86%A0%E5%88%B7-%E8%86%A0%E6%B0%B4%E4%B9%BE%E6%8E%89%E4%B8%80%E6%92%95%E5%8D%B3%E6%B7%A8-",
+      "https://woodenren.easy.co/products/silicone-glue-tray-roller-brush-set",
     notes: "矽膠托盤＋滾筒刷＋平刷；膠水乾掉一撕即淨，比紙杯衛生",
   },
   "router-engraving-base": {
@@ -307,7 +307,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Tortoiseshell Pattern Carving Base (Trim Router Arc Jig)",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%BE%9C%E7%94%B2%E7%B4%8B%E9%9B%95%E5%88%BB%E5%BA%95%E5%BA%A7-%E5%9C%93%E5%BC%A7%E9%9B%95%E5%88%BB%E5%BA%A7-%E4%BF%AE%E9%82%8A%E6%A9%9F%E5%BA%A7-%E8%B7%AF%E9%81%94%E5%BA%A7-%E9%9B%95%E5%88%BB%E5%BA%A7",
+      "https://woodenren.easy.co/products/turtle-shell-carving-router-base-naguri",
     notes: "修邊機加裝這個底座做圓弧／龜甲紋雕刻；裝飾性家具加分項",
   },
 
@@ -318,7 +318,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Low-Tack Masking Tape (No Surface Damage / No Residue)",
     category: "marking",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%B4%99%E8%86%A0%E5%B8%B6%E5%BC%B1%E9%BB%8F%E6%AC%BE-%E6%9C%A8%E5%B7%A5%E6%A8%99%E8%A8%98%E9%BB%8F%E5%90%88-%E7%89%86%E5%A3%81%E4%B8%8D%E5%89%9D%E8%90%BD%E5%92%8C%E7%B4%99%E8%86%A0%E5%B8%B6",
+      "https://woodenren.easy.co/products/woodworking-washi-masking-tape-low-tack",
     notes: "切割／塗裝防溢膠線、膠合定位、面板保護萬用；弱黏不撕掉表面",
   },
   "quick-bench-vise": {
@@ -327,7 +327,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Quick-Release Bench Vise SKC-301",
     category: "clamp",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%BF%AB%E9%80%9F%E6%9C%A8%E5%B7%A5%E8%99%8E%E9%89%97-skc-301-%E6%9C%A8%E5%B7%A5%E5%A4%BE-%E5%BF%AB%E9%80%9F%E8%99%8E%E9%89%97-%E6%9C%A8%E5%B7%A5%E6%A1%8C%E9%89%97",
+      "https://woodenren.easy.co/products/quick-woodworking-vise-skc-301",
     notes: "桌面快拆虎鉗，鑿榫／鋸切時鎖緊零件用；比 F 夾穩定",
   },
   "hand-drill-brace": {
@@ -336,7 +336,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Hand Drill (Three-Jaw Brace)",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%89%8B%E6%90%96%E9%91%BD-%E4%B8%89%E7%88%AA-%E6%9C%A8%E5%B7%A5%E9%91%BD-%E6%89%8B%E6%90%96%E8%B5%B7%E5%AD%90-%E6%89%8B%E9%91%BD",
+      "https://woodenren.easy.co/products/three-jaw-hand-drill-woodworking",
     notes: "手動鑽孔，職人手感款；無電源也能鑽、鎖螺絲不傷面板",
   },
   "magnetic-saw-guide": {
@@ -345,7 +345,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Magnetic Saw Guide 90°/45° (Hand Saw Helper)",
     category: "marking",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%A3%81%E5%88%87%E5%88%87%E5%89%B2%E8%BC%94%E5%85%B790%E5%BA%A6-45%E5%BA%A6-%E6%89%8B%E9%8B%B8%E7%A5%9E%E5%99%A8-%E7%B2%BE%E6%BA%96%E5%88%87%E5%89%B2%E7%9B%B4%E8%A7%92-45%E5%BA%A6%E8%A7%92-%E5%88%87%E5%89%B2%E9%9D%A0%E5%B1%B1-%E6%89%8B%E5%B7%A5%E7%A5%9E%E5%99%A8-%E7%A3%81%E5%90%B8",
+      "https://woodenren.easy.co/products/magnetic-saw-guide-90-45-degree",
     notes: "磁吸式手鋸導引塊，90/45 度切割不歪斜；斜接、畫框、切肩線必備",
   },
   "silicone-glue-box": {
@@ -354,7 +354,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Silicone Glue Box + Silicone Brush (Washable)",
     category: "glue",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%9F%BD%E8%86%A0%E7%9B%92%E7%9F%BD%E8%86%A0%E5%88%B7-%E5%A1%97%E8%86%A0%E5%AE%B9%E5%99%A8-%E8%86%A0%E6%B0%B4%E5%84%B2%E5%AD%98%E7%9B%92-%E6%9C%A8%E5%B7%A5%E8%86%A0%E5%88%B7-%E5%8F%AF%E6%B0%B4%E6%B4%97-%E9%98%B2%E4%B9%BE%E5%9B%BA-%E5%B0%8F%E5%9E%8B%E5%88%B7%E8%86%A0%E5%B7%A5%E5%85%B7-%E5%A1%97%E5%88%B7%E5%B7%A5%E5%85%B7-diy%E6%9C%A8%E5%B7%A5-%E5%B0%88%E6%A5%AD%E7%B4%9A",
+      "https://woodenren.easy.co/products/silicone-glue-brush-pot-set",
     notes: "膠水儲存＋塗布二合一，可水洗重複用，比拋棄式紙杯／海綿環保",
   },
   "marking-knife": {
@@ -363,7 +363,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Marking Knife (SK5 Double-Edge)",
     category: "marking",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%8A%83%E7%B7%9A%E5%88%80-%E9%9B%99%E5%88%83-%E6%89%8B%E5%B7%A5%E9%9B%95%E5%88%BB%E5%88%80-sk5-%E6%9C%A8%E9%9B%95%E5%88%80%E6%AB%B8%E6%9C%A8%E6%89%8B%E6%9F%84-%E8%96%84%E5%88%83-%E9%9B%95%E8%8A%B1%E6%9C%A8%E9%A0%AD%E6%A4%B4%E6%9C%A8-%E8%BB%9F%E6%9C%A8%E4%BF%AE%E9%82%8A-%E5%89%8A%E5%88%80",
+      "https://woodenren.easy.co/products/sk5-double-edge-marking-carving-knife-beech",
     notes: "比鉛筆精準十倍；切斷木纖維留下明顯刻線，榫接對位專用",
   },
   "countersink-bit": {
@@ -372,7 +372,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameEn: "Semi-Auto Countersink Bit (Non-Marring Screw Recess)",
     category: "power",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%96%B0%E6%AC%BE%E5%8D%8A%E8%87%AA%E5%8B%95%E6%B2%89%E5%AD%94%E9%91%BD-%E4%B8%8D%E5%82%B7%E9%9D%A2%E6%9D%BF%E7%B2%BE%E6%BA%96%E9%99%90%E4%BD%8D-%E6%9C%A8%E5%B7%A5%E6%B2%89%E9%A0%AD%E9%91%BD-%E8%9E%BA%E7%B5%B2%E5%9F%8B%E9%A0%AD%E9%91%BD-%E9%8C%90%E5%AD%94%E9%91%BD%E5%A5%97%E8%A3%9D-%E9%9A%8E%E6%A2%AF%E9%91%BD%E5%A5%97%E8%A3%9D-%E5%B0%88%E6%A5%AD%E4%BA%94%E9%87%91%E5%B7%A5%E5%85%B7-%E8%BC%95%E9%AC%86%E6%8B%86%E8%A3%9D%E4%B8%8D%E7%95%99%E7%97%95",
+      "https://woodenren.easy.co/products/semi-auto-countersink-drill-set",
     notes: "螺絲頭埋進木面不外露，正面光潔；pocket-hole 進階版",
   },
 };
