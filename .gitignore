@@ -48,3 +48,9 @@ logs-dev.txt
 # detached dev-server logs (debug artifacts)
 .dev*.log
 .devserver*.log
+
+# playwright MCP 暫存 dump（瀏覽器自動化產物，非源碼）
+.playwright-mcp/
+# 一次性驗證截圖
+temple-page*.jpeg
+temple-*.jpeg
