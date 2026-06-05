@@ -667,6 +667,8 @@ export function PerspectiveView({
     design.overall.thickness,
   ) * SCALE;
   const themeFloor = sceneTheme?.floorColor ?? null;
+  // shoot 模式（?_shoot=1，截圖產 Pinterest Pin 用）隱藏量測 grid → 乾淨產品照懸浮感
+  const hideGrid = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("_shoot") === "1";
   const ambientMul = sceneTheme?.ambientMul ?? 1.0;
   const tint = sceneTheme?.lightTint ?? { r: 1, g: 1, b: 1 };
   // 把 (r,g,b) 0-1 轉成 rgb() string（Three.js Color.set 不接 array）
@@ -972,8 +974,8 @@ export function PerspectiveView({
           </mesh>
         )}
 
-        {/* 沒選 theme 時保留原本的 grid（給設計師量度），有 theme 時用實心地板 */}
-        {!themeFloor && (
+        {/* 沒選 theme 時保留原本的 grid（給設計師量度），有 theme 時用實心地板;shoot 模式隱藏 */}
+        {!themeFloor && !hideGrid && (
           <gridHelper
             args={[
               (Math.max(design.overall.length, design.overall.width) * SCALE) * 3,
