@@ -21,7 +21,6 @@ import {
 import { PrintToolList } from "@/components/print/PrintToolList";
 import { PrintPartDrawings } from "@/components/print/PrintPartDrawings";
 import { PartDrawingsIndex } from "@/components/print/PartDrawingsIndex";
-import { isLocalhost } from "@/lib/dev-only";
 import { PrintTemplates } from "@/components/print/PrintTemplates";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatDimensions } from "@/lib/units/format";
@@ -277,16 +276,12 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
         </section>
       )}
 
-      {/* 零件圖 / 索引：目前僅 localhost 顯示（方凳零件圖暫時隱藏） */}
-      {(await isLocalhost()) && (
-        <>
-          {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
-          <PartDrawingsIndex design={design} locale={locale} />
+      {/* 零件圖 / 索引：全模板已上線（2026-06-05） */}
+      {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
+      <PartDrawingsIndex design={design} locale={locale} />
 
-          {/* ================= Page N+: Part drawings (零件圖) ================= */}
-          <PrintPartDrawings design={design} locale={locale} unit={unit} />
-        </>
-      )}
+      {/* ================= Page N+: Part drawings (零件圖) ================= */}
+      <PrintPartDrawings design={design} locale={locale} unit={unit} />
 
       {/* ================= Page N+: 1:1 樣板列印頁 ================= */}
       <PrintTemplates design={design} locale={locale} />
