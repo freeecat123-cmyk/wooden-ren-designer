@@ -77,7 +77,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   );
 
   // 開發中家具不收錄
-  const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack"]);
+  const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack", "wall-mounted-tool-storage"]);
   const designRoutes: MetadataRoute.Sitemap = FURNITURE_CATALOG
     .filter((e) => !DEV_CATEGORIES.has(e.category))
     .map((e) => biLocaleEntry(`/design/${e.category}`, "monthly", 0.8, now));

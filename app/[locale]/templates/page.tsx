@@ -129,7 +129,7 @@ export default async function TemplatesIndex({ params, searchParams }: PageProps
     : "all";
   const featuredSet = new Set<string>(FEATURED_TEMPLATE_CATEGORIES);
   const filteredCatalog = FURNITURE_CATALOG.filter((e) =>
-    matchFilter(e, activeFilter),
+    matchFilter(e, activeFilter) && !DEV_SET.has(e.category),
   );
   const visibleCount = filteredCatalog.length;
 

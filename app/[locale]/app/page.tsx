@@ -87,11 +87,6 @@ const CATEGORY_CHIPS: Array<{
       c === "pencil-holder" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
-  {
-    key: "dev",
-    labelKey: "chipDev",
-    match: (c) => DEVELOPMENT_CATEGORIES.has(c),
-  },
 ];
 
 const DIFFICULTY_KEY = {
@@ -117,7 +112,7 @@ const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
 
 /** 開發中家具:卡片半透明、不可點、上覆「敬請期待」chip */
 const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
-  "chinese-cabinet", "bed", "coat-rack",
+  "chinese-cabinet", "bed", "coat-rack", "wall-mounted-tool-storage",
 ]);
 
 function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
