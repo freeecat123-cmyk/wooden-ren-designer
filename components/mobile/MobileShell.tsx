@@ -14,6 +14,7 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { useUnit } from "@/hooks/useUnit";
 import { formatDimensions } from "@/lib/units/format";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
@@ -304,6 +305,10 @@ export function MobileShell(props: MobileShellProps) {
         <CollapsibleSection title={t("section.threeView")} badge={t("section.threeViewBadge")}>
           <ZoomableThreeViews design={design} joineryMode={props.joineryMode} />
         </CollapsibleSection>
+
+        {/* 零件圖：手機版上線（2026-06-08）。桌面版在 hidden md:block 區、手機版缺，
+            補進 MobileShell。面板自身已響應式(grid-cols-2)、含 modal 全圖。 */}
+        <PartDrawingsPanel design={design} />
 
         <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.length })}>
           <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
