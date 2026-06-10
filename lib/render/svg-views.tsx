@@ -161,7 +161,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
     .sort((a, b) => a.bottomY - b.bottomY);
 
   // 腳：取所有 id 開頭為 leg- 的件（俯視圖用來標腳跨距 / 腳粗）
-  const legs = design.parts.filter((p) => /^leg-?\d*$/.test(p.id));
+  // id 兩種慣例：leg-1..4（simple-table 系）與 leg-lf/lb/rf/rb（case/圓件系）
+  const legs = design.parts.filter((p) => /^leg(?:-\d+|-[lr][fb])?$/.test(p.id));
   // 外斜腳的最大落地點偏移（splayed shape 的 dxMm / dzMm 絕對值最大者）
   // 用來算落地點 X / Z 範圍 vs 椅面邊距
   const maxSplayDx = Math.max(
@@ -196,6 +197,63 @@ function extractFurnitureDims(design: FurnitureDesign) {
         })()
       : null;
 
+  // 圓面主板（圓凳/圓桌/圓茶几）：主標掛 Ø、俯視同值冗餘跳過（§I6）
+  const isRoundMain =
+    main.shape?.kind === "round" &&
+    Math.abs(main.visible.length - main.visible.width) < 0.5;
+
+  // 腳剖面（front/side 標腳粗用；§I6 必標件厚）：錐形腳標上/下端、圓料掛 Ø
+  const legProfile =
+    legs.length > 0
+      ? (() => {
+          const sample = legs[0];
+          const sh = sample.shape;
+          const topSize = Math.min(sample.visible.length, sample.visible.width);
+          const bottomScale =
+            sh?.kind === "shaker"
+              ? (sh.bottomScale ?? 0.6)
+              : sh != null && "bottomScale" in sh && typeof sh.bottomScale === "number"
+                ? sh.bottomScale
+                : 1;
+          const isRound =
+            sh?.kind === "round" ||
+            sh?.kind === "round-tapered" ||
+            sh?.kind === "splayed-round-tapered" ||
+            sh?.kind === "lathe-turned";
+          return { topSize, botSize: topSize * bottomScale, isRound };
+        })()
+      : null;
+
+  // 抽屜/門「面板」：id 以 -face 結尾（drawer-row 慣例）。
+  // 面板直立（rotation.x=π/2）→ W = visible.length、H = visible.width。
+  // 同尺寸合併計數標一次（§I6 重複件標一次），標註位置取最上排最左面板。
+  const drawerFaces = (() => {
+    const groups = new Map<
+      string,
+      { w: number; h: number; cx: number; bottomY: number; count: number }
+    >();
+    for (const p of design.parts) {
+      if (!/-face$/.test(p.id)) continue;
+      const fw = p.visible.length;
+      const fh = p.visible.width;
+      const key = `${Math.round(fw)}x${Math.round(fh)}`;
+      const g = groups.get(key);
+      if (!g) {
+        groups.set(key, { w: fw, h: fh, cx: p.origin.x, bottomY: p.origin.y, count: 1 });
+      } else {
+        g.count += 1;
+        if (
+          p.origin.y > g.bottomY + 1 ||
+          (Math.abs(p.origin.y - g.bottomY) <= 1 && p.origin.x < g.cx)
+        ) {
+          g.cx = p.origin.x;
+          g.bottomY = p.origin.y;
+        }
+      }
+    }
+    return [...groups.values()];
+  })();
+
   return {
     legs,
     maxSplayDx,
@@ -209,6 +267,9 @@ function extractFurnitureDims(design: FurnitureDesign) {
     shelves,
     crossPieces,
     legFootprint,
+    isRoundMain,
+    legProfile,
+    drawerFaces,
   };
 }
 
@@ -3391,16 +3452,27 @@ function OrthoViewImpl({
       </g>
 
       {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
-          Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
-      {showDimensions && (
-        <DimensionLine
-          arrowId={`arr-${view}`}
-          x1={-w / 2}
-          x2={w / 2}
-          y={drawAreaTop + h + 28}
-          label={isEn ? `${view === "side" ? "Depth" : "Width"} ${dimMm(w)}` : `${view === "side" ? "深" : "寬"} ${dimMm(w)}`}
-        />
-      )}
+          Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）
+          圓面家具（圓凳/圓桌）bbox 寬 = 直徑時掛 Ø（§I6 寬=深同值，標 Ø 一次說清）*/}
+      {showDimensions && (() => {
+        const dims0 = extractFurnitureDims(renderDesign);
+        const roundFull =
+          !!dims0?.isRoundMain && Math.abs(w - dims0.main.visible.length) < 1;
+        const label = roundFull
+          ? `Ø ${dimMm(w)}`
+          : isEn
+            ? `${view === "side" ? "Depth" : "Width"} ${dimMm(w)}`
+            : `${view === "side" ? "深" : "寬"} ${dimMm(w)}`;
+        return (
+          <DimensionLine
+            arrowId={`arr-${view}`}
+            x1={-w / 2}
+            x2={w / 2}
+            y={drawAreaTop + h + 28}
+            label={label}
+          />
+        );
+      })()}
 
       {/* vertical dimension on right side
           桌椅類（非 cabinet）前/側視圖左側有「桌下淨高 + 桌面厚」等價資訊，跳過；
@@ -3415,6 +3487,14 @@ function OrthoViewImpl({
         const hasFlatTopLeftLabel =
           view !== "top" && dims0 !== null && dims0.cabinet === null;
         if (hasFlatTopLeftLabel) return null;
+        // 圓面家具俯視：寬=深=Ø，底部已標 Ø，右側同值冗餘跳過（§I6 冗餘刪一）
+        if (
+          view === "top" &&
+          dims0?.isRoundMain &&
+          Math.abs(w - h) < 1 &&
+          Math.abs(w - dims0.main.visible.length) < 1
+        )
+          return null;
         return (
           <VerticalDimensionLine
             arrowId={`arr-${view}`}
@@ -3443,6 +3523,7 @@ function OrthoViewImpl({
           legs,
           maxSplayDx,
           maxSplayDz,
+          legProfile,
         } = dims;
         const sFloor = drawAreaTop + h;
 
@@ -3694,34 +3775,110 @@ function OrthoViewImpl({
                 y2={sFloor}
                 label={`${labelClear} ${dimMm(mainBottomY)}`}
               />
+              {/* 腳外距（落地、含 splay；§I1 水平→下、底部第二槽 y+80）。
+                  內距 = 外距 − 2×腳粗 可推導不標（§I6）。
+                  side 視圖採右側視慣例：world +Z 投影到 SVG −x。 */}
+              {legFootprint && (() => {
+                const isSideV = view === "side";
+                const lo = isSideV ? legFootprint.minZ : legFootprint.minX;
+                const hi = isSideV ? legFootprint.maxZ : legFootprint.maxX;
+                const splay = isSideV ? maxSplayDz : maxSplayDx;
+                const half = legFootprint.legSize / 2;
+                const a = lo - half - splay;
+                const b = hi + half + splay;
+                if (b - a <= legFootprint.legSize + 1) return null; // 單柱腳無跨距
+                // 腳齊面緣（外距 = 整體寬）→ 與底部主標同值冗餘，跳過（§I6 冗餘刪一）
+                if (Math.abs(b - a - w) < 1) return null;
+                return (
+                  <DimensionLine
+                    arrowId={`arr-${view}`}
+                    x1={isSideV ? -b : a}
+                    x2={isSideV ? -a : b}
+                    y={drawAreaTop + h + 80}
+                    label={
+                      isEn ? `Leg span ${dimMm(b - a)}` : `腳外距 ${dimMm(b - a)}`
+                    }
+                  />
+                );
+              })()}
+              {/* 腳粗（§I6 必標件厚）：錐形腳標上/下端、圓料掛 Ø。
+                  放腳外距標線下緣置中（仿俯視圖腳粗 text 的 bare-number 慣例） */}
+              {legProfile && legFootprint && (() => {
+                const t = legProfile.topSize;
+                const bSize = legProfile.botSize;
+                const tapered = Math.abs(bSize - t) > 0.5;
+                const fmt = (mm: number) =>
+                  useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+                const pre = isEn ? "Leg " : "腳 ";
+                const label = legProfile.isRound
+                  ? tapered
+                    ? `${pre}Ø${fmt(t)}${isEn ? " top" : "上"}/Ø${fmt(bSize)}${isEn ? " btm" : "下"}`
+                    : `${pre}Ø${fmt(t)}`
+                  : tapered
+                    ? `${pre}${isEn ? "top " : "上"}${fmt(t)}/${isEn ? "btm " : "下"}${fmt(bSize)}`
+                    : `${pre}${fmt(t)}×${fmt(t)}`;
+                return (
+                  <text
+                    x={0}
+                    y={drawAreaTop + h + 94}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="#444"
+                    fontFamily="sans-serif"
+                  >
+                    {label}
+                  </text>
+                );
+              })()}
               {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同名 + 同尺寸去重只標一次
                   名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」）
                   ⚠ 不用 bottomY 當 dedup key：apronStaggerMm > 0 時 X 軸牙板與
                      Z 軸牙板坐在不同 Y、bottomY 不同，key 不同會疊兩個「牙板 85」 */}
               {(() => {
-                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
-                const seen = new Map<string, typeof crossPieces[0]>();
+                const bare = (n: string) =>
+                  n.replace(/^(前|後|左|右)/, "").replace(/[-‧·]?(前|後|左|右)$/, "");
+                // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm。
+                // 前=右慣例下 +Z 投影到 SVG -x（左），bow 往 SVG 左凸 →
+                // 右側標籤不再與 silhouette 重疊；archShift 取 0。
+                // 若未來有 -Z（前）方向 bend，外推應為 |bendMm|（往左閃避）。
+                const seen = new Map<string, { label: string; midY: number }>();
                 for (const c of crossPieces) {
                   const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}`;
-                  if (!seen.has(key)) seen.set(key, c);
+                  if (!seen.has(key))
+                    seen.set(key, {
+                      label: `${bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} ${dimMm(c.yExt)}`,
+                      midY: c.bottomY + c.yExt / 2,
+                    });
                 }
-                return [...seen.values()].map((c) => {
-                  // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm。
-                  // 前=右慣例下 +Z 投影到 SVG -x（左），bow 往 SVG 左凸 →
-                  // 右側標籤不再與 silhouette 重疊；archShift 取 0。
-                  // 若未來有 -Z（前）方向 bend，外推應為 |bendMm|（往左閃避）。
-                  const archShift = 0;
-                  void c.archBendMm;
+                // 層板厚（§I6 必標板厚；同名同厚標一次）併入同帶（x = w/2+4）。
+                // 名稱剝尾碼數字：棚條 1/2/3/4 同厚只標一次「棚條厚」
+                const bareShelf = (n: string) =>
+                  bare(n).replace(/\s*\d+\s*$/, "");
+                for (const s of shelves) {
+                  const key = `shelfT_${bareShelf(s.nameZh)}_${Math.round(s.thickness)}`;
+                  if (!seen.has(key))
+                    seen.set(key, {
+                      label: `${bareShelf(isEn ? (partName(s, locale) ?? s.nameZh) : s.nameZh)}${isEn ? " t " : "厚 "}${dimMm(s.thickness)}`,
+                      midY: (s.bottomY + s.topY) / 2,
+                    });
+                }
+                // 同帶 Y 防撞：由上而下排，距前一筆 <12 就往下推（仿 :3661 MIN_GAP 手法）
+                const items = [...seen.values()].sort((a, b) => b.midY - a.midY);
+                let prevY = -Infinity;
+                return items.map((it, i) => {
+                  let sy = -it.midY + 4;
+                  if (sy < prevY + 12) sy = prevY + 12;
+                  prevY = sy;
                   return (
                     <text
-                      key={`xp-thick-${c.id}`}
-                      x={w / 2 + 4 + archShift}
-                      y={-(c.bottomY + c.yExt / 2) + 4}
+                      key={`xp-thick-${i}`}
+                      x={w / 2 + 4}
+                      y={sy}
                       fontSize={10}
                       fill="#444"
                       fontFamily="sans-serif"
                     >
-                      {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {dimMm(c.yExt)}
+                      {it.label}
                     </text>
                   );
                 });
@@ -3736,7 +3893,8 @@ function OrthoViewImpl({
                   const key = `${Math.round(c.bottomY)}_${Math.round(c.cutLengthMm)}`;
                   if (!seenLen.has(key)) seenLen.set(key, c);
                 }
-                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
+                const bare = (n: string) =>
+                  n.replace(/^(前|後|左|右)/, "").replace(/[-‧·]?(前|後|左|右)$/, "");
                 return [...seenLen.values()].map((c) => {
                   const halfL = c.cutLengthMm / 2;
                   const yLine = -c.bottomY + 12;
@@ -3980,6 +4138,38 @@ function OrthoViewImpl({
           );
         }
         return null;
+      })()}
+
+      {/* 抽屜/門面板 W×H（§I6 重複件合併標一次）— 桌類抽屜與櫃類共用，
+          只在前視圖標（面板朝前）。text 置面板中央、棕色仿紅酒架格標慣例；
+          與橫撐淨長紅線（y = -bottomY + 12）距 <20 時下移 14 防撞。 */}
+      {showDimensions && view === "front" && (() => {
+        const dims = extractFurnitureDims(renderDesign);
+        if (!dims || dims.drawerFaces.length === 0) return null;
+        const fmt = (mm: number) =>
+          useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+        const lineYs = dims.crossPieces
+          .filter((c) => !c.isZAxis)
+          .map((c) => -c.bottomY + 12);
+        return dims.drawerFaces.map((f, i) => {
+          let ty = -(f.bottomY + f.h / 2) + 4;
+          if (lineYs.some((ly) => Math.abs(ly - ty) < 20)) ty += 14;
+          return (
+            <text
+              key={`dface-${i}`}
+              x={f.cx}
+              y={ty}
+              textAnchor="middle"
+              fontSize={10}
+              fill="#7a5a2b"
+              fontWeight="600"
+              fontFamily="sans-serif"
+              pointerEvents="none"
+            >
+              {`${isEn ? "Drawer face" : "抽面"} ${fmt(f.w)}×${fmt(f.h)}${f.count > 1 ? ` ×${f.count}` : ""}`}
+            </text>
+          );
+        });
       })()}
 
       {/* Orientation marker: the TOP view shows the furniture from above, so
