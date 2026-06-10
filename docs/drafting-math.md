@@ -41,6 +41,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 榫卯細節圖 / 公榫位置 / 強度 | `"榫\|joinery\|tenon\|mortise"` | §B §G |
 | 爆炸圖 / 立體拆解 | `"爆炸\|exploded"` | §H |
 | 自動標註生成 | `"自動標註\|auto-dim"` | §I |
+| 主三視圖標註槽位 / 覆蓋矩陣 / 補標 id 慣例 | `"槽位\|覆蓋矩陣"` | §I8 |
 | 板材展開 / 攤平 / 折線 | `"展開\|unfolding"` | §J |
 | 派系預設（中式 / 日式 / 北歐） | `"派系\|preset"` | §K |
 | 木紋方向結構 | `"木紋\|grain"` | §L |
@@ -1041,6 +1042,42 @@ if 尺寸數 > 5                         → baseline
 5. Leader line 只用直線 + L 形
 
 > JS 生態這塊幾乎空白（OpenCASCADE/CadQuery 都沒自動標註），自幹 600 行內可拿到 80% 效果。
+
+### I8. 主三視圖標註覆蓋矩陣 + 槽位表（2026-06-10 全模板補標）
+
+`lib/render/svg-views.tsx` OrthoView 的標註系統（畫面 /design、列印 /print、報價 /quote 三處共用一份）。
+
+**座標槽位**（PADDING=220 內；新標一律放空槽，§A6 平行條 ≥5mm）：
+
+| 槽位 | 用途 |
+|------|------|
+| 底部 y+28 | 外寬/深（圓面家具掛 Ø，§I6 寬=深冗餘標一次） |
+| 底部 y+80 | 內寬（櫃/箱盒）/ 腳外距（桌椅；=外寬時冗餘跳過） |
+| 底部 y+94 | 腳粗 text（錐形上/下端、圓料 Ø） |
+| 右 x+28 | 總高/深（generic） |
+| 右 x+96 | 主面厚 / 內高 / 內深（矮件與 x+28 標籤同 Y 時 labelY 錯開 18） |
+| 右 x+140 | 淨高 / 腳高 / 底厚 |
+| 右貼邊 x=w/2+4 | 橫撐厚＋層板厚＋蓋厚 text 帶（同帶 Y 防撞、同名同厚去重含方向前後綴剝除） |
+| 左 -28 | 櫃 zone 高度鏈 |
+| 左 -36-i*44 | 非櫃高度堆疊（座面/層板/橫撐 topY） |
+| 左 -72/-116 | 吊衣桿高（雙桿錯欄，§I2 短內長外） |
+| 圖內 text | 門/抽面 W×H（棕字置面板中央、門放上 1/3 避中梃）、紅酒架格、壁厚、床板條規格、內框口 |
+
+**提取函式**（同檔）：
+- `extractFurnitureDims()` — main/cabinet/shelves/crossPieces/legFootprint/legProfile/isRoundMain/drawerFaces/doors/rods/sidePanelT/backPanelT
+- `extractBoxDims()` — 箱盒（bottom+wall-front 偵測；六/八角 polygonStaves 落空優雅降級）
+- `extractFrameDims()` — 相框（平躺建模 → 內框口標俯視）
+
+**id 慣例（提取依賴，改 builder 命名要同步這裡）**：
+- 腳：`leg-N` ＋ `leg-lf/lb/rf/rb` 兩種
+- 抽面：`*-face`；inset 抽屜無面板時抓 `*-drawer-N-front`（有 -face 兄弟則跳過）
+- 門成員白名單：`-(slab|stile-left|stile-right|rail-top|rail-bottom|panel|glass|door)$` 且 id 含 "door"（把手 `-door-pull`/`-slab-pull` 自然排除）；門 W×H = 成員 AABB 聯集（doorOuterW/H 是 builder local 不在 part 上）
+- 吊衣桿：`hanging-rod` / `zN-rod` / `zN-hang-rod` / `*-colN-rod`
+- 床板條：`slat-N`（排列軸動態判斷 origins 分佈，別硬猜 X/Z）
+- 衣帽架：`column` + `hook-N`
+- 尺寸一律 `worldExtents()` 世界座標（drawer-row rot.x=π/2 與中式櫃直立板慣例不同，visible 軸會踩雷）
+
+**§I6 冗餘跳過案例**：腳外距=外寬、圓面俯視深=寬、側板滿深時內深=外深。
 
 ---
 

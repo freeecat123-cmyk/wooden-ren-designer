@@ -237,8 +237,10 @@ function extractFurnitureDims(design: FurnitureDesign) {
   // 門板（slab / 框門 / 玻璃門）：以 id 白名單成員做分組 AABB 聯集
   // （doorOuterW/H 是 builder local 變數不在 part 上）。
   // 白名單避免 -door-pull / -slab-pull 把手件撐大 AABB。同尺寸合併計數。
+  // 「door」後綴＝整片門一件式（中式櫃 layer2-left-door）；id.includes("door")
+  // guard 擋掉 back-panel / side-panel 這類含 -panel 但非門的件
   const DOOR_MEMBER =
-    /-(slab|stile-left|stile-right|rail-top|rail-bottom|panel|glass)$/;
+    /-(slab|stile-left|stile-right|rail-top|rail-bottom|panel|glass|door)$/;
   const doors = (() => {
     const byDoor = new Map<
       string,
@@ -307,18 +309,29 @@ function extractFurnitureDims(design: FurnitureDesign) {
         })()
       : null;
 
-  // 抽屜/門「面板」：id 以 -face 結尾（drawer-row 慣例）。
+  // 抽屜/門「面板」：id 以 -face 結尾（drawer-row 慣例）；inset 抽屜無面板時
+  // 抽屜箱前板（-drawer-N-front，且無同名 -face 兄弟）就是可見面，一併標。
   // 面板直立（rotation.x=π/2）→ W = visible.length、H = visible.width。
   // 同尺寸合併計數標一次（§I6 重複件標一次），標註位置取最上排最左面板。
+  const faceIds = new Set(
+    design.parts.filter((p) => /-face$/.test(p.id)).map((p) => p.id),
+  );
+  const isVisibleFace = (id: string) =>
+    /-face$/.test(id) ||
+    (/-drawer-\d+-front$/.test(id) &&
+      !faceIds.has(id.replace(/-front$/, "-face")));
   const drawerFaces = (() => {
     const groups = new Map<
       string,
       { w: number; h: number; cx: number; bottomY: number; count: number }
     >();
     for (const p of design.parts) {
-      if (!/-face$/.test(p.id)) continue;
-      const fw = p.visible.length;
-      const fh = p.visible.width;
+      if (!isVisibleFace(p.id)) continue;
+      // 用 worldExtents 而非 visible 軸：drawer-row 慣例（rot.x=π/2）與
+      // 中式櫃等自建抽屜前板的軸向不同，世界座標 X/Y extent 對兩者都對
+      const { xExt, yExt } = worldExtents(p);
+      const fw = xExt;
+      const fh = yExt;
       const key = `${Math.round(fw)}x${Math.round(fh)}`;
       const g = groups.get(key);
       if (!g) {
@@ -3790,6 +3803,130 @@ function OrthoViewImpl({
                     : `${Math.round(pf.railW)}×${Math.round(pf.railT)}`}
                 </text>
               </g>
+            );
+          }
+          // ===== 床架（slat-N ≥ 3 支：床板條規格＋床面高）=====
+          // 排列軸動態判斷（origins 分佈大的軸＝排列方向），別硬猜 X/Z
+          const slatsRaw = renderDesign.parts.filter((p) =>
+            /^slat-\d+$/.test(p.id),
+          );
+          const slatSpread = (axis: "x" | "z") => {
+            const vs = slatsRaw.map((p) => p.origin[axis]);
+            return Math.max(...vs) - Math.min(...vs);
+          };
+          const slatAxis: "x" | "z" =
+            slatsRaw.length >= 2 && slatSpread("x") >= slatSpread("z")
+              ? "x"
+              : "z";
+          const slats = [...slatsRaw].sort(
+            (a, b) => a.origin[slatAxis] - b.origin[slatAxis],
+          );
+          if (slats.length >= 3) {
+            const sl = slats[0];
+            const ext = worldExtents(sl);
+            const yExt = ext.yExt;
+            const slatW = slatAxis === "x" ? ext.xExt : ext.zExt; // 板條寬（排列軸）
+            const slatL = slatAxis === "x" ? ext.zExt : ext.xExt; // 板條長（橫跨軸）
+            const gap =
+              slats[1].origin[slatAxis] - slats[0].origin[slatAxis] - slatW;
+            if (view === "top") {
+              // 板條規格一次說清（§I6 重複件標一次）：支數・寬・間距
+              const fmt = (mm: number) =>
+                useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+              return (
+                <text
+                  x={0}
+                  y={4}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="#7a5a2b"
+                  fontWeight="600"
+                  fontFamily="sans-serif"
+                  pointerEvents="none"
+                >
+                  {isEn
+                    ? `Slats ×${slats.length} · W ${fmt(slatW)} · gap ${fmt(gap)}`
+                    : `床板條 ×${slats.length}・寬 ${fmt(slatW)}・間距 ${fmt(gap)}`}
+                </text>
+              );
+            }
+            if (view === "side" || view === "front") {
+              // 床面高（床墊放置面）＋板條長（front 視圖＝橫跨方向）
+              const slatTopY = sl.origin.y + yExt;
+              return (
+                <>
+                  <VerticalDimensionLine
+                    arrowId={`arr-${view}`}
+                    x={w / 2 + 96}
+                    y1={-slatTopY}
+                    y2={drawAreaTop + h}
+                    label={
+                      isEn
+                        ? `Deck ${dimMm(slatTopY)}`
+                        : `床面高 ${dimMm(slatTopY)}`
+                    }
+                  />
+                  {view === "front" && (
+                    <text
+                      x={0}
+                      y={-slatTopY - 6}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fill="#444"
+                      fontFamily="sans-serif"
+                    >
+                      {isEn
+                        ? `Slat L ${dimMm(slatL)}`
+                        : `床板條長 ${dimMm(slatL)}`}
+                    </text>
+                  )}
+                </>
+              );
+            }
+            return null;
+          }
+          // ===== 立式衣帽架（column + hook-N：掛鉤高度＋柱料尺寸）=====
+          const crColumn = renderDesign.parts.find((p) => p.id === "column");
+          const crHooks = renderDesign.parts.filter((p) => /^hook-\d+$/.test(p.id));
+          if (crColumn && crHooks.length > 0 && (view === "front" || view === "side")) {
+            // 掛鉤高度：同高去重（環繞柱身的一圈鉤同 Y 標一次）
+            const hookYs = [
+              ...new Set(
+                crHooks.map((p) =>
+                  Math.round(p.origin.y + worldExtents(p).yExt / 2),
+                ),
+              ),
+            ].sort((a, b) => b - a);
+            const colSize = Math.min(
+              crColumn.visible.length,
+              crColumn.visible.width,
+            );
+            const isRoundCol = crColumn.shape?.kind === "round";
+            const fmt = (mm: number) =>
+              useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+            return (
+              <>
+                {hookYs.slice(0, 3).map((hy, i) => (
+                  <VerticalDimensionLine
+                    key={`hook-${i}`}
+                    arrowId={`arr-${view}`}
+                    x={w / 2 + 96 + i * 44}
+                    y1={-hy}
+                    y2={drawAreaTop + h}
+                    label={isEn ? `Hook ${dimMm(hy)}` : `掛鉤高 ${dimMm(hy)}`}
+                  />
+                ))}
+                <text
+                  x={colSize / 2 + 6}
+                  y={-h * 0.45}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Post " : "柱 "}
+                  {isRoundCol ? `Ø${fmt(colSize)}` : `${fmt(colSize)}×${fmt(colSize)}`}
+                </text>
+              </>
             );
           }
           return null;
