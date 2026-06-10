@@ -4277,9 +4277,26 @@ depthAxis = 三者最小那個
 ```
 
 **特例**：當 `origin.y === 0 || origin.y === ly`（from-bottom 慣例的「便利
-預設值」）+ X 或 Z 軸有 origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為入榫軸。
-這修正「template 把 origin.y=0 當作不在乎 Y 預設」但 mortiseLocalBox 誤判
-的場合。
+預設值」）+ X 或 Z 軸有 origin **嚴格更靠近 face（< yToFace）** 時，優先選
+X/Z 為入榫軸。這修正「template 把 origin.y=0 當作不在乎 Y 預設」但
+mortiseLocalBox 誤判的場合。
+
+⚠️ 2026-06-11 修正：條件曾是 `xToFace < ly/2 || zToFace < ly/2`，對「真的從
+底/頂面入榫」的薄高件會誤判——椅背頂橫木 ly=50、直料榫眼 zToFace 11~17 < 25
+→ 被改判 Z 面入榫、紅榫框畫到零件外。svg-views `mortiseLocalBox` 2026-05-21
+已改嚴格條件（canonical 時 yToFace=0、嚴格小於不可能成立 → 底/頂面入榫永遠
+保留 Y），但 part-drawing `annotation.tsx` 的三份拷貝（mortiseFaceHint /
+mortiseEntryBox / round-mortise view check）漏同步，2026-06-11 補齊。
+**通則：depthAxis heuristic 有四份拷貝（svg-views 1 + annotation 3），改任何
+一份都要 grep `yIsCanonical` 全部同步。**
+
+另兩條 part-drawing 配套（同日）：
+- hidden（虛線）榫眼只畫輪廓不標尺寸——尺寸由「入榫面朝鏡頭」的視圖標
+  （§I6 不冗餘；否則側視圖會把沿弧分佈的 8 顆榫眼疊標到圖外）。tall-iso 件
+  depthAxis="y" 無對應視圖 → 例外保留。
+- arch-bent 零件圖 ghost 虛線框 = 毛料含弧高（W + bendMm），彎向 mesh +Z →
+  top/bottom 視圖往 SVG −y 擴、side 視圖往 SVG −x 擴；不然直料弦框斜切過
+  弧帶、看起來像兩條線交叉。
 
 ### M3. Mortise.length / .width 慣例
 

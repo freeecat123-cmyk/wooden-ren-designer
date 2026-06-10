@@ -698,7 +698,11 @@ export function T2LabelList({
       Math.abs(m.origin.z + lz / 2),
     );
     const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
-    if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+    // 同步 svg-views mortiseLocalBox 2026-05-21 修正：用「嚴格更靠近 face（< yToFace）」。
+    // 舊條件 < ly/2 會把「真的從底/頂面入榫」的薄高件（椅背頂橫木 ly=50、
+    // 直料榫眼 z 距面 11~17 < 25）誤判成 X/Z 面入榫 → 紅榫框畫到零件外。
+    // yToFace=0（canonical）時嚴格小於不可能成立 → 底/頂面入榫永遠保留 Y。
+    if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {
       return xToFace <= zToFace
         ? m.origin.x >= 0
           ? "右端"
@@ -901,7 +905,11 @@ export function T2Annotations({
     );
     const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
     let depthAxis: "x" | "y" | "z";
-    if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+    // 同步 svg-views mortiseLocalBox 2026-05-21 修正：用「嚴格更靠近 face（< yToFace）」。
+    // 舊條件 < ly/2 會把「真的從底/頂面入榫」的薄高件（椅背頂橫木 ly=50、
+    // 直料榫眼 z 距面 11~17 < 25）誤判成 X/Z 面入榫 → 紅榫框畫到零件外。
+    // yToFace=0（canonical）時嚴格小於不可能成立 → 底/頂面入榫永遠保留 Y。
+    if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {
       depthAxis = xToFace <= zToFace ? "x" : "z";
     } else if (yToFace <= xToFace && yToFace <= zToFace) {
       depthAxis = "y";
@@ -1520,7 +1528,11 @@ export function T2Annotations({
       );
       const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
       let depthAxis: "x" | "y" | "z";
-      if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+      // 同步 svg-views mortiseLocalBox 2026-05-21 修正：用「嚴格更靠近 face（< yToFace）」。
+    // 舊條件 < ly/2 會把「真的從底/頂面入榫」的薄高件（椅背頂橫木 ly=50、
+    // 直料榫眼 z 距面 11~17 < 25）誤判成 X/Z 面入榫 → 紅榫框畫到零件外。
+    // yToFace=0（canonical）時嚴格小於不可能成立 → 底/頂面入榫永遠保留 Y。
+    if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {
         depthAxis = xToFace <= zToFace ? "x" : "z";
       } else if (yToFace <= xToFace && yToFace <= zToFace) {
         depthAxis = "y";
@@ -1690,6 +1702,21 @@ export function T2Annotations({
         />
       ),
     ];
+
+    // 工程慣例（CNS / drafting-math §I6 不冗餘）：hidden（虛線）榫眼只畫輪廓、
+    // 不標尺寸——尺寸由「入榫面朝鏡頭」的視圖標（該視圖一定存在：non-tall
+    // top=y / side=x / front=z 全覆蓋）。沒有這條的話側視圖會把 8 顆沿弧分佈
+    // 的椅背直料榫眼疊在同一截面上各標一套 W/L chain，stagger 推到圖外
+    // （user 2026-06-11 長凳椅背零件圖回報）。tall-iso 件 y 軸入榫無對應視圖
+    // （viewDepthAxis 不含 y）→ 例外保留標註。
+    if (isMortise && !isVisibleFromView) {
+      const mortiseLb = lb as ReturnType<typeof mortiseEntryBox>;
+      const noViewWillLabel = isTallIso && mortiseLb.depthAxis === "y";
+      if (!noViewWillLabel) {
+        elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
+        return;
+      }
+    }
 
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
     // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）

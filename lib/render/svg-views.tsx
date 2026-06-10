@@ -3071,12 +3071,22 @@ function OrthoViewImpl({
             isolatedPart.shape?.kind === "splayed-tapered" ||
             isolatedPart.shape?.kind === "splayed-round-tapered") &&
           (view === "front" || view === "side" || view === "top");
+        // arch-bent（椅背頂橫木 bow）零件圖：ghost 框＝毛料含弧高（W + bendMm，
+        // 與 grossPartDims / 毛料厚≥X 標一致），不然「直料弦框」會斜切過弧帶、
+        // 看起來像兩條線交叉（user 2026-06-11 回報）。彎向 mesh +Z →
+        // top/bottom 視圖往 SVG −y 擴、side 視圖往 SVG −x 擴（+Z 投影到 −x）。
+        const archBendGhost =
+          isolatedPart?.shape?.kind === "arch-bent"
+            ? (isolatedPart.shape.bendMm ?? 0)
+            : 0;
+        const ghostUp = view === "top" ? archBendGhost : 0;
+        const ghostLeft = view === "side" ? archBendGhost : 0;
         return (
           <rect
-            x={-w / 2}
-            y={drawAreaTop}
-            width={w}
-            height={h}
+            x={-w / 2 - ghostLeft}
+            y={drawAreaTop - ghostUp}
+            width={w + ghostLeft}
+            height={h + ghostUp}
             fill="none"
             stroke={isSplayPartSwap ? "#000" : "#999"}
             strokeDasharray={isSplayPartSwap ? undefined : "3 3"}
