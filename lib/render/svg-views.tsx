@@ -197,6 +197,89 @@ function extractFurnitureDims(design: FurnitureDesign) {
         })()
       : null;
 
+  // 櫃類板厚（§I6 必標板厚）：側板/背板取三軸最小值當厚（背板厚在 width 軸、
+  // 側板厚在 thickness 軸，min 三軸對兩種都穩）
+  const sideLeftPanel = design.parts.find((p) => p.id === "side-left");
+  const sidePanelT = sideLeftPanel
+    ? Math.min(
+        sideLeftPanel.visible.length,
+        sideLeftPanel.visible.width,
+        sideLeftPanel.visible.thickness,
+      )
+    : null;
+  const backPart = cabinet ? design.parts.find((p) => p.id === "back") : null;
+  const backPanelT = backPart
+    ? Math.min(
+        backPart.visible.length,
+        backPart.visible.width,
+        backPart.visible.thickness,
+      )
+    : null;
+
+  // 吊衣桿（wardrobe）：中心離地高 + 桿徑。
+  // id 慣例三種：hanging-rod（舊 hangingArea 路徑）/ zN-rod / zN-hang-rod /
+  // zN-colM-rod（zone hanging 路徑）。複數桿（雙吊桿）同高去重、各標一條。
+  const rods = (() => {
+    const seen = new Map<number, { centerY: number; d: number }>();
+    for (const p of design.parts) {
+      if (!/(?:^|-)(?:hanging-|hang-)?rod$/.test(p.id)) continue;
+      const centerY = p.origin.y + worldExtents(p).yExt / 2;
+      const key = Math.round(centerY);
+      if (!seen.has(key))
+        seen.set(key, {
+          centerY,
+          d: Math.min(p.visible.width, p.visible.thickness),
+        });
+    }
+    return [...seen.values()].sort((a, b) => b.centerY - a.centerY);
+  })();
+
+  // 門板（slab / 框門 / 玻璃門）：以 id 白名單成員做分組 AABB 聯集
+  // （doorOuterW/H 是 builder local 變數不在 part 上）。
+  // 白名單避免 -door-pull / -slab-pull 把手件撐大 AABB。同尺寸合併計數。
+  const DOOR_MEMBER =
+    /-(slab|stile-left|stile-right|rail-top|rail-bottom|panel|glass)$/;
+  const doors = (() => {
+    const byDoor = new Map<
+      string,
+      { minX: number; maxX: number; minY: number; maxY: number }
+    >();
+    for (const p of design.parts) {
+      if (!DOOR_MEMBER.test(p.id) || !p.id.includes("door")) continue;
+      const key = p.id.replace(DOOR_MEMBER, "");
+      const { xExt, yExt } = worldExtents(p);
+      const b =
+        byDoor.get(key) ??
+        { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+      b.minX = Math.min(b.minX, p.origin.x - xExt / 2);
+      b.maxX = Math.max(b.maxX, p.origin.x + xExt / 2);
+      b.minY = Math.min(b.minY, p.origin.y);
+      b.maxY = Math.max(b.maxY, p.origin.y + yExt);
+      byDoor.set(key, b);
+    }
+    const groups = new Map<
+      string,
+      { w: number; h: number; cx: number; topY: number; count: number }
+    >();
+    for (const b of byDoor.values()) {
+      const dw = b.maxX - b.minX;
+      const dh = b.maxY - b.minY;
+      const key = `${Math.round(dw)}x${Math.round(dh)}`;
+      const cx = (b.minX + b.maxX) / 2;
+      const g = groups.get(key);
+      if (!g) {
+        groups.set(key, { w: dw, h: dh, cx, topY: b.maxY, count: 1 });
+      } else {
+        g.count += 1;
+        if (cx < g.cx) {
+          g.cx = cx;
+          g.topY = b.maxY;
+        }
+      }
+    }
+    return [...groups.values()];
+  })();
+
   // 圓面主板（圓凳/圓桌/圓茶几）：主標掛 Ø、俯視同值冗餘跳過（§I6）
   const isRoundMain =
     main.shape?.kind === "round" &&
@@ -270,6 +353,10 @@ function extractFurnitureDims(design: FurnitureDesign) {
     isRoundMain,
     legProfile,
     drawerFaces,
+    sidePanelT,
+    backPanelT,
+    rods,
+    doors,
   };
 }
 
@@ -3971,13 +4058,19 @@ function OrthoViewImpl({
                 y={drawAreaTop + h + 80}
                 label={isEn ? `Inner ${dimMm(innerW)}` : `內 ${dimMm(innerW)}`}
               />
-              {/* 內高 — 在右側外高內側再加一條（往內偏 32px） */}
+              {/* 內高 — 在右側外高內側再加一條（往內偏 32px）。
+                  矮櫃時與外高標籤同 Y 會水平撞字 → labelY 錯開 18（§I2 間距） */}
               <VerticalDimensionLine
                 arrowId={`arr-${view}`}
                 x={w / 2 + 96}
                 y1={sTop}
                 y2={sBottom}
                 label={isEn ? `Inner ${dimMm(innerH)}` : `內 ${dimMm(innerH)}`}
+                labelY={
+                  Math.abs((sTop + sBottom) / 2 - (drawAreaTop + h / 2)) < 18
+                    ? drawAreaTop + h / 2 + 18
+                    : undefined
+                }
               />
               {/* 腳高 — 右側更靠內，從底板下緣到地面 */}
               {legHeight > 0 && (
@@ -4009,6 +4102,46 @@ function OrthoViewImpl({
                   {isEn ? "Bottom" : "底板"} {dimMm(panelT)}
                 </text>
               </g>
+              {/* 櫃內層板厚 — 全部同厚標一次（§I6 重複件標一次），text 櫃內貼左
+                  （zone 高度鏈段差已用 panelT，這裡把板厚本身寫明） */}
+              {boundaryYs.length > 0 && (
+                <text
+                  x={-w / 2 + panelT + 6}
+                  y={-(boundaryYs[0] + panelT / 2) + 4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Shelf" : "層板"} {dimMm(panelT)}
+                </text>
+              )}
+              {/* 吊衣桿（wardrobe）：中心離地高（左側第 2/3 欄 x=-72/-116；
+                  zone 鏈占 -28，§I2 平行標間距 44 合規）+ 桿徑 Ø text 貼桿左端。
+                  雙吊桿各標一條、高的在內欄（§I2 短內長外）。 */}
+              {dims.rods.slice(0, 2).map((rd, ri) => (
+                <g key={`rod-${ri}`}>
+                  <VerticalDimensionLine
+                    arrowId={`arr-${view}`}
+                    x={-w / 2 - 72 - ri * 44}
+                    y1={-rd.centerY}
+                    y2={sFloor}
+                    label={
+                      isEn
+                        ? `Rod ${dimMm(rd.centerY)}`
+                        : `吊桿高 ${dimMm(rd.centerY)}`
+                    }
+                  />
+                  <text
+                    x={-w / 2 + panelT + 6}
+                    y={-rd.centerY - 8}
+                    fontSize={10}
+                    fill="#444"
+                    fontFamily="sans-serif"
+                  >
+                    Ø{dimMm(rd.d)}
+                  </text>
+                </g>
+              ))}
               {/* 紅酒架格子尺寸：只在「左下第一格」標一次，全部格子尺寸都相同。
                   Rect = 直接標 cellSize × cellSize pitch；
                   Diamond = 標內接圓直徑（瓶子實際能塞多大、≈ cellSize/√2 − panelT，
@@ -4085,21 +4218,28 @@ function OrthoViewImpl({
         if (view === "side") {
           return (
             <>
-              {/* 內深 — 外深下方再加一條 */}
-              <DimensionLine
-                arrowId={`arr-${view}`}
-                x1={-w / 2}
-                x2={-w / 2 + innerD}
-                y={drawAreaTop + h + 80}
-                label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
-              />
-              {/* 內高 — 右側內側多一條 */}
+              {/* 內深 — 外深下方再加一條。側板滿深時 內深=外深 冗餘跳過（§I6） */}
+              {Math.abs(innerD - w) >= 1 && (
+                <DimensionLine
+                  arrowId={`arr-${view}`}
+                  x1={-w / 2}
+                  x2={-w / 2 + innerD}
+                  y={drawAreaTop + h + 80}
+                  label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
+                />
+              )}
+              {/* 內高 — 右側內側多一條（矮櫃 labelY 錯開 18 防水平撞字 §I2） */}
               <VerticalDimensionLine
                 arrowId={`arr-${view}`}
                 x={w / 2 + 96}
                 y1={-topBottomY}
                 y2={-bottomTopY}
                 label={isEn ? `Inner ${dimMm(innerH)}` : `內 ${dimMm(innerH)}`}
+                labelY={
+                  Math.abs((-topBottomY + -bottomTopY) / 2 - (drawAreaTop + h / 2)) < 18
+                    ? drawAreaTop + h / 2 + 18
+                    : undefined
+                }
               />
               {legHeight > 0 && (
                 <VerticalDimensionLine
@@ -4109,6 +4249,18 @@ function OrthoViewImpl({
                   y2={drawAreaTop + h}
                   label={isEn ? `Leg ${dimMm(legHeight)}` : `腳 ${dimMm(legHeight)}`}
                 />
+              )}
+              {/* 背板厚（§I6 必標板厚）— 右側視慣例：背（world +Z）在 SVG 左緣 */}
+              {dims.backPanelT != null && (
+                <text
+                  x={-w / 2 + dims.backPanelT + 4}
+                  y={drawAreaTop + 16}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Back" : "背板"} {dimMm(dims.backPanelT)}
+                </text>
               )}
             </>
           );
@@ -4126,32 +4278,60 @@ function OrthoViewImpl({
                 y={drawAreaTop + h + 80}
                 label={isEn ? `Inner ${dimMm(innerW)}` : `內 ${dimMm(innerW)}`}
               />
-              {/* 內深 — 右側內側 */}
-              <VerticalDimensionLine
-                arrowId={`arr-${view}`}
-                x={w / 2 + 96}
-                y1={-h / 2}
-                y2={-h / 2 + innerD}
-                label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
-              />
+              {/* 內深 — 右側內側。側板滿深時 內深=外深 冗餘跳過（§I6） */}
+              {Math.abs(innerD - h) >= 1 && (
+                <VerticalDimensionLine
+                  arrowId={`arr-${view}`}
+                  x={w / 2 + 96}
+                  y1={-h / 2}
+                  y2={-h / 2 + innerD}
+                  label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
+                />
+              )}
+              {/* 側板厚（左豎條）/ 背板厚（上緣 BACK 側）— §I6 必標板厚 */}
+              {dims.sidePanelT != null && (
+                <text
+                  x={-w / 2 + dims.sidePanelT + 4}
+                  y={4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Side" : "側板"} {dimMm(dims.sidePanelT)}
+                </text>
+              )}
+              {dims.backPanelT != null && (
+                <text
+                  x={w / 4}
+                  y={-h / 2 + dims.backPanelT + 12}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Back" : "背板"} {dimMm(dims.backPanelT)}
+                </text>
+              )}
             </>
           );
         }
         return null;
       })()}
 
-      {/* 抽屜/門面板 W×H（§I6 重複件合併標一次）— 桌類抽屜與櫃類共用，
+      {/* 抽屜面板 / 門板 W×H（§I6 重複件合併標一次）— 桌類抽屜與櫃類共用，
           只在前視圖標（面板朝前）。text 置面板中央、棕色仿紅酒架格標慣例；
-          與橫撐淨長紅線（y = -bottomY + 12）距 <20 時下移 14 防撞。 */}
+          抽面與橫撐淨長紅線（y = -bottomY + 12）距 <20 時下移 14 防撞；
+          門板 text 放上 1/3 高（玻璃門中梃在中央會壓字）。 */}
       {showDimensions && view === "front" && (() => {
         const dims = extractFurnitureDims(renderDesign);
-        if (!dims || dims.drawerFaces.length === 0) return null;
+        if (!dims || (dims.drawerFaces.length === 0 && dims.doors.length === 0))
+          return null;
         const fmt = (mm: number) =>
           useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
         const lineYs = dims.crossPieces
           .filter((c) => !c.isZAxis)
           .map((c) => -c.bottomY + 12);
-        return dims.drawerFaces.map((f, i) => {
+        const faceLabels = dims.drawerFaces.map((f, i) => {
           let ty = -(f.bottomY + f.h / 2) + 4;
           if (lineYs.some((ly) => Math.abs(ly - ty) < 20)) ty += 14;
           return (
@@ -4170,6 +4350,27 @@ function OrthoViewImpl({
             </text>
           );
         });
+        const doorLabels = dims.doors.map((g, i) => (
+          <text
+            key={`door-${i}`}
+            x={g.cx}
+            y={-(g.topY - g.h / 3)}
+            textAnchor="middle"
+            fontSize={10}
+            fill="#7a5a2b"
+            fontWeight="600"
+            fontFamily="sans-serif"
+            pointerEvents="none"
+          >
+            {`${isEn ? "Door" : "門"} ${fmt(g.w)}×${fmt(g.h)}${g.count > 1 ? ` ×${g.count}` : ""}`}
+          </text>
+        ));
+        return (
+          <>
+            {faceLabels}
+            {doorLabels}
+          </>
+        );
       })()}
 
       {/* Orientation marker: the TOP view shows the furniture from above, so
