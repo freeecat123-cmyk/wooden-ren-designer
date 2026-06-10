@@ -361,6 +361,57 @@ function extractFurnitureDims(design: FurnitureDesign) {
 }
 
 /**
+ * 箱盒類（筆筒/托盤/木盒——buildBox 慣例 wall-front/back/left/right + bottom）
+ * 的標線資訊。六/八角款（polygonStaves）無 wall-front → 回 null 優雅降級。
+ * 牆板 rot.x=π/2 → visible.width 軸＝world Y（牆高）、thickness＝壁厚。
+ */
+function extractBoxDims(design: FurnitureDesign) {
+  const bottom = design.parts.find((p) => p.id === "bottom");
+  const wallFront = design.parts.find((p) => /(?:^|-)wall-front$/.test(p.id));
+  if (!bottom || !wallFront) return null;
+  const wallT = wallFront.visible.thickness;
+  const wallH = wallFront.visible.width;
+  const botT = bottom.visible.thickness;
+  const wallBottomY = wallFront.origin.y; // 牆底＝底板頂（surface 底）或更低（入溝底）
+  const lid = design.parts.find((p) => p.id === "lid");
+  return {
+    wallT,
+    wallH,
+    botT,
+    wallBottomY,
+    lidT: lid ? lid.visible.thickness : null,
+    lidBottomY: lid ? lid.origin.y : null,
+  };
+}
+
+/**
+ * 相框（photo-frame——frame-top/bottom/left/right + glass + back-panel）。
+ * 框平躺建模（框面在 X–Z 平面）→ 內框口/框料標在俯視圖。
+ */
+function extractFrameDims(design: FurnitureDesign) {
+  const ft = design.parts.find((p) => p.id === "frame-top");
+  const fb = design.parts.find((p) => p.id === "frame-bottom");
+  const fl = design.parts.find((p) => p.id === "frame-left");
+  const fr = design.parts.find((p) => p.id === "frame-right");
+  if (!ft || !fb || !fl || !fr) return null;
+  const railW = ft.visible.width;
+  const railT = ft.visible.thickness;
+  // 內框口：左右豎料內緣距（豎料 rot.y=π/2 → world X extent = visible.width）
+  const openX = (fr.origin.x - fr.visible.width / 2) - (fl.origin.x + fl.visible.width / 2);
+  const openZ = (ft.origin.z - ft.visible.width / 2) - (fb.origin.z + fb.visible.width / 2);
+  const glass = design.parts.find((p) => p.id === "glass");
+  const back = design.parts.find((p) => p.id === "back-panel");
+  return {
+    railW,
+    railT,
+    openX,
+    openZ,
+    glassT: glass ? glass.visible.thickness : null,
+    backT: back ? back.visible.thickness : null,
+  };
+}
+
+/**
  * 抓 zones 模式下每片 boundary 板的 Y 位置（origin.y = 板下緣）。
  * 用來在前視圖左側畫每個 zone 的高度標示鏈。
  */
@@ -3596,7 +3647,153 @@ function OrthoViewImpl({
       {/* === 額外標線（內部尺寸 + zone 高度鏈 / 桌面厚 + 淨高 / 層板高度）=== */}
       {showDimensions && (() => {
         const dims = extractFurnitureDims(renderDesign);
-        if (!dims) return null;
+        if (!dims) {
+          // ===== 箱盒類（筆筒/托盤/木盒：無 top/seat → 走輕量 box 分支）=====
+          // 槽位沿用櫃類慣例（y+80 內寬、x+96 內深、x+140 底厚）視覺語言一致
+          const box = extractBoxDims(renderDesign);
+          if (box) {
+            const { wallT, wallH, botT, wallBottomY, lidT, lidBottomY } = box;
+            if (view === "front" || view === "side") {
+              const innerSpan = w - 2 * wallT;
+              return (
+                <>
+                  {/* 內寬/內長（§I6 必標；front=X、side=Z 同壁厚） */}
+                  <DimensionLine
+                    arrowId={`arr-${view}`}
+                    x1={-w / 2 + wallT}
+                    x2={w / 2 - wallT}
+                    y={drawAreaTop + h + 80}
+                    label={isEn ? `Inner ${dimMm(innerSpan)}` : `內 ${dimMm(innerSpan)}`}
+                  />
+                  {view === "front" && (
+                    <>
+                      {/* 內深（牆底到牆頂的可用深度）。矮件與外高標籤同 Y
+                          水平撞字 → labelY 錯開 18（§I2 間距） */}
+                      <VerticalDimensionLine
+                        arrowId={`arr-${view}`}
+                        x={w / 2 + 96}
+                        y1={-(wallBottomY + wallH)}
+                        y2={-wallBottomY}
+                        label={isEn ? `Inner ${dimMm(wallH)}` : `內深 ${dimMm(wallH)}`}
+                        labelY={
+                          Math.abs(
+                            -(wallBottomY + wallH / 2) - (drawAreaTop + h / 2),
+                          ) < 18
+                            ? drawAreaTop + h / 2 + 18
+                            : undefined
+                        }
+                      />
+                      {/* 底板厚 */}
+                      <VerticalDimensionLine
+                        arrowId={`arr-${view}`}
+                        x={w / 2 + 140}
+                        y1={-botT}
+                        y2={drawAreaTop + h}
+                        label={isEn ? `Base ${dimMm(botT)}` : `底 ${dimMm(botT)}`}
+                      />
+                      {/* 壁厚 text 貼左牆 */}
+                      <text
+                        x={-w / 2 + wallT + 4}
+                        y={-(wallBottomY + wallH * 0.6)}
+                        fontSize={10}
+                        fill="#444"
+                        fontFamily="sans-serif"
+                      >
+                        {isEn ? "Wall" : "壁"} {dimMm(wallT)}
+                      </text>
+                      {/* 蓋厚 text（有蓋款） */}
+                      {lidT != null && lidBottomY != null && (
+                        <text
+                          x={w / 2 + 4}
+                          y={-(lidBottomY + lidT / 2) + 4}
+                          fontSize={10}
+                          fill="#444"
+                          fontFamily="sans-serif"
+                        >
+                          {isEn ? "Lid" : "蓋"} {dimMm(lidT)}
+                        </text>
+                      )}
+                    </>
+                  )}
+                </>
+              );
+            }
+            // top：內長（X）+ 內寬（Z）+ 壁厚
+            return (
+              <>
+                <DimensionLine
+                  arrowId={`arr-${view}`}
+                  x1={-w / 2 + wallT}
+                  x2={w / 2 - wallT}
+                  y={drawAreaTop + h + 80}
+                  label={isEn ? `Inner ${dimMm(w - 2 * wallT)}` : `內 ${dimMm(w - 2 * wallT)}`}
+                />
+                <VerticalDimensionLine
+                  arrowId={`arr-${view}`}
+                  x={w / 2 + 96}
+                  y1={-h / 2 + wallT}
+                  y2={h / 2 - wallT}
+                  label={isEn ? `Inner ${dimMm(h - 2 * wallT)}` : `內 ${dimMm(h - 2 * wallT)}`}
+                />
+                <text
+                  x={-w / 2 + wallT + 4}
+                  y={4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Wall" : "壁"} {dimMm(wallT)}
+                </text>
+              </>
+            );
+          }
+          // ===== 相框（平躺建模 → 內框口/框料標在俯視圖）=====
+          const pf = extractFrameDims(renderDesign);
+          if (pf && view === "top") {
+            return (
+              <g fontFamily="sans-serif" pointerEvents="none">
+                <text
+                  x={0}
+                  y={-4}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="#7a5a2b"
+                  fontWeight="600"
+                >
+                  {isEn ? "Opening" : "內框口"} {dimMm(pf.openX)}×{dimMm(pf.openZ)}
+                </text>
+                {(pf.glassT != null || pf.backT != null) && (
+                  <text x={0} y={10} textAnchor="middle" fontSize={9} fill="#7a5a2b">
+                    {[
+                      pf.glassT != null
+                        ? `${isEn ? "Glass" : "玻璃"} ${dimMm(pf.glassT)}`
+                        : null,
+                      pf.backT != null
+                        ? `${isEn ? "Back" : "背板"} ${dimMm(pf.backT)}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join("・")}
+                  </text>
+                )}
+                {/* 框料寬×厚 text 貼上框 */}
+                <text
+                  x={0}
+                  y={-h / 2 + pf.railW / 2 + 4}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="#444"
+                >
+                  {isEn ? "Rail" : "框料"}{" "}
+                  {useInch
+                    ? `${formatLengthBare(pf.railW, "inch")}×${formatLengthBare(pf.railT, "inch")}`
+                    : `${Math.round(pf.railW)}×${Math.round(pf.railT)}`}
+                </text>
+              </g>
+            );
+          }
+          return null;
+        }
         const {
           main,
           mainT,
