@@ -3561,16 +3561,26 @@ function OrthoViewImpl({
                 // 取得本 entry 用的 mortise 與 box（pill 用合成 box；single 用本身）
                 const m = entry.kind === "pill" ? entry.rect : entry.m;
                 const lb = mortiseLocalBox(part, m);
+                // front view 會另外用 SVG transform rotate(m.rotX) 畫斜孔——
+                // 投影 box 必須用「未旋轉版」，否則 projectFeatureRect 先算
+                // 旋轉 AABB、transform 又轉一次＝雙重旋轉：pill 變胖
+                //（8.5→19.9 寬）且半懸出斜壁帶（user 2026-06-11 外撇主視圖
+                // 手把孔騎在斜邊線上回報）。side/top 無 transform rotate，
+                // 維持原 AABB 投影。
+                const lbBase =
+                  view === "front" && m.rotX
+                    ? { ...lb, rotX: 0, rotY: 0, rotZ: 0 }
+                    : lb;
                 let r: { x: number; y: number; w: number; h: number };
                 const isPill = entry.kind === "pill";
                 if (entry.kind === "pill") {
                   // Pill 合成 box：x 半寬 = (handleW)/2 = rect.length/2 + round.length/2
                   // 用 rect mortise 的 lb 做基底、改 hx
                   const handleW = entry.rect.length + entry.rounds[0].length;
-                  const pillLb = { ...lb, hx: handleW / 2 };
+                  const pillLb = { ...lbBase, hx: handleW / 2 };
                   r = projectFeatureRect(part, pillLb, view);
                 } else {
-                  r = projectFeatureRect(part, lb, view);
+                  r = projectFeatureRect(part, lbBase, view);
                 }
                 if (r.w < 0.5 || r.h < 0.5) return [];
                 const cx = r.x + r.w / 2;
