@@ -386,12 +386,20 @@ function extractBoxDims(design: FurnitureDesign) {
   const wallH = wallFront.visible.width;
   const botT = bottom.visible.thickness;
   const wallBottomY = wallFront.origin.y; // 牆底＝底板頂（surface 底）或更低（入溝底）
+  // 垂直內深用「總高 − 底板頂面」幾何算，別用 wallH——外撇（splay）托盤的
+  // wallH 是斜壁「料寬」（52/cos30° = 60，跟總高同值明顯矛盾），垂直內深
+  // 才是「能放多高的東西」（user 2026-06-11 托盤外撇變體檢查）。
+  // 垂直壁時兩者相等，不影響既有件。
+  const bottomTopY = bottom.origin.y + botT;
+  const innerDepth = design.overall.thickness - bottomTopY;
   const lid = design.parts.find((p) => p.id === "lid");
   return {
     wallT,
     wallH,
     botT,
     wallBottomY,
+    bottomTopY,
+    innerDepth,
     lidT: lid ? lid.visible.thickness : null,
     lidBottomY: lid ? lid.origin.y : null,
   };
@@ -805,6 +813,9 @@ export function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalB
  */
 function warnInvalidMortiseSpec(partId: string, m: Part["mortises"][number], lx: number, ly: number, lz: number): void {
   if (typeof window === "undefined" && process.env.NODE_ENV === "production") return;
+  // 帶 rotX/rotZ 的 cosmetic 挖孔（外撇托盤手把：「板平著挖、再傾斜板」模型，
+  // verts 平推後實體 y 範圍隨 z 平移）origin.y 合法超出未變形 box —— 不警告
+  if (m.cosmetic && (m.rotX || m.rotZ)) return;
   const issues: string[] = [];
   if (m.origin.y < -1 || m.origin.y > ly + 1) {
     issues.push(`origin.y=${m.origin.y} 超出 part.thickness 範圍 [0, ${ly}]—可能誤把「post-rotation 高度」放在 mesh local Y 軸（應放 origin.x）`);
@@ -1157,10 +1168,12 @@ function OrthoViewImpl({
   // 35×425mm 的腳套 220mm padding 後 viewBox 寬 475mm，腳只佔 7% 寬，
   // 視覺上整片白邊配右下角小小的剪影（Inspector A 多家具回報）。
   // 改用「跟 part 較大邊成比例 + T1 dim line 預留」的動態 padding：
-  //   - T1Dimensions 需 HORIZ_OFFSET 18-30 + VERT_OFFSET 50 + 文字寬約 30
-  //   - 取 max(64, 0.15 × part 較大邊)，上限 PADDING（220）保底
-  // 對 35mm 腳：max(64, 5.25) = 64mm 兩側、viewBox 寬 163mm、腳佔 21% 寬（OK）
-  // 對 1000mm 圓桌面：max(64, 150) = 150mm、viewBox 寬 1300mm、桌面佔 77%（OK）
+  //   - T1Dimensions 需 HORIZ_OFFSET 18-30 + VERT_OFFSET 70 + 文字寬約 34
+  //   - 取 max(128, 0.15 × part 較大邊)，上限 PADDING（220）保底
+  // ⚠ 下限 64 是 VERT_OFFSET=50 年代算的；50→70 後沒同步 → 用到下限的
+  //   part（托盤底板 392×272）右側「寬 272」label 畫在 viewBox 外被切掉
+  //   （user 2026-06-11 托盤回報「底板卡缺寬」）。128 = 70 + 58（「寬 1000」級長標）。
+  // 對 1000mm 圓桌面：max(104, 150) = 150mm、viewBox 寬 1300mm、桌面佔 77%（OK）
   // 頂端榫頭凸出量 — front/side view 看到「top tenon」沿 +Y 凸；top view 看到
   // length/width 端面 tenon 沿 ±X/±Z 凸。padding 不夠的話 T1 dim chain（含榫
   // 標籤）+ title bar 會撞在一起。
@@ -1181,7 +1194,7 @@ function OrthoViewImpl({
   const isolatePadding = isolatePartId
     ? Math.min(
         PADDING,
-        Math.max(64, 0.15 * Math.max(overall.length, overall.width, overall.thickness), tenonTopBuffer),
+        Math.max(128, 0.15 * Math.max(overall.length, overall.width, overall.thickness), tenonTopBuffer),
       )
     : PADDING;
   const isolateDimOffset = isolatePartId
@@ -3688,9 +3701,21 @@ function OrthoViewImpl({
           // 槽位沿用櫃類慣例（y+80 內寬、x+96 內深、x+140 底厚）視覺語言一致
           const box = extractBoxDims(renderDesign);
           if (box) {
-            const { wallT, wallH, botT, wallBottomY, lidT, lidBottomY } = box;
+            const { wallT, wallH, botT, wallBottomY, bottomTopY, innerDepth, lidT, lidBottomY } = box;
             if (view === "front" || view === "side") {
               const innerSpan = w - 2 * wallT;
+              // 矮件（托盤 60mm）三條垂直標的 label 會擠同一水平帶 →
+              // 鏈式錯開：高（generic，自身 mid）→ 內深（mid+18）→ 底（再 +18）
+              // （§I2 平行標間距；user 2026-06-11 托盤回報「內深 52 底 8 疊字」）
+              const overallMid = drawAreaTop + h / 2;
+              const innerMid = (drawAreaTop + -bottomTopY) / 2;
+              const innerLabelY =
+                Math.abs(innerMid - overallMid) < 18 ? overallMid + 18 : innerMid;
+              const baseMid = (-botT + (drawAreaTop + h)) / 2;
+              const baseLabelY =
+                Math.abs(baseMid - innerLabelY) < 18
+                  ? innerLabelY + 18
+                  : undefined;
               return (
                 <>
                   {/* 內寬/內長（§I6 必標；front=X、side=Z 同壁厚） */}
@@ -3708,24 +3733,21 @@ function OrthoViewImpl({
                       <VerticalDimensionLine
                         arrowId={`arr-${view}`}
                         x={w / 2 + 96}
-                        y1={-(wallBottomY + wallH)}
-                        y2={-wallBottomY}
-                        label={isEn ? `Inner ${dimMm(wallH)}` : `內深 ${dimMm(wallH)}`}
+                        y1={drawAreaTop}
+                        y2={-bottomTopY}
+                        label={isEn ? `Inner ${dimMm(innerDepth)}` : `內深 ${dimMm(innerDepth)}`}
                         labelY={
-                          Math.abs(
-                            -(wallBottomY + wallH / 2) - (drawAreaTop + h / 2),
-                          ) < 18
-                            ? drawAreaTop + h / 2 + 18
-                            : undefined
+                          innerLabelY !== innerMid ? innerLabelY : undefined
                         }
                       />
-                      {/* 底板厚 */}
+                      {/* 底板厚（矮件接續內深再往下錯 18） */}
                       <VerticalDimensionLine
                         arrowId={`arr-${view}`}
                         x={w / 2 + 140}
                         y1={-botT}
                         y2={drawAreaTop + h}
                         label={isEn ? `Base ${dimMm(botT)}` : `底 ${dimMm(botT)}`}
+                        labelY={baseLabelY}
                       />
                       {/* 壁厚 text 貼左牆 */}
                       <text
@@ -3764,12 +3786,15 @@ function OrthoViewImpl({
                   y={drawAreaTop + h + 80}
                   label={isEn ? `Inner ${dimMm(w - 2 * wallT)}` : `內 ${dimMm(w - 2 * wallT)}`}
                 />
+                {/* 內寬(Z)。與 x+28 的「深」標 mid 都在 0 → label 錯開 18（§I2，
+                    user 2026-06-11 托盤俯視「深 280 內 264」相連回報） */}
                 <VerticalDimensionLine
                   arrowId={`arr-${view}`}
                   x={w / 2 + 96}
                   y1={-h / 2 + wallT}
                   y2={h / 2 - wallT}
                   label={isEn ? `Inner ${dimMm(h - 2 * wallT)}` : `內 ${dimMm(h - 2 * wallT)}`}
+                  labelY={18}
                 />
                 <text
                   x={-w / 2 + wallT + 4}

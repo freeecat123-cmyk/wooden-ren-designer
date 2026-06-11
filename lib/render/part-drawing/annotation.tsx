@@ -1072,9 +1072,12 @@ export function T2Annotations({
     const W = round1(m.width ?? 0);
     const L = round1(m.length ?? 0);
     const D = round1(m.depth ?? 0);
-    // 圓孔（mortise.shape === "round"）用 Ø 標、不寫 W×L
+    // 圓孔（mortise.shape === "round"）用 Ø 標、不寫 W×L。
+    // 貫穿孔（through，如托盤手把孔）標「穿」不標深——標「深8」會被當盲孔
+    // 鑽 8mm 就停（user 2026-06-11 托盤手把孔回報）
     const isRound = m.shape === "round";
-    const dims = isRound ? `Ø${W} 深${D}` : `${W}×${L} 深${D}`;
+    const depthLabel = m.through ? "穿" : `深${D}`;
+    const dims = isRound ? `Ø${W} ${depthLabel}` : `${W}×${L} ${depthLabel}`;
     // cosmetic mortise = 凹槽（指槽/底板入溝/rabbet），不是真榫眼、label 用「凹槽」
     const nameLabel = m.cosmetic ? `凹槽${idx + 1}` : `榫眼${idx + 1}`;
     items.push({
@@ -2419,7 +2422,9 @@ export function T2Annotations({
     // 距中軸 dim 放在 W/L dim line 外側（mortiseIsRound 用原 8px、rect 用 18px 避撞）
     const offCenter = mortiseIsRound ? 8 : 18;
     if (view === "top" && isSymmetricPart) {
-      // 距中 X：水平 dim line 從 centerline 到 mortise center
+      // 距中 X：水平 dim line 從 centerline 到 mortise center。
+      // 距中 = 0（孔就在中軸上）的 dim 無資訊量還畫一支「0」箭頭 →
+      // 跳過（user 2026-06-11 托盤側壁卡「0」標回報）
       const dxMm = round1(Math.abs(lb.cx));
       const dzMm = round1(Math.abs(lb.cz));
       const xDimY =
@@ -2430,26 +2435,32 @@ export function T2Annotations({
         box.x < partCenterSvg.x
           ? box.x - offCenter
           : box.x + box.w + offCenter;
-      partEls.push(
-        hDim(partCenterSvg.x, cx, xDimY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
-      );
-      partEls.push(
-        vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
-      );
+      if (dxMm >= 0.5) {
+        partEls.push(
+          hDim(partCenterSvg.x, cx, xDimY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
+        );
+      }
+      if (dzMm >= 0.5) {
+        partEls.push(
+          vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
+        );
+      }
     } else if (view !== "top" && isSymmetricPart) {
       // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
       const dxMm = round1(Math.abs(lb.cx));
       const xDimY = box.y - offCenter;
-      partEls.push(
-        hDim(
-          partCenterSvg.x,
-          cx,
-          xDimY,
-          String(dxMm),
-          "#0ea5e9",
-          `${it.kind}-${it.idx}-xdim`,
-        ),
-      );
+      if (dxMm >= 0.5) {
+        partEls.push(
+          hDim(
+            partCenterSvg.x,
+            cx,
+            xDimY,
+            String(dxMm),
+            "#0ea5e9",
+            `${it.kind}-${it.idx}-xdim`,
+          ),
+        );
+      }
     }
 
     elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
@@ -3287,9 +3298,12 @@ export function DetailCallout({
         const targetName =
           t.kind === "mortise" ? `榫眼${t.idx + 1}` : `榫頭${t.idx + 1}`;
         // 正視圖榫頭 callout 不標榫厚（D 是 Z 方向，正視圖看不到，標出來會誤導
-        // — 之前畫面上的「10」就是這個 D；榫厚請看材料單或側視圖）
+        // — 之前畫面上的「10」就是這個 D；榫厚請看材料單或側視圖）。
+        // 貫穿孔標「穿」不標深（同 T2 dims；user 2026-06-11 托盤手把孔）
         const dimText =
-          t.kind === "mortise" ? `${W}×${L} 深${D}` : `${W} 長${L}`;
+          t.kind === "mortise"
+            ? `${W}×${L} ${part.mortises[t.idx].through ? "穿" : `深${D}`}`
+            : `${W} 長${L}`;
 
         // Leader: feature 圓邊朝 inset 中心方向 → inset 最近角
         const insetCx = p.x + p.w / 2;
