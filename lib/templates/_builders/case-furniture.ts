@@ -519,7 +519,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         width: panelTongueT,
         through: false,
       },
-      // 4 角腳榫眼
+      // 4 角腳榫眼。圓料腿（round/round-tapered）的榫渲染慣例是圓榫 →
+      // 孔標 shape:"round" 配圓孔，零件圖/3D 才不會公圓母方自相矛盾
+      // （user 2026-06-11「榫不是圓的嗎？」windsor 同款修法）
       ...(hasCornerLegs
         ? ([-1, 1] as const).flatMap((sx) =>
             ([-1, 1] as const).map((sz) => ({
@@ -532,6 +534,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               length: legMortiseSize,
               width: legMortiseSize,
               through: false,
+              ...(legShape === "round" || legShape === "round-tapered"
+                ? { shape: "round" as const }
+                : {}),
             })),
           )
         : []),

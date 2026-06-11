@@ -370,6 +370,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       length: HOOK_SIZE,
       width: HOOK_SIZE,
       through: false,
+      // 掛鉤是圓料圓榫 → 柱孔配圓（user 2026-06-11 windsor「榫不是圓的嗎」同款修法）
+      shape: "round" as const,
     });
   }
 
@@ -415,6 +417,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
         length: HOOK_SIZE,
         width: HOOK_SIZE,
         through: false,
+        // 下排掛鉤同款圓孔
+        shape: "round" as const,
       });
     }
   }
