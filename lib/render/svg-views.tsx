@@ -319,7 +319,9 @@ function extractFurnitureDims(design: FurnitureDesign) {
   );
   const isVisibleFace = (id: string) =>
     /-face$/.test(id) ||
-    (/-drawer-\d+-front$/.test(id) &&
+    // (?:^|-)：side-table 抽屜 id 是「drawer-1-front」無前綴，
+    // 舊 regex 要求前綴 dash 漏掉它 → 主視圖缺抽面標（2026-06-12 邊桌排查）
+    (/(?:^|-)drawer-\d+-front$/.test(id) &&
       !faceIds.has(id.replace(/-front$/, "-face")));
   const drawerFaces = (() => {
     const groups = new Map<
