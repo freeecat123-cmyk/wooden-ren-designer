@@ -1398,6 +1398,9 @@ export function T2Annotations({
   // (user 2026-05-28「正視圖底下 301 279 跟 128 106 太近了 把 279 128 往下移」)
   const shoulderHYUsed: { L: number[]; R: number[] } = { L: [], R: [] };
   const SHOULDER_Y_TOL = 4;
+  // 圓榫「Ø 深X」label 同位防撞：軸向視圖兩端圓榫同心（端面投影重疊）、
+  // leader 落同一點 → 兩行字疊在一起（user 2026-06-11 邊柱側視卡回報）。
+  const roundLabelSlots: Array<{ x: number; y: number }> = [];
   items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
@@ -1561,12 +1564,20 @@ export function T2Annotations({
         part.shape?.kind === "lathe-turned" ||
         part.shape?.kind === "shaker";
       if (isRoundPart) {
-        const tenonAxis: "x" | "y" | "z" =
+        let tenonAxis: "x" | "y" | "z" =
           t.position === "top" || t.position === "bottom"
             ? "y"
             : t.position === "start" || t.position === "end"
               ? "x"
               : "z";
+        // tall isolated part（Windsor 邊柱等）：OrthoView isolation rotation
+        // Rz=-π/2 把 part-local Y 轉到 world X → top/bottom 圓榫的「軸向視圖」
+        // 從俯視變側視。不補償會圓方對調：側視（端面視）畫成方框疊在端面圓上、
+        // 正視（側影）反而畫橢圓（user 2026-06-11 邊柱卡回報）。跟 mortise 的
+        // viewDepthAxis isTallIso 補償同款。
+        if (isTallIso) {
+          tenonAxis = tenonAxis === "y" ? "x" : tenonAxis === "x" ? "y" : tenonAxis;
+        }
         const viewAxis: "x" | "y" | "z" =
           view === "top" ? "y" : view === "side" ? "x" : "z";
         tenonIsRound = tenonAxis === viewAxis;
@@ -1721,13 +1732,24 @@ export function T2Annotations({
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
     // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）
     if (isRoundFeature) {
+      // 同位 label 防撞：兩端圓榫端面同心時 leader/字會疊 → 第二顆往下推。
+      // 基準再 +8：端面視圖（小截面）lblY=partBottom+16 會壓到圓輪廓下緣
+      let rlY = lblY + 8;
+      while (
+        roundLabelSlots.some(
+          (s) => Math.abs(s.x - lblX) < 40 && Math.abs(s.y - rlY) < 12,
+        )
+      ) {
+        rlY += 14;
+      }
+      roundLabelSlots.push({ x: lblX, y: rlY });
       partEls.push(
         <line
           key={`${it.kind}-${it.idx}-lead`}
           x1={box.x + box.w / 2}
           y1={box.y + box.h}
           x2={lblX}
-          y2={lblY - 8}
+          y2={rlY - 8}
           stroke={stroke}
           strokeWidth={0.4}
           strokeDasharray="2 1.5"
@@ -1735,7 +1757,7 @@ export function T2Annotations({
         <text
           key={`${it.kind}-${it.idx}-dims`}
           x={lblX}
-          y={lblY}
+          y={rlY}
           fontSize={9}
           fill="#1f2937"
           fontFamily="monospace"

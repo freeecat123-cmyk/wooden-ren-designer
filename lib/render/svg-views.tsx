@@ -1948,7 +1948,20 @@ function OrthoViewImpl({
         // 從正視才看得到端面圓；俯視看到的是側面 = 矩形。
         // legs / 圓盤腳 axis="y"（垂直圓柱），俯視才是圓。
         // axis="x"（極少見的橫向圓料）side view 才是圓。
-        const roundAxis = part.shape?.kind === "round" ? (part.shape.axis ?? "y") : "y";
+        // ⚠ 2026-06-11：軸向要看「world 軸」不是 local 軸——零件圖 isolate 模式
+        // 把長軸轉橫躺（rotation.z=-π/2），垂直圓柱（Windsor 邊柱）躺成 X 軸 →
+        // 端面圓該畫在側視、俯視是矩形側影；沒換算會在俯視/正視卡中央懸一顆圓
+        // （user 2026-06-11 回報）。quarter 旋轉軸交換順序與 worldExtents 一致。
+        const roundAxisLocal =
+          part.shape?.kind === "round" ? (part.shape.axis ?? "y") : "y";
+        const qRot = (a?: number) => Math.abs(Math.sin(a ?? 0)) > 0.5;
+        let roundAxis: "x" | "y" | "z" = roundAxisLocal;
+        if (qRot(part.rotation?.x))
+          roundAxis = roundAxis === "y" ? "z" : roundAxis === "z" ? "y" : roundAxis;
+        if (qRot(part.rotation?.y))
+          roundAxis = roundAxis === "x" ? "z" : roundAxis === "z" ? "x" : roundAxis;
+        if (qRot(part.rotation?.z))
+          roundAxis = roundAxis === "x" ? "y" : roundAxis === "y" ? "x" : roundAxis;
         const roundCircleView: "front" | "side" | "top" =
           roundAxis === "z" ? "front" :
           roundAxis === "x" ? "side" :
@@ -1975,14 +1988,14 @@ function OrthoViewImpl({
             />
           );
         }
-        // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
+        // 圓盤 / 圓柱腳「軸向視圖」畫圓；其餘視圖維持矩形（圓柱側面 = 直徑 × 長）
+        // 一般組裝視角＝俯視（垂直圓柱）；isolate 橫躺後 roundCircleView 變側視。
         if (
           (part.shape?.kind === "round" ||
             part.shape?.kind === "round-tapered" ||
             part.shape?.kind === "splayed-round-tapered" ||
             part.shape?.kind === "lathe-turned") &&
-          (part.shape.kind !== "round" || roundAxis === "y") &&
-          view === "top"
+          view === roundCircleView
         ) {
           const r = projectPart(part, view);
           const cx = r.x + r.w / 2;

@@ -631,9 +631,12 @@ export const bench: FurnitureTemplate = (input) => {
       // bow 跟圓料同步：位置 +rakeMm，cross-section 旋轉 rakeRad
       // 圓料 TOP 已在 buildVerticalRound 補上 bow 旋轉後中軸線的 Y/Z 偏移
       const railZ = halfW - topRailT / 2 - backInset + rakeMm;
-      // bow 底面 (part-local y=0) 對應每根椅背圓料 X 位置的 round mortise
+      // bow 底面 (part-local y=0) 對應每根椅背圓料 X 位置的 round mortise。
+      // ⚠ origin.z 要跟弧走（mesh-local；arch-bent 的材料中心在 x 處 = z=archDzAt(x)）：
+      // 寫死 z=0（直弦）會讓中央榫眼離弧帶最遠 bendMm（40mm）——零件圖紅框排成
+      // 直線不貼弧、3D CSG 挖錯位（user 2026-06-11 回報；slatted 段同款寫法為準）。
       const bowMortisesList = bowMortises.map((m) => ({
-        origin: { x: m.x, y: 0, z: 0 },
+        origin: { x: m.x, y: 0, z: archDzAt(m.x) },
         depth: m.tenonLen,
         length: m.tenonDia,
         width: m.tenonDia,
