@@ -4218,9 +4218,12 @@ function OrthoViewImpl({
             });
           }
           for (const s of shelves) {
+            // 名字剝尾碼數字：「下棚條 1」+「188 mm」連排會誤讀成 1188
+            //（user 2026-06-11 茶几排查）；同高棚條本就同 Y 去重只標一筆
+            const sName = (partName(s, locale) ?? s.nameZh).replace(/\s*\d+\s*$/, "");
             leftStack.push({
               y: s.topY,
-              label: `${partName(s, locale)} ${dimMm(s.topY)}`,
+              label: `${sName} ${dimMm(s.topY)}`,
             });
           }
           for (const c of crossPieces) {
