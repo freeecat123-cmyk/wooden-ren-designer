@@ -2540,6 +2540,13 @@ function OrthoViewImpl({
             // tilt-z：椅背直料 top view 用底面 cross-section 不要被 tilt Z 拉長
             // 成 (20+topShift) tall rect；projectPartPolygon 有專屬 tilt-z 分支
             part.shape.kind !== "tilt-z" &&
+            // 帶 rotation（零件圖 isolate 橫躺）的錐形腳：top 視角看到的是
+            // 沿世界 X 漸變的楔形，必須走 polygon → silhouette delegate，
+            // 否則 fallback box 畫成直條（user 2026-06-11 茶几錐形腳卡回報）
+            !((part.shape.kind === "tapered" || part.shape.kind === "round-tapered") &&
+              ((part.rotation?.x ?? 0) !== 0 ||
+                (part.rotation?.y ?? 0) !== 0 ||
+                (part.rotation?.z ?? 0) !== 0)) &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
           ));

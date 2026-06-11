@@ -654,6 +654,18 @@ export function projectPartPolygon(
   // （與 chamfered-edges 同 convention）。前/側視仍是梯形（倒角只在 cross-
   // section view 顯示，跟 chamfered-edges 邏輯一致）。
   if (part.shape.kind === "tapered") {
+    const hasRotTaper =
+      (part.rotation?.x ?? 0) !== 0 ||
+      (part.rotation?.y ?? 0) !== 0 ||
+      (part.rotation?.z ?? 0) !== 0;
+    if (hasRotTaper) {
+      // 零件圖 isolate 橫躺（Rz=-π/2 等）：下面的梯形/八邊形是「直立腳」
+      // view-name 硬畫（頂邊全寬、底邊縮）——橫躺後收縮其實沿世界 X 漸變，
+      // 硬畫變成 375→206 的怪梯形（user 2026-06-11 茶几錐形腳零件卡回報）。
+      // delegate 給 projectPartSilhouette（3D 頂點採樣→旋轉→投影，任意旋轉
+      // 都對）。splayed 分支同款先例。
+      return projectPartSilhouette(part, view);
+    }
     const chamferMm = part.shape.chamferMm ?? 0;
     if (view === "top") {
       if (chamferMm <= 0) return box;
@@ -782,6 +794,15 @@ export function projectPartPolygon(
 
   // 圓錐腳：silhouette 跟方錐腳一樣是梯形（俯視仍是矩形 bbox，由 svg-views 改畫圓）
   if (part.shape.kind === "round-tapered") {
+    if (
+      (part.rotation?.x ?? 0) !== 0 ||
+      (part.rotation?.y ?? 0) !== 0 ||
+      (part.rotation?.z ?? 0) !== 0
+    ) {
+      // 零件圖橫躺：view-name 硬畫的梯形軸向不對（同 tapered 分支），
+      // delegate 給 silhouette（任意旋轉都對）
+      return projectPartSilhouette(part, view);
+    }
     if (view === "top") return box;
     const scale = part.shape.bottomScale;
     const cx = (r.x + r.x + r.w) / 2;
