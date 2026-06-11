@@ -100,6 +100,30 @@ export function getT1ForView(part: Part, view: PartView): {
  *
  * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §1
  */
+/**
+ * 外撇托盤手把等「板平著挖、再傾斜板」的 cosmetic 斜孔（rotX/rotZ ≠ 0）：
+ * 零件卡顯示「加工姿態」→ 孔心歸位壁厚中心、rot 清零、深 = 壁厚（維持貫穿）。
+ * 與 svg-views isolate 的 mitered-ends vertices 反烘對齊（user 2026-06-11
+ * 外撇左壁卡：俯視斜 pill 突出薄板、側視斜孔）。
+ */
+function normalizePartForDrawing(part: Part): Part {
+  if (!part.mortises?.some((m) => m.cosmetic && (m.rotX || m.rotZ))) return part;
+  return {
+    ...part,
+    mortises: part.mortises.map((m) =>
+      m.cosmetic && (m.rotX || m.rotZ)
+        ? {
+            ...m,
+            origin: { ...m.origin, y: part.visible.thickness / 2 },
+            rotX: 0,
+            rotZ: 0,
+            depth: part.visible.thickness,
+          }
+        : m,
+    ),
+  };
+}
+
 export function T1Dimensions({
   ctx,
   part,
@@ -109,6 +133,7 @@ export function T1Dimensions({
   part: Part;
   view: PartView;
 }) {
+  part = normalizePartForDrawing(part);
   // T1 標籤跟 dim arrow 改用 SCREEN BOUNDING BOX：
   // 對 stool leg (T > L) 這種 OrthoView 內部旋轉 (isolation rotation Rz=-π/2)
   // 把長軸投影到螢幕水平的件，part-local 軸跟視覺方向不一致。getT1ForView
@@ -681,6 +706,7 @@ export function T2LabelList({
   part: Part;
   design?: FurnitureDesign;
 }) {
+  part = normalizePartForDrawing(part);
   const round1 = (n: number) => Math.round(n * 10) / 10;
   const ly = part.visible.thickness;
 
@@ -808,6 +834,7 @@ export function T2Annotations({
   part: Part;
   view: PartView;
 }) {
+  part = normalizePartForDrawing(part);
   const projectBoxCorners = (box: {
     cx: number; cy: number; cz: number;
     hx: number; hy: number; hz: number;
@@ -2435,12 +2462,12 @@ export function T2Annotations({
         box.x < partCenterSvg.x
           ? box.x - offCenter
           : box.x + box.w + offCenter;
-      if (dxMm >= 0.5) {
+      if (dxMm >= 2) {
         partEls.push(
           hDim(partCenterSvg.x, cx, xDimY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
         );
       }
-      if (dzMm >= 0.5) {
+      if (dzMm >= 2) {
         partEls.push(
           vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
         );
@@ -2449,7 +2476,7 @@ export function T2Annotations({
       // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
       const dxMm = round1(Math.abs(lb.cx));
       const xDimY = box.y - offCenter;
-      if (dxMm >= 0.5) {
+      if (dxMm >= 2) {
         partEls.push(
           hDim(
             partCenterSvg.x,
@@ -3246,6 +3273,7 @@ export function DetailCallout({
   view: PartView;
 }) {
   if (view !== "front") return null;
+  part = normalizePartForDrawing(part);
   const targets = findDetailTargets(part);
   if (!targets.length) return null;
 

@@ -1105,7 +1105,32 @@ function OrthoViewImpl({
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
             } else if (p.shape?.kind === "splayed-round-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
+            } else if (p.shape?.kind === "mitered-ends" && p.shape.vertices) {
+              // 複斜外撇牆（splay 托盤）：vertices 把「組裝傾斜」烘進 mesh。
+              // 零件卡要顯示「加工姿態」——料是平板（斜切兩端、垂直鑽孔），
+              // 不是斜著的成品姿態（user 2026-06-11 外撇左壁卡：俯視斜 pill
+              // 突出薄板、側視平行四邊形）。反烘：丟 vertices/tilt/bevel 走
+              // 直立 ring extrude（端面顯示 45° 斜切）。
+              nextShape = {
+                ...p.shape,
+                vertices: undefined,
+                tiltAngle: 0,
+                bevelAngle: 0,
+              };
             }
+            // 同步歸位「板平著挖」的 cosmetic 斜孔（外撇手把）：mesh 反烘成
+            // 平板後，孔心回壁厚中心、rotX 清零、深 = 壁厚（維持貫穿）。
+            const nextMortises = p.mortises.map((m) =>
+              m.cosmetic && (m.rotX || m.rotZ)
+                ? {
+                    ...m,
+                    origin: { ...m.origin, y: p.visible.thickness / 2 },
+                    rotX: 0,
+                    rotZ: 0,
+                    depth: p.visible.thickness,
+                  }
+                : m,
+            );
 
             // 橫向正規製圖：偵測 part 三軸最大者，加 rotation 讓長軸轉到水平
             //   local X = visible.length,  local Y = visible.thickness,  local Z = visible.width
@@ -1128,6 +1153,7 @@ function OrthoViewImpl({
               origin: { x: 0, y: 0, z: 0 },
               rotation,
               shape: nextShape,
+              mortises: nextMortises,
             };
           });
         if (!isolated.length) return design;
