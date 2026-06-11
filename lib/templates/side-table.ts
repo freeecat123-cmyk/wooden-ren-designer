@@ -252,6 +252,30 @@ export const sideTable: FurnitureTemplate = (input) => {
         ],
         mortises: [],
       });
+      // 前兩支腳補 rail 對應榫眼（之前漏配 → 腳零件圖看不到抽屜下橫撐的眼，
+      // user 2026-06-12「抽屜下的榫沒有畫」）。慣例同 simple-table 下橫撐：
+      // X 軸向料端面進腳「內側 X 面」（origin.x = ∓LEG_FACE_INSET=∓1）、
+      // y = rail 中心高（直腳 leg local = world）、z = rail 中心相對腳中心。
+      {
+        const railCenterY = apronY + RAIL_H / 2;
+        const railCenterZ = -(input.width / 2 - legInset) + apronThicknessActual / 2;
+        const frontLegs = design.parts.filter(
+          (p) => /^leg-\d+$/.test(p.id) && p.origin.z < 0,
+        );
+        for (const leg of frontLegs) {
+          leg.mortises.push({
+            origin: {
+              x: leg.origin.x > 0 ? -1 : 1,
+              y: railCenterY,
+              z: railCenterZ - leg.origin.z,
+            },
+            depth: railTenonLen,
+            length: railTenonStd.width,
+            width: railTenonStd.thickness,
+            through: railTenonType === "through-tenon",
+          });
+        }
+      }
       // 抽屜箱外框寬 = 抽屜面板寬（slotW 已扣除滑軌空間）
       const bodyOuterW = slotW;
       const drawerParts: Part[] = [];
