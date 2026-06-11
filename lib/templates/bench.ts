@@ -641,6 +641,9 @@ export const bench: FurnitureTemplate = (input) => {
         length: m.tenonDia,
         width: m.tenonDia,
         through: false as const,
+        // 圓料榫頭配圓孔：不標 shape 預設方孔 → 零件圖畫方框、CSG 挖方孔
+        // （user 2026-06-11「榫不是圓的嗎？」）
+        shape: "round" as const,
       }));
       design.parts.push({
         id: "back-top-rail",
@@ -667,6 +670,8 @@ export const bench: FurnitureTemplate = (input) => {
             length: m.tenonDia,
             width: m.tenonDia,
             through: false,
+            // 圓料榫頭配圓孔（同 bow；user 2026-06-11「榫不是圓的嗎？」）
+            shape: "round",
           });
         }
       }
