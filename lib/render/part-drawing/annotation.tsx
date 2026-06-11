@@ -1743,6 +1743,16 @@ export function T2Annotations({
         />
       ),
     ];
+    // mortise（紅/橘框）裁進零件 silhouette：錐形腳細端的眼框是按方料截面畫的、
+    // 會突出楔形輪廓外（user 2026-06-12 茶几錐形腳卡回報）。clip 到 OrthoView
+    // 給的零件輪廓 clipPath；tenon（藍框）本來就凸出件外，不裁。
+    if (isMortise && ctx.partClipId) {
+      partEls[0] = (
+        <g key={`${it.kind}-${it.idx}-clip`} clipPath={`url(#${ctx.partClipId})`}>
+          {partEls[0]}
+        </g>
+      );
+    }
 
     // 工程慣例（CNS / drafting-math §I6 不冗餘）：hidden（虛線）榫眼只畫輪廓、
     // 不標尺寸——尺寸由「入榫面朝鏡頭」的視圖標（該視圖一定存在：non-tall

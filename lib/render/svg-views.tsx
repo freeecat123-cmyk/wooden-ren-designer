@@ -20,6 +20,7 @@ import {
   pointInPolygon,
   projectPart,
   projectPartPolygon,
+  projectPartSilhouette,
   projectTiltedBoxSilhouette,
   sortPartsByDepth,
   worldExtents,
@@ -471,6 +472,10 @@ export interface OrthoViewBoxCtx {
   vbH: number;
   /** Convert part-local mm coords to SVG pixel coords for this view. */
   partLocalToSvg(localX: number, localY: number, localZ: number): { x: number; y: number };
+  /** 零件圖 isolate 模式：本零件 silhouette 的 clipPath id。
+   *  T2 mortise 紅框用它裁進輪廓內——錐形腳細端的眼框不再突出楔形外
+   *（user 2026-06-12 茶几錐形腳回報）。tenon 藍框（本來就凸出件外）不裁。 */
+  partClipId?: string;
 }
 
 // ─── Joinery overlay (Phase 1.5) ────────────────────────────────────────────
@@ -1244,12 +1249,17 @@ function OrthoViewImpl({
   // 零件圖模式（isolatePartId 設）下，renderDesign.parts[0] 就是 recentered 的 part，
   // 它的 makeProjector 直接吃 part-local mm 回到 SVG 座標。
   // 整套模式下沒有單一 part，給 no-op projector 讓 caller 可選擇不依賴此欄位。
+  const isolateClipId =
+    isolatePartId && renderDesign.parts.length > 0
+      ? `psil-${isolatePartId}-${view}`
+      : undefined;
   const overlayCtx: OrthoViewBoxCtx | null = overlayContent
     ? {
         vbX,
         vbY,
         vbW,
         vbH,
+        partClipId: isolateClipId,
         // 注意：silhouette 渲染時用 -p.y 翻 Y（svg-views 內部慣例）。
         // overlay (T1/T2/dim line) 為了跟 silhouette 對齊、也需要負 Y。
         // 這裡的 partLocalToSvg wrap projector、output y 已翻好不用 caller 再處理。
@@ -1324,6 +1334,16 @@ function OrthoViewImpl({
         <clipPath id={`leftHalf-${view}`}>
           <rect x={vbX} y={vbY} width={-vbX} height={vbH} />
         </clipPath>
+        {/* 零件圖 isolate：本零件 silhouette clipPath（T2 mortise 紅框裁邊用） */}
+        {isolateClipId && (
+          <clipPath id={isolateClipId}>
+            <polygon
+              points={projectPartSilhouette(renderDesign.parts[0], view)
+                .map((pt) => `${pt.x.toFixed(2)},${(-pt.y).toFixed(2)}`)
+                .join(" ")}
+            />
+          </clipPath>
+        )}
       </defs>
 
       {/* Paper mode（Step 1）：A4 紙面外框 + title bar + title block，
