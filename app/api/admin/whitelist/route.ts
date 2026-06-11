@@ -3,7 +3,7 @@ import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { sendEmail } from "@/lib/email/send";
-import { studentEnrolledEmail } from "@/lib/email/templates/student-enrolled";
+import { proAccessEmail } from "@/lib/email/templates/pro-access";
 
 interface AdminCheck {
   ok: boolean;
@@ -107,12 +107,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 把已註冊但 plan='free' 的同 email 升級為 student（補 2 年到期日）。
+  // 把已註冊但 plan='free' 的同 email 升級為 pro（專業版，補 1 年到期日）。
   // 先 query 一次拿要被升的 email 清單(audit:silent upgrade 沒提示,admin 看不到誰被改了)
   const emails = records.map((r) => r.email);
   const now = new Date();
   const expires = new Date(now);
-  expires.setFullYear(expires.getFullYear() + 2);
+  expires.setFullYear(expires.getFullYear() + 1);
 
   const { data: candidates } = await svc
     .from("users")
@@ -128,22 +128,21 @@ export async function POST(request: NextRequest) {
     const { error: upErr } = await svc
       .from("users")
       .update({
-        plan: "student",
+        plan: "pro",
         subscription_status: "active",
-        student_activated_at: now.toISOString(),
-        student_expires_at: expires.toISOString(),
+        subscription_expires_at: expires.toISOString(),
       })
       .in("email", upgradedEmails);
     upgradeError = upErr?.message ?? null;
     if (upErr) {
       console.error("[whitelist/upgrade] update failed", upErr, { upgradedEmails });
     } else {
-      console.log("[whitelist/upgrade] auto-upgraded free→student", { count: upgradedEmails.length, upgradedEmails });
+      console.log("[whitelist/upgrade] auto-upgraded free→pro", { count: upgradedEmails.length, upgradedEmails });
 
       // 寄通知信 — Promise.allSettled 不擋整個 request,單封失敗只記 log
       const sendResults = await Promise.allSettled(
         upgradedEmails.map(async (email) => {
-          const tmpl = studentEnrolledEmail({ email, expiresAt: expires });
+          const tmpl = proAccessEmail({ email, expiresAt: expires });
           return sendEmail({ to: email, ...tmpl });
         }),
       );
