@@ -858,6 +858,57 @@ export function T2Annotations({
     }
     return out;
   };
+  /**
+   * 斜眼（帶 rot 的 mortise）投影：用「剪切」而非「整顆旋轉」。
+   * 鑿斜眼的物理：孔口固定貼在 entry face 上（平的）、孔軸往 part 內斜進、
+   * 孔底跟著橫移 depth×tanθ。projectBoxCorners 繞 box 中心旋轉會讓孔口下緣
+   * 翹成斜線、離開面線（user 2026-06-12「下緣用中間對齊 左邊少一截」）。
+   * 做法：每個 corner 先壓平到 entry face、再沿「旋轉後的孔軸方向」走它的
+   * 深度距離 → 孔口/孔底兩端面都平行 entry face、側邊呈斜度。
+   */
+  const projectMortiseShearCorners = (
+    box: {
+      cx: number; cy: number; cz: number;
+      hx: number; hy: number; hz: number;
+      rotX?: number; rotY?: number; rotZ?: number;
+    },
+    depthAxis: "x" | "y" | "z",
+    entrySign: 1 | -1,
+  ): Array<{ x: number; y: number }> => {
+    const brx = box.rotX ?? 0, bry = box.rotY ?? 0, brz = box.rotZ ?? 0;
+    const bcx = Math.cos(brx), bsx = Math.sin(brx);
+    const bcy = Math.cos(bry), bsy = Math.sin(bry);
+    const bcz = Math.cos(brz), bsz = Math.sin(brz);
+    // 孔軸方向 = 旋轉後的「指向 part 內部」單位向量
+    let ax = 0, ay = 0, az = 0;
+    if (depthAxis === "x") ax = -entrySign;
+    else if (depthAxis === "y") ay = -entrySign;
+    else az = -entrySign;
+    if (brx) { const ny = ay * bcx - az * bsx, nz = ay * bsx + az * bcx; ay = ny; az = nz; }
+    if (bry) { const nx = ax * bcy + az * bsy, nz = -ax * bsy + az * bcy; ax = nx; az = nz; }
+    if (brz) { const nx = ax * bcz - ay * bsz, ny = ax * bsz + ay * bcz; ax = nx; ay = ny; }
+    // 正規化成「每走 1mm 深度」的位移（深度軸分量 = -entrySign）
+    const dcomp = depthAxis === "x" ? ax : depthAxis === "y" ? ay : az;
+    const inv = Math.abs(dcomp) > 0.2 ? 1 / Math.abs(dcomp) : 1;
+    const vx = ax * inv, vy = ay * inv, vz = az * inv;
+    const hd = depthAxis === "x" ? box.hx : depthAxis === "y" ? box.hy : box.hz;
+    const eFace = entrySign * hd; // entry face 在 box 局部座標的深度位置
+    const out: Array<{ x: number; y: number }> = [];
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          let ox = sx * box.hx, oy = sy * box.hy, oz = sz * box.hz;
+          const od = depthAxis === "x" ? ox : depthAxis === "y" ? oy : oz;
+          const t = Math.abs(eFace - od); // 此 corner 距孔口的深度（0 或 2hd）
+          // 壓平到 entry face、再沿孔軸走 t
+          if (depthAxis === "x") ox = eFace; else if (depthAxis === "y") oy = eFace; else oz = eFace;
+          ox += t * vx; oy += t * vy; oz += t * vz;
+          out.push(ctx.partLocalToSvg(box.cx + ox, box.cy + oy, box.cz + oz));
+        }
+      }
+    }
+    return out;
+  };
   const convexHull2D = (pts: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> => {
     const sorted = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
     if (sorted.length <= 1) return sorted;
@@ -1714,7 +1765,22 @@ export function T2Annotations({
       ) : ((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ) ? (
         <polygon
           key={`${it.kind}-${it.idx}-box`}
-          points={convexHull2D(projectBoxCorners(lb as any)).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
+          points={convexHull2D(
+            isMortise
+              ? // 斜眼用剪切投影：孔口貼平面線、孔身沿軸斜進（不繞中心整顆轉）
+                projectMortiseShearCorners(
+                  lb as any,
+                  (lb as any).depthAxis ?? "z",
+                  ((lb as any).depthAxis === "x"
+                    ? (part.mortises[it.idx] as Mortise).origin.x >= 0
+                    : (lb as any).depthAxis === "y"
+                      ? (part.mortises[it.idx] as Mortise).origin.y > T / 2
+                      : (part.mortises[it.idx] as Mortise).origin.z >= 0)
+                    ? 1
+                    : -1,
+                )
+              : projectBoxCorners(lb as any)
+          ).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
           fill={fill}
           stroke={stroke}
           strokeWidth={1.2}
