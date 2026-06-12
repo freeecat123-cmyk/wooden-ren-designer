@@ -649,6 +649,12 @@ export function projectPartPolygon(
     ];
   }
 
+  // live-edge 原木邊：silhouette 已有 32 段波浪 top 投影（其他視角 AABB），
+  // 直接 delegate（user 2026-06-12 矮桌排查——polygon 層沒分支會落到 box）
+  if (part.shape.kind === "live-edge") {
+    return projectPartSilhouette(part, view);
+  }
+
   // Taper only applies when the part stands vertically (length/thickness →
   // world Y). 俯視在無倒角時用 box；有倒角時畫八邊形 cross-section
   // （與 chamfered-edges 同 convention）。前/側視仍是梯形（倒角只在 cross-
