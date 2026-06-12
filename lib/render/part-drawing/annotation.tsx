@@ -1711,7 +1711,13 @@ export function T2Annotations({
             strokeDasharray="4 1.5 0.5 1.5"
           />
         </g>
-      ) : ((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ) ? (
+      ) : ((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ) &&
+        // splay 腳件的牙板/橫撐「榫眼」不走傾斜投影：本卡實線＝未傾斜方料
+        //（ghost swap 慣例）、dim chain 也量方料邊（lbForDim strip），眼框
+        // 跟著傾斜會超出方料框（user 2026-06-12 紅虛線榫超出腳框回報）。
+        // 改走下方 rect 分支用 strip 版 box＝「方料上的挖孔位置」三者一致。
+        // cosmetic 斜孔（外撇手把）與 tenon 不在此列。
+        !(isMortise && _isSplayLegPartEarly) ? (
         <polygon
           key={`${it.kind}-${it.idx}-box`}
           points={convexHull2D(projectBoxCorners(lb as any)).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
