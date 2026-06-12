@@ -1223,7 +1223,25 @@ function OrthoViewImpl({
     : 0;
   // T1 dim chain 上推：HORIZ_OFFSET(30) + GROSS_GAP(14) + text height(12) + 上箭頭
   // facing mark(16) + safety(8) = 80。少於這個會跟 title bar 卡同一線。
-  const tenonTopBuffer = maxTenonProtrusion > 0 ? maxTenonProtrusion + 80 : 0;
+  // splay 件的虛線傾斜輪廓會往上爬 max(|dx|,|dz|)，gross dim 跟著被推高，
+  // 不算進去會讓「含榫/長」dim 線頂進 title bar
+  //（user 2026-06-12「三個視圖的標題擋到圖」——splay 腳卡最明顯）。
+  const isoShape = isolatePartId ? renderDesign.parts[0]?.shape : undefined;
+  const splayClimb =
+    isoShape &&
+    (isoShape.kind === "splayed" ||
+      isoShape.kind === "splayed-tapered" ||
+      isoShape.kind === "splayed-round-tapered")
+      ? Math.max(Math.abs(isoShape.dxMm ?? 0), Math.abs(isoShape.dzMm ?? 0))
+      : 0;
+  const tenonTopBuffer =
+    maxTenonProtrusion > 0 || splayClimb > 0
+      ? maxTenonProtrusion + splayClimb + 80
+      : 0;
+  // 全 isolate 卡上方固定加 24 呼吸空間：「含榫/長」雙行 dim + 文字
+  // 與 title bar 底線間留白，避免任何件貼線。
+  const ISOLATE_TOP_EXTRA = 24;
+  const isolateTopExtra = isolatePartId ? ISOLATE_TOP_EXTRA : 0;
   const isolatePadding = isolatePartId
     ? Math.min(
         PADDING,
@@ -1234,12 +1252,12 @@ function OrthoViewImpl({
     ? Math.max(36, isolatePadding * 0.4)
     : DIM_OFFSET;
   const vbW = vbContentW + isolatePadding * 2;
-  const vbH = h + isolatePadding * 2 + isolateDimOffset + reservedTitleH;
+  const vbH = h + isolatePadding * 2 + isolateTopExtra + isolateDimOffset + reservedTitleH;
   const vbX = -isolatePadding - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
   // front/side views use natural flipY so parts span y=-h..0.
   const drawAreaTop = view === "top" ? -h / 2 : -h;
-  const vbY = drawAreaTop - isolatePadding - reservedTitleH;
+  const vbY = drawAreaTop - isolatePadding - isolateTopExtra - reservedTitleH;
 
   // Frame: enclose drawing + title bar + dim area
   const frameX = vbX + 8;
