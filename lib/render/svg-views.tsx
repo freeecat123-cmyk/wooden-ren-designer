@@ -1354,16 +1354,30 @@ function OrthoViewImpl({
         <clipPath id={`leftHalf-${view}`}>
           <rect x={vbX} y={vbY} width={-vbX} height={vbH} />
         </clipPath>
-        {/* 零件圖 isolate：本零件 silhouette clipPath（T2 mortise 紅框裁邊用） */}
-        {isolateClipId && (
-          <clipPath id={isolateClipId}>
-            <polygon
-              points={projectPartSilhouette(renderDesign.parts[0], view)
-                .map((pt) => `${pt.x.toFixed(2)},${(-pt.y).toFixed(2)}`)
-                .join(" ")}
-            />
-          </clipPath>
-        )}
+        {/* 零件圖 isolate：本零件 silhouette clipPath（T2 mortise 紅框裁邊用）。
+            splay 腳例外：本卡「實線＝未傾斜方料」才是加工本體（虛線只是
+            傾斜示意），斜挖的眼框要裁進實線方料框、不是傾斜輪廓
+            （user 2026-06-12「要畫在實線腳上」）。 */}
+        {isolateClipId && (() => {
+          const isoP = renderDesign.parts[0];
+          const isoSplay =
+            isoP.shape?.kind === "splayed" ||
+            isoP.shape?.kind === "splayed-tapered" ||
+            isoP.shape?.kind === "splayed-round-tapered";
+          return (
+            <clipPath id={isolateClipId}>
+              {isoSplay ? (
+                <rect x={-w / 2} y={drawAreaTop} width={w} height={h} />
+              ) : (
+                <polygon
+                  points={projectPartSilhouette(isoP, view)
+                    .map((pt) => `${pt.x.toFixed(2)},${(-pt.y).toFixed(2)}`)
+                    .join(" ")}
+                />
+              )}
+            </clipPath>
+          );
+        })()}
       </defs>
 
       {/* Paper mode（Step 1）：A4 紙面外框 + title bar + title block，
