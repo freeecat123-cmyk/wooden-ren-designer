@@ -1181,7 +1181,13 @@ export function projectPartPolygon(
     const depth = part.shape.pinDepth;
     const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
     const halfPin = part.shape.halfPin ?? true;
-    const isPin = (s: number) => (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phase) % 2) === 0;
+    // 半鳩尾端段（s=0 / s=N-1）：兩塊板必須互補——tail board（phase=0，側板）
+    // 上下端是「公榫(齒)」、pin board（phase=1，前後板）上下端就要是「母榫(缺口)」
+    // 才能互嵌。舊版一律 force true（兩塊端段都畫成齒）→ 前後板上下變成齒而非
+    // 缺口、跟側板的齒對撞（user 2026-06-13）。改成依 phase 給互補值：phase=0
+    // 端段=齒、phase=1 端段=缺口（同時仍保證同一塊板上下端一致，偶數 N 也對）。
+    const isPin = (s: number) =>
+      halfPin && (s === 0 || s === N - 1) ? phase === 0 : ((s + phase) % 2) === 0;
     // phase=0 (tail board，前後板)：face view 看是梯形（trapezoid tip 比 base 寬）
     // phase=1 (pin board，左右板)：面視看是**矩形**齒（slant=0）。鳩尾的斜角在
     // thickness 方向（垂直於 pin 板面），face view 看不到，所以 pin 邊應該是

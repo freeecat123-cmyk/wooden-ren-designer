@@ -63,6 +63,11 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 木工工具牆：法式斜切條牆條 × 工具座掛條 45° 斜面完全重合貼合（互鎖），
   // AABB 相交但實體只在斜面相切、不互穿——shape-aware silhouette 判 0 重疊
   "wall-mounted-tool-storage:default",
+  // 立式衣帽架：lathe-turned 中柱、3 隻腳內端榫接進圓柱（腳內端落在柱半徑
+  // R30 處 = 190−160）。2026-06-13 修正圓料 silhouette 採樣（圓截面改放長軸
+  // 正交平面）後，柱俯視輪廓由「誤畫的方形」變成正確的「圓形」，腳榫butt 進
+  // 圓柱的結構性重疊才被偵到——同 round-table:pedestal 性質（柱實際是圓的）。
+  "coat-rack:default",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
