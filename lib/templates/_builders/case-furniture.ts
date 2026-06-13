@@ -677,6 +677,36 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     mortises: [],
   });
 
+  // 無背板櫃體（開放書櫃 backMode="none"）若含抽屜區 → 抽屜後方仍要補一片
+  // 背板：當「抽屜推到底的擋板」+ 防塵板。否則抽屜後方整個開放，推進去沒東西
+  // 擋、會從後面整個推出去掉落。開放層板區維持開放、只在抽屜區補。
+  // surface / rebated 模式的整片背板已蓋住抽屜區 → 不重複補。
+  // 作法仿 surface 釘背（3mm 夾板釘在櫃體後緣外側）但只蓋抽屜區那段高度，
+  // 放在外側（z=width/2+T/2）避開所有內部零件（抽屜分隔板/箱體全 ≤ width/2）→
+  // 零穿模。length=全外長蓋滿、高度=整個 zone（含 boundary 帶，後方全封）。
+  if (backMode === "none" && opts.zones && opts.zones.length > 0) {
+    const drawerBackT = 3;
+    let zCursorY = caseBottomY + panelT;
+    for (let i = 0; i < opts.zones.length; i++) {
+      const z = opts.zones[i];
+      if (z.type === "drawer" && z.heightMm > 0) {
+        parts.push({
+          id: `back-drawer-z${i + 1}`,
+          nameZh: `抽屜區背板 ${i + 1}（釘背）`,
+          nameEn: `Drawer-bay back panel ${i + 1}`,
+          material,
+          materialOverride: "plywood",
+          grainDirection: "length",
+          visible: { length, width: drawerBackT, thickness: z.heightMm },
+          origin: { x: 0, y: zCursorY, z: width / 2 + drawerBackT / 2 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      zCursorY += z.heightMm;
+    }
+  }
+
   // Drawer zone renderer — 抽到 _builders/drawer-row.ts 共用，這裡只是把
   // closure 內的 host 幾何 (material/panelT/innerW/innerD/width/length…) 餵進去。
   const renderDrawerZone = (cfg: {
