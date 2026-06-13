@@ -459,9 +459,18 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       const lzWall = wall.visible.width;
       const xFace = lxWall / 2 - Math.abs(xPos);
       const zFace = lzWall / 2 - Math.abs(zCenter);
-      // auto-fit 預測：zFace>xFace 才會把 longDim 放 part-Z（垂直）→ 不用旋轉；
-      // 反之需 rotY=π/2 把 X、Z 半軸互換。
-      const longOnZ = zFace > xFace;
+      // auto-fit 預測（⚠️與 svg-views mortiseLocalBox y 分支 2026-06-13 嵌槽
+      // 判別同步）：只有一軸塞得下 longDim → 該軸；都塞得下且某軸填滿率 >0.8
+      // （dado 特徵）→ 填滿率高的軸；否則 zFace>xFace 舊邏輯。
+      // longOnZ=true → longDim 放 part-Z（垂直）不用旋轉；反之 rotY=π/2 互換。
+      const longDimP = Math.max(dadoLen, dadoWid);
+      const fitXP = longDimP <= lxWall * 1.05;
+      const fitZP = longDimP <= lzWall * 1.05;
+      const longOnZ = fitXP !== fitZP
+        ? fitZP
+        : fitXP && (longDimP / lzWall > 0.8 || longDimP / lxWall > 0.8)
+          ? longDimP / lzWall >= longDimP / lxWall
+          : zFace > xFace;
       const rotY = longOnZ ? undefined : Math.PI / 2;
       wall.mortises.push({
         origin: { x: xPos, y: innerY, z: zCenter },

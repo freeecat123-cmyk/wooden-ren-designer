@@ -910,7 +910,16 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
       : (m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2));
     const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
     const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
-    const longOnZ = zFace > xFace;
+    // 嵌槽判別（2026-06-13 開放書櫃側板 dado 翻向修，⚠️與 annotation
+    // mortiseEntryBox y 分支同步）：只有一軸塞得下 → 該軸；都塞得下且某軸
+    // 填滿率 >0.8（dado 特徵）→ 填滿率高的軸；其他維持距面較遠舊邏輯。
+    const fitX = longDim <= lx * 1.05;
+    const fitZ = longDim <= lz * 1.05;
+    const longOnZ = fitX !== fitZ
+      ? fitZ
+      : fitX && (longDim / lz > 0.8 || longDim / lx > 0.8)
+        ? longDim / lz >= longDim / lx
+        : zFace > xFace;
     const useX = Math.max(0.1, (longOnZ ? shortDim : longDim) - PERP_SHRINK * 2);
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
