@@ -12,7 +12,7 @@
 
 import React, { useLayoutEffect, useRef } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
-import type { PartDrawingGroup } from "./grouping";
+import { type PartDrawingGroup, groupDisplayName } from "./grouping";
 import { OrthoView, mirrorYPart } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
 import {
@@ -196,7 +196,7 @@ export function PartDrawing({
       {/* Title bar */}
       <div className="flex items-baseline justify-between border-b border-zinc-200 pb-1 mb-2 pr-[88px]">
         <h3 className="font-semibold text-sm">
-          {part.nameZh}
+          {groupDisplayName(group, locale)}
           {titleSuffix}
         </h3>
         <span className="text-xs text-zinc-500 tabular-nums">
@@ -225,7 +225,7 @@ export function PartDrawing({
             const g = grossPartDims(part);
             return `${round1(g.L)}×${round1(g.W)}×${round1(g.T)}`;
           })()}
-          title={part.nameZh}
+          title={groupDisplayName(group, locale)}
           className="bg-white w-full h-auto"
           locale={locale}
         />

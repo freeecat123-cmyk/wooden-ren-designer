@@ -2,11 +2,11 @@ import React from "react";
 import type { FurnitureDesign } from "@/lib/types";
 import {
   groupPartsForDrawing,
+  groupDisplayName,
   type PartDrawingGroup,
 } from "@/lib/render/part-drawing/grouping";
 import { rawStockSize } from "@/lib/render/part-drawing/raw-stock";
 import { MATERIALS, materialName } from "@/lib/materials";
-import { partName } from "@/lib/templates/part-names";
 
 interface Props {
   design: FurnitureDesign;
@@ -88,7 +88,7 @@ export function PartDrawingsIndex({ design, locale = "zh-TW" }: Props) {
             return (
               <tr key={g.hash} className="border-b border-zinc-200">
                 <td className="py-1 pr-2 font-mono tabular-nums">{partNo}</td>
-                <td className="py-1 pr-2">{partName(p, locale)}</td>
+                <td className="py-1 pr-2">{groupDisplayName(g, locale)}</td>
                 <td className="py-1 pr-2 font-mono tabular-nums">{countLabel}</td>
                 <td className="py-1 pr-2 font-mono tabular-nums">
                   {round1(p.visible.length)}×{round1(p.visible.width)}×

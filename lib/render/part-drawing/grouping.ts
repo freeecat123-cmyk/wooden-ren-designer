@@ -10,6 +10,7 @@
 
 import type { Part, FurnitureDesign } from "@/lib/types";
 import { categorizePart, type PartCategory } from "@/lib/render/categorize-part";
+import { partName } from "@/lib/templates/part-names";
 
 /**
  * 一個零件是否需要獨立的製造圖（shop drawing）。
@@ -189,6 +190,80 @@ export type PartDrawingGroup = {
   representative: Part;
   category: PartCategory;
 };
+
+// 鏡像方向詞表：合併後的零件圖卡是「同一張圖做 N 件」，卡名只用代表件名
+// （第一件）會誤導——例：左/右側板合併成 1 張卡卻只標「左側板」、頂/底板標
+// 「頂板」（user 2026-06-13 回報「左側板是不是應該標左右側板」）。
+// 偵測成員名只差一個鏡像方向詞時，合併方向詞（左右側板 / 頂底板 / 前後板）。
+const MIRROR_TOKEN_SETS: Record<"zh" | "en", string[][]> = {
+  zh: [["左", "右"], ["前", "後"], ["頂", "底"], ["上", "下"], ["內", "外"]],
+  en: [
+    ["left", "right"],
+    ["front", "back"],
+    ["top", "bottom"],
+    ["upper", "lower"],
+    ["inner", "outer"],
+  ],
+};
+
+const TOK_PLACEHOLDER = "\u0000";
+
+// 在 name 中找方向詞 token，回傳「把 token 換成 placeholder 的模板」+ 原樣 token。
+// en 走單字邊界 + 不分大小寫；zh 走子字串。找不到回 null。
+function stripMirrorToken(
+  name: string,
+  token: string,
+  isEn: boolean,
+): { template: string; matched: string } | null {
+  if (isEn) {
+    const re = new RegExp(`\\b${token}\\b`, "i");
+    const m = re.exec(name);
+    if (!m) return null;
+    return { template: name.replace(re, TOK_PLACEHOLDER), matched: m[0] };
+  }
+  const i = name.indexOf(token);
+  if (i < 0) return null;
+  return {
+    template: name.slice(0, i) + TOK_PLACEHOLDER + name.slice(i + token.length),
+    matched: token,
+  };
+}
+
+/**
+ * 合併後零件圖卡的顯示名：count>1 且成員名只差「同一組鏡像方向詞」（去掉方向詞
+ * 後模板完全相同）時，把方向詞合併插回原位（左側板+右側板 → 左右側板、頂板+底板
+ * → 頂底板、前板+後板 → 前後板、Left/Right apron → Left/right apron）。
+ * 非單純鏡像（4 隻腳混前後+左右 → 模板對不上、或前板名「箱體前板」不對稱）→
+ * 維持代表件名（不合併，避免亂組）。
+ */
+export function groupDisplayName(group: PartDrawingGroup, locale: string): string {
+  const rep = partName(group.representative, locale);
+  if (group.count <= 1) return rep;
+  const names = [...new Set(group.parts.map((p) => partName(p, locale)))];
+  if (names.length === 1) return names[0];
+  const isEn = locale === "en";
+  for (const set of MIRROR_TOKEN_SETS[isEn ? "en" : "zh"]) {
+    const stripped = names.map((n) => {
+      for (const tok of set) {
+        const r = stripMirrorToken(n, tok, isEn);
+        if (r) return { template: r.template, tok };
+      }
+      return null;
+    });
+    if (stripped.some((s) => s === null)) continue;
+    const templates = new Set(stripped.map((s) => s!.template));
+    const toks = stripped.map((s) => s!.tok);
+    // 模板需全等（方向詞在同位置、其餘字面相同）+ 至少 2 個不同方向
+    if (templates.size === 1 && new Set(toks).size >= 2) {
+      const present = set.filter((t) => toks.includes(t));
+      const joined = isEn
+        ? present.map((t, i) => (i === 0 ? t.charAt(0).toUpperCase() + t.slice(1) : t)).join("/")
+        : present.join("");
+      return [...templates][0].replace(TOK_PLACEHOLDER, joined);
+    }
+  }
+  return rep; // 非單純鏡像 → 維持代表件名
+}
 
 /**
  * 排序順序：依 spec §3 結構角色排，「unknown 性質」的 misc 排最後。

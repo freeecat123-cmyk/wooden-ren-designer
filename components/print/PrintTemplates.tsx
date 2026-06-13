@@ -2,10 +2,10 @@ import React from "react";
 import type { FurnitureDesign } from "@/lib/types";
 import {
   groupPartsForDrawing,
+  groupDisplayName,
   type PartDrawingGroup,
 } from "@/lib/render/part-drawing/grouping";
 import { OrthoView } from "@/lib/render/svg-views";
-import { partName } from "@/lib/templates/part-names";
 
 interface Props {
   design: FurnitureDesign;
@@ -62,8 +62,8 @@ export function PrintTemplates({ design, locale = "zh-TW" }: Props) {
             <div className="mb-2 pb-2 border-b-2 border-zinc-900">
               <h2 className="text-xl font-bold">
                 {isEn
-                  ? `Template — ${partName(p, locale)} (1:1 true size)`
-                  : `樣板 — ${p.nameZh}（1:1 真實尺寸）`}
+                  ? `Template — ${groupDisplayName(g, locale)} (1:1 true size)`
+                  : `樣板 — ${groupDisplayName(g, locale)}（1:1 真實尺寸）`}
               </h2>
               <p className="text-xs text-zinc-500 mt-0.5">
                 {isEn ? "Cut along the outline and adhere to a story board" : "沿外輪廓剪下、貼擋板使用"}
