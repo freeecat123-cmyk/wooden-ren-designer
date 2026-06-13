@@ -257,6 +257,26 @@ export function projectPartSilhouette(
     // 不 return，跌進下方主迴圈
   }
 
+  // Round 家族（圓腳 / 圓錐腳 / 車木）長軸 = Y（thickness=腳高）的情形：圓截面
+  // 在 X-Z 平面、沿 Y 擠出、taper 沿 Y 縮。主 sample loop 把圓畫在 Y-Z 平面
+  // （rung/spindle 慣例＝長軸 X），對「長軸 = Y 的腳」會把腳高(70)當成圓半徑 →
+  // 正視/側視投影塌成水滴狀（user 2026-06-13 圓錐腳正視畫錯）。長軸 = X 的橫桿/
+  // 紡錘維持舊路徑（圓截面 Y-Z）。round-tapered 一律是腳故恆走這條。
+  const longestIsY = ly >= lx && ly >= lz;
+  if (isRound && (part.shape?.kind === "round-tapered" || longestIsY)) {
+    const sc0 = tapered; // round-tapered 的 bottomScale；round / lathe-turned = 1
+    for (const eyS of [-1, 1] as const) {
+      const yL = (eyS * ly) / 2;
+      // eyS=-1 = 腳底(y=-ly/2) → sc0(縮)；eyS=+1 = 腳頂 → 1.0(全寬)
+      const sc = sc0 + (1 - sc0) * ((eyS + 1) / 2);
+      for (let i = 0; i < ROUND_SAMPLES; i++) {
+        const a = (i / ROUND_SAMPLES) * Math.PI * 2;
+        pushPoint(Math.sin(a) * (lx / 2) * sc, yL, Math.cos(a) * (lz / 2) * sc);
+      }
+    }
+    return convexHull2D(projected);
+  }
+
   // 採樣每個 (ex, ey, ez) bbox 角，套 shape 修飾算實際 local 座標
   // 對 arch-bent 沿 ex 軸額外切 N 片
   const xSlices: number[] = arch
