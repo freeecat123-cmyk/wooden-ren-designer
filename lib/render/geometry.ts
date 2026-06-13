@@ -600,9 +600,22 @@ export function projectPartPolygon(
       /-\d+-(front|back)$/.test(part.id)) &&
     allParts
   ) {
-    const donor = allParts.find(
-      (p) => p.shape?.kind === "dovetail-ends" && p.id !== part.id,
-    );
+    // ⭐ donor 必須取「同一個抽屜」的側板，否則跨抽屜抓到不同高度→不同 segmentCount
+    // 的側板，前後板齒數跟自己側板對不上（user 2026-06-13：側板 3 公榫、前後板卻
+    // 4 缺口）。drawer front/back id = "<prefix>-front/back"、同抽屜側板 =
+    // "<prefix>-side-left/right"；先找同 prefix，找不到再 fallback 第一個（tray
+    // wall-left/right 走 fallback，因為只有一組）。
+    const drawerPrefix = part.id.replace(/-(front|back)$/, "");
+    const donor =
+      allParts.find(
+        (p) =>
+          p.shape?.kind === "dovetail-ends" &&
+          (p.id === `${drawerPrefix}-side-left` ||
+            p.id === `${drawerPrefix}-side-right`),
+      ) ??
+      allParts.find(
+        (p) => p.shape?.kind === "dovetail-ends" && p.id !== part.id,
+      );
     if (donor && donor.shape?.kind === "dovetail-ends") {
       part = {
         ...part,
