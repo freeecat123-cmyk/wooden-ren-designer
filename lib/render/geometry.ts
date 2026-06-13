@@ -1186,6 +1186,8 @@ export function projectPartPolygon(
     // 才能互嵌。舊版一律 force true（兩塊端段都畫成齒）→ 前後板上下變成齒而非
     // 缺口、跟側板的齒對撞（user 2026-06-13）。改成依 phase 給互補值：phase=0
     // 端段=齒、phase=1 端段=缺口（同時仍保證同一塊板上下端一致，偶數 N 也對）。
+    // 2026-06-13 強制 bundle hash 更新：d215440d 已上線但用戶端疑似快取舊 chunk，
+    // 改動本檔讓 webpack chunk content hash 變動、瀏覽器重抓新版（互補母榫修正）。
     const isPin = (s: number) =>
       halfPin && (s === 0 || s === N - 1) ? phase === 0 : ((s + phase) % 2) === 0;
     // phase=0 (tail board，前後板)：face view 看是梯形（trapezoid tip 比 base 寬）
