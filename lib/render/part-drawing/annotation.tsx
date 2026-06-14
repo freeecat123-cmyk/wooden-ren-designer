@@ -1223,15 +1223,13 @@ export function T2Annotations({
       if (it.kind === "m") {
         const m = part.mortises[it.idx];
         const lb = mortiseEntryBox(m);
-        // dedupe key 排除「視線方向(viewDepthAxis)」那個 origin 座標：沿視線排成
-        // 一列的同款 mortise（如櫃側板 5 條層板 dado，差在高度=視線軸）會投影到
-        // 同一處、尺寸全疊在一起（user 2026-06-14「這尺寸擠在一起」）。排除視線軸
-        // 座標 → 它們 key 相同 → 只畫一個。保留另兩軸 + depthAxis 仍能區分 splay
-        // 腳 Z 面 vs X 面（depthAxis 不同、仰視缺斜孔那個 case）。
-        const ox = viewDepthAxis === "x" ? "" : Math.round(m.origin.x);
-        const oy = viewDepthAxis === "y" ? "" : Math.round(m.origin.y);
-        const oz = viewDepthAxis === "z" ? "" : Math.round(m.origin.z);
-        mortiseTag = `|${lb.depthAxis}|${ox}|${oy}|${oz}`;
+        // dedupe：只用 depthAxis（入榫面）當 mortise 區分，不含 part-local origin。
+        // 沿視線方向排成一列的同款 mortise（櫃側板 5 條 dado 差在高度、中式櫃柱
+        // 10 個榫眼差在高度——都沿視線軸 collapse 到同一投影 rect）會 key 全等 →
+        // 只畫一個，尺寸不再疊成一團（user 2026-06-14「擠在一起/同水平」）。
+        // key 已含投影後的 it.rect+it.dims：投影到不同處者 rect 不同自然保留；
+        // splay 腳 Z 面 vs X 面投影到同 rect 但 depthAxis 不同 → 仍保留（仰視不缺孔）。
+        mortiseTag = `|${lb.depthAxis}`;
       }
       const key = `${it.kind}|${Math.round(it.rect.x)}|${Math.round(it.rect.y)}|${Math.round(it.rect.w)}|${Math.round(it.rect.h)}|${it.dims}${mortiseTag}`;
       if (seen.has(key)) continue;
