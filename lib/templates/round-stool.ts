@@ -168,8 +168,13 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // tenon 寬上限再 clamp 到 legSize - 6（圓腳兩側留 3mm 木，避免 tenon 比腳直徑寬）
   const apronTenonW = Math.min(apronTenonStd.width, Math.max(8, legSize - 6));
   const apronTenonThick = apronTenonStd.thickness;
-  // 通榫 +5mm 補償斜腳 tilt 投影損失
-  const apronTenonLen = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
+  // 通榫 +5mm 補償斜腳 tilt 投影損失；盲榫深要 cap 到「牙條高度的實際腳寬 − 4mm」
+  // ——錐腳在牙條高度會變細（倒圓錐腳頂端更細），用 legSize(頂/標稱寬)算的深度會穿透
+  // (同下橫撐 user 2026-06-15 回報)。
+  const legWidthAtApron = legSize * legProfileScaleAt(legShape, apronYCenter0, legHeight);
+  const apronTenonLen = apronTenonType === "through-tenon"
+    ? apronTenonStd.length + 5
+    : Math.min(apronTenonStd.length, Math.max(8, Math.round(legWidthAtApron) - 4));
   // 牙板半榫錯位（同方凳）：靜止 Z（左右）= 上半榫；移動 X（前後，下移）= 下半榫
   const APRON_TOP_SHOULDER = 10;
   const apronTotalTenonH = Math.max(0, apronWidth - APRON_TOP_SHOULDER);
@@ -202,7 +207,13 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   });
   const lsTenonW = Math.min(lowerTenonStd.width, Math.max(8, legSize - 6));
   const lsTenonThick = lowerTenonStd.thickness;
-  const lsTenonLen = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
+  // 盲榫深 cap 到「下橫撐高度的實際腳寬 − 4mm」：錐腳(上粗下細)在靠地的下橫撐高度
+  // 變細(預設 Ø30→該高度 ~Ø21)，用 legSize(30)算的 25 深盲榫會穿透腳
+  // (user 2026-06-15「下橫撐不能榫穿過腳 除非開穿透模式」)。通榫維持穿透。
+  const legWidthAtLower = legSize * legProfileScaleAt(legShape, lsYCenter0, legHeight);
+  const lsTenonLen = lowerTenonType === "through-tenon"
+    ? lowerTenonStd.length + 5
+    : Math.min(lowerTenonStd.length, Math.max(8, Math.round(legWidthAtLower) - 4));
   // 下橫撐半榫錯位：靜止 X（前後）= 下榫；移動 Z（左右，上移）= 上榫；上下都不留肩
   const lowerCanHalfStagger = lowerStretcherStaggerMm < lsTenonW && lowerStretcherWidth >= 16;
   const LOWER_HALF_TENON_GAP = 4;
