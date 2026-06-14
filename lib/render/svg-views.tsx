@@ -1726,6 +1726,14 @@ function OrthoViewImpl({
             const isDoorMuntin = /-door-muntin-/.test(id);
             void dir;
             if (isCornerPost || isDoorMuntin) continue;
+            // 斜放件（rotation.y 非 π/2 倍數，如 X 撐對角樑）俯視 footprint 是菱形，
+            // projectPart 的 AABB 比實際大很多 → 兩條 +45°/−45° 對角樑 AABB 完全相同
+            // 但其實是鏡像兩件，dedup 會誤殺一條（user 2026-06-15 回報「X 交叉少一隻」）。
+            // 非軸對齊件一律不進 dedup 候選（永遠保留 outline）。
+            const ry = p.rotation?.y ?? 0;
+            const ryMod = Math.abs(((ry % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2));
+            const axisAlignedTop = ryMod < 0.02 || Math.PI / 2 - ryMod < 0.02;
+            if (!axisAlignedTop) continue;
             // 用跟下游一樣的 hidden 判定（只 top view 的 isPartHidden 結果即可—isInteriorInTop 不存在）
             const isHidden = isPartHidden(p, renderDesign.parts, view);
             if (!isHidden) continue;
