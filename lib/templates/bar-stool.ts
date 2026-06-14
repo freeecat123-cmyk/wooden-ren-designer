@@ -929,12 +929,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           nameEn: `Back slat ${i + 1}`,
           material,
           grainDirection: "length",
-          visible: { length: slatLen, width: backSlatWidth, thickness: slatThicknessConst },
+          // ⚠ rotation z=π/2 後：length→Y(直立)、thickness(Y-local)→X-world(左右)、width(Z-local)→Z-world(前後)。
+          //   板條寬面(backSlatWidth=40)要面向前方 → 放在 X(左右)=thickness；薄邊(16)在 Z(前後)=width。
+          //   放反會讓板條變「40深×16寬」的深鰭、寬面朝側面，榫頭斷面也跟母眼垂直對不進
+          //   (user 2026-06-14「直條榫方向不對」3D 回報)。榫頭同理 width↔thickness。
+          visible: { length: slatLen, width: slatThicknessConst, thickness: backSlatWidth },
           origin: { x: xCenter, y: height, z: slatZ },
           rotation: { x: 0, y: 0, z: Math.PI / 2 },
           tenons: [
-            { position: "start", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
-            { position: "end", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
+            { position: "start", type: "blind-tenon", length: slatTenonLen, width: slatTenonT, thickness: slatTenonW(backSlatWidth) },
+            { position: "end", type: "blind-tenon", length: slatTenonLen, width: slatTenonT, thickness: slatTenonW(backSlatWidth) },
           ],
           mortises: [],
         });
