@@ -860,17 +860,6 @@ export function projectPartPolygon(
     part.shape.kind === "splayed-tapered" ||
     part.shape.kind === "splayed-round-tapered"
   ) {
-    if (
-      (part.rotation?.x ?? 0) !== 0 ||
-      (part.rotation?.y ?? 0) !== 0 ||
-      (part.rotation?.z ?? 0) !== 0
-    ) {
-      // 零件圖橫躺（isolate 把長軸旋成水平）：下方用 view-name 硬綁的梯形軸向不對
-      //（錐縮畫到 width 軸而非沿長軸）→ 輪廓看起來不錐形（user 2026-06-14 圓凳外斜
-      // 方錐腳回報「輪廓不是錐形」）。同 tapered / round-tapered 分支，旋轉時 delegate
-      // 給 projectPartSilhouette（採真實 3D 頂點、任意旋轉都對）。
-      return projectPartSilhouette(part, view);
-    }
     if (view === "top") return box;
     const scale = part.shape.bottomScale;
     // 同 splayed：side view 走「前=右」慣例 svg x = -wz → dzMm 要負號

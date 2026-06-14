@@ -1112,15 +1112,18 @@ function OrthoViewImpl({
         const isolated = design.parts
           .filter((p) => p.id === isolatePartId)
           .map((p) => {
-            // splayed-tapered / splayed-round-tapered → 清零 dx/dz 保留 kind,
-            // 讓 top view 雙 rect 渲染呈現 taper 收縮。
-            // 純 splayed → 保留 dx/dz，渲染原本平行四邊形（斜邊），rotation 會把
-            // 整個 part 轉成橫躺，所以平行四邊形也跟著轉橫，端面斜切自然朝橫向。
+            // splayed-tapered / splayed-round-tapered：零件圖顯示「加工姿態」=未傾斜的
+            // 錐形料（splay 只是組裝傾斜角、非料本身形狀；splay 資訊在 ShapeSpecificAnnotation
+            // 的「複斜腳 X/Z-splay」文字）。直接降成純 tapered / round-tapered，三視圖全照
+            // 一般錐形腳單調錐縮渲染。⚠ 舊作法只清零 dx/dz、保留 splayed-tapered kind，會讓
+            // 正視走外斜腳專屬 line 渲染、把錐縮畫成「兩端全高中間窄」的沙漏
+            //（user 2026-06-14 圓凳外斜方錐腳「輪廓不是錐形/正視還是有問題」）。
+            // 純 splayed（無錐縮）→ 保留 dx/dz，渲染原本平行四邊形（斜邊）。
             let nextShape = p.shape;
             if (p.shape?.kind === "splayed-tapered") {
-              nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
+              nextShape = { kind: "tapered", bottomScale: p.shape.bottomScale };
             } else if (p.shape?.kind === "splayed-round-tapered") {
-              nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
+              nextShape = { kind: "round-tapered", bottomScale: p.shape.bottomScale };
             } else if (p.shape?.kind === "mitered-ends" && p.shape.vertices) {
               // 複斜外撇牆（splay 托盤）：vertices 把「組裝傾斜」烘進 mesh。
               // 零件卡要顯示「加工姿態」——料是平板（斜切兩端、垂直鑽孔），
