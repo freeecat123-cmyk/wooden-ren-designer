@@ -339,7 +339,11 @@ export function PartDrawingPaperSheet({
           { label: "正視 FRONT", vp: bottomVp },
         ] as const).map((v, i) => {
           const labelX = v.vp.x - padPaper * 0.8;
-          const labelY = v.vp.y - padPaper * 0.5;
+          // 往上移到 dim chain（長/含榫 線）之上：原本 vp.y - pad*0.5 落在 dim
+          // chain 區（dim 從 vp.y 往上佔到約 pad）→ 標籤蓋到「長 XXX」尺寸線。
+          // user 2026-06-14 回報三標籤都蓋到尺寸。移到 dim chain 頂（vp.y - pad）
+          // 再上抬一個標籤高度，清出空白。
+          const labelY = v.vp.y - padPaper - 6;
           return (
             <g key={i}>
               <rect
