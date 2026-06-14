@@ -1223,7 +1223,15 @@ export function T2Annotations({
       if (it.kind === "m") {
         const m = part.mortises[it.idx];
         const lb = mortiseEntryBox(m);
-        mortiseTag = `|${lb.depthAxis}|${Math.round(m.origin.x)}|${Math.round(m.origin.y)}|${Math.round(m.origin.z)}`;
+        // dedupe key 排除「視線方向(viewDepthAxis)」那個 origin 座標：沿視線排成
+        // 一列的同款 mortise（如櫃側板 5 條層板 dado，差在高度=視線軸）會投影到
+        // 同一處、尺寸全疊在一起（user 2026-06-14「這尺寸擠在一起」）。排除視線軸
+        // 座標 → 它們 key 相同 → 只畫一個。保留另兩軸 + depthAxis 仍能區分 splay
+        // 腳 Z 面 vs X 面（depthAxis 不同、仰視缺斜孔那個 case）。
+        const ox = viewDepthAxis === "x" ? "" : Math.round(m.origin.x);
+        const oy = viewDepthAxis === "y" ? "" : Math.round(m.origin.y);
+        const oz = viewDepthAxis === "z" ? "" : Math.round(m.origin.z);
+        mortiseTag = `|${lb.depthAxis}|${ox}|${oy}|${oz}`;
       }
       const key = `${it.kind}|${Math.round(it.rect.x)}|${Math.round(it.rect.y)}|${Math.round(it.rect.w)}|${Math.round(it.rect.h)}|${it.dims}${mortiseTag}`;
       if (seen.has(key)) continue;
@@ -2563,7 +2571,10 @@ export function T2Annotations({
       // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
       const dxMm = round1(Math.abs(lb.cx));
       const xDimY = box.y - offCenter;
-      if (dxMm >= 2) {
+      // 視線方向是 part-local X（viewDepthAxis="x"，如櫃側板 side view 沿高度看）時，
+      // 「距中 X」是沿視線軸的高度位置、在此視圖collapse 看不到，畫了只會擠在中央、
+      // 跟長/深尺寸疊（user 2026-06-14「這尺寸擠在一起」）→ 跳過。
+      if (dxMm >= 2 && viewDepthAxis !== "x") {
         partEls.push(
           hDim(
             partCenterSvg.x,
