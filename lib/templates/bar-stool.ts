@@ -873,10 +873,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             const cosR = Math.cos(reclineRad);
             const sinR = Math.sin(reclineRad);
             const axisBot = hasRake ? { x: 0, y: -cosR, z: sinR } : undefined;
-            const axisTop = hasRake ? { x: 0, y: cosR, z: -sinR } : undefined;
+            // 只留底榫進座板；頂端是自由圓頭，弧形板靠嵌入圓柱「側面」固定、不靠頂榫
+            // → 移除頂榫（user 2026-06-14「左右垂直木上面沒有榫頭、直接刪除」）。
             return [
               { position: "bottom" as const, type: "blind-tenon" as const, length: 25, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6), ...(axisBot ? { axis: axisBot } : {}) },
-              { position: "top" as const, type: "blind-tenon" as const, length: 20, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6), ...(axisTop ? { axis: axisTop } : {}) },
             ];
           })(),
           mortises: [],
