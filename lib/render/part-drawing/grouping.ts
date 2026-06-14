@@ -206,35 +206,31 @@ const MIRROR_TOKEN_SETS: Record<"zh" | "en", string[][]> = {
   ],
 };
 
-const TOK_PLACEHOLDER = "\u0000";
+const ALL_MIRROR_TOKENS = {
+  zh: new Set(MIRROR_TOKEN_SETS.zh.flat()),
+  en: new Set(MIRROR_TOKEN_SETS.en.flat()),
+};
 
-// 在 name 中找方向詞 token，回傳「把 token 換成 placeholder 的模板」+ 原樣 token。
-// en 走單字邊界 + 不分大小寫；zh 走子字串。找不到回 null。
-function stripMirrorToken(
-  name: string,
-  token: string,
-  isEn: boolean,
-): { template: string; matched: string } | null {
-  if (isEn) {
-    const re = new RegExp(`\\b${token}\\b`, "i");
-    const m = re.exec(name);
-    if (!m) return null;
-    return { template: name.replace(re, TOK_PLACEHOLDER), matched: m[0] };
-  }
-  const i = name.indexOf(token);
-  if (i < 0) return null;
-  return {
-    template: name.slice(0, i) + TOK_PLACEHOLDER + name.slice(i + token.length),
-    matched: token,
-  };
+// 把 name 切成 token 陣列：en 依空白切單字、zh 依字元切。
+function tokenize(name: string, isEn: boolean): string[] {
+  return isEn ? name.split(/\s+/).filter(Boolean) : [...name];
+}
+function joinTokens(toks: string[], isEn: boolean): string {
+  return isEn ? toks.join(" ") : toks.join("");
 }
 
 /**
- * 合併後零件圖卡的顯示名：count>1 且成員名只差「同一組鏡像方向詞」（去掉方向詞
- * 後模板完全相同）時，把方向詞合併插回原位（左側板+右側板 → 左右側板、頂板+底板
- * → 頂底板、前板+後板 → 前後板、Left/Right apron → Left/right apron）。
- * 非單純鏡像（4 隻腳混前後+左右 → 模板對不上、或前板名「箱體前板」不對稱）→
- * 維持代表件名（不合併，避免亂組）。
+ * 合併後零件圖卡的顯示名。鏡像/對稱件合併成 1 張卡（數量 ×N）後，卡名只用
+ * 代表件名（第一件）會誤導。做法：用「共同前綴 + 共同後綴」夾出每個成員的
+ * 「差異中段」，差異中段恰好是方向詞時依情況組合：
+ *   - 差異段都是「同一組」鏡像方向詞 → 合併方向插回（左側板+右側板 → 左右側板、
+ *     頂板+底板 → 頂底板、門上橫檔+下橫檔 → 上下橫檔、Left/Right → Left/right）。
+ *   - 差異段都是「純方向字元」但跨多組（4 腳前左/後左/前右/後右、四面橫撐前後左右）
+ *     → 去掉方向、只留共同基底（腳 / 下橫撐），標 ×N。
+ *   - 差異段含非方向字（編號 1/2、箱體前 vs 後 名稱不對稱、不同零件同尺寸）
+ *     → 維持代表件名，不亂組。
+ * ⚠️ 用前綴/後綴夾「差異段」而非搜尋方向字元，避免「下層門1」的『下』被誤當
+ *    『下橫檔』的方向字（user 2026-06-13 多模板掃描發現）。
  */
 export function groupDisplayName(group: PartDrawingGroup, locale: string): string {
   const rep = partName(group.representative, locale);
@@ -242,27 +238,46 @@ export function groupDisplayName(group: PartDrawingGroup, locale: string): strin
   const names = [...new Set(group.parts.map((p) => partName(p, locale)))];
   if (names.length === 1) return names[0];
   const isEn = locale === "en";
+  const arrs = names.map((n) => tokenize(n, isEn));
+  const minLen = Math.min(...arrs.map((a) => a.length));
+  // 共同前綴 token 數
+  let pre = 0;
+  while (pre < minLen && arrs.every((a) => a[pre] === arrs[0][pre])) pre++;
+  // 共同後綴 token 數（不與前綴重疊）
+  let suf = 0;
+  while (
+    suf < minLen - pre &&
+    arrs.every((a) => a[a.length - 1 - suf] === arrs[0][arrs[0].length - 1 - suf])
+  )
+    suf++;
+  const midStrs = arrs.map((a) => joinTokens(a.slice(pre, a.length - suf), isEn));
+  const midNorm = midStrs.map((m) => (isEn ? m.toLowerCase() : m));
+  if (midNorm.some((m) => m === "")) return rep; // 有成員差異段為空 → 不合併
+  const prefixStr = joinTokens(arrs[0].slice(0, pre), isEn);
+  const suffixStr = joinTokens(arrs[0].slice(arrs[0].length - suf), isEn);
+  const assemble = (middle: string) =>
+    isEn ? [prefixStr, middle, suffixStr].filter(Boolean).join(" ") : prefixStr + middle + suffixStr;
+
+  // case A：差異段都是「同一組」鏡像方向詞 → 合併方向
   for (const set of MIRROR_TOKEN_SETS[isEn ? "en" : "zh"]) {
-    const stripped = names.map((n) => {
-      for (const tok of set) {
-        const r = stripMirrorToken(n, tok, isEn);
-        if (r) return { template: r.template, tok };
-      }
-      return null;
-    });
-    if (stripped.some((s) => s === null)) continue;
-    const templates = new Set(stripped.map((s) => s!.template));
-    const toks = stripped.map((s) => s!.tok);
-    // 模板需全等（方向詞在同位置、其餘字面相同）+ 至少 2 個不同方向
-    if (templates.size === 1 && new Set(toks).size >= 2) {
-      const present = set.filter((t) => toks.includes(t));
+    if (midNorm.every((m) => set.includes(m)) && new Set(midNorm).size >= 2) {
+      const present = set.filter((t) => midNorm.includes(t));
       const joined = isEn
         ? present.map((t, i) => (i === 0 ? t.charAt(0).toUpperCase() + t.slice(1) : t)).join("/")
         : present.join("");
-      return [...templates][0].replace(TOK_PLACEHOLDER, joined);
+      return assemble(joined);
     }
   }
-  return rep; // 非單純鏡像 → 維持代表件名
+  // case B：差異段都是「純方向字元」但跨多組（4 腳 / 四面橫撐）→ 去方向留基底
+  const mirrorChars = ALL_MIRROR_TOKENS[isEn ? "en" : "zh"];
+  const isAllMirror = (m: string) =>
+    isEn
+      ? m.split(/\s+/).every((w) => mirrorChars.has(w.toLowerCase()))
+      : [...m].every((c) => mirrorChars.has(c));
+  if (midNorm.every(isAllMirror) && new Set(midNorm).size >= 2) {
+    return assemble("") || rep;
+  }
+  return rep; // 含非方向字（編號 / 不對稱名 / 不同零件）→ 維持代表件名
 }
 
 /**
