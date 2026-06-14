@@ -1,7 +1,7 @@
 {
   "name": "木頭仁 木作藍圖",
   "short_name": "木作藍圖",
-  "description": "從尺寸到圖紙,三秒鐘完成 — 木頭仁木匠學院出品的家具/木作工程圖生成器。",
+  "description": "從尺寸到圖紙,三分鐘完成 — 木頭仁木匠學院出品的家具/木作工程圖生成器。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -2,7 +2,7 @@
   "$comment": "Phase 1+2 cumulative; new keys must be added to zh-TW.json in same PR; CI blocks on diff.",
   "common": {
     "siteName": "Wooden Ren Designer",
-    "siteTagline": "From idea to buildable plans, in seconds"
+    "siteTagline": "From idea to buildable plans, in minutes"
   },
   "nav": {
     "about": "About",
@@ -233,19 +233,19 @@
   },
   "about": {
     "metadata": {
-      "title": "About · Wooden Ren Designer — dimensions in, plans in 3 seconds",
+      "title": "About · Wooden Ren Designer — dimensions in, plans in 3 minutes",
       "description": "From Wooden Ren Academy. 25+ furniture templates. Enter dimensions, get three-view drawings, exploded 3D, joinery details, cut lists, build order, and printable PDFs. Built for DIYers, working woodworkers, designers, and students.",
-      "ogTitle": "About · Wooden Ren Designer — dimensions in, plans in 3 seconds",
+      "ogTitle": "About · Wooden Ren Designer — dimensions in, plans in 3 minutes",
       "ogDescription": "From Wooden Ren Academy. 25+ templates, auto three-view, joinery, cut list, PDF plans.",
       "twitterTitle": "About · Wooden Ren Designer",
-      "twitterDescription": "Dimensions in, plans / cut list / quote in 3 seconds. From Wooden Ren Academy."
+      "twitterDescription": "Dimensions in, plans / cut list / quote in 3 minutes. From Wooden Ren Academy."
     },
     "hero": {
       "logoAlt": "Wooden Ren Designer",
       "badge": "By Wooden Ren Academy",
       "h1Line1": "Drawing and stock math —",
       "h1Highlight": "let the tool do it",
-      "intro": "Pick a piece, fill in length × width × height, and <b>3 seconds</b> later you have a 3D view, three-view engineering drawings, joinery details, cut list, build order, and a printable PDF.",
+      "intro": "Pick a piece, fill in length × width × height, and <b>3 minutes</b> later you have a 3D view, three-view engineering drawings, joinery details, cut list, build order, and a printable PDF.",
       "statSubsCount": "200K",
       "statSubsLabel": "YouTube subscribers",
       "statStudentsCount": "600+",
@@ -254,11 +254,11 @@
       "statTemplatesLabel": "furniture templates",
       "ctaPrimary": "Start designing (free) →",
       "ctaSecondary": "See pricing",
-      "triptychCaption": "↑ Same piece, three outputs generated in 3 seconds — 3D view, engineering drawings, cut list"
+      "triptychCaption": "↑ Same piece, three outputs generated in 3 minutes — 3D view, engineering drawings, cut list"
     },
     "triptych": {
       "inputBadge": "📏 One set of dimensions",
-      "outputBadge": "⚡ 3-second generation",
+      "outputBadge": "⚡ 3-minute generation",
       "panel1Label": "① 3D view",
       "panel1Sub": "Rotate, inspect the joinery",
       "panel1Alt": "3D view — walnut media console real output",
@@ -289,7 +289,7 @@
         "title": "Build order gets stuck",
         "desc": "What goes first, what gets glued, what gets clamped — get it wrong and you can't even take it apart to fix."
       },
-      "conclusion": "Designer compresses all three into 3 seconds — the two evenings you save are enough to pick up another commission."
+      "conclusion": "Designer compresses all three into 3 minutes — the two evenings you save are enough to pick up another commission."
     },
     "steps": {
       "eyebrow": "How it works",
@@ -440,23 +440,23 @@
   },
   "landing": {
     "metadata": {
-      "title": "Wooden Ren Designer — Plans, cut lists, and joinery in 3 seconds",
+      "title": "Wooden Ren Designer — Plans, cut lists, and joinery in 3 minutes",
       "description": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts. Enter dimensions, pick your wood, and get three-view drawings, exploded 3D, mortise & tenon details, cut lists, and printable PDFs. Free for the square stool and pencil holder; paid plans from $12.9/month.",
-      "ogTitle": "Wooden Ren Designer — Plans in 3 seconds",
-      "ogDescription": "Drawing, cut list, and quote compressed into 3 seconds. Free for the square stool and pencil holder. Built by the Wooden Ren woodworking academy."
+      "ogTitle": "Wooden Ren Designer — Plans in 3 minutes",
+      "ogDescription": "Drawing, cut list, and quote compressed into 3 minutes. Free for the square stool and pencil holder. Built by the Wooden Ren woodworking academy."
     },
     "hero": {
       "badge": "Wooden Ren Academy · Designer v0.5",
       "h1Line1": "Dimensions in,",
-      "h1Highlight": "plans in 3 seconds",
+      "h1Highlight": "plans in 3 minutes",
       "subtitleA": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts.",
-      "subtitleB": "This tool compresses all three into 3 seconds.",
+      "subtitleB": "This tool compresses all three into 3 minutes.",
       "ctaPrimary": "Try the square stool free →",
       "ctaSecondary": "See pricing",
       "note": "No signup required to try · Square stool + pencil holder always free",
       "heroAlt": "Wooden Ren Designer real output — walnut media console 3D perspective",
       "heroCaption": "Real output",
-      "heroBadgeFast": "⚡ 3-second generation"
+      "heroBadgeFast": "⚡ 3-minute generation"
     },
     "pain": {
       "h2": "Sound familiar?",
@@ -1921,7 +1921,7 @@
     }
   },
   "home": {
-    "metaTitle": "Wooden Ren Furniture Blueprints | Engineering drawings, BOM, quote in 3 seconds",
+    "metaTitle": "Wooden Ren Furniture Blueprints | Engineering drawings, BOM, quote in 3 minutes",
     "metaDescription": "26 furniture templates — square stool, tea table, desk, wardrobe, dining chair, shoe cabinet, wine rack — enter L×W×H and wood, auto-generate three-view drawings, perspective, joinery details, BOM, A4 PDF plans. By Wooden Ren Carpentry Academy.",
     "chipAll": "All",
     "chipSeating": "Seating",
@@ -1935,8 +1935,8 @@
     "diffAdvanced": "Advanced",
     "heroBadge": "Wooden Ren Carpentry Academy · Furniture Blueprints v0.5",
     "heroH1": "From dimensions to drawings",
-    "heroH1Amber": ", in 3 seconds",
-    "heroBody": "The slowest part of woodworking has never been the cutting — it's getting the drawing right, the BOM precise, and the sequence ordered. This tool compresses all three into 3 seconds.",
+    "heroH1Amber": ", in 3 minutes",
+    "heroBody": "The slowest part of woodworking has never been the cutting — it's getting the drawing right, the BOM precise, and the sequence ordered. This tool compresses all three into 3 minutes.",
     "miniItem1": "3D perspective",
     "miniItem2": "Three-view + joinery detail",
     "miniItem3": "Cut sizes · tools · sequence",
