@@ -793,10 +793,14 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         ],
         mortises: [
           {
+            // ⚠ topRailTenonW(=topRailH−10) 是榫頭「沿橫木高度Y」的尺寸 → tenon.thickness(上下軸)；
+            //   topRailTenonThick 是「沿橫木深度Z」→ tenon.width(左右軸)。母眼 length↔tenon.width、
+            //   width↔tenon.thickness。放反會讓榫頭 Z 向(柱僅25深)變成 40mm、從柱前後戳出
+            //   (user 2026-06-14「榫戳出柱外」3D 回報)。
             origin: { x: postX > 0 ? -1 : 1, y: topRailYCenter - postBottomY, z: 0 },
             depth: railTenonLen,
-            length: topRailTenonW,
-            width: topRailTenonThick,
+            length: topRailTenonThick,
+            width: topRailTenonW,
             through: false,
           },
         ],
@@ -816,8 +820,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: railLen, width: topRailThickness, thickness: topRailH },
       origin: { x: 0, y: topRailY, z: postZ },
       tenons: [
-        { position: "start", type: "blind-tenon", length: railTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
-        { position: "end", type: "blind-tenon", length: railTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
+        // width(左右軸=橫木深度Z)=topRailTenonThick、thickness(上下軸=橫木高度Y)=topRailTenonW；
+        // 放反會讓榫頭 Z 向 40mm 戳出 25mm 細柱（見上方柱母眼註解）。
+        { position: "start", type: "blind-tenon", length: railTenonLen, width: topRailTenonThick, thickness: topRailTenonW },
+        { position: "end", type: "blind-tenon", length: railTenonLen, width: topRailTenonThick, thickness: topRailTenonW },
       ],
       mortises: slatXs.map((sx) => ({
         origin: { x: sx, y: 0, z: 0 },
