@@ -284,7 +284,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const topRailY = withBack ? seatY + backHeight - topRailH : 0;
   const topRailYCenter = topRailY + topRailH / 2;
   const topRailTenonW = withBack ? Math.max(12, topRailH - 10) : 0;
-  const topRailTenonThick = 17;
+  // 榫厚照標準規則（drafting-math.md §B2）= 公件厚/3。頂橫木厚(深度)= topRailThickness，
+  // 不能寫死 17（22mm 厚的橫木會變 77% 太厚、不照規則，user 2026-06-14 回報）。
+  const topRailTenonThick = withBack ? Math.max(6, Math.round(topRailThickness / 3)) : 0;
   const slatXs: number[] = [];
   const slatThicknessConst = getOption<number>(input, opt(o, "backSlatThickness"));
   const slatTenonLen = 12;
