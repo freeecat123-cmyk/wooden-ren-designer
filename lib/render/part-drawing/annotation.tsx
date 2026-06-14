@@ -1625,17 +1625,12 @@ export function T2Annotations({
     const mortiseShapeIsRound =
       isMortise &&
       (part.mortises[it.idx] as Mortise).shape === "round";
-    // 圓料 part 上的 mortise（例如圓腳上接牙條的 rect 榫眼）：opening 落在
-    // 曲面上，視覺一律畫橢圓，跟 `889a38c`（圓料 tenon ellipse）對偶。
-    const isRoundPartForMortise =
-      isMortise &&
-      (part.shape?.kind === "round" ||
-        part.shape?.kind === "round-tapered" ||
-        part.shape?.kind === "splayed-round-tapered" ||
-        part.shape?.kind === "lathe-turned" ||
-        part.shape?.kind === "shaker");
+    // rect 榫眼（牙條/橫撐等鑿出的方口袋）一律畫方形矩形，即使開在圓料（圓腳/圓座板）
+    // 上——圓料上唯一畫橢圓的是真正的「圓孔」(mortise.shape==="round"，接圓榫)。
+    // (user 2026-06-15「橫撐跟牙條還是方孔才對」。先前 isRoundPartForMortise 把圓料上
+    //  所有 rect 榫眼一律橢圓是錯的，已移除；圓料 tenon 是否圓由下方 tenonIsRound 另判。)
     let mortiseIsRound = false;
-    if (isMortise && (mortiseShapeIsRound || isRoundPartForMortise)) {
+    if (isMortise && mortiseShapeIsRound) {
       const m = part.mortises[it.idx] as Mortise;
       const ly = part.visible.thickness;
       const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
@@ -1662,23 +1657,10 @@ export function T2Annotations({
       } else {
         depthAxis = "z";
       }
-      if (mortiseShapeIsRound) {
-        // 圓榫眼：只有看圓柱軸線方向才是圓、垂直方向看是矩形（圓柱側影）
-        const viewAxis: "x" | "y" | "z" =
-          view === "top" ? "y" : view === "side" ? "x" : "z";
-        mortiseIsRound = depthAxis === viewAxis;
-      } else {
-        // 圓料 part 上的 rect mortise：只有開口落在「曲面」(depth 軸 ⊥ 圓料擠出軸)
-        // 才畫橢圓（圓腳側面接牙條的榫眼）；落在「平面端/面」(depth ∥ 擠出軸，例如
-        // 圓座板的腳榫眼開在平整圓盤面上) 用實際 rect 形狀，不可強制橢圓
-        // (user 2026-06-14 圓凳外斜方錐腳→座板方榫眼被誤畫成橢圓回報)。
-        // 圓料擠出軸 = 三 visible 中與另兩等值(直徑)者不同的奇數軸。
-        const L = part.visible.length, W = part.visible.width, T = part.visible.thickness;
-        const dLW = Math.abs(L - W), dWT = Math.abs(W - T), dLT = Math.abs(L - T);
-        const extrusionAxis: "x" | "y" | "z" =
-          dLW <= dWT && dLW <= dLT ? "y" : dWT <= dLT ? "x" : "z";
-        mortiseIsRound = depthAxis !== extrusionAxis;
-      }
+      // 圓榫眼：只有看圓柱軸線方向才是圓、垂直方向看是矩形（圓柱側影）
+      const viewAxis: "x" | "y" | "z" =
+        view === "top" ? "y" : view === "side" ? "x" : "z";
+      mortiseIsRound = depthAxis === viewAxis;
     }
     // 圓料 part 上的 tenon 也是圓的（user:「這榫不是圓的嗎？」）。檢查 part shape
     // 是否屬於 round 家族 + tenon 從哪個軸凸出（position） vs 當前 view axis：
