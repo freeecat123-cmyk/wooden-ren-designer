@@ -1260,7 +1260,15 @@ function OrthoViewImpl({
   const isolateDimOffset = isolatePartId
     ? Math.max(36, isolatePadding * 0.4)
     : DIM_OFFSET;
-  const vbW = vbContentW + isolatePadding * 2;
+  // 主視圖（非 isolate）front/side 右側「座下高 / 桌下淨高 + 數值 + mm」高度標線
+  // 放在 x = w/2 + 140，220 padding 只剩 80px，但 4 字長標籤（如「桌下淨高 1234 mm」
+  // ≈ 108px）會被 viewBox 右緣切掉（user 2026-06-14 吧台椅主視圖回報，實為餐椅/
+  // 餐桌/圓凳/書桌/長凳/邊桌等全腳類家具通病，溢出 14–27px）。右側多留 48px
+  // （只擴 vbW、vbX 不動 → 額外空間全給右邊；isolate 零件卡不受影響、其標籤另以
+  //  end-anchor clamp 處理）。
+  const mainRightExtra =
+    !isolatePartId && (view === "front" || view === "side") ? 48 : 0;
+  const vbW = vbContentW + isolatePadding * 2 + mainRightExtra;
   const vbH = h + isolatePadding * 2 + isolateTopExtra + isolateDimOffset + reservedTitleH;
   const vbX = -isolatePadding - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);

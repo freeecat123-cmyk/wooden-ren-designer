@@ -359,6 +359,18 @@ export function T1Dimensions({
   const vPartX = Math.max(vertP1.x, vertP2.x); // part edge SVG x（dim line 左邊就是 part）
 
   const ARROW = 3;
+  // 垂直標籤（寬/厚 + 含榫）start-anchor 在 part 右方 vertX+4。寬扁件（牙條/腳踏）
+  // 有水平榫時 vertX = grossMaxX(含榫凸出) + VERT_OFFSET 被推到接近 viewBox 右緣，
+  // 「寬 30」文字會被右緣切掉（user 2026-06-14 吧台椅牙條/腳踏回報）。
+  // → clamp：start-anchor 文字會超出右緣就改 end-anchor 貼右緣（沿用 side 視圖手法）。
+  // CJK 字寬估 11px、ASCII 6.2px。
+  const vbRight = ctx.vbX + ctx.vbW;
+  const estLabelW = (s: string) =>
+    [...s].reduce((acc, ch) => acc + (ch.charCodeAt(0) > 0x2000 ? 11 : 6.2), 0);
+  const placeVertLabel = (startX: number, text: string) =>
+    startX + estLabelW(text) > vbRight - 2
+      ? { x: vbRight - 6, anchor: "end" as const }
+      : { x: startX, anchor: "start" as const };
   return (
     <g
       className="t1-dim-overlay"
@@ -480,11 +492,15 @@ export function T1Dimensions({
         >
           {`${vertLabel} ${vert}`}
         </text>
-      ) : (
-        <text x={vertX + 4} y={(vyLo + vyHi) / 2 + 4} fontSize={11} stroke="none">
-          {`${vertLabel} ${vert}`}
-        </text>
-      )}
+      ) : (() => {
+        const txt = `${vertLabel} ${vert}`;
+        const pl = placeVertLabel(vertX + 4, txt);
+        return (
+          <text x={pl.x} y={(vyLo + vyHi) / 2 + 4} fontSize={11} stroke="none" textAnchor={pl.anchor}>
+            {txt}
+          </text>
+        );
+      })()}
 
       {/* 連榫頭總長 dim（垂直）：vertical dim 右方再加一條 */}
       {showVertGross && (

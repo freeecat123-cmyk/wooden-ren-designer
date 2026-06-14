@@ -293,6 +293,26 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 椅背支撐柱尺寸：0 = 沿用椅腳粗厚，否則自訂
   const postW = backRailPostWidthOpt > 0 ? backRailPostWidthOpt : legW;
   const postD = backRailPostThicknessOpt > 0 ? backRailPostThicknessOpt : legD;
+  // 頂橫木→支撐柱榫：榫進柱的深度受「柱寬 postW」限制（柱預設只有 25mm、比腳細），
+  // 不能沿用給 50mm 腳的 apronTenonLen(33)——會打穿柱子。盲榫深 = 0.6×postW（≥12）。
+  const railTenonLen = Math.max(12, Math.min(apronTenonLen, Math.round(postW * 0.6)));
+  // 椅背支撐柱（rail/slats 模式）坐在座板「上緣」、不穿過座板——否則座板要被挖角開孔
+  // 才能讓柱通過、3D 看起來像椅面缺角（user 2026-06-14 回報）。柱底開盲榫進座板上緣。
+  //   postBottomY = height（= seatY + seatThickness = 座板上緣）
+  //   postBackThick：頂端維持原 backrest 頂高（seatY + backHeight）不變 → backHeight − seatThickness
+  const postBottomY = height;
+  const postBackThick = Math.max(1, seatY + backHeight - postBottomY);
+  // 柱底→座板盲榫（座板上緣開母眼）；榫深 < 座板厚，肩留實料
+  const postSeatTenonLen = Math.min(Math.round(seatThickness * 0.6), Math.max(10, seatThickness - 6));
+  const postSeatTenonW = Math.max(8, Math.round(postW * 0.6));
+  const postSeatTenonT = Math.max(8, Math.round(postD * 0.6));
+  // 椅背柱 X/Z 座標（座板開柱母眼、柱本體共用同一公式對位）
+  const backPostXZ = withBack && backStyle !== "none" && backStyle !== "panel"
+    ? cornerPts.filter((c) => c.z > 0).map((c) => ({
+        x: Math.sign(c.x) * (length / 2 - postW / 2 - backRailInsetX),
+        z: width / 2 - postD / 2 - backRailInsetZ,
+      }))
+    : [];
   if (withBack && backStyle === "slats" && backSlatCount > 0) {
     // 直條寬度 = 兩支 back-post 內側之間（受 backRailInsetX + 柱寬影響），
     // 留 40mm 邊距防榫眼太靠近端面
@@ -457,32 +477,33 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       return undefined;
     })(),
     tenons: [],
-    // 前腳通榫進來；後腳穿過座板高度範圍，要開大孔讓腳通過。
+    // 四角一律給正常腳頂榫眼（公母對得上腳的 top tenon）。
+    // ⚠ 舊邏輯曾對「有椅背的後兩角」開 50×50 通孔（當年後腳延伸穿過座板變椅背柱）。
+    // 椅背柱已改成獨立件、坐在座板上緣 (origin.y=seatY) 不穿過座板，且後柱與後腳同
+    // (x,z)、柱底正好壓在那 50×50 通孔上 → 柱子會掉進孔裡、後腳盲榫也對不到大孔。
+    // 故移除該分支，後角改與前角同樣的腳榫眼（盲榫從座板底進、上方留實料給柱子坐）。
     // slats 從座板上面立起到頂橫木 → 座板上緣加 slat 母榫眼
     mortises: [
-      ...cornerPts
-        .filter((c) => !(withBack && c.z > 0))
-        .map((c) => ({
-          origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
-          depth: legTenonStd.length,
-          length: legTenonStd.width,
-          width: legTenonStd.thickness,
-          through: legTopTenonType === "through-tenon",
-        })),
-      ...cornerPts
-        .filter((c) => withBack && c.z > 0)
-        .map((c) => ({
-          origin: { x: c.x, y: 0, z: c.z },
-          depth: seatThickness,
-          length: legSize,
-          width: legSize,
-          through: true,
-        })),
+      ...cornerPts.map((c) => ({
+        origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
+        depth: legTenonStd.length,
+        length: legTenonStd.width,
+        width: legTenonStd.thickness,
+        through: legTopTenonType === "through-tenon",
+      })),
       ...slatXs.map((sx) => ({
         origin: { x: sx, y: seatThickness, z: legEdgeZ },
         depth: slatTenonLen,
         length: slatTenonW(backSlatWidth),
         width: slatTenonT,
+        through: false,
+      })),
+      // 椅背柱坐在座板上緣 → 座板上緣（y=seatThickness）開柱底榫的母眼（rail/slats 模式）
+      ...backPostXZ.map(({ x, z }) => ({
+        origin: { x, y: seatThickness, z },
+        depth: postSeatTenonLen,
+        length: postSeatTenonW,
+        width: postSeatTenonT,
         through: false,
       })),
     ],
@@ -762,14 +783,18 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         nameEn: `Back support post ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: postW, width: postD, thickness: backHeight },
-        origin: { x: postX, y: seatY, z: postZ },
+        // 坐在座板上緣（postBottomY）、不穿過座板；頂端維持 backrest 頂高 → 厚 = postBackThick
+        visible: { length: postW, width: postD, thickness: postBackThick },
+        origin: { x: postX, y: postBottomY, z: postZ },
         shape: legEdgeShape(legEdge, legEdgeStyle),
-        tenons: [],
+        // 柱底盲榫進座板上緣（座板已開對應母眼）
+        tenons: [
+          { position: "bottom", type: "blind-tenon", length: postSeatTenonLen, width: postSeatTenonW, thickness: postSeatTenonT },
+        ],
         mortises: [
           {
-            origin: { x: postX > 0 ? -1 : 1, y: topRailYCenter - seatY, z: 0 },
-            depth: apronTenonLen,
+            origin: { x: postX > 0 ? -1 : 1, y: topRailYCenter - postBottomY, z: 0 },
+            depth: railTenonLen,
             length: topRailTenonW,
             width: topRailTenonThick,
             through: false,
@@ -777,8 +802,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         ],
       });
     });
-    // 頂橫木：跨在兩支 back-post 上方。length 跟 X/Z 都跟著 back-post 走。
-    const railLen = length - postW - 2 * backRailInsetX + 2 * apronTenonLen;
+    // 頂橫木：跨在兩支 back-post 之間。visible.length = body（肩到肩）= 兩柱「內面」
+    // 間距 = length − 2×postW − 2×backRailInsetX（butt-joint 慣例，§A10：visible 不含榫）。
+    // 榫頭另由 tenons 往兩側延伸進柱。⚠ 舊式 `length − postW + 2×apronTenonLen` 會讓 body
+    // 跨到柱中心、再加 33 榫頭戳出柱外（user 2026-06-14「短橫木靠背的榫畫錯」）。
+    const railLen = length - 2 * postW - 2 * backRailInsetX;
     parts.push({
       id: "back-rail",
       nameZh: "椅背頂橫木",
@@ -788,8 +816,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: railLen, width: topRailThickness, thickness: topRailH },
       origin: { x: 0, y: topRailY, z: postZ },
       tenons: [
-        { position: "start", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
-        { position: "end", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
+        { position: "start", type: "blind-tenon", length: railTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
+        { position: "end", type: "blind-tenon", length: railTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
       ],
       mortises: slatXs.map((sx) => ({
         origin: { x: sx, y: 0, z: 0 },
@@ -881,7 +909,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         mortises: [],
       });
     } else if (backStyle === "slats" && backSlatCount > 0) {
-      const slatLen = backHeight - topRailH;
+      // 板條坐在座板上緣（同椅背柱）、不穿過座板：body = 座板上緣到頂橫木底，
+      // 底端榫進座板上緣母眼（座板已開）、頂端榫進頂橫木。
+      // body 長 = (backHeight − topRailH) − seatThickness；origin.y = 座板上緣 height。
+      const slatLen = Math.max(20, backHeight - topRailH - seatThickness);
       const slatZ = width / 2 - postD / 2 - backRailInsetZ;
       slatXs.forEach((xCenter, i) => {
         parts.push({
@@ -891,7 +922,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: slatLen, width: backSlatWidth, thickness: slatThicknessConst },
-          origin: { x: xCenter, y: seatY, z: slatZ },
+          origin: { x: xCenter, y: height, z: slatZ },
           rotation: { x: 0, y: 0, z: Math.PI / 2 },
           tenons: [
             { position: "start", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
