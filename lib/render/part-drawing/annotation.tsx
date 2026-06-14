@@ -1498,6 +1498,10 @@ export function T2Annotations({
   // (user 2026-05-28「正視圖底下 301 279 跟 128 106 太近了 把 279 128 往下移」)
   const shoulderHYUsed: { L: number[]; R: number[] } = { L: [], R: [] };
   const SHOULDER_Y_TOL = 4;
+  // 「距中 X」藍色 dim 階梯：多個 mortise 的距中尺寸全落在同一條 xDimY → 線
+  // 互疊看不出哪條標哪個孔（user 2026-06-14「藍色尺寸都在同水平/看不出標哪」）。
+  // 每收到第 N 個落在同 Y(±4) 同側的距中 dim 就往外推 STAGGER_GAP*N、排成階梯。
+  const xDistYUsed: { L: number[]; R: number[] } = { L: [], R: [] };
   // 圓榫「Ø 深X」label 同位防撞：軸向視圖兩端圓榫同心（端面投影重疊）、
   // leader 落同一點 → 兩行字疊在一起（user 2026-06-11 邊柱側視卡回報）。
   const roundLabelSlots: Array<{ x: number; y: number }> = [];
@@ -2558,8 +2562,13 @@ export function T2Annotations({
           ? box.x - offCenter
           : box.x + box.w + offCenter;
       if (dxMm >= 2) {
+        // 階梯：同側同 Y 的距中 dim 往外推 STAGGER_GAP*N，避免全疊一條線看不出標哪個
+        const side = cx < partCenterSvg.x ? "L" : "R";
+        const lvl = xDistYUsed[side].filter((y) => Math.abs(y - xDimY) <= 4).length;
+        xDistYUsed[side].push(xDimY);
+        const stagY = box.y < partCenterSvg.y ? xDimY - lvl * STAGGER_GAP : xDimY + lvl * STAGGER_GAP;
         partEls.push(
-          hDim(partCenterSvg.x, cx, xDimY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
+          hDim(partCenterSvg.x, cx, stagY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
         );
       }
       if (dzMm >= 2) {
@@ -2575,11 +2584,15 @@ export function T2Annotations({
       // 「距中 X」是沿視線軸的高度位置、在此視圖collapse 看不到，畫了只會擠在中央、
       // 跟長/深尺寸疊（user 2026-06-14「這尺寸擠在一起」）→ 跳過。
       if (dxMm >= 2 && viewDepthAxis !== "x") {
+        const side = cx < partCenterSvg.x ? "L" : "R";
+        const lvl = xDistYUsed[side].filter((y) => Math.abs(y - xDimY) <= 4).length;
+        xDistYUsed[side].push(xDimY);
+        const stagY = xDimY - lvl * STAGGER_GAP;
         partEls.push(
           hDim(
             partCenterSvg.x,
             cx,
-            xDimY,
+            stagY,
             String(dxMm),
             "#0ea5e9",
             `${it.kind}-${it.idx}-xdim`,
