@@ -2592,7 +2592,12 @@ function OrthoViewImpl({
             /-\d+-(front|back)$/.test(part.id)) &&
           (renderDesign.parts.some((p) => p.shape?.kind === "dovetail-ends") ||
             design.parts.some((p) => p.shape?.kind === "dovetail-ends"));
+        // 嵌入式盒蓋四周搭接槽（rabbeted lid）：shape 仍是 box（3D 走 CSG），但
+        // 側 / 正視要走 polygon path 才能畫出 L 階梯輪廓（projectPartPolygon 有
+        // peripheralRebate 分支）。俯視看面維持矩形 → 不納入。
+        const isRabbetLid = !!part.peripheralRebate && view !== "top";
         const useShape =
+          isRabbetLid ||
           isDovetailPinBoard ||
           (!isFaceRoundedXTilt &&
           part.shape &&

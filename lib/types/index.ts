@@ -239,6 +239,16 @@ export interface Part {
   visual?: "glass" | "brass-antique" | "fabric" | "metal" | "mirror";
 
   /**
+   * 四周底邊搭接槽（peripheral rebate / rabbet）— 零件圖標示用。
+   * 設了之後，側視 / 正視（看得到端面厚度的視圖）的輪廓線會畫成 L 階梯：
+   * 上層 = 滿尺寸 cap、下層 = 縮窄 `widthMm` 的凸唇（plug，深 `depthMm`）。
+   * 俯視維持矩形（rebate 在面上看是隱藏線、由 cosmetic mortise 虛線表示）。
+   * 純 2D 輪廓提示——3D 仍由 cosmetic through-mortise 的 CSG 切口表現，
+   * 不影響材積 / 切料。嵌入式（rabbeted）盒蓋用。
+   */
+  peripheralRebate?: { widthMm: number; depthMm: number };
+
+  /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows
    * toward the bottom (top face = visible dims, bottom face scaled by
    * `shape.bottomScale`). Geometry/material calculations still use the

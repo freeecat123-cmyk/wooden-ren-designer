@@ -631,6 +631,28 @@ export function projectPartPolygon(
     }
   }
 
+  // 四周底邊搭接槽（嵌入式盒蓋 rabbeted lid）：側 / 正視（看得到端面厚度的視圖）
+  // 輪廓畫成 L 階梯——上層 = 滿尺寸 cap、下層 = 縮 widthMm 的凸唇（plug，深 depthMm）。
+  // 俯視（看面）維持矩形，rebate 由 cosmetic mortise 虛線表示（隱藏線慣例）。
+  // shape 仍是 box（3D 走 CSG），所以放在 box early-return 之前判斷。
+  if (part.peripheralRebate && view !== "top") {
+    const rebW = Math.max(0, Math.min(part.peripheralRebate.widthMm, r.w * 0.45));
+    const stepY = Math.max(0, Math.min(part.peripheralRebate.depthMm, r.h * 0.9));
+    if (rebW > 0.5 && stepY > 0.5) {
+      // plug 在底部（低 Y）；CCW（Y-up）描出滿寬 cap + 縮窄 plug
+      return [
+        { x: r.x, y: r.y + r.h },
+        { x: r.x + r.w, y: r.y + r.h },
+        { x: r.x + r.w, y: r.y + stepY },
+        { x: r.x + r.w - rebW, y: r.y + stepY },
+        { x: r.x + r.w - rebW, y: r.y },
+        { x: r.x + rebW, y: r.y },
+        { x: r.x + rebW, y: r.y + stepY },
+        { x: r.x, y: r.y + stepY },
+      ];
+    }
+  }
+
   if (!part.shape || part.shape.kind === "box") return box;
 
   // 帶頂緣/下緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視

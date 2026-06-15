@@ -799,6 +799,9 @@ const polyDesign: FurnitureDesign = {
       // through 讓切口穿出底面/側面 → CSG 削掉底邊角落 = 真實 rebate。
       // 左右 X 邊吃滿全 Z（含 4 角）、前後 Z 邊 X 範圍縮掉左右邊條避免角落 double-cut。
       const rebW = Math.max(2, wallT);
+      // 零件圖：側/正視輪廓畫成 L 階梯（cap 滿尺寸 + plug 縮 rebW、深 plugT）。
+      // 3D 仍走下面的 cosmetic through-mortise CSG，不重複表現。
+      lidPart.peripheralRebate = { widthMm: rebW, depthMm: plugT };
       const epsBot = 1;
       const cutH = plugT + epsBot;          // Y 方向切深（含底面 overshoot）
       const cutCY = (plugT - epsBot) / 2;   // from-bottom 中心（靠底）
