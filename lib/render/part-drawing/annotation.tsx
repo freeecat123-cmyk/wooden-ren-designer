@@ -2207,7 +2207,13 @@ export function T2Annotations({
           // SIDE view 短料 apron 截圖)。clamp 到 partTopSvg - 4 確保字頭在
           // part 邊上方留空。
           const hMmClearedY = Math.min(hMmAboveY, partTopSvg - 4);
-          const hMmY = isSideLegDashed ? box.y + box.h + 8 : hMmClearedY;
+          // cosmetic 槽：下半的槽長度標籤改放槽「下方」，不要跟上半槽一起被 clamp 到 part
+          // 頂端疊字（user 2026-06-15「兩個尺寸疊在一起」）。上半槽 / 一般榫眼維持原本頂端。
+          const hMmY = isSideLegDashed
+            ? box.y + box.h + 8
+            : isCosmetic && box.y + box.h / 2 >= partCenterSvg.y
+              ? box.y + box.h + 11
+              : hMmClearedY;
           return (
             <g key={`${it.kind}-${it.idx}-inline-dims`}>
               {/* L dim label 規則：
@@ -2588,7 +2594,9 @@ export function T2Annotations({
     // 工程 dim line：根據 view + 對稱性
     // 距中軸 dim 放在 W/L dim line 外側（mortiseIsRound 用原 8px、rect 用 18px 避撞）
     const offCenter = mortiseIsRound ? 8 : 18;
-    if (view === "top" && isSymmetricPart) {
+    // cosmetic 槽（底板槽/滑蓋槽）不畫藍色「距中」dim——對槽沒意義又擠（user 2026-06-15）。
+    // 槽位置由槽寬(底5.5/蓋7.5)+ 名稱表達；真榫眼/榫頭仍照常標距中。
+    if (view === "top" && isSymmetricPart && !isCosmetic) {
       // 距中 X：水平 dim line 從 centerline 到 mortise center。
       // 距中 = 0（孔就在中軸上）的 dim 無資訊量還畫一支「0」箭頭 →
       // 跳過（user 2026-06-11 托盤側壁卡「0」標回報）
@@ -2617,7 +2625,7 @@ export function T2Annotations({
           vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
         );
       }
-    } else if (view !== "top" && isSymmetricPart) {
+    } else if (view !== "top" && isSymmetricPart && !isCosmetic) {
       // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
       const dxMm = round1(Math.abs(lb.cx));
       const xDimY = box.y - offCenter;
