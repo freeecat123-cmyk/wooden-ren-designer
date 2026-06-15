@@ -713,6 +713,7 @@ const polyDesign: FurnitureDesign = {
           through: false,
           shape: "rect",
           cosmetic: true,
+          label: "滑蓋槽",
         });
       }
       // 左壁（=正視圖右邊）縮短 sinkMm + 0.25mm（頂在 lid 底再低 0.25mm 避免 z-fighting）
@@ -1017,6 +1018,38 @@ const polyDesign: FurnitureDesign = {
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
+      });
+    }
+  }
+
+  // 鑲板入溝底板（rect）：原本只縮小底板 + 壁做全高，卻沒在壁件畫底板槽 →
+  // 3D / 三視圖 / 零件圖都看不到底板入溝。這裡對 4 壁底部內側補一條「底板槽」
+  // cosmetic mortise（比照滑蓋槽 + 六角盒 inset-panel），三處一致顯示。
+  // 放在所有蓋處理之後 → 讀每壁「最終」origin.y + visible.width 算高度位置，
+  // 對 sliding / lift-off / hinged / 無蓋全部一致。
+  if (boxShape === "rect" && bottomAttach === "inset-panel") {
+    const bGrooveDepth = 5;
+    const bSkirt = 5; // 底板下緣距盒底 5mm（同上方 rect inset-panel 設定）
+    const bottomWorldYCenter = bSkirt + botT / 2;
+    for (const p of design.parts) {
+      if (!p.id.startsWith("wall-")) continue;
+      // 只在「涵蓋底板高度」的壁段加（lift-off 的蓋段不含底板區 → 自動跳過）
+      if (bottomWorldYCenter < p.origin.y || bottomWorldYCenter > p.origin.y + p.visible.width) continue;
+      const meshCenterY = p.origin.y + p.visible.width / 2;
+      const grooveLocalZ = meshCenterY - bottomWorldYCenter;
+      // 內側面（from-bottom）：wall-front / wall-left 內面在 +Y；wall-back / wall-right 在 0
+      const innerFromBottom =
+        p.id === "wall-front" || p.id === "wall-left" ? wallT - bGrooveDepth / 2 : bGrooveDepth / 2;
+      const grooveLen = Math.max(1, p.visible.length - 2 * wallT + 2 * bGrooveDepth);
+      p.mortises.push({
+        origin: { x: 0, y: innerFromBottom, z: grooveLocalZ },
+        depth: bGrooveDepth + 0.3,
+        length: grooveLen,
+        width: botT + 0.5,
+        through: false,
+        shape: "rect",
+        cosmetic: true,
+        label: "底板槽",
       });
     }
   }

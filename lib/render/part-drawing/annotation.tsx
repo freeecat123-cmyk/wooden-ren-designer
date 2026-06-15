@@ -969,6 +969,8 @@ export function T2Annotations({
     rect: { x: number; y: number; w: number; h: number };
     name: string;
     dims: string;
+    /** 自訂槽名（如「底板槽」/「滑蓋槽」）——只有 mortise 帶 label 時才有，畫在 dims 上方。 */
+    labelText?: string;
     /** 基準距：對稱件用「距中 X/Z」、其他用「距底 Y」（依當前 view 軸取捨）。 */
     baseline: string;
   };
@@ -1184,12 +1186,15 @@ export function T2Annotations({
     const depthLabel = m.through ? "穿" : `深${D}`;
     const dims = isRound ? `Ø${W} ${depthLabel}` : `${W}×${L} ${depthLabel}`;
     // cosmetic mortise = 凹槽（指槽/底板入溝/rabbet），不是真榫眼、label 用「凹槽」
-    const nameLabel = m.cosmetic ? `凹槽${idx + 1}` : `榫眼${idx + 1}`;
+    // 有指定 m.label（如「底板槽」/「滑蓋槽」）優先用，避免多條 cosmetic 槽看不出誰是誰。
+    const nameLabel = m.label ?? (m.cosmetic ? `凹槽${idx + 1}` : `榫眼${idx + 1}`);
     items.push({
       kind: "m",
       idx,
       rect: r,
       name: nameLabel,
+      // 只有明確給了 m.label（如「底板槽」/「滑蓋槽」）才畫名稱，避免每個榫眼都標字干擾
+      labelText: m.label,
       dims,
       baseline: baselineFor(lb),
     });
@@ -1839,6 +1844,22 @@ export function T2Annotations({
         />
       ),
     ];
+    // 自訂槽名（底板槽 / 滑蓋槽）：在槽 box 上方置中標字，讓同件多條 cosmetic 槽分得出誰是誰
+    if (it.labelText) {
+      partEls.push(
+        <text
+          key={`${it.kind}-${it.idx}-glabel`}
+          x={box.x + box.w / 2}
+          y={box.y - 3}
+          fontSize={8.5}
+          fill="#c2410c"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
+          {it.labelText}
+        </text>,
+      );
+    }
     // mortise（紅/橘框）裁進零件 silhouette：錐形腳細端的眼框是按方料截面畫的、
     // 會突出楔形輪廓外（user 2026-06-12 茶几錐形腳卡回報）。clip 到 OrthoView
     // 給的零件輪廓 clipPath；tenon（藍框）本來就凸出件外，不裁。
