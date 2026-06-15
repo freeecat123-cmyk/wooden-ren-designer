@@ -1884,6 +1884,14 @@ export function T2Annotations({
       );
     }
 
+    // 有標籤的凹槽（底板槽 / 滑蓋槽）：只畫框 + 名稱標籤，不畫自動尺寸鏈——
+    // 藍色「距中」對槽沒意義、橘色「長度」兩槽會疊字（user 2026-06-15 回報）。
+    // 槽深 / 位置走工序說明。只 scope 到帶 label 的槽，其他 cosmetic 凹槽標註不動。
+    if (isCosmetic && it.labelText) {
+      elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
+      return;
+    }
+
     // 工程慣例（CNS / drafting-math §I6 不冗餘）：hidden（虛線）榫眼只畫輪廓、
     // 不標尺寸——尺寸由「入榫面朝鏡頭」的視圖標（該視圖一定存在：non-tall
     // top=y / side=x / front=z 全覆蓋）。沒有這條的話側視圖會把 8 顆沿弧分佈
