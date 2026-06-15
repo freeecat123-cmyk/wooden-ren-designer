@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
 import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
@@ -159,20 +159,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // dev-only：playwright shoot-thumbs 腳本繞過 paywall 抓所有家具縮圖
   const isThumbShoot =
     process.env.NODE_ENV === "development" && sp._shoot === "1";
-  if (
+  // 「範例預覽鎖」：免費版進付費模板不再 redirect 走，改成「給看但鎖客製」——
+  // 完整呈現 3D / 三視圖 / 榫卯圖 / 材料單（讓人看到價值），但尺寸 + 結構選項
+  // 鎖在模板預設值（只能改材料），報價 / 列印 / 裁切仍由各自路由的 isPaidUser
+  // 守門擋住。順帶讓付費模板頁可被 Google 索引（以前 redirect 不可索引）。
+  const previewLocked =
     !isAdmin &&
     !isThumbShoot &&
     isPaidCategory(type as FurnitureCategory) &&
-    !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories)
-  ) {
-    // locale 分流：en 走 /en/pricing → LemonSqueezyPricingClient + 單模板 LS 按鈕
-    //              zh-TW 走 /pricing → PricingClient + ECPay 單模板按鈕
-    const pricingPath =
-      locale === routing.defaultLocale
-        ? `/pricing?locked=${type}`
-        : `/${locale}/pricing?locked=${type}`;
-    redirect(pricingPath);
-  }
+    !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories);
   // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
   // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
   // 不小心讓非付費 user 繞過尺寸上限。
@@ -197,7 +192,18 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // （desktop ≥768px 永遠走舊版，由 md:hidden / hidden md:block CSS 控制，不靠這個 flag）
   const uiV2 = (Array.isArray(sp.ui) ? sp.ui[0] : sp.ui) !== "v1";
 
-  const parsed = parseDesignSearchParams(sp, entry);
+  // 範例預覽鎖：丟掉 URL 的 length/width/height + 所有 option key，只留材料 / 視圖
+  // 類參數，讓 parser 把尺寸與結構選項全部 fallback 到模板預設值（= 鎖在範例）。
+  // 即使前端鎖有漏洞，server 這層強制重設才是真正的防線。
+  const PREVIEW_KEEP_PARAMS = new Set([
+    "material", "joineryMode", "scene", "ui", "xray", "wf", "lidLift", "explode", "audit", "hide",
+  ]);
+  const parseSp = previewLocked
+    ? Object.fromEntries(
+        Object.entries(sp).filter(([k]) => PREVIEW_KEEP_PARAMS.has(k)),
+      )
+    : sp;
+  const parsed = parseDesignSearchParams(parseSp, entry);
   const { material, options, joineryMode } = parsed;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
   // 避免被分享連結繞過上限檢查。
@@ -436,20 +442,39 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               options,
             }}
           />
-          <Link
-            href={`/design/${type}/quote?${printQuery.toString()}`}
-            target="_blank"
-            className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-emerald-900/20 hover:bg-emerald-800 hover:shadow-md transition-all"
-          >
-            {t("header.quoteBtn")}
-          </Link>
-          <Link
-            href={`/design/${type}/print?${printQuery.toString()}`}
-            target="_blank"
-            className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-medium shadow-sm shadow-black/20 hover:bg-zinc-700 hover:shadow-md transition-all"
-          >
-            {t("header.printBtn")}
-          </Link>
+          {previewLocked ? (
+            <>
+              <Link
+                href={`/pricing?locked=${type}`}
+                className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700/60 text-white rounded-lg text-xs font-medium shadow-sm hover:bg-emerald-700 transition-all"
+              >
+                🔒 {t("header.quoteBtn")}
+              </Link>
+              <Link
+                href={`/pricing?locked=${type}`}
+                className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900/60 text-white rounded-lg text-xs font-medium shadow-sm hover:bg-zinc-900 transition-all"
+              >
+                🔒 {t("header.printBtn")}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href={`/design/${type}/quote?${printQuery.toString()}`}
+                target="_blank"
+                className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-emerald-900/20 hover:bg-emerald-800 hover:shadow-md transition-all"
+              >
+                {t("header.quoteBtn")}
+              </Link>
+              <Link
+                href={`/design/${type}/print?${printQuery.toString()}`}
+                target="_blank"
+                className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-medium shadow-sm shadow-black/20 hover:bg-zinc-700 hover:shadow-md transition-all"
+              >
+                {t("header.printBtn")}
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -552,6 +577,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             joineryMode={joineryMode}
             designerMode={designerMode}
             canUseDesignerMode={canUseDesignerMode}
+            previewLocked={previewLocked}
             allPartIds={design.parts.map((p) => p.id)}
             locale={locale}
             unit={unit}
@@ -739,6 +765,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         joineryMode={joineryMode}
         designerMode={designerMode}
         canUseDesignerMode={canUseDesignerMode}
+        previewLocked={previewLocked}
         sceneId={sceneId}
         lidLiftMm={lidLiftMm}
         explodeMm={explodeMm}
@@ -897,6 +924,7 @@ async function ParameterForm({
   joineryMode,
   designerMode,
   canUseDesignerMode,
+  previewLocked,
   allPartIds,
   locale,
   unit,
@@ -909,16 +937,44 @@ async function ParameterForm({
   joineryMode: boolean;
   designerMode: boolean;
   canUseDesignerMode: boolean;
+  previewLocked: boolean;
   allPartIds: string[];
   locale: string;
   unit: "mm" | "inch";
 }) {
   const t = await getTranslations({ locale, namespace: "design.form" });
+  // 範例預覽鎖時，把尺寸 + 結構選項包進 disabled fieldset（HTML 原生會連帶
+  // disable 內部所有 input/button，且 disabled 控制項不進 FormData → 不會送出）。
+  // 材料 select 留在 fieldset 外，免費使用者仍可換料。
+  const lockCls = previewLocked
+    ? "min-w-0 border-0 m-0 p-0 opacity-60 pointer-events-none select-none"
+    : "min-w-0 border-0 m-0 p-0";
   return (
     <DesignFormShell
       action={`/${locale}/design/${type}`}
       className="p-5 rounded-2xl border border-amber-200/70 bg-amber-50/50 shadow-md shadow-amber-900/5"
     >
+      {previewLocked && (
+        <div className="mb-5 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100/60 p-4">
+          <div className="flex items-start gap-2.5">
+            <span className="text-xl leading-none mt-0.5" aria-hidden>🔒</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-950">
+                {t("previewLockTitle", { dims: formatDimensions(defaults.length, defaults.width, defaults.height, unit) })}
+              </p>
+              <p className="mt-1 text-xs text-amber-900/90 leading-relaxed">
+                {t("previewLockBody")}
+              </p>
+              <Link
+                href={`/pricing?locked=${type}`}
+                className="mt-2.5 inline-flex items-center gap-1 rounded-lg bg-amber-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-800 transition-colors"
+              >
+                {t("previewLockCta")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       {type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (
         <fieldset className="mb-5">
           <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
@@ -1017,6 +1073,7 @@ async function ParameterForm({
           </div>
         )}
       </fieldset>
+      <fieldset disabled={previewLocked} className={lockCls}>
       <div className="mb-4 pb-3 border-b border-amber-200/60 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-1 h-4 bg-amber-500 rounded-full" />
@@ -1074,6 +1131,7 @@ async function ParameterForm({
           </div>
         );
       })()}
+      </fieldset>
       <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
         <label className="flex items-center gap-1.5 shrink-0">
           <span className="text-zinc-600 font-medium">{t("wood")}</span>
@@ -1109,7 +1167,7 @@ async function ParameterForm({
       />
 
       {optionSchema.length > 0 && (
-        <>
+        <fieldset disabled={previewLocked} className={lockCls}>
           <div className="mb-3 pb-2 border-b border-amber-200/60">
             <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
               <span className="w-1 h-4 bg-amber-500 rounded-full" />
@@ -1143,7 +1201,7 @@ async function ParameterForm({
             allPartIds={allPartIds}
             locale={locale}
           />
-        </>
+        </fieldset>
       )}
 
       <p className="mt-1 text-[11px] text-zinc-500 flex items-center gap-2 rounded-lg bg-emerald-50/70 ring-1 ring-emerald-200/70 px-3 py-2">

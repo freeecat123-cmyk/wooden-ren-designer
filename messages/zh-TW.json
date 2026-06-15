@@ -745,6 +745,9 @@
       "height": "高",
       "wood": "木材",
       "detailSettings": "細部設定",
+      "previewLockTitle": "這是 {dims} 的範例",
+      "previewLockBody": "免費版可完整瀏覽這個範本的 3D、三視圖、榫卯細節圖與材料單。想改成你自己的尺寸、解鎖報價與列印工程包,升級即可（材料仍可自由切換預覽）。",
+      "previewLockCta": "升級解鎖你的尺寸 →",
       "autoUpdate": "改參數 0.5 秒後自動更新設計",
       "dynamicMaxHint": "上限 {max}",
       "dynamicMaxHintLocked": "上限 {max}（鎖總高）",
@@ -774,6 +777,9 @@
     }
   },
   "mobile": {
+    "previewLockTitle": "這是 {dims} 的範例",
+    "previewLockBody": "免費版可完整瀏覽 3D、三視圖、榫卯圖與材料單。想改成你自己的尺寸、解鎖報價與列印,升級即可（材料仍可換）。",
+    "previewLockCta": "升級解鎖你的尺寸 →",
     "topBar": {
       "back": "返回",
       "more": "更多動作",

@@ -59,6 +59,8 @@ interface MobileShellProps {
   joineryMode?: boolean;
   designerMode?: boolean;
   canUseDesignerMode?: boolean;
+  /** 範例預覽鎖：免費版進付費模板時鎖尺寸/結構選項，只能換材料 */
+  previewLocked?: boolean;
   /** 初始場景 ID（由 server 從 URL ?scene= 解析後傳入） */
   sceneId?: SceneThemeId;
   /** 掀蓋浮起 mm；正 = 抬起，-1 = 鉸鏈翻開。從 URL ?lidLift= 解析後傳入 */
@@ -101,6 +103,12 @@ export function MobileShell(props: MobileShellProps) {
   const activeSceneTheme = SCENE_THEMES[activeSceneId];
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
+  const previewLocked = props.previewLocked ?? false;
+  // 範例預覽鎖：尺寸/選項包進 disabled fieldset（不進 FormData → 不送出），材料留外面可改
+  const lockCls = previewLocked
+    ? "min-w-0 border-0 m-0 p-0 opacity-60 pointer-events-none select-none"
+    : "min-w-0 border-0 m-0 p-0";
+  const pricingHref = `${isEn ? "/en" : ""}/pricing?locked=${entry.category}`;
   const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
   const allPartIds: string[] = design.parts.map((p) => p.id);
@@ -195,14 +203,41 @@ export function MobileShell(props: MobileShellProps) {
           </div>
         </div>
 
+        {previewLocked && (
+          <div className="rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100/60 p-3.5">
+            <div className="flex items-start gap-2">
+              <span className="text-lg leading-none mt-0.5" aria-hidden>🔒</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-950">
+                  {t("previewLockTitle", { dims: formatDimensions(length, width, height, unit) })}
+                </p>
+                <p className="mt-1 text-xs text-amber-900/90 leading-relaxed">
+                  {t("previewLockBody")}
+                </p>
+                <a
+                  href={pricingHref}
+                  className="mt-2.5 inline-flex items-center gap-1 rounded-lg bg-amber-700 px-3.5 py-2 text-xs font-semibold text-white shadow-sm active:scale-[0.98]"
+                >
+                  {t("previewLockCta")}
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="rounded-xl bg-white px-3 py-2.5 ring-1 ring-amber-900/10 shadow-sm">
           <div className="text-[11px] font-semibold text-zinc-500 mb-1.5">{t("form.style")}</div>
-          <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
+          <fieldset disabled={previewLocked} className={lockCls}>
+            <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
+          </fieldset>
         </div>
 
         <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
-          <SizePresetButtons category={entry.category} limits={entry.limits} compact />
+          <fieldset disabled={previewLocked} className={lockCls}>
+            <SizePresetButtons category={entry.category} limits={entry.limits} compact />
+          </fieldset>
           <div className="space-y-1.5">
+            <fieldset disabled={previewLocked} className={`${lockCls} space-y-1.5`}>
             <RangeInput
               name="length"
               label={
@@ -246,6 +281,7 @@ export function MobileShell(props: MobileShellProps) {
               showRange
               partIds={resolvePartIds("height", allPartIds)}
             />
+            </fieldset>
             <label className="flex items-center gap-3 text-sm pt-1">
               <span className="text-zinc-700 font-medium shrink-0 w-8">{t("form.material")}</span>
               <select
@@ -268,10 +304,15 @@ export function MobileShell(props: MobileShellProps) {
             />
             <button
               type="button"
-              onClick={() => setAdvancedOpen(true)}
-              className="min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
+              onClick={() => { if (!previewLocked) setAdvancedOpen(true); }}
+              disabled={previewLocked}
+              className={`min-h-[44px] rounded-xl text-white text-sm font-semibold shadow-sm transition-all ${
+                previewLocked
+                  ? "bg-amber-900/40 cursor-not-allowed"
+                  : "bg-amber-900 hover:bg-amber-800 active:scale-[0.98]"
+              }`}
             >
-              {t("form.advanced")}
+              {previewLocked ? `🔒 ${t("form.advanced")}` : t("form.advanced")}
             </button>
           </div>
         </div>

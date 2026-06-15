@@ -745,6 +745,9 @@
       "height": "Height",
       "wood": "Wood",
       "detailSettings": "Detail settings",
+      "previewLockTitle": "This is a {dims} sample",
+      "previewLockBody": "On the free plan you can fully browse this template's 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the quote and print pack, upgrade (you can still switch materials to preview).",
+      "previewLockCta": "Unlock your dimensions →",
       "autoUpdate": "Design auto-updates 0.5s after you change a parameter",
       "dynamicMaxHint": "Max {max}",
       "dynamicMaxHintLocked": "Max {max} (total-height lock)",
@@ -774,6 +777,9 @@
     }
   },
   "mobile": {
+    "previewLockTitle": "This is a {dims} sample",
+    "previewLockBody": "On the free plan you can fully browse the 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the quote and print pack, upgrade (materials still switchable).",
+    "previewLockCta": "Unlock your dimensions →",
     "topBar": {
       "back": "Back",
       "more": "More actions",
