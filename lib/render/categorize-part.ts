@@ -23,6 +23,11 @@ export function categorizePart(id: string): PartCategory {
   // lid-hinge-N 是五金（visual=metal）維持 misc、不出圖。
   if (id === "top" || id === "bottom" || id === "back" || id === "lid" || id === "lid-plug") return "case";
   if (/^side-(left|right)$/.test(id)) return "case";
+  // 木盒 4 壁（wall-front/back/left/right、lift-off 的 -lid 蓋段、sliding 的
+  // -cap）都是核心結構件。鳩尾盒的左右壁是「鳩尾母（pin board）」純方板、靠
+  // CSG 挖鳩尾、本身 shape=box 無榫，category 不歸 case 就會漏出零件圖
+  // （user 2026-06-15：掀蓋式盒零件圖太少，少了左右壁身段 / 蓋段）。
+  if (/^wall-(front|back|left|right)(-lid|-cap)?$/.test(id)) return "case";
   // 工具牆：法式斜切條（牆條/掛條）+ 三帶側立板歸結構（case）
   if (/-cleat-\d+$/.test(id) || /^tool-\w+-cleat$/.test(id)) return "case";
   if (/-side-(left|right)$/.test(id)) return "case";
