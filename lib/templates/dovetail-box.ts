@@ -954,6 +954,39 @@ const polyDesign: FurnitureDesign = {
         bottomP.origin = { x: 0, y: liftBotSkirt, z: 0 };
       }
 
+      // 4. 面板入溝槽（cosmetic 虛線）：身段牆內側畫底板槽、蓋段牆內側畫頂板槽。
+      //    panel 邊緣浮嵌牆內側 liftGrooveDepth 深的槽（鑲板入溝），上下對稱。
+      //    user 2026-06-15「盒蓋段沒顯示上蓋板槽、盒身段沒顯示底板槽」。
+      //    比照下方 generic「底板槽」block，但用 liftGrooveDepth（panel 是用它算
+      //    尺寸的）；generic block 已排除 lift-off 避免重複。
+      const liftBottomYC = 5 + botT / 2;                       // 底板世界 Y 中心（裙 5mm）
+      const liftTopYC = outerH - liftTopCap - topPanelT / 2;   // 頂板世界 Y 中心
+      const addLiftPanelGroove = (panelYC: number, panelT: number, label: string) => {
+        for (const p of design.parts) {
+          if (!p.id.startsWith("wall-")) continue;
+          // 只在涵蓋該 panel 高度的牆段加（身段→底板、蓋段→頂板，另一段自動跳過）
+          if (panelYC < p.origin.y || panelYC > p.origin.y + p.visible.width) continue;
+          const meshCenterY = p.origin.y + p.visible.width / 2;
+          const grooveLocalZ = meshCenterY - panelYC;
+          // 內側面（from-bottom）：front / left（含 -lid 段）內面在 +Y；back / right 在 0
+          const innerFromBottom = /^wall-(front|left)/.test(p.id)
+            ? wallT - liftGrooveDepth / 2
+            : liftGrooveDepth / 2;
+          const grooveLen = Math.max(1, p.visible.length - 2 * wallT + 2 * liftGrooveDepth);
+          p.mortises.push({
+            origin: { x: 0, y: innerFromBottom, z: grooveLocalZ },
+            depth: liftGrooveDepth + 0.3,
+            length: grooveLen,
+            width: panelT + 0.5,
+            through: false,
+            shape: "rect",
+            cosmetic: true,
+            label,
+          });
+        }
+      };
+      addLiftPanelGroove(liftBottomYC, botT, "底板槽");
+      addLiftPanelGroove(liftTopYC, topPanelT, "頂板槽");
     }
   }
 
@@ -1041,8 +1074,9 @@ const polyDesign: FurnitureDesign = {
   // 3D / 三視圖 / 零件圖都看不到底板入溝。這裡對 4 壁底部內側補一條「底板槽」
   // cosmetic mortise（比照滑蓋槽 + 六角盒 inset-panel），三處一致顯示。
   // 放在所有蓋處理之後 → 讀每壁「最終」origin.y + visible.width 算高度位置，
-  // 對 sliding / lift-off / hinged / 無蓋全部一致。
-  if (boxShape === "rect" && bottomAttach === "inset-panel") {
+  // 對 sliding / hinged / 無蓋一致。lift-off 自己在上面 branch 內畫底板槽 + 頂板槽
+  // （用 liftGrooveDepth），這裡排除避免重複加。
+  if (boxShape === "rect" && bottomAttach === "inset-panel" && lidType !== "lift-off") {
     const bGrooveDepth = 5;
     const bSkirt = 5; // 底板下緣距盒底 5mm（同上方 rect inset-panel 設定）
     const bottomWorldYCenter = bSkirt + botT / 2;
