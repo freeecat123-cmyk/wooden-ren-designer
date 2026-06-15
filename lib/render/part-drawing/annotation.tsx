@@ -1844,21 +1844,34 @@ export function T2Annotations({
         />
       ),
     ];
-    // 自訂槽名（底板槽 / 滑蓋槽）：在槽 box 上方置中標字，讓同件多條 cosmetic 槽分得出誰是誰
-    if (it.labelText) {
-      partEls.push(
-        <text
-          key={`${it.kind}-${it.idx}-glabel`}
-          x={box.x + box.w / 2}
-          y={box.y - 3}
-          fontSize={8.5}
-          fill="#c2410c"
-          fontWeight="bold"
-          textAnchor="middle"
-        >
-          {it.labelText}
-        </text>,
-      );
+    // 自訂槽名（底板槽 / 滑蓋槽）：讓同件多條 cosmetic 槽分得出誰是誰。視圖無關規則——
+    // (1) 跟另一條有標籤的槽「垂直重疊」就跳過：俯視高度被壓掉兩槽投影疊在一起 → 疊字，跳。
+    // (2) box 太窄（< 40px）跳過：側視槽只是小缺口，標字會爆框。
+    // 只剩「正視」這種兩槽分開又夠長的視圖會標。位置放朝零件內側（兩槽間空白），
+    // 避開外緣尺寸線（長 / 距底），上下兩槽標籤也各自往內不互撞。
+    if (it.labelText && box.w >= 40) {
+      const yOverlapsLabeled = items.some((o, oi) => {
+        if (oi === itemIdx || o.kind !== "m" || !o.labelText) return false;
+        return !(box.y + box.h < o.rect.y || o.rect.y + o.rect.h < box.y);
+      });
+      if (!yOverlapsLabeled) {
+        const partMidY = (Math.min(...cornersY) + Math.max(...cornersY)) / 2;
+        const boxMidY = box.y + box.h / 2;
+        const labelY = boxMidY < partMidY ? box.y + box.h + 11 : box.y - 5;
+        partEls.push(
+          <text
+            key={`${it.kind}-${it.idx}-glabel`}
+            x={box.x + box.w / 2}
+            y={labelY}
+            fontSize={8.5}
+            fill="#c2410c"
+            fontWeight="bold"
+            textAnchor="middle"
+          >
+            {it.labelText}
+          </text>,
+        );
+      }
     }
     // mortise（紅/橘框）裁進零件 silhouette：錐形腳細端的眼框是按方料截面畫的、
     // 會突出楔形輪廓外（user 2026-06-12 茶几錐形腳卡回報）。clip 到 OrthoView
