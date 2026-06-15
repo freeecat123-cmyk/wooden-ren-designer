@@ -788,30 +788,42 @@ const polyDesign: FurnitureDesign = {
         });
       }
     } else if (lidType === "rabbeted") {
-      // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
-      // + 凸唇從主蓋底面**往下伸入盒口**（凸唇在盒內側、壁頂下方）
+      // 嵌入式：一片蓋，4 周底面銑 L 形搭接槽（rebate）→ 中央留凸唇伸進盒口對位。
+      // 蓋總厚 = lidT；下段 plugT = 凸唇深（四周底邊銑掉 wallT 寬×plugT 深，凸唇縮成
+      // 內口尺寸伸進盒內），上段 = 全尺寸 cap 坐在壁頂。不再拆成主蓋+凸唇兩片。
       const plugT = Math.max(2, Math.min(4, lidT - 2));
-      const mainT = lidT - plugT;
-      // 主蓋底面 y = outerH - lidT（= 壁頂），頂面 y = outerH - lidT + mainT = outerH - plugT
-      lidPart.visible = { length: outerL, width: outerW, thickness: mainT };
-      lidPart.origin = { ...lidPart.origin, y: outerH - lidT };
-      lidPart.nameZh = "盒蓋（嵌入式 · 主蓋）";
-      // 凸唇：頂面跟壁頂齊（= 主蓋底面）、往盒內伸 plugT mm
-      design.parts.push({
-        id: "lid-plug",
-        nameZh: "盒蓋凸唇（rabbet）",
-        nameEn: "Lid rabbet plug",
-        material,
-        grainDirection: "length",
-        visible: {
-          length: Math.max(1, outerL - 2 * wallT - 1),
-          width: Math.max(1, outerW - 2 * wallT - 1),
-          thickness: plugT,
-        },
-        origin: { x: 0, y: outerH - lidT - plugT, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
+      lidPart.visible = { length: outerL, width: outerW, thickness: lidT };
+      lidPart.origin = { ...lidPart.origin, y: outerH - lidT - plugT };
+      lidPart.nameZh = "盒蓋（嵌入式 · 四周搭接槽）";
+      // 4 周底邊搭接槽（cosmetic）：from-bottom y∈[−eps, plugT]、深 plugT、邊寬 wallT，
+      // through 讓切口穿出底面/側面 → CSG 削掉底邊角落 = 真實 rebate。
+      // 左右 X 邊吃滿全 Z（含 4 角）、前後 Z 邊 X 範圍縮掉左右邊條避免角落 double-cut。
+      const rebW = Math.max(2, wallT);
+      const epsBot = 1;
+      const cutH = plugT + epsBot;          // Y 方向切深（含底面 overshoot）
+      const cutCY = (plugT - epsBot) / 2;   // from-bottom 中心（靠底）
+      for (const sx of [-1, 1]) {
+        lidPart.mortises.push({
+          origin: { x: (sx * (outerL - rebW)) / 2, y: cutCY, z: 0 },
+          depth: cutH,
+          length: outerW,
+          width: rebW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+      }
+      for (const sz of [-1, 1]) {
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCY, z: (sz * (outerW - rebW)) / 2 },
+          depth: cutH,
+          length: Math.max(1, outerL - 2 * rebW),
+          width: rebW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+      }
     } else if (lidType === "hinged") {
       // 鉸鏈式：lid 不變 + 後緣 2 個小銅鉸鏈
       lidPart.nameZh = "盒蓋（鉸鏈式）";
