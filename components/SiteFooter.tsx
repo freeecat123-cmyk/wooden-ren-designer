@@ -22,6 +22,7 @@ const LINK_KEYS = [
   "privacy",
   "refund",
   "contact",
+  "install",
   "changelog",
 ] as const;
 const LINK_HREFS: Record<(typeof LINK_KEYS)[number], string> = {
@@ -34,6 +35,7 @@ const LINK_HREFS: Record<(typeof LINK_KEYS)[number], string> = {
   privacy: "/privacy",
   refund: "/refund",
   contact: "/contact",
+  install: "/install",
   changelog: "/changelog",
 };
 

@@ -14,7 +14,8 @@
     "terms": "服務條款",
     "privacy": "隱私權政策",
     "refund": "退費政策",
-    "contact": "聯絡我們"
+    "contact": "聯絡我們",
+    "install": "安裝 App"
   },
   "logo": {
     "short": "木作藍圖",
@@ -4535,6 +4536,62 @@
     "warnStrong": "Safari",
     "warnSuffix": " 開啟才有這個選項；Chrome / Line / FB 內建瀏覽器都沒有。",
     "okBtn": "知道了"
+  },
+  "webInstall": {
+    "title": "把木作藍圖裝到主畫面",
+    "subtitle": "免下載、免商店,一鍵安裝",
+    "installBtn": "安裝",
+    "closeAria": "關閉"
+  },
+  "installPage": {
+    "metadata": {
+      "title": "安裝 App｜把木作藍圖加到手機主畫面",
+      "description": "免下載、免上架商店。三步把木頭仁木作藍圖加到手機主畫面或電腦桌面,下次點一下 icon 就開,跟 App 一模一樣。iOS、Android、桌面都教。",
+      "ogTitle": "把木作藍圖裝進你的手機",
+      "ogDescription": "免下載、免商店,一鍵加到主畫面。下次點 icon 直接開,跟 App 一樣順。"
+    },
+    "h1": "把木作藍圖裝進你的手機",
+    "intro": "不用上 App Store、不用下載安裝檔。加到主畫面後,下次點一下 icon 就全螢幕打開——跟 App 用起來一模一樣,還省一個開瀏覽器打網址的步驟。",
+    "freeNote": "完全免費,幾乎不佔空間,隨時可移除。",
+    "cta": {
+      "installNow": "立即安裝到主畫面",
+      "iosHint": "請依下方「iPhone / iPad」步驟,用 Safari 分享鈕加入",
+      "manualHint": "請依下方對應你裝置的步驟操作",
+      "installed": "已安裝,從主畫面打開即可",
+      "loading": "偵測你的裝置中…"
+    },
+    "whyH2": "為什麼值得裝?",
+    "benefit1Icon": "⚡",
+    "benefit1Title": "一秒打開",
+    "benefit1Body": "主畫面點 icon 直接全螢幕進,免開瀏覽器、免打網址。",
+    "benefit2Icon": "📐",
+    "benefit2Title": "工地隨手畫",
+    "benefit2Body": "丈量現場、跟客戶討論時,掏出手機就能改尺寸看圖。",
+    "benefit3Icon": "🧹",
+    "benefit3Title": "乾淨不佔空間",
+    "benefit3Body": "不是真的下載 App,幾乎不吃容量,不用時長按移除即可。",
+    "iosH2": "iPhone / iPad(Safari)",
+    "iosStep1": "用 Safari 開啟本網站(Chrome、Line、FB 內建瀏覽器都沒有這個選項)。",
+    "iosStep2": "點畫面下方中間的「分享」按鈕 ⬆。",
+    "iosStep3": "往下滑,選「加入主畫面」,再點右上角「新增」即完成。",
+    "iosWarn": "💡 iOS 限定:一定要用 Safari 開才有「加入主畫面」。從 Line / FB 點進來的話,先點右上角「⋯」選「用 Safari 開啟」。",
+    "androidH2": "Android(Chrome / Edge)",
+    "androidStep1": "用 Chrome 或 Edge 開啟本網站。",
+    "androidStep2": "點上方的「安裝」按鈕,或右上角選單「⋮」→「安裝應用程式 / 加到主畫面」。",
+    "androidStep3": "確認後,主畫面就會出現木作藍圖的 icon。",
+    "desktopH2": "電腦(Chrome / Edge)",
+    "desktopStep1": "網址列右側會出現一個「安裝 ⊕」圖示,點它。",
+    "desktopStep2": "確認安裝後,木作藍圖會像獨立程式一樣有自己的視窗,也能釘到工作列。",
+    "faqH2": "常見問題",
+    "faq1Q": "這是真的 App 嗎?要去商店下載?",
+    "faq1A": "不用。這是網頁版直接「加到主畫面」的技術(PWA),不經過 App Store / Play 商店,但用起來跟 App 幾乎沒差。",
+    "faq2Q": "會佔很多手機空間嗎?",
+    "faq2A": "不會。它只是一個捷徑加上少量快取,跟下載一個動輒上百 MB 的 App 完全不同。",
+    "faq3Q": "怎麼移除?",
+    "faq3A": "跟一般 App 一樣,長按主畫面的 icon → 移除即可,隨裝隨拆。",
+    "finalH2": "裝好了,開始畫第一張圖",
+    "finalBody": "輸入尺寸,三分鐘生出三視圖、榫卯細節與材料單。",
+    "finalBtn": "進入設計器 →"
   },
   "engQuoteClient": {
     "titleFloorTpl": "{type}工程報價",

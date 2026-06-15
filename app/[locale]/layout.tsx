@@ -14,6 +14,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
+import { WebInstallBanner } from "@/components/WebInstallBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -250,6 +251,7 @@ export default async function LocaleLayout({
             <StudentWelcomeModal />
             <ServiceWorkerRegister />
             <IOSInstallBanner />
+            <WebInstallBanner />
           </AuthProvider>
         </NextIntlClientProvider>
       </body>

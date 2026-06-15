@@ -14,7 +14,8 @@
     "terms": "Terms",
     "privacy": "Privacy",
     "refund": "Refunds",
-    "contact": "Contact"
+    "contact": "Contact",
+    "install": "Install app"
   },
   "logo": {
     "short": "Designer",
@@ -4535,6 +4536,62 @@
     "warnStrong": "Safari",
     "warnSuffix": " — Chrome / Line / FB in-app browsers don't have this option.",
     "okBtn": "Got it"
+  },
+  "webInstall": {
+    "title": "Add Wooden Ren Designer to your home screen",
+    "subtitle": "No download, no app store — install in one tap",
+    "installBtn": "Install",
+    "closeAria": "Close"
+  },
+  "installPage": {
+    "metadata": {
+      "title": "Install the App | Add Wooden Ren Designer to your home screen",
+      "description": "No download, no app store. Add Wooden Ren Designer to your phone's home screen or desktop in three steps and open it like a native app. Works on iOS, Android, and desktop.",
+      "ogTitle": "Install Wooden Ren Designer on your phone",
+      "ogDescription": "No download, no app store — add to your home screen in one tap and open it like a native app."
+    },
+    "h1": "Install Wooden Ren Designer on your phone",
+    "intro": "No App Store, no download file. Add it to your home screen and tap the icon to open it full-screen next time — exactly like a native app, minus the step of opening a browser and typing a URL.",
+    "freeNote": "Completely free, takes almost no space, removable anytime.",
+    "cta": {
+      "installNow": "Install to home screen now",
+      "iosHint": "Follow the iPhone / iPad steps below using Safari's Share button",
+      "manualHint": "Follow the steps below for your device",
+      "installed": "Installed — just open it from your home screen",
+      "loading": "Detecting your device…"
+    },
+    "whyH2": "Why install it?",
+    "benefit1Icon": "⚡",
+    "benefit1Title": "Open in one tap",
+    "benefit1Body": "Tap the home-screen icon to go straight to full screen — no browser, no typing.",
+    "benefit2Icon": "📐",
+    "benefit2Title": "Design on the job site",
+    "benefit2Body": "Measuring on-site or talking to a client? Pull out your phone and tweak dimensions on the spot.",
+    "benefit3Icon": "🧹",
+    "benefit3Title": "Tidy, space-light",
+    "benefit3Body": "It's not a real downloaded app — barely any storage. Long-press to remove whenever you like.",
+    "iosH2": "iPhone / iPad (Safari)",
+    "iosStep1": "Open this site in Safari (Chrome, Line, and in-app browsers don't have this option).",
+    "iosStep2": "Tap the Share button ⬆ at the bottom center of the screen.",
+    "iosStep3": "Scroll down, choose \"Add to Home Screen\", then tap \"Add\" in the top-right.",
+    "iosWarn": "💡 iOS only: you must use Safari for \"Add to Home Screen\". If you arrived via Line / FB, tap \"⋯\" and choose \"Open in Safari\" first.",
+    "androidH2": "Android (Chrome / Edge)",
+    "androidStep1": "Open this site in Chrome or Edge.",
+    "androidStep2": "Tap the \"Install\" prompt, or the \"⋮\" menu → \"Install app / Add to Home screen\".",
+    "androidStep3": "Confirm, and the Wooden Ren Designer icon appears on your home screen.",
+    "desktopH2": "Desktop (Chrome / Edge)",
+    "desktopStep1": "An \"Install ⊕\" icon appears on the right side of the address bar — click it.",
+    "desktopStep2": "Once installed, it runs in its own window like a standalone app and can be pinned to your taskbar.",
+    "faqH2": "FAQ",
+    "faq1Q": "Is this a real app? Do I download it from a store?",
+    "faq1A": "No. It uses \"Add to Home Screen\" web technology (PWA) — no App Store / Play Store involved, but it feels almost identical to a native app.",
+    "faq2Q": "Will it take up a lot of space?",
+    "faq2A": "No. It's just a shortcut plus a small cache — nothing like a hundreds-of-MB native app.",
+    "faq3Q": "How do I remove it?",
+    "faq3A": "Same as any app: long-press the home-screen icon and remove it. Install and uninstall freely.",
+    "finalH2": "Installed? Draw your first plan",
+    "finalBody": "Enter dimensions and get three views, joinery details, and a cut list in three minutes.",
+    "finalBtn": "Open the designer →"
   },
   "engQuoteClient": {
     "titleFloorTpl": "{type} project quote",

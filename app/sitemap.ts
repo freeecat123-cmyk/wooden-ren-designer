@@ -68,6 +68,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     biLocaleEntry("/ceiling", "monthly", 0.85, now),
     biLocaleEntry("/floor", "monthly", 0.85, now),
     biLocaleEntry("/raised-floor", "monthly", 0.85, now),
+    biLocaleEntry("/install", "monthly", 0.6, now),
     biLocaleEntry("/help", "monthly", 0.5, now),
     biLocaleEntry("/contact", "monthly", 0.5, now),
   ];
