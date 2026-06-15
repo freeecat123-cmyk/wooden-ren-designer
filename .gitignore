@@ -59,3 +59,10 @@ temple-*.jpeg
 .codex/
 _seo_check.py
 _seo_out.txt
+
+# 一次性網站截圖（PWA 安裝頁 / 設計器預覽，可重拍，非源碼）
+install-en.jpeg
+install-zh.jpeg
+preview-desktop.jpeg
+preview-mobile.jpeg
+preview-sheet.jpeg
