@@ -89,7 +89,7 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
     { value: "lift-off", label: "掀蓋式（4 牆水平切兩段、上段為蓋、合頁鎖合）" },
   ], help: "影響蓋子做法 + 工序（六/八角盒不適用，蓋型由壁面斜角自動處理）", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }] } },
-  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）。六/八角盒鑲入式：面板上緣距盒頂固定 5mm，不隨厚度跑。", dependsOn: { key: "withLid", equals: true } },
+  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度", defaultValue: 6, min: 0, max: 25, step: 1, unit: "mm", help: "預設 6mm（上蓋 / 頂板常比壁薄一點，例如壁 12mm + 面板 6mm）。0 = 跟壁厚一樣；> 0 自訂面板厚度。六/八角盒鑲入式：面板上緣距盒頂固定 5mm，不隨厚度跑。", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
     { value: "flat", label: "平頂（lid 下沉 sinkMm、壁頂有 cap）" },
     { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、邊條維持卡槽厚）" },
