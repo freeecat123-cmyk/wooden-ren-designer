@@ -18,7 +18,10 @@ export function categorizePart(id: string): PartCategory {
     return "drawer";
   if (/drawer-col-partition/.test(id)) return "divider";
   if (/-door-.*-(rail|stile|panel|glass)/.test(id)) return "door";
-  if (id === "top" || id === "bottom" || id === "back") return "case";
+  // 木盒：盒蓋主板（lid）+ 嵌入式凸唇（lid-plug）是純方板，但跟 top/bottom 一樣
+  // 是核心結構件、木工要看下料尺寸 → 歸 case 才會出零件圖（rabbeted 純方蓋原本漏掉）。
+  // lid-hinge-N 是五金（visual=metal）維持 misc、不出圖。
+  if (id === "top" || id === "bottom" || id === "back" || id === "lid" || id === "lid-plug") return "case";
   if (/^side-(left|right)$/.test(id)) return "case";
   // 工具牆：法式斜切條（牆條/掛條）+ 三帶側立板歸結構（case）
   if (/-cleat-\d+$/.test(id) || /^tool-\w+-cleat$/.test(id)) return "case";
