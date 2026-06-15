@@ -41,6 +41,14 @@ export function inferProcessSteps(part: Part): string[] {
     steps.push("試裝");
     return steps;
   }
+  if (shape === "mitered-ends") {
+    // 多邊形拼板（六/八角盒壁、斜接方盒壁）：兩側立邊斜切後拼接
+    const steps = ["鋸料", "桌鋸立邊斜切"];
+    if (hasMortise) steps.push("鑿榫眼");
+    if (hasTenon) steps.push("開榫頭");
+    steps.push("試裝");
+    return steps;
+  }
 
   // box-like default
   const steps = ["鋸料", "刨平"];
@@ -81,6 +89,17 @@ export function inferTableSawSetting(part: Part): string | null {
   }
   if (shape.kind === "hoof") {
     return "劃線後手鑿或帶鋸切腳趾餘料";
+  }
+  // 多邊形拼板（六/八角盒壁、斜接方盒壁）：兩側立邊斜切，鋸片傾角 =
+  // atan(insetEach / 壁厚)。六角 30°、八角 22.5°、方盒 45°。tiltAngle/bevelAngle
+  // 複斜（外撇牆）另計，此處只標基本立邊斜切角。
+  if (shape.kind === "mitered-ends" && !shape.tiltAngle && !shape.bevelAngle) {
+    const inset = shape.insetEach ?? 0;
+    const t = part.visible.thickness ?? 0;
+    if (inset > 0.1 && t > 0.1) {
+      const deg = Math.round((Math.atan2(inset, t) * 180) / Math.PI * 10) / 10;
+      return `桌鋸鋸片傾 ${deg}°（兩側立邊斜切）`;
+    }
   }
   return null;
 }
