@@ -113,9 +113,9 @@
     "intro2": "International USD billing via LemonSqueezy is scheduled for launch later in 2026, with regional pricing for the US, EU, UK, and Australia.",
     "highlights": "While you wait, the free tier already includes:",
     "h1Free": "Free tier",
-    "f1": "Square stool + pencil holder templates",
-    "f2": "Full 3D, joinery details, three-view drawings, cut list",
-    "f3": "Watermark-free PDF export, Letter / A4 paper sizes",
+    "f1": "Square stool + pencil holder: fully customizable",
+    "f2": "Free full preview of every other template (3D, joinery, three-views, cut list)",
+    "f3": "Switch materials freely in the preview",
     "f4": "No signup required to try",
     "ctaTryFree": "Try free now →",
     "ctaBack": "Back to home",
@@ -199,7 +199,7 @@
       "q1Outro": "Full terms on the <linkRefund>refund policy page</linkRefund>. To apply: email <linkEmail>support</linkEmail> with subject \"Refund Request - <registered email>\", and include order ID, payment date, and reason.",
       "q2Q": "How do I avoid buyer's remorse?",
       "q2Intro": "Since refunds are restricted, we recommend:",
-      "q2Tip1": "Build 3 furniture pieces on the <b>free tier</b> first to confirm the tool works for you",
+      "q2Tip1": "Fully build the square stool and pencil holder on the <b>free tier</b> first — and preview every other template for free — to confirm the tool works for you",
       "q2Tip2": "Not sure between monthly and yearly? Start with <b>monthly at $9</b> for a month, then switch to yearly if you like it",
       "q2Tip3": "Monthly can be <linkSub>cancelled anytime</linkSub> — access stays through period end"
     }
@@ -532,10 +532,10 @@
       "popular": "Most chosen",
       "free": {
         "tier": "Free",
-        "f1": "Square stool + pencil holder",
-        "f2": "Full 3D, joinery, three-view, cut list",
-        "f3": "Watermark-free PDF print",
-        "f4": "Size cap: stool 35×35×45 cm, holder 20×20×25 cm",
+        "f1": "Square stool + pencil holder: fully customizable",
+        "f2": "Free full preview of every other template (3D / three-view / joinery / cut list)",
+        "f3": "Upgrade to resize, quote, and print",
+        "f4": "No signup required to try",
         "cta": "Try free"
       },
       "personal": {
@@ -566,7 +566,7 @@
     "faq": {
       "h2": "FAQ",
       "freeQ": "What does the free tier actually include?",
-      "freeA": "The square stool and pencil holder — full 3D, joinery, three-view, cut list, PDF, exactly what paid users get. The difference is template count and size cap.",
+      "freeA": "The square stool and pencil holder are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
       "cadQ": "How does this compare to SketchUp / Fusion 360?",
       "cadA": "Designer is for woodworkers who want to build, not learn CAD. Five-minute learning curve, automatic joinery / three-view / cut list / cutting plan. Not trying to replace professional CAD.",
       "tierQ": "Personal vs Pro — what's the difference?",
@@ -646,7 +646,7 @@
     },
     "bottomCta": {
       "h2": "Pick one to start",
-      "subtitle": "Square stool and pencil holder are free forever. Other templates unlock with subscription — or read the guide first.",
+      "subtitle": "Square stool and pencil holder are free forever. Every other template is free to preview in full — subscribe to resize it to your own dimensions.",
       "ctaPrimary": "Start designing →",
       "ctaSecondary": "View plans"
     }
@@ -3177,7 +3177,7 @@
     "sec3Li2": "Account passwords / sign-in tokens are the user's responsibility to safeguard; losses arising from leakage are borne by the user.",
     "sec3Li3": "The Generator reserves the right to suspend or terminate accounts that violate these terms or engage in malicious behavior.",
     "sec4H": "4. Plans and billing",
-    "sec4Li1": "The Free plan offers a subset of furniture templates (square stool, pencil holder, bookend) and 1 saved design per account.",
+    "sec4Li1": "The Free plan offers full use of the square stool and pencil holder templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing, quotes, and the printable engineering pack require a paid plan.",
     "sec4Li2": "Personal / Pro plans are billed monthly or annually; the Student plan is a complimentary plan for Wooden Ren Academy students, subject to the then-current plan description.",
     "sec4Li3Pre": "Activation is typically immediate after payment. If activation fails, please email ",
     "sec4Li3Suffix": ".",
@@ -3504,7 +3504,7 @@
     "paymentErrorBack": "← Go back",
     "paymentErrorBrowse": "Browse templates",
     "lockedHTpl": "\"{name}\" is a paid-plan template",
-    "lockedBody": "The free plan only includes 2 starter templates (Square Stool, Pencil Holder). Other real furniture is available via \"single-template purchase\" or by upgrading to Personal. Pick a plan below to unlock.",
+    "lockedBody": "On the free plan you can preview this furniture's full design drawings, but resizing it to your own dimensions, generating a quote, and printing the engineering pack require payment. Choose \"single-template purchase\" or upgrade to Personal — pick a plan below to unlock.",
     "lockedDetailTpl": "📖 Read \"{name}\" details first →",
     "backToApp": "← Back to catalog",
     "browseTemplates": "📖 Browse template details",
@@ -3536,29 +3536,29 @@
       "name": "Free",
       "audience": [
         "Just exploring",
-        "Square Stool / Pencil Holder / Bookend is enough",
-        "Haven't decided whether to pay"
+        "Square Stool / Pencil Holder is enough",
+        "Want to preview every template for free first"
       ],
       "features": [
         {
           "ok": true,
-          "text": "3 starter templates: Square Stool, Pencil Holder, Bookend"
+          "text": "Square Stool + Pencil Holder: fully customizable, free output"
         },
         {
           "ok": true,
-          "text": "3D perspective preview"
+          "text": "Free full preview of every other template (3D / three-view / joinery / cut list)"
         },
         {
           "ok": true,
-          "text": "Engineering 3-views (with watermark)"
+          "text": "Switch materials freely in the preview"
         },
         {
           "ok": false,
-          "text": "Other 16 furniture templates"
+          "text": "Resize to your own dimensions (upgrade to unlock)"
         },
         {
           "ok": false,
-          "text": "PDF download"
+          "text": "PDF download / print pack"
         },
         {
           "ok": false,
@@ -3715,7 +3715,7 @@
   "pricingFaqs": [
     {
       "q": "What does the free plan actually include?",
-      "a": "Two starter templates (Square Stool, Pencil Holder) are unlocked. 3D, joinery, 3-views, BOM, PDF — all included, identical to paid users. The only differences are template count and size limits (Square Stool 35×35×45cm, Pencil Holder 20×20×25cm)."
+      "a": "The Square Stool and Pencil Holder are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (materials stay switchable in the preview)."
     },
     {
       "q": "What's the difference between Personal (NT$390) and Pro (NT$890)?",

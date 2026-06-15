@@ -136,7 +136,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) notFound();
 
-  // 付費門檻：免費版只能進 FREE_UNLOCKED_CATEGORIES，其他導去 /pricing；
+  // 付費門檻：免費版完整使用 FREE_UNLOCKED_CATEGORIES，其他模板走「範例預覽鎖」
+  // （見下方 previewLocked）——給看但鎖客製，不再 redirect。
   // 同時拉一次 profile 給「設計師模式」門檻用，避免重複查詢。
   // 唯讀 SSR 頁面用 getSession（無 HTTP），middleware 已每個 request 驗 JWT。
   const user = await getSessionUser();
