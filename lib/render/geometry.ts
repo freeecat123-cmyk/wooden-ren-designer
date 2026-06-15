@@ -487,7 +487,7 @@ export function makeHiddenChecker(
 }
 
 /** Andrew's monotone chain — 2D convex hull, CCW order. */
-function convexHull2D(
+export function convexHull2D(
   pts: Array<{ x: number; y: number }>,
 ): Array<{ x: number; y: number }> {
   if (pts.length < 3) return pts;
