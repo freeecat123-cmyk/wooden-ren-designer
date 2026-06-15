@@ -947,8 +947,10 @@ async function ParameterForm({
   // 範例預覽鎖時，把尺寸 + 結構選項包進 disabled fieldset（HTML 原生會連帶
   // disable 內部所有 input/button，且 disabled 控制項不進 FormData → 不會送出）。
   // 材料 select 留在 fieldset 外，免費使用者仍可換料。
+  // 不用 pointer-events-none：讓使用者仍能展開/收合「細部設定」的 <details> 群組
+  // 瀏覽「有哪些可調項目」（看得到、改不了），是升級誘因。
   const lockCls = previewLocked
-    ? "min-w-0 border-0 m-0 p-0 opacity-60 pointer-events-none select-none"
+    ? "min-w-0 border-0 m-0 p-0 opacity-70 select-none"
     : "min-w-0 border-0 m-0 p-0";
   return (
     <DesignFormShell

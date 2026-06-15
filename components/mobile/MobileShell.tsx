@@ -104,11 +104,21 @@ export function MobileShell(props: MobileShellProps) {
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
   const previewLocked = props.previewLocked ?? false;
-  // 範例預覽鎖：尺寸/選項包進 disabled fieldset（不進 FormData → 不送出），材料留外面可改
+  // 範例預覽鎖：尺寸/選項包進 disabled fieldset（不進 FormData → 不送出），材料留外面可改。
+  // 不用 pointer-events-none：使用者仍能打開「進階設定」瀏覽有哪些可調項目（看得到、改不了）。
   const lockCls = previewLocked
-    ? "min-w-0 border-0 m-0 p-0 opacity-60 pointer-events-none select-none"
+    ? "min-w-0 border-0 m-0 p-0 opacity-70 select-none"
     : "min-w-0 border-0 m-0 p-0";
   const pricingHref = `${isEn ? "/en" : ""}/pricing?locked=${entry.category}`;
+  // 進階設定 sheet 內頂端的鎖定提示（讓使用者知道：能看、升級才能改）
+  const lockHint = previewLocked ? (
+    <a
+      href={pricingHref}
+      className="block rounded-lg bg-amber-50 ring-1 ring-amber-300 px-3 py-2 text-xs text-amber-900 font-medium"
+    >
+      🔒 {t("previewLockSheetHint")}
+    </a>
+  ) : null;
   const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
   const allPartIds: string[] = design.parts.map((p) => p.id);
@@ -304,15 +314,10 @@ export function MobileShell(props: MobileShellProps) {
             />
             <button
               type="button"
-              onClick={() => { if (!previewLocked) setAdvancedOpen(true); }}
-              disabled={previewLocked}
-              className={`min-h-[44px] rounded-xl text-white text-sm font-semibold shadow-sm transition-all ${
-                previewLocked
-                  ? "bg-amber-900/40 cursor-not-allowed"
-                  : "bg-amber-900 hover:bg-amber-800 active:scale-[0.98]"
-              }`}
+              onClick={() => setAdvancedOpen(true)}
+              className="min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
             >
-              {previewLocked ? `🔒 ${t("form.advanced")}` : t("form.advanced")}
+              {t("form.advanced")}
             </button>
           </div>
         </div>
@@ -419,11 +424,14 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStructureSpecs.map((s) => s.key)}
             />
+            {lockHint}
+            <fieldset disabled={previewLocked} className={lockCls}>
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">{t("advancedSheet.noStructure")}</div>
             ) : (
               <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
             )}
+            </fieldset>
           </DesignFormShell>
         }
         styleContent={
@@ -436,7 +444,10 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
+            {lockHint}
+            <fieldset disabled={previewLocked} className={lockCls}>
             <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
+            </fieldset>
           </DesignFormShell>
         }
         joineryContent={
@@ -451,11 +462,14 @@ export function MobileShell(props: MobileShellProps) {
                 optionValues={optionValues}
                 exceptKeys={visibleJoinerySpecs.map((s) => s.key)}
               />
+              {lockHint}
+              <fieldset disabled={previewLocked} className={lockCls}>
               {visibleJoinerySpecs.length === 0 ? (
                 <div className="text-sm text-zinc-500">{t("advancedSheet.noJoineryOption")}</div>
               ) : (
                 <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
               )}
+              </fieldset>
             </DesignFormShell>
 
             {/* 榫卯細節圖：zModal="z-[70]" 讓放大 modal 蓋過 AdvancedSheet (z-50) */}

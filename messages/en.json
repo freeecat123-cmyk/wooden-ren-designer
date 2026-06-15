@@ -780,6 +780,7 @@
     "previewLockTitle": "This is a {dims} sample",
     "previewLockBody": "On the free plan you can fully browse the 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the quote and print pack, upgrade (materials still switchable).",
     "previewLockCta": "Unlock your dimensions →",
+    "previewLockSheetHint": "Browse every detail option — upgrade to make them yours",
     "topBar": {
       "back": "Back",
       "more": "More actions",

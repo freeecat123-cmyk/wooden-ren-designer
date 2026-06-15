@@ -780,6 +780,7 @@
     "previewLockTitle": "這是 {dims} 的範例",
     "previewLockBody": "免費版可完整瀏覽 3D、三視圖、榫卯圖與材料單。想改成你自己的尺寸、解鎖報價與列印,升級即可（材料仍可換）。",
     "previewLockCta": "升級解鎖你的尺寸 →",
+    "previewLockSheetHint": "這些細部設定都能看——升級後就能改成你要的",
     "topBar": {
       "back": "返回",
       "more": "更多動作",
