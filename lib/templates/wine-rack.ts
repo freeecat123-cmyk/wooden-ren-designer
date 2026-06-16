@@ -266,6 +266,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         length: panelT,
         width: HALF_LAP,
         through: true,
+        cosmetic: true,
       }))
     : [];
   // 分隔板上：每片層板高度處挖「前半深度」缺口。分隔板 rotation {x:π/2,y:π/2} →
@@ -282,6 +283,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
           length: HALF_LAP,
           width: panelT,
           through: true,
+          cosmetic: true,
         };
       })
     : [];
