@@ -241,8 +241,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const dividerXs = Array.from({ length: Math.max(0, bw - 1) }, (_, c) =>
     -halfOuterW + panelT + (c + 1) * cellSize - panelT / 2,
   );
-  // faceY = mesh-local Y（板厚軸，from-bottom）：頂板底面=0、底板頂面=panelT、層板兩面=0/panelT。
-  // dado: length 沿 mesh-X（= world X，分隔板厚度方向）= panelT；width 沿 mesh-Z（深度）。
+  // faceY = mesh-local Y（板厚軸，from-bottom）：頂板底面=0、底板頂面=panelT。
+  // 分隔板兩端（頂/底）用 housing dado 入頂底板（housing tongue），中段跟層板走十字搭接。
   const dividerDadoOnFace = (faceY: number): Part["mortises"] =>
     isRectGrid
       ? dividerXs.map((dx) => ({
@@ -253,6 +253,38 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
           through: false,
         }))
       : [];
+
+  // 縱向分隔板 × 水平層板 = 十字搭接（half-lap）：兩件都滿深、垂直交叉，重疊處「各去掉
+  // 一半深度」→ 層板挖掉後半、分隔板挖掉前半，互鎖且兩件都連續不斷（明式格屜常見做法）。
+  // 缺口穿透板厚（through），沿深度佔一半（HALF_LAP），到板的前/後緣（開口缺口）。
+  const HALF_LAP = depth / 2;
+  // 層板上：每根縱向分隔板 X 處挖「後半深度」缺口（mesh：length 沿 X=分隔板厚、width 沿 Z=深度）
+  const shelfCrossLaps: Part["mortises"] = isRectGrid
+    ? dividerXs.map((dx) => ({
+        origin: { x: dx, y: 0, z: HALF_LAP / 2 },
+        depth: panelT,
+        length: panelT,
+        width: HALF_LAP,
+        through: true,
+      }))
+    : [];
+  // 分隔板上：每片層板高度處挖「前半深度」缺口。分隔板 rotation {x:π/2,y:π/2} →
+  // mesh X'=深度、Y'=板厚、Z'=innerH(垂直)。缺口 length 沿 X'(深度前半)、width 沿 Z'(層板厚帶)。
+  const dividerCrossLaps: Part["mortises"] = isRectGrid
+    ? Array.from({ length: Math.max(0, bt - 1) }, (_, i) => {
+        const row = i + 1;
+        const zLocal = row * cellSize - panelT / 2 - innerH / 2; // 該層板在分隔板 Z'(垂直) 的中心
+        // 分隔板 rotation {x:π/2,y:π/2} → mesh X' 映到 world z = −x'。層板挖 world 後半(z>0)，
+        // 分隔板要挖「另一半」world 前半(z<0) 才互鎖 → mesh X'>0（origin.x = +HALF_LAP/2）。
+        return {
+          origin: { x: HALF_LAP / 2, y: 0, z: zLocal },
+          depth: panelT,
+          length: HALF_LAP,
+          width: panelT,
+          through: true,
+        };
+      })
+    : [];
 
   // 上下板（水平，貫穿全寬）
   const top: Part = {
@@ -374,46 +406,36 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         { position: "start", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
         { position: "end", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
       ],
-      // 上下面都開槽：上面接上排分隔板底舌、下面接下排分隔板頂舌
-      mortises: [...dividerDadoOnFace(panelT), ...dividerDadoOnFace(0)],
+      // 與每根縱向分隔板十字搭接：層板在每根分隔板處挖後半深度缺口
+      mortises: shelfCrossLaps,
     });
   }
 
-  // 內部垂直分隔——butt-joint 慣例：切成段，每段位於相鄰 2 條水平板之間
-  // （或最上 / 最下層位於水平板與頂 / 底板之間），不再貫穿水平板。
-  // 每排 (bw-1) 個分隔板 × bt 排 = (bw-1)×bt 段。
+  // 內部縱向分隔板：每欄 1 片「連續到頂」（innerH 全高），跟每片水平層板十字搭接
+  // （層板留前半、分隔板挖前半 → 互鎖），兩端做舌入頂/底板 housing dado。共 (bw-1) 片。
   const verticalDividers: Part[] = [];
-  for (let row = 0; row < bt; row++) {
-    // 該排頂底 Y（避開水平板厚度）
-    const yMin = row === 0
-      ? panelT
-      : panelT + row * cellSize + panelT / 2;
-    const yMax = row === bt - 1
-      ? panelT + bt * cellSize
-      : panelT + (row + 1) * cellSize - panelT / 2;
-    const segH = yMax - yMin;
-    for (let col = 1; col < bw; col++) {
-      verticalDividers.push({
-        id: `divider-v-r${row + 1}-c${col}`,
-        nameZh: `第 ${row + 1} 排第 ${col} 縱向分隔`,
-        nameEn: `Row ${row + 1} divider ${col}`,
-        material,
-        grainDirection: "length",
-        visible: { length: depth, width: segH, thickness: panelT },
-        origin: {
-          x: -halfOuterW + panelT + col * cellSize - panelT / 2,
-          y: yMin,
-          z: 0,
-        },
-        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        // 兩端（width 軸 = 旋轉後的垂直）做舌，插進上下水平件的 housing dado
-        tenons: [
-          { position: "left", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
-          { position: "right", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
-        ],
-        mortises: [],
-      });
-    }
+  for (let col = 1; col < bw; col++) {
+    verticalDividers.push({
+      id: `divider-v-c${col}`,
+      nameZh: `第 ${col} 縱向分隔`,
+      nameEn: `Vertical divider ${col}`,
+      material,
+      grainDirection: "length",
+      visible: { length: depth, width: innerH, thickness: panelT },
+      origin: {
+        x: -halfOuterW + panelT + col * cellSize - panelT / 2,
+        y: panelT,
+        z: 0,
+      },
+      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      // 兩端（width 軸 = 旋轉後的垂直）做舌入頂/底板 housing dado
+      tenons: [
+        { position: "left", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
+        { position: "right", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
+      ],
+      // 跟每片水平層板十字搭接：分隔板在每片層板高度挖前半深度缺口
+      mortises: dividerCrossLaps,
+    });
   }
 
   // 菱形格子陣列（經典酒窖款）：保留矩形格子框架（horizontalShelves +
