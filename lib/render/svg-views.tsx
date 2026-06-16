@@ -95,7 +95,13 @@ function extractFurnitureDims(design: FurnitureDesign) {
           const topBottomY = topPart.origin.y;
           const innerH = topBottomY - bottomTopY;
           const sideLeft = design.parts.find((p) => p.id === "side-left");
-          const innerD = sideLeft ? sideLeft.visible.width : topPart.visible.width;
+          // 標準櫃側板 visible.width = 深度（case-furniture 慣例 length=innerH/width=depth）。
+          // 但酒架側板用旋轉慣例 length=depth / width=innerH → rawInnerD 會抓到「高度」(>外深)，
+          // 畫出「內深 426 > 外深 280」的矛盾尺寸（user 2026-06-16 回報）。內深物理上不可能
+          // 超過外深 → clamp 到外深修正；酒架=前後開放滿深、clamp 後 innerD=外深 → §I6 冗餘自動跳過。
+          const outerDepth = topPart.visible.width;
+          const rawInnerD = sideLeft ? sideLeft.visible.width : outerDepth;
+          const innerD = Math.min(rawInnerD, outerDepth);
           const legHeight = bottomPart.origin.y;
           return { panelT, innerW, innerH, innerD, bottomTopY, topBottomY, legHeight };
         })()
