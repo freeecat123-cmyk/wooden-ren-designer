@@ -102,7 +102,23 @@ function extractFurnitureDims(design: FurnitureDesign) {
           const outerDepth = topPart.visible.width;
           const rawInnerD = sideLeft ? sideLeft.visible.width : outerDepth;
           const innerD = Math.min(rawInnerD, outerDepth);
-          const legHeight = bottomPart.origin.y;
+          // 腳高 = 地面到底板。但若底板與地面之間還夾了抽屜層（酒架底部拉出抽屜），
+          // bottomPart.origin.y 會把「抽屜層 + 腳」一起算進腳 → 標成「腳 285」但實際腳只有 140
+          // （師傅會誤切 285mm 腳，user 2026-06-16 回報）。修：有腳件時腳高只到腳件頂面
+          // （min 夾在底板下、標準櫃腳頂=底板故不變）；無腳件但有抽屜層地板時腳高=0（不顯示）。
+          const legPartsForH = design.parts.filter((p) =>
+            /^(leg-|plinth-|side-extension-|bracket-)/.test(p.id),
+          );
+          const hasDrawerFloor = design.parts.some((p) => p.id === "drawer-floor");
+          const legHeight =
+            legPartsForH.length > 0
+              ? Math.min(
+                  bottomPart.origin.y,
+                  Math.max(...legPartsForH.map((p) => p.origin.y + worldExtents(p).yExt)),
+                )
+              : hasDrawerFloor
+                ? 0
+                : bottomPart.origin.y;
           return { panelT, innerW, innerH, innerD, bottomTopY, topBottomY, legHeight };
         })()
       : null;
