@@ -1040,17 +1040,11 @@ export function T2Annotations({
       // 3) 其他維持「距面較遠的軸」舊邏輯（桌面腿榫眼 40×17 沿 X 已驗對）
       const fitX = longDim <= lx * 1.05;
       const fitZ = longDim <= lz * 1.05;
-      // cosmetic 穿透切口（half-lap 十字搭接缺口/指槽等）footprint = length×width 明確，
-      // 不該 auto-fit 重猜軸向（否則旋轉件如紅酒架縱向分隔板的搭接缺口會被擺錯軸 → 畫成
-      // 「橫躺長孔」）。length 沿 mesh-X、width 沿 mesh-Z，longDim 落 L/W 較長那軸。只認
-      // cosmetic（鳩尾盒齒槽等真 mortise 仍走 auto-fit、避免迴歸）。
-      const longOnZ = m.cosmetic && m.through && L !== W
-        ? W > L
-        : fitX !== fitZ
-          ? fitZ
-          : fitX && (longDim / lz > 0.8 || longDim / lx > 0.8)
-            ? longDim / lz >= longDim / lx
-            : zFace > xFace;
+      const longOnZ = fitX !== fitZ
+        ? fitZ
+        : fitX && (longDim / lz > 0.8 || longDim / lx > 0.8)
+          ? longDim / lz >= longDim / lx
+          : zFace > xFace;
       return {
         cx: m.origin.x,
         cy: cyL,

@@ -68,17 +68,6 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 正交平面）後，柱俯視輪廓由「誤畫的方形」變成正確的「圓形」，腳榫butt 進
   // 圓柱的結構性重疊才被偵到——同 round-table:pedestal 性質（柱實際是圓的）。
   "coat-rack:default",
-  // 紅酒架：方格佈局縱向分隔板 × 水平層板用十字搭接（half-lap），兩件都滿深、垂直
-  // 交叉、重疊處各挖一半深度互鎖（明式格屜做法）。audit 用實體 OBB 看到 shelf × divider
-  // 在交叉處 15×15×280 結構性重疊（缺口是 mortise CSG subtract、OBB 不計）= joint，非穿模。
-  // 菱形佈局無縱向分隔板不在此列。legShape 各 variant 格屜結構相同故全列。
-  "wine-rack:box",
-  "wine-rack:tapered",
-  "wine-rack:round",
-  "wine-rack:round-tapered",
-  "wine-rack:bracket",
-  "wine-rack:plinth",
-  "wine-rack:panel-side",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";

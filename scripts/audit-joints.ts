@@ -42,10 +42,6 @@ const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory
   "dining-chair",
   // dovetail-box: 鳩尾齒互嵌不是傳統 mortise/tenon 對位、audit 抓不到正確配對
   "dovetail-box",
-  // wine-rack: 方格佈局縱向分隔板 × 水平層板用十字搭接（half-lap），交叉處的缺口是
-  // 「對方板身入槽」的開口缺口、不是傳統 mortise↔tenon 對位（無配對 tenon），audit
-  // 抓不到正確配對。分隔板入頂/底板的 tongue↔dado 仍是正常配對、只此 half-lap 缺口豁免。
-  "wine-rack",
 ]);
 
 /**
