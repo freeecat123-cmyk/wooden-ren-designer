@@ -231,6 +231,29 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const hasRebatedBack = drawerBackMode === "rebated" && withPullOutDrawer;
   const backDadoZ = depth / 2 - BACK_RECESS - drawerBackThickness / 2;
 
+  // 縱向分隔板 ↔ 頂板/底板/層板 的接合：分隔板兩端做舌（tongue），對應的水平件
+  // （頂板底面、底板頂面、每片層板上下面）開 housing dado 槽。槽位 = 每根分隔板 X 中心。
+  // 只有方格 rect 佈局有縱向分隔板；菱形 diamond 用對角板交織、走別的接法不在此處理。
+  const isRectGrid = gridLayout !== "diamond";
+  // 槽深：太深會吃穿薄板（層板兩面都開槽 → 留中間 web ≥ 4mm）。panelT 12→4 / 15→5 / 18+→6。
+  const DIVIDER_DADO_DEPTH = Math.max(4, Math.min(6, Math.round(panelT / 3)));
+  const dividerDadoLenZ = depth - SHELF_TONGUE_THICKNESS_OFFSET; // 沿深度（停止槽，前後各留 3mm）
+  const dividerXs = Array.from({ length: Math.max(0, bw - 1) }, (_, c) =>
+    -halfOuterW + panelT + (c + 1) * cellSize - panelT / 2,
+  );
+  // faceY = mesh-local Y（板厚軸，from-bottom）：頂板底面=0、底板頂面=panelT、層板兩面=0/panelT。
+  // dado: length 沿 mesh-X（= world X，分隔板厚度方向）= panelT；width 沿 mesh-Z（深度）。
+  const dividerDadoOnFace = (faceY: number): Part["mortises"] =>
+    isRectGrid
+      ? dividerXs.map((dx) => ({
+          origin: { x: dx, y: faceY, z: 0 },
+          depth: DIVIDER_DADO_DEPTH,
+          length: panelT,
+          width: dividerDadoLenZ,
+          through: false,
+        }))
+      : [];
+
   // 上下板（水平，貫穿全寬）
   const top: Part = {
     id: "top",
@@ -241,7 +264,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: outerW, width: depth, thickness: panelT },
     origin: { x: 0, y: outerH - panelT, z: 0 },
     tenons: [],
-    mortises: [],
+    // 底面開槽接最上排縱向分隔板的頂舌
+    mortises: dividerDadoOnFace(0),
   };
   // 底板（兼上下層分隔板）：嵌進兩塊側板之間（innerW 寬），不跟左右側板重疊。
   // 頂板繼續 outerW 寬蓋住側板上緣，那邊沒有同 y 區間衝突。
@@ -253,15 +277,19 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: innerW, width: depth, thickness: panelT },
     origin: { x: 0, y: 0, z: 0 },
     // 底板兼上下層分隔板。入溝背板時底面開 stopped dado，背板上緣插進來。
-    mortises: hasRebatedBack
-      ? [{
-          origin: { x: 0, y: 0, z: backDadoZ },
-          depth: REBATE_DEPTH,
-          length: innerW,
-          width: drawerBackThickness,
-          through: false,
-        }]
-      : [],
+    // 頂面（mesh Y=panelT）另開槽接最下排縱向分隔板的底舌。
+    mortises: [
+      ...(hasRebatedBack
+        ? [{
+            origin: { x: 0, y: 0, z: backDadoZ },
+            depth: REBATE_DEPTH,
+            length: innerW,
+            width: drawerBackThickness,
+            through: false,
+          }]
+        : []),
+      ...dividerDadoOnFace(panelT),
+    ],
   };
 
   // 兩側板（內側鋸層板槽）
@@ -346,7 +374,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         { position: "start", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
         { position: "end", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
       ],
-      mortises: [],
+      // 上下面都開槽：上面接上排分隔板底舌、下面接下排分隔板頂舌
+      mortises: [...dividerDadoOnFace(panelT), ...dividerDadoOnFace(0)],
     });
   }
 
@@ -377,7 +406,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
           z: 0,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
+        // 兩端（width 軸 = 旋轉後的垂直）做舌，插進上下水平件的 housing dado
+        tenons: [
+          { position: "left", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
+          { position: "right", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
+        ],
         mortises: [],
       });
     }
