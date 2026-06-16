@@ -235,18 +235,24 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // （頂板底面、底板頂面、每片層板上下面）開 housing dado 槽。槽位 = 每根分隔板 X 中心。
   // 只有方格 rect 佈局有縱向分隔板；菱形 diamond 用對角板交織、走別的接法不在此處理。
   const isRectGrid = gridLayout !== "diamond";
+  // 窄板條格柵（user 2026-06-16）：rect 佈局的層板/分隔板改成「不滿深的窄板條」，在前緣
+  // 交織成鏤空 egg-crate 格柵（非滿深格子箱）。LATTICE_DEPTH = 板條前後向深度；板條齊鎖在
+  // 架體前緣（front = −Z），egg-crate 十字搭接切掉一半板條深度互鎖。
+  const LATTICE_DEPTH = Math.min(depth, 60);
+  const latticeZc = -depth / 2 + LATTICE_DEPTH / 2; // 板條 Z 中心（前緣齊）
   // 槽深：太深會吃穿薄板（層板兩面都開槽 → 留中間 web ≥ 4mm）。panelT 12→4 / 15→5 / 18+→6。
   const DIVIDER_DADO_DEPTH = Math.max(4, Math.min(6, Math.round(panelT / 3)));
-  const dividerDadoLenZ = depth - SHELF_TONGUE_THICKNESS_OFFSET; // 沿深度（停止槽，前後各留 3mm）
+  const dividerDadoLenZ = LATTICE_DEPTH - SHELF_TONGUE_THICKNESS_OFFSET; // 沿板條深度（停止槽，前後各留 3mm）
   const dividerXs = Array.from({ length: Math.max(0, bw - 1) }, (_, c) =>
     -halfOuterW + panelT + (c + 1) * cellSize - panelT / 2,
   );
   // faceY = mesh-local Y（板厚軸，from-bottom）：頂板底面=0、底板頂面=panelT。
   // 分隔板兩端（頂/底）用 housing dado 入頂底板（housing tongue），中段跟層板走十字搭接。
+  // 板條在前緣 → dado 沿深度方向中心移到 latticeZc。
   const dividerDadoOnFace = (faceY: number): Part["mortises"] =>
     isRectGrid
       ? dividerXs.map((dx) => ({
-          origin: { x: dx, y: faceY, z: 0 },
+          origin: { x: dx, y: faceY, z: latticeZc },
           depth: DIVIDER_DADO_DEPTH,
           length: panelT,
           width: dividerDadoLenZ,
@@ -254,10 +260,10 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         }))
       : [];
 
-  // 縱向分隔板 × 水平層板 = 十字搭接（half-lap）：兩件都滿深、垂直交叉，重疊處「各去掉
-  // 一半深度」→ 層板挖掉後半、分隔板挖掉前半，互鎖且兩件都連續不斷（明式格屜常見做法）。
-  // 缺口穿透板厚（through），沿深度佔一半（HALF_LAP），到板的前/後緣（開口缺口）。
-  const HALF_LAP = depth / 2;
+  // 縱向分隔板 × 水平層板 = 十字搭接（half-lap）：兩條窄板條垂直交叉，重疊處「各去掉一半
+  // 板條深度」→ 層板挖後半、分隔板挖前半互鎖、兩件都連續不斷（明式格屜做法）。
+  // 缺口穿透板厚（through），沿板條深度佔一半（HALF_LAP），到板條前/後緣（開口缺口）。
+  const HALF_LAP = LATTICE_DEPTH / 2;
   // 層板上：每根縱向分隔板 X 處挖「後半深度」缺口（mesh：length 沿 X=分隔板厚、width 沿 Z=深度）
   const shelfCrossLaps: Part["mortises"] = isRectGrid
     ? dividerXs.map((dx) => ({
@@ -345,10 +351,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       const row = idx + 1;
       const yMid = panelT + row * cellSize - panelT / 2;
       const zLocal = yMid - panelT - innerH / 2 + sideExtensionH / 2;
+      // 側板 mesh-X = world 深度方向：窄層板在前緣 → dado 沿深度中心移到 latticeZc。
       return {
-        origin: { x: 0, y: xSign > 0 ? 0 : panelT, z: zLocal },
+        origin: { x: latticeZc, y: xSign > 0 ? 0 : panelT, z: zLocal },
         depth: SHELF_TONGUE_LEN,
-        length: depth - SHELF_TONGUE_THICKNESS_OFFSET,
+        length: LATTICE_DEPTH - SHELF_TONGUE_THICKNESS_OFFSET,
         width: panelT,
         through: false,
       };
@@ -402,11 +409,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       nameEn: `Row ${row} horizontal shelf`,
       material,
       grainDirection: "length",
-      visible: { length: innerW, width: depth, thickness: panelT },
-      origin: { x: 0, y: panelT + row * cellSize - panelT / 2, z: 0 },
+      visible: { length: innerW, width: LATTICE_DEPTH, thickness: panelT },
+      origin: { x: 0, y: panelT + row * cellSize - panelT / 2, z: latticeZc },
       tenons: [
-        { position: "start", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
-        { position: "end", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
+        { position: "start", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: LATTICE_DEPTH - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
+        { position: "end", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: LATTICE_DEPTH - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
       ],
       // 與每根縱向分隔板十字搭接：層板在每根分隔板處挖後半深度缺口
       mortises: shelfCrossLaps,
@@ -423,11 +430,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       nameEn: `Vertical divider ${col}`,
       material,
       grainDirection: "length",
-      visible: { length: depth, width: innerH, thickness: panelT },
+      visible: { length: LATTICE_DEPTH, width: innerH, thickness: panelT },
       origin: {
         x: -halfOuterW + panelT + col * cellSize - panelT / 2,
         y: panelT,
-        z: 0,
+        z: latticeZc,
       },
       rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
       // 兩端（width 軸 = 旋轉後的垂直）做舌入頂/底板 housing dado
