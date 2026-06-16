@@ -95,13 +95,13 @@ function extractFurnitureDims(design: FurnitureDesign) {
           const topBottomY = topPart.origin.y;
           const innerH = topBottomY - bottomTopY;
           const sideLeft = design.parts.find((p) => p.id === "side-left");
-          // 標準櫃側板 visible.width = 深度（case-furniture 慣例 length=innerH/width=depth）。
-          // 但酒架側板用旋轉慣例 length=depth / width=innerH → rawInnerD 會抓到「高度」(>外深)，
-          // 畫出「內深 426 > 外深 280」的矛盾尺寸（user 2026-06-16 回報）。內深物理上不可能
-          // 超過外深 → clamp 到外深修正；酒架=前後開放滿深、clamp 後 innerD=外深 → §I6 冗餘自動跳過。
+          // innerD = 側板實際「前後向（world Z）」尺寸。標準櫃側板 width=深度，但酒架側板用
+          // 旋轉慣例 length=深度 / width=高度 → 直接取 visible.width 會抓到酒架的「高度」，
+          // 標出「內深 426（直立，>外深 280）」或「內深 300（橫躺，=高度非深度）」的錯值
+          // （user 2026-06-16 回報直立/橫躺都中）。worldExtents.zExt 對兩種擺法都回真正的前後向
+          // 尺寸；滿深開放櫃 zExt=外深 → §I6 冗餘自動跳過。set-back/rebated 側板 zExt<外深正常顯示。
           const outerDepth = topPart.visible.width;
-          const rawInnerD = sideLeft ? sideLeft.visible.width : outerDepth;
-          const innerD = Math.min(rawInnerD, outerDepth);
+          const innerD = sideLeft ? worldExtents(sideLeft).zExt : outerDepth;
           // 腳高 = 地面到底板。但若底板與地面之間還夾了抽屜層（酒架底部拉出抽屜），
           // bottomPart.origin.y 會把「抽屜層 + 腳」一起算進腳 → 標成「腳 285」但實際腳只有 140
           // （師傅會誤切 285mm 腳，user 2026-06-16 回報）。修：有腳件時腳高只到腳件頂面
