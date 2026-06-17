@@ -311,14 +311,16 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     // 底面開槽接最上排縱向分隔板的頂舌
     mortises: dividerDadoOnFace(0),
   };
-  // 底板（兼上下層分隔板）：嵌進兩塊側板之間（innerW 寬），不跟左右側板重疊。
-  // 頂板繼續 outerW 寬蓋住側板上緣，那邊沒有同 y 區間衝突。
+  // 底板：無抽屜時是「架體底座」，要 outerW 全寬蓋住側板下緣（跟頂板對稱），否則側板下緣
+  // 兩端 panelT×panelT 角落懸空、底板缺角（user 回報）。有抽屜時底板是「瓶格箱體底＝上下層
+  // 分隔板」嵌在往下延伸的兩側板之間（innerW），真正的底座是 drawer-floor（全寬）。
+  const bottomLen = withPullOutDrawer ? innerW : outerW;
   const bottom: Part = {
     ...top,
     id: "bottom",
     nameZh: "底板",
     nameEn: "Bottom panel",
-    visible: { length: innerW, width: depth, thickness: panelT },
+    visible: { length: bottomLen, width: depth, thickness: panelT },
     origin: { x: 0, y: 0, z: 0 },
     // 底板兼上下層分隔板。入溝背板時底面開 stopped dado，背板上緣插進來。
     // 頂面（mesh Y=panelT）另開槽接最下排縱向分隔板的底舌。
