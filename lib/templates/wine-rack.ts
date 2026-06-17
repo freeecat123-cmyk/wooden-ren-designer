@@ -440,10 +440,13 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         z: 0,
       },
       rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      // 兩端（width 軸 = 旋轉後的垂直）做舌入頂/底板 housing dado
+      // 兩端（width 軸 = 旋轉後的垂直）做舌入頂/底板 housing dado。
+      // 分隔板 rotation {x:π/2,y:π/2} 把 left/right 舌的斷面 width/thickness 軸對調，
+      // 要 width=深度(274 沿 world Z)、thickness=板厚(15 沿 world X) 才跟 dado(15×274) 對齊、
+      // 不會轉 90°變成 274 沿 X 橫躺戳出（user 回報）。
       tenons: [
-        { position: "left", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
-        { position: "right", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: panelT, thickness: dividerDadoLenZ },
+        { position: "left", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: dividerDadoLenZ, thickness: panelT },
+        { position: "right", type: "tongue-and-groove", length: DIVIDER_DADO_DEPTH, width: dividerDadoLenZ, thickness: panelT },
       ],
       // 跟每片水平層板十字搭接：分隔板在每片層板高度挖前半深度缺口
       mortises: dividerCrossLapsForCol(col),
