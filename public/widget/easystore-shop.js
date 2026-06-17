@@ -41,9 +41,111 @@
       "#wr-ship-bar.done #wr-ship-fill{background:#23c552}",
       "#wr-ship-info{margin:16px 0;padding:14px 16px;border:1px solid #e7ddd5;border-radius:10px;",
       "background:#faf6f2;font-size:14px;line-height:1.9;color:#4a4038;font-family:inherit}",
-      "@media(max-width:600px){#wr-ship-bar{width:200px;left:10px;bottom:10px}}"
+      "@media(max-width:600px){#wr-ship-bar{width:200px;left:10px;bottom:10px}}",
+      // 頂部公告條
+      "#wr-annc{background:#A47A64;color:#fff;font-size:13px;font-weight:600;text-align:center;",
+      "padding:8px 12px;font-family:inherit;letter-spacing:.3px;transition:opacity .25s}",
+      // 信任徽章
+      "#wr-badges{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;font-family:inherit}",
+      "#wr-badges .wr-bdg{flex:1 1 40%;min-width:120px;display:flex;align-items:center;gap:6px;",
+      "background:#f6f1ec;border:1px solid #ece2d8;border-radius:8px;padding:8px 10px;",
+      "font-size:13px;color:#4a4038;font-weight:600}#wr-badges .wr-bdg span{font-size:16px}",
+      // 手機吸底加入購物車
+      "#wr-sticky-atc{position:fixed;left:0;right:0;bottom:0;z-index:10000;display:none;",
+      "align-items:center;gap:10px;padding:8px 12px;background:#fff;border-top:1px solid #e7ddd5;",
+      "box-shadow:0 -3px 12px rgba(0,0,0,.12);font-family:inherit}",
+      "#wr-sticky-atc .wr-pt{flex:1;min-width:0}",
+      "#wr-sticky-atc .wr-pn{font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      "#wr-sticky-atc .wr-pp{font-size:16px;font-weight:700;color:#A47A64}",
+      "#wr-sticky-atc button{flex:0 0 auto;background:#A47A64;color:#fff;border:0;border-radius:8px;",
+      "padding:12px 22px;font-size:15px;font-weight:700;font-family:inherit}",
+      "@media(min-width:768px){#wr-sticky-atc{display:none!important}}",
+      "body.wr-sticky-on #wr-ship-bar{bottom:78px}",
+      'body.wr-sticky-on a[href*="lin.ee"]{bottom:78px!important}'
     ].join("");
     document.head.appendChild(st);
+  }
+
+  // ---- 頂部公告條（可改文案：改 MSGS 陣列）----
+  var ANNC_MSGS = [
+    "🚚 超商滿 NT$1,500・宅配滿 NT$4,500 免運",
+    "⚡ 下單後 2 個工作天內快速出貨",
+    "🪵 木頭仁嚴選・職人木工工具專賣"
+  ];
+  function initAnnouncement() {
+    if (document.getElementById("wr-annc")) return;
+    var a = document.createElement("div");
+    a.id = "wr-annc";
+    a.textContent = ANNC_MSGS[0];
+    document.body.insertBefore(a, document.body.firstChild);
+    if (ANNC_MSGS.length > 1) {
+      var i = 0;
+      setInterval(function () {
+        i = (i + 1) % ANNC_MSGS.length;
+        a.style.opacity = "0";
+        setTimeout(function () { a.textContent = ANNC_MSGS[i]; a.style.opacity = "1"; }, 250);
+      }, 4000);
+    }
+  }
+
+  // ---- 商品頁信任徽章 ----
+  function addTrustBadges() {
+    if (location.pathname.indexOf("/products/") < 0) return;
+    if (document.getElementById("wr-badges")) return;
+    var btn =
+      document.getElementById("AddToCart") ||
+      document.querySelector('[name="add"],button.addToCart-btn');
+    if (!btn) return;
+    var anchor =
+      document.getElementById("wr-ship-info") || btn.closest("form") || btn.parentElement;
+    var items = [
+      ["✅", "正品保證"],            // 正品保證
+      ["🚚", "2天快速出貨"], // 2天快速出貨
+      ["🔄", "7天鑑賞期"],       // 7天鑑賞期
+      ["🧾", "可開發票"]         // 可開發票
+    ];
+    var b = document.createElement("div");
+    b.id = "wr-badges";
+    b.innerHTML = items
+      .map(function (it) {
+        return '<div class="wr-bdg"><span>' + it[0] + "</span>" + it[1] + "</div>";
+      })
+      .join("");
+    anchor.parentNode.insertBefore(b, anchor.nextSibling);
+  }
+
+  // ---- 手機版吸底「加入購物車」----
+  function initStickyAtc() {
+    if (document.getElementById("wr-sticky-atc")) return;
+    if (location.pathname.indexOf("/products/") < 0) return;
+    var btn =
+      document.getElementById("AddToCart") ||
+      document.querySelector('[name="add"],button.addToCart-btn');
+    if (!btn) return;
+    var price = (document.querySelector(".money") || {}).innerText || "";
+    var name = (document.querySelector("h1") || {}).innerText || "";
+    var bar = document.createElement("div");
+    bar.id = "wr-sticky-atc";
+    bar.innerHTML =
+      '<div class="wr-pt"><div class="wr-pn"></div><div class="wr-pp"></div></div>' +
+      '<button type="button">加入購物車</button>'; // 加入購物車
+    bar.querySelector(".wr-pn").textContent = name;
+    bar.querySelector(".wr-pp").textContent = price.trim();
+    bar.querySelector("button").addEventListener("click", function () { btn.click(); });
+    document.body.appendChild(bar);
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            var show = !e.isIntersecting && window.innerWidth < 768;
+            bar.style.display = show ? "flex" : "none";
+            document.body.classList.toggle("wr-sticky-on", show);
+          });
+        },
+        { threshold: 0 }
+      );
+      io.observe(btn);
+    }
   }
 
   // ---- 免運進度條 ----
@@ -115,15 +217,26 @@
     form.parentNode.insertBefore(box, form.nextSibling);
   }
 
+  function runProductFeatures() {
+    addShipInfo();
+    addTrustBadges();
+    initStickyAtc();
+  }
+
   function start() {
     injectStyle();
+    initAnnouncement();
     initShipBar();
     var tries = 0;
     var iv = setInterval(function () {
-      addShipInfo();
-      if (++tries > 20 || document.getElementById("wr-ship-info")) clearInterval(iv);
+      runProductFeatures();
+      var done =
+        document.getElementById("wr-ship-info") &&
+        document.getElementById("wr-badges") &&
+        document.getElementById("wr-sticky-atc");
+      if (++tries > 20 || done) clearInterval(iv);
     }, 500);
-    addShipInfo();
+    runProductFeatures();
   }
 
   if (document.readyState === "loading") {
