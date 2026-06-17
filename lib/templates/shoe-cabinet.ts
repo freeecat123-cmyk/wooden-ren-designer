@@ -300,7 +300,19 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       const margin = (openH - count * slatPitch) / 2;
       const idBase = panel.id.replace(/-panel$/, "");
       const baseName = panel.nameZh.replace(/木鑲板$/, "");
+      // 兩側豎梃：每片葉片兩端嵌進豎梃內側的斜槽。原本只生葉片、豎梃完全沒槽
+      // → 零件圖看不到葉片榫孔（user 回報）。在豎梃 local 座標補 cosmetic 斜槽：
+      //   - origin.x = 內側面（沿用該豎梃既有橫檔榫眼的 x，已驗證落在內緣）
+      //   - origin.z = 葉片世界高 − 豎梃中心高（豎梃 width=門高、mortise.z 沿此軸）
+      //   - length(沿門高) = 葉片面寬、width(沿門厚) = 葉片厚、depth = 凹槽深
+      //   - rotX = 葉片傾角（CSG cut box 跟著葉片斜 25°）
+      const stiles = [
+        design.parts.find((p) => p.id === `${idBase}-stile-left`),
+        design.parts.find((p) => p.id === `${idBase}-stile-right`),
+      ].filter((p): p is NonNullable<typeof p> => p != null);
       for (let r = 0; r < count; r++) {
+        const slatY =
+          openBottomY + margin + r * slatPitch + (slatPitch - slatFaceH) / 2;
         design.parts.push({
           id: `${idBase}-louver-${r + 1}`,
           nameZh: `${baseName}百葉條`,
@@ -308,15 +320,29 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
           material: panel.material,
           grainDirection: "length",
           visible: { length: slatLen, width: slatFaceH, thickness: slatThick },
-          origin: {
-            x: panel.origin.x,
-            y: openBottomY + margin + r * slatPitch + (slatPitch - slatFaceH) / 2,
-            z: panel.origin.z,
-          },
+          origin: { x: panel.origin.x, y: slatY, z: panel.origin.z },
           rotation: { x: Math.PI / 2 + slatTiltRad, y: 0, z: 0 },
           tenons: [],
           mortises: [],
         });
+        for (const stile of stiles) {
+          // 內側面 x：沿用既有橫檔榫眼 x（落在面向門心的內緣）；無則由幾何推算
+          const innerX =
+            stile.mortises[0]?.origin.x ??
+            Math.sign(panel.origin.x - stile.origin.x) *
+              (stile.visible.length / 2 - grooveDepth / 2);
+          const stileCenterY = stile.origin.y + stile.visible.width / 2;
+          stile.mortises.push({
+            origin: { x: innerX, y: 0, z: slatY - stileCenterY },
+            depth: grooveDepth,
+            length: slatFaceH,
+            width: slatThick,
+            through: false,
+            cosmetic: true,
+            rotX: slatTiltRad,
+            label: "百葉槽",
+          });
+        }
       }
     }
     // 移除原本的實心木鑲板（已被百葉條群取代）
