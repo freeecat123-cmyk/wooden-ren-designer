@@ -211,6 +211,9 @@ export interface RenderDrawerZoneCfg {
   /** 抽屜面板厚（22mm 配框料門、18mm 配平板門/無門） */
   drawerFacePanelT: number;
   drawerMount: DrawerMount;
+  /** 強制用「外加面板 + 抽屜箱」做法（即使 inset 無滑軌）——走櫃子抽屜的正規搭接、
+   *  不走 inset 無面板的 half-lap（紅酒架要跟櫃子抽屜一致時用）。 */
+  forceFacePanel?: boolean;
   drawerBottomMode?: DrawerBottomMode;
   /** 抽屜底板厚度 mm；3/6/9/12 任一。釘底 / 入溝皆套用此厚度。
    *  fallback：surface=3, rebated=6（跟舊行為一致）。 */
@@ -253,6 +256,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     caseInnerZ,
     drawerFacePanelT,
     drawerMount,
+    forceFacePanel,
     pullStyle,
     skipCaseDividers,
   } = cfg;
@@ -321,7 +325,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const drawerOverlay =
     drawerMount === "overlay-3" ? 9 :
     drawerMount === "overlay-6" ? panelT : 0;
-  const hasFacePanel = hasSlide || !isInsetDrawer;
+  const hasFacePanel = hasSlide || !isInsetDrawer || !!forceFacePanel;
   // 抽屜接合 + 內框厚度邏輯（依「有沒有外加面板」分流）：
   //
   //   hasFacePanel = true  → 外加面板蓋住前板 → 內框 4 片等厚 14mm
@@ -656,20 +660,17 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       //   延伸區做 crenellated tail。z center 維持 sideZCenter（body 中段）。
       // - lap（搭接）：body 蓋滿前後板（drawerOuterD）、z center 推到 drawer
       //   外部中心、無 shape、前後板被夾在中間。
-      // 半搭接：側板「前緣」要躲進前板覆蓋的 2/3 內側。rabbet 從背面切 1/3、剩 2/3 的
-      // 前板材料覆蓋 → side 前緣往後縮 (drawerFrontT - rabbet) = 2/3 厚 = 12mm。
-      // ⭐ 但只縮前緣、後緣維持在後板：side 長度要 −halfLapSideShift、中心只移半量，否則
-      //   整片往後推會讓側板後緣超出後板（user 回報「抽屜側板比後板還突」）。
-      const halfLapSideShift = drawerFrontT - halfLapRabbetDepth;
       const sideLength = isDovetailJoint
         ? drawerInnerD + 2 * dovetailPinDepth
-        : useHalfLap
-          ? drawerOuterD - halfLapSideShift
-          : drawerOuterD;
+        : drawerOuterD;
       // 全搭接：側板蓋滿前後板（front 邊緣到 back 邊緣）
       const sideZCenterLap =
         (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
-      const sideZCenterHalfLap = sideZCenterLap + halfLapSideShift / 2;
+      // 半搭接：側板要躲進前板覆蓋的 2/3 內側。rabbet 從背面切 1/3、剩 2/3 的
+      // 前板材料覆蓋 → side z 要往後推 (drawerFrontT - rabbet) = 2/3 厚 = 12mm。
+      // 之前推 rabbet 深度（=1/3）太少、side 跟前板還會重疊 6mm（user 反映）。
+      const halfLapSideShift = drawerFrontT - halfLapRabbetDepth;
+      const sideZCenterHalfLap = sideZCenterLap + halfLapSideShift;
       const effectiveSideZCenter = useHalfLap
         ? sideZCenterHalfLap
         : isLapJoint

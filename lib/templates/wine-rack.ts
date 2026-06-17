@@ -726,6 +726,9 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         caseInnerZ: 0,
         drawerFacePanelT: 18,
         drawerMount,
+        // 跟櫃子抽屜一致：用外加面板 + 正規搭接抽屜箱，不走 inset 無面板的 half-lap
+        // （half-lap 側板會比後板突/重疊，user 回報「參考櫃子抽屜的做法」）。
+        forceFacePanel: true,
         drawerBottomMode: drawerBottomModeOpt,
         drawerBottomThickness,
         drawerBoxJoinery,
