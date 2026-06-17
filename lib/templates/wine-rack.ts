@@ -260,9 +260,10 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 正面看像上下交織的編織格柵（非單片永遠在前的不對稱）。缺口穿透板厚（through）、
   // 沿深度佔一半（HALF_LAP）、到板的前/後緣（開口缺口）。
   const HALF_LAP = depth / 2;
-  // 交叉點 (row 1..bt-1, col 1..bw-1) 的半搭方向：(row+col) 偶 → sign +1、奇 → −1。
+  // 半搭方向：所有交叉點同一邊（層板缺口全挖同一半深、分隔板全挖另一半）→ 同一片永遠在
+  // 前半、互鎖；零件圖上 N 道缺口齊一邊（user 要「3 個都在同一邊、不是一上一下一上」）。
   // 層板挖「sign 側半深」、分隔板因 rotation mesh X'=−world z 用同 sign 剛好挖另一半 → 互鎖。
-  const weaveSign = (row: number, col: number) => ((row + col) % 2 === 0 ? 1 : -1);
+  const weaveSign = (_row: number, _col: number) => 1;
   // 層板上：每根縱向分隔板 X 處挖半深缺口（mesh：length 沿 X=分隔板厚、width 沿 Z=深度）
   const shelfCrossLapsForRow = (row: number): Part["mortises"] =>
     isRectGrid
