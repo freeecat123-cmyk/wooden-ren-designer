@@ -366,7 +366,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   // 不是往側板厚度方向挖多深、跟側板厚度無關。
   const drawerBottomT = cfg.drawerBottomThickness ?? (isSurfaceDrawerBottom ? 3 : 6);
   const faceT = hasFacePanel ? drawerFacePanelT : 0;
-  const faceTBoxOffset = isInsetDrawer && hasSlide ? drawerFacePanelT : 0;
+  // inset 有外加面板時，抽屜箱要往後退一個面板厚，箱前板才在面板「後面」而非跟它重疊。
+  // （原本只在 hasSlide 退；forceFacePanel 無滑軌也有面板、一樣要退，否則兩片面板重疊）
+  const faceTBoxOffset = isInsetDrawer && hasFacePanel ? drawerFacePanelT : 0;
   const backClearance = hasSlide ? 10 : 6;
   const drawerOuterW = drawerSlotW - 2 * slideGap;
   const boxExtW = hasSlide ? drawerOuterW : drawerOuterW - 4;
