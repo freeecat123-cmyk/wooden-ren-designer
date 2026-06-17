@@ -17,7 +17,10 @@ export function categorizePart(id: string): PartCategory {
   if (/^z?\d*-?drawer-?\d*-(face|front|back|side|bottom)/.test(id))
     return "drawer";
   if (/drawer-col-partition/.test(id)) return "divider";
-  if (/-door-.*-(rail|stile|panel|glass)/.test(id)) return "door";
+  // door 子件：框（rail/stile）、木鑲板(panel)、玻璃(glass)、夾板平板門(slab)、
+  // 百葉條(louver)。slab/louver 都是木工要下料的真實門板件（slab=整片夾板貼皮門、
+  // louver=斜放實心葉片 ×N），漏掉它們 → 平板門 / 百葉門完全沒零件圖（user 回報）。
+  if (/-door-.*-(rail|stile|panel|glass|slab|louver)/.test(id)) return "door";
   // 木盒：盒蓋主板（lid）+ 嵌入式凸唇（lid-plug）是純方板，但跟 top/bottom 一樣
   // 是核心結構件、木工要看下料尺寸 → 歸 case 才會出零件圖（rabbeted 純方蓋原本漏掉）。
   // lid-hinge-N 是五金（visual=metal）維持 misc、不出圖。
