@@ -282,7 +282,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     isRectGrid
       ? Array.from({ length: Math.max(0, bt - 1) }, (_, i) => {
           const row = i + 1;
-          const zLocal = row * cellSize - panelT / 2 - innerH / 2; // 層板在分隔板 Z'(垂直) 中心
+          // 缺口要對齊「層板中心」：shelf 中心 world Y = panelT + row*cellSize（origin.y
+          // 是 from-bottom 的底面 panelT+row*cellSize−panelT/2、＋panelT/2 = 中心）。
+          // 分隔板中心 world Y = panelT + innerH/2 → zLocal = row*cellSize − innerH/2。
+          // （之前多扣 panelT/2 → 缺口落在層板底緣、偏下半個板厚沒對到重疊處，user 回報）
+          const zLocal = row * cellSize - innerH / 2; // 層板中心相對分隔板中心
           return {
             origin: { x: (weaveSign(row, col) * HALF_LAP) / 2, y: 0, z: zLocal },
             depth: panelT,
