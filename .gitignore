@@ -54,6 +54,12 @@ logs-dev.txt
 # 一次性驗證截圖
 temple-page*.jpeg
 temple-*.jpeg
+*-test.jpeg
+features-*.jpeg
+ship-bar-test.jpeg
+ship-info-test.jpeg
+banner-fix-test.jpeg
+widget-final.jpeg
 
 # codex 工具目錄 + SEO 檢查暫存（非源碼）
 .codex/
