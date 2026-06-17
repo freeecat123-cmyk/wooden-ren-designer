@@ -107,11 +107,16 @@ export function getT1ForView(part: Part, view: PartView): {
  * 外撇左壁卡：俯視斜 pill 突出薄板、側視斜孔）。
  */
 function normalizePartForDrawing(part: Part): Part {
-  if (!part.mortises?.some((m) => m.cosmetic && (m.rotX || m.rotZ))) return part;
+  // 只反烘「貫穿」的傾斜 cosmetic 孔（外撇牆/托盤手把＝板平著鑽⊥孔、再傾斜整片板，
+  // 加工姿態＝平板＋⊥貫穿孔）。非貫穿的傾斜 cosmetic 槽（百葉門豎梃的 25° 斜
+  // 鳩尾槽＝平直板上斜挖的淺槽，斜度是槽本身的、不是板被傾斜）不能反烘，否則
+  // 斜度被清掉＋深度被撐成貫穿（user 2026-06-18「百葉是斜的」）。
+  if (!part.mortises?.some((m) => m.cosmetic && m.through && (m.rotX || m.rotZ)))
+    return part;
   return {
     ...part,
     mortises: part.mortises.map((m) =>
-      m.cosmetic && (m.rotX || m.rotZ)
+      m.cosmetic && m.through && (m.rotX || m.rotZ)
         ? {
             ...m,
             origin: { ...m.origin, y: part.visible.thickness / 2 },
