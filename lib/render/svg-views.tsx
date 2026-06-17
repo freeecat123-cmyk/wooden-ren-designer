@@ -915,11 +915,15 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     // 填滿率 >0.8（dado 特徵）→ 填滿率高的軸；其他維持距面較遠舊邏輯。
     const fitX = longDim <= lx * 1.05;
     const fitZ = longDim <= lz * 1.05;
-    const longOnZ = fitX !== fitZ
-      ? fitZ
-      : fitX && (longDim / lz > 0.8 || longDim / lx > 0.8)
-        ? longDim / lz >= longDim / lx
-        : zFace > xFace;
+    // cosmetic 穿透切口（half-lap 搭接缺口/指槽）footprint=length×width 明確，不該 auto-fit
+    // 重猜軸（否則零件圖會多畫一條擺錯軸的「橫躺長孔」，跟 annotation mortiseEntryBox 同步）。
+    const longOnZ = m.cosmetic && m.through && Lm !== Wm
+      ? Wm > Lm
+      : fitX !== fitZ
+        ? fitZ
+        : fitX && (longDim / lz > 0.8 || longDim / lx > 0.8)
+          ? longDim / lz >= longDim / lx
+          : zFace > xFace;
     const useX = Math.max(0.1, (longOnZ ? shortDim : longDim) - PERP_SHRINK * 2);
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
