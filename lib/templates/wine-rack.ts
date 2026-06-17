@@ -298,6 +298,34 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         })
       : [];
 
+  // 方柱腳 ↔ 承重板（無抽屜＝底板、有抽屜＝抽屜室地板）的接合：腳頂盲榫入板底。
+  // 跟櫃子（case-furniture）同款：腳頂 blind-tenon、承重板底面對應 4 角開榫眼。
+  // plinth / panel-side 是連板底座非方柱腳、不走此接法。
+  const wrLegTenonLen = Math.min(Math.round(panelT * 0.6), Math.max(5, legH));
+  const legMortiseSize = LEG_SIZE - 10;
+  const hasCornerLegs =
+    hasLegs && legShape !== "plinth" && legShape !== "panel-side";
+  const legMortisesOnFace = (): Part["mortises"] =>
+    hasCornerLegs
+      ? ([-1, 1] as const).flatMap((sx) =>
+          ([-1, 1] as const).map((sz) => ({
+            origin: {
+              x: sx * (halfOuterW - LEG_SIZE / 2 - legInset),
+              y: 0,
+              z: sz * (depth / 2 - LEG_SIZE / 2 - legInset),
+            },
+            depth: wrLegTenonLen,
+            length: legMortiseSize,
+            width: legMortiseSize,
+            through: false,
+            // 圓料腳的榫渲染慣例＝圓榫 → 孔標 shape:"round" 配圓孔
+            ...(legShape === "round" || legShape === "round-tapered"
+              ? { shape: "round" as const }
+              : {}),
+          })),
+        )
+      : [];
+
   // 上下板（水平，貫穿全寬）
   const top: Part = {
     id: "top",
@@ -335,6 +363,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
           }]
         : []),
       ...dividerDadoOnFace(panelT),
+      // 無抽屜時底板＝承重板，底面開 4 角腳榫眼
+      ...(withPullOutDrawer ? [] : legMortisesOnFace()),
     ],
   };
 
@@ -611,7 +641,16 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
             visible: { length: LEG_SIZE, width: LEG_SIZE, thickness: legH },
             origin: { x: sx * legOffsetX, y: 0, z: sz * legOffsetZ },
             shape,
-            tenons: [],
+            // 腳頂盲榫嵌入承重板（無抽屜＝底板、有抽屜＝抽屜室地板）底面
+            tenons: [
+              {
+                position: "top",
+                type: "blind-tenon",
+                length: wrLegTenonLen,
+                width: LEG_SIZE - 10,
+                thickness: LEG_SIZE - 10,
+              },
+            ],
             mortises: [],
           });
           if (legShape === "bracket") {
@@ -651,16 +690,19 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: outerW, width: depth, thickness: panelT },
       origin: { x: 0, y: drawerFloorY, z: 0 },
       tenons: [],
-      // 入溝背板時頂面開 stopped dado，背板下緣插進來
-      mortises: hasRebatedBack
-        ? [{
-            origin: { x: 0, y: panelT, z: backDadoZ },
-            depth: REBATE_DEPTH,
-            length: innerW,
-            width: drawerBackThickness,
-            through: false,
-          }]
-        : [],
+      // 入溝背板時頂面開 stopped dado，背板下緣插進來；底面開 4 角腳榫眼（承重板）
+      mortises: [
+        ...(hasRebatedBack
+          ? [{
+              origin: { x: 0, y: panelT, z: backDadoZ },
+              depth: REBATE_DEPTH,
+              length: innerW,
+              width: drawerBackThickness,
+              through: false,
+            }]
+          : []),
+        ...legMortisesOnFace(),
+      ],
     });
     // 抽屜層兩側不再各加一塊側牆 —— 改由瓶格箱體側板向下延伸蓋住（單一片側板貫穿
     // 上下兩層），木工接合更簡單、外觀也更整體。
