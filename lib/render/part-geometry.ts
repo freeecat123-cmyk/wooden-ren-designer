@@ -513,7 +513,10 @@ export function buildChamferedEdgesGeometry(
   const ha = longLen / 2;
   const hb = shortDim(sa1) / 2;
   const hc = shortDim(sa2) / 2;
-  const c = Math.min(chamferMm, hb * 0.45, hc * 0.45);
+  // 上限對齊 2D silhouette（geometry.ts 用 fullDim×0.45）：此處 hb/hc 是半徑（halfDim），
+  // 故 ×0.9＝fullDim×0.45。原本 ×0.45 = fullDim×0.225＝只有 2D 的一半圓角 → 3D 看起來
+  // 幾乎方角、跟零件圖圓邊不一致（user 回報「3D 也要圓」，百葉葉片厚 6 倒圓 3 被夾成 1.35）。
+  const c = Math.min(chamferMm, hb * 0.9, hc * 0.9);
 
   // 圓角用 N=4 段 chamfer 拼近似四分圓；45° 用 1 段
   const segs = style === "rounded" ? 4 : 1;
