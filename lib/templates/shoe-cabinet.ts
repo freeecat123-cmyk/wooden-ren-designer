@@ -324,6 +324,9 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
           visible: { length: slatLen, width: slatFaceH, thickness: slatThick },
           origin: { x: panel.origin.x, y: slatY, z: panel.origin.z },
           rotation: { x: Math.PI / 2 + slatTiltRad, y: 0, z: 0 },
+          // 葉片兩短邊（厚度向 6mm 邊）倒圓＝百葉慣例 bullnose（非方角）；
+          // chamferMm = 厚/2 把 6mm 短邊磨成半圓，截面成跑道形（user 回報）。
+          shape: { kind: "chamfered-edges", chamferMm: slatThick / 2, style: "rounded" },
           tenons: [],
           mortises: [],
         });
