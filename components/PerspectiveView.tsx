@@ -1772,6 +1772,11 @@ export function PerspectiveView({
           //      不認）
           // Cosmetic mortise（產品凹槽 = 無線充電孔之類非結構性凹槽）不受影響。
           const isSplayedLeg = part.shape?.kind === "splayed";
+          // 百葉門斜槽（label「百葉槽」）：正常 3D 不挖——挖了會露出方底槽口、圓邊葉片
+          // 填不滿四角呈白色破洞（user 回報「豎梃有奇怪的洞」）。葉片本來就嵌進豎梃 8mm、
+          // 不挖時葉片端藏在豎梃實料內、視覺乾淨；joineryMode 仍挖（接合視圖要看槽）。
+          const isLouverGroove = (m: { label?: string }) =>
+            (m.label ?? "").startsWith("百葉槽");
           const mortisesToCsg = joineryMode
             ? part.mortises.filter((m) => {
                 if (m.cosmetic) return true;
@@ -1779,7 +1784,7 @@ export function PerspectiveView({
                 if (m.axis) return false;
                 return true;
               })
-            : part.mortises.filter((m) => m.cosmetic);
+            : part.mortises.filter((m) => m.cosmetic && !isLouverGroove(m));
           const mortiseBoxesScaled: LocalBox[] | undefined =
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => {
