@@ -1811,11 +1811,22 @@ export function T2Annotations({
           key={`${it.kind}-${it.idx}-box`}
           points={(() => {
             const mm = isMortise ? (part.mortises[it.idx] as Mortise) : null;
-            // 非貫穿傾斜 cosmetic 槽（百葉門 25° 斜槽）＝「整個方框傾斜」：把投影矩形
-            // 繞自身中心剛體 2D 旋轉 rotX（葉片截面整顆斜放）。不走剪切投影（剪切＝
-            // 孔口貼面線、只左右短邊斜、孔身斜進，那是「穿進面的斜眼」用的，user 回報
-            // 「不是左右短邊斜、是整個方框傾斜」）。
+            // 非貫穿傾斜 cosmetic 槽（百葉門 25° 斜槽）：斜度只在「看得到傾斜的視圖」
+            // 顯示＝俯視（annView="front"，視線沿葉片長軸、看到截面整顆轉 25°）。
+            // 正視（annView="top"，斜度沿視線進頁面）＝軸對齊方框不斜；側視同理畫方框。
+            // user 回報「正視圖榫應該是方框沒斜、側視是高的方框」。
             if (mm && mm.cosmetic && !mm.through && (mm.rotX || mm.rotZ)) {
+              if (view !== "front") {
+                // 正視（annView=top，斜度沿視線進頁面）＝方框不斜；側視（annView=side，
+                // 視線沿門高）＝傾斜葉片截面投影成「高的方框」。兩者都用 box 的自然
+                // 投影（projectBoxCorners 含 rotX）：正視幾乎不受斜度影響仍方框、側視
+                // 斜葉片面投影拉高成高框（user 回報「正視方框不斜、側視高的方框」）。
+                return convexHull2D(projectBoxCorners(lb as any))
+                  .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+                  .join(" ");
+              }
+              // 俯視（annView=front，視線沿葉片長軸）：整個方框繞自身中心剛體 2D 旋轉
+              // rotX（projectBoxCorners 在此視軸不顯斜＝旋轉軸與長邊平行，故改 2D 旋轉）。
               const ang = -(mm.rotX || mm.rotZ || 0);
               const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
               const ca = Math.cos(ang), sa = Math.sin(ang);
