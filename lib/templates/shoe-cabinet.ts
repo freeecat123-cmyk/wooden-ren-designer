@@ -334,7 +334,9 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
           const stileCenterY = stile.origin.y + stile.visible.width / 2;
           const tiltDeg = Math.round((slatTiltRad * 180) / Math.PI);
           stile.mortises.push({
-            origin: { x: innerX, y: 0, z: slatY - stileCenterY },
+            // origin.y 是 from-bottom（零件底面起算）→ 槽要落在板厚中央＝thickness/2
+            // （葉片在門厚中段，槽置中料厚；y:0 會貼底面、零件圖偏下一邊 user 回報）
+            origin: { x: innerX, y: stile.visible.thickness / 2, z: slatY - stileCenterY },
             depth: grooveDepth,
             length: slatFaceH,
             width: slatThick,
