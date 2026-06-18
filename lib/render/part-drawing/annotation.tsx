@@ -1809,22 +1809,49 @@ export function T2Annotations({
       ) : ((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ) ? (
         <polygon
           key={`${it.kind}-${it.idx}-box`}
-          points={convexHull2D(
-            isMortise
-              ? // 斜眼用剪切投影：孔口貼平面線、孔身沿軸斜進（不繞中心整顆轉）
-                projectMortiseShearCorners(
-                  lb as any,
-                  (lb as any).depthAxis ?? "z",
-                  ((lb as any).depthAxis === "x"
-                    ? (part.mortises[it.idx] as Mortise).origin.x >= 0
-                    : (lb as any).depthAxis === "y"
-                      ? (part.mortises[it.idx] as Mortise).origin.y > T / 2
-                      : (part.mortises[it.idx] as Mortise).origin.z >= 0)
-                    ? 1
-                    : -1,
-                )
-              : projectBoxCorners(lb as any)
-          ).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
+          points={(() => {
+            const mm = isMortise ? (part.mortises[it.idx] as Mortise) : null;
+            // 非貫穿傾斜 cosmetic 槽（百葉門 25° 斜槽）＝「整個方框傾斜」：把投影矩形
+            // 繞自身中心剛體 2D 旋轉 rotX（葉片截面整顆斜放）。不走剪切投影（剪切＝
+            // 孔口貼面線、只左右短邊斜、孔身斜進，那是「穿進面的斜眼」用的，user 回報
+            // 「不是左右短邊斜、是整個方框傾斜」）。
+            if (mm && mm.cosmetic && !mm.through && (mm.rotX || mm.rotZ)) {
+              const ang = -(mm.rotX || mm.rotZ || 0);
+              const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+              const ca = Math.cos(ang), sa = Math.sin(ang);
+              return (
+                [
+                  [box.x, box.y],
+                  [box.x + box.w, box.y],
+                  [box.x + box.w, box.y + box.h],
+                  [box.x, box.y + box.h],
+                ] as Array<[number, number]>
+              )
+                .map(([px, py]) => {
+                  const dx = px - cx, dy = py - cy;
+                  return `${(cx + dx * ca - dy * sa).toFixed(2)},${(cy + dx * sa + dy * ca).toFixed(2)}`;
+                })
+                .join(" ");
+            }
+            return convexHull2D(
+              isMortise
+                ? // 斜眼用剪切投影：孔口貼平面線、孔身沿軸斜進（不繞中心整顆轉）
+                  projectMortiseShearCorners(
+                    lb as any,
+                    (lb as any).depthAxis ?? "z",
+                    ((lb as any).depthAxis === "x"
+                      ? (part.mortises[it.idx] as Mortise).origin.x >= 0
+                      : (lb as any).depthAxis === "y"
+                        ? (part.mortises[it.idx] as Mortise).origin.y > T / 2
+                        : (part.mortises[it.idx] as Mortise).origin.z >= 0)
+                      ? 1
+                      : -1,
+                  )
+                : projectBoxCorners(lb as any),
+            )
+              .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+              .join(" ");
+          })()}
           fill={fill}
           stroke={stroke}
           strokeWidth={1.2}
