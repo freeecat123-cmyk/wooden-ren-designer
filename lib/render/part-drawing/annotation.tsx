@@ -2943,6 +2943,59 @@ export function ShapeSpecificAnnotation({
 }
 
 /**
+ * <LouverLayoutDims> — 百葉門豎梃斜槽「劃線尺寸」（俯視）。
+ * 木工劃線排槽需要：道數、槽間距(pitch)、傾角、首槽距端。逐槽 W×L×深 已由 T2 標，
+ * 這裡補整體排版資訊：一個 pitch 尺寸（最左兩槽中心）＋首槽距端＋「×N 間距P 斜A°」字。
+ */
+export function LouverLayoutDims({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  // 俯視（葉片沿長軸排開、看得到傾斜）才標
+  if (view !== "front") return null;
+  const grooves = (part.mortises ?? []).filter(
+    (m) => m.cosmetic && (m.rotX || m.rotZ) && (m.label ?? "").startsWith("百葉槽"),
+  );
+  if (grooves.length < 2) return null;
+  const tHalf = part.visible.thickness / 2;
+  const byZ = [...grooves].sort((a, b) => a.origin.z - b.origin.z);
+  const pitchMm = Math.round(Math.abs(byZ[1].origin.z - byZ[0].origin.z));
+  const angleDeg = Math.round(
+    (Math.abs(grooves[0].rotX ?? grooves[0].rotZ ?? 0) * 180) / Math.PI,
+  );
+  const pts = byZ.map((m) => ctx.partLocalToSvg(m.origin.x, tHalf, m.origin.z));
+  const sx = [...pts].sort((a, b) => a.x - b.x);
+  const g0 = sx[0], g1 = sx[1];
+  // 首槽距端（part 端面到第一槽中心，沿排槽軸）＝以 part 邊界投影估；用 z 距半長算 mm
+  const halfLen = part.visible.width / 2; // 豎梃長軸＝width(門高)
+  const firstFromEnd = Math.round(halfLen - Math.abs(byZ[byZ.length - 1].origin.z));
+  const dimY = Math.max(...pts.map((p) => p.y)) + 18;
+  const ARROW = 1.6;
+  return (
+    <g stroke="#111" fill="#111" strokeWidth={0.4} fontFamily="sans-serif">
+      {/* 一個 pitch 尺寸：最左兩槽中心間 */}
+      <line x1={g0.x} y1={g0.y + 2} x2={g0.x} y2={dimY + 2} strokeWidth={0.25} stroke="#888" />
+      <line x1={g1.x} y1={g1.y + 2} x2={g1.x} y2={dimY + 2} strokeWidth={0.25} stroke="#888" />
+      <line x1={g0.x} y1={dimY} x2={g1.x} y2={dimY} />
+      <polygon points={`${g0.x},${dimY} ${g0.x + ARROW},${dimY - ARROW} ${g0.x + ARROW},${dimY + ARROW}`} />
+      <polygon points={`${g1.x},${dimY} ${g1.x - ARROW},${dimY - ARROW} ${g1.x - ARROW},${dimY + ARROW}`} />
+      <text x={(g0.x + g1.x) / 2} y={dimY - 3} textAnchor="middle" fontSize={9} stroke="none">
+        {`間距 ${pitchMm}`}
+      </text>
+      {/* 整體劃線資訊 */}
+      <text x={ctx.vbX + 10} y={dimY + 16} fontSize={10} stroke="none" fill="#1f2937" fontFamily="monospace">
+        {`百葉槽 ×${grooves.length}　間距 ${pitchMm}　斜 ${angleDeg}°　首槽距端 ${firstFromEnd}`}
+      </text>
+    </g>
+  );
+}
+
+/**
  * <LatheSegmentTable> — lathe-turned 段別表（side view 角落）。
  *
  * 讀 module 常數 LATHE_SEG（12 段 [topR, botR, hFrac]）。

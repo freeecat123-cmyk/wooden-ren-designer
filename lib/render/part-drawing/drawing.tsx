@@ -18,6 +18,7 @@ import { MATERIALS } from "@/lib/materials";
 import {
   T1Dimensions,
   T2Annotations,
+  LouverLayoutDims,
   FacingMark,
   ShapeSpecificAnnotation,
   CompoundMiterAnnotation,
@@ -328,6 +329,11 @@ export function PartDrawing({
                           view={annView}
                         />
                         <CompoundMiterAnnotation
+                          ctx={ctx}
+                          part={annPart}
+                          view={annView}
+                        />
+                        <LouverLayoutDims
                           ctx={ctx}
                           part={annPart}
                           view={annView}
