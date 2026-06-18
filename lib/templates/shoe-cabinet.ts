@@ -282,7 +282,9 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   // 葉片沿門寬橫放（rotation 同橫檔的單軸 X 旋轉），嵌在框內開口、上下均分。
   if (doorType === "louvered") {
     const grooveDepth = 8;   // caseFurniture 門框鑲板槽深，用來推算框內開口
-    const slatThick = 9;     // 葉片厚
+    const slatThick = 6;     // 葉片厚＝豎梃斜槽寬；25° 斜槽在門厚 22 內的鉛直跨度
+                             // = faceH·sin25+thick·cos25，thick 9→6 把跨度 19→16、
+                             // 槽到料面留 ~2.8mm 壁（原 1.4mm 快破邊，user 回報）
     const slatPitch = 30;    // 葉片中心間距
     const slatFaceH = 26;    // 葉片面寬（傾斜後鉛直投影 ≈27mm < pitch → 不互疊）
     // 葉片繞自身長軸（part-local X）傾斜 25°；疊在門板基準 X 旋轉上仍為單軸。
