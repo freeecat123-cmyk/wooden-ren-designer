@@ -1143,8 +1143,11 @@ function OrthoViewImpl({
             }
             // 同步歸位「板平著挖」的 cosmetic 斜孔（外撇手把）：mesh 反烘成
             // 平板後，孔心回壁厚中心、rotX 清零、深 = 壁厚（維持貫穿）。
+            // 僅反烘「貫穿」型（外撇牆/托盤手把）；非貫穿斜槽（百葉門 25° 斜淺槽）
+            // 保留斜度，下方 cosmetic outline 才會（依 isolate+rotX 判斷）讓位給
+            // annotation 的剪切斜框、不疊出軸對齊直框（user 2026-06-18「兩個一上一下」）。
             const nextMortises = p.mortises.map((m) =>
-              m.cosmetic && (m.rotX || m.rotZ)
+              m.cosmetic && m.through && (m.rotX || m.rotZ)
                 ? {
                     ...m,
                     origin: { ...m.origin, y: p.visible.thickness / 2 },
@@ -3623,7 +3626,16 @@ function OrthoViewImpl({
           // CSG 還是會挖，只是 2D 不再加多餘虛線（隔板邊緣已經視覺上嵌入壁）
           if (/^wall-\d+$/.test(part.id)) return null;
           // rect 壁 dado（divider 嵌入溝）：m.rotY 標記用，CSG 會挖但 2D outline 算錯方向，跳過
-          const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0 && !m.rotY);
+          // 零件圖（isolate）模式下，傾斜 cosmetic 槽（rotX/rotZ，如百葉門 25° 斜槽）
+          // 改由 annotation T2 的剪切多邊形畫斜框；svg outline 在 isolate 視軸重映後
+          // 不會跟著轉、會疊出一條軸對齊直框（user 回報「兩個一上一下」），故跳過。
+          const cosmetic = part.mortises.filter(
+            (m) =>
+              m.cosmetic &&
+              m.depth > 0 &&
+              !m.rotY &&
+              !(isolatePartId && (m.rotX || m.rotZ)),
+          );
           if (cosmetic.length === 0) return null;
           // Pill 偵測：rect mortise + 2 round mortise（at ±rect.length/2、同 cy/cz/rotX/depth）
           // 視為單一 pill 路徑。否則 3 個獨立框 + outer/inner 雙輪廓 = 6 條線，使用者覺得亂。

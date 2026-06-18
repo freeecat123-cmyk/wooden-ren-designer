@@ -332,6 +332,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
             Math.sign(panel.origin.x - stile.origin.x) *
               (stile.visible.length / 2 - grooveDepth / 2);
           const stileCenterY = stile.origin.y + stile.visible.width / 2;
+          const tiltDeg = Math.round((slatTiltRad * 180) / Math.PI);
           stile.mortises.push({
             origin: { x: innerX, y: 0, z: slatY - stileCenterY },
             depth: grooveDepth,
@@ -340,7 +341,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
             through: false,
             cosmetic: true,
             rotX: slatTiltRad,
-            label: "百葉槽",
+            label: `百葉槽${tiltDeg}°`,
           });
         }
       }
