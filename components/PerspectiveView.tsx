@@ -263,6 +263,10 @@ type PartProps = {
    * 的 z-fight。目前只用在紅酒架菱形對角板（pointed-ends 兩 wedge 面剛好落在
    * 框內側面平面上、否則 solid view 會閃動）。 */
   polygonOffset?: boolean;
+  /** 強力 polygon offset（把 mesh 深度大幅往後推）——百葉斜葉片端嵌進豎梃實料、
+   *  交界面 z-fight 出白點；把葉片壓後讓豎梃在交界處贏深度測試、遮住葉片端。
+   *  比 polygonOffset(factor/units=1) 大很多才壓得住斜交線。 */
+  pushBack?: boolean;
 };
 
 // React.memo 比較器：父元件 render 時 size/position/rotation 都是新 array
@@ -276,6 +280,7 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
   if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
   if (a.polygonOffset !== b.polygonOffset) return false;
+  if (a.pushBack !== b.pushBack) return false;
   if (a.position[0] !== b.position[0] || a.position[1] !== b.position[1] || a.position[2] !== b.position[2]) return false;
   if (a.size[0] !== b.size[0] || a.size[1] !== b.size[1] || a.size[2] !== b.size[2]) return false;
   if (a.rotation.x !== b.rotation.x || a.rotation.y !== b.rotation.y || a.rotation.z !== b.rotation.z) return false;
@@ -313,6 +318,7 @@ const Part = memo(function PartInner({
   isDimmed,
   wireframe,
   polygonOffset,
+  pushBack,
 }: PartProps) {
   // 高亮配色（選中：amber-400 emissive 強；hover：同色但弱，預覽用）
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
@@ -592,9 +598,9 @@ const Part = memo(function PartInner({
         depthWrite={!isDimmed && !wireframe}
         emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
         emissiveIntensity={highlightIntensity}
-        polygonOffset={polygonOffset}
-        polygonOffsetFactor={polygonOffset ? 1 : 0}
-        polygonOffsetUnits={polygonOffset ? 1 : 0}
+        polygonOffset={polygonOffset || pushBack}
+        polygonOffsetFactor={pushBack ? 6 : polygonOffset ? 1 : 0}
+        polygonOffsetUnits={pushBack ? 24 : polygonOffset ? 1 : 0}
       />
     </mesh>
   );
@@ -1852,6 +1858,7 @@ export function PerspectiveView({
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
                 polygonOffset={part.id.startsWith("diamond-")}
+                pushBack={/-louver-\d+$/.test(part.id)}
               />
               {tenonMeshes}
               {auditOverlay}
