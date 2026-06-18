@@ -1825,22 +1825,32 @@ export function T2Annotations({
                   .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
                   .join(" ");
               }
-              // 俯視（annView=front，視線沿葉片長軸）：整個方框繞自身中心剛體 2D 旋轉
-              // rotX（projectBoxCorners 在此視軸不顯斜＝旋轉軸與長邊平行，故改 2D 旋轉）。
+              // 俯視（annView=front，視線沿葉片長軸）：截面整顆繞中心 2D 旋轉 rotX，
+              // 且「槽頭做圓」＝跑道形(stadium)配合圓邊(bullnose)葉片：長軸兩端各半圓
+              // (半徑=短邊/2=葉片圓邊半徑)，非方角(user 回報槽頭也要圓)。
               const ang = -(mm.rotX || mm.rotZ || 0);
               const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
               const ca = Math.cos(ang), sa = Math.sin(ang);
-              return (
-                [
-                  [box.x, box.y],
-                  [box.x + box.w, box.y],
-                  [box.x + box.w, box.y + box.h],
-                  [box.x, box.y + box.h],
-                ] as Array<[number, number]>
-              )
-                .map(([px, py]) => {
-                  const dx = px - cx, dy = py - cy;
-                  return `${(cx + dx * ca - dy * sa).toFixed(2)},${(cy + dx * sa + dy * ca).toFixed(2)}`;
+              const longHoriz = box.w >= box.h;
+              const halfLong = (longHoriz ? box.w : box.h) / 2;
+              const r = (longHoriz ? box.h : box.w) / 2;
+              const straight = Math.max(0, halfLong - r);
+              const N = 8;
+              const local: Array<[number, number]> = [];
+              for (let i = 0; i <= N; i++) {
+                const t = Math.PI / 2 - (Math.PI * i) / N; // 右半圓 +90°→−90°
+                local.push([straight + r * Math.cos(t), r * Math.sin(t)]);
+              }
+              for (let i = 0; i <= N; i++) {
+                const t = -Math.PI / 2 - (Math.PI * i) / N; // 左半圓 −90°→−270°
+                local.push([-straight + r * Math.cos(t), r * Math.sin(t)]);
+              }
+              return local
+                .map(([lx0, ly0]) => {
+                  // local 以長軸=X 建；長軸若實際在垂直軸則交換
+                  const lx = longHoriz ? lx0 : ly0;
+                  const ly = longHoriz ? ly0 : lx0;
+                  return `${(cx + lx * ca - ly * sa).toFixed(2)},${(cy + lx * sa + ly * ca).toFixed(2)}`;
                 })
                 .join(" ");
             }
