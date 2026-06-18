@@ -336,7 +336,13 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
           stile.mortises.push({
             // origin.y 是 from-bottom（零件底面起算）→ 槽要落在板厚中央＝thickness/2
             // （葉片在門厚中段，槽置中料厚；y:0 會貼底面、零件圖偏下一邊 user 回報）
-            origin: { x: innerX, y: stile.visible.thickness / 2, z: slatY - stileCenterY },
+            // z 要對齊葉片「中心高」＝slatY(葉片底origin.y)+slatFaceH/2，非葉片底；
+            // 用 slatY 會讓整排槽偏 −slatFaceH/2、最頂端空出半葉空格（user「最右邊空一格」）。
+            origin: {
+              x: innerX,
+              y: stile.visible.thickness / 2,
+              z: slatY + slatFaceH / 2 - stileCenterY,
+            },
             depth: grooveDepth,
             length: slatFaceH,
             width: slatThick,
