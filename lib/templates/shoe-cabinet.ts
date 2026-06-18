@@ -295,7 +295,11 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     for (const panel of louverPanels) {
       // 葉片長度 = 原木鑲板全寬（panelOuterW）：整片直接卡進左右豎梃凹槽
       // （兩端各埋 grooveDepth），不另做榫。跟原本木鑲板入框做法一致。
-      const slatLen = panel.visible.length;
+      // 葉片長度：不嵌進豎梃槽，端面到豎梃內緣留 ~0.5mm（總長 openW−1）。
+      // 嵌進去（panel 全寬）會讓葉片實體穿進豎梃實料、交界面算圖出白色穿插假影
+      // （user 回報「豎梃有奇怪白點」，非破洞/高光/切口，是兩塊實體互穿的渲染瑕疵）。
+      // 退到貼齊不互穿＝端面藏在豎梃前緣後、視覺乾淨；零件圖的斜槽仍標真實入槽接合。
+      const slatLen = panel.visible.length - 2 * grooveDepth - 1.0;
       const openH = panel.visible.width - 2 * grooveDepth;  // 框內開口高
       const openBottomY = panel.origin.y + grooveDepth;
       const count = Math.max(2, Math.floor(openH / slatPitch));
