@@ -498,8 +498,10 @@ export const desk: FurnitureTemplate = (input) => {
       // local Z(width=STRETCHER_T)→世界 Z(深)。榫沿 local X→世界 X 鑽進縱撐。
       const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2);
       const crossTenonLen = 15;                        // 盲榫進 STRETCHER_T(25) 厚縱撐
-      const crossTenonThick = STRETCHER_H - 6;         // 34：沿 thickness=世界 Y(高)，留 3mm 肩
-      const crossTenonW = Math.round(STRETCHER_T / 2); // 12：沿 width=世界 Z(深)
+      // 榫高（世界 Y）要留足肩、避免縱撐母眼上下破邊：縱撐高 STRETCHER_H=40，
+      // 榫 24 → 上下各留 8mm 壁（先前 34 只剩 3mm，user 回報「旁邊快破」）。
+      const crossTenonThick = STRETCHER_H - 16;        // 24：沿 thickness=世界 Y(高)
+      const crossTenonW = Math.round(STRETCHER_T / 2); // 13：沿 width=世界 Z(深)，6mm 頰
       design.parts.push({
         id: "desk-h-cross",
         nameZh: "H 框橫向長橫撐",
@@ -517,13 +519,17 @@ export const desk: FurnitureTemplate = (input) => {
       });
       // 縱向橫撐母眼（cross 兩端入榫）：縱撐 local Y 面 = 世界 X 內面。
       // 左縱撐(world -X) 內面=world +X=local +Y(y=ly)；右縱撐 內面=world -X=local -Y(y=0)。
+      // ⚠️ 榫高 24 < 32 → mortiseLocalBox auto-fit 會把長軸(24)誤放 local X(縱撐長 490)
+      //    而非 local Z(縱撐高 40=世界 Y)。比照筆筒 divider dado 用 rotY=π/2 把 cut box
+      //    繞深度軸轉 90°、(longDim,D,shortDim)→(shortDim,D,longDim) 對正世界 Y(高)。
       for (const ss of sideStretchers) {
         ss.mortises.push({
           origin: { x: 0, y: ss.origin.x < 0 ? STRETCHER_T - LEG_FACE_INSET : LEG_FACE_INSET, z: 0 },
           depth: crossTenonLen,
-          length: crossTenonThick, // 34 → auto-fit 落 local Z(世界 Y, lz=40, 比值>0.8)
-          width: crossTenonW,      // 12 → local X(世界 Z)
+          length: crossTenonThick, // 24 → 沿世界 Y(高)
+          width: crossTenonW,      // 13 → 沿世界 Z(深)
           through: false,
+          rotY: Math.PI / 2,
         });
       }
     }
