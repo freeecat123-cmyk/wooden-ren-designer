@@ -22,9 +22,11 @@ import {
 } from "./_helpers";
 import {
   drawerBottomModeOption,
+  drawerBoxJoineryOption,
   drawerMountOption,
   drawerSlideOption,
   resolveDrawerBottomMode,
+  resolveDrawerBoxJoinery,
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
@@ -98,6 +100,7 @@ export const deskOptions: OptionSpec[] = [
   // 抽屜細部（同櫃類）—— 跟櫃類同款 helper 共用
   { ...drawerMountOption, dependsOn: { key: "drawerStyle", equals: "pedestal" }, help: "牙板抽屜形式只能入柱（強制）" },
   { ...drawerBottomModeOption, dependsOn: { key: "drawerStyle", notIn: ["none"] } },
+  { ...drawerBoxJoineryOption, dependsOn: { key: "drawerStyle", notIn: ["none"] } },
   { ...drawerSlideOption, dependsOn: { key: "drawerStyle", notIn: ["none"] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerStyle", notIn: ["none"] } },
   // 抽屜櫃結構：接桌底方式 + 深度/間距 + H 框（僅 pedestal 形式）
@@ -277,6 +280,7 @@ export const desk: FurnitureTemplate = (input) => {
     const drawerMount = resolveDrawerMount(input, o);
     const drawerBottomMode = resolveDrawerBottomMode(input, o);
     const drawerSlideGap = resolveDrawerSlideGap(input, o);
+    const drawerBoxJoinery = resolveDrawerBoxJoinery(input, o);
     const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
 
     // 用 caseFurniture builder 蓋一個迷你抽屜櫃（無腳），再 translate 進 desk 座標
@@ -293,6 +297,7 @@ export const desk: FurnitureTemplate = (input) => {
       drawerMount,
       drawerBottomMode,
       drawerSlideGap,
+      drawerBoxJoinery,
       pullStyle,
       backMode: "surface",
       panelThickness: 15,
@@ -577,6 +582,7 @@ export const desk: FurnitureTemplate = (input) => {
     const drawerMount = "inset" as const;
     const drawerBottomMode = resolveDrawerBottomMode(input, o);
     const drawerSlideGap = resolveDrawerSlideGap(input, o);
+    const drawerBoxJoinery = resolveDrawerBoxJoinery(input, o);
     const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
     // 單抽：寬度 + 左/中/右位置可調；多抽：等寬併滿牙板帶
     // 注意 front 相機在 -Z，世界 +X 顯示在螢幕左 → 直覺「左」對應 +X、「右」對應 -X
@@ -616,6 +622,7 @@ export const desk: FurnitureTemplate = (input) => {
       drawerMount,
       drawerBottomMode,
       drawerSlideGap,
+      drawerBoxJoinery,
       pullStyle,
       skipCaseDividers: true,
     }, design.parts);
