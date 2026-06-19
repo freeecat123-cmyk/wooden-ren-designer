@@ -14,7 +14,13 @@ export type PartCategory =
   | "misc";
 
 export function categorizePart(id: string): PartCategory {
-  if (/^z?\d*-?drawer-?\d*-(face|front|back|side|bottom)/.test(id))
+  // 抽屜箱件（面板/前後板/側板/底板）：id 慣例 `{prefix}drawer-{i}-{role}`，prefix
+  // 可空（drawer-1-）、含 zone（z2-drawer-1-）、含欄（col1-drawer-1-），也可能整段
+  // 前綴在別的家具裡（書桌 desk-pedestal-z1-drawer-1-、desk-apron-drawer-1-）。
+  // 原本 `^z?\d*-?drawer` 錨在開頭 → 書桌那種長前綴的抽屜件全落 misc 不出零件圖
+  // （user 回報「桌子抽屜功能不齊全、要對齊櫃子抽屜」）。改成「開頭或 - 後接 drawer」
+  // 讓任何前綴的抽屜件都認得。
+  if (/(^|-)drawer-?\d*-(face|front|back|side|bottom)/.test(id))
     return "drawer";
   if (/drawer-col-partition/.test(id)) return "divider";
   // door 子件：框（rail/stile）、木鑲板(panel)、玻璃(glass)、夾板平板門(slab)、
