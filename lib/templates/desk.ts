@@ -1,6 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { simpleTable } from "./_builders/simple-table";
+import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
+import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { caseFurniture } from "./_builders/case-furniture";
 import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-row";
 import { applyLowerStretcherArrangement } from "./dining-table";
@@ -444,12 +445,22 @@ export const desk: FurnitureTemplate = (input) => {
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
       : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
     void TENON;
+    // ── H 框榫接（比照 simple-table 下橫撐 §A10）──
+    // 縱向橫撐兩端盲榫進前後腳、腳補對應母眼；橫向橫撐兩端盲榫進左右縱撐、縱撐補母眼。
+    // Euler ZYX (x:π/2, y:π/2)：local X(length)→world Z、local Y(thickness=STRETCHER_T)
+    // →world X、local Z(width=STRETCHER_H)→world Y。tenon start/end 沿 local X→world Z
+    // 鑽進前後腳；榫 width(W)→local Z=世界 Y(高)、thickness(T)→local Y=世界 X(厚)。
+    const hTenonType = autoTenonType(legSize);
+    const hTenonStd = standardTenon({ type: hTenonType, childThickness: STRETCHER_T, childWidth: STRETCHER_H, motherThickness: legSize });
+    const hTenonLen = hTenonStd.length;       // 盲榫 ≈ 2/3 腳厚
+    const hTenonW = hTenonStd.width;          // 榫寬：沿 STRETCHER_H（高 = 世界 Y）
+    const hTenonThick = hTenonStd.thickness;  // 榫厚：沿 STRETCHER_T（厚 = 世界 X）
+    const hThrough = hTenonType === "through-tenon";
+    const sideStretchers: typeof design.parts = [];
     for (const sx of [-1, +1] as const) {
-      // Euler ZYX (x:π/2, y:π/2)：local X→world -Z（length 沿 Z 方向）、
-      // local +z→world -Y（trapezoid bot=stretcher 下緣，更長）、
-      // local -z→world +Y（trapezoid top=stretcher 上緣，更短）
-      // 端面就會跟腳斜面平行，下緣接到腳上、上緣斜切回避內收的腳
-      design.parts.push({
+      // local +z→world -Y（trapezoid bot=stretcher 下緣，更長）、local -z→world +Y
+      // （trapezoid top=stretcher 上緣，更短）→ 端面跟腳斜面平行。
+      const part: (typeof design.parts)[number] = {
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
         nameEn: `H-frame ${sx < 0 ? "left" : "right"} longitudinal stretcher`,
@@ -459,13 +470,36 @@ export const desk: FurnitureTemplate = (input) => {
         origin: { x: sx * legCenterX, y: stretcherY, z: 0 },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         shape: sideStretcherShape,
-        tenons: [],
+        tenons: [
+          { position: "start", type: hTenonType, length: hTenonLen, width: hTenonW, thickness: hTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+          { position: "end", type: hTenonType, length: hTenonLen, width: hTenonW, thickness: hTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+        ],
         mortises: [],
+      };
+      design.parts.push(part);
+      sideStretchers.push(part);
+    }
+    // 縱向橫撐母眼補進四隻腳（內側 Z 面、stretcher 中心高）
+    for (const leg of design.parts) {
+      if (!/^leg-/.test(leg.id)) continue;
+      const cz = leg.origin.z;
+      leg.mortises.push({
+        origin: { x: 0, y: stretcherCenterY, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
+        depth: hTenonLen,
+        length: hTenonW,    // 沿世界 Y（榫高 30）— auto-fit 落腳 local Y(長軸)
+        width: hTenonThick, // 沿世界 X（榫厚 12）— 落腳 local X
+        through: hThrough,
       });
     }
     // 橫向長橫撐：只在 drawerCount > 1 才需要（單抽櫃輕、左右兩條已夠）
     if (drawerCount > 1) {
-      const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2 + TENON);
+      // butt 到左右縱向橫撐內面（縱撐世界 X 厚 = STRETCHER_T）；兩端盲榫進縱撐。
+      // cross 無 rotation：local Y(thickness=STRETCHER_H)→世界 Y(高)、
+      // local Z(width=STRETCHER_T)→世界 Z(深)。榫沿 local X→世界 X 鑽進縱撐。
+      const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2);
+      const crossTenonLen = 15;                        // 盲榫進 STRETCHER_T(25) 厚縱撐
+      const crossTenonThick = STRETCHER_H - 6;         // 34：沿 thickness=世界 Y(高)，留 3mm 肩
+      const crossTenonW = Math.round(STRETCHER_T / 2); // 12：沿 width=世界 Z(深)
       design.parts.push({
         id: "desk-h-cross",
         nameZh: "H 框橫向長橫撐",
@@ -475,9 +509,23 @@ export const desk: FurnitureTemplate = (input) => {
         visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
         origin: { x: 0, y: stretcherY, z: 0 },
         shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-        tenons: [],
+        tenons: [
+          { position: "start", type: "blind-tenon", length: crossTenonLen, width: crossTenonW, thickness: crossTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+          { position: "end", type: "blind-tenon", length: crossTenonLen, width: crossTenonW, thickness: crossTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+        ],
         mortises: [],
       });
+      // 縱向橫撐母眼（cross 兩端入榫）：縱撐 local Y 面 = 世界 X 內面。
+      // 左縱撐(world -X) 內面=world +X=local +Y(y=ly)；右縱撐 內面=world -X=local -Y(y=0)。
+      for (const ss of sideStretchers) {
+        ss.mortises.push({
+          origin: { x: 0, y: ss.origin.x < 0 ? STRETCHER_T - LEG_FACE_INSET : LEG_FACE_INSET, z: 0 },
+          depth: crossTenonLen,
+          length: crossTenonThick, // 34 → auto-fit 落 local Z(世界 Y, lz=40, 比值>0.8)
+          width: crossTenonW,      // 12 → local X(世界 Z)
+          through: false,
+        });
+      }
     }
     } // end withHFrame
   }
