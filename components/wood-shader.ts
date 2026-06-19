@@ -109,6 +109,9 @@ float streak = wd_fbm(vec2(gx * 0.004, wz * 0.07)) * 0.50
              + wd_fbm(vec2(gx * 0.009, wz * 0.22)) * 0.30
              + wd_fbm(vec2(gx * 0.020, wz * 0.55)) * 0.20;
 dimming -= smoothstep(0.40, 0.62, streak) * 0.10;
+// 端面/薄邊（faceY 低）grain dimming 很弱→比廣面亮、會在交界露成白點
+// （百葉葉片端嵌豎梃露白，user 回報「斜的白塊」）。補 baseline dim 貼齊廣面亮度。
+dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
 dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
   }
@@ -128,6 +131,8 @@ dimming -= smoothstep(0.74, 0.90, pore) * 0.10;
 dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.14;
 // 中尺度斑紋
 dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07;
+// 端面/薄邊 baseline dim（同 wide：避免端面比廣面亮成白點）
+dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
 dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
 }
