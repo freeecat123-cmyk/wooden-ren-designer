@@ -9,6 +9,11 @@ interface WhitelistRow {
   source: string | null;
   note: string | null;
   created_at: string;
+  term_months: number | null;
+  // GET 合併進來的 user 資訊（註冊後才有）
+  registered?: boolean;
+  user_plan?: string | null;
+  subscription_expires_at?: string | null;
 }
 
 interface CsvPreviewRow {
@@ -20,6 +25,20 @@ interface CsvPreviewRow {
 
 const SOURCES = ["manual", "hahow", "omia", "woodenrenclass"];
 
+// 開通年限選項（月）；label 給人看
+const TERM_OPTIONS = [
+  { months: 6, label: "半年（6 個月）" },
+  { months: 12, label: "1 年（12 個月）" },
+  { months: 24, label: "2 年（24 個月）" },
+];
+function termLabel(months: number | null | undefined): string {
+  if (months == null) return "1 年";
+  if (months === 6) return "半年";
+  if (months === 12) return "1 年";
+  if (months === 24) return "2 年";
+  return `${months} 個月`;
+}
+
 export function WhitelistAdminClient() {
   const [rows, setRows] = useState<WhitelistRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +49,8 @@ export function WhitelistAdminClient() {
   const [newEmail, setNewEmail] = useState("");
   const [newSource, setNewSource] = useState<string>("manual");
   const [newNote, setNewNote] = useState("");
+  // 開通年限（月）——單筆新增與 CSV 匯入共用
+  const [newTermMonths, setNewTermMonths] = useState<number>(12);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -101,6 +122,7 @@ export function WhitelistAdminClient() {
           emails: newEmail,
           source: newSource,
           note: newNote || undefined,
+          termMonths: newTermMonths,
         }),
       });
       const json = await safeJson(res);
@@ -154,7 +176,7 @@ export function WhitelistAdminClient() {
       const res = await fetch("/api/admin/whitelist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: csvPreview }),
+        body: JSON.stringify({ rows: csvPreview, termMonths: newTermMonths }),
       });
       const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "import failed");
@@ -262,6 +284,27 @@ export function WhitelistAdminClient() {
           載入失敗：{error}
         </div>
       )}
+
+      {/* === 開通年限（單筆 + CSV 共用） === */}
+      <section className="border border-emerald-200 rounded-lg p-4 bg-emerald-50/50 mb-4">
+        <label className="flex flex-wrap items-center gap-3">
+          <span className="font-semibold text-emerald-900">開通年限</span>
+          <select
+            value={newTermMonths}
+            onChange={(e) => setNewTermMonths(Number(e.target.value))}
+            className="px-3 py-2 rounded border border-zinc-300 text-sm bg-white"
+          >
+            {TERM_OPTIONS.map((t) => (
+              <option key={t.months} value={t.months}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-emerald-800">
+            下方「單筆新增」和「CSV 匯入」都會套用這個年限。舊木匠學院會員選「半年」。
+          </span>
+        </label>
+      </section>
 
       {/* === 新增區塊 === */}
       <section className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -410,6 +453,8 @@ export function WhitelistAdminClient() {
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Email</th>
                 <th className="text-left px-4 py-2 font-medium">來源</th>
+                <th className="text-left px-4 py-2 font-medium">年限</th>
+                <th className="text-left px-4 py-2 font-medium">到期日</th>
                 <th className="text-left px-4 py-2 font-medium">備註</th>
                 <th className="text-left px-4 py-2 font-medium">建立時間</th>
                 <th className="px-4 py-2"></th>
@@ -418,13 +463,13 @@ export function WhitelistAdminClient() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-zinc-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-zinc-500">
                     載入中…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-zinc-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-zinc-500">
                     {search ? "查無符合" : "白名單還是空的——上方先加幾筆吧"}
                   </td>
                 </tr>
@@ -433,6 +478,16 @@ export function WhitelistAdminClient() {
                   <tr key={r.id} className="border-t border-zinc-100 hover:bg-amber-50/30">
                     <td className="px-4 py-2 font-mono text-zinc-800">{r.email}</td>
                     <td className="px-4 py-2 text-zinc-600">{r.source ?? "-"}</td>
+                    <td className="px-4 py-2 text-zinc-700">{termLabel(r.term_months)}</td>
+                    <td className="px-4 py-2 text-xs">
+                      {r.subscription_expires_at ? (
+                        <span className="text-zinc-700">
+                          {new Date(r.subscription_expires_at).toISOString().slice(0, 10)}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">未註冊</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-zinc-600">{r.note ?? "-"}</td>
                     <td className="px-4 py-2 text-zinc-500 text-xs">
                       {new Date(r.created_at).toISOString().slice(0, 16).replace("T", " ")}
