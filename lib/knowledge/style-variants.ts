@@ -524,9 +524,14 @@ export function sampleStyleVariant(
 // 同一風格只會變顏色」。通用變體改成直接讀模板自己的 OptionSpec[]，對每個
 // 選項在其宣告的範圍內抽樣，讓任何家具都有真正的結構 + 尺寸變化。
 
-/** 風格識別 key：base preset 已依風格設定，變體不要亂抽否則「同風格」會走鐘。 */
+/** 風格識別 key：base preset 已依風格設定，變體不要亂抽否則「同風格」會走鐘。
+ *  legInset 是「結構性位置鍵」不是表面風格鍵：full-range 亂抽會把 4 隻腳拉到正
+ *  中心併在一起（bar-stool max 150 / side-table max 300 / round-stool max 200），
+ *  做出物理上不合理的家具。chair/stool 由 STYLE_VARIANT_POOLS 的 legInsetRange
+ *  用合理小範圍控制（overlay 在 sampleGenericVariant 之後套，所以不受此 deny 影響）；
+ *  其餘 leg 家具退回 generic 時必須保持模板預設、腳留在四角。 */
 const GENERIC_VARIANT_DENY = new Set<string>([
-  "legShape", "seatProfile",
+  "legShape", "seatProfile", "legInset",
   "legEdgeStyle", "seatEdgeStyle", "topEdgeStyle", "stretcherEdgeStyle",
   "splayAngle",
 ]);
