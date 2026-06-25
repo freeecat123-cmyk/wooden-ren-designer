@@ -4,8 +4,11 @@ import { useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
- *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset */
-const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant"];
+ *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset。
+ *  ⭐ designId：載入雲端設計後改參數，必須保留 ?designId，否則 SaveDesignButton
+ *  的 currentDesignId 變 null →「儲存設計」又跳出輸入新專案名（變另存新檔，
+ *  user 2026-06-25 回報「改參數後就存不回原設計」）。 */
+const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant", "designId"];
 
 /**
  * Preset → 自動同步 sibling input 值的映射表。
