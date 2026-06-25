@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -30,6 +30,10 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
     null,
   );
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  useEffect(() => {
+    setActiveDesignId(currentDesignId ?? null);
+  }, [currentDesignId]);
 
   if (isLoading) {
     return (
