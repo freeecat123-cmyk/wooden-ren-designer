@@ -186,6 +186,11 @@ export function DesignFormShell({
     }
   }, []);
 
+  // 保險絲：把目前的雲端設計 id 埋成隱藏欄位，讓「原生 GET 送出」(無 JS / 任何
+  // 繞過 pushURL 的邊角路徑) 也帶著 designId，不會掉回「另存新檔」。pushURL 走
+  // PRESERVE_KEYS 已先擋一層，這裡是雙保險。
+  const designId = sp?.get("designId") ?? null;
+
   return (
     <form
       ref={formRef}
@@ -196,6 +201,7 @@ export function DesignFormShell({
       onKeyDown={handleKeyDown}
       className={className}
     >
+      {designId && <input type="hidden" name="designId" value={designId} />}
       {children}
     </form>
   );
