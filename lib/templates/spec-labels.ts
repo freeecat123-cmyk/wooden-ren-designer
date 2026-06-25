@@ -1169,6 +1169,7 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "legShape:inward-hoof": "Inward horse-hoof (Ming style)",
   "legShape:outward-hoof": "Outward horse-hoof (Qing style, heavy)",
   "legShape:panel-side": "Panel-side extension (continuous side panel down to floor)",
+  "legShape:full-depth-panel": "Full-depth panel legs (inset from left/right sides)",
   "legShape:pedestal": "Pedestal (single thick column + 4-claw foot)",
   "legShape:plinth": "Plinth base (continuous board)",
   "legShape:shaker": "Shaker leg (square top + round taper)",

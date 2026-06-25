@@ -254,6 +254,16 @@ visible.length = 2 × (cornerOffset + splay) − legSize
 圓腳（round leg）跟方腳沿軸方向的接合公式相同（直徑 = legSize）；圓腳沿斜角的
 butt-joint 由 cope cut（弧形端面）處理，但 visible.length 仍用同一公式。
 
+櫃類 `full-depth-panel` 腳（兩片整深度板腳）：
+```
+footT = max(12, legSize)                  // 板腳厚度，沿櫃寬 X
+footCenterX = length / 2 - legInset - footT / 2
+visible.length = cabinetDepth             // 板腳從前到後吃滿整個櫃深
+visible.width = legHeight                 // 垂直高度
+visible.thickness = footT                 // 左右方向板厚
+```
+`legInset` 表示板腳外側離櫃體左右外側的距離；左右對稱。
+
 **A10.3 弧面 / 斜角接合（coat-rack 底爪、windsor 椅）**：
 
 零件接到 box leg 沿斜角 θ 方向時，box 沿該方向的「外面距離」不是半徑：

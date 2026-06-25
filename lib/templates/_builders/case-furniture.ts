@@ -83,8 +83,9 @@ export interface CaseFurnitureOpts {
   legHeight?: number;
   legSize?: number;
   /** Leg shape: box (default), tapered (narrows toward bottom), bracket (triangular foot),
-   *  plinth (continuous base frame), panel-side (side panels extend to floor). */
-  legShape?: "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered";
+   *  plinth (continuous base frame), panel-side (side panels extend to floor),
+   *  full-depth-panel (two full-depth slab legs, inset from the left/right sides). */
+  legShape?: "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "full-depth-panel" | "round" | "round-tapered";
   /** Inset legs (or plinth) inward from case outer edge (mm, each side). */
   legInset?: number;
   /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
@@ -357,6 +358,25 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           mortises: [],
         });
       }
+    } else if (legShape === "full-depth-panel") {
+      const footT = Math.max(12, legSize);
+      const maxInset = Math.max(0, length / 2 - footT);
+      const insetX = Math.min(Math.max(0, legInset), maxInset);
+      const footCenterX = length / 2 - insetX - footT / 2;
+      for (const sx of [-1, 1] as const) {
+        parts.push({
+          id: `full-depth-panel-leg-${sx < 0 ? "left" : "right"}`,
+          nameZh: `${sx < 0 ? "左" : "右"}整深度板腳`,
+          nameEn: `${sx < 0 ? "Left" : "Right"} full-depth panel leg`,
+          material,
+          grainDirection: "length",
+          visible: { length: width, width: legHeight, thickness: footT },
+          origin: { x: sx * footCenterX, y: 0, z: 0 },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
     } else if (legShape === "plinth") {
       // 平台式底座：四邊連板底座
       const plinthT = 18;
@@ -495,7 +515,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const legTenonLen = Math.min(tenonLen, Math.max(5, legHeight));
   const legMortiseSize = legSize - 10;
   const hasCornerLegs =
-    legHeight > 0 && legShapeRaw !== "plinth" && legShapeRaw !== "panel-side";
+    legHeight > 0 && legShapeRaw !== "plinth" && legShapeRaw !== "panel-side" && legShapeRaw !== "full-depth-panel";
   parts.push({
     id: "bottom",
     nameZh: "底板",
