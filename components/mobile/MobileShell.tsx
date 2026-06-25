@@ -178,13 +178,18 @@ export function MobileShell(props: MobileShellProps) {
   // 榫接 tab：從 design 抽出所有榫卯使用情況（同桌面版 JoinerySection 邏輯）
   const joineryUsages = extractJoineryUsages(design);
 
-  // SaveDesignButton params
+  // SaveDesignButton params —— 必須跟 desktop (page.tsx) 同形狀：options 巢狀在
+  // `options` key 底下，不能攤平。buildEditHref(重開) 讀的是 p.options；攤平存的話
+  // p.options=undefined → 重開只還原 length/width/height/material、所有進階選項
+  // (腳型/抽屜/門板…) 全部 fallback 回模板預設 → 「存了重開又變了」(user 2026-06-25
+  // 手機端回報，desktop 因 nested 正常)。
   const saveParams: Record<string, unknown> = {
     length,
     width,
     height,
     material,
-    ...optionValues,
+    joineryMode: props.joineryMode,
+    options: optionValues,
   };
   const saveName = `${entry.nameZh} ${length}×${width}×${height}`;
 
