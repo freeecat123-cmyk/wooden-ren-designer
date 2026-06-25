@@ -202,8 +202,7 @@ export function projectPartSilhouette(
   // 影響極小（< 12mm），但 projectPartPolygon 已實作圓弧 polygon，照常 delegate。
   if (
     part.shape &&
-    (part.shape.kind === "shaker" ||
-      part.shape.kind === "notched-corners" ||
+    (part.shape.kind === "notched-corners" ||
       part.shape.kind === "finger-joint-ends" ||
       part.shape.kind === "dovetail-ends" ||
       part.shape.kind === "regular-polygon" ||
@@ -211,6 +210,35 @@ export function projectPartSilhouette(
       part.shape.kind === "face-rounded")
   ) {
     return projectPartPolygon(part, view);
+  }
+
+  // 夏克風腳：上方 squareFrac 方頂（方截面）+ 下方圓錐（圓截面 taper 到 bottomScale）。
+  // projectPartPolygon 的 view-name 硬畫梯形假設 taper 沿垂直 r.h 軸，零件圖橫躺
+  // （rotation.z=-π/2）時軸向不對。改在 local frame 整支採樣 → rotate → project →
+  // hull，方頂在 local +Y、圓錐往 -Y 縮，任意旋轉都對（user 2026-06-16 邊桌回報）。
+  if (part.shape?.kind === "shaker") {
+    const SQUARE_FRAC = part.shape.squareFrac ?? 0.25;
+    const BOT = part.shape.bottomScale ?? 0.6;
+    const junctionY = ly / 2 - ly * SQUARE_FRAC; // 方/圓交界 local Y
+    // 方頂：頂面 (+ly/2) 與交界面的 4 角（方截面）
+    for (const yL of [ly / 2, junctionY]) {
+      for (const xS of [-1, 1] as const) {
+        for (const zS of [-1, 1] as const) {
+          pushPoint((xS * lx) / 2, yL, (zS * lz) / 2);
+        }
+      }
+    }
+    // 圓錐：交界面（全徑）與腳底（縮 BOT）兩圈圓採樣
+    for (const [yL, sc] of [
+      [junctionY, 1],
+      [-ly / 2, BOT],
+    ] as const) {
+      for (let i = 0; i < ROUND_SAMPLES; i++) {
+        const a = (i / ROUND_SAMPLES) * Math.PI * 2;
+        pushPoint(Math.sin(a) * (lx / 2) * sc, yL, Math.cos(a) * (lz / 2) * sc);
+      }
+    }
+    return convexHull2D(projected);
   }
 
   // live-edge：sin 噪聲沿 length 軸（local X）讓 ±Z 兩條長邊起伏；俯視會看到
@@ -901,6 +929,16 @@ export function projectPartPolygon(
   // 夏克風腳：上方 squareFrac 方頂 + 下方圓錐（bottomScale）
   // 前/側視 silhouette = 矩形上半 + 梯形下半的疊加
   if (part.shape.kind === "shaker") {
+    if (
+      (part.rotation?.x ?? 0) !== 0 ||
+      (part.rotation?.y ?? 0) !== 0 ||
+      (part.rotation?.z ?? 0) !== 0
+    ) {
+      // 零件圖橫躺：下面 view-name 硬畫的方頂+圓錐梯形軸向不對（taper 被擠進
+      // r.h cross-section，整支變沙漏/兩端全高，user 2026-06-16 邊桌夏克腳回報），
+      // delegate 給 silhouette（3D sample → rotate → project，任意旋轉都對）。
+      return projectPartSilhouette(part, view);
+    }
     if (view === "top") return box;
     const SQUARE_FRAC = part.shape.squareFrac ?? 0.25;
     const TAPER_BOT_SCALE = part.shape.bottomScale ?? 0.6;

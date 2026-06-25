@@ -1820,16 +1820,21 @@ function OrthoViewImpl({
         // isPartHidden 會把它判 hidden。但櫺條凸貼在門前方 Z 較小（更靠
         // 觀察者），語意上是「正面浮雕」，必須當 visible 走實線。
         const isDoorMuntin = /-door-muntin-/.test(id);
+        // 整深度板腳（full-depth-panel leg）：id 結尾 -left/-right 只是「左/右那支腳」，
+        // 不是櫃體側板。dir 規則會誤判成 dir="left/right" → isInteriorInFront 當側板
+        // 藏成虛線（user 2026-06-25 電視櫃板腳正視變虛線回報）。板腳是落地結構件、
+        // 正視/側視都看得到，跟 corner post 同樣強制 visible。
+        const isFullDepthPanelLeg = /panel-leg-(left|right)$/.test(id);
 
         const isInteriorInFront =
-          view === "front" && !isCornerPost && !isDoorMuntin &&
+          view === "front" && !isCornerPost && !isDoorMuntin && !isFullDepthPanelLeg &&
           (isAlwaysInterior ||
             isCabinetBack ||
             isBackOfChair ||
             isBedSideRail ||
             dir === "left" || dir === "right" || dir === "back");
         const isInteriorInSide =
-          view === "side" && !isCornerPost && !isDoorMuntin &&
+          view === "side" && !isCornerPost && !isDoorMuntin && !isFullDepthPanelLeg &&
           (isAlwaysInterior ||
             isBedEnd ||
             id === "cornice-front" ||
@@ -1841,7 +1846,7 @@ function OrthoViewImpl({
         // interior/hidden 啟發式（e.g. apron-front 側視被 dir="front" 判 hidden）。
         const hidden = isolatePartId
           ? false
-          : (isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, renderDesign.parts, view)));
+          : (isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && !isFullDepthPanelLeg && isPartHidden(part, renderDesign.parts, view)));
         const stroke = hidden ? "#444" : "#000";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
         // 零件圖（isolatePartId）下 0.9 在 1x 螢幕 sub-pixel 灰，1.2 才穩

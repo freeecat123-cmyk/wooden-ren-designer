@@ -218,6 +218,24 @@ silhouette polygon 就對了。
 
 實作參考：`lib/render/svg-views.tsx` 在 default rect path 之前的 isXTilt 兜底。
 
+**A9.7 夏克風腳（`shaker`）橫躺 silhouette = 第 5 條 leg 分支**
+`shaker` 是複合料：上方 `squareFrac`（預設 0.25）方截面方頂 + 下方圓錐（圓截面 taper
+到 `bottomScale`，預設 0.6）。零件圖 isolate 把腳放平（tall part → `rotation.z=-π/2`），
+`projectPartPolygon` 的 shaker 分支是「直立 view-name 硬畫」梯形，假設 taper 沿垂直
+`r.h` 軸——橫躺後 taper 其實沿世界 X 漸變，硬畫會變成怪形（user 2026-06-16 邊桌夏克腳
+回報：俯視雙錐紡錘、側視梯形杯、正視矩形，三視圖全錯）。
+
+修法跟 `tapered` / `round-tapered` / `splayed-tapered` / `splayed-round-tapered` 四條
+同款（§A10.7 通則「橫躺 delegate 給 silhouette」），shaker 是**第 5 條**：
+- `projectPartPolygon` shaker 分支：有 rotation → `return projectPartSilhouette(part, view)`
+- ⚠ `projectPartSilhouette` 原本把 shaker **delegate 回** `projectPartPolygon`（直立 polygon），
+  橫躺會無限遞迴 → 必須在 silhouette 加 **native shaker 採樣**（方頂 4 角 × 2 個 Y level +
+  圓錐 2 圈 `ROUND_SAMPLES` 圓採樣，交界面 `junctionY = ly/2 − ly·squareFrac`）並從上方
+  delegate block 的條件移除 shaker。直立（無 rotation）case 仍由 delegate block 走
+  `projectPartPolygon` 直立 polygon（不變）。
+- geometry.ts 改 silhouette **不觸發 pre-push audit hook**，改完手動跑 `audit-overlaps.ts`
+  確認 0 new overlap（native 採樣只影響投影輪廓、不動 AABB，但仍要驗）。
+
 ### A10. Part visible 慣例（butt-joint vs joinery）
 
 ⭐ **核心設計決策**：所有家具模板的 `Part.visible.length / width / thickness` 一律
