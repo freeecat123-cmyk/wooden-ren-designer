@@ -41,7 +41,18 @@ function buildEditHref(row: DesignRow): string {
   pick("material");
   pick("joineryMode");
   pick("designerMode");
-  const options = (p as Record<string, unknown>).options;
+  // 向後相容：手機端舊版把 options 攤平存成 top-level（沒有 options key）。
+  // 這種舊資料 p.options=undefined，就把「非 length/width/height/material/joinery/
+  // designer 的 top-level key」當成 options 還原，否則舊設計重開全掉進階選項。
+  const RESERVED = new Set([
+    "length", "width", "height", "material", "joineryMode", "designerMode",
+    "style", "styleVariant", "scene", "ui",
+  ]);
+  const options =
+    (p as Record<string, unknown>).options ??
+    Object.fromEntries(
+      Object.entries(p as Record<string, unknown>).filter(([k]) => !RESERVED.has(k)),
+    );
   if (options && typeof options === "object" && !Array.isArray(options)) {
     const optionRecord = options as Record<string, unknown>;
     const specs = entry?.optionSchema ?? [];
