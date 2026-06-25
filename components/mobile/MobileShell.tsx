@@ -14,6 +14,7 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { DesignHistoryControls } from "@/components/design/DesignHistoryControls";
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { useUnit } from "@/hooks/useUnit";
 import { formatDimensions } from "@/lib/units/format";
@@ -308,6 +309,10 @@ export function MobileShell(props: MobileShellProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
+            <DesignHistoryControls
+              className="col-span-2 flex w-full"
+              buttonClassName="min-h-[44px] w-full"
+            />
             <SaveDesignButton
               furnitureType={entry.category}
               defaultName={saveName}

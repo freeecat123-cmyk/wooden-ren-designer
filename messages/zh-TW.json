@@ -4050,6 +4050,14 @@
       "loginNow": "現在登入 →"
     }
   },
+  "designHistory": {
+    "undo": "上一步",
+    "redo": "下一步",
+    "undoTitle": "回到上一組設計參數",
+    "redoTitle": "回到下一組設計參數",
+    "undoDisabled": "目前沒有可回復的上一步",
+    "redoDisabled": "目前沒有可前進的下一步"
+  },
   "invoicePref": {
     "loading": "發票設定載入中…",
     "h": "發票設定",

@@ -55,6 +55,7 @@ import { ResetDefaultsButton } from "@/components/design/ResetDefaultsButton";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { ShareDesignButton } from "@/components/design/ShareDesignButton";
+import { DesignHistoryControls } from "@/components/design/DesignHistoryControls";
 // import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
@@ -436,6 +437,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
           />
+          <DesignHistoryControls />
           {/* <PhotoToParamsButton /> */}
           <SaveDesignButton
             furnitureType={type}

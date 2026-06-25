@@ -4050,6 +4050,14 @@
       "loginNow": "Sign in →"
     }
   },
+  "designHistory": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "undoTitle": "Go back to the previous design parameters",
+    "redoTitle": "Go forward to the next design parameters",
+    "undoDisabled": "No previous design state yet",
+    "redoDisabled": "No next design state yet"
+  },
   "invoicePref": {
     "loading": "Loading invoice settings…",
     "h": "E-invoice settings",
