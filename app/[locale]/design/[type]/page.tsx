@@ -132,6 +132,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const t = await getTranslations({ locale, namespace: "design" });
   const sp = await searchParams;
   const unit = await getUnitFromCookies(locale);
+  const rawDesignId = Array.isArray(sp.designId) ? sp.designId[0] : sp.designId;
+  const currentDesignId =
+    typeof rawDesignId === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawDesignId)
+      ? rawDesignId
+      : null;
 
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) notFound();
@@ -434,6 +440,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <SaveDesignButton
             furnitureType={type}
             defaultName={`${entryName} ${length}×${width}×${height}`}
+            currentDesignId={currentDesignId}
             params={{
               length,
               width,
@@ -762,6 +769,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         printUrl={printUrl}
         lineShareText={lineShareText}
         formAction={`/${locale}/design/${entry.category}`}
+        currentDesignId={currentDesignId}
         wireframeMode={wireframeMode}
         joineryMode={joineryMode}
         designerMode={designerMode}

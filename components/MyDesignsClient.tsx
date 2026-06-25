@@ -27,7 +27,9 @@ function formatDate(iso: string): string {
 function buildEditHref(row: DesignRow): string {
   const slug = row.furniture_type.replace(/_/g, "-");
   const p = row.params ?? {};
+  const entry = getTemplate(slug as FurnitureCategory);
   const qs = new URLSearchParams();
+  qs.set("designId", row.id);
   const pick = (k: string) => {
     const v = (p as Record<string, unknown>)[k];
     if (v === undefined || v === null) return;
@@ -38,6 +40,22 @@ function buildEditHref(row: DesignRow): string {
   pick("height");
   pick("material");
   pick("joineryMode");
+  pick("designerMode");
+  const options = (p as Record<string, unknown>).options;
+  if (options && typeof options === "object" && !Array.isArray(options)) {
+    const optionRecord = options as Record<string, unknown>;
+    const specs = entry?.optionSchema ?? [];
+    if (specs.length > 0) {
+      for (const spec of specs) {
+        const v = optionRecord[spec.key];
+        if (v !== undefined && v !== null) qs.set(spec.key, String(v));
+      }
+    } else {
+      for (const [key, value] of Object.entries(optionRecord)) {
+        if (value !== undefined && value !== null) qs.set(key, String(value));
+      }
+    }
+  }
   const q = qs.toString();
   return `/design/${slug}${q ? `?${q}` : ""}`;
 }

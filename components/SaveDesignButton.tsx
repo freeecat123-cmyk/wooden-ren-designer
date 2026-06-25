@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { createClient } from "@/lib/supabase/client";
@@ -12,13 +13,19 @@ interface Props {
   defaultName: string;
   /** 完整設計參數，會塞進 designs.params jsonb */
   params: Record<string, unknown>;
+  /** 目前正在編輯的雲端設計 id；有 id 時「儲存設計」代表更新同一筆。 */
+  currentDesignId?: string | null;
 }
 
-export function SaveDesignButton({ furnitureType, defaultName, params }: Props) {
+export function SaveDesignButton({ furnitureType, defaultName, params, currentDesignId }: Props) {
   const t = useTranslations("saveDesign");
   const tPrompt = useTranslations("saveDesign.loginPrompt");
   const { features, userId, isLoggedIn, isLoading } = useUserPlan();
-  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeDesignId, setActiveDesignId] = useState<string | null>(currentDesignId ?? null);
+  const [busy, setBusy] = useState<"save" | "saveAs" | null>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "warn" | "err"; text: string } | null>(
     null,
   );
@@ -36,6 +43,65 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
     );
   }
 
+  const handleCreate = async () => {
+    const supabase = createClient();
+    const { count: typeCount } = await supabase
+      .from("designs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("furniture_type", furnitureType);
+    const nextSerial = (typeCount ?? 0) + 1;
+    const padded = String(nextSerial).padStart(3, "0");
+    const suggestedName = `${defaultName} #${padded}`;
+    const name = window.prompt(t("promptName"), suggestedName);
+    if (name === null) return null;
+    const finalName = name.trim() || suggestedName;
+
+    const res = await fetch("/api/designs/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ furnitureType, name: finalName, params }),
+    });
+    const json = (await res.json()) as {
+      id?: string;
+      error?: string;
+      message?: string;
+      max?: number;
+      count?: number;
+    };
+    if (!res.ok) {
+      if (json.error === "max_designs_reached") {
+        const max = json.max ?? features.maxDesigns;
+        const count = json.count ?? 0;
+        setMsg({
+          kind: "warn",
+          text: t("warnMaxDesignsTpl", { max, count }),
+        });
+        return null;
+      }
+      if (json.error === "plan_locked_category") {
+        setMsg({
+          kind: "warn",
+          text: json.message ?? t("warnPlanLockedFallback"),
+        });
+        return null;
+      }
+      if (json.error === "unauthenticated") {
+        setMsg({ kind: "warn", text: t("warnUnauth") });
+        return null;
+      }
+      throw new Error(json.message ?? json.error ?? `HTTP ${res.status}`);
+    }
+    return json.id ?? null;
+  };
+
+  const attachDesignIdToUrl = (id: string) => {
+    const next = new URLSearchParams(searchParams?.toString() ?? "");
+    next.set("designId", id);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname ?? ""}?${qs}` : (pathname ?? ""), { scroll: false });
+  };
+
   const handleSave = async () => {
     setMsg(null);
     if (!isLoggedIn || !userId) {
@@ -43,44 +109,24 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
       return;
     }
 
-    setBusy(true);
+    setBusy("save");
     try {
-      const supabase = createClient();
-      const { count: typeCount } = await supabase
-        .from("designs")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("furniture_type", furnitureType);
-      const nextSerial = (typeCount ?? 0) + 1;
-      const padded = String(nextSerial).padStart(3, "0");
-      const suggestedName = `${defaultName} #${padded}`;
-      const name = window.prompt(t("promptName"), suggestedName);
-      if (name === null) return;
-      const finalName = name.trim() || suggestedName;
+      if (!activeDesignId) {
+        const id = await handleCreate();
+        if (!id) return;
+        setActiveDesignId(id);
+        attachDesignIdToUrl(id);
+        setMsg({ kind: "ok", text: t("okSaved") });
+        return;
+      }
 
-      const res = await fetch("/api/designs/create", {
-        method: "POST",
+      const res = await fetch(`/api/designs/${activeDesignId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ furnitureType, name: finalName, params }),
+        body: JSON.stringify({ furnitureType, params }),
       });
-      const json = (await res.json()) as { error?: string; message?: string; max?: number; count?: number };
+      const json = (await res.json()) as { error?: string; message?: string };
       if (!res.ok) {
-        if (json.error === "max_designs_reached") {
-          const max = json.max ?? features.maxDesigns;
-          const count = json.count ?? 0;
-          setMsg({
-            kind: "warn",
-            text: t("warnMaxDesignsTpl", { max, count }),
-          });
-          return;
-        }
-        if (json.error === "plan_locked_category") {
-          setMsg({
-            kind: "warn",
-            text: json.message ?? t("warnPlanLockedFallback"),
-          });
-          return;
-        }
         if (json.error === "unauthenticated") {
           setMsg({ kind: "warn", text: t("warnUnauth") });
           return;
@@ -88,14 +134,38 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
         throw new Error(json.message ?? json.error ?? `HTTP ${res.status}`);
       }
 
-      setMsg({ kind: "ok", text: t("okSaved") });
+      setMsg({ kind: "ok", text: t("okUpdated") });
     } catch (e) {
       setMsg({
         kind: "err",
         text: t("errSaveFailTpl", { msg: e instanceof Error ? e.message : String(e) }),
       });
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  };
+
+  const handleSaveAs = async () => {
+    setMsg(null);
+    if (!isLoggedIn || !userId) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    setBusy("saveAs");
+    try {
+      const id = await handleCreate();
+      if (!id) return;
+      setActiveDesignId(id);
+      attachDesignIdToUrl(id);
+      setMsg({ kind: "ok", text: t("okSavedAs") });
+    } catch (e) {
+      setMsg({
+        kind: "err",
+        text: t("errSaveFailTpl", { msg: e instanceof Error ? e.message : String(e) }),
+      });
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -106,23 +176,36 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
 
   return (
     <div className="inline-flex flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={busy}
-        className="max-md:min-h-[44px] inline-flex items-center gap-1 px-3.5 py-2 bg-amber-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-amber-900/20 hover:bg-amber-800 hover:shadow-md transition-all disabled:opacity-50"
-        title={
-          isLoggedIn
-            ? t("tipLoggedInTpl", { limit: limitText })
-            : t("tipLoggedOut")
-        }
-      >
-        {busy
-          ? t("btnSaving")
-          : isLoggedIn
-            ? t("btnSave")
-            : t("btnLogin")}
-      </button>
+      <div className="inline-flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={busy !== null}
+          className="max-md:min-h-[44px] inline-flex items-center gap-1 px-3.5 py-2 bg-amber-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-amber-900/20 hover:bg-amber-800 hover:shadow-md transition-all disabled:opacity-50"
+          title={
+            isLoggedIn
+              ? t("tipLoggedInTpl", { limit: limitText })
+              : t("tipLoggedOut")
+          }
+        >
+          {busy === "save"
+            ? t("btnSaving")
+            : isLoggedIn
+              ? t("btnSave")
+              : t("btnLogin")}
+        </button>
+        {isLoggedIn && activeDesignId && (
+          <button
+            type="button"
+            onClick={handleSaveAs}
+            disabled={busy !== null}
+            className="max-md:min-h-[44px] inline-flex items-center gap-1 px-3 py-2 bg-white text-amber-800 rounded-lg text-xs font-medium border border-amber-300 hover:bg-amber-50 transition-all disabled:opacity-50"
+            title={t("tipSaveAs")}
+          >
+            {busy === "saveAs" ? t("btnSaving") : t("btnSaveAs")}
+          </button>
+        )}
+      </div>
       {msg && (
         <p
           className={`text-[11px] max-w-[220px] text-right ${
