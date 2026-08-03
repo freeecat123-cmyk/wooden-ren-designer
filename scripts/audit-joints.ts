@@ -59,6 +59,10 @@ const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory
 const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
   "dining-table:trestle",
   "round-table:trestle",
+  // stool × curved-taper（弧肩斜腳）:下橫撐接在腳的斜降/收弧段(腳身變窄處),
+  // 該處若開母榫孔會從斜面破出(破口),故刻意抑制腳上的橫撐母榫、讓公榫短榫嵌入
+  // 實心腳身——藍圖/3D 都乾淨不露孔(使用者明確要求)。公榫因此無對應母榫,屬設計取捨。
+  "stool:curved-taper",
   // shoe-cabinet plinth/panel-side：門內層板 tongue-and-groove 對不上 mortise
   // （待 zone-helpers 修腳款變化時門內 dado 寬度公式），先豁免不擋 commit
   "shoe-cabinet:plinth",

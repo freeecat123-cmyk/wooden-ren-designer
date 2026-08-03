@@ -81,7 +81,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legWidthOverride = getOption<number>(input, opt(o, "legWidthOverride"));
   const legDepthOverride = getOption<number>(input, opt(o, "legDepthOverride"));
-  const legW = legWidthOverride > 0 ? legWidthOverride : legSize; // 沿 X（座板長邊）＝弧肩斜腳總寬
+  const legW = legWidthOverride > 0 ? legWidthOverride : legSize; // 沿 X（座板長邊）
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize; // 沿 Z（座板寬邊）＝前後厚
   const legShortDim = Math.min(legW, legD); // 榫接母件厚取較薄面
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -170,15 +170,30 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 非方腳（legW≠legD）時，X 牙板（前/後）進腳的母件厚 = legW、Z 牙板（左/右）= legD，
   // 兩軸各自判 through/blind 與榫長（用 legShortDim 共用會讓較厚軸那面榫長不足、型別誤標）。
   // 榫厚/榫寬只看牙板斷面、與母厚無關，故 apronTenonThick/W 維持共用。方腳時兩軸值相同＝無迴歸。
-  const apronTenonTypeX = legPenetratingTenon ? "through-tenon" : autoTenonType(legW);
-  const apronTenonTypeZ = legPenetratingTenon ? "through-tenon" : autoTenonType(legD);
+  // 非方腳的「薄軸」強制盲榫：否則 autoTenonType(≤25) 會自動通榫、穿透薄面＝破口。
+  // 方腳（legW===legD）兩軸都不觸發 → 維持 autoTenonType 原行為、無迴歸。legPenetratingTenon
+  // (明榫)是 user 主動要通透，照舊。
+  const apronTenonTypeX = legPenetratingTenon ? "through-tenon" : (legW < legD ? "blind-tenon" : autoTenonType(legW));
+  const apronTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legD < legW ? "blind-tenon" : autoTenonType(legD));
+  // 盲榫深度留背牆 ≥ 8mm，避免薄腳（非方腳把某軸改薄）榫眼快穿透＝破口。
+  // standardTenon 盲榫 = max(MIN_BLIND_TENON_LEN=25, 母厚×2/3)，母厚 30 時被 25 撐到只剩
+  // 5mm 背牆 → 這裡夾回。腳粗 35(→27) / 50(→42) 背牆足夠、不受影響。通榫本來就穿透不夾。
+  const LEG_MORTISE_BACK_WALL = 8;
+  // 只有非方腳（legW≠legD，＝有人用腳寬/腳厚把某軸改薄）才夾背牆。方腳一律原封不動
+  // ＝與 pre-curved-taper 基準版 byte 級一致，保證不影響其他腳型。
+  const clampBlindDepth = (raw: number, motherT: number, isThrough: boolean) =>
+    isThrough || legW === legD ? raw : Math.min(raw, Math.max(6, motherT - LEG_MORTISE_BACK_WALL));
   const apronTenonLenFor = (motherT: number, isThrough: boolean) =>
-    standardTenon({
-      type: isThrough ? "through-tenon" : "shouldered-tenon",
-      childThickness: apronThickness,
-      childWidth: apronWidth,
-      motherThickness: motherT,
-    }).length + (isThrough ? 5 : 0);
+    clampBlindDepth(
+      standardTenon({
+        type: isThrough ? "through-tenon" : "shouldered-tenon",
+        childThickness: apronThickness,
+        childWidth: apronWidth,
+        motherThickness: motherT,
+      }).length + (isThrough ? 5 : 0),
+      motherT,
+      isThrough,
+    );
   const apronThroughX = apronTenonTypeX === "through-tenon";
   const apronThroughZ = apronTenonTypeZ === "through-tenon";
   const apronTenonLengthX = apronTenonLenFor(legW, apronThroughX);
@@ -191,7 +206,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   //     → 上榫高 = 下榫高 = (apronWidth - 10) / 2
   const apronVisuallyStaggered = apronStaggerMm > 0;
   const APRON_TOP_SHOULDER = 10;
-  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER;  // 上下榫合計高
+  // 弧肩斜腳：牙板底緣＝接撐段底＝弧起點，榫直接開到底會破進弧裡。加底肩把榫往上移，
+  // 讓榫眼留在上面全寬實體區、避開弧起點（＝user「榫應該要上移」）。方腳無此需求＝0。
+  const apronBottomShoulder = legShape === "curved-taper" ? 6 : 0;
+  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder;  // 上下榫合計高
   // 錯開不夠大讓整榫頭岔開時走半榫錯位避免榫眼撞
   // 半榫高度依 stagger 連續成長：combined ≤ apronTotalTenonH + stagger（兩榫剛好接觸不撞）
   // 每邊上限為整榫高 apronTenonW
@@ -210,8 +228,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     ? (apronWidth - APRON_TOP_SHOULDER - apronUpperTenonH / 2) - apronWidth / 2
     : 0;
   const apronLowerTenonOffset = apronCanHalfStagger
-    ? apronLowerTenonH / 2 - apronWidth / 2
-    : 0;
+    ? apronBottomShoulder + apronLowerTenonH / 2 - apronWidth / 2
+    : (apronBottomShoulder > 0 ? apronBottomShoulder / 2 : 0);
 
   // 腳頂榫朝家具中心偏（X 軸），讓 tenon 內側緣貼腳內緣（內側無肩）。
   // 只有 legInset === 0（腳貼座板邊緣）時才偏，避免座板外側木材太薄破裂。
@@ -326,8 +344,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
-    // 凳腳內側 2 面要挖橫撐的半榫眼（中段，距離地面 1/3 處）
+    // 凳腳內側 2 面要挖牙板的半榫眼（中段）
     // 無牙板（apronWidth=0）→ 不開榫眼
+    // 弧肩斜腳：牙板榫已加底肩往上移到接撐段全寬實體區、避開弧起點（見 apronBottomShoulder），
+    // 榫眼開在實體、被牙板蓋住不破口 → 照常開榫眼（下橫撐才在斜降薄腳區不開）。
     mortises: !withApron ? [] : legMortisesForApron(c, length, width, {
       // X 面榫眼（接前後牙板）用 legW-衍生值、Z 面榫眼（接左右牙板）用 legD-衍生值
       apronTenonLengthX,
@@ -566,13 +586,32 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // 非方腳：X 向下橫撐（前/後）進腳母厚=legW、Z 向（左/右）=legD，各軸分開判 through/blind + 榫長。
     // 榫厚/榫寬只看橫撐斷面、與母厚無關 → 共用 lowerTenonThick/W。x-cross 對角撐打腳角、母厚曖昧，
     // 維持共用（legShortDim）。方腳時兩軸值相同＝無迴歸。
-    const lowerTenonTypeX = legPenetratingTenon ? "through-tenon" : autoTenonType(legW);
-    const lowerTenonTypeZ = legPenetratingTenon ? "through-tenon" : autoTenonType(legD);
+    // 弧肩斜腳：下橫撐落在斜降區、腳 X 向料已收窄（inner 面內縮 recession）。
+    // 母厚要用「該高度實際 X 料厚」＝ legW×(1+scale)/2，且強制盲榫，否則 33mm 榫頭
+    // 會戳出腳外面（榫接版看到紅榫頭凸出）。Z 面是平的全寬擠出蓋、不收 → 照舊 legD。
+    const legXDepthLS =
+      legShape === "curved-taper"
+        ? Math.max(8, (legW * (1 + legSizeScaleAt(lowerY + lowerW / 2))) / 2)
+        : legW;
+    const lowerTenonTypeX = legPenetratingTenon
+      ? "through-tenon"
+      : legShape === "curved-taper" || legW < legD
+        ? "blind-tenon"
+        : autoTenonType(legW);
+    const lowerTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legD < legW ? "blind-tenon" : autoTenonType(legD));
     const lowerTenonLenFor = (motherT: number, isThrough: boolean) =>
-      standardTenon({ type: isThrough ? "through-tenon" : "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: motherT }).length + (isThrough ? 5 : 0);
+      clampBlindDepth(
+        standardTenon({ type: isThrough ? "through-tenon" : "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: motherT }).length + (isThrough ? 5 : 0),
+        motherT,
+        isThrough,
+      );
     const lowerThroughX = lowerTenonTypeX === "through-tenon";
     const lowerThroughZ = lowerTenonTypeZ === "through-tenon";
-    const lowerTenonX = lowerTenonLenFor(legW, lowerThroughX);
+    // curved-taper 不挖榫眼、靠實體遮，榫頭必須確實埋在料厚內（留 3mm）才不露出腳面
+    const lowerTenonX =
+      legShape === "curved-taper"
+        ? Math.max(6, Math.min(lowerTenonLenFor(legXDepthLS, false), Math.floor(legXDepthLS - 3)))
+        : lowerTenonLenFor(legXDepthLS, lowerThroughX);
     const lowerTenonZ = lowerTenonLenFor(legD, lowerThroughZ);
     // 下橫撐錯開策略（連續位移）：
     //   stagger > 0 → 左右下橫撐（Z 軸，側視圖全寬）整支物理上移，榫頭跟著
@@ -585,7 +624,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lowerHalfTenonH = lowerCanHalfStagger
       ? Math.min(lowerTenonW, Math.floor((lowerW + lowerStretcherStaggerMm - LOWER_HALF_TENON_GAP) / 2))
       : lowerTenonW;
-    const lowerUpperTenonH = lowerHalfTenonH;
+    // 弧肩斜腳：左右(Z)橫撐＝上半榫、腳上不挖榫眼(靠實體遮)，沒有榫眼相撞問題，
+    // 故上半榫可往下長 GAP、剛好碰到下半榫(前後 X)，Z 榫加寬不留縫（user 要求）。
+    const lowerUpperTenonH =
+      legShape === "curved-taper" && lowerCanHalfStagger
+        ? lowerHalfTenonH + LOWER_HALF_TENON_GAP
+        : lowerHalfTenonH;
     const lowerLowerTenonH = lowerHalfTenonH;
     // part-local：lowerW 是 Y 軸高度，中心 = lowerW/2
     // 上榫中心 Y = lowerW - lowerUpperTenonH/2，offset = lowerW/2 - lowerUpperTenonH/2
@@ -786,6 +830,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       for (const leg of legs) {
         const cx = leg.origin.x;
         const cz = leg.origin.z;
+        // 弧肩斜腳：斜降薄腳區挖榫眼會露出破口（榫眼口 + 紅榫頭外露，且內面收過中線
+        // 讓榫眼位置對不上橫撐肩）。改成「不挖榫眼」→ 腳保持實體、下橫撐盲榫直接埋進
+        // 實體被遮住（榫頭已 clamp 在料厚內）。沒破口、沒露榫。
+        if (legShape === "curved-taper") continue;
         // 斜腳：下橫撐 mortise 跟 apron 同軸別約定
         // Z 面榫 → rotX（FRONT 看不到 tilt、entry 維持直矩形）
         // X 面榫 → rotZ（FRONT 看得到 tilt、透視過去變平行四邊形）
@@ -800,7 +848,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           leg.mortises.push(
             // Z 面 mortise（接 Z 軸 = 左右下橫撐, 上移）— 上榫
             {
-              origin: { x: 0, y: lsZCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
+              // curved-taper 左右橫撐外挪 ctZShift → 榫眼跟著挪,肩才蓋得住榫眼口
+              origin: { x: Math.sign(cx || 1) * ctZShift, y: lsZCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
               depth: lowerTenonZ,
               length: lowerUpperTenonH,
               width: lowerTenonThick,
@@ -820,7 +869,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         } else {
           leg.mortises.push(
             {
-              origin: { x: 0, y: lsZCenterY, z: cz > 0 ? -1 : 1 },
+              origin: { x: Math.sign(cx || 1) * ctZShift, y: lsZCenterY, z: cz > 0 ? -1 : 1 },
               depth: lowerTenonZ,
               length: lowerTenonW,
               width: lowerTenonThick,

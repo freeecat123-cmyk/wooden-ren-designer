@@ -237,11 +237,22 @@ export function projectPartSilhouette(
     const prof = curvedTaperProfilePoints(
       lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
     );
-    const hasRot = rx !== 0 || ry !== 0 || rz !== 0;
-    if (!hasRot && view === "front") {
+    // 輪廓在 local X-Y 平面、沿 local Z 擠出 → profile 法線 = 旋轉後的 local Z。
+    // 哪個視角「看向」此法線就看得到真實輪廓(含接撐段+凹弧) → 輸出有序多邊形不跑 hull
+    // (hull 會把接撐段+凹弧填成一條斜線 = 楔形,零件圖橫躺就是踩這個)。
+    // n = R·(0,0,1)(Rx→Ry→Rz,與 pushPoint 同序):
+    const nZ = cx * cy;                      // n·(0,0,1) → front 視角
+    const nX = cx * sy * cz + sx * sz;       // n·(1,0,0) → side 視角
+    const nY = cx * sy * sz - sx * cz;       // n·(0,1,0) → top 視角
+    const alongProfile =
+      (view === "front" && Math.abs(nZ) > 0.99) ||
+      (view === "side" && Math.abs(nX) > 0.99) ||
+      (view === "top" && Math.abs(nY) > 0.99);
+    if (alongProfile) {
       for (const [xp, yp] of prof) pushPoint(xp, yp, 0);
-      return projected; // 有序、保留凹弧
+      return projected; // 有序、保留接撐段+凹弧
     }
+    // 看向擠出方向以外的視角:輪廓塌成線、擠出成矩形 → 兩端採樣 hull 即可
     for (const zL of [-lz / 2, lz / 2]) {
       for (const [xp, yp] of prof) pushPoint(xp, yp, zL);
     }
