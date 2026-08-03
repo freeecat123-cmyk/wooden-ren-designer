@@ -41,6 +41,15 @@ export function inferProcessSteps(part: Part): string[] {
     steps.push("試裝");
     return steps;
   }
+  if (shape === "curved-taper") {
+    // 弧肩斜腳：內面凹弧+斜降是帶鋸/曲線鋸的活，桌鋸切不出凹弧（inferTableSawSetting
+    // 對它回 null 是刻意的），凹弧提示放這裡而非鋸台設定。
+    const steps = ["鋸毛料", "劃弧肩+斜降線", "帶鋸/曲線鋸出內面輪廓", "修弧刨光"];
+    if (hasMortise) steps.push("鑿榫眼");
+    if (hasTenon) steps.push("開榫頭");
+    if (hasMortise && hasTenon) steps.push("試裝");
+    return steps;
+  }
   if (shape === "mitered-ends") {
     // 多邊形拼板（六/八角盒壁、斜接方盒壁）：兩側立邊斜切後拼接
     const steps = ["鋸料", "桌鋸立邊斜切"];

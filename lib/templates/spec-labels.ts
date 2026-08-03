@@ -27,6 +27,9 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   legInset: "Leg inset",
   legEdge: "Leg edge size",
   legWidthOverride: "Leg width override",
+  ctBlockHeight: "Block height (rail joint)",
+  ctShoulder: "Cove shoulder inset",
+  ctInset: "Foot taper inset",
   legDepthOverride: "Leg depth override",
   legPenetratingTenon: "Through tenons (decorative)",
   splayAngle: "Splay angle (°)",
@@ -794,6 +797,7 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "legShape:cabriole": "Cabriole",
   "legShape:horse-hoof": "Horse-hoof (Ming)",
   "legShape:reverse-horse-hoof": "Reverse horse-hoof (Qing)",
+  "legShape:curved-taper": "Curved taper (block + cove + splay)",
 
   // === endSplat (bench backrest style) ===
   "endSplat:none": "None (plain bench)",

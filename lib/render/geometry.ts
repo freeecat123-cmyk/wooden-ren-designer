@@ -58,6 +58,47 @@ export function frenchCleatSection(
 }
 
 /**
+ * 弧肩斜腳（curved-taper）側面 2D 輪廓（local X=寬、Y=高 平面），沿厚度 Z 擠出。
+ * ⚠️ 必須與 part-geometry.ts `buildCurvedTaperGeometry` 的 `pts` 逐點一致
+ *   （同 clamp 相對係數、同弧參數 x=-hx+shoulder·cos(th)、y=yCoveEnd+coveSpan·sin(th)）。
+ *   這裡是純 2D（無 three 依賴），dims 為原始 mm（SCALE 只在 3D 路徑），故絕對 clamp OK。
+ *   外面（+dir 側）垂直 plumb；內面（-dir 側）= 接撐段全寬 → 內凹弧肩 → 斜降到腳底再內收。
+ * 回傳 local [x, y] 頂點序列（已套 dir 鏡射 s），非閉合、勿跑 convex hull（會填掉凹弧）。
+ */
+export function curvedTaperProfilePoints(
+  lx: number,
+  ly: number,
+  blockHeightMm: number,
+  shoulderMm: number,
+  insetMm: number,
+  dir: -1 | 0 | 1,
+): Array<[number, number]> {
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const s = dir < 0 ? -1 : 1;
+  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
+  const shoulder = Math.max(0, Math.min(shoulderMm, lx * 0.45));
+  const coveSpan = Math.min(shoulder, Math.max(0, ly - blockH));
+  const inset = Math.max(0, Math.min(insetMm, lx - shoulder - lx * 0.05));
+  const yTop = hy;
+  const yBlockBot = hy - blockH;
+  const yCoveEnd = yBlockBot - coveSpan;
+  const yBot = -hy;
+  const pts: Array<[number, number]> = [];
+  pts.push([hx, yTop]); // 外頂（全寬）
+  pts.push([hx, yBot]); // 外底（外側垂直 plumb）
+  pts.push([-hx + shoulder + inset, yBot]); // 內底（斜線收到最內）
+  pts.push([-hx + shoulder, yCoveEnd]); // 內斜線頂＝弧尾
+  const ARC = 8;
+  for (let i = 1; i <= ARC; i++) {
+    const th = (Math.PI / 2) * (i / ARC); // 0 → π/2
+    pts.push([-hx + shoulder * Math.cos(th), yCoveEnd + coveSpan * Math.sin(th)]);
+  }
+  pts.push([-hx, yTop]); // 內頂（接撐段全寬）
+  return pts.map(([x, y]) => [s * x, y] as [number, number]);
+}
+
+/**
  * 通用零件 silhouette：取零件 local-frame 採樣點 → 套形狀修飾（taper/splay/
  * arch-bent/tilt-z/apron-trapezoid/apron-beveled）→ 套 rotation → 加 origin →
  * 投影到 view 平面 → convex hull → 剪影 polygon。
@@ -182,6 +223,27 @@ export function projectPartSilhouette(
     const sec = frenchCleatSection(ly, lz, part.shape.bevelAngle, part.shape.orientation);
     for (const xL of [-lx / 2, lx / 2]) {
       for (const [yL, zL] of sec) pushPoint(xL, yL, zL);
+    }
+    return convexHull2D(projected);
+  }
+
+  // 弧肩斜腳（curved-taper）：側面輪廓在 local X-Y 平面（含內凹弧肩），沿 Z 擠出。
+  // 正視（無旋轉、看 X-Y）→ 直接輸出「有序」輪廓多邊形，保留凹弧（不跑 convex hull，
+  //   否則凹弧被填平回方框，正是 user 回報「正視圖畫成方框」的根因）。
+  // 其他視角 / 帶旋轉（零件圖橫躺）→ 兩個 Z 端各採一圈輪廓 → convex hull：
+  //   側視 / 俯視本就是矩形（Z 面全寬不收），audit 只用 min/max，皆正確；
+  //   橫躺零件卡的凹弧會被 hull 填平（僅外側斜降仍在），屬可接受的細節損失。
+  if (part.shape?.kind === "curved-taper") {
+    const prof = curvedTaperProfilePoints(
+      lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
+    );
+    const hasRot = rx !== 0 || ry !== 0 || rz !== 0;
+    if (!hasRot && view === "front") {
+      for (const [xp, yp] of prof) pushPoint(xp, yp, 0);
+      return projected; // 有序、保留凹弧
+    }
+    for (const zL of [-lz / 2, lz / 2]) {
+      for (const [xp, yp] of prof) pushPoint(xp, yp, zL);
     }
     return convexHull2D(projected);
   }
@@ -682,6 +744,27 @@ export function projectPartPolygon(
   }
 
   if (!part.shape || part.shape.kind === "box") return box;
+
+  // 弧肩斜腳（curved-taper）：正視畫側面輪廓（接撐段全寬 → 內凹弧肩 → 斜降），
+  // 側視為矩形（Z 面全寬不收）→ box。俯視在 svg-views useShape 不納入 → 走 box path。
+  // 帶旋轉（零件圖橫躺）→ delegate 給 silhouette（3D 採樣→旋轉→投影），比照 tapered 先例。
+  // ⚠️ 不 delegate 給 projectPartSilhouette 的 hull 路徑（會填平凹弧）；正視直接輸出有序輪廓。
+  if (part.shape.kind === "curved-taper") {
+    const hasRotCT =
+      (part.rotation?.x ?? 0) !== 0 ||
+      (part.rotation?.y ?? 0) !== 0 ||
+      (part.rotation?.z ?? 0) !== 0;
+    if (hasRotCT) return projectPartSilhouette(part, view);
+    if (view !== "front") return box;
+    const cx = r.x + r.w / 2;
+    const midY = r.y + r.h / 2;
+    // 正視 svg x = -wx（世界 +X → 螢幕左），故 screenX = cx - localX（與 box mirror 一致）。
+    const prof = curvedTaperProfilePoints(
+      part.visible.length, part.visible.thickness,
+      part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
+    );
+    return prof.map(([lxp, lyp]) => ({ x: cx - lxp, y: midY + lyp }));
+  }
 
   // 帶頂緣/下緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視
   // 矩形 + 頂面 2 角倒角（chamferMm）+ 下緣 2 角倒角（bottomChamferMm）。

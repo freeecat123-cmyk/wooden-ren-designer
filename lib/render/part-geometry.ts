@@ -51,6 +51,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
+  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1 }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
@@ -837,6 +838,75 @@ export function buildRegularPolygonGeometry(
   const extrude = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
   extrude.translate(0, 0, -hy);
   extrude.rotateX(Math.PI / 2);
+  return extrude;
+}
+
+/**
+ * 弧肩斜腳（curved-taper）：側面輪廓（X=寬 / Y=高 平面）沿 +Z（厚度）擠出的一體成型腳。
+ *  - 外面（+dir 側，朝家具外）：垂直 plumb，不收。
+ *  - 內面（-dir 側，朝家具中心／接橫撐那面）：接撐段全寬（高 blockHeightMm）→ 內凹圓弧肩
+ *    內收 shoulderMm（弧半徑=shoulderMm）→ 直線斜降到腳底再往內收 insetMm。弧與斜線都在此面。
+ * dir = 外面（斜面）朝哪個 local X（+1 / −1；0 視為 +1）。厚度（Z=lz）固定不變。
+ *
+ * size = [總寬 lx, 腳高 ly, 厚度 lz]，Y 為高度軸（頂 +hy、底 -hy），與 buildTaperedGeometry 一致。
+ */
+export function buildCurvedTaperGeometry(
+  size: [number, number, number],
+  blockHeightMm: number,
+  shoulderMm: number,
+  insetMm: number,
+  dir: -1 | 0 | 1,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const s = dir < 0 ? -1 : 1;
+  // 夾範圍：任一段都不能吃掉整支腳
+  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
+  const shoulder = Math.max(0, Math.min(shoulderMm, lx * 0.45)); // 內面凹弧深
+  const coveSpan = Math.min(shoulder, Math.max(0, ly - blockH)); // 弧的垂直跨度
+  // 外面斜降量；保腳底至少留 5% 寬。⚠️ epsilon 用相對值（lx*0.05）不可用絕對數字，
+  // 因為 3D 傳進來是 mm×SCALE(0.01) 的 three 單位，絕對常數會把 inset 夾成 0（斜降失效）。
+  const inset = Math.max(0, Math.min(insetMm, lx - shoulder - lx * 0.05));
+  const yTop = hy;
+  const yBlockBot = hy - blockH;
+  const yCoveEnd = yBlockBot - coveSpan;
+  const yBot = -hy;
+  // 建輪廓時 outer 在 +X（垂直）、inner 在 -X（接撐段+弧+斜線都在此面，朝家具中心接橫撐）。
+  // 最後乘 s 鏡射到正確方向；CCW/CW 不管，末端用面積符號校正。
+  const pts: [number, number][] = [];
+  pts.push([hx, yTop]); // 外頂（全寬）
+  pts.push([hx, yBot]); // 外底（外側垂直 plumb，不收）
+  pts.push([-hx + shoulder + inset, yBot]); // 內底（斜線收到最內）
+  pts.push([-hx + shoulder, yCoveEnd]); // 內斜線頂＝弧尾（內底→此點為直斜線）
+  const ARC = 8;
+  for (let i = 1; i <= ARC; i++) {
+    // 內凹圓弧：弧尾（-hx+shoulder）→ 接撐段內緣底（-hx），圓心 (-hx, yCoveEnd)，凹向 +X＝內圓弧
+    const th = (Math.PI / 2) * (i / ARC); // 0 → π/2
+    pts.push([
+      -hx + shoulder * Math.cos(th),
+      yCoveEnd + coveSpan * Math.sin(th),
+    ]);
+  }
+  // 上一迴圈末點 ≈ [-hx, yBlockBot]（接撐段內緣底）
+  pts.push([-hx, yTop]); // 內頂（接撐段全寬）
+  // 套 dir（鏡射 X），再確保 CCW（負面積就反轉，讓 ExtrudeGeometry 側壁法線朝外）
+  const P = pts.map(([x, y]) => [s * x, y] as [number, number]);
+  let area = 0;
+  for (let i = 0; i < P.length; i++) {
+    const [x1, y1] = P[i];
+    const [x2, y2] = P[(i + 1) % P.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  if (area < 0) P.reverse();
+  const shape2D = new Shape();
+  shape2D.moveTo(P[0][0], P[0][1]);
+  for (let i = 1; i < P.length; i++) shape2D.lineTo(P[i][0], P[i][1]);
+  shape2D.closePath();
+  const extrude = new ExtrudeGeometry(shape2D, { depth: lz, bevelEnabled: false });
+  extrude.translate(0, 0, -hz); // Z 置中 [-hz, +hz]
+  extrude.computeVertexNormals();
   return extrude;
 }
 
@@ -2067,6 +2137,9 @@ export function buildShapeGeometry(
   }
   if (shape.kind === "hoof") {
     return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale, shape.dirX, shape.dirZ);
+  }
+  if (shape.kind === "curved-taper") {
+    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir);
   }
   if (shape.kind === "splayed-tapered") {
     return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);

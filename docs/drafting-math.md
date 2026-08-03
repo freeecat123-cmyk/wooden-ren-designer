@@ -236,6 +236,30 @@ silhouette polygon 就對了。
 - geometry.ts 改 silhouette **不觸發 pre-push audit hook**，改完手動跑 `audit-overlaps.ts`
   確認 0 new overlap（native 採樣只影響投影輪廓、不動 AABB，但仍要驗）。
 
+**A9.8 弧肩斜腳（`curved-taper`）三視圖投影 = 側面凹弧輪廓（2026-08-03）**
+`curved-taper` 是「側面 2D 輪廓沿厚度 Z 擠出的一體成型腳」：外面（+dir 側）垂直 plumb；
+內面（-dir 側）＝接撐段全寬（高 `blockHeightMm`）→ 內凹圓弧肩（半徑 `shoulderMm`，凹向腳身）
+→ 直線斜降到腳底再往內收 `insetMm`。`size=[legW, legHeight, legD]`。
+
+原本 `projectPartSilhouette` / `projectPartPolygon` 沒有 curved-taper 分支 → 落到通用
+bbox 4 角採樣 / 尾端 `return box` → 正視/側視/俯視腳全畫成方框（user 回報「正視圖沒正確顯示」）。
+
+修法（`lib/render/geometry.ts`）：
+- 新增純 2D helper `curvedTaperProfilePoints(lx, ly, blockH, shoulder, inset, dir)`，
+  **逐點複製** `part-geometry.ts:buildCurvedTaperGeometry` 的 `pts`（同 clamp 相對係數
+  `ly*0.9 / lx*0.45 / lx*0.05`、同弧參數 `x=-hx+shoulder·cos(th)`、`y=yCoveEnd+coveSpan·sin(th)`、
+  同 dir 鏡射 s）。⚠️ 這裡是原始 mm（SCALE 只在 3D 路徑），故絕對 clamp OK。
+- `projectPartSilhouette`：正視（無旋轉）→ **直接輸出有序輪廓、不跑 convex hull**（凹弧會被 hull 填平回方框）；
+  其他視角 / 帶旋轉 → 兩個 Z 端各採一圈 → hull（側/俯視本為矩形、audit 只用 min/max，皆正確；
+  橫躺零件卡凹弧被 hull 填平屬可接受細節損失）。
+- `projectPartPolygon`：正視 → 用 helper 有序輪廓映進 view rect（`screenX = cx − localX`，
+  `screenY = r.y + r.h/2 + localY`，`cx = r.x + r.w/2`）；側視 → box；帶旋轉 → delegate silhouette。
+  俯視在 svg-views `useShape` 白名單本就排除 curved-taper → 走 box path（正確，俯視是矩形）。
+- 副效果：audit 的 Y-segmented silhouette 路徑現在看得到「隨高度收窄的實際內面」，
+  AABB-at-Y 正確 → `stool:curved-taper` 不再誤報，已從 `SHAPE_AWARE_CASES` allowlist 移除。
+- 驗證：helper 頂點對 `buildCurvedTaperGeometry` cap 頂點 max dist = 0.0000mm；
+  正視多邊形 13 頂點（凹）、側視 4 頂點（矩形）。純視覺需 user 在瀏覽器確認。
+
 ### A10. Part visible 慣例（butt-joint vs joinery）
 
 ⭐ **核心設計決策**：所有家具模板的 `Part.visible.length / width / thickness` 一律
@@ -549,6 +573,29 @@ Y-slice 把 OBB 的「常數截面」死角解掉——tapered 腳的 cross-sect
     `splayDx × (1 − taperT)`。
 - **gap 不偵測**：audit 只報 overlap、不報 gap。沒接觸的 case 仍可能有縫，
   靠 unit 測試 / 視覺 review 抓。
+
+**A11.8 弧肩斜腳（`curved-taper`）補償（2026-08-03）**：
+
+curved-taper 只有**內面（-dir 側，接橫撐那面）沿高度收窄**（接撐段全寬 → 內凹弧肩 → 斜降），
+外面垂直、Z 面（前後厚度）任何高度全寬不收。補償規則因此**軸別不對稱**（`square-stool.ts`）：
+
+- `curvedTaperInnerScaleAt(Y, legHeight, legSize, blockH, shoulder, inset)` 回等效對稱 scale
+  `= 1 − 2·recession/legSize`（下限 −0.9，讓內面可收過腳中線；recession 超半寬時橫撐長度不被壓平）。
+- **弧肩段 recession 必須與幾何逐點一致**：`buildCurvedTaperGeometry` 的弧為
+  `y = yCoveEnd + coveSpan·sin(th)`，即高度正比 `sin(th)`（**非 th 線性**）。故在給定高度反解
+  `sin(th) = 1 − frac`（`frac = (depthFromTop − blockH)/coveSpan`），
+  `recession = shoulder·√(1 − (1−frac)²) = shoulder·cos(th)`。
+  ⚠️ 舊版誤用 `th = (π/2)(1−frac)` 線性映射，只在弧兩端吻合、弧中段最大偏離 ~29% shoulder → 已修。
+- **X 牙板/橫撐（前後）補償、Z 牙板/橫撐（左右）不補償**：X 端面接腳的內面（會收窄）→ 走
+  `curvedTaperInnerScaleAt`；Z 端面接腳的 Z 面（平的全寬擠出蓋、不收）→ 走
+  `legScaleAt(y, legHeight, legBottomScale)`（curved-taper 的 bottomScale=1＝不補償）。
+  `apronGeomFor(yCenter, legDim, compensate)` 的 `compensate` 旗標即此拆分；Z 牙板傳 `false`
+  （否則 `apronDropFromTop>0` 時左右牙板每端多伸插進腳）。對非 curved-taper 腳兩者等價＝無迴歸。
+- **左右（Z）橫撐 `ctZShift`**：內面收過腳中線時 Z 橫撐坐腳中線會踩空 → 往外挪
+  `legW·(1−scale)/4` 坐到收窄後實際 X 料中點。
+- **非方腳（legW≠legD）榫接母厚按軸別取**：X 牙板/橫撐接腳母厚=legW、Z 的=legD，各軸各判
+  through/blind + 榫長（用 `min(legW,legD)` 共用會讓較厚軸那面通榫長不足/型別誤標）。
+  榫厚/榫寬只看牙板斷面、與母厚無關 → 共用。legMortisesForApron 的 X 面/Z 面榫眼也各取對應軸值。
 
 **Audit parametrize**：對每個 template 的 `legShape` select 選項所有
 choice 各跑一次（不只 default），把 26 case 擴成約 120 case。

@@ -39,6 +39,10 @@ const SHAPE_AWARE_VARIANTS = new Set<string>([]);
  *     實際 3D 棚板四角已切除，物理上不重疊。
  */
 const SHAPE_AWARE_CASES = new Set<string>([
+  // 方凳弧肩斜腳（curved-taper）：曾在此 allowlist（腳 bbox 全寬、內面實際收窄→誤報）。
+  // 2026-08-03 補上 projectPartSilhouette / projectPartPolygon 的 curved-taper 分支後，
+  // audit 的 Y-segmented silhouette 路徑已能看到「隨高度收窄的實際內面」，AABB-at-Y 正確 →
+  // 0 overlap，不再需要 allowlist（移除）。
   "tea-table:box",
   "tea-table:tapered",
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內

@@ -191,6 +191,7 @@ export const LEG_SHAPE_LABEL: Record<string, string> = {
   "splayed-length": "單向斜腳（沿長邊）",
   "splayed-width": "單向斜腳（沿寬邊）",
   hoof: "馬蹄腳",
+  "curved-taper": "弧肩斜腳",
   // 古典方腿
   "fluted-square": "古典方腿（4 面凹槽）",
   // 圓系
@@ -214,7 +215,11 @@ export function legShapeLabel(s: string): string {
 // 椅凳類共用 — 矩形腳樣式 + 座板邊緣處理 + 椅背/扶手選項
 // =============================================================================
 
-/** 矩形腳系列（適用方凳/長凳/餐椅/吧檯椅）。圓系列另外處理。 */
+/** 矩形腳系列（適用方凳/長凳/餐椅/吧檯椅）。圓系列另外處理。
+ *  ⚠️ curved-taper（弧肩斜腳）只有 square-stool 有完整實作（幾何 + 牙板/橫撐補償 +
+ *  三視圖投影），故「不」放進共用清單，避免 bench/bar-stool/dining-chair/bed 出現
+ *  假選項（選了只 fallback 成方腳）。要提供的模板改用
+ *  RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER。 */
 export const RECT_LEG_SHAPE_CHOICES = [
   { value: "box", label: "直方腳（最簡單）" },
   { value: "tapered", label: "錐形腳（下方收窄）" },
@@ -224,6 +229,25 @@ export const RECT_LEG_SHAPE_CHOICES = [
   { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
   { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
 ];
+
+/** 有完整 curved-taper 支援的模板（目前只有 square-stool）用這份含弧肩斜腳的清單。 */
+export const RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER = [
+  ...RECT_LEG_SHAPE_CHOICES,
+  { value: "curved-taper", label: "弧肩斜腳（接撐段＋弧肩＋外斜）" },
+];
+
+/**
+ * 弧肩斜腳（curved-taper）的三個可調參數，加進任一椅凳模板的 options 即可。
+ * 只在 legShape=curved-taper 時顯示。總寬＝腳粗（legSize）、厚度＝腳的前後厚。
+ */
+export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] {
+  const dependsOn = { key: "legShape", oneOf: ["curved-taper"] };
+  return [
+    { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。", dependsOn },
+    { group, type: "number", key: "ctShoulder", label: "弧肩內收", defaultValue: 8, min: 0, max: 40, step: 1, unit: "mm", help: "接橫撐那面的凹弧肩往內收的量（同時是弧的半徑）。0＝無弧肩。", dependsOn },
+    { group, type: "number", key: "ctInset", label: "外面斜降", defaultValue: 12, min: 0, max: 100, step: 1, unit: "mm", help: "外面整支直線斜降、腳底往內收的量；內面弧肩以下維持垂直。", dependsOn },
+  ];
+}
 
 /**
  * 對應各 leg shape 的 bottomScale。Apron / stretcher 計算 buttHalf 時要乘
@@ -267,6 +291,50 @@ export function legScaleAt(
   if (bottomScale === 1) return 1;
   const t = Math.max(0, Math.min(1, Y / legHeight));
   return bottomScale + (1 - bottomScale) * t;
+}
+
+/**
+ * 弧肩斜腳（curved-taper）在世界高度 Y 處的「等效對稱 legSize scale」。
+ * curved-taper 只有內面（接橫撐那面）內縮＝接撐段全寬 → 內凹弧肩(shoulder) → 直線斜降(inset)；
+ * 外面垂直。牙板/橫撐端面要對到「該高度的內面」，故回傳 scale 使
+ * `legSize × scale / 2` = 腳中心到內面的距離（= legSize/2 − 內面內縮量 recession）。
+ * 幾何與 buildCurvedTaperGeometry 對齊（同 clamp、同弧參數）。Y：0=腳底、legHeight=腳頂。
+ */
+export function curvedTaperInnerScaleAt(
+  Y: number,
+  legHeight: number,
+  legSize: number,
+  blockHeightMm: number,
+  shoulderMm: number,
+  insetMm: number,
+): number {
+  if (legHeight <= 0 || legSize <= 0) return 1;
+  const blockH = Math.max(0, Math.min(blockHeightMm, legHeight * 0.9));
+  const shoulder = Math.max(0, Math.min(shoulderMm, legSize * 0.45));
+  const coveSpan = Math.min(shoulder, Math.max(0, legHeight - blockH));
+  const inset = Math.max(0, Math.min(insetMm, legSize - shoulder - legSize * 0.05));
+  const depthFromTop = legHeight - Y; // 0＝腳頂
+  let recession: number;
+  if (depthFromTop <= blockH) {
+    recession = 0; // 接撐段全寬
+  } else if (depthFromTop <= blockH + coveSpan) {
+    // 內凹弧：block 底(recession 0) → 弧尾(recession shoulder)。
+    // buildCurvedTaperGeometry 的弧參數化為 x=-hx+shoulder·cos(th)、y=yCoveEnd+coveSpan·sin(th)，
+    // 即「高度」正比 sin(th)（非 th 線性）。所以在給定高度反解時 sin(th)=1-frac，
+    // recession = shoulder·cos(th) = shoulder·√(1-(1-frac)²)。舊版用 th 線性映射
+    // (th=(π/2)(1-frac)) 只在弧兩端吻合、弧中段最大偏離 ~29% shoulder，已修正逐點對齊幾何。
+    const frac = coveSpan > 0 ? (depthFromTop - blockH) / coveSpan : 1;
+    const sinTh = 1 - frac; // 幾何：sin(th)=1-frac
+    recession = shoulder * Math.sqrt(Math.max(0, 1 - sinTh * sinTh));
+  } else {
+    // 直線斜降：shoulder → shoulder+inset
+    const slantSpan = legHeight - blockH - coveSpan;
+    const f = slantSpan > 0 ? (depthFromTop - blockH - coveSpan) / slantSpan : 1;
+    recession = shoulder + inset * Math.min(1, Math.max(0, f));
+  }
+  // 下限 -0.9：內面可內縮到接近外面（腳底最窄剩 5% 寬，對齊幾何 inset 夾限）。
+  // 不可夾在正值（如 0.05），否則 recession 超過半寬時橫撐長度/梯形斜切被壓平 → 接不上有縫。
+  return Math.max(-0.9, 1 - (2 * recession) / legSize);
 }
 
 // shaker 腳：上 25% 方頂、下 75% 圓錐到 0.6（與 PerspectiveView buildLegGeometry 對齊）
@@ -314,6 +382,8 @@ export function rectLegShape(
     /** 同時套腳 4 邊倒角（splayed 系列才支援組合）；非 splayed 時忽略 */
     chamferMm?: number;
     chamferStyle?: "chamfered" | "rounded";
+    /** 弧肩斜腳（curved-taper）參數；斜面朝外由 sign(c.x) 決定 */
+    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number };
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
@@ -356,6 +426,18 @@ export function rectLegShape(
     const dirX = (Math.sign(c.x) || 0) as -1 | 0 | 1;
     const dirZ = (Math.sign(c.z) || 0) as -1 | 0 | 1;
     return { kind: "hoof", hoofMm, hoofScale, dirX, dirZ };
+  }
+  if (shape === "curved-taper") {
+    const ct = opts?.curvedTaper;
+    // 斜面朝家具外側（沿 local X），中柱腳（c.x=0）預設 +1
+    const dir = (Math.sign(c.x) || 1) as -1 | 0 | 1;
+    return {
+      kind: "curved-taper",
+      blockHeightMm: ct?.blockHeightMm ?? 40,
+      shoulderMm: ct?.shoulderMm ?? 8,
+      insetMm: ct?.insetMm ?? 12,
+      dir,
+    };
   }
   return undefined;
 }

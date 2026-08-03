@@ -482,7 +482,8 @@ const Part = memo(function PartInner({
       shape?.kind === "arch-bent" ||
       shape?.kind === "face-rounded" ||
       shape?.kind === "live-edge" ||
-      shape?.kind === "seat-scoop";
+      shape?.kind === "seat-scoop" ||
+      shape?.kind === "curved-taper";
     const threshold = isRound ? 1 : hasRoundedFacets ? 15 : 30;
     const eg = new EdgesGeometry(merged, threshold);
     if (merged !== baseGeo) merged.dispose();
@@ -1098,6 +1099,14 @@ export function PerspectiveView({
               hoofScale: part.shape.hoofScale,
               dirX: part.shape.dirX ?? 0,
               dirZ: part.shape.dirZ ?? 0,
+            };
+          } else if (part.shape?.kind === "curved-taper") {
+            shape = {
+              kind: "curved-taper",
+              blockHeightMm: part.shape.blockHeightMm * SCALE,
+              shoulderMm: part.shape.shoulderMm * SCALE,
+              insetMm: part.shape.insetMm * SCALE,
+              dir: part.shape.dir,
             };
           } else if (part.shape?.kind === "round") {
             shape = {

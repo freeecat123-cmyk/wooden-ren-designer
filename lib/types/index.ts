@@ -280,6 +280,13 @@ export interface Part {
      *  渲染分 4 段：straight body → 外緣轉 (S 上半) → 內凹收腰 → 外撇腳趾 (S 下半)。
      *  舊資料沒帶 dirX/dirZ → fallback 對稱 4 面外擴（僅相容用，視覺較差）。 */
     | { kind: "hoof"; hoofMm: number; hoofScale: number; dirX?: -1 | 0 | 1; dirZ?: -1 | 0 | 1 }
+    /** Curved-taper 弧肩斜腳：側面輪廓沿厚度（Z）擠出的一體成型腳。
+     *  外面（+dir 側，朝外）＝垂直 plumb。
+     *  內面（-dir 側，朝家具中心／接橫撐那面）＝接撐段全寬 blockHeightMm → 內凹圓弧肩
+     *  內收 shoulderMm → 直線斜降到腳底再往內收 insetMm（弧＋斜線都在此面，橫撐榫在此面）。
+     *  dir = 外面朝哪個 local X（+1 / −1；0 視為 +1，一般四角腳取 sign(c.x) 讓垂直外面朝外、
+     *  弧＋斜線朝內）。厚度（Z）固定不變。 */
+    | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1 }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，
