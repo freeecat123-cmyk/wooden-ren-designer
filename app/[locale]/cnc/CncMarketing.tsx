@@ -230,7 +230,7 @@ export async function CncMarketing({ status }: Props) {
                   ))}
                 </div>
                 <div className="mt-6 rounded-xl bg-zinc-900 p-4 font-mono text-[11px] leading-relaxed text-emerald-300 overflow-hidden">
-                  <div className="text-zinc-500">( woodenren cnc | Carvera Air )</div>
+                  <div className="text-zinc-500">( woodenren cnc | 3-axis CNC )</div>
                   <div>G21 G90 G94</div>
                   <div>M6 T1&nbsp;&nbsp;( 換 6mm 平刀 )</div>
                   <div>M3 S12000</div>

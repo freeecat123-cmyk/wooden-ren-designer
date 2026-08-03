@@ -628,7 +628,7 @@
       "raisedFloorName": "Tatami raised platform",
       "raisedFloorTagline": "Draw the platform → frame, plywood, surface, moisture barrier, skirting → A4 client quote.",
       "cncName": "CNC toolpath generator",
-      "cncTagline": "Drag in SVG/DXF/image → pick ops & order paths → G-code your Carvera Air runs.",
+      "cncTagline": "Drag in SVG/DXF/image → pick ops & order paths → G-code your CNC runs.",
       "ctaIntro": "Learn more",
       "ctaStart": "Start estimating"
     },
@@ -875,13 +875,13 @@
       "badge2": "Personal plan & up / one-time",
       "h1": "Drop in an SVG, run the G-code",
       "leadLine1": "Skip the entire Fusion 360 CAM setup —",
-      "leadLine2": "get a toolpath your Carvera Air runs in 3 seconds.",
-      "body": "An offline toolpath generator tuned for the Makera Carvera Air. Drag in your vector art or a scan, pick the operation and tool, download the .nc and cut — profile, pocket, drill, V-carve, relief and image-trace, ten operations in one file.",
+      "leadLine2": "get a toolpath your CNC runs in 3 seconds.",
+      "body": "An offline toolpath generator for desktop CNC routers. Drag in your vector art or a scan, pick the operation and tool, download the .nc and cut — profile, pocket, drill, V-carve, relief and image-trace, ten operations in one file.",
       "ctaGuest": "Log in free to start",
       "ctaUpgrade": "Unlock the CNC tool",
       "ctaSecondary": "See plans & one-time",
       "footnote": "Free on the Personal plan and up; or buy once for a permanent unlock. Runs fully offline — your art never leaves your browser.",
-      "shareTitle": "CNC Toolpath Generator — SVG/DXF to Carvera Air G-code",
+      "shareTitle": "CNC Toolpath Generator — SVG/DXF to CNC G-code",
       "diagramLabel1": "Drop in SVG / DXF / image",
       "diagramLabel2": "Pick operation + tool",
       "diagramLabel3": "Download .nc & cut"
@@ -897,7 +897,7 @@
         {
           "emoji": "🧩",
           "title": "The post doesn't fit the machine",
-          "body": "Generic CAM often won't feed the Carvera Air: over-speed spindle, missing tool-change pauses, arcs that wander — you find out at the machine."
+          "body": "Generic CAM often won't feed your machine: over-speed spindle, missing tool-change pauses, arcs that wander — you find out at the machine."
         },
         {
           "emoji": "💥",
@@ -971,8 +971,8 @@
       "items": [
         {
           "emoji": "🪵",
-          "title": "Carvera Air owners",
-          "body": "The post-processor is tuned to the Carvera Air firmware (Smoothieware): single-file M6 auto-pause tool changes, the 13,000 RPM ceiling and the 300×200 work area are all built in."
+          "title": "Desktop CNC owners",
+          "body": "The essentials for a desktop CNC are built in: single-file M6 auto-pause tool changes, a spindle-speed ceiling and a work-area limit — shipped with presets tuned to the Makera Carvera Air (Smoothieware), and adjustable."
         },
         {
           "emoji": "🎨",
@@ -987,7 +987,7 @@
       ],
       "notForTitle": "Where it can't help yet:",
       "notForItems": [
-        "Non-Carvera machines (Grbl / other firmware) — the code format may need changes and isn't specifically tested",
+        "Machines other than the Carvera Air aren't individually tested yet — the format is close, but verify with an air pass first",
         "Complex 3D surface carving (multi-axis / ball-nose contouring) — the focus is 2.5D cutting for now",
         "Metalworking — parameters and strategy are tuned for wood / plywood / acrylic"
       ]
@@ -1066,7 +1066,7 @@
           "a": "No. The furniture designer exports the parts you designed; this is a standalone SVG/DXF → G-code generator — any vector art or image becomes a toolpath, so it's far more general."
         },
         {
-          "q": "Is it only for the Carvera Air?",
+          "q": "Which CNC machines does it support?",
           "a": "The post-processor is tuned to the Makera Carvera Air's firmware conventions (single-file M6 changes, speed ceiling, work area), so it's safest there. Other Smoothieware/Grbl machines use a similar format but aren't specifically tested — verify with an air pass first."
         },
         {
@@ -1117,7 +1117,7 @@
     },
     "schema": {
       "productName": "CNC Toolpath Generator",
-      "productDescription": "Turns SVG / DXF / images into G-code the Makera Carvera Air runs directly. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card.",
+      "productDescription": "Turns SVG / DXF / images into standard G-code your CNC runs directly. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card.",
       "brandName": "Wooden Ren Woodworking Academy",
       "breadcrumbHome": "Home",
       "breadcrumbTemplates": "Templates",
@@ -4698,7 +4698,7 @@
     "raisedFloorLabel": "Raised-floor tatami platform simulator",
     "raisedFloorDesc": "Input room dimensions — auto-calculates main/sub joists, plywood, moisture barrier, with 2D shelf-packing optimization",
     "cncLabel": "CNC Toolpath Generator",
-    "cncDesc": "Drag in SVG/DXF/image, get Carvera Air-ready G-code in 3 seconds — skip the Fusion CAM setup",
+    "cncDesc": "Drag in SVG/DXF/image, get machine-ready CNC G-code in 3 seconds — skip the Fusion CAM setup",
     "noticeAdmin": "✓ You're an admin — all three tools are already unlocked, no purchase needed.",
     "noticeOwned": "✓ You already bought this tool — go ahead and use it.",
     "adminBtn": "✓ Admin (all features unlocked)"
@@ -5118,8 +5118,8 @@
   },
   "engineeringToolPages": {
     "cnc": {
-      "metaTitle": "CNC Toolpath Generator | SVG/DXF to Carvera Air G-code | Wooden Ren",
-      "metaDescription": "Drag in an SVG, DXF or image and get G-code your Makera Carvera Air can run in 3 seconds. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card. Skip the whole Fusion 360 CAM setup. Offline, no install."
+      "metaTitle": "CNC Toolpath Generator | SVG/DXF to CNC G-code | Wooden Ren",
+      "metaDescription": "Drag in an SVG, DXF or image and get standard G-code your CNC can run in 3 seconds. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card. Skip the whole Fusion 360 CAM setup. Offline, no install."
     },
     "raisedFloor": {
       "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
