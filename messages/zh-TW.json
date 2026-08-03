@@ -627,6 +627,8 @@
       "floorTagline": "畫房間 → 直鋪/錯縫/人字拼自動排版 → 算超耐磨片數跟損耗。",
       "raisedFloorName": "和室架高平台",
       "raisedFloorTagline": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。",
+      "cncName": "CNC 刀路產生器",
+      "cncTagline": "拖 SVG/DXF/圖片 → 選加工排刀路 → 出 Carvera Air 能直接跑的 G-code。",
       "ctaIntro": "了解更多",
       "ctaStart": "開始試算"
     },
@@ -860,6 +862,266 @@
       "calcLegHeight": "計算後腳高",
       "clampedMin": "已夾到最低 30mm，請降低層高或加大總高",
       "maxLocked": "上限 {max}（鎖總高）"
+    }
+  },
+  "cncMarketing": {
+    "breadcrumb": {
+      "home": "首頁",
+      "templates": "範本介紹",
+      "current": "CNC 刀路產生器"
+    },
+    "hero": {
+      "badge1": "CNC 工具",
+      "badge2": "個人版以上 / 可單買",
+      "h1": "SVG 拖進去，G-code 直接跑",
+      "leadLine1": "省掉 Fusion 360 那一整套 CAM 設定，",
+      "leadLine2": "3 秒生出 Carvera Air 能吃的刀路。",
+      "body": "專為 Makera Carvera Air 調校的離線刀路產生器。畫好的向量圖或掃描稿拖進去，選加工方式與刀具，直接下載 .nc 檔上機——外形、挖槽、鑽孔、V 刻、浮雕、描圖十種加工一次到位。",
+      "ctaGuest": "免費登入開始用",
+      "ctaUpgrade": "解鎖 CNC 工具",
+      "ctaSecondary": "看方案與單買",
+      "footnote": "訂閱個人版以上即免費使用；也可單買永久解鎖。工具完全離線運算，圖檔不上傳。",
+      "shareTitle": "CNC 刀路產生器 — SVG/DXF 轉 Carvera Air G-code",
+      "diagramLabel1": "拖入 SVG / DXF / 圖片",
+      "diagramLabel2": "選加工 + 刀具，排刀路",
+      "diagramLabel3": "下載 .nc 上機切"
+    },
+    "painSection": {
+      "h2": "還在為了切一塊板，開 Fusion 摸半天？",
+      "items": [
+        {
+          "emoji": "🐌",
+          "title": "CAM 設定又臭又長",
+          "body": "匯入、對座標、設刀具、排順序、貼後處理器…做一個簡單外形要點十幾個選單，光學就勸退。"
+        },
+        {
+          "emoji": "🧩",
+          "title": "後處理器對不上機台",
+          "body": "通用 CAM 產的碼常常餵不進 Carvera Air：轉速超規、缺換刀暫停、圓弧亂跑，上機才發現。"
+        },
+        {
+          "emoji": "💥",
+          "title": "一失手就毀料撞刀",
+          "body": "切太深、忘了留料橋、鑽穿沒墊犧牲板——木料和刀具都是錢，錯一次很痛。"
+        }
+      ]
+    },
+    "featureSection": {
+      "h2": "十種加工，一個檔全包",
+      "items": [
+        {
+          "emoji": "✂️",
+          "title": "外形切割",
+          "body": "內/外/線上偏移，自動留料橋(tabs)、下刀走斜坡(ramp)不悶刀，分層切深。"
+        },
+        {
+          "emoji": "🕳️",
+          "title": "挖槽 Pocket",
+          "body": "螺旋偏移清料、自動避讓島嶼，殘料一次清乾淨。"
+        },
+        {
+          "emoji": "🔩",
+          "title": "鑽孔啄鑽",
+          "body": "圓孔自動轉鑽孔點、展開啄鑽，貫穿孔會提醒你墊犧牲板。"
+        },
+        {
+          "emoji": "🔤",
+          "title": "V 刻字 / 描線",
+          "body": "V 刀固定深度描線刻字，適合門牌、招牌、logo。"
+        },
+        {
+          "emoji": "🏔️",
+          "title": "浮雕 Relief",
+          "body": "灰階圖轉高低起伏 3D 浮雕刀路，亮度/對比/平滑可調。"
+        },
+        {
+          "emoji": "🖊️",
+          "title": "圖片描圖 + 向量補縫",
+          "body": "照片/掃描稿自動描成向量，還能只描外輪廓、用運算把斷掉的線接回來。"
+        }
+      ]
+    },
+    "outputsSection": {
+      "h2": "上機前，先幫你守住安全",
+      "items": [
+        {
+          "icon": "🛡️",
+          "title": "G-code 自檢護欄",
+          "body": "下載前把產出的 .nc 重新 parse 一遍，抓轉速超規、料中快移撞刀、圓弧缺圓心、無進給乾磨等毀料寫法。"
+        },
+        {
+          "icon": "📏",
+          "title": "切穿板厚警告",
+          "body": "切深超過板厚、鑽孔貫穿都會醒目提示，並提醒墊好犧牲板，別切到工作台。"
+        },
+        {
+          "icon": "🔁",
+          "title": "換刀順序卡",
+          "body": "依刀具自動分組排序、切換處插 M6 自動暫停，附一張『第幾段換哪把刀』說明卡。"
+        },
+        {
+          "icon": "📴",
+          "title": "完全離線、免安裝",
+          "body": "單一 HTML 在你瀏覽器裡跑，圖檔不上傳雲端；斷網也能用，商業圖稿不外流。"
+        }
+      ]
+    },
+    "audienceSection": {
+      "h2": "適合誰用",
+      "items": [
+        {
+          "emoji": "🪵",
+          "title": "Carvera Air 機主",
+          "body": "後處理器就是照 Carvera Air 韌體(Smoothieware)調的：單檔 M6 自動暫停換刀、13000RPM 上限、300×200 工作範圍都內建。"
+        },
+        {
+          "emoji": "🎨",
+          "title": "做客製小物 / 招牌",
+          "body": "門牌、名牌、logo、托盤、木盒——這類 2.5D 切刻，拖 SVG 進來比開 CAD/CAM 快十倍。"
+        },
+        {
+          "emoji": "🧑‍🏫",
+          "title": "想少走冤枉路的新手",
+          "body": "預設參數都標好『首切進給 50% 起步』，附上機檢查清單，不用把撞刀學費繳一輪。"
+        }
+      ],
+      "notForTitle": "這些情況它還幫不上：",
+      "notForItems": [
+        "非 Carvera 系機台(Grbl/其他韌體)—碼格式可能要改，尚未針對性測試",
+        "複雜 3D 曲面雕刻(多軸/球刀等高)—目前聚焦 2.5D 切刻",
+        "金屬加工—參數與策略是為木料/合板/壓克力調的"
+      ]
+    },
+    "scenariosSection": {
+      "h2": "實際這樣用",
+      "items": [
+        {
+          "tag": "招牌木牌",
+          "body": "Illustrator 排好字轉外框存 SVG → 拖進來 → 字用 V 刻、邊框外形切割留料橋 → 下載一個 .nc，M6 換刀點自動排好。"
+        },
+        {
+          "tag": "托盤 / 木盒",
+          "body": "畫底板輪廓 + 內凹槽 → 外形切外圈、挖槽清中間 → 分層切深、四角留 tab，切完不飛料。"
+        },
+        {
+          "tag": "logo 浮雕",
+          "body": "品牌 logo 灰階圖 → 浮雕加工 → 調亮度對比平滑試幾次 → 產出 3D 起伏刀路。"
+        },
+        {
+          "tag": "掃描稿還原",
+          "body": "手繪或舊圖掃描 → 圖片描圖轉向量 → 只描外輪廓 + 補縫接回斷線 → 直接變可切的路徑。"
+        }
+      ]
+    },
+    "pricingSection": {
+      "h2": "兩種方式解鎖",
+      "sub": "訂閱個人版以上就免費用；只想要這個工具也能單買永久解鎖。",
+      "tierSingle": {
+        "badge": "單買",
+        "title": "CNC 工具永久買斷",
+        "price": "NT$499",
+        "unit": "一次性",
+        "features": [
+          "永久解鎖 CNC 刀路產生器",
+          "不訂閱也能用",
+          "工具日後更新自動拿到",
+          "國際版 US$9.99"
+        ],
+        "cta": "單買解鎖"
+      },
+      "tierPersonal": {
+        "badge": "最划算",
+        "title": "個人版訂閱",
+        "price": "NT$390",
+        "unit": "/月起",
+        "features": [
+          "含 CNC 刀路產生器",
+          "＋ 全 26 種家具設計範本",
+          "＋ 天花板/地板/架高工具",
+          "PDF 施工圖與料單下載"
+        ],
+        "cta": "看個人版"
+      },
+      "tierPro": {
+        "badge": "接案用",
+        "title": "專業版訂閱",
+        "price": "NT$890",
+        "unit": "/月起",
+        "features": [
+          "個人版全部功能",
+          "＋ 客戶報價系統",
+          "＋ 家具 STL / CNC 匯出",
+          "＋ 尺寸無上限"
+        ],
+        "cta": "看專業版"
+      },
+      "footnoteText": "所有方案與單買品項都在",
+      "footnoteLink": "定價頁"
+    },
+    "faqSection": {
+      "h2": "常見問題",
+      "items": [
+        {
+          "q": "這跟家具設計器的『CNC 匯出』一樣嗎？",
+          "a": "不一樣。家具設計器是把你設計的家具零件匯出；這個工具是獨立的 SVG/DXF→G-code 產生器，任何向量圖或圖片都能轉刀路，用途更廣。"
+        },
+        {
+          "q": "只支援 Carvera Air 嗎？",
+          "a": "後處理器是照 Makera Carvera Air 的韌體慣例調校(單檔 M6 換刀、轉速上限、工作範圍)，所以最保險。其他 Smoothieware/Grbl 機台碼格式相近但尚未針對測試，建議先空跑驗證。"
+        },
+        {
+          "q": "圖檔會上傳到雲端嗎？",
+          "a": "不會。整個工具是一份 HTML 在你瀏覽器裡運算，圖檔和 G-code 都留在本機，斷網也能用，商業圖稿不外流。"
+        },
+        {
+          "q": "單買和訂閱差在哪？",
+          "a": "單買 NT$499 一次性、永久解鎖這一個工具。訂閱個人版 NT$390/月起則除了這個工具，還包含全部家具設計範本與其他裝潢工具，划算很多。"
+        },
+        {
+          "q": "我是新手，會不會很難？",
+          "a": "預設刀具參數都幫你調好、標明『首切進給先開 50%』，還附上機檢查清單。但 CNC 有一定風險，務必先照清單空跑、淺切測試再正式切。"
+        },
+        {
+          "q": "買了之後功能會更新嗎？",
+          "a": "會。工具持續在改進(加工方式、安全護欄)，買斷或訂閱期間的更新都自動拿到，不用再付費。"
+        }
+      ]
+    },
+    "relatedSection": {
+      "h2": "也看看這些工具",
+      "items": [
+        {
+          "href": "/ceiling",
+          "emoji": "🏗️",
+          "title": "天花板骨架模擬器",
+          "body": "輸入長寬高，3 秒算主骨副骨矽酸鈣板螺絲，印 A4 帶上工地。"
+        },
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "地板排版計算器",
+          "body": "自動排版估超耐磨/海島型/實木用料，含人字拼演算。"
+        },
+        {
+          "href": "/templates",
+          "emoji": "📐",
+          "title": "全部家具設計範本",
+          "body": "26 種家具參數化設計，出三視圖、榫卯爆炸圖、材料單。"
+        }
+      ]
+    },
+    "finalCta": {
+      "h2": "下一塊板，別再開 Fusion 了",
+      "body": "拖一張 SVG 進去，3 秒拿到能上機的 G-code。訂閱個人版以上免費用，或單買永久解鎖。",
+      "cta": "開始用 CNC 刀路產生器"
+    },
+    "schema": {
+      "productName": "CNC 刀路產生器",
+      "productDescription": "把 SVG／DXF／圖片轉成 Makera Carvera Air 能直接跑的 G-code。外形切割、挖槽、鑽孔、V 刻、浮雕、圖片描圖十種加工，內建切穿警告與換刀順序卡。",
+      "brandName": "木頭仁木匠學院",
+      "breadcrumbHome": "首頁",
+      "breadcrumbTemplates": "範本介紹",
+      "breadcrumbCurrent": "CNC 刀路產生器"
     }
   },
   "ceilingMarketing": {
@@ -1964,6 +2226,7 @@
     "toolCeilingAlt": "天花板骨架 3D 爆炸圖",
     "toolFloorName": "🪵 地板施工模擬器",
     "toolRaisedFloorName": "🏯 和室架高平台",
+    "toolCncName": "🔧 CNC 刀路產生器",
     "preview3dAlt": "{name} 3D preview"
   },
   "mySubscription": {
@@ -4434,6 +4697,8 @@
     "floorDesc": "輸入空間尺寸、自動排版、估超耐磨/海島型/實木地板用料、含人字拼演算",
     "raisedFloorLabel": "和室架高平台施工模擬器",
     "raisedFloorDesc": "輸入空間尺寸、自動算主支/副支/夾板/防潮墊、含 2D shelf-packing 拼板優化",
+    "cncLabel": "CNC 刀路產生器",
+    "cncDesc": "拖 SVG/DXF/圖片進去、3 秒產出 Carvera Air 能直接跑的 G-code，省掉 Fusion CAM 設定流程",
     "noticeAdmin": "✓ 你是管理員帳號，三個工具都已開通使用，不用購買。",
     "noticeOwned": "✓ 你已經買過這個工具了，可以直接使用。",
     "adminBtn": "✓ 管理員 (全功能已開通)"
@@ -4852,6 +5117,10 @@
     "chinese": "中式"
   },
   "engineeringToolPages": {
+    "cnc": {
+      "metaTitle": "CNC 刀路產生器｜SVG/DXF 轉 Carvera Air G-code｜木頭仁木作藍圖",
+      "metaDescription": "把 SVG／DXF／圖片拖進去，3 秒產出 Makera Carvera Air 能直接跑的 G-code。外形切割、挖槽、鑽孔、V 刻字、浮雕、圖片描圖十種加工，內建切穿警告與換刀順序卡，省掉 Fusion 360 CAM 設定流程。離線、免安裝。"
+    },
     "raisedFloor": {
       "metaTitle": "和室架高平台估價 · 木頭仁",
       "metaDescription": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。木工師傅、統包、DIY 自己做和室一次搞定。"

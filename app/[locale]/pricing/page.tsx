@@ -120,6 +120,12 @@ export default async function PricingPage({
       kind: "tool" as const,
       difficulty: "intermediate" as const,
     },
+    {
+      id: "cnc",
+      nameEn: "CNC Toolpath Generator",
+      kind: "tool" as const,
+      difficulty: "advanced" as const,
+    },
   ].filter((c) => isSellableFurniture(c.id) || isSellableTool(c.id));
 
   return (

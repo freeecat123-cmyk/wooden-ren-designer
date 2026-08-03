@@ -254,6 +254,7 @@ async function handleOrderCreated(
         ceiling: "Ceiling Framing Calculator",
         floor: "Flooring Layout Calculator",
         "raised-floor": "Raised-Floor Tatami Calculator",
+        cnc: "CNC Toolpath Generator",
       };
       unlockEmailItem = {
         kind: "tool",

@@ -53,11 +53,13 @@ export function ToolUnlockSection() {
   const toolLabel = (id: ToolId): string => {
     if (id === "ceiling") return t("ceilingLabel");
     if (id === "raised-floor") return t("raisedFloorLabel");
+    if (id === "cnc") return t("cncLabel");
     return t("floorLabel");
   };
   const toolDesc = (id: ToolId): string => {
     if (id === "ceiling") return t("ceilingDesc");
     if (id === "raised-floor") return t("raisedFloorDesc");
+    if (id === "cnc") return t("cncDesc");
     return t("floorDesc");
   };
 

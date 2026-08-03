@@ -63,10 +63,16 @@ const STUDIO_TOOLS: ReadonlySet<string> = new Set<string>([
   "raised-floor",
 ]);
 
+const PRO_TOOLS: ReadonlySet<string> = new Set<string>([
+  // CNC 刀路產生器：單買歸 pro 級（$9.99 / NT$499），比裝潢工具低一階
+  "cnc",
+]);
+
 export function getTemplateTier(item: SellableTemplate): TemplateTier {
   const key = item.kind === "furniture" ? item.category : item.tool;
   if (BASIC.has(key)) return "basic";
   if (PRO.has(key)) return "pro";
+  if (item.kind === "tool" && PRO_TOOLS.has(key)) return "pro";
   if (item.kind === "furniture" && STUDIO_FURNITURE.has(key)) return "studio";
   if (item.kind === "tool" && STUDIO_TOOLS.has(key)) return "studio";
   // 不在表內 = 預設 pro（保守、不會過便宜）
@@ -84,5 +90,5 @@ export function isSellableFurniture(category: string): boolean {
 }
 
 export function isSellableTool(tool: string): boolean {
-  return STUDIO_TOOLS.has(tool);
+  return STUDIO_TOOLS.has(tool) || PRO_TOOLS.has(tool);
 }

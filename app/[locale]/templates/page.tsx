@@ -82,7 +82,7 @@ const DEV_SET = new Set<FurnitureCategory>([
 ]);
 
 interface InteriorTool {
-  id: "ceiling" | "floor" | "raised-floor";
+  id: "ceiling" | "floor" | "raised-floor" | "cnc";
   href: string;
   difficulty: "beginner" | "intermediate" | "advanced";
 }
@@ -91,6 +91,7 @@ const INTERIOR_TOOLS: InteriorTool[] = [
   { id: "ceiling", href: "/ceiling", difficulty: "intermediate" },
   { id: "floor", href: "/floor", difficulty: "intermediate" },
   { id: "raised-floor", href: "/raised-floor", difficulty: "intermediate" },
+  { id: "cnc", href: "/cnc", difficulty: "advanced" },
 ];
 
 export async function generateMetadata({
@@ -425,7 +426,7 @@ function InteriorToolCard({
               </g>
             ))}
           </svg>
-        ) : (
+        ) : tool.id === "raised-floor" ? (
           <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform group-hover:scale-[1.06]" aria-hidden>
             <rect x={14} y={28} width={92} height={14} rx={1} fill="#e7d8ae" stroke="#bd9955" strokeWidth={1.2} />
             {[18, 44, 70, 96].map((x) => (
@@ -435,6 +436,15 @@ function InteriorToolCard({
             {[36, 52, 68].map((y) => (
               <line key={y} x1={14} y1={y} x2={106} y2={y} stroke="#c9a86b" strokeWidth={0.8} strokeDasharray="2 2" />
             ))}
+          </svg>
+        ) : (
+          <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform group-hover:scale-[1.06]" aria-hidden>
+            <rect x={16} y={16} width={88} height={88} rx={4} fill="#e7d8ae" stroke="#bd9955" strokeWidth={1.5} />
+            <rect x={30} y={30} width={60} height={60} rx={3} fill="none" stroke="#8a6d3b" strokeWidth={1.5} strokeDasharray="4 3" />
+            <path d="M60 42 V78 M42 60 H78" stroke="#8a6d3b" strokeWidth={1.2} />
+            <circle cx={60} cy={60} r={3.5} fill="#a9884f" />
+            <circle cx={38} cy={38} r={2.5} fill="#8a6d3b" />
+            <circle cx={82} cy={82} r={2.5} fill="#8a6d3b" />
           </svg>
         )}
       </div>

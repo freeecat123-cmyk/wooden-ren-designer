@@ -41,6 +41,8 @@ export interface PlanFeatures {
   canUseFloorTool: boolean;
   /** 和室架高平台施工模擬器(/raised-floor) */
   canUseRaisedFloorTool: boolean;
+  /** CNC 刀路產生器(/cnc)：SVG/DXF→Carvera Air G-code */
+  canUseCncTool: boolean;
 }
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
@@ -55,6 +57,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseCeilingTool: false,
     canUseFloorTool: false,
     canUseRaisedFloorTool: false,
+    canUseCncTool: false,
   },
   personal: {
     maxDesigns: Infinity,
@@ -69,6 +72,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseCeilingTool: true,
     canUseFloorTool: true,
     canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
   pro: {
     maxDesigns: Infinity,
@@ -81,6 +85,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseCeilingTool: true,
     canUseFloorTool: true,
     canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
   student: {
     maxDesigns: Infinity,
@@ -93,6 +98,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseCeilingTool: true,
     canUseFloorTool: true,
     canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
   lifetime: {
     maxDesigns: Infinity,
@@ -105,6 +111,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseCeilingTool: true,
     canUseFloorTool: true,
     canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
 };
 

@@ -148,14 +148,19 @@ export async function POST(req: NextRequest) {
         kind === "template_unlock" ? (rawResp.category as string | undefined) : undefined;
       const unlockTool =
         kind === "tool_unlock" ? (rawResp.tool as string | undefined) : undefined;
-      const destinationUrl =
-        unlockCategory
-          ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com"}/design/${unlockCategory}`
-          : unlockTool === "ceiling"
-            ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com"}/ceiling`
-            : unlockTool === "floor"
-              ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com"}/floor`
-              : undefined;
+      const siteBase =
+        process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
+      const toolDestPaths: Record<string, string> = {
+        ceiling: "/ceiling",
+        floor: "/floor",
+        "raised-floor": "/raised-floor",
+        cnc: "/cnc",
+      };
+      const destinationUrl = unlockCategory
+        ? `${siteBase}/design/${unlockCategory}`
+        : unlockTool && toolDestPaths[unlockTool]
+          ? `${siteBase}${toolDestPaths[unlockTool]}`
+          : undefined;
       after(async () => {
         // 1. 開發票
         try {

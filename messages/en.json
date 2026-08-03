@@ -627,6 +627,8 @@
       "floorTagline": "Draw the room → straight / staggered / herringbone auto-layout → plank count and waste.",
       "raisedFloorName": "Tatami raised platform",
       "raisedFloorTagline": "Draw the platform → frame, plywood, surface, moisture barrier, skirting → A4 client quote.",
+      "cncName": "CNC toolpath generator",
+      "cncTagline": "Drag in SVG/DXF/image → pick ops & order paths → G-code your Carvera Air runs.",
       "ctaIntro": "Learn more",
       "ctaStart": "Start estimating"
     },
@@ -860,6 +862,266 @@
       "calcLegHeight": "Calculated leg height",
       "clampedMin": "Clamped to 30 mm min — lower a tier or raise total height",
       "maxLocked": "Max {max} (height locked)"
+    }
+  },
+  "cncMarketing": {
+    "breadcrumb": {
+      "home": "Home",
+      "templates": "Templates",
+      "current": "CNC Toolpath Generator"
+    },
+    "hero": {
+      "badge1": "CNC Tool",
+      "badge2": "Personal plan & up / one-time",
+      "h1": "Drop in an SVG, run the G-code",
+      "leadLine1": "Skip the entire Fusion 360 CAM setup —",
+      "leadLine2": "get a toolpath your Carvera Air runs in 3 seconds.",
+      "body": "An offline toolpath generator tuned for the Makera Carvera Air. Drag in your vector art or a scan, pick the operation and tool, download the .nc and cut — profile, pocket, drill, V-carve, relief and image-trace, ten operations in one file.",
+      "ctaGuest": "Log in free to start",
+      "ctaUpgrade": "Unlock the CNC tool",
+      "ctaSecondary": "See plans & one-time",
+      "footnote": "Free on the Personal plan and up; or buy once for a permanent unlock. Runs fully offline — your art never leaves your browser.",
+      "shareTitle": "CNC Toolpath Generator — SVG/DXF to Carvera Air G-code",
+      "diagramLabel1": "Drop in SVG / DXF / image",
+      "diagramLabel2": "Pick operation + tool",
+      "diagramLabel3": "Download .nc & cut"
+    },
+    "painSection": {
+      "h2": "Still opening Fusion just to cut one panel?",
+      "items": [
+        {
+          "emoji": "🐌",
+          "title": "CAM setup is a slog",
+          "body": "Import, align the origin, define tools, order operations, load a post-processor… a dozen menus for one simple profile. The learning curve alone puts you off."
+        },
+        {
+          "emoji": "🧩",
+          "title": "The post doesn't fit the machine",
+          "body": "Generic CAM often won't feed the Carvera Air: over-speed spindle, missing tool-change pauses, arcs that wander — you find out at the machine."
+        },
+        {
+          "emoji": "💥",
+          "title": "One slip wrecks the stock",
+          "body": "Cut too deep, forget the holding tabs, drill through with no spoilboard — wood and bits both cost money, and mistakes hurt."
+        }
+      ]
+    },
+    "featureSection": {
+      "h2": "Ten operations, one file",
+      "items": [
+        {
+          "emoji": "✂️",
+          "title": "Profile cutting",
+          "body": "Inside/outside/on-line offset, automatic holding tabs, ramped plunge so it doesn't bog, stepped depth."
+        },
+        {
+          "emoji": "🕳️",
+          "title": "Pocketing",
+          "body": "Spiral-offset clearing that steers around islands and leaves no leftover stock."
+        },
+        {
+          "emoji": "🔩",
+          "title": "Peck drilling",
+          "body": "Round holes auto-convert to drill points and expand into pecking; through-holes remind you to add a spoilboard."
+        },
+        {
+          "emoji": "🔤",
+          "title": "V-carve / engrave",
+          "body": "Fixed-depth V-bit line carving — perfect for name plates, signs and logos."
+        },
+        {
+          "emoji": "🏔️",
+          "title": "Relief",
+          "body": "Turn a grayscale image into a 3D relief toolpath, with brightness / contrast / smoothing controls."
+        },
+        {
+          "emoji": "🖊️",
+          "title": "Image trace + gap-bridge",
+          "body": "Auto-trace photos or scans to vectors, keep only the outer silhouette, and computationally bridge broken contours back together."
+        }
+      ]
+    },
+    "outputsSection": {
+      "h2": "Guardrails before you cut",
+      "items": [
+        {
+          "icon": "🛡️",
+          "title": "G-code self-check",
+          "body": "Before download it re-parses the .nc and catches over-speed spindle, rapids inside the stock, arcs missing a center, feedless dry-grinding and other stock-wrecking mistakes."
+        },
+        {
+          "icon": "📏",
+          "title": "Cut-through warnings",
+          "body": "Cuts deeper than the stock and through-drills are flagged loudly, with a reminder to seat the spoilboard so you don't cut into the bed."
+        },
+        {
+          "icon": "🔁",
+          "title": "Tool-change card",
+          "body": "Operations auto-group and order by tool, an M6 pause is inserted at each change, and you get a 'which bit for which pass' card."
+        },
+        {
+          "icon": "📴",
+          "title": "Fully offline, no install",
+          "body": "A single HTML that runs in your browser; art never leaves your machine, works with the network off, and commercial drawings stay private."
+        }
+      ]
+    },
+    "audienceSection": {
+      "h2": "Who it's for",
+      "items": [
+        {
+          "emoji": "🪵",
+          "title": "Carvera Air owners",
+          "body": "The post-processor is tuned to the Carvera Air firmware (Smoothieware): single-file M6 auto-pause tool changes, the 13,000 RPM ceiling and the 300×200 work area are all built in."
+        },
+        {
+          "emoji": "🎨",
+          "title": "Custom small goods / signage",
+          "body": "Name plates, badges, logos, trays, boxes — for this kind of 2.5D cutting, dragging in an SVG is ten times faster than opening CAD/CAM."
+        },
+        {
+          "emoji": "🧑‍🏫",
+          "title": "Beginners who'd rather not learn the hard way",
+          "body": "Defaults are labeled 'start first cut at 50% feed' and come with a machine checklist, so you skip paying tuition in crashed bits."
+        }
+      ],
+      "notForTitle": "Where it can't help yet:",
+      "notForItems": [
+        "Non-Carvera machines (Grbl / other firmware) — the code format may need changes and isn't specifically tested",
+        "Complex 3D surface carving (multi-axis / ball-nose contouring) — the focus is 2.5D cutting for now",
+        "Metalworking — parameters and strategy are tuned for wood / plywood / acrylic"
+      ]
+    },
+    "scenariosSection": {
+      "h2": "How people actually use it",
+      "items": [
+        {
+          "tag": "Signs & plates",
+          "body": "Set your type in Illustrator, convert to outlines, save SVG → drag in → V-carve the letters, profile-cut the border with tabs → one .nc with the M6 change already ordered."
+        },
+        {
+          "tag": "Trays & boxes",
+          "body": "Draw the base outline plus a recess → profile the outside, pocket the middle → stepped depth with a tab in each corner so nothing flies off."
+        },
+        {
+          "tag": "Logo relief",
+          "body": "Grayscale brand logo → relief operation → tweak brightness / contrast / smoothing a few times → out comes a 3D relief toolpath."
+        },
+        {
+          "tag": "Restoring a scan",
+          "body": "Scan a hand drawing or old artwork → image-trace to vectors → outer silhouette only + bridge the broken lines → straight into a cuttable path."
+        }
+      ]
+    },
+    "pricingSection": {
+      "h2": "Two ways to unlock",
+      "sub": "Free on the Personal plan and up; want just this tool? Buy it once for a permanent unlock.",
+      "tierSingle": {
+        "badge": "One-time",
+        "title": "CNC tool, buy once",
+        "price": "US$9.99",
+        "unit": "one-time",
+        "features": [
+          "Permanent unlock of the CNC toolpath generator",
+          "Use it without subscribing",
+          "Future tool updates included",
+          "NT$499 in Taiwan"
+        ],
+        "cta": "Buy to unlock"
+      },
+      "tierPersonal": {
+        "badge": "Best value",
+        "title": "Personal plan",
+        "price": "US$5.9",
+        "unit": "/mo",
+        "features": [
+          "Includes the CNC toolpath generator",
+          "+ all 26 furniture design templates",
+          "+ ceiling / floor / raised-floor tools",
+          "PDF shop drawings & cut lists"
+        ],
+        "cta": "See Personal"
+      },
+      "tierPro": {
+        "badge": "For pros",
+        "title": "Studio plan",
+        "price": "US$14.9",
+        "unit": "/mo",
+        "features": [
+          "Everything in Personal",
+          "+ client quoting system",
+          "+ furniture STL / CNC export",
+          "+ no size limits"
+        ],
+        "cta": "See Studio"
+      },
+      "footnoteText": "All plans and one-time items are on the",
+      "footnoteLink": "pricing page"
+    },
+    "faqSection": {
+      "h2": "FAQ",
+      "items": [
+        {
+          "q": "Is this the same as the furniture designer's 'CNC export'?",
+          "a": "No. The furniture designer exports the parts you designed; this is a standalone SVG/DXF → G-code generator — any vector art or image becomes a toolpath, so it's far more general."
+        },
+        {
+          "q": "Is it only for the Carvera Air?",
+          "a": "The post-processor is tuned to the Makera Carvera Air's firmware conventions (single-file M6 changes, speed ceiling, work area), so it's safest there. Other Smoothieware/Grbl machines use a similar format but aren't specifically tested — verify with an air pass first."
+        },
+        {
+          "q": "Does my art get uploaded?",
+          "a": "No. The whole tool is one HTML computing in your browser; art and G-code stay on your machine, it works offline, and commercial drawings never leave."
+        },
+        {
+          "q": "One-time vs. subscription?",
+          "a": "One-time (US$9.99 / NT$499) permanently unlocks this one tool. The Personal plan additionally includes every furniture template and the other interior tools, so it's much better value."
+        },
+        {
+          "q": "I'm a beginner — is it hard?",
+          "a": "Tool defaults are set for you and labeled 'start first cut at 50% feed', with a machine checklist included. CNC carries real risk, though — always air-pass and do a shallow test cut per the checklist before cutting for real."
+        },
+        {
+          "q": "Do I get updates after buying?",
+          "a": "Yes. The tool keeps improving (operations, safety guardrails), and updates during your ownership or subscription come automatically at no extra cost."
+        }
+      ]
+    },
+    "relatedSection": {
+      "h2": "Other tools to check out",
+      "items": [
+        {
+          "href": "/ceiling",
+          "emoji": "🏗️",
+          "title": "Ceiling Framing Simulator",
+          "body": "Enter L×W×H, get main/secondary framing, boards and screws in 3 seconds, print A4 for the site."
+        },
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "Flooring Layout Calculator",
+          "body": "Auto-layout and material estimates for laminate / engineered / solid wood, herringbone included."
+        },
+        {
+          "href": "/templates",
+          "emoji": "📐",
+          "title": "All furniture templates",
+          "body": "26 parametric furniture designs with three-views, joinery explosions and cut lists."
+        }
+      ]
+    },
+    "finalCta": {
+      "h2": "For your next panel, don't open Fusion",
+      "body": "Drag in an SVG, get machine-ready G-code in 3 seconds. Free on the Personal plan and up, or buy once for a permanent unlock.",
+      "cta": "Start the CNC Toolpath Generator"
+    },
+    "schema": {
+      "productName": "CNC Toolpath Generator",
+      "productDescription": "Turns SVG / DXF / images into G-code the Makera Carvera Air runs directly. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card.",
+      "brandName": "Wooden Ren Woodworking Academy",
+      "breadcrumbHome": "Home",
+      "breadcrumbTemplates": "Templates",
+      "breadcrumbCurrent": "CNC Toolpath Generator"
     }
   },
   "ceilingMarketing": {
@@ -1964,6 +2226,7 @@
     "toolCeilingAlt": "Ceiling framing 3D exploded view",
     "toolFloorName": "🪵 Floor simulator",
     "toolRaisedFloorName": "🏯 Tatami raised platform",
+    "toolCncName": "🔧 CNC toolpath generator",
     "preview3dAlt": "{name} 3D preview"
   },
   "mySubscription": {
@@ -4434,6 +4697,8 @@
     "floorDesc": "Input room dimensions — auto-lays out planks, estimates laminate / engineered / solid wood usage, includes herringbone pattern calc",
     "raisedFloorLabel": "Raised-floor tatami platform simulator",
     "raisedFloorDesc": "Input room dimensions — auto-calculates main/sub joists, plywood, moisture barrier, with 2D shelf-packing optimization",
+    "cncLabel": "CNC Toolpath Generator",
+    "cncDesc": "Drag in SVG/DXF/image, get Carvera Air-ready G-code in 3 seconds — skip the Fusion CAM setup",
     "noticeAdmin": "✓ You're an admin — all three tools are already unlocked, no purchase needed.",
     "noticeOwned": "✓ You already bought this tool — go ahead and use it.",
     "adminBtn": "✓ Admin (all features unlocked)"
@@ -4852,6 +5117,10 @@
     "chinese": "Chinese"
   },
   "engineeringToolPages": {
+    "cnc": {
+      "metaTitle": "CNC Toolpath Generator | SVG/DXF to Carvera Air G-code | Wooden Ren",
+      "metaDescription": "Drag in an SVG, DXF or image and get G-code your Makera Carvera Air can run in 3 seconds. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card. Skip the whole Fusion 360 CAM setup. Offline, no install."
+    },
     "raisedFloor": {
       "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
       "metaDescription": "Sketch your platform → calculate frame, plywood, finish, vapor barrier, baseboard → output A4 customer quote. Carpenters, GCs, DIYers — get it done in one go."
