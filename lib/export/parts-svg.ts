@@ -265,6 +265,97 @@ export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, st
   return files;
 }
 
+/** 一個零件在「榫孔套料」上的主排版面：挑榫孔最多（同數取面積最大）的那面。 */
+function partPrimaryNestPiece(
+  part: Part,
+  label: string,
+): { outline: Array<{ x: number; y: number }>; holes: MachiningFace["holes"]; w: number; h: number; label: string } {
+  const faces = partMachiningFaces(part);
+  if (faces.length === 0) {
+    const o = partFlatOutline(part);
+    return { outline: o.pts, holes: [], w: o.w, h: o.h, label };
+  }
+  let best = faces[0];
+  for (const f of faces) {
+    if (f.holes.length > best.holes.length) best = f;
+    else if (f.holes.length === best.holes.length && f.w * f.h > best.w * best.h) best = f;
+  }
+  return { outline: best.outline, holes: best.holes, w: best.w, h: best.h, label };
+}
+
+/**
+ * 榫孔套料：所有零件的「主加工面」（含落在該面的榫孔）用 shelf packing 排進一張板，
+ * 一張合併 SVG。兩面都有孔的零件（如桌腳）只排主面，另一面請用「榫孔加工面 ZIP」。
+ */
+export function nestedJoinerySheetSvg(
+  design: FurnitureDesign,
+  sheetWidthMm = DEFAULT_SHEET_WIDTH_MM,
+): string {
+  const groups = groupPartsForDrawing(design);
+  type Piece = ReturnType<typeof partPrimaryNestPiece>;
+  const items: Piece[] = [];
+  groups.forEach((g, i) => {
+    const piece = partPrimaryNestPiece(g.representative, `P-${String(i + 1).padStart(2, "0")}`);
+    for (let k = 0; k < g.count; k++) items.push(piece);
+  });
+  items.sort((a, b) => b.w * b.h - a.w * a.h);
+
+  let cursorX = SHEET_GAP_MM;
+  let cursorY = SHEET_GAP_MM;
+  let shelfH = 0;
+  let sheetH = 0;
+  const placed: Array<{ x: number; y: number; item: Piece }> = [];
+  let maxRight = SHEET_GAP_MM;
+  for (const it of items) {
+    if (cursorX + it.w + SHEET_GAP_MM > sheetWidthMm && cursorX > SHEET_GAP_MM) {
+      cursorX = SHEET_GAP_MM;
+      cursorY += shelfH + SHEET_GAP_MM;
+      shelfH = 0;
+    }
+    placed.push({ x: cursorX, y: cursorY, item: it });
+    cursorX += it.w + SHEET_GAP_MM;
+    if (cursorX > maxRight) maxRight = cursorX;
+    if (it.h > shelfH) shelfH = it.h;
+    if (cursorY + it.h + SHEET_GAP_MM > sheetH) sheetH = cursorY + it.h + SHEET_GAP_MM;
+  }
+  const sheetW = Math.max(sheetWidthMm, maxRight);
+
+  const parts: string[] = [];
+  for (const pl of placed) {
+    const off = (p: { x: number; y: number }) => ({ x: p.x + pl.x, y: p.y + pl.y });
+    const d = outlinePathD(pl.item.outline.map(off));
+    const holePaths: string[] = [];
+    for (const h of pl.item.holes) {
+      if (h.kind === "circle" && h.cx != null && h.cy != null && h.r != null) {
+        holePaths.push(
+          `    <circle cx="${round1(h.cx + pl.x)}" cy="${round1(h.cy + pl.y)}" r="${round1(h.r)}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+        );
+      } else if (h.pts) {
+        holePaths.push(
+          `    <path d="${outlinePathD(h.pts.map(off))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+        );
+      }
+    }
+    const cx = pl.x + pl.item.w / 2;
+    const cy = pl.y + pl.item.h / 2;
+    parts.push(
+      `  <g>`,
+      `    <path d="${d}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+      ...holePaths,
+      `    <text x="${round1(cx)}" y="${round1(cy)}" font-size="8" text-anchor="middle" fill="#888888">${escapeXml(pl.item.label)}</text>`,
+      `  </g>`,
+    );
+  }
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${round1(sheetW)}mm" height="${round1(sheetH)}mm" viewBox="0 0 ${round1(sheetW)} ${round1(sheetH)}">`,
+    `  <title>${escapeXml(design.nameZh ?? "parts")} 榫孔套料 ${Math.round(sheetW)}×${Math.round(sheetH)}mm</title>`,
+    `  <rect x="0" y="0" width="${round1(sheetW)}" height="${round1(sheetH)}" fill="none" stroke="#cccccc" stroke-width="0.5"/>`,
+    ...parts,
+    `</svg>`,
+    "",
+  ].join("\n");
+}
+
 // ---- 瀏覽器下載 ----
 
 function safeStem(design: FurnitureDesign): string {
@@ -297,6 +388,12 @@ export function downloadPartsSvgZip(design: FurnitureDesign) {
 export function downloadNestedSvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_SHEET_WIDTH_MM) {
   const svg = nestedSheetSvg(design, sheetWidthMm);
   triggerDownload(new Blob([svg], { type: "image/svg+xml" }), `${safeStem(design)}_套料排版.svg`);
+}
+
+/** 下載「榫孔套料」單張合併 SVG —— 所有零件主面（含榫孔）排一張板。 */
+export function downloadNestedJoinerySvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_SHEET_WIDTH_MM) {
+  const svg = nestedJoinerySheetSvg(design, sheetWidthMm);
+  triggerDownload(new Blob([svg], { type: "image/svg+xml" }), `${safeStem(design)}_榫孔套料.svg`);
 }
 
 /** 下載「榫接版加工面 SVG（含榫孔）」的 ZIP —— 每零件每個入榫面一張。 */
