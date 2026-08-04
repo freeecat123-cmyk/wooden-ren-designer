@@ -19,6 +19,7 @@ import {
   apronEdgeStyleOption,
   pullStyleOption,
   legEdgeShape,
+  curvedTaperLegOptions,
 } from "./_helpers";
 import {
   drawerBottomModeOption,
@@ -50,7 +51,9 @@ export const deskOptions: OptionSpec[] = [
     { value: "splayed-tapered", label: "方錐斜腳（下收 + 外傾）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
     { value: "splayed-round-tapered", label: "圓錐斜腳（圓料下收 + 外傾）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
     { value: "shaker", label: "夏克腳（上 1/4 方料、下 3/4 圓錐收）" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
   ] },
+  ...curvedTaperLegOptions("leg"),
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 55, unit: "mm", min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5 },
   // shaker / splayed-round-tapered 是圓料、沒有 4 條長邊；只在方料/方錐/方斜腳顯示
@@ -210,7 +213,10 @@ export const desk: FurnitureTemplate = (input) => {
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "splayed-tapered" | "splayed-round-tapered" | "shaker",
+    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "splayed-tapered" | "splayed-round-tapered" | "shaker" | "curved-taper",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
     seatEdge,
     seatEdgeStyle,
     seatEdgeBottom: seatEdgeBottomClamped,

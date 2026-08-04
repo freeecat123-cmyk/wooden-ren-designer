@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -13,7 +13,7 @@ import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const diningChairOptions: OptionSpec[] = [
   // 腳
-  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
+  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗", defaultValue: 35, unit: "mm", min: 20, max: 120, step: 1, help: "正方腳預設值。若下方寬/厚另填則優先使用" },
   { group: "leg", type: "number", key: "legWidthOverride", label: "椅腳寬 X", defaultValue: 0, unit: "mm", min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板長邊 X 的尺寸（可做扁腳）" },
   { group: "leg", type: "number", key: "legDepthOverride", label: "椅腳厚 Z", defaultValue: 0, unit: "mm", min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板寬邊 Z 的尺寸" },
@@ -33,6 +33,7 @@ export const diningChairOptions: OptionSpec[] = [
   { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
+  ...curvedTaperLegOptions("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   // 座面舒適度
@@ -40,7 +41,7 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true },
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall" },
   // 牙條
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, help: "牙條頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量；0 = 等高（自動上下半榫避免穿模）" },
@@ -118,6 +119,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const rearPostMode = getOption<string>(input, opt(o, "rearPostMode"));
   const isContinuous = rearPostMode !== "split";
+  const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
+  const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
+  const ctInset = getOption<number>(input, opt(o, "ctInset"));
   // 一木連做（A 直料）強制 backRake=0；B/C 用使用者設的角度
   // continuous 模式 backInsetFromRear/End 強制歸零（背柱已跟後腳對齊）
 
@@ -137,7 +141,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatFrontWaterfall = getOption<boolean>(input, opt(o, "seatFrontWaterfall"));
   const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
-  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const _apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
+  // 弧肩斜腳：牙條高度自動＝接撐段高，讓牙板剛好填滿全寬接撐段（其下才是弧肩收窄）
+  const apronWidth = legShape === "curved-taper" ? ctBlockHeight : _apronWidthRaw;
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板
   const withApron = apronWidth > 0;
@@ -205,11 +211,38 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronTenonLen = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
   const apronTenonThick = apronTenonStd.thickness;
   const apronTenonW = apronTenonStd.width;
+  // 牙條進腳：沒勾「明榫通透」一律盲榫（照 square-stool）——自動通榫會讓榫頭戳出腳外側＝
+  // 「破口」紅塊。改盲榫後由 clampBlindDepth 依實際腳厚縮榫深（留 8mm 背牆），薄腳也能安全
+  // 盲接、不穿出。母厚≥33 時 clamp 無作用，autoTenonType(≥33) 本來也回盲榫，故預設 legSize=35
+  // 與各腳型基準版輸出不變（byte 一致）。
+  const apronTenonTypeX = legPenetratingTenon ? "through-tenon" : "blind-tenon";
+  const apronTenonTypeZ = legPenetratingTenon ? "through-tenon" : "blind-tenon";
+  const LEG_MORTISE_BACK_WALL = 8;
+  const clampBlindDepth = (raw: number, motherT: number, isThrough: boolean) =>
+    isThrough ? raw : Math.min(raw, Math.max(6, motherT - LEG_MORTISE_BACK_WALL));
+  const apronTenonLenFor = (motherT: number, isThrough: boolean) =>
+    clampBlindDepth(
+      standardTenon({
+        type: isThrough ? "through-tenon" : "shouldered-tenon",
+        childThickness: apronThickness,
+        childWidth: apronWidth,
+        motherThickness: motherT,
+      }).length + (isThrough ? 5 : 0),
+      motherT,
+      isThrough,
+    );
+  const apronThroughX = apronTenonTypeX === "through-tenon";
+  const apronThroughZ = apronTenonTypeZ === "through-tenon";
+  const apronTenonLengthX = apronTenonLenFor(legW, apronThroughX);
+  const apronTenonLengthZ = apronTenonLenFor(legD, apronThroughZ);
   // 牙板半榫錯位（apronStaggerMm 從 UI 讀；0 = 等高自動上下半榫）
   // 靜止 Z（左右）= 上半榫；移動 X（前後）= 下半榫
   // apronOffset = 0 → 牙板頂貼座板下緣 → 上半榫保留 10mm 上肩；> 0 → 同樣保留以維持半榫錯位
   const APRON_TOP_SHOULDER = 10;
-  const apronTotalTenonH = Math.max(0, apronWidth - APRON_TOP_SHOULDER);
+  // 弧肩斜腳：牙板底緣＝接撐段底＝弧起點，榫直接開到底會破進弧裡。加底肩把榫往上移，
+  // 讓榫眼留在上面全寬實體區、避開弧起點。方腳無此需求＝0。
+  const apronBottomShoulder = legShape === "curved-taper" ? 6 : 0;
+  const apronTotalTenonH = Math.max(0, apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder);
   const apronCanHalfStagger = apronStaggerMm < apronTenonW && apronTotalTenonH >= 16;
   const APRON_HALF_TENON_GAP = 4;
   const apronHalfTenonH = apronCanHalfStagger
@@ -222,8 +255,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     ? (apronWidth - APRON_TOP_SHOULDER - apronUpperTenonH / 2) - apronWidth / 2
     : 0;
   const apronLowerTenonOffset = apronCanHalfStagger
-    ? apronLowerTenonH / 2 - apronWidth / 2
-    : 0;
+    ? apronBottomShoulder + apronLowerTenonH / 2 - apronWidth / 2
+    : (apronBottomShoulder > 0 ? apronBottomShoulder / 2 : 0);
   const seatTopTenonLen = legTenonStd.length;
 
   // 椅背 joinery 位置事先算好，腳/頂橫木/後牙板 都會引用
@@ -306,6 +339,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: cm, chamferStyle: cs };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
+    if (legShape === "curved-taper") {
+      return rectLegShape("curved-taper", c, {
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset },
+      });
+    }
     return undefined;
   };
 
@@ -325,7 +363,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: legW, width: legD, thickness: isBackContinuous ? seatHeight : legBaseHeight },
       origin: { x: c.x, y: 0, z: c.z },
-      shape: legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle),
+      // 弧肩斜腳造型只作用在「座面以下、高 legBaseHeight」的腳身。一木連做的後腳延伸到
+      // seatHeight（含椅背立柱段），若把 curved-taper 套在整支會讓弧肩/斜降算錯高度、破壞
+      // 椅背與座面接合 → 這種腳退回直腳（legEdgeShape），保護椅背。split 模式（預設）4 支腳
+      // 都是 legBaseHeight，curved-taper 乾淨套用。
+      shape: (legShape === "curved-taper" && isBackContinuous)
+        ? (legEdgeShape(legEdge, legEdgeStyle) ?? undefined)
+        : (legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle)),
       tenons: isBackContinuous ? [] : [
         {
           position: "top",
@@ -347,6 +391,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: (() => {
         // 無牙板（apronWidth=0）→ 腳上完全不開牙板榫眼
         if (!withApron) return [];
+        // 弧肩斜腳 或 非方腳（legW≠legD）：腳面上的牙板母榫孔會露在牙條外緣＝使用者看到的
+        // 「破口」紅/白方塊。改「不挖榫眼」→ 靠實體遮，榫頭埋進實體腳身（apronTenonLengthX/Z
+        // 已 clamp 留背牆、確保埋得住）。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
+        // 公榫因此無對應母榫（audit 已於 EXPECTED_FAILS_VARIANT 登記 dining-chair:curved-taper 豁免）。
+        if (legShape === "curved-taper" || legW !== legD) return [];
         // 牙板中心 Y（leg-local）；靜止 Z（左右）= 上榫；移動 X（前後）= 下榫
         // 餐椅 apronStaggerMm 固定為 0，xCenterY = zCenterY
         const zCenterY = apronY + apronWidth / 2;
@@ -565,6 +614,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 座面下牙板 —— 套 bar-stool buildSides 算法（端面軸心對齊腳軸、上下緣保持水平、
   // splay 椅腳時端面斜成腳的傾角）
   const bottomScale = legBottomScale(legShape);
+  // 腳在高度 y 的等效 legSize scale：curved-taper 走內面 recession 補償（§A11），其餘走
+  // 既有線性 legScaleAt。牙板/橫撐長度都靠這個對到腳的實際內面。非 curved-taper 時
+  // legSizeScaleAt === legScaleAt(y, legBaseHeight, bottomScale) → 兩者等價、無迴歸。
+  const legSizeScaleAt = (y: number): number =>
+    legShape === "curved-taper"
+      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockHeight, ctShoulder, ctInset)
+      : legScaleAt(y, legBaseHeight, bottomScale);
   const apronCenterY = apronY + apronWidth / 2;
   void backHeight;
 
@@ -597,9 +653,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       splayZt: apronSplayDz * sTop,
       splayXb: apronSplayDx * sBot,
       splayZb: apronSplayDz * sBot,
-      lwC: legW * legScaleAt(yCenter, legBaseHeight, bottomScale),
-      lwT: legW * legScaleAt(yTop, legBaseHeight, bottomScale),
-      lwB: legW * legScaleAt(yBot, legBaseHeight, bottomScale),
+      // X 面（前後牙板接的面）：curved-taper 內面收窄 → 用 legSizeScaleAt 補償
+      lwC: legW * legSizeScaleAt(yCenter),
+      lwT: legW * legSizeScaleAt(yTop),
+      lwB: legW * legSizeScaleAt(yBot),
+      // Z 面（左右牙板接的面）：curved-taper 是 2D 側輪廓沿 Z 擠出、全寬不收窄 → 不補償
       ldC: legD * legScaleAt(yCenter, legBaseHeight, bottomScale),
       ldT: legD * legScaleAt(yTop, legBaseHeight, bottomScale),
       ldB: legD * legScaleAt(yBot, legBaseHeight, bottomScale),
@@ -620,10 +678,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     { key: "right", nameZh: "右牙條", nameEn: "Right apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
   ];
 
-  const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1;
+  const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1 || legShape === "curved-taper";
 
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
+    // 該支牙板進腳的母件厚依軸別（X→legW、Z→legD）決定 through/blind 與榫長
+    const axisThrough = s.axis === "x" ? apronThroughX : apronThroughZ;
+    const axisTenonLength = s.axis === "x" ? apronTenonLengthX : apronTenonLengthZ;
     // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
     //   axis="x" 牙條只受 apronSplayDx 影響、axis="z" 牙條只受 apronSplayDz 影響
     // axis="x" 牙條: start at part-local -X → world -X (Rx(π/2) 不動 X)。cornerSx=-1 ✓
@@ -677,13 +738,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         : { x: Math.PI / 2 + (-s.sz) * apronTiltZ, y: 0, z: 0 },
       shape: partShape,
       tenons: (() => {
+        // type / 榫長 依該支軸別的母件厚（X→legW、Z→legD）
         const tenonType: "through-tenon" | "shouldered-tenon" =
-          apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
+          axisThrough ? "through-tenon" : "shouldered-tenon";
         if (!apronCanHalfStagger) {
           const mk = (position: "start" | "end") => ({
             position,
             type: tenonType,
-            length: apronTenonLen,
+            length: axisTenonLength,
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
@@ -702,7 +764,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         const mk = (position: "start" | "end") => ({
           position,
           type: tenonType,
-          length: apronTenonLen,
+          length: axisTenonLength,
           width: tenonH,
           thickness: apronTenonThick,
           shoulderOn,
@@ -886,6 +948,44 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const lowerLowerTenonH = lowerHalfTenonH;
     const lowerUpperTenonOffset = lowerCanHalfStagger ? (lowerW / 2 - lowerUpperTenonH / 2) : 0;
     const lowerLowerTenonOffset = lowerCanHalfStagger ? (lowerLowerTenonH / 2 - lowerW / 2) : 0;
+    // 下橫撐 Z 軸（左右）整支上移後的中心 Y（curved-taper 補償要在這個高度取值）
+    const lsZShiftedY = lowerY + lowerW / 2 + (lowerStretcherStaggerMm > 0 ? lowerStretcherStaggerMm : 0);
+    // 弧肩斜腳：下橫撐落在斜降區、腳 X 向料已收窄（inner 面內縮 recession）。母厚要用「該高度
+    // 實際 X 料厚」＝ legW×(1+scale)/2，且強制盲榫，否則 33mm 榫頭會戳出腳外面（榫接版看到
+    // 紅榫頭凸出）。Z 面是平的全寬擠出蓋、不收 → 照舊 legD。
+    const legXDepthLS =
+      legShape === "curved-taper"
+        ? Math.max(8, (legW * (1 + legSizeScaleAt(lowerY + lowerW / 2))) / 2)
+        : legW;
+    const lowerTenonTypeX = legPenetratingTenon
+      ? "through-tenon"
+      : legShape === "curved-taper" || legW < legD
+        ? "blind-tenon"
+        : autoTenonType(legW);
+    const lowerTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legD < legW ? "blind-tenon" : autoTenonType(legD));
+    const lowerTenonLenFor = (motherT: number, isThrough: boolean) =>
+      clampBlindDepth(
+        standardTenon({ type: isThrough ? "through-tenon" : "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: motherT }).length + (isThrough ? 5 : 0),
+        motherT,
+        isThrough,
+      );
+    const lowerThroughX = lowerTenonTypeX === "through-tenon";
+    const lowerThroughZ = lowerTenonTypeZ === "through-tenon";
+    // curved-taper 不挖榫眼、靠實體遮，榫頭必須確實埋在料厚內（留 3mm）才不露出腳面。
+    // 用未經背牆 clamp 的 raw 榫長 + 自己的「legXDepthLS − 3」上限。
+    const lowerRawLenX = standardTenon({
+      type: "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: legXDepthLS,
+    }).length;
+    const lowerTenonX =
+      legShape === "curved-taper"
+        ? Math.max(6, Math.min(lowerRawLenX, Math.floor(legXDepthLS - 3)))
+        : lowerTenonLenFor(legXDepthLS, lowerThroughX);
+    const lowerTenonZ = lowerTenonLenFor(legD, lowerThroughZ);
+    // 弧肩斜腳：左右(Z)橫撐坐在腳中線會踩空（內面收過中線）。往外挪 recession/2，坐到「腳收窄後
+    // 實際 X 料」的中點上（recession = legW×(1−scale)/2）。
+    const ctZShift = legShape === "curved-taper"
+      ? (legW * (1 - legSizeScaleAt(lsZShiftedY))) / 4
+      : 0;
 
     // ---- 參考 bar-stool buildSides 算法 ----
     // splay 規則：dining-chair 「splayed」原本後腳 z 不外傾，但下橫撐用對稱 splay 算
@@ -917,9 +1017,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         splayXc: splayDx * sCenter, splayZc: splayDz * sCenter,
         splayXt: splayDx * sTop,    splayZt: splayDz * sTop,
         splayXb: splayDx * sBot,    splayZb: splayDz * sBot,
-        lwC: legW * legScaleAt(yCenter, legBaseHeight, bottomScale),
-        lwT: legW * legScaleAt(yTop, legBaseHeight, bottomScale),
-        lwB: legW * legScaleAt(yBot, legBaseHeight, bottomScale),
+        // X 面（前後下橫撐接的面）：curved-taper 內面收窄 → 用 legSizeScaleAt 補償
+        lwC: legW * legSizeScaleAt(yCenter),
+        lwT: legW * legSizeScaleAt(yTop),
+        lwB: legW * legSizeScaleAt(yBot),
+        // Z 面（左右下橫撐接的面）：全寬擠出蓋、不收窄 → 不補償
         ldC: legD * legScaleAt(yCenter, legBaseHeight, bottomScale),
         ldT: legD * legScaleAt(yTop, legBaseHeight, bottomScale),
         ldB: legD * legScaleAt(yBot, legBaseHeight, bottomScale),
@@ -936,8 +1038,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const sides: SideDef[] = [
       { key: "front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + lsGeomX.splayZc) } },
       { key: "back",  nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + lsGeomX.splayZc } },
-      { key: "left",  nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + lsGeomZ.splayXc), z: 0 } },
-      { key: "right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + lsGeomZ.splayXc, z: 0 } },
+      { key: "left",  nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + lsGeomZ.splayXc + ctZShift), z: 0 } },
+      { key: "right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + lsGeomZ.splayXc + ctZShift, z: 0 } },
     ];
 
     const buildLowerPart = (s: SideDef): Part => {
@@ -960,7 +1062,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       const halfZ_C = legEdgeZ + geom.splayZc - geom.ldC / 2;
       const halfZ_T = legEdgeZ + geom.splayZt - geom.ldT / 2;
       const halfZ_B = legEdgeZ + geom.splayZb - geom.ldB / 2;
-      const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+      const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1 || legShape === "curved-taper";
       const trapTopScale =
         s.axis === "x" && hasShapeBend ? halfX_T / halfX_C
         : s.axis === "z" && hasShapeBend ? halfZ_T / halfZ_C
@@ -973,8 +1075,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       const partShape = trapTopScale !== null
         ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
         : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+      // type / 榫長 依該支軸別的母件厚（X→legXDepthLS、Z→legD）
+      const axisThrough = s.axis === "x" ? lowerThroughX : lowerThroughZ;
+      const axisLen = s.axis === "x" ? lowerTenonX : lowerTenonZ;
       const lsType: "through-tenon" | "blind-tenon" =
-        lowerTenonType === "through-tenon" ? "through-tenon" : "blind-tenon";
+        axisThrough ? "through-tenon" : "blind-tenon";
       return {
         id: `ls-${s.key}`,
         nameZh: s.nameZh,
@@ -993,7 +1098,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             const mk = (position: "start" | "end") => ({
               position,
               type: lsType,
-              length: lowerTenon,
+              length: axisLen,
               width: lowerTenonW,
               thickness: lowerTenonThick,
               shoulderOn: [...lowerTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
@@ -1010,7 +1115,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           const mk = (position: "start" | "end") => ({
             position,
             type: lsType,
-            length: lowerTenon,
+            length: axisLen,
             width: tenonH,
             thickness: lowerTenonThick,
             shoulderOn,
@@ -1042,6 +1147,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
       const cornerLs = { x: cx, z: cz };
+      // 弧肩斜腳 或 非方腳（legW≠legD）：下橫撐 mortise 跟牙板 mortise 同條件不挖——斜降薄腳區
+      // 或非方腳面開孔會露破口，改「不挖榫眼」→ 下橫撐盲榫直接埋進實體被遮（榫頭已 clamp 在料
+      // 厚內留背牆）。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
+      if (legShape === "curved-taper" || legW !== legD) continue;
       // 下橫撐 mortise 套同套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx
       const _splayDxLs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(cx) * splayMm : 0;
       const _splayDzLs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(cz) * splayMm : 0;

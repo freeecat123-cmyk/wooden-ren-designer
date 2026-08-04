@@ -13,6 +13,7 @@ import {
   apronEdgeStyleOption,
   legBottomScale,
   legScaleAt,
+  curvedTaperLegOptions,
 } from "./_helpers";
 import type { Part } from "@/lib/types";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
@@ -23,7 +24,9 @@ export const sideTableOptions: OptionSpec[] = [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
     { value: "shaker", label: "夏克風腳（上方頂+下圓錐）" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）" },
   ] },
+  ...curvedTaperLegOptions("leg"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 35, unit: "mm", min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 25, unit: "mm", min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
@@ -112,7 +115,10 @@ export const sideTable: FurnitureTemplate = (input) => {
     legInset,
     apronOffset: effectiveApronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "strong-taper" | "splayed" | "splayed-length" | "splayed-width" | "shaker" | "inverted" | "hoof",
+    legShape: legShape as "box" | "tapered" | "strong-taper" | "splayed" | "splayed-length" | "splayed-width" | "shaker" | "inverted" | "hoof" | "curved-taper",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
     seatEdge,
     seatEdgeStyle,
     legEdge,

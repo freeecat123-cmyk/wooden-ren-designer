@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "../_helpers";
+import { corners, rectLegShape, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "../_helpers";
 import {
   LOWER_STRETCHER_HEIGHT_RATIO,
   TENON_THICKNESS_RATIO,
@@ -52,6 +52,7 @@ export interface SimpleTableOpts {
    *   splayed-width   = 單向斜腳（只沿寬邊外傾）
    *   splayed-tapered = 方錐斜腳（方料 + 下收 + 整支外傾）
    *   splayed-round-tapered = 圓錐斜腳（圓料 + 下收 + 整支外傾）
+   *   curved-taper    = 弧肩斜腳（上段接撐全寬 → 內凹弧肩 → 斜降；外面垂直）
    *   hoof            = 馬蹄腳（底部外撇） */
   legShape?:
     | "box"
@@ -63,8 +64,13 @@ export interface SimpleTableOpts {
     | "splayed-width"
     | "splayed-tapered"
     | "splayed-round-tapered"
+    | "curved-taper"
     | "hoof"
     | "shaker";
+  /** 弧肩斜腳（curved-taper）專屬：接撐段全寬高度 / 弧肩內收 / 外面斜降內縮（mm）。 */
+  ctBlockHeight?: number;
+  ctShoulder?: number;
+  ctInset?: number;
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
@@ -155,7 +161,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const topThickness = opts.topThickness ?? 25;
   const legSize =
     opts.legSize ?? Math.max(35, Math.min(70, Math.round(height / 12)));
-  const apronWidth = opts.apronWidth ?? 70;
+  // 弧肩斜腳（curved-taper）：接撐段全寬高度 / 弧肩內收 / 外面斜降內縮
+  const isCurvedTaper = (opts.legShape ?? "box") === "curved-taper";
+  const ctBlockHeight = opts.ctBlockHeight ?? 55;
+  const ctShoulder = opts.ctShoulder ?? 8;
+  const ctInset = opts.ctInset ?? 12;
+  // 弧肩斜腳：牙板高度自動＝接撐段高（牙板填滿上段全寬實體區、其下才收弧）
+  const apronWidth = isCurvedTaper ? ctBlockHeight : (opts.apronWidth ?? 70);
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板 + leg 對應榫眼都 skip，腳頂 through-tenon 直接拉桌面/座板
   const withApron = apronWidth > 0;
@@ -170,7 +182,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   //  - apronOffset === 0 + isSplayed → apron-trapezoid.bevelMode = "half"（頂面貼桌面水平）
   //  - legPenetratingTenon = true → 強制牙板/下橫撐進腳通榫（明榫裝飾，覆寫 autoTenonType）
   const legPenetratingTenon = opts.legPenetratingTenon ?? false;
-  const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
+  // 弧肩斜腳非明榫時強制盲榫（不讓 autoTenonType 對細腳自動通榫戳出腳外＝破口）。
+  const apronTenonType = legPenetratingTenon
+    ? "through-tenon"
+    : isCurvedTaper
+      ? "blind-tenon"
+      : autoTenonType(legSize);
   const apronTenonStd = standardTenon({
     type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: apronThickness,
@@ -334,6 +351,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         bottomScale: 0.55,
       };
     }
+    if (legShape === "curved-taper") {
+      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset } });
+    }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     if (legShape === "shaker") return { kind: "shaker" };
     return undefined;
@@ -391,7 +411,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
-    mortises: !withApron ? [] : [
+    // 弧肩斜腳：腳面上開牙板母榫孔會露在牙條外緣＝破口，改「不挖榫眼、靠實體遮」，
+    // 牙板盲榫直接埋進全寬接撐段實體（apronTenonLen 已 < legSize、埋得住）。跟方凳同處理。
+    mortises: (!withApron || isCurvedTaper) ? [] : [
       // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫，rotX 跟 splayDz
       {
         origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
@@ -661,14 +683,27 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherWidth = opts.lowerStretcherWidth ?? 30;
     const stretcherThickness = opts.lowerStretcherThickness ?? 18;
     // 下橫撐 ↔ 腳：autoTenonType + legPenetratingTenon override + 通榫補 +5mm（同 square-stool）
-    const lowerTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
+    // 弧肩斜腳非明榫時強制盲榫（不自動通榫戳出斜面）。
+    const lowerTenonType = legPenetratingTenon
+      ? "through-tenon"
+      : isCurvedTaper
+        ? "blind-tenon"
+        : autoTenonType(legSize);
     const lowerTenonStd = standardTenon({
       type: lowerTenonType,
       childThickness: stretcherThickness,
       childWidth: stretcherWidth,
       motherThickness: legSize,
     });
-    const tenonLen = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
+    const tenonLenRaw = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
+    // 弧肩斜腳：下橫撐接在斜降窄區，把榫長 clamp 到「該高度實際腳寬 − 3mm」內才不戳出斜面
+    // （legXDepthLS 公式照搬 square-stool：外面垂直、只內面收窄，材料 X 深 = legSize×(1+scale)/2）。
+    const ctStretcherNarrow = isCurvedTaper
+      ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(stretcherY + stretcherWidth / 2, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset))) / 2)
+      : legSize;
+    const tenonLen = isCurvedTaper
+      ? Math.max(6, Math.min(tenonLenRaw, Math.floor(ctStretcherNarrow - 3)))
+      : tenonLenRaw;
     const tenonThick = lowerTenonStd.thickness;
     const tenonW = lowerTenonStd.width;
     // 半榫錯位（stagger 預設 0）：靜止 X（前後）= 下半榫；移動 Z（左右）= 上半榫
@@ -785,6 +820,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
+      // 弧肩斜腳：斜降窄區不挖下橫撐母榫（會露破口），靠實體遮、盲榫已 clamp 埋在料厚內。
+      if (isCurvedTaper) continue;
       const lsZRotX = (splayDz > 0 && legHeight > 0)
         ? Math.sign(cz || 1) * Math.atan(splayDz / legHeight)
         : 0;

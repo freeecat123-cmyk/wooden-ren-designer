@@ -3,7 +3,8 @@ import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
-  RECT_LEG_SHAPE_CHOICES,
+  RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER,
+  curvedTaperLegOptions,
   seatEdgeOption,
   seatEdgeBottomOption,
   seatEdgeStyleOption,
@@ -27,7 +28,8 @@ import {
 } from "./_constants";
 
 export const benchOptions: OptionSpec[] = [
-  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER },
+  ...curvedTaperLegOptions("leg"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, unit: "mm", min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "座板厚", defaultValue: 30, unit: "mm", min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
@@ -144,7 +146,10 @@ export const bench: FurnitureTemplate = (input) => {
     withLowerStretchers: withLowerStretchers || withUnderShelf,
     legInset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "splayed-length", "splayed-width", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "hoof",
+    legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "splayed-length", "splayed-width", "curved-taper", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "curved-taper" | "hoof",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
     seatEdge,
     seatEdgeStyle,
     seatEdgeBottom: seatEdgeBottomClamped,

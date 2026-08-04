@@ -63,6 +63,16 @@ const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
   // 該處若開母榫孔會從斜面破出(破口),故刻意抑制腳上的橫撐母榫、讓公榫短榫嵌入
   // 實心腳身——藍圖/3D 都乾淨不露孔(使用者明確要求)。公榫因此無對應母榫,屬設計取捨。
   "stool:curved-taper",
+  // curved-taper（弧肩斜腳）鋪到其他用腳模板：牙板/下橫撐進腳一律不挖母榫、靠實體遮
+  // （非方腳/斜降窄區開孔會露破口），公榫因此無對應母榫，屬設計取捨。同 stool:curved-taper。
+  "bench:curved-taper",
+  "side-table:curved-taper",
+  "low-table:curved-taper",
+  "dining-table:curved-taper",
+  "desk:curved-taper",
+  "bar-stool:curved-taper",
+  "dining-chair:curved-taper",
+  "tea-table:curved-taper",
   // shoe-cabinet plinth/panel-side：門內層板 tongue-and-groove 對不上 mortise
   // （待 zone-helpers 修腳款變化時門內 dado 寬度公式），先豁免不擋 commit
   "shoe-cabinet:plinth",

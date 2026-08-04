@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -14,7 +14,7 @@ import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const barStoolOptions: OptionSpec[] = [
   // 吧檯椅排除「方錐漸縮（大幅下收）」——重心高、下收太多會頭重腳輕
-  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES.filter((c) => c.value !== "strong-taper") },
+  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER.filter((c) => c.value !== "strong-taper") },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗", defaultValue: 50, unit: "mm", min: 20, max: 80, step: 1, help: "正方腳預設值。若下方寬/厚另填則優先使用。吧檯椅高 750mm 需 ≥ 50mm 才夠穩（比例 1:15）" },
   { group: "leg", type: "number", key: "legWidthOverride", label: "椅腳寬 X", defaultValue: 0, unit: "mm", min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板長邊 X 的尺寸（可做扁腳）" },
   { group: "leg", type: "number", key: "legDepthOverride", label: "椅腳厚 Z", defaultValue: 0, unit: "mm", min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板寬邊 Z 的尺寸" },
@@ -29,10 +29,11 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile，但保留四角圓角" },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
+  ...curvedTaperLegOptions("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高", defaultValue: 350, unit: "mm", min: 50, max: 700, step: 10, help: "腳踏離地高度。吧檯椅標準＝座面下 400–450mm（座面 750→腳踏 300–350；座面 800→腳踏 350–400）；counter stool 較矮，距座面約 300mm" },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5 },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 18, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
@@ -87,6 +88,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legW = legWidthOverride > 0 ? legWidthOverride : legSize;
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize;
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
+  const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
+  const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const footrestStaggerMm = getOption<number>(input, opt(o, "footrestStaggerMm"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -105,7 +109,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
   const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
-  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const _apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
+  // 弧肩斜腳：牙條高度自動＝接撐段高，讓牙板剛好填滿全寬接撐段（其下才是弧肩收窄）
+  const apronWidth = legShape === "curved-taper" ? ctBlockHeight : _apronWidthRaw;
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）
   const withApron = apronWidth > 0;
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -140,6 +146,20 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   // legPenetratingTenon = true 時強制牙板/腳踏進腳通榫（明榫裝飾）
   // 母件厚度用 min(legW, legD)（取較薄面決定通/盲）
   const legShortDim = Math.min(legW, legD);
+  // 弧肩斜腳（curved-taper）幾何補償：腳在高度 y 的等效對稱 legSize scale。
+  // curved-taper 走內面 recession 補償（§A11），其餘走既有線性 legScaleAt。
+  // seatY = 腳高（座面高 − 座板厚）。牙板/腳踏長度與盲榫深都靠這個對到腳的實際內面。
+  const _legHeightForScale = height - seatThickness;
+  const bottomScale = legBottomScale(legShape);
+  const legSizeScaleAt = (y: number): number =>
+    legShape === "curved-taper"
+      ? curvedTaperInnerScaleAt(y, _legHeightForScale, legW, ctBlockHeight, ctShoulder, ctInset)
+      : legScaleAt(y, _legHeightForScale, bottomScale);
+  // 盲榫深度留背牆 ≥ 8mm，避免薄腳（腳粗/寬/厚改小）榫眼快穿透＝破口。母厚 ≥33 時 clamp 無作用
+  // （standardTenon 盲榫 = max(25, 母厚×2/3)），故預設方腳 legSize=50 輸出不變、byte 一致。通榫不夾。
+  const LEG_MORTISE_BACK_WALL = 8;
+  const clampBlindDepth = (raw: number, motherT: number, isThrough: boolean) =>
+    isThrough ? raw : Math.min(raw, Math.max(6, motherT - LEG_MORTISE_BACK_WALL));
   // 1) leg ↔ seat：腳頂進座板，依自動規則
   const legTopTenonType = autoTenonType(seatThickness);
   const legTenonStd = standardTenon({
@@ -162,6 +182,26 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronTenonLen = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
   const apronTenonThick = apronTenonStd.thickness;
   const apronTenonW = apronTenonStd.width;
+  // 牙條進腳：沒勾「明榫通透」一律盲榫（不再用 autoTenonType 對薄腳自動轉通榫戳出腳外＝破口），
+  // 依實際母厚各軸（X 面接前後牙板=legW、Z 面接左右牙板=legD）clamp 留背牆。方腳 legW===legD、
+  // 母厚 50 時兩軸值相同且 clamp 無作用 → 與基準版 byte 一致、無迴歸。
+  const apronTenonTypeX = legPenetratingTenon ? "through-tenon" : "blind-tenon";
+  const apronTenonTypeZ = legPenetratingTenon ? "through-tenon" : "blind-tenon";
+  const apronThroughX = apronTenonTypeX === "through-tenon";
+  const apronThroughZ = apronTenonTypeZ === "through-tenon";
+  const apronTenonLenFor = (motherT: number, isThrough: boolean) =>
+    clampBlindDepth(
+      standardTenon({
+        type: isThrough ? "through-tenon" : "shouldered-tenon",
+        childThickness: apronThickness,
+        childWidth: apronWidth,
+        motherThickness: motherT,
+      }).length + (isThrough ? 5 : 0),
+      motherT,
+      isThrough,
+    );
+  const apronTenonLengthX = apronTenonLenFor(legW, apronThroughX);
+  const apronTenonLengthZ = apronTenonLenFor(legD, apronThroughZ);
   // 3) footrest ↔ leg：依自動規則 + legPenetratingTenon override
   const frTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legShortDim);
   const frTenonStd = standardTenon({
@@ -170,9 +210,37 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     childWidth: footRestWidth,
     motherThickness: legShortDim,
   });
-  const frTenonLen = frTenonStd.length + (frTenonType === "through-tenon" ? 5 : 0);
   const frTenonThick = frTenonStd.thickness;
   const frTenonW = frTenonStd.width;
+  // 腳踏落在斜降區（弧肩斜腳）／非方腳薄面 → 一律盲榫、依實際母厚 clamp，否則榫戳出腳外＝破口。
+  // 弧肩斜腳：腳 X 向料在腳踏高度已收窄（inner 面 recession），母厚要用「該高度實際 X 料厚」＝
+  // legW×(1+scale)/2；Z 面是全寬擠出蓋不收窄 → 照舊 legD。方腳兩軸值相同＝無迴歸。
+  const frCenterYForClamp = footrestHeight + footRestWidth / 2;
+  const legXDepthFR =
+    legShape === "curved-taper"
+      ? Math.max(8, (legW * (1 + legSizeScaleAt(frCenterYForClamp))) / 2)
+      : legW;
+  const frTenonTypeX = legPenetratingTenon
+    ? "through-tenon"
+    : legShape === "curved-taper" || legW < legD
+      ? "blind-tenon"
+      : autoTenonType(legW);
+  const frTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legD < legW ? "blind-tenon" : autoTenonType(legD));
+  const frThroughX = frTenonTypeX === "through-tenon";
+  const frThroughZ = frTenonTypeZ === "through-tenon";
+  const frTenonLenFor = (motherT: number, isThrough: boolean) =>
+    clampBlindDepth(
+      standardTenon({ type: isThrough ? "through-tenon" : "blind-tenon", childThickness: footRestThickness, childWidth: footRestWidth, motherThickness: motherT }).length + (isThrough ? 5 : 0),
+      motherT,
+      isThrough,
+    );
+  // curved-taper 不挖榫眼、靠實體遮，榫頭必須埋在料厚內（留 3mm）才不露出腳面；不吃 8mm 通用背牆。
+  const frRawLenX = standardTenon({ type: "blind-tenon", childThickness: footRestThickness, childWidth: footRestWidth, motherThickness: legXDepthFR }).length;
+  const frTenonX =
+    legShape === "curved-taper"
+      ? Math.max(6, Math.min(frRawLenX, Math.floor(legXDepthFR - 3)))
+      : frTenonLenFor(legXDepthFR, frThroughX);
+  const frTenonZ = frTenonLenFor(legD, frThroughZ);
 
   // 牙板錯開策略（連續位移 — 套用方凳基礎規則）：
   //   stagger > 0 → 前後牙板（X 軸，正視圖全寬）整支物理下移，榫頭整支跟著
@@ -180,7 +248,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   //     - 靜止 Z（左右）拿上榫；移動 X（前後，下移）拿下榫
   const apronVisuallyStaggered = apronStaggerMm > 0;
   const APRON_TOP_SHOULDER = 10;
-  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER;
+  // 弧肩斜腳：牙板底緣＝接撐段底＝弧起點，榫直接開到底會破進弧裡。加底肩把榫往上移，
+  // 讓榫眼留在上面全寬實體區、避開弧起點（＝「榫應該要上移」）。方腳無此需求＝0。
+  const apronBottomShoulder = legShape === "curved-taper" ? 6 : 0;
+  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder;
   const apronCanHalfStagger = apronStaggerMm < apronTenonW && apronTotalTenonH >= 16;
   const APRON_HALF_TENON_GAP = 4;
   const apronHalfTenonH = apronCanHalfStagger
@@ -192,8 +263,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     ? (apronWidth - APRON_TOP_SHOULDER - apronUpperTenonH / 2) - apronWidth / 2
     : 0;
   const apronLowerTenonOffset = apronCanHalfStagger
-    ? apronLowerTenonH / 2 - apronWidth / 2
-    : 0;
+    ? apronBottomShoulder + apronLowerTenonH / 2 - apronWidth / 2
+    : (apronBottomShoulder > 0 ? apronBottomShoulder / 2 : 0);
 
   // 腳踏錯開策略（連續位移 — 同方凳下橫撐規則）：
   //   stagger > 0 → 左右腳踏（Z 軸，側視圖全寬）整支物理上移
@@ -252,6 +323,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const hoofMm = 30;
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
+    if (legShape === "curved-taper")
+      return rectLegShape("curved-taper", c, {
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset },
+      });
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
     if (legShape === "inverted") return { kind: "tapered", bottomScale: 1.25 };
@@ -380,8 +455,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         const _xFaceRotZ = xFaceApronMortiseRotZ(c, _splayDxForLegs, _legHeight);
         return [
         // === 牙板 ===
-        // 無牙板（apronWidth=0）→ skip 兩個牙板榫眼
-        ...(!withApron ? [] : [
+        // 不挖牙板母榫的三種情況（跟 square-stool 同條件）：無牙板 / 弧肩斜腳 / 非方腳。
+        // 弧肩斜腳與非方腳（legW≠legD，腳面比牙條厚寬）挖榫眼會露在牙條外緣＝使用者看到的破口。
+        // 這兩種情況不挖、靠實體遮，榫頭埋進實體腳身（apronTenonLengthX/Z 已 clamp 留背牆）→
+        // 腳面乾淨無孔。方腳（legW===legD 且非弧肩）維持挖榫眼＝與基準版 byte 一致、無迴歸。
+        ...((!withApron || legShape === "curved-taper" || legW !== legD) ? [] : [
         // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫，rotX 跟 splayDz
         {
           origin: {
@@ -389,10 +467,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             y: _zFaceMortiseY,
             z: _zFaceMortiseZ,
           },
-          depth: apronTenonLen,
+          depth: apronTenonLengthZ,
           length: apronCanHalfStagger ? apronUpperTenonH : apronTenonW,
           width: apronTenonThick,
-          through: apronTenonType === "through-tenon",
+          through: apronThroughZ,
           ...(Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫，rotZ 跟 splayDx
@@ -403,14 +481,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
               + (apronCanHalfStagger ? apronLowerTenonOffset : 0),
             z: 0,
           },
-          depth: apronTenonLen,
+          depth: apronTenonLengthX,
           length: apronCanHalfStagger ? apronLowerTenonH : apronTenonW,
           width: apronTenonThick,
-          through: apronTenonType === "through-tenon",
+          through: apronThroughX,
           ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
         },
         ]),
         // === 腳踏 ===（套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx）
+        // 弧肩斜腳／非方腳同牙板：不挖榫眼、靠實體遮（腳踏落在斜降薄腳區，挖榫眼會露破口）。
+        ...((legShape === "curved-taper" || legW !== legD) ? [] : [
         // Z 面 mortise（接 Z 軸 = 左右腳踏, 上移）— 上榫，rotX 跟 splayDz
         {
           origin: {
@@ -419,10 +499,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
               + (frCanHalfStagger ? frUpperTenonOffset : 0),
             z: c.z > 0 ? -1 : 1,
           },
-          depth: frTenonLen,
+          depth: frTenonZ,
           length: frCanHalfStagger ? frUpperTenonH : frTenonW,
           width: frTenonThick,
-          through: frTenonType === "through-tenon",
+          through: frThroughZ,
           ...(Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後腳踏, 靜止）— 下榫，rotZ 跟 splayDx
@@ -432,12 +512,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             y: (footrestHeight + footRestWidth / 2) + (frCanHalfStagger ? frLowerTenonOffset : 0),
             z: 0,
           },
-          depth: frTenonLen,
+          depth: frTenonX,
           length: frCanHalfStagger ? frLowerTenonH : frTenonW,
           width: frTenonThick,
-          through: frTenonType === "through-tenon",
+          through: frThroughX,
           ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
         },
+        ]),
         // 背腳：椅背頂橫木的母榫眼
         ...(isBack
           ? [
@@ -521,7 +602,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const splayDx = isLengthSplay ? splayMm : 0;
   const splayDz = isWidthSplay ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
-  const bottomScale = legBottomScale(legShape);
+  // bottomScale 已在前面（弧肩斜腳補償區）定義
   const tiltX = splayDx > 0 ? Math.atan(splayDx / seatY) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / seatY) : 0;
 
@@ -539,10 +620,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const splayZt = splayDz * sTop;
     const splayXb = splayDx * sBot;
     const splayZb = splayDz * sBot;
-    // 該 Y 位置的腳寬（含 taper 補償）
-    const lwC = legW * legScaleAt(centerY, seatY, bottomScale);
-    const lwT = legW * legScaleAt(topY, seatY, bottomScale);
-    const lwB = legW * legScaleAt(botY, seatY, bottomScale);
+    // 該 Y 位置的腳寬（含 taper 補償）。X 面（前後牙板/腳踏）走 legSizeScaleAt：curved-taper
+    // 內面沿高度收窄要補償，否則斜降區橫撐兩端接不到收窄後的內面＝有縫。非 curved-taper 時
+    // legSizeScaleAt === legScaleAt(y, seatY, bottomScale)，與原式等價、byte 一致。
+    // Z 面（左右）是全寬擠出蓋、curved-taper 不在此面收窄 → 維持 legScaleAt（不補償）。
+    const lwC = legW * legSizeScaleAt(centerY);
+    const lwT = legW * legSizeScaleAt(topY);
+    const lwB = legW * legSizeScaleAt(botY);
     const ldC = legD * legScaleAt(centerY, seatY, bottomScale);
     const ldT = legD * legScaleAt(topY, seatY, bottomScale);
     const ldB = legD * legScaleAt(botY, seatY, bottomScale);
@@ -598,7 +682,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const halfZ_C = legEdgeZ + apronB.splayZc - apronB.ldC / 2;
     const halfZ_T = legEdgeZ + apronB.splayZt - apronB.ldT / 2;
     const halfZ_B = legEdgeZ + apronB.splayZb - apronB.ldB / 2;
-    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1 || legShape === "curved-taper";
     const trapTopScale =
       s.axis === "x" && hasShapeBend
         ? halfX_T / halfX_C
@@ -634,13 +718,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
       shape: partShape,
       tenons: (() => {
+        // 依該支軸別的母件厚（X→legW、Z→legD）決定 through/blind 與榫長
+        const axisThrough = s.axis === "x" ? apronThroughX : apronThroughZ;
+        const axisTenonLength = s.axis === "x" ? apronTenonLengthX : apronTenonLengthZ;
         const tenonType: "through-tenon" | "shouldered-tenon" =
-          apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
+          axisThrough ? "through-tenon" : "shouldered-tenon";
         if (!apronCanHalfStagger) {
           const mk = (position: "start" | "end") => ({
             position,
             type: tenonType,
-            length: apronTenonLen,
+            length: axisTenonLength,
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
@@ -659,7 +746,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         const mk = (position: "start" | "end") => ({
           position,
           type: tenonType,
-          length: apronTenonLen,
+          length: axisTenonLength,
           width: tenonH,
           thickness: apronTenonThick,
           shoulderOn,
@@ -697,7 +784,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const halfZ_C = legEdgeZ + frB.splayZc - frB.ldC / 2;
     const halfZ_T = legEdgeZ + frB.splayZt - frB.ldT / 2;
     const halfZ_B = legEdgeZ + frB.splayZb - frB.ldB / 2;
-    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1 || legShape === "curved-taper";
     const trapTopScale =
       s.axis === "x" && hasShapeBend
         ? halfX_T / halfX_C
@@ -728,13 +815,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
       shape: partShape,
       tenons: (() => {
+        // 依該支軸別的母件厚（X→legW/收窄後 X 料、Z→legD）決定 through/blind 與榫長
+        const axisThrough = s.axis === "x" ? frThroughX : frThroughZ;
+        const axisTenonLength = s.axis === "x" ? frTenonX : frTenonZ;
         const frType: "through-tenon" | "blind-tenon" =
-          frTenonType === "through-tenon" ? "through-tenon" : "blind-tenon";
+          axisThrough ? "through-tenon" : "blind-tenon";
         if (!frCanHalfStagger) {
           const mk = (position: "start" | "end") => ({
             position,
             type: frType,
-            length: frTenonLen,
+            length: axisTenonLength,
             width: frTenonW,
             thickness: frTenonThick,
             shoulderOn: [...frTenonStd.shoulderOn],
@@ -752,7 +842,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         const mk = (position: "start" | "end") => ({
           position,
           type: frType,
-          length: frTenonLen,
+          length: axisTenonLength,
           width: tenonH,
           thickness: frTenonThick,
           shoulderOn,

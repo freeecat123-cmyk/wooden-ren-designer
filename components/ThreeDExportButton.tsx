@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import { downloadSTL, downloadOBJ, downloadFlatLayoutSTL, download3MF, validateDesignExport } from "@/lib/export/three-d-export";
+import { downloadPartsSvgZip, downloadNestedSvg } from "@/lib/export/parts-svg";
 import { analyzeMinThickness, MIN_PRINTABLE_MM } from "@/lib/export/export-checks";
 
 interface Props {
@@ -77,6 +78,24 @@ export function ThreeDExportButton({ design }: Props) {
           title={t("threeMfTitle")}
         >
           {t("threeMfBtn")}
+        </button>
+        {/* 零件 2D 輪廓 SVG（CNC / 雷切）——mm 實尺、不受上方 3D 縮放影響。 */}
+        <span className="w-px h-4 bg-zinc-200" aria-hidden />
+        <button
+          type="button"
+          onClick={() => downloadPartsSvgZip(design)}
+          className="px-2.5 py-1 border border-emerald-300 rounded-md bg-white hover:border-emerald-400 hover:bg-emerald-50 text-emerald-800 transition-colors"
+          title="每個零件一張攤平輪廓 SVG（mm 實尺），打包 ZIP。可直接匯入 CNC 刀路工具 / 雷切。"
+        >
+          零件輪廓 ZIP
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadNestedSvg(design)}
+          className="px-2.5 py-1 border border-emerald-300 rounded-md bg-white hover:border-emerald-400 hover:bg-emerald-50 text-emerald-800 transition-colors"
+          title="所有零件自動排進一張板材（1220mm 寬）的套料 SVG，一次切完。"
+        >
+          套料 SVG
         </button>
       </div>
       {tooThin && (

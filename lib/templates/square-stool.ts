@@ -173,16 +173,21 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 非方腳的「薄軸」強制盲榫：否則 autoTenonType(≤25) 會自動通榫、穿透薄面＝破口。
   // 方腳（legW===legD）兩軸都不觸發 → 維持 autoTenonType 原行為、無迴歸。legPenetratingTenon
   // (明榫)是 user 主動要通透，照舊。
-  const apronTenonTypeX = legPenetratingTenon ? "through-tenon" : (legW < legD ? "blind-tenon" : autoTenonType(legW));
-  const apronTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legD < legW ? "blind-tenon" : autoTenonType(legD));
-  // 盲榫深度留背牆 ≥ 8mm，避免薄腳（非方腳把某軸改薄）榫眼快穿透＝破口。
+  // 牙條進腳：沒勾「明榫通透」一律盲榫，不再用 autoTenonType 對薄腳（母厚≤25）自動轉通榫
+  // ——自動通榫會讓榫頭戳出腳外側＝使用者看到的「破口」紅塊。改盲榫後由 clampBlindDepth
+  // 依實際腳厚縮榫深（留 8mm 背牆），薄腳也能安全盲接、不穿出。母厚≥33 時 clamp 無作用，
+  // autoTenonType(≥33) 本來也回盲榫，故預設 legSize=35 與各腳型基準版輸出不變（byte 一致）。
+  const apronTenonTypeX = legPenetratingTenon ? "through-tenon" : "blind-tenon";
+  const apronTenonTypeZ = legPenetratingTenon ? "through-tenon" : "blind-tenon";
+  // 盲榫深度留背牆 ≥ 8mm，避免薄腳（腳粗/腳寬/腳厚改小）榫眼快穿透＝破口。
   // standardTenon 盲榫 = max(MIN_BLIND_TENON_LEN=25, 母厚×2/3)，母厚 30 時被 25 撐到只剩
   // 5mm 背牆 → 這裡夾回。腳粗 35(→27) / 50(→42) 背牆足夠、不受影響。通榫本來就穿透不夾。
   const LEG_MORTISE_BACK_WALL = 8;
-  // 只有非方腳（legW≠legD，＝有人用腳寬/腳厚把某軸改薄）才夾背牆。方腳一律原封不動
-  // ＝與 pre-curved-taper 基準版 byte 級一致，保證不影響其他腳型。
+  // 對「所有腳型 + 方腳/非方腳」一律夾背牆——只要盲榫、母厚不夠就 clamp（＝依實際母厚
+  // 縮榫深，user 明確要求「改厚度不會破口」而非限制功能）。母厚 ≥33 時 clamp 無作用
+  // （min(25, ≥25)=25），故預設 legSize=35 與各腳型基準版輸出不變、byte 一致。通榫不夾。
   const clampBlindDepth = (raw: number, motherT: number, isThrough: boolean) =>
-    isThrough || legW === legD ? raw : Math.min(raw, Math.max(6, motherT - LEG_MORTISE_BACK_WALL));
+    isThrough ? raw : Math.min(raw, Math.max(6, motherT - LEG_MORTISE_BACK_WALL));
   const apronTenonLenFor = (motherT: number, isThrough: boolean) =>
     clampBlindDepth(
       standardTenon({
@@ -346,9 +351,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     ],
     // 凳腳內側 2 面要挖牙板的半榫眼（中段）
     // 無牙板（apronWidth=0）→ 不開榫眼
-    // 弧肩斜腳：牙板榫已加底肩往上移到接撐段全寬實體區、避開弧起點（見 apronBottomShoulder），
-    // 榫眼開在實體、被牙板蓋住不破口 → 照常開榫眼（下橫撐才在斜降薄腳區不開）。
-    mortises: !withApron ? [] : legMortisesForApron(c, length, width, {
+    // 腳面上的牙板母榫孔在「非方腳（legW≠legD，腳面比牙條厚寬）」或「弧肩斜腳」時，會露在
+    // 牙條外緣＝使用者看到的紅/白小方塊「破口」。跟下橫撐同一處理：這兩種情況不在腳上挖牙板
+    // 母榫、靠實體遮，榫頭埋進實體腳身（apronTenonLengthX/Z 已 clamp 留背牆、確保埋得住）→
+    // 腳面乾淨無孔。方腳（legW===legD 且非弧肩）維持挖榫眼＝與基準版 byte 一致、無迴歸。
+    // 公榫因此無對應母榫（audit 已於 EXPECTED_FAILS_VARIANT 登記 stool:curved-taper 豁免；
+    // 方腳仍有母榫故 audit 照樣涵蓋）。
+    mortises: (!withApron || legShape === "curved-taper" || legW !== legD)
+      ? []
+      : legMortisesForApron(c, length, width, {
       // X 面榫眼（接前後牙板）用 legW-衍生值、Z 面榫眼（接左右牙板）用 legD-衍生值
       apronTenonLengthX,
       apronTenonLengthZ,
@@ -607,10 +618,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       );
     const lowerThroughX = lowerTenonTypeX === "through-tenon";
     const lowerThroughZ = lowerTenonTypeZ === "through-tenon";
-    // curved-taper 不挖榫眼、靠實體遮，榫頭必須確實埋在料厚內（留 3mm）才不露出腳面
+    // curved-taper 不挖榫眼、靠實體遮，榫頭必須確實埋在料厚內（留 3mm）才不露出腳面。
+    // 這裡用未經背牆 clamp 的 raw 榫長 + 自己的「legXDepthLS − 3」上限（本來就防破口）——
+    // 不吃 clampBlindDepth 的 8mm 通用背牆，否則會把已達標的下橫撐再縮 5mm、無謂改動 curved-taper 輸出。
+    const lowerRawLenX = standardTenon({
+      type: "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: legXDepthLS,
+    }).length;
     const lowerTenonX =
       legShape === "curved-taper"
-        ? Math.max(6, Math.min(lowerTenonLenFor(legXDepthLS, false), Math.floor(legXDepthLS - 3)))
+        ? Math.max(6, Math.min(lowerRawLenX, Math.floor(legXDepthLS - 3)))
         : lowerTenonLenFor(legXDepthLS, lowerThroughX);
     const lowerTenonZ = lowerTenonLenFor(legD, lowerThroughZ);
     // 下橫撐錯開策略（連續位移）：
@@ -830,10 +846,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       for (const leg of legs) {
         const cx = leg.origin.x;
         const cz = leg.origin.z;
-        // 弧肩斜腳：斜降薄腳區挖榫眼會露出破口（榫眼口 + 紅榫頭外露，且內面收過中線
-        // 讓榫眼位置對不上橫撐肩）。改成「不挖榫眼」→ 腳保持實體、下橫撐盲榫直接埋進
-        // 實體被遮住（榫頭已 clamp 在料厚內）。沒破口、沒露榫。
-        if (legShape === "curved-taper") continue;
+        // 不挖下橫撐榫眼的兩種情況（跟牙板 legMortisesForApron 同條件）：
+        // ① 弧肩斜腳：斜降薄腳區挖榫眼會露出破口（榫眼口 + 紅榫頭外露，且內面收過中線
+        //    讓榫眼位置對不上橫撐肩）。
+        // ② 非方腳（legW≠legD，腳面比下橫撐厚寬）：榫眼孔露在橫撐外緣＝使用者看到的紅方塊。
+        // 兩者都改「不挖榫眼」→ 腳保持實體、下橫撐盲榫直接埋進實體被遮住（榫頭已 clamp 在
+        // 料厚內留背牆）。沒破口、沒露榫。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
+        if (legShape === "curved-taper" || legW !== legD) continue;
         // 斜腳：下橫撐 mortise 跟 apron 同軸別約定
         // Z 面榫 → rotX（FRONT 看不到 tilt、entry 維持直矩形）
         // X 面榫 → rotZ（FRONT 看得到 tilt、透視過去變平行四邊形）

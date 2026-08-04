@@ -45,6 +45,9 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 0 overlap，不再需要 allowlist（移除）。
   "tea-table:box",
   "tea-table:tapered",
+  // 弧肩斜腳（curved-taper）同 box/tapered：下棚 slat 端角 × 腳，silhouette
+  // 看不到 slat notched-corner → 誤報。腳實際內面已收窄、離 slat 更遠，非真重疊。
+  "tea-table:curved-taper",
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
   // 才能視覺接合柱底 lathe 輪廓——audit 用 box 算 overlap 看不到柱「實際變細」。
   "round-table:pedestal",

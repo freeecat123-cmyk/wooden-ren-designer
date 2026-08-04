@@ -3,6 +3,7 @@ import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { applyStandardChecks, appendSuggestion } from "./_validators";
 import {
+  curvedTaperLegOptions,
   seatEdgeOption,
   seatEdgeStyleOption,
   legEdgeOption,
@@ -21,7 +22,9 @@ export const lowTableOptions: OptionSpec[] = [
     { value: "splayed", label: "斜腳（四角對角外傾）" },
     { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
     { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）" },
   ] },
+  ...curvedTaperLegOptions("leg"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 45, unit: "mm", min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, unit: "mm", min: 12, max: 60, step: 1 },
   { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
@@ -101,7 +104,10 @@ export const lowTable: FurnitureTemplate = (input) => {
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width",
+    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "curved-taper",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
     seatEdge,
     seatEdgeStyle,
     legEdge,

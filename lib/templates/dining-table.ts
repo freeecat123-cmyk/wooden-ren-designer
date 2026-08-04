@@ -2,6 +2,7 @@ import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib
 import { getOption, opt } from "@/lib/types";
 import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
 import {
+  curvedTaperLegOptions,
   legShapeLabel,
   seatEdgeOption,
   seatEdgeStyleOption,
@@ -25,8 +26,10 @@ export const diningTableOptions: OptionSpec[] = [
     { value: "splayed", label: "斜腳（四角對角外傾）" },
     { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
     { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）" },
     { value: "trestle", label: "對柱腳（兩端梁框 + 中央橫木）" },
   ] },
+  ...curvedTaperLegOptions("leg"),
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 70, unit: "mm", min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   // 桌面 (top)
@@ -303,7 +306,10 @@ export const diningTable: FurnitureTemplate = (input) => {
     // 額外 5mm 肩：榫寬縮成 legSize - 20，外側肩變 15mm。
     legTopShoulderExtraMm: 5,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "hoof" | "shaker",
+    legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "curved-taper" | "hoof" | "shaker",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
     seatEdge,
     seatEdgeStyle,
     legEdge,

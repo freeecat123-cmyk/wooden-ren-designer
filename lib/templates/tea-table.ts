@@ -7,6 +7,9 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import {
   corners,
+  rectLegShape,
+  curvedTaperLegOptions,
+  curvedTaperInnerScaleAt,
   seatEdgeOption,
   seatEdgeStyleOption,
   seatEdgeNote,
@@ -31,6 +34,7 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 50, unit: "mm", min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
@@ -45,9 +49,10 @@ export const teaTableOptions: OptionSpec[] = [
   { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
+  ...curvedTaperLegOptions("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙條厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "牙條頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
@@ -107,7 +112,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
   const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
-  const upperApronWidth = getOption<number>(input, opt(o, "upperApronWidth"));
+  const _upperApronWidthRaw = getOption<number>(input, opt(o, "upperApronWidth"));
   const upperApronThickness = getOption<number>(input, opt(o, "upperApronThickness"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const stretcherFloorOffset = getOption<number>(input, opt(o, "lowerStretcherHeight"));
@@ -126,6 +131,16 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const shelfSlatEdge = getOption<number>(input, opt(o, "shelfSlatEdge"));
   const shelfSlatEdgeStyle = getOption<string>(input, opt(o, "shelfSlatEdgeStyle"));
 
+  // 弧肩斜腳（curved-taper）：接撐段全寬高度 / 弧肩內收 / 外面斜降內縮
+  const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
+  const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
+  const ctInset = getOption<number>(input, opt(o, "ctInset"));
+  const isCurvedTaper = legShape === "curved-taper";
+  // 弧肩斜腳：牙條高自動＝接撐段高（牙條填滿上段全寬實體區、其下才收弧）
+  const upperApronWidth = isCurvedTaper ? ctBlockHeight : _upperApronWidthRaw;
+  const legHeight = height - topThickness;
+  const lowerCenterY = stretcherFloorOffset + lowerStretcherWidth / 2;
+
   // ---- 榫卯標準（套自 square-stool / simple-table builder）----
   // 1) leg ↔ top：依自動規則（topThickness ≤ 25 → 通榫；> 25 → 盲榫深 2/3）
   const legTopTenonType = autoTenonType(topThickness);
@@ -140,16 +155,30 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? Math.max(0, Math.round((legSize - legTenonStd.width) / 2))
     : 0;
 
+  // 盲榫深度留背牆 ≥ 8mm（薄腳不破口）；通榫不夾。母厚 ≥33 時 clamp 無作用＝方腳基準版 byte 一致。
+  const LEG_MORTISE_BACK_WALL = 8;
+  const clampBlindDepth = (raw: number, motherT: number, isThrough: boolean) =>
+    isThrough ? raw : Math.min(raw, Math.max(6, motherT - LEG_MORTISE_BACK_WALL));
+
   // 2) upper apron ↔ leg：依自動規則 + legPenetratingTenon override
-  const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
+  // 弧肩斜腳非明榫時強制盲榫（不讓 autoTenonType 對細腳自動通榫戳出腳外＝破口）。
+  const apronTenonType = legPenetratingTenon
+    ? "through-tenon"
+    : isCurvedTaper
+      ? "blind-tenon"
+      : autoTenonType(legSize);
   const apronTenonStd = standardTenon({
     type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: upperApronThickness,
     childWidth: upperApronWidth,
     motherThickness: legSize,
   });
-  // 通榫補 +5mm 補償斜腳 rotation tilt（茶几沒 splay，但保留規則一致）
-  const apronTenonLength = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
+  // 通榫補 +5mm 補償斜腳 rotation tilt（茶几沒 splay，但保留規則一致）；盲榫夾背牆 8mm。
+  const apronTenonLength = clampBlindDepth(
+    apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0),
+    legSize,
+    apronTenonType === "through-tenon",
+  );
   const apronTenonThick = apronTenonStd.thickness;
   const apronTenonW = apronTenonStd.width;
   // 半榫錯位（連續位移）：
@@ -172,14 +201,27 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     : 0;
 
   // 3) lower stretcher ↔ leg：同自動規則 + legPenetratingTenon override
-  const lowerTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
+  // 弧肩斜腳非明榫時強制盲榫（不自動通榫戳出斜面）。
+  const lowerTenonType = legPenetratingTenon
+    ? "through-tenon"
+    : isCurvedTaper
+      ? "blind-tenon"
+      : autoTenonType(legSize);
   const lowerTenonStd = standardTenon({
     type: lowerTenonType,
     childThickness: lowerStretcherThickness,
     childWidth: lowerStretcherWidth,
     motherThickness: legSize,
   });
-  const lowerTenonLength = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
+  const _lowerTenonLenRaw = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
+  // 弧肩斜腳：下橫撐接在斜降窄區，把榫長 clamp 到「該高度實際腳寬 − 3mm」內才不戳出斜面。
+  // （公式照搬 square-stool / simple-table：外面垂直、只內面收窄，材料 X 深 = legSize×(1+scale)/2）。
+  const ctStretcherNarrow = isCurvedTaper
+    ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(lowerCenterY, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset))) / 2)
+    : legSize;
+  const lowerTenonLength = isCurvedTaper
+    ? Math.max(6, Math.min(_lowerTenonLenRaw, Math.floor(ctStretcherNarrow - 3)))
+    : clampBlindDepth(_lowerTenonLenRaw, legSize, lowerTenonType === "through-tenon");
   const lowerTenonThick = lowerTenonStd.thickness;
   const lowerTenonW = lowerTenonStd.width;
   // 下橫撐半榫錯位（連續位移）：
@@ -198,11 +240,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? (lowerHalfTenonH / 2 - lowerStretcherWidth / 2)
     : 0;
 
-  const legHeight = height - topThickness;
   const upperApronY = legHeight - upperApronWidth - apronOffset;
   // 半榫指派的世界 Y 中心
   const apronCenterY = upperApronY + upperApronWidth / 2;
-  const lowerCenterY = stretcherFloorOffset + lowerStretcherWidth / 2;
 
   const cornerPts = corners(length, width, legSize, legInset);
 
@@ -251,7 +291,11 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    shape: legShape === "tapered" ? { kind: "tapered", bottomScale: 0.55 } : legEdgeShape(legEdge, legEdgeStyle),
+    shape: legShape === "curved-taper"
+      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset } })
+      : legShape === "tapered"
+        ? { kind: "tapered", bottomScale: 0.55 }
+        : legEdgeShape(legEdge, legEdgeStyle),
     tenons: [
       {
         position: "top",
@@ -268,7 +312,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         offsetWidth: -Math.sign(c.x) * legTopInsetX,
       },
     ],
-    mortises: [
+    // 弧肩斜腳：腳面上開牙板/下橫撐母榫孔會露在橫料外緣＝破口，改「不挖榫眼、靠實體遮」，
+    // 盲榫直接埋進實體腳身（榫長已 clamp、埋得住）。跟方凳 / simple-table 同處理。公榫因此無對應
+    // 母榫（audit 已於 EXPECTED_FAILS_VARIANT 登記 tea-table:curved-taper 豁免）。
+    mortises: isCurvedTaper ? [] : [
       // 上橫撐 Z 面（接左右上橫撐, 靜止）— 上半榫
       {
         origin: { x: 0, y: apronCenterY + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
