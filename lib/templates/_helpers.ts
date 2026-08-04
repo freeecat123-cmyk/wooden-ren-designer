@@ -246,6 +246,9 @@ export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] 
     { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。", dependsOn },
     { group, type: "number", key: "ctShoulder", label: "弧肩內收", defaultValue: 8, min: 0, max: 40, step: 1, unit: "mm", help: "接橫撐那面的凹弧肩往內收的量（同時是弧的半徑）。0＝無弧肩。", dependsOn },
     { group, type: "number", key: "ctInset", label: "外面斜降", defaultValue: 12, min: 0, max: 100, step: 1, unit: "mm", help: "外面整支直線斜降、腳底往內收的量；內面弧肩以下維持垂直。", dependsOn },
+    // 外斜獨立一欄（不共用 splayAngle）：splayAngle 各模板預設多為 5°，若讓 curved-taper
+    // 直接吃它，所有既有弧肩斜腳設計會突然外傾 → 破壞既有 URL。此欄預設 0 = 垂直（既有行為）。
+    { group, type: "number", key: "ctSplay", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: 12, step: 0.5, unit: "°", help: "整支腳外傾角度（對角外斜，同斜腳系列）。0 = 垂直。建議 3–8°，太斜底盤過大", dependsOn },
   ];
 }
 
@@ -382,8 +385,11 @@ export function rectLegShape(
     /** 同時套腳 4 邊倒角（splayed 系列才支援組合）；非 splayed 時忽略 */
     chamferMm?: number;
     chamferStyle?: "chamfered" | "rounded";
-    /** 弧肩斜腳（curved-taper）參數；斜面朝外由 sign(c.x) 決定 */
-    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number };
+    /** 弧肩斜腳（curved-taper）參數；斜面朝外由 sign(c.x) 決定。
+     *  splayMm > 0 = 選配外斜：腳底沿 X/Z 對角外踢 splayMm（依 corner 正負號），頂固定。
+     *  ⚠️ 刻意不用外層 opts.splayMm（那是 splayed 系列用、模板常帶預設 5° 值）——
+     *  避免既有 curved-taper 呼叫者未 opt-in 就突然全部外斜。 */
+    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number };
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
@@ -431,12 +437,17 @@ export function rectLegShape(
     const ct = opts?.curvedTaper;
     // 斜面朝家具外側（沿 local X），中柱腳（c.x=0）預設 +1
     const dir = (Math.sign(c.x) || 1) as -1 | 0 | 1;
+    // 選配外斜：對角外踢（同 "splayed" 慣例，底部沿 corner 方向外移）
+    const ctSplay = ct?.splayMm ?? 0;
     return {
       kind: "curved-taper",
       blockHeightMm: ct?.blockHeightMm ?? 40,
       shoulderMm: ct?.shoulderMm ?? 8,
       insetMm: ct?.insetMm ?? 12,
       dir,
+      ...(ctSplay > 0
+        ? { dxMm: Math.sign(c.x) * ctSplay, dzMm: Math.sign(c.z) * ctSplay }
+        : {}),
     };
   }
   return undefined;

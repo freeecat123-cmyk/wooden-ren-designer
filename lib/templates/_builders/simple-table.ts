@@ -71,6 +71,8 @@ export interface SimpleTableOpts {
   ctBlockHeight?: number;
   ctShoulder?: number;
   ctInset?: number;
+  /** 弧肩斜腳選配外斜角度（度）。0 / undefined = 垂直（既有行為）。 */
+  ctSplay?: number;
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
@@ -245,14 +247,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // Lift splay axis flags so both topPanel mortises and legs can use them.
   const _legShapePre = opts.legShape ?? "box";
   const _splayMmPre = 40;
+  // 弧肩斜腳選配外斜（ctSplay 度數欄，預設 0=垂直）：對角外踢，角度換算 tan×腳高。
+  const ctSplayMm =
+    isCurvedTaper && (opts.ctSplay ?? 0) > 0
+      ? Math.round(Math.tan(((opts.ctSplay ?? 0) * Math.PI) / 180) * legHeight)
+      : 0;
   const _isSplayedAllAxesPre =
     _legShapePre === "splayed" ||
     _legShapePre === "splayed-tapered" ||
     _legShapePre === "splayed-round-tapered";
   const _splayDxPre =
-    _isSplayedAllAxesPre || _legShapePre === "splayed-length" ? _splayMmPre : 0;
+    _isSplayedAllAxesPre || _legShapePre === "splayed-length" ? _splayMmPre : ctSplayMm;
   const _splayDzPre =
-    _isSplayedAllAxesPre || _legShapePre === "splayed-width" ? _splayMmPre : 0;
+    _isSplayedAllAxesPre || _legShapePre === "splayed-width" ? _splayMmPre : ctSplayMm;
   const _isSplayedPre = _splayDxPre > 0 || _splayDzPre > 0;
 
   // category-aware part naming：bench 用「座板/凳腳」、其他桌類用「桌面板/桌腳」
@@ -352,7 +359,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       };
     }
     if (legShape === "curved-taper") {
-      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset } });
+      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm } });
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     if (legShape === "shaker") return { kind: "shaker" };
@@ -447,10 +454,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // （只沿 Z）、splayed-tapered（雙軸+下收）、splayed-round-tapered（圓料雙軸+下收）
   // splayDx/splayDz 分別記錄該軸是否啟用外斜，給 apron 計算對應的位移和傾角
   const isSplayedAllAxes = legShape === "splayed" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
+  // 弧肩斜腳選配外斜：牙板/橫撐長度與榫軸補償跟 splayed 走同一套（ctSplayMm=0 時不生效）。
   const splayDx =
-    isSplayedAllAxes || legShape === "splayed-length" ? splayMm : 0;
+    isSplayedAllAxes || legShape === "splayed-length" ? splayMm : ctSplayMm;
   const splayDz =
-    isSplayedAllAxes || legShape === "splayed-width" ? splayMm : 0;
+    isSplayedAllAxes || legShape === "splayed-width" ? splayMm : ctSplayMm;
   const isSplayed = splayDx > 0 || splayDz > 0;
   // 牙板上下緣：以「中軸 Y」算 splay 基準位移，讓牙板中軸跟腳中軸對齊。
   // top 邊縮、bot 邊放，bevelAngle 補償讓上下面切平（跟地面平行）。

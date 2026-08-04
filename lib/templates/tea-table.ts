@@ -18,6 +18,7 @@ import {
   legEdgeStyleOption,
   legEdgeNote,
   legEdgeShape,
+  computeCompoundSplayNormal,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   stretcherEdgeNote,
@@ -135,11 +136,22 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
+  const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const isCurvedTaper = legShape === "curved-taper";
   // 弧肩斜腳：牙條高自動＝接撐段高（牙條填滿上段全寬實體區、其下才收弧）
   const upperApronWidth = isCurvedTaper ? ctBlockHeight : _upperApronWidthRaw;
   const legHeight = height - topThickness;
   const lowerCenterY = stretcherFloorOffset + lowerStretcherWidth / 2;
+  // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed" 慣例。
+  // 用獨立角度不共用 splayAngle（茶几本無 splayAngle 欄；共用欄見 _helpers.curvedTaperLegOptions）。
+  const ctSplayMm =
+    isCurvedTaper && ctSplayAngle > 0
+      ? Math.round(Math.tan((ctSplayAngle * Math.PI) / 180) * legHeight)
+      : 0;
+  // 腳在高度 y 的中心外移量 = ctSplayMm × (1 − y/legHeight)（頂 0、底最大）。
+  // 牙條/下橫撐環的長度補償與環位置外移都用「該環中心高」的這個值。
+  const ctSplayOutAt = (yCenter: number): number =>
+    ctSplayMm > 0 && legHeight > 0 ? ctSplayMm * (1 - yCenter / legHeight) : 0;
 
   // ---- 榫卯標準（套自 square-stool / simple-table builder）----
   // 1) leg ↔ top：依自動規則（topThickness ≤ 25 → 通榫；> 25 → 盲榫深 2/3）
@@ -269,21 +281,48 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: 0, y: legHeight, z: 0 },
     shape: liveEdge ? { kind: "live-edge", amplitudeMm: 12 } : seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
-    mortises: cornerPts.map((c) => ({
-      // legInset=0 → mortise 跟 tenon 一起朝中心偏
-      origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
-      depth: legTenonStd.length,
-      length: legTenonStd.width,
-      width: legTenonStd.thickness,
-      through: legTopTenonType === "through-tenon",
-    })),
+    // ctSplay 外斜時 mortise.axis = 腳 top 榫頭世界軸的反向（桌面的孔朝下開向腳），
+    // 跟 square-stool splayed 系列同 pattern。
+    mortises: cornerPts.map((c) => {
+      const mortiseAxis = ctSplayMm > 0
+        ? (() => {
+            const dx = Math.sign(c.x) * ctSplayMm;
+            const dz = Math.sign(c.z) * ctSplayMm;
+            const x = dx, y = -legHeight, z = dz;
+            const mag = Math.hypot(x, y, z) || 1;
+            return { x: x / mag, y: y / mag, z: z / mag };
+          })()
+        : undefined;
+      return {
+        // legInset=0 → mortise 跟 tenon 一起朝中心偏
+        origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
+        depth: legTenonStd.length,
+        length: legTenonStd.width,
+        width: legTenonStd.thickness,
+        through: legTopTenonType === "through-tenon",
+        ...(mortiseAxis ? { axis: mortiseAxis } : {}),
+      };
+    }),
   };
 
   // ----- 4 桌腳 -----
   // mortise 半榫指派：Z 面（接左右橫撐）= 上半榫；X 面（接前後橫撐）= 下半榫
   const apronThrough = apronTenonType === "through-tenon";
   const lowerThrough = lowerTenonType === "through-tenon";
-  const legs: Part[] = cornerPts.map((c, i) => ({
+  const legs: Part[] = cornerPts.map((c, i) => {
+    // ctSplay 外斜：腳底外踢、頂榫進桌面方向 = 腳向下方向的反向（同 square-stool legTopAxis pattern）。
+    // leg downward (top→bottom) world = (sign(c.x)*ctSplayMm, -legHeight, sign(c.z)*ctSplayMm)
+    // top tenon axis (up into top panel) = 反向
+    const legTopAxis = ctSplayMm > 0
+      ? (() => {
+          const dx = Math.sign(c.x) * ctSplayMm;
+          const dz = Math.sign(c.z) * ctSplayMm;
+          const x = -dx, y = legHeight, z = -dz;
+          const mag = Math.hypot(x, y, z) || 1;
+          return { x: x / mag, y: y / mag, z: z / mag };
+        })()
+      : undefined;
+    return ({
     id: `leg-${i + 1}`,
     nameZh: `桌腳 ${i + 1}`,
     nameEn: `Leg ${i + 1}`,
@@ -291,8 +330,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
+    // ctSplayMm > 0 → curvedTaper.splayMm 讓腳 3D/投影對角外踢（頂固定、底外移）
     shape: legShape === "curved-taper"
-      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset } })
+      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm } })
       : legShape === "tapered"
         ? { kind: "tapered", bottomScale: 0.55 }
         : legEdgeShape(legEdge, legEdgeStyle),
@@ -310,6 +350,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
           return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
         })(),
         offsetWidth: -Math.sign(c.x) * legTopInsetX,
+        ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
     // 弧肩斜腳：腳面上開牙板/下橫撐母榫孔會露在橫料外緣＝破口，改「不挖榫眼、靠實體遮」，
@@ -349,7 +390,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         through: lowerThrough,
       },
     ],
-  }));
+  });
+  });
 
   // ----- 上橫撐 / 下橫撐 共用建構 -----
   // legInset > 0 時腳中心向內移，apronEdge（= 腳中心 X）對應減
@@ -428,6 +470,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     xAxisYDelta: -apronStaggerMm,
     zAxisYDelta: 0,
     legInset,
+    // 弧肩斜腳選配外斜：X 環（下移後）/ Z 環各用各自中心高的腳外移量補償長度 + 環位置外移
+    ctSplay: ctSplayMm > 0
+      ? { outX: ctSplayOutAt(apronCenterY - apronStaggerMm), outZ: ctSplayOutAt(apronCenterY), angleDeg: ctSplayAngle }
+      : undefined,
   });
 
   const lowerStretchers: Part[] = makeApronRing({
@@ -464,6 +510,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     xAxisYDelta: 0,
     zAxisYDelta: lowerStretcherStaggerMm,
     legInset,
+    // 弧肩斜腳選配外斜：下橫撐在低處、外移量更大（頂 0 底最大）
+    ctSplay: ctSplayMm > 0
+      ? { outX: ctSplayOutAt(lowerCenterY), outZ: ctSplayOutAt(lowerCenterY + lowerStretcherStaggerMm), angleDeg: ctSplayAngle }
+      : undefined,
   });
 
   // ----- 下棚板（slat 條板） -----
@@ -472,8 +522,11 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   //   "length"（預設）→ slat 沿 X 軸走、跨前後（X 軸）橫撐上面，slats 沿 Z 軸排列、兩端緊貼左右（Z 軸）橫撐內側
   //   "width" → 整片棚板旋轉 90°：slat 沿 Z 軸走（rotation.y=π/2 把 part-local length 從 X 轉到 Z）、
   //             跨左右（Z 軸）橫撐上面，slats 沿 X 軸排列、兩端緊貼前後（X 軸）橫撐內側
-  const stretcherOuterX = length / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
-  const stretcherOuterZ = width / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
+  // ctSplay 外斜時下橫撐環整體外移（左右環 X 外移 outZ、前後環 Z 外移 outX）→ slat 跨距/鋪設區間跟著補
+  const lowerOutX = ctSplayMm > 0 ? ctSplayOutAt(lowerCenterY) : 0;
+  const lowerOutZ = ctSplayMm > 0 ? ctSplayOutAt(lowerCenterY + lowerStretcherStaggerMm) : 0;
+  const stretcherOuterX = length / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2 + lowerOutZ;
+  const stretcherOuterZ = width / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2 + lowerOutX;
   // shelfOrientation 決定「跨距軸」與「排列軸」：
   //   length → slat 跨 X、排列 Z；width → slat 跨 Z、排列 X
   const slatSpanAxisOuter = shelfOrientation === "width" ? stretcherOuterZ : stretcherOuterX;
@@ -638,6 +691,12 @@ interface ApronRingOpts {
   /** Y delta for Z-axis sides (left/right). Default 0. 下橫撐用 +lowerStretcherStaggerMm 上移 */
   zAxisYDelta?: number;
   legInset?: number;
+  /** 弧肩斜腳選配外斜（ctSplay）補償：
+   *  outX / outZ = X 環（前後）/ Z 環（左右）各自「環中心高」的腳中心外移量（mm）。
+   *  每端 visible.length 加該值（腳內側面外移）、環本身沿外法線外移該值（貼回腳中軸）。
+   *  angleDeg 給端面榫頭 axis（computeCompoundSplayNormal，同 square-stool pattern）。
+   *  undefined = 不生效（既有行為 byte 不變）。 */
+  ctSplay?: { outX: number; outZ: number; angleDeg: number };
 }
 
 function makeApronRing(o: ApronRingOpts): Part[] {
@@ -645,38 +704,45 @@ function makeApronRing(o: ApronRingOpts): Part[] {
   const inset = o.legInset ?? 0;
   const edgeX = o.overallLength / 2 - o.legSize / 2 - inset;
   const edgeZ = o.overallWidth / 2 - o.legSize / 2 - inset;
+  // ctSplay 外斜補償：X 環（前後）長度每端 +outX、環 Z 位置外移 outX；Z 環（左右）同理用 outZ。
+  const ctOutX = o.ctSplay?.outX ?? 0;
+  const ctOutZ = o.ctSplay?.outZ ?? 0;
   const sides = [
     {
       key: "front",
       nameZh: "前",
       nameEn: "Front",
-      visibleLength: o.span.x,
+      visibleLength: o.span.x + 2 * ctOutX,
       axis: "x" as const,
-      origin: { x: 0, z: -edgeZ },
+      sx: 0 as const, sz: -1 as const,
+      origin: { x: 0, z: -(edgeZ + ctOutX) },
     },
     {
       key: "back",
       nameZh: "後",
       nameEn: "Back",
-      visibleLength: o.span.x,
+      visibleLength: o.span.x + 2 * ctOutX,
       axis: "x" as const,
-      origin: { x: 0, z: edgeZ },
+      sx: 0 as const, sz: 1 as const,
+      origin: { x: 0, z: edgeZ + ctOutX },
     },
     {
       key: "left",
       nameZh: "左",
       nameEn: "Left",
-      visibleLength: o.span.z,
+      visibleLength: o.span.z + 2 * ctOutZ,
       axis: "z" as const,
-      origin: { x: -edgeX, z: 0 },
+      sx: -1 as const, sz: 0 as const,
+      origin: { x: -(edgeX + ctOutZ), z: 0 },
     },
     {
       key: "right",
       nameZh: "右",
       nameEn: "Right",
-      visibleLength: o.span.z,
+      visibleLength: o.span.z + 2 * ctOutZ,
       axis: "z" as const,
-      origin: { x: edgeX, z: 0 },
+      sx: 1 as const, sz: 0 as const,
+      origin: { x: edgeX + ctOutZ, z: 0 },
     },
   ];
 
@@ -696,6 +762,18 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     const partShape: Part["shape"] = trapTopScale !== null
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
       : o.fallbackShape;
+    // ctSplay 外斜：端面榫頭沿腳傾角傾斜（compound splay normal，corner 符號映射同 square-stool：
+    // axis="x" 環 start 在世界 -X；axis="z" 環 rotation Rx(π/2)Ry(π/2) 後 start 在世界 +Z）
+    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const tenonAxisStart = o.ctSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: o.ctSplay.angleDeg })
+      : null;
+    const tenonAxisEnd = o.ctSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: o.ctSplay.angleDeg })
+      : null;
     return {
       id: `${o.idPrefix}-${s.key}`,
       nameZh: `${s.nameZh}${o.nameZhPrefix}`,
@@ -725,6 +803,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
           thickness: o.tenonThickness,
           shoulderOn: [...shoulderOn],
           offsetWidth: -worldOffset,
+          ...(tenonAxisStart ? { axis: tenonAxisStart } : {}),
         },
         {
           position: "end",
@@ -734,6 +813,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
           thickness: o.tenonThickness,
           shoulderOn: [...shoulderOn],
           offsetWidth: -worldOffset,
+          ...(tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         },
       ],
       mortises: o.extraMortises(s.visibleLength),

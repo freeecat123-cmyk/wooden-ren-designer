@@ -18,10 +18,11 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legWidthOverride", label: "腳寬 X", defaultValue: 0, min: 0, max: 120, step: 1, unit: "mm", help: "0 = 用「腳粗」；填值 = 沿座板長邊 X 的尺寸（可做扁腳）。弧肩斜腳＝總寬" },
   { group: "leg", type: "number", key: "legDepthOverride", label: "腳厚 Z", defaultValue: 0, min: 0, max: 120, step: 1, unit: "mm", help: "0 = 用「腳粗」；填值 = 沿座板寬邊 Z 的尺寸（前後厚度）" },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "腳中心離座板邊緣的內縮量。> 0 讓座板外伸、視覺更俐落" },
-  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: SPLAY_ANGLE.stoolDefaultDeg, min: 1, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: `斜腳系列才有效——從垂直起算的外傾角度。預設 ${SPLAY_ANGLE.stoolDefaultDeg}° 適度外斜；10° 起明顯誇張（北歐風)；${SPLAY_ANGLE.stoolMaxDeg}° 極限` },
+  // 弧肩斜腳時隱藏（curved-taper 用自己的 ctSplay 欄，兩欄同名「外斜角度」會混淆）
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: SPLAY_ANGLE.stoolDefaultDeg, min: 1, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: `斜腳系列才有效——從垂直起算的外傾角度。預設 ${SPLAY_ANGLE.stoolDefaultDeg}° 適度外斜；10° 起明顯誇張（北歐風)；${SPLAY_ANGLE.stoolMaxDeg}° 極限`, dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   legEdgeOption("leg", 0),
   legEdgeStyleOption("leg"),
-  ...curvedTaperLegOptions("leg"),
+  ...curvedTaperLegOptions("leg"),  // 含 ctSplay 外斜角度（共用欄，預設 0=垂直）
   { group: "top", type: "number", key: "seatThickness", label: "座板厚", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
   seatEdgeOption("top", 5),
   { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
@@ -91,6 +92,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
+  const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
@@ -246,10 +248,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 預計算 splay 數據（seatPanel 的 mortise.axis 跟 legs 共用）
   const _splayMmForLegs = Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight);
+  // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed"。
+  // 用獨立角度不共用 splayAngle（splayAngle 預設 5° 會讓既有 curved-taper 設計突變）。
+  const ctSplayMm =
+    legShape === "curved-taper" && ctSplayAngle > 0
+      ? Math.round(Math.tan((ctSplayAngle * Math.PI) / 180) * legHeight)
+      : 0;
   const _splayDxForLegs =
-    legShape === "splayed" || legShape === "splayed-length" ? _splayMmForLegs : 0;
+    legShape === "splayed" || legShape === "splayed-length" ? _splayMmForLegs : ctSplayMm;
   const _splayDzForLegs =
-    legShape === "splayed" || legShape === "splayed-width" ? _splayMmForLegs : 0;
+    legShape === "splayed" || legShape === "splayed-width" ? _splayMmForLegs : ctSplayMm;
   const _isSplayedForLegs = _splayDxForLegs > 0 || _splayDzForLegs > 0;
 
   const seatPanel: Part = {
@@ -326,7 +334,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       splayMm: Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight),
       chamferMm: parseLegChamferMm(legEdge),
       chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
-      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset },
+      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm },
     }) ?? legEdgeShape(legEdge, legEdgeStyle),
     // tenon X 軸朝家具中心偏，內側無肩（朝中心那邊貼腳邊 → 移除對應 shoulderOn）
     tenons: [
@@ -398,10 +406,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償
   // splayMm = tan(splayAngle) × legHeight，跟 rectLegShape 內部用一致的角度
   const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight);
+  // 弧肩斜腳選配外斜：牙板/橫撐長度與榫軸補償跟 splayed 走同一套（ctSplayMm=0 時不生效）。
   const splayDx =
-    legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+    legShape === "splayed" || legShape === "splayed-length" ? splayMm : ctSplayMm;
   const splayDz =
-    legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+    legShape === "splayed" || legShape === "splayed-width" ? splayMm : ctSplayMm;
   const isSplayed = splayDx > 0 || splayDz > 0;
   const apronY = legHeight - apronWidth - apronDropFromTop;
   const apronCenterY = apronY + apronWidth / 2;

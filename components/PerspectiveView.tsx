@@ -1107,6 +1107,8 @@ export function PerspectiveView({
               shoulderMm: part.shape.shoulderMm * SCALE,
               insetMm: part.shape.insetMm * SCALE,
               dir: part.shape.dir,
+              ...(part.shape.dxMm ? { dxMm: part.shape.dxMm * SCALE } : {}),
+              ...(part.shape.dzMm ? { dzMm: part.shape.dzMm * SCALE } : {}),
             };
           } else if (part.shape?.kind === "round") {
             shape = {

@@ -237,6 +237,10 @@ export function projectPartSilhouette(
     const prof = curvedTaperProfilePoints(
       lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
     );
+    // 選配外斜（splay）：頂固定、底外移 dxMm/dzMm。t=(hy−y)/ly ∈ [0 頂,1 底]。0 = 既有行為。
+    const ctDx = part.shape.dxMm ?? 0;
+    const ctDz = part.shape.dzMm ?? 0;
+    const shearT = (yp: number) => (ly / 2 - yp) / ly;
     // 輪廓在 local X-Y 平面、沿 local Z 擠出 → profile 法線 = 旋轉後的 local Z。
     // 哪個視角「看向」此法線就看得到真實輪廓(含接撐段+凹弧) → 輸出有序多邊形不跑 hull
     // (hull 會把接撐段+凹弧填成一條斜線 = 楔形,零件圖橫躺就是踩這個)。
@@ -249,12 +253,19 @@ export function projectPartSilhouette(
       (view === "side" && Math.abs(nX) > 0.99) ||
       (view === "top" && Math.abs(nY) > 0.99);
     if (alongProfile) {
-      for (const [xp, yp] of prof) pushPoint(xp, yp, 0);
+      // dz 沿擠出法線＝視線方向,投影上塌掉不可見 → 有序輪廓仍正確(凹弧保留)
+      for (const [xp, yp] of prof) {
+        const t = shearT(yp);
+        pushPoint(xp + ctDx * t, yp, ctDz * t);
+      }
       return projected; // 有序、保留接撐段+凹弧
     }
-    // 看向擠出方向以外的視角:輪廓塌成線、擠出成矩形 → 兩端採樣 hull 即可
+    // 看向擠出方向以外的視角:輪廓塌成線、擠出成矩形 → 兩端採樣 hull
     for (const zL of [-lz / 2, lz / 2]) {
-      for (const [xp, yp] of prof) pushPoint(xp, yp, zL);
+      for (const [xp, yp] of prof) {
+        const t = shearT(yp);
+        pushPoint(xp + ctDx * t, yp, zL + ctDz * t);
+      }
     }
     return convexHull2D(projected);
   }
@@ -766,7 +777,11 @@ export function projectPartPolygon(
       (part.rotation?.y ?? 0) !== 0 ||
       (part.rotation?.z ?? 0) !== 0;
     if (hasRotCT) return projectPartSilhouette(part, view);
-    if (view !== "front") return box;
+    const ctDx2 = part.shape.dxMm ?? 0;
+    const ctDz2 = part.shape.dzMm ?? 0;
+    // 側/俯視:無外斜=矩形(box);有外斜=傾斜形,delegate silhouette(hull 出傾斜四邊形,
+    // 凹弧本來就朝 X、側視看不到,無細節損失)。
+    if (view !== "front") return ctDx2 !== 0 || ctDz2 !== 0 ? projectPartSilhouette(part, view) : box;
     const cx = r.x + r.w / 2;
     const midY = r.y + r.h / 2;
     // 正視 svg x = -wx（世界 +X → 螢幕左），故 screenX = cx - localX（與 box mirror 一致）。
@@ -774,7 +789,12 @@ export function projectPartPolygon(
       part.visible.length, part.visible.thickness,
       part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
     );
-    return prof.map(([lxp, lyp]) => ({ x: cx - lxp, y: midY + lyp }));
+    const lyCT = part.visible.thickness;
+    // 外斜 shear:local 頂(+ly/2)固定、底(-ly/2)外移 ctDx2(螢幕 X 鏡像 → 減號方向一致)
+    return prof.map(([lxp, lyp]) => {
+      const t = (lyCT / 2 - lyp) / lyCT;
+      return { x: cx - (lxp + ctDx2 * t), y: midY + lyp };
+    });
   }
 
   // 帶頂緣/下緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視

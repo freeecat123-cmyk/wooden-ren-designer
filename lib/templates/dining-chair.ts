@@ -122,6 +122,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
+  const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   // 一木連做（A 直料）強制 backRake=0；B/C 用使用者設的角度
   // continuous 模式 backInsetFromRear/End 強制歸零（背柱已跟後腳對齊）
 
@@ -315,6 +316,15 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   // Leg shape mapping (reused from simple-table conventions)
   const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * (seatHeight - seatThickness));
+  // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed"。
+  // 用獨立角度不共用 splayAngle（splayAngle 預設 5° 會讓既有 curved-taper 設計突變）。
+  // 高度基準 = seatHeight − seatThickness（= legBaseHeight，curved-taper 腳身實際高度，跟 splayMm 一致）。
+  // 一木連做（continuous）時歸零：後腳退直腳撐椅背，若只斜前腳，牙板/橫撐的對稱 splay
+  // 補償會跟垂直後腳對不上 → continuous 模式整組維持垂直（split 模式 4 腳都是 ct，乾淨套用）。
+  const ctSplayMm =
+    legShape === "curved-taper" && ctSplayAngle > 0 && !isContinuous
+      ? Math.round(Math.tan((ctSplayAngle * Math.PI) / 180) * (seatHeight - seatThickness))
+      : 0;
   const hoofMm = 35;
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
@@ -341,7 +351,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     if (legShape === "curved-taper") {
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset },
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm },
       });
     }
     return undefined;
@@ -408,8 +418,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         const legHalfX = legW / 2 - 0.5;
         const legHalfZ = legD / 2 - 0.5;
         // Apron mortise（b3f09ad 公約）：Z 面 rotX 跟 splayDz；X 面 rotZ 跟 splayDx
-        const _splayDxForLegs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(c.x) * splayMm : 0;
-        const _splayDzForLegs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(c.z) * splayMm : 0;
+        // ctSplayMm fallback：curved-taper 目前在上面 early return（不挖榫眼）走不到這裡，
+        // 但保持「splay 變數組 = 腳的實際外斜」不變式，日後若恢復挖榫眼榫軸自動正確。
+        const _splayDxForLegs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(c.x) * splayMm : Math.sign(c.x) * ctSplayMm;
+        const _splayDzForLegs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(c.z) * splayMm : Math.sign(c.z) * ctSplayMm;
         const _legH = Math.max(1, legBaseHeight);
         const _upperOffset = apronCanHalfStagger ? apronUpperTenonOffset : 0;
         const _zFaceGeom = splayedLegMortiseGeom({
@@ -626,8 +638,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   const apronIsLengthSplay = legShape === "splayed" || legShape === "splayed-length";
   const apronIsWidthSplay = legShape === "splayed" || legShape === "splayed-width";
-  const apronSplayDx = apronIsLengthSplay ? splayMm : 0;
-  const apronSplayDz = apronIsWidthSplay ? splayMm : 0;
+  // 弧肩斜腳選配外斜：牙板長度/位置補償跟 splayed 走同一套（ctSplayMm=0 時不生效）。
+  const apronSplayDx = apronIsLengthSplay ? splayMm : ctSplayMm;
+  const apronSplayDz = apronIsWidthSplay ? splayMm : ctSplayMm;
   const apronIsSplayed = apronSplayDx > 0 || apronSplayDz > 0;
   const apronTiltX = apronSplayDx > 0 ? Math.atan(apronSplayDx / Math.max(1, legBaseHeight)) : 0;
   const apronTiltZ = apronSplayDz > 0 ? Math.atan(apronSplayDz / Math.max(1, legBaseHeight)) : 0;
@@ -992,8 +1005,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // （視覺上前後一致；後腳 z 在 leg shape 仍是直立，stretcher 端面對齊腳的中軸面足以接合）
     const isLengthSplay = legShape === "splayed" || legShape === "splayed-length";
     const isWidthSplay = legShape === "splayed" || legShape === "splayed-width";
-    const splayDx = isLengthSplay ? splayMm : 0;
-    const splayDz = isWidthSplay ? splayMm : 0;
+    // 弧肩斜腳選配外斜：下橫撐補償跟 splayed 走同一套（ctSplayMm=0 時不生效）。
+    const splayDx = isLengthSplay ? splayMm : ctSplayMm;
+    const splayDz = isWidthSplay ? splayMm : ctSplayMm;
     const isSplayed = splayDx > 0 || splayDz > 0;
     const tiltX = splayDx > 0 ? Math.atan(splayDx / Math.max(1, legBaseHeight)) : 0;
     const tiltZ = splayDz > 0 ? Math.atan(splayDz / Math.max(1, legBaseHeight)) : 0;
@@ -1152,8 +1166,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 厚內留背牆）。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
       if (legShape === "curved-taper" || legW !== legD) continue;
       // 下橫撐 mortise 套同套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx
-      const _splayDxLs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(cx) * splayMm : 0;
-      const _splayDzLs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(cz) * splayMm : 0;
+      // ctSplayMm fallback：curved-taper 在上面 continue（不挖榫眼）走不到這裡，理由同牙板 mortise 段。
+      const _splayDxLs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(cx) * splayMm : Math.sign(cx) * ctSplayMm;
+      const _splayDzLs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(cz) * splayMm : Math.sign(cz) * ctSplayMm;
       const _legHLs = Math.max(1, legBaseHeight);
       const lsZRotX = (_splayDzLs !== 0 && _legHLs > 0)
         ? Math.sign(cz || 1) * Math.atan(Math.abs(_splayDzLs) / _legHLs)

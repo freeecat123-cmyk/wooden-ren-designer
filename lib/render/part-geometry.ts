@@ -51,7 +51,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1 }
+  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
@@ -856,6 +856,9 @@ export function buildCurvedTaperGeometry(
   shoulderMm: number,
   insetMm: number,
   dir: -1 | 0 | 1,
+  /** 選配外斜（同 splayed 慣例）：腳底相對頂的外移量，與 size 同單位。頂（+hy）固定、底（-hy）外移。 */
+  dx: number = 0,
+  dz: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -906,6 +909,17 @@ export function buildCurvedTaperGeometry(
   shape2D.closePath();
   const extrude = new ExtrudeGeometry(shape2D, { depth: lz, bevelEnabled: false });
   extrude.translate(0, 0, -hz); // Z 置中 [-hz, +hz]
+  // 選配外斜：擠出後對頂點做線性 shear——頂（y=+hy）固定、底（y=-hy）外移 dx/dz。
+  // t = (hy - y)/ly ∈ [0 頂, 1 底]。dx=dz=0 時整段跳過 → 與既有輸出 byte 一致。
+  if (dx !== 0 || dz !== 0) {
+    const pos = extrude.getAttribute("position");
+    for (let i = 0; i < pos.count; i++) {
+      const t = (hy - pos.getY(i)) / ly;
+      pos.setX(i, pos.getX(i) + dx * t);
+      pos.setZ(i, pos.getZ(i) + dz * t);
+    }
+    pos.needsUpdate = true;
+  }
   extrude.computeVertexNormals();
   return extrude;
 }
@@ -2139,7 +2153,7 @@ export function buildShapeGeometry(
     return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale, shape.dirX, shape.dirZ);
   }
   if (shape.kind === "curved-taper") {
-    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir);
+    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0);
   }
   if (shape.kind === "splayed-tapered") {
     return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);

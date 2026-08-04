@@ -150,6 +150,7 @@ export const bench: FurnitureTemplate = (input) => {
     ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
     ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
     ctInset: getOption<number>(input, opt(o, "ctInset")),
+    ctSplay: getOption<number>(input, opt(o, "ctSplay")),
     seatEdge,
     seatEdgeStyle,
     seatEdgeBottom: seatEdgeBottomClamped,

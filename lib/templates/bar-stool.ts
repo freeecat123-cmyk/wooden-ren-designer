@@ -91,6 +91,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
+  const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const footrestStaggerMm = getOption<number>(input, opt(o, "footrestStaggerMm"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -313,6 +314,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 弧形板（panel）背：後腳本來就只到 seatY、跟前腳同高，自動兩條件都成立。
   const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * seatY);
   const splayAngleRad = (splayAngle * Math.PI) / 180;
+  // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed"。
+  // 用獨立角度不共用 splayAngle（splayAngle 預設 5° 會讓既有 curved-taper 設計突變）。
+  // 高度基準跟 splayMm 一致 = seatY（腳高 = 座面高 − 座板厚）。
+  const ctSplayMm =
+    legShape === "curved-taper" && ctSplayAngle > 0
+      ? Math.round(Math.tan((ctSplayAngle * Math.PI) / 180) * seatY)
+      : 0;
   const splayMmFor = (c: { x: number; z: number }): { x: number; z: number } => {
     const isTallBack = c.z > 0 && withBack && backStyle !== "panel";
     const legH = isTallBack ? seatY + backHeight : seatY;
@@ -325,7 +333,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "curved-taper")
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset },
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm },
       });
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
@@ -436,8 +444,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: (() => {
         // Apron mortise（b3f09ad 公約）：Z 面 rotX 跟 splayDz；X 面 rotZ 跟 splayDx
         const _legHeight = seatY;
-        const _splayDxForLegs = (legShape === "splayed" || legShape === "splayed-length") ? splayMmFor(c).x : 0;
-        const _splayDzForLegs = (legShape === "splayed" || legShape === "splayed-width") ? splayMmFor(c).z : 0;
+        // 弧肩斜腳選配外斜：榫軸補償跟 splayed 走同一套（ctSplayMm=0 時不生效）
+        const _splayDxForLegs = (legShape === "splayed" || legShape === "splayed-length") ? splayMmFor(c).x : ctSplayMm;
+        const _splayDzForLegs = (legShape === "splayed" || legShape === "splayed-width") ? splayMmFor(c).z : ctSplayMm;
         const _zApronCenterY = seatY - apronOffset - apronWidth / 2;
         const _zFaceGeom = splayedLegMortiseGeom({
           corner: c,
@@ -599,8 +608,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   // tapered 補償（drafting-math.md §A11）：legW × legScaleAt(centerY) 算實際腳寬。
   const isLengthSplay = legShape === "splayed" || legShape === "splayed-length";
   const isWidthSplay = legShape === "splayed" || legShape === "splayed-width";
-  const splayDx = isLengthSplay ? splayMm : 0;
-  const splayDz = isWidthSplay ? splayMm : 0;
+  // 弧肩斜腳選配外斜：牙板/腳踏長度與榫軸補償跟 splayed 走同一套（ctSplayMm=0 時不生效）。
+  const splayDx = isLengthSplay ? splayMm : ctSplayMm;
+  const splayDz = isWidthSplay ? splayMm : ctSplayMm;
   const isSplayed = splayDx > 0 || splayDz > 0;
   // bottomScale 已在前面（弧肩斜腳補償區）定義
   const tiltX = splayDx > 0 ? Math.atan(splayDx / seatY) : 0;
