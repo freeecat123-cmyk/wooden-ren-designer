@@ -265,38 +265,62 @@ export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, st
   return files;
 }
 
-/** 一個零件在「榫孔套料」上的主排版面：挑榫孔最多（同數取面積最大）的那面。 */
-function partPrimaryNestPiece(
-  part: Part,
-  label: string,
-): { outline: Array<{ x: number; y: number }>; holes: MachiningFace["holes"]; w: number; h: number; label: string } {
+interface NestPiece {
+  outline: Array<{ x: number; y: number }>;
+  holes: MachiningFace["holes"];
+  w: number;
+  h: number;
+  label: string;
+}
+
+/** faceKey → 入榫軸（同軸的對面對＝通榫重複，套料只留一張）。 */
+const FACE_AXIS: Record<string, string> = {
+  top: "y", bottom: "y", front: "z", back: "z", left: "x", right: "x",
+};
+
+/**
+ * 一個零件在「榫孔套料」上要排的所有面：每個有榫孔的加工面各一片
+ * （桌腳兩個垂直面各一片）。同一軸的對面對（通榫掛在頂/底兩張）只留榫孔多的那張，
+ * 避免同一塊板被排兩次。沒榫孔的零件回單片外框。
+ */
+function partNestPieces(part: Part, code: string): NestPiece[] {
   const faces = partMachiningFaces(part);
   if (faces.length === 0) {
     const o = partFlatOutline(part);
-    return { outline: o.pts, holes: [], w: o.w, h: o.h, label };
+    return [{ outline: o.pts, holes: [], w: o.w, h: o.h, label: code }];
   }
-  let best = faces[0];
+  // 依軸收斂：同軸只留榫孔最多（同數取面積大）的一張
+  const byAxis = new Map<string, MachiningFace>();
   for (const f of faces) {
-    if (f.holes.length > best.holes.length) best = f;
-    else if (f.holes.length === best.holes.length && f.w * f.h > best.w * best.h) best = f;
+    const axis = FACE_AXIS[f.faceKey] ?? f.faceKey;
+    const cur = byAxis.get(axis);
+    if (!cur || f.holes.length > cur.holes.length || (f.holes.length === cur.holes.length && f.w * f.h > cur.w * cur.h)) {
+      byAxis.set(axis, f);
+    }
   }
-  return { outline: best.outline, holes: best.holes, w: best.w, h: best.h, label };
+  return [...byAxis.values()].map((f) => ({
+    outline: f.outline,
+    holes: f.holes,
+    w: f.w,
+    h: f.h,
+    label: byAxis.size > 1 ? `${code} ${f.faceLabelZh}` : code,
+  }));
 }
 
 /**
- * 榫孔套料：所有零件的「主加工面」（含落在該面的榫孔）用 shelf packing 排進一張板，
- * 一張合併 SVG。兩面都有孔的零件（如桌腳）只排主面，另一面請用「榫孔加工面 ZIP」。
+ * 榫孔套料：所有零件「每個有榫孔的加工面」（含該面榫孔）用 shelf packing 排進一張板，
+ * 一張合併 SVG。桌腳等兩個垂直面有孔的零件會排兩片（各標面別，翻面分兩次夾）。
  */
 export function nestedJoinerySheetSvg(
   design: FurnitureDesign,
   sheetWidthMm = DEFAULT_SHEET_WIDTH_MM,
 ): string {
   const groups = groupPartsForDrawing(design);
-  type Piece = ReturnType<typeof partPrimaryNestPiece>;
+  type Piece = NestPiece;
   const items: Piece[] = [];
   groups.forEach((g, i) => {
-    const piece = partPrimaryNestPiece(g.representative, `P-${String(i + 1).padStart(2, "0")}`);
-    for (let k = 0; k < g.count; k++) items.push(piece);
+    const pieces = partNestPieces(g.representative, `P-${String(i + 1).padStart(2, "0")}`);
+    for (let k = 0; k < g.count; k++) items.push(...pieces);
   });
   items.sort((a, b) => b.w * b.h - a.w * a.h);
 
