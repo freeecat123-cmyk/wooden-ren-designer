@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import { downloadSTL, downloadOBJ, downloadFlatLayoutSTL, download3MF, validateDesignExport } from "@/lib/export/three-d-export";
-import { downloadPartsSvgZip, downloadNestedSvg } from "@/lib/export/parts-svg";
+import { downloadPartsSvgZip, downloadNestedSvg, downloadJoineryFacesZip, designHasMortises } from "@/lib/export/parts-svg";
 import { analyzeMinThickness, MIN_PRINTABLE_MM } from "@/lib/export/export-checks";
 
 interface Props {
@@ -32,6 +32,7 @@ export function ThreeDExportButton({ design }: Props) {
   const tooThin = minThk.thinnestMm < MIN_PRINTABLE_MM;
 
   const validation = useMemo(() => validateDesignExport(design), [design]);
+  const hasMortises = useMemo(() => designHasMortises(design), [design]);
 
   return (
     <div className="px-4 py-2.5 border-t border-amber-100 bg-amber-50/40 flex flex-col gap-1.5 text-[11px]">
@@ -97,6 +98,16 @@ export function ThreeDExportButton({ design }: Props) {
         >
           套料 SVG
         </button>
+        {hasMortises && (
+          <button
+            type="button"
+            onClick={() => downloadJoineryFacesZip(design)}
+            className="px-2.5 py-1 border border-amber-400 rounded-md bg-white hover:border-amber-500 hover:bg-amber-50 text-amber-800 transition-colors"
+            title="榫接版專用：每個零件「有榫孔的那一面」各出一張 SVG（外框 + 榫孔內框），打包 ZIP。放平該面在 CNC 上，外框和榫孔同一次裝夾一起洗；盲榫深度進 cnc-tool 設挖槽。腳等兩面有孔的零件會出兩張（翻面分兩次夾）。"
+          >
+            榫孔加工面 ZIP
+          </button>
+        )}
       </div>
       {tooThin && (
         <p className="text-amber-700">

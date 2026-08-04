@@ -13,6 +13,7 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import { projectPartSilhouette, type OrthoView } from "@/lib/render/geometry";
 import { groupPartsForDrawing, groupDisplayName } from "@/lib/render/part-drawing/grouping";
 import { zipStore } from "@/lib/export/zip-store";
+import { partMachiningFaces, type MachiningFace } from "@/lib/export/mortise-faces";
 
 export interface PartOutline {
   /** 攤平面輪廓點（mm，已平移到左上原點，Y 向下為正＝SVG 慣例） */
@@ -184,6 +185,86 @@ export function nestedSheetSvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_S
   ].join("\n");
 }
 
+// ---- 榫孔加工面 SVG（榫接版：連榫孔一起洗）----
+
+/** 這個設計有沒有真的母榫（決定要不要顯示「榫孔面 SVG」按鈕）。 */
+export function designHasMortises(design: FurnitureDesign): boolean {
+  return design.parts.some((p) => (p.mortises?.length ?? 0) > 0);
+}
+
+/** 單一加工面 → 完整 SVG（外框 cut line + 每個榫孔內框）。 */
+export function machiningFaceSvg(
+  face: MachiningFace,
+  opts?: { label?: string; faceLabel?: string },
+): string {
+  const vbW = face.w + MARGIN_MM * 2;
+  const vbH = face.h + MARGIN_MM * 2;
+  const shift = (p: { x: number; y: number }) => ({ x: p.x + MARGIN_MM, y: p.y + MARGIN_MM });
+  const label = opts?.label ?? "";
+  const faceLabel = opts?.faceLabel ?? face.faceLabelZh;
+  const title = `${label}${label ? " " : ""}${faceLabel} — ${Math.round(face.w)}×${Math.round(face.h)}mm`;
+  const holePaths: string[] = [];
+  for (const h of face.holes) {
+    if (h.kind === "circle" && h.cx != null && h.cy != null && h.r != null) {
+      holePaths.push(
+        `  <circle cx="${round1(h.cx + MARGIN_MM)}" cy="${round1(h.cy + MARGIN_MM)}" r="${round1(h.r)}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"><title>${escapeXml(h.label + (h.through ? "（通）" : "（盲）"))}</title></circle>`,
+      );
+    } else if (h.pts) {
+      holePaths.push(
+        `  <path d="${outlinePathD(h.pts.map(shift))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"><title>${escapeXml(h.label + (h.through ? "（通）" : "（盲）"))}</title></path>`,
+      );
+    }
+  }
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${round1(vbW)}mm" height="${round1(vbH)}mm" viewBox="0 0 ${round1(vbW)} ${round1(vbH)}">`,
+    `  <title>${escapeXml(title)}</title>`,
+    `  <path d="${outlinePathD(face.outline.map(shift))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+    ...holePaths,
+    `</svg>`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * 榫接版每零件的加工面 SVG。有母榫的零件 → 每個入榫面各一張（外框 + 榫孔）；
+ * 沒母榫的零件 → 一張純外框（攤平面），讓 ZIP 是完整可切的一整組。
+ * 回傳 { 檔名: svg 字串 }。
+ */
+export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, string> {
+  const groups = groupPartsForDrawing(design);
+  const files: Record<string, string> = {};
+  const used = new Set<string>();
+  const put = (base: string, svg: string) => {
+    let name = `${base}.svg`;
+    let n = 2;
+    while (used.has(name)) name = `${base}-${n++}.svg`;
+    used.add(name);
+    files[name] = svg;
+  };
+  groups.forEach((g, i) => {
+    const rep = g.representative;
+    const code = `P-${String(i + 1).padStart(2, "0")}`;
+    const name0 = groupDisplayName(g, "zh");
+    const qtyTag = g.count > 1 ? ` ×${g.count}` : "";
+    const faces = partMachiningFaces(rep);
+    if (faces.length === 0) {
+      // 無榫孔零件：純外框（攤平面）
+      put(
+        safeFileName(`${code}_${name0}`),
+        partOutlineSvg(rep, { label: `${code} ${name0}`, qty: g.count }),
+      );
+      return;
+    }
+    for (const face of faces) {
+      put(
+        safeFileName(`${code}_${name0}_${face.faceLabelZh}`),
+        machiningFaceSvg(face, { label: `${code} ${name0}${qtyTag}`, faceLabel: face.faceLabelZh }),
+      );
+    }
+  });
+  return files;
+}
+
 // ---- 瀏覽器下載 ----
 
 function safeStem(design: FurnitureDesign): string {
@@ -216,6 +297,17 @@ export function downloadPartsSvgZip(design: FurnitureDesign) {
 export function downloadNestedSvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_SHEET_WIDTH_MM) {
   const svg = nestedSheetSvg(design, sheetWidthMm);
   triggerDownload(new Blob([svg], { type: "image/svg+xml" }), `${safeStem(design)}_套料排版.svg`);
+}
+
+/** 下載「榫接版加工面 SVG（含榫孔）」的 ZIP —— 每零件每個入榫面一張。 */
+export function downloadJoineryFacesZip(design: FurnitureDesign) {
+  const files = joineryFacesSvgFiles(design);
+  const enc = new TextEncoder();
+  const zipFiles: Record<string, Uint8Array> = {};
+  for (const [name, svg] of Object.entries(files)) zipFiles[name] = enc.encode(svg);
+  const zip = zipStore(zipFiles);
+  const ab = zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) as ArrayBuffer;
+  triggerDownload(new Blob([ab], { type: "application/zip" }), `${safeStem(design)}_榫孔加工面.zip`);
 }
 
 // ---- helpers ----
