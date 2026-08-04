@@ -51,6 +51,17 @@ try {
 }
 check("unzip -t 完整性檢查通過（CRC 正確）", zipOk);
 
+// 中文『檔名』round-trip：必設 UTF-8 flag(bit 11) + 檔名位元組能解回原字串
+// （不走系統 unzip：macOS unzip 在 C locale 對 UTF-8 檔名會 Illegal byte sequence，
+//  是 CLI locale 問題非 zip 問題；改行內解析 local header 驗證。）
+const zhName = "P-01_椅腳.svg";
+const zh = zipStore({ [zhName]: new TextEncoder().encode("<svg/>"), "leg.svg": new TextEncoder().encode("x") });
+const dvZh = new DataView(zh.buffer, zh.byteOffset, zh.byteLength);
+check("中文檔名 local header 設 UTF-8 flag (bit 11)", (dvZh.getUint16(6, true) & 0x0800) !== 0);
+const nameLen = dvZh.getUint16(26, true); // local header filename length
+const nameBytes = zh.subarray(30, 30 + nameLen);
+check("中文檔名位元組以 UTF-8 解回原字串（非亂碼）", new TextDecoder("utf-8").decode(nameBytes) === zhName);
+
 if (failed > 0) {
   console.error(`\n${failed} 個測試失敗`);
   process.exit(1);

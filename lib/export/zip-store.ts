@@ -38,18 +38,22 @@ export function zipStore(files: Record<string, Uint8Array>): Uint8Array {
     data: Uint8Array;
     crc: number;
     offset: number;
+    flag: number;
   }> = [];
   const localChunks: Uint8Array[] = [];
   let offset = 0;
 
   for (const [name, data] of Object.entries(files)) {
     const nameBytes = utf8(name);
+    // 含非 ASCII 檔名（中文零件名）必設 bit 11 (0x0800, UTF-8/EFS)，否則標準解壓器
+    // 用 CP437/OEM 解讀 → 亂碼。純 ASCII 不設，零副作用。
+    const flag = nameBytes.some((b) => b >= 0x80) ? 0x0800 : 0;
     const crc = crc32(data);
     const header = new Uint8Array(30 + nameBytes.length);
     const dv = new DataView(header.buffer);
     dv.setUint32(0, 0x04034b50, true); // local file header signature
     dv.setUint16(4, 20, true); // version needed
-    dv.setUint16(6, 0, true); // flags
+    dv.setUint16(6, flag, true); // flags（bit 11 = UTF-8 檔名）
     dv.setUint16(8, 0, true); // compression = stored
     dv.setUint16(10, 0, true); // mod time
     dv.setUint16(12, 0, true); // mod date
@@ -59,7 +63,7 @@ export function zipStore(files: Record<string, Uint8Array>): Uint8Array {
     dv.setUint16(26, nameBytes.length, true); // filename length
     dv.setUint16(28, 0, true); // extra length
     header.set(nameBytes, 30);
-    entries.push({ nameBytes, data, crc, offset });
+    entries.push({ nameBytes, data, crc, offset, flag });
     localChunks.push(header, data);
     offset += header.length + data.length;
   }
@@ -72,7 +76,7 @@ export function zipStore(files: Record<string, Uint8Array>): Uint8Array {
     dv.setUint32(0, 0x02014b50, true); // central directory signature
     dv.setUint16(4, 20, true); // version made by
     dv.setUint16(6, 20, true); // version needed
-    dv.setUint16(8, 0, true); // flags
+    dv.setUint16(8, e.flag, true); // flags（bit 11 = UTF-8 檔名）
     dv.setUint16(10, 0, true); // compression
     dv.setUint16(12, 0, true); // mod time
     dv.setUint16(14, 0, true); // mod date

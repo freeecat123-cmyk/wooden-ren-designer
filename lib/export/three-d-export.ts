@@ -55,6 +55,7 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
     return {
       kind: "round",
       chamferMm: shape.chamferMm ? shape.chamferMm : undefined,
+      bottomChamferMm: shape.bottomChamferMm ? shape.bottomChamferMm : undefined,
       chamferStyle: shape.chamferStyle,
       axis: shape.axis,
     };
@@ -192,6 +193,36 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
       chamferMm: shape.chamferMm ? shape.chamferMm : undefined,
     };
   }
+  if (shape.kind === "curved-taper") {
+    return {
+      kind: "curved-taper",
+      blockHeightMm: shape.blockHeightMm,
+      shoulderMm: shape.shoulderMm,
+      insetMm: shape.insetMm,
+      dir: shape.dir,
+      dxMm: shape.dxMm,
+      dzMm: shape.dzMm,
+    };
+  }
+  if (shape.kind === "edge-profile") {
+    return {
+      kind: "edge-profile",
+      style: shape.style,
+      depthMm: shape.depthMm,
+      waveCount: shape.waveCount,
+      topLengthScale: shape.topLengthScale,
+      bottomLengthScale: shape.bottomLengthScale,
+    };
+  }
+  if (shape.kind === "top-outline") {
+    return { kind: "top-outline", style: shape.style, sizeMm: shape.sizeMm };
+  }
+  if (shape.kind === "pointed-ends") {
+    return { kind: "pointed-ends" };
+  }
+  if (shape.kind === "french-cleat") {
+    return { kind: "french-cleat", bevelAngle: shape.bevelAngle, orientation: shape.orientation };
+  }
   // box / tilt-z / 未知 → 走方塊 fallback
   return null;
 }
@@ -319,7 +350,8 @@ function suffix(scale: number) {
 // 中文檔名在 Mac/某些 slicer/雲端服務上會被轉碼成亂碼或被拒；
 // 改用 category（"stool"/"dining-table" 等 ASCII id）保證跨平台相容。
 function safeStem(design: FurnitureDesign, scale: number) {
-  const today = new Date().toISOString().slice(0, 10);
+  // 本地日期（非 UTC）——台灣清晨匯出時 toISOString() 會少一天。sv-SE locale 給 YYYY-MM-DD。
+  const today = new Date().toLocaleDateString("sv-SE");
   return `${design.category}_${suffix(scale)}_${today}`;
 }
 
