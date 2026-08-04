@@ -13,7 +13,8 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import { projectPartSilhouette, type OrthoView } from "@/lib/render/geometry";
 import { groupPartsForDrawing, groupDisplayName } from "@/lib/render/part-drawing/grouping";
 import { zipStore } from "@/lib/export/zip-store";
-import { partMachiningFaces, type MachiningFace } from "@/lib/export/mortise-faces";
+import { partMachiningFaces, type MachiningFace, type DerivedMortise } from "@/lib/export/mortise-faces";
+import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
 
 export interface PartOutline {
   /** 攤平面輪廓點（mm，已平移到左上原點，Y 向下為正＝SVG 慣例） */
@@ -236,6 +237,7 @@ export function machiningFaceSvg(
  */
 export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, string> {
   const groups = groupPartsForDrawing(design);
+  const derivedMap = deriveMortisesByPart(design.parts);
   const files: Record<string, string> = {};
   const used = new Set<string>();
   const put = (base: string, svg: string) => {
@@ -250,7 +252,7 @@ export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, st
     const code = `P-${String(i + 1).padStart(2, "0")}`;
     const name0 = groupDisplayName(g, "zh");
     const qtyTag = g.count > 1 ? ` ×${g.count}` : "";
-    const faces = partMachiningFaces(rep);
+    const faces = partMachiningFaces(rep, derivedFor(rep, derivedMap));
     if (faces.length === 0) {
       // 無榫孔零件：純外框（攤平面）
       put(
@@ -278,6 +280,16 @@ interface NestPiece {
   label: string;
 }
 
+/**
+ * 只對「沒有真母榫」的零件套用反推母榫（有真母榫的直腳等不重複挖）。
+ * ⚠️ 暫時停用：反推對弧肩斜腳等錐形/外撇腳幾何還不穩（孔會凸框、漏橫撐），
+ * 幾何磨對前先回 []，避免出錯孔。module 與 map 保留，改回下一行即可重啟。
+ */
+function derivedFor(_part: Part, _map: Map<string, DerivedMortise[]>): DerivedMortise[] {
+  return [];
+  // return (_part.mortises?.length ?? 0) > 0 ? [] : (_map.get(_part.id) ?? []);
+}
+
 /** faceKey → 入榫軸（同軸的對面對＝通榫重複，套料只留一張）。 */
 const FACE_AXIS: Record<string, string> = {
   top: "y", bottom: "y", front: "z", back: "z", left: "x", right: "x",
@@ -288,8 +300,8 @@ const FACE_AXIS: Record<string, string> = {
  * （桌腳兩個垂直面各一片）。同一軸的對面對（通榫掛在頂/底兩張）只留榫孔多的那張，
  * 避免同一塊板被排兩次。沒榫孔的零件回單片外框。
  */
-function partNestPieces(part: Part, code: string): NestPiece[] {
-  const faces = partMachiningFaces(part);
+function partNestPieces(part: Part, code: string, derived: DerivedMortise[] = []): NestPiece[] {
+  const faces = partMachiningFaces(part, derived);
   if (faces.length === 0) {
     const o = partFlatOutline(part);
     return [{ outline: o.pts, holes: [], tenons: [], w: o.w, h: o.h, label: code }];
@@ -322,10 +334,12 @@ export function nestedJoinerySheetSvg(
   sheetWidthMm = DEFAULT_SHEET_WIDTH_MM,
 ): string {
   const groups = groupPartsForDrawing(design);
+  const derivedMap = deriveMortisesByPart(design.parts);
   type Piece = NestPiece;
   const items: Piece[] = [];
   groups.forEach((g, i) => {
-    const pieces = partNestPieces(g.representative, `P-${String(i + 1).padStart(2, "0")}`);
+    const rep = g.representative;
+    const pieces = partNestPieces(rep, `P-${String(i + 1).padStart(2, "0")}`, derivedFor(rep, derivedMap));
     for (let k = 0; k < g.count; k++) items.push(...pieces);
   });
   items.sort((a, b) => b.w * b.h - a.w * a.h);
