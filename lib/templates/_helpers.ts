@@ -252,6 +252,54 @@ export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] 
   ];
 }
 
+/** 把外部 dependsOn 條件與內建條件 all 合成（外部為空就用內建）。 */
+function composeDependsOn(
+  base: NonNullable<OptionSpec["dependsOn"]>,
+  extra?: OptionSpec["dependsOn"],
+): NonNullable<OptionSpec["dependsOn"]> {
+  return extra ? ({ all: [extra, base] } as NonNullable<OptionSpec["dependsOn"]>) : base;
+}
+
+/**
+ * 牙條造型（edge-profile 曲線）選項組：apronProfile + apronProfileDepth。
+ * builder（simple-table）/ 模板讀 "apronProfile"/"apronProfileDepth" 傳給 shape。
+ * extraDependsOn = 模板自己的顯示條件（如 withApron），與內建條件 all 合成。
+ */
+export function apronProfileOptions(
+  group: OptionGroup = "apron",
+  extraDependsOn?: OptionSpec["dependsOn"],
+): OptionSpec[] {
+  return [
+    { group, type: "select", key: "apronProfile", label: "牙條造型", defaultValue: "none", choices: [
+      { value: "none", label: "無（直邊）" },
+      { value: "arch", label: "下緣圓弧" },
+      { value: "arch-out", label: "下緣外圓弧（凸弧垂邊）" },
+      { value: "kunmen", label: "壸門曲線（明式）" },
+      { value: "wave", label: "波浪連續弧" },
+      { value: "double-arch", label: "上下內凹弧（束腰）" },
+    ], help: "牙板下緣（束腰款含上緣）的造型。兩端自動留腳肩不吃榫。選造型後牙條倒角不套用（一件一種造型）", ...(extraDependsOn ? { dependsOn: extraDependsOn } : {}) },
+    { group, type: "number", key: "apronProfileDepth", label: "牙條造型深度", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "0 = 自動（牙條高的 40%）", dependsOn: composeDependsOn({ key: "apronProfile", notIn: ["none"] }, extraDependsOn) },
+  ];
+}
+
+/** 下橫撐造型選項組：stretcherProfile + stretcherProfileDepth。用法同 apronProfileOptions。 */
+export function stretcherProfileOptions(
+  group: OptionGroup = "stretcher",
+  extraDependsOn?: OptionSpec["dependsOn"],
+): OptionSpec[] {
+  return [
+    { group, type: "select", key: "stretcherProfile", label: "下橫撐造型", defaultValue: "none", choices: [
+      { value: "none", label: "無（直邊）" },
+      { value: "arch", label: "下緣圓弧" },
+      { value: "top-arch", label: "上緣圓弧" },
+      { value: "kunmen", label: "壸門曲線（明式）" },
+      { value: "wave", label: "波浪連續弧" },
+      { value: "double-arch", label: "上下內凹弧（束腰）" },
+    ], help: "下橫撐緣的造型。選造型後下橫撐倒角不套用（一件一種造型）", ...(extraDependsOn ? { dependsOn: extraDependsOn } : {}) },
+    { group, type: "number", key: "stretcherProfileDepth", label: "下橫撐造型深度", defaultValue: 0, min: 0, max: 80, step: 1, unit: "mm", help: "0 = 自動（下橫撐高的 40%）", dependsOn: composeDependsOn({ key: "stretcherProfile", notIn: ["none"] }, extraDependsOn) },
+  ];
+}
+
 /**
  * 對應各 leg shape 的 bottomScale。Apron / stretcher 計算 buttHalf 時要乘
  * `legScaleAt(Y, legHeight, bottomScale)`，否則 tapered 腳的橫撐長度用了

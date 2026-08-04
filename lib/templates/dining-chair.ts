@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -34,8 +34,9 @@ export const diningChairOptions: OptionSpec[] = [
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   ...curvedTaperLegOptions("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  // 選了下橫撐造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——同 square-stool）
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 座面舒適度
   seatProfileOption("top"),
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true },
@@ -45,8 +46,11 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, help: "牙條頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量；0 = 等高（自動上下半榫避免穿模）" },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  // 選了牙條造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——同 square-stool）
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  // 牙條造型（只套座面下 4 支牙條；椅背 rails/slats 不套）
+  ...apronProfileOptions("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   // 椅背
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "slats", choices: [
@@ -86,6 +90,8 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐寬", defaultValue: 35, unit: "mm", min: 20, max: 60, step: 1, help: "下橫撐的垂直高（粗）", dependsOn: { key: "stretcherStyle", notIn: ["none"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 18, unit: "mm", min: 12, max: 40, step: 1, help: "下橫撐的水平厚（深）", dependsOn: { key: "stretcherStyle", notIn: ["none"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "左右下橫撐（Z 軸）相對前後下橫撐上移量；0 = 等高（自動上下半榫避免穿模）", dependsOn: { key: "stretcherStyle", notIn: ["none"] } },
+  // 下橫撐造型（只套座面下的下橫撐；中央連接橫撐/椅背不套）
+  ...stretcherProfileOptions("stretcher", { key: "stretcherStyle", notIn: ["none"] }),
 ];
 
 /**
@@ -138,6 +144,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
   const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
+  const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
+  const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
+  const stretcherProfile = getOption<string>(input, opt(o, "stretcherProfile"));
+  const stretcherProfileDepth = getOption<number>(input, opt(o, "stretcherProfileDepth"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const seatFrontWaterfall = getOption<boolean>(input, opt(o, "seatFrontWaterfall"));
   const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
@@ -242,7 +252,16 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const APRON_TOP_SHOULDER = 10;
   // 弧肩斜腳：牙板底緣＝接撐段底＝弧起點，榫直接開到底會破進弧裡。加底肩把榫往上移，
   // 讓榫眼留在上面全寬實體區、避開弧起點。方腳無此需求＝0。
-  const apronBottomShoulder = legShape === "curved-taper" ? 6 : 0;
+  // 牙條造型「下緣外圓弧」（arch-out）兩端上收 = 造型深度 → 貼下緣的下半榫會露出，
+  // 底肩同步抬到 ≥ 造型深度把榫上移進實體（照 square-stool，Math.max 合成）。
+  const apronProfileDepthEff =
+    apronProfile !== "none"
+      ? (apronProfileDepth > 0 ? apronProfileDepth : Math.round(apronWidth * 0.4))
+      : 0;
+  const apronBottomShoulder = Math.max(
+    legShape === "curved-taper" ? 6 : 0,
+    apronProfile === "arch-out" ? apronProfileDepthEff : 0,
+  );
   const apronTotalTenonH = Math.max(0, apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder);
   const apronCanHalfStagger = apronStaggerMm < apronTenonW && apronTotalTenonH >= 16;
   const APRON_HALF_TENON_GAP = 4;
@@ -734,9 +753,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // bevel 規則：apronOffset === 0（牙板貼座板下緣）→ half-bevel 頂面水平；其他無 bevel
     const apronTopAtSeat = apronOffset === 0;
     const useTopBevel = apronIsSplayed && apronTopAtSeat;
-    const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
-      : legEdgeShape(apronEdge, apronEdgeStyle);
+    // 牙條造型（edge-profile）：梯形補償以 topLengthScale/bottomLengthScale 合成進輪廓
+    // （斜腳/弧肩斜腳的牙板長度補償與造型同時成立）。外斜的頂面斜切（useTopBevel）
+    // 無法合成 → 造型優先、捨棄斜切（照 square-stool）。profile=none 走原路 → byte 不變。
+    const partShape = apronProfile !== "none"
+      ? { kind: "edge-profile" as const, style: apronProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: apronProfileDepthEff, waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+      : trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
+        : legEdgeShape(apronEdge, apronEdgeStyle);
     return {
       id: `apron-${s.key}`,
       nameZh: s.nameZh,
@@ -1086,9 +1110,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         : s.axis === "z" && hasShapeBend ? halfZ_B / halfZ_C
         : 1;
       // 下橫撐 trapezoid 是腳幾何要求（端面縮到腳寬避免縫），但不 bevel
-      const partShape = trapTopScale !== null
-        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
-        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+      // 下橫撐造型：梯形補償合成進輪廓（照 square-stool）。profile=none 走原路 → byte 不變。
+      const partShape = stretcherProfile !== "none"
+        ? { kind: "edge-profile" as const, style: stretcherProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: stretcherProfileDepth > 0 ? stretcherProfileDepth : Math.round(lowerW * 0.4), waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+        : trapTopScale !== null
+          ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+          : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
       // type / 榫長 依該支軸別的母件厚（X→legXDepthLS、Z→legD）
       const axisThrough = s.axis === "x" ? lowerThroughX : lowerThroughZ;
       const axisLen = s.axis === "x" ? lowerTenonX : lowerTenonZ;

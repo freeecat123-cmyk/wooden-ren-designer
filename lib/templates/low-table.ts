@@ -12,6 +12,8 @@ import {
   stretcherEdgeStyleOption,
   apronEdgeOption,
   apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
 } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 
@@ -38,8 +40,9 @@ export const lowTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬", defaultValue: 200, unit: "mm", min: 150, max: 400, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
+  ...stretcherProfileOptions("stretcher", { key: "withLowerStretchers", equals: true }),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 70, unit: "mm", min: 30, max: 200, step: 5 },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "加中央牙條", defaultValue: false, help: "長桌建議加（>900mm 防扭）" },
@@ -50,8 +53,9 @@ export const lowTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚", defaultValue: 18, unit: "mm", min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "矮桌體量小，10mm 比例較不會牙條飄離" },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  ...apronProfileOptions("apron"),
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
 
@@ -117,6 +121,10 @@ export const lowTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     apronEdge,
     apronEdgeStyle,
+    apronProfile: getOption<string>(input, opt(o, "apronProfile")) as "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch",
+    apronProfileDepth: getOption<number>(input, opt(o, "apronProfileDepth")),
+    stretcherProfile: getOption<string>(input, opt(o, "stretcherProfile")) as "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch",
+    stretcherProfileDepth: getOption<number>(input, opt(o, "stretcherProfileDepth")),
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,

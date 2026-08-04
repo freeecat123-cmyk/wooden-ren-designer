@@ -17,6 +17,8 @@ import {
   stretcherEdgeStyleOption,
   apronEdgeOption,
   apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
   pullStyleOption,
   legEdgeShape,
   curvedTaperLegOptions,
@@ -65,8 +67,10 @@ export const deskOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, unit: "mm", min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  // 牙板抽屜模式（drawerStyle=apron 且有抽屜）前牙板換抽屜帶，造型不適用 → 隱藏
+  ...apronProfileOptions("apron", { all: [{ key: "withApron", equals: true }, { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] }] }),
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
 
   // ───────────── ④ 橫撐 ─────────────
@@ -81,8 +85,9 @@ export const deskOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  ...stretcherProfileOptions("stretcher", { key: "withLowerStretchers", equals: true }),
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 0, min: 0, max: 20, step: 1, help: "0 = 自動依桌長算（每 150mm 一條）", dependsOn: { key: "withSlatRack", equals: true } },
   { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬", defaultValue: 35, unit: "mm", min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
@@ -227,6 +232,10 @@ export const desk: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     apronEdge,
     apronEdgeStyle,
+    apronProfile: getOption<string>(input, opt(o, "apronProfile")) as "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch",
+    apronProfileDepth: getOption<number>(input, opt(o, "apronProfileDepth")),
+    stretcherProfile: getOption<string>(input, opt(o, "stretcherProfile")) as "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch",
+    stretcherProfileDepth: getOption<number>(input, opt(o, "stretcherProfileDepth")),
     liveEdge,
     notes: isEn
       ? `Desk / writing table: ${formatMm(legSize, "inch")} legs${legShape === "tapered" ? " (tapered)" : legShape === "shaker" ? " (Shaker)" : ""}, apron ${formatMm(apronWidth, "inch")}×${formatMm(apronThickness, "inch")}${drawerStyle === "pedestal" ? `, ${drawerSide === "center" ? "center" : drawerSide === "left" ? "left" : "right"} pedestal with ${drawerCount} drawer${drawerCount > 1 ? "s" : ""}` : drawerStyle === "apron" ? `, ${drawerCount} apron drawer${drawerCount > 1 ? "s" : ""}` : ", no drawer"}.${liveEdge ? " Live edge." : ""}${withModestyPanel ? ` Modesty panel ${formatMm(350, "inch")} tall behind the legs.` : ""}`

@@ -33,8 +33,9 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚度", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距座板", defaultValue: 0, min: 0, max: 400, step: 5, unit: "mm", help: "牙條頂面距座板下緣的距離；小凳子建議 10–15 才不會頭重腳輕" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（正視圖看到全寬的那對）相對左右牙條下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  // 選了牙條造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——user 2026-08-04 被混淆過）
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
   // 牙條造型（下緣/上下緣內凹曲線）。外斜（斜腳系列或弧肩斜腳外斜>0）時牙板需
   // 梯形補償（一件一 shape），造型暫不套用——help 註明。
   { group: "apron", type: "select", key: "apronProfile", label: "牙條造型", defaultValue: "none", choices: [
@@ -57,8 +58,9 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, min: 0, max: 700, step: 10, unit: "mm", help: "0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（側視圖看到全寬的那對）相對前後下橫撐上移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）", dependsOn: { key: "withLowerStretcher", equals: true } },
-  stretcherEdgeOption("stretcher", 0),
-  stretcherEdgeStyleOption("stretcher"),
+  // 選了下橫撐造型時隱藏倒角欄（同牙條）
+  { ...stretcherEdgeOption("stretcher", 0), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 下橫撐造型（同牙條那組曲線；X 字交叉款斜料不適用故僅 H 字形顯示）
   { group: "stretcher", type: "select", key: "stretcherProfile", label: "下橫撐造型", defaultValue: "none", choices: [
     { value: "none", label: "無（直邊）" },

@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -30,15 +30,21 @@ export const barStoolOptions: OptionSpec[] = [
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   ...curvedTaperLegOptions("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  // 選了下橫撐（腳踏）造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——同 square-stool）
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
+  // 腳踏（＝吧檯椅的下橫撐）造型：套在 4 支 footrest 上；椅背橫木不套
+  ...stretcherProfileOptions("stretcher"),
   { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高", defaultValue: 350, unit: "mm", min: 50, max: 700, step: 10, help: "腳踏離地高度。吧檯椅標準＝座面下 400–450mm（座面 750→腳踏 300–350；座面 800→腳踏 350–400）；counter stool 較矮，距座面約 300mm" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 18, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  // 選了牙條造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——同 square-stool）
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  // 牙條造型（下緣/上下緣內凹曲線）——共用選項組
+  ...apronProfileOptions("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/腳踏進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "none", choices: [
     { value: "none", label: "無椅背" },
@@ -109,6 +115,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
   const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
+  const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
+  const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
+  const stretcherProfile = getOption<string>(input, opt(o, "stretcherProfile"));
+  const stretcherProfileDepth = getOption<number>(input, opt(o, "stretcherProfileDepth"));
   const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
   const _apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
   // 弧肩斜腳：牙條高度自動＝接撐段高，讓牙板剛好填滿全寬接撐段（其下才是弧肩收窄）
@@ -251,7 +261,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const APRON_TOP_SHOULDER = 10;
   // 弧肩斜腳：牙板底緣＝接撐段底＝弧起點，榫直接開到底會破進弧裡。加底肩把榫往上移，
   // 讓榫眼留在上面全寬實體區、避開弧起點（＝「榫應該要上移」）。方腳無此需求＝0。
-  const apronBottomShoulder = legShape === "curved-taper" ? 6 : 0;
+  // 牙條造型「下緣外圓弧」（arch-out）兩端上收 = 造型深度 → 貼下緣的下半榫會露出，
+  // 底肩同步抬到 ≥ 造型深度把榫上移進實體（同 square-stool 2026-08-04）。
+  const apronProfileDepthEff =
+    apronProfile !== "none"
+      ? (apronProfileDepth > 0 ? apronProfileDepth : Math.round(apronWidth * 0.4))
+      : 0;
+  const apronBottomShoulder = Math.max(
+    legShape === "curved-taper" ? 6 : 0,
+    apronProfile === "arch-out" ? apronProfileDepthEff : 0,
+  );
   const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder;
   const apronCanHalfStagger = apronStaggerMm < apronTenonW && apronTotalTenonH >= 16;
   const APRON_HALF_TENON_GAP = 4;
@@ -711,9 +730,14 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     // bevel 規則：頂面跟椅面重疊（apronOffset=0）才半 bevel 讓頂面水平；其他情況無 bevel
     const apronTopAtSeat = apronOffset === 0;
     const useTopBevel = isSplayed && apronTopAtSeat;
-    const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
-      : legEdgeShape(apronEdge, apronEdgeStyle);
+    // 牙條造型（edge-profile）：梯形補償以 topLengthScale/bottomLengthScale 合成進輪廓
+    // （斜腳/弧肩斜腳的牙板長度補償與造型同時成立）。外斜的頂面斜切（useTopBevel）
+    // 無法合成 → 造型優先、捨棄斜切（同 square-stool）。profile=none 時走原路 → byte 不變。
+    const partShape = apronProfile !== "none"
+      ? { kind: "edge-profile" as const, style: apronProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: apronProfileDepthEff, waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+      : trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
+        : legEdgeShape(apronEdge, apronEdgeStyle);
     return {
       id: `apron-${s.key}`,
       nameZh: s.nameZh,
@@ -808,9 +832,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           ? halfZ_B / halfZ_C
           : 1;
     // 下橫撐（腳踏）：trapezoid 是腳幾何要求（兩端縮到腳寬避免縫），但不 bevel（上下都跟腳斜，自由邊）
-    const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
-      : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+    // 腳踏造型：梯形補償合成進輪廓（同 square-stool 下橫撐）。profile=none 時走原路 → byte 不變。
+    const partShape = stretcherProfile !== "none"
+      ? { kind: "edge-profile" as const, style: stretcherProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: stretcherProfileDepth > 0 ? stretcherProfileDepth : Math.round(footRestWidth * 0.4), waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+      : trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
     return {
       id: `footrest-${s.key}`,
       nameZh: `腳踏-${s.nameZh.replace("腳踏", "")}`,

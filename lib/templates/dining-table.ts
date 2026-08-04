@@ -12,6 +12,8 @@ import {
   stretcherEdgeStyleOption,
   apronEdgeOption,
   apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
 } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 import { formatMm } from "@/lib/units/format";
@@ -45,14 +47,15 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬", defaultValue: 300, unit: "mm", min: 150, max: 500, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 牙條 (apron)
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 100, unit: "mm", min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 2 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  ...apronProfileOptions("apron", { key: "legShape", notIn: ["trestle"] }),
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   // 中央/下橫撐 (stretchers)
   { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "明式 / 工業風款才用；現代北歐 / 日式風格不加。長桌（>1500mm）建議加防扭。注意：若下橫撐選 H 形，已自帶下層中央牙條、不需再勾此項" },
@@ -71,6 +74,7 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 1, dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）", dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
   { group: "stretcher", type: "number", key: "lowerStretcherDoubleRailGap", label: "雙環下層距上層", defaultValue: 100, unit: "mm", min: 50, max: 300, step: 10, help: "雙環模式時，下層 4 條離上層的距離", dependsOn: { all: [{ key: "lowerStretcherArrangement", equals: "double-rail" }, { key: "legShape", notIn: ["trestle"] }] } },
+  ...stretcherProfileOptions("stretcher", { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] }),
 ];
 
 /**
@@ -319,6 +323,10 @@ export const diningTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     apronEdge,
     apronEdgeStyle,
+    apronProfile: getOption<string>(input, opt(o, "apronProfile")) as "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch",
+    apronProfileDepth: getOption<number>(input, opt(o, "apronProfileDepth")),
+    stretcherProfile: getOption<string>(input, opt(o, "stretcherProfile")) as "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch",
+    stretcherProfileDepth: getOption<number>(input, opt(o, "stretcherProfileDepth")),
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,

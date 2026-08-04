@@ -73,6 +73,12 @@ export interface SimpleTableOpts {
   ctInset?: number;
   /** 弧肩斜腳選配外斜角度（度）。0 / undefined = 垂直（既有行為）。 */
   ctSplay?: number;
+  /** 牙條／下橫撐造型（edge-profile 曲線）。"none"/undefined = 直邊（既有行為）。
+   *  depth 0/undefined = 自動（該件高的 40%）。 */
+  apronProfile?: "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch";
+  apronProfileDepth?: number;
+  stretcherProfile?: "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch";
+  stretcherProfileDepth?: number;
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
@@ -202,19 +208,27 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // 半榫錯位（stagger 預設 0 → 走半榫）
   const APRON_TOP_SHOULDER = 10;
   const APRON_HALF_TENON_GAP = 4;
-  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER;
+  // 牙條造型（edge-profile）：深度 0=自動 40%。「下緣外圓弧」（arch-out）兩端上收＝深度
+  // → 貼下緣的下半榫會露出，底肩自動抬 = 深度把榫上移進實體（同 square-stool）。
+  const apronProfile = opts.apronProfile ?? "none";
+  const apronProfileDepthEff =
+    apronProfile !== "none"
+      ? ((opts.apronProfileDepth ?? 0) > 0 ? (opts.apronProfileDepth ?? 0) : Math.round(apronWidth * 0.4))
+      : 0;
+  const apronBottomShoulder = apronProfile === "arch-out" ? apronProfileDepthEff : 0;
+  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder;
   const apronCanHalfStagger = apronTotalTenonH >= 16;
   const apronHalfTenonH = apronCanHalfStagger
     ? Math.min(apronTenonWidth, Math.floor((apronTotalTenonH - APRON_HALF_TENON_GAP) / 2))
     : apronTenonWidth;
   // part-local：apron Y 從 0 (底) 到 apronWidth (頂)；中心 = apronWidth/2
-  // 上榫中心 Y = (apronWidth - 上肩) - 上榫高/2；下榫中心 Y = 下榫高/2
+  // 上榫中心 Y = (apronWidth - 上肩) - 上榫高/2；下榫中心 Y = 底肩 + 下榫高/2
   const apronUpperTenonOffset = apronCanHalfStagger
     ? (apronWidth - APRON_TOP_SHOULDER - apronHalfTenonH / 2) - apronWidth / 2
     : 0;
   const apronLowerTenonOffset = apronCanHalfStagger
-    ? apronHalfTenonH / 2 - apronWidth / 2
-    : 0;
+    ? apronBottomShoulder + apronHalfTenonH / 2 - apronWidth / 2
+    : (apronBottomShoulder > 0 ? apronBottomShoulder / 2 : 0);
   // 腳頂榫：用 standardTenon 出 thickness=legSize/3、width=legSize-10（4 邊各 5mm 肩）
   // 比舊版 legSize * 2/3 細，避免側視圖看到 1/2 寬度的厚榫。跟 square-stool 同規則。
   const legTopTenonType = autoTenonType(topThickness);
@@ -577,7 +591,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const apronTopAtTop = apronOffset === 0;
     const useHalfBevel = isSplayed && apronTopAtTop;
     const apronBevelAngle = useHalfBevel ? bevelAngle : 0;
-    const partShape = trapTopScale !== null
+    // 牙條造型優先（同 square-stool）：梯形補償以 top/bottomLengthScale 合成進輪廓；
+    // 外斜頂面斜切無法合成 → 捨棄（頂緣外角微陷桌面底、藏在板內看不見）。none 走原路 byte 不變。
+    const partShape = apronProfile !== "none"
+      ? { kind: "edge-profile" as const, style: apronProfile as "arch" | "arch-out" | "kunmen" | "wave" | "double-arch", depthMm: apronProfileDepthEff, waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+      : trapTopScale !== null
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: apronBevelAngle || undefined, bevelMode: useHalfBevel ? "half" as const : undefined }
       : isSplayed && useHalfBevel
         ? { kind: "apron-beveled" as const, bevelAngle }
@@ -777,7 +795,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
             ? sButtHalfZBot(sSplayZBot) / sButtHalfZ(sSplayZ)
             : 1;
       // 下橫撐：保留 trapezoid（避免接縫），完全沒 bevel（上下自由邊跟腳斜）
-      const lsShape = trapTopScale !== null
+      // 造型優先：梯形補償合成進輪廓（同牙條）。none 走原路 byte 不變。
+      const stretcherProfile = opts.stretcherProfile ?? "none";
+      const stretcherProfileDepthEff =
+        stretcherProfile !== "none"
+          ? ((opts.stretcherProfileDepth ?? 0) > 0 ? (opts.stretcherProfileDepth ?? 0) : Math.round(stretcherWidth * 0.4))
+          : 0;
+      const lsShape = stretcherProfile !== "none"
+        ? { kind: "edge-profile" as const, style: stretcherProfile as "arch" | "top-arch" | "kunmen" | "wave" | "double-arch", depthMm: stretcherProfileDepthEff, waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+        : trapTopScale !== null
         ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
         : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
       // 半榫指派：靜止 X（前後）= 下半榫；移動 Z（左右）= 上半榫；上下都不留肩

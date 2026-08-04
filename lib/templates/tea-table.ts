@@ -24,6 +24,8 @@ import {
   stretcherEdgeNote,
   apronEdgeOption,
   apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
   legBottomScale,
   legScaleAt,
 } from "./_helpers";
@@ -51,15 +53,20 @@ export const teaTableOptions: OptionSpec[] = [
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   ...curvedTaperLegOptions("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  // 選了下橫撐造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——同 square-stool）
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
+  // 下橫撐造型（茶几下橫撐環恆存在——無 withLowerStretcher 開關，故無額外顯示條件）
+  ...stretcherProfileOptions("stretcher"),
   { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙條厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "牙條頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
-  apronEdgeOption("apron", 1),
-  apronEdgeStyleOption("apron"),
+  // 選了牙條造型時隱藏倒角欄（同 square-stool）
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  ...apronProfileOptions("apron"),
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 120, unit: "mm", min: 10, max: 400, step: 10, help: "下橫撐底面距地高度" },
@@ -113,6 +120,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
   const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
+  const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
+  const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
+  const stretcherProfile = getOption<string>(input, opt(o, "stretcherProfile"));
+  const stretcherProfileDepth = getOption<number>(input, opt(o, "stretcherProfileDepth"));
   const _upperApronWidthRaw = getOption<number>(input, opt(o, "upperApronWidth"));
   const upperApronThickness = getOption<number>(input, opt(o, "upperApronThickness"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -198,7 +209,20 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   //   stagger == 0 → 自動上下半榫錯位避免同位撞
   const APRON_TOP_SHOULDER = 10;
   const APRON_HALF_TENON_GAP = 4;
-  const apronTotalTenonH = upperApronWidth - APRON_TOP_SHOULDER;
+  // 牙條/下橫撐造型深度（0 = 自動：該環高的 40%），照 square-stool 現行版
+  const apronProfileDepthEff =
+    apronProfile !== "none"
+      ? (apronProfileDepth > 0 ? apronProfileDepth : Math.round(upperApronWidth * 0.4))
+      : 0;
+  const stretcherProfileDepthEff =
+    stretcherProfile !== "none"
+      ? (stretcherProfileDepth > 0 ? stretcherProfileDepth : Math.round(lowerStretcherWidth * 0.4))
+      : 0;
+  // 牙條造型「下緣外圓弧」（arch-out）兩端上收 = 造型深度 → 貼下緣的下半榫會露出，
+  // 底肩抬到 ≥ 造型深度把榫上移進實體（同 square-stool apronBottomShoulder 機制）。
+  // 茶几下半榫原本貼牙條下緣（lowerTenonOffset = halfH/2 − W/2），確有此需求。
+  const apronBottomShoulder = apronProfile === "arch-out" ? apronProfileDepthEff : 0;
+  const apronTotalTenonH = upperApronWidth - APRON_TOP_SHOULDER - apronBottomShoulder;
   const apronVisuallyStaggered = apronStaggerMm > 0;
   const apronCanHalfStagger = apronStaggerMm < apronTenonW && apronTotalTenonH >= 16;
   const apronHalfTenonH = apronCanHalfStagger
@@ -209,8 +233,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? (upperApronWidth - APRON_TOP_SHOULDER - apronHalfTenonH / 2) - upperApronWidth / 2
     : 0;
   const apronLowerTenonOffset = apronCanHalfStagger
-    ? apronHalfTenonH / 2 - upperApronWidth / 2
-    : 0;
+    ? apronBottomShoulder + apronHalfTenonH / 2 - upperApronWidth / 2
+    : (apronBottomShoulder > 0 ? apronBottomShoulder / 2 : 0);
 
   // 3) lower stretcher ↔ leg：同自動規則 + legPenetratingTenon override
   // 弧肩斜腳非明榫時強制盲榫（不自動通榫戳出斜面）。
@@ -464,6 +488,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     trapBotScaleX: apronTrapBotScaleX,
     trapTopScaleZ: apronTrapTopScaleZ,
     trapBotScaleZ: apronTrapBotScaleZ,
+    // 牙條造型：選了造型時整環套 edge-profile（倒角欄已隱藏不套用）
+    profile: apronProfile !== "none"
+      ? { style: apronProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: apronProfileDepthEff }
+      : undefined,
     fallbackShape: legEdgeShape(apronEdge, apronEdgeStyle),
     extraMortises: () => [],
     // 前後牙板（X 軸）整支物理下移 apronStaggerMm；左右（Z 軸）不動
@@ -503,6 +531,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     trapBotScaleX: lowerTrapBotScaleX,
     trapTopScaleZ: lowerTrapTopScaleZ,
     trapBotScaleZ: lowerTrapBotScaleZ,
+    // 下橫撐造型：同牙條（倒角欄已隱藏不套用）
+    profile: stretcherProfile !== "none"
+      ? { style: stretcherProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: stretcherProfileDepthEff }
+      : undefined,
     fallbackShape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     // 棚板放在橫撐上面（rest-on，跟 bench under-shelf 同設計）→ 橫撐不開槽
     extraMortises: () => [],
@@ -684,6 +716,13 @@ interface ApronRingOpts {
   trapBotScaleX: number;
   trapTopScaleZ: number | null;
   trapBotScaleZ: number;
+  /** 環造型（edge-profile 曲線）：有值時優先於 trapezoid 補償 / fallbackShape；
+   *  梯形補償以 topLengthScale/bottomLengthScale 合成進輪廓（同 square-stool）。
+   *  undefined = 不生效（既有行為 byte 不變）。 */
+  profile?: {
+    style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch";
+    depthMm: number;
+  };
   fallbackShape?: Part["shape"];
   extraMortises: (visibleLength: number) => Part["mortises"];
   /** Y delta for X-axis sides (front/back). Default 0. 牙板用 -apronStaggerMm 下移 */
@@ -759,9 +798,13 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     // trapezoid 形狀（如有 tapered）
     const trapTopScale = s.axis === "x" ? o.trapTopScaleX : o.trapTopScaleZ;
     const trapBotScale = s.axis === "x" ? o.trapBotScaleX : o.trapBotScaleZ;
-    const partShape: Part["shape"] = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
-      : o.fallbackShape;
+    // 造型（edge-profile）優先：梯形補償合成進輪廓（tapered 的長度補償與造型同時成立）；
+    // 無造型時走原路（trapezoid / fallback 倒角）→ byte 不變。
+    const partShape: Part["shape"] = o.profile
+      ? { kind: "edge-profile" as const, style: o.profile.style, depthMm: o.profile.depthMm, waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+      : trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+        : o.fallbackShape;
     // ctSplay 外斜：端面榫頭沿腳傾角傾斜（compound splay normal，corner 符號映射同 square-stool：
     // axis="x" 環 start 在世界 -X；axis="z" 環 rotation Rx(π/2)Ry(π/2) 後 start 在世界 +Z）
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
