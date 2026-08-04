@@ -117,6 +117,53 @@ check("案例5：無母榫回空陣列", partMachiningFaces(leg([])).length === 
   }
 }
 
+// --- 案例 7：錐腳（梯形面）頂榫（y 向、接水平頂邊）也要嵌接進外框 ---
+// 修「splice 只吃垂直端邊」：通用 splice 支援 4 方向 + 斜邊。
+{
+  const { squareStool, squareStoolOptions } = require("@/lib/templates/square-stool") as typeof import("@/lib/templates/square-stool");
+  const o: Record<string, unknown> = {};
+  for (const s of squareStoolOptions) if (s.defaultValue !== undefined) o[s.key] = s.defaultValue;
+  o.legShape = "tapered";
+  const design = squareStool({ length: 350, width: 350, height: 450, material: "maple", options: o } as never);
+  const leg = design.parts.find((p) => p.id === "leg-1")!;
+  const faces = partMachiningFaces(leg);
+  const anyTenonLeft = faces.some((f) => f.tenons.length > 0);
+  check("案例7：錐腳頂榫已 union 進外框（無殘留矩形）", !anyTenonLeft);
+  check("案例7：錐腳面外框非矩形（梯形）", faces.some((f) => f.outline.length > 4));
+}
+
+// --- 案例 8：外斜腳（splayed）榫孔要跟著腳身斜過去、落在腳內（不出框）---
+// 修「splayDx 只套外框不套榫孔 → 孔落到斜腳外面」。
+{
+  const { squareStool, squareStoolOptions } = require("@/lib/templates/square-stool") as typeof import("@/lib/templates/square-stool");
+  const inPoly = (pt: { x: number; y: number }, poly: Array<{ x: number; y: number }>) => {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const hit = (poly[i].y > pt.y) !== (poly[j].y > pt.y) &&
+        pt.x < ((poly[j].x - poly[i].x) * (pt.y - poly[i].y)) / (poly[j].y - poly[i].y) + poly[i].x;
+      if (hit) inside = !inside;
+    }
+    return inside;
+  };
+  const o: Record<string, unknown> = {};
+  for (const s of squareStoolOptions) if (s.defaultValue !== undefined) o[s.key] = s.defaultValue;
+  o.legShape = "splayed";
+  const design = squareStool({ length: 350, width: 350, height: 450, material: "maple", options: o } as never);
+  const leg = design.parts.find((p) => p.id === "leg-1")!;
+  let allIn = true, nHoles = 0;
+  for (const f of partMachiningFaces(leg)) {
+    for (const h of f.holes) {
+      nHoles++;
+      const c = h.kind === "circle"
+        ? { x: h.cx ?? 0, y: h.cy ?? 0 }
+        : { x: h.pts!.reduce((s, p) => s + p.x, 0) / h.pts!.length, y: h.pts!.reduce((s, p) => s + p.y, 0) / h.pts!.length };
+      if (!inPoly(c, f.outline)) allIn = false;
+    }
+  }
+  check("案例8：外斜腳有榫孔可驗", nHoles >= 2);
+  check("案例8：外斜腳榫孔全落在腳身外框內（不出框）", allIn);
+}
+
 // --- 收尾 ---
 if (failed > 0) {
   console.error(`\n${failed} 個測試失敗`);

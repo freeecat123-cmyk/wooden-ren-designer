@@ -178,9 +178,24 @@ export function boxToRawHoles(
   return [mk(right ? "right" : "left", "side", !right, uMin, uMax, vMin, vMax)];
 }
 
-/** 一個母榫 → raw 榫孔框（wrapper：算 box 後交給 boxToRawHoles）。 */
+/**
+ * 外斜腳（splayed 家族）補償：silhouette 把腳身沿高度線性剪切（底端偏 dxMm/dzMm、
+ * 頂端不偏，splayDx = dx·(1−taperT)），但 mortiseLocalBox 不含此剪切 → 榫孔會留在
+ * 未剪切的位置、落到斜腳外面。這裡對榫孔中心套同一組剪切，讓孔跟著腳身斜過去。
+ * 只動匯出用的 box（不改 mortiseLocalBox，避免影響 3D / 零件圖紅框）。
+ */
+function applySplayShift(part: Part, lb: LocalBoxWithAxis): LocalBoxWithAxis {
+  const sh = part.shape as { kind?: string; dxMm?: number; dzMm?: number } | undefined;
+  if (!sh || (sh.kind !== "splayed" && sh.kind !== "splayed-tapered" && sh.kind !== "splayed-round-tapered")) return lb;
+  const ly = part.visible.thickness;
+  const taperT = (lb.cy + ly / 2) / ly;         // 0 = 底端, 1 = 頂端（對齊 geometry silhouette）
+  const f = 1 - taperT;
+  return { ...lb, cx: lb.cx + (sh.dxMm ?? 0) * f, cz: lb.cz + (sh.dzMm ?? 0) * f };
+}
+
+/** 一個母榫 → raw 榫孔框（wrapper：算 box → 外斜補償 → 交給 boxToRawHoles）。 */
 function mortiseToRawHoles(part: Part, m: Part["mortises"][number], idx: number): RawHole[] {
-  const lb = mortiseLocalBox(part, m);
+  const lb = applySplayShift(part, mortiseLocalBox(part, m));
   return boxToRawHoles(lb, part.visible.thickness, m.through, m.shape === "round", m.label ?? `榫孔${idx + 1}`);
 }
 
@@ -258,54 +273,90 @@ function rectUnionOutline(rects: Rect[]): Array<{ x: number; y: number }> | null
   return out.length >= 4 ? out : loop;
 }
 
-/**
- * 把一個「內邊貼在本體某條垂直端邊上、往外伸出」的榫頭矩形嵌接進本體外框，
- * 成為單一封閉輪廓。給「有造型曲線的牙板/橫撐」用（外框非矩形，rectUnionOutline
- * 不適用；但牙板/橫撐的榫頭一定沿長度軸從平直端邊伸出 → 只需在那條垂直邊上鑿出凸起）。
- * 榫頭內邊 x 必須貼齊本體極端 x（左端 = minX、右端 = maxX），y 範圍落在該端邊內。
- * 嵌不進去（找不到吻合的垂直端邊）回 null，呼叫端 fallback 到「榫頭畫成獨立矩形」。
- */
-function spliceTenonIntoOutline(
-  outline: Array<{ x: number; y: number }>,
-  t: Rect,
-  eps = 0.6,
-): Array<{ x: number; y: number }> | null {
-  const xsAll = outline.map((p) => p.x);
-  const bodyMinX = Math.min(...xsAll), bodyMaxX = Math.max(...xsAll);
-  let innerX: number, outerX: number;
-  if (Math.abs(t.x0 - bodyMaxX) < eps) { innerX = t.x0; outerX = t.x1; }        // 右端榫頭
-  else if (Math.abs(t.x1 - bodyMinX) < eps) { innerX = t.x1; outerX = t.x0; }   // 左端榫頭
-  else return null;                                                             // 非端邊榫頭
-  const ty0 = Math.min(t.y0, t.y1), ty1 = Math.max(t.y0, t.y1);
+type Pt = { x: number; y: number };
 
-  const n = outline.length;
-  for (let i = 0; i < n; i++) {
-    const a = outline[i], b = outline[(i + 1) % n];
-    // 找 x≈innerX 的垂直邊，且 y 跨距涵蓋榫頭 [ty0,ty1]
-    if (Math.abs(a.x - innerX) > eps || Math.abs(b.x - innerX) > eps) continue;
-    const lo = Math.min(a.y, b.y), hi = Math.max(a.y, b.y);
-    if (ty0 < lo - eps || ty1 > hi + eps) continue;
-    // 沿 a→b 走：往外凸出繞過榫頭（outerX 一定在本體外 → 加面積 = 聯集，與繞向無關）
-    const detour = a.y < b.y
-      ? [{ x: innerX, y: ty0 }, { x: outerX, y: ty0 }, { x: outerX, y: ty1 }, { x: innerX, y: ty1 }]
-      : [{ x: innerX, y: ty1 }, { x: outerX, y: ty1 }, { x: outerX, y: ty0 }, { x: innerX, y: ty0 }];
-    const out: Array<{ x: number; y: number }> = [];
-    for (let k = 0; k <= i; k++) out.push(outline[k]);
-    for (const d of detour) out.push(d);
-    for (let k = i + 1; k < n; k++) out.push(outline[k]);
-    // 去除相鄰重複點（榫頭邊與端點重合時）
-    const dedup: Array<{ x: number; y: number }> = [];
-    for (let k = 0; k < out.length; k++) {
-      const p = out[k], q = dedup[dedup.length - 1];
-      if (!q || Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01) dedup.push(p);
-    }
-    if (dedup.length > 1) {
-      const first = dedup[0], last = dedup[dedup.length - 1];
-      if (Math.abs(first.x - last.x) < 0.01 && Math.abs(first.y - last.y) < 0.01) dedup.pop();
-    }
-    return dedup;
+/** 榫頭矩形往哪一側伸出本體（超出 body bbox 最多的那一軸向）。 */
+function tenonOutwardDir(
+  t: Rect,
+  bbMinX: number, bbMaxX: number, bbMinY: number, bbMaxY: number,
+): { ext: "x" | "y"; s: 1 | -1 } | null {
+  const overR = t.x1 - bbMaxX, overL = bbMinX - t.x0;
+  const overD = t.y1 - bbMaxY, overU = bbMinY - t.y0;
+  const m = Math.max(overR, overL, overD, overU);
+  if (m <= 0.1) return null;                 // 榫頭沒明顯凸出本體 → 不嵌
+  if (m === overR) return { ext: "x", s: 1 };
+  if (m === overL) return { ext: "x", s: -1 };
+  if (m === overD) return { ext: "y", s: 1 };
+  return { ext: "y", s: -1 };
+}
+
+/**
+ * 把一個「垂直於本體某條周界邊、往外伸出」的榫頭矩形嵌接進本體外框，成為單一封閉輪廓。
+ * 通用版：支援 4 個伸出方向（±x / ±y）與「微斜端邊」（梯形補償牙板端邊可斜 ~2mm）。
+ * 做法＝找出朝伸出方向、且橫跨涵蓋榫頭的那條 body 邊，把榫頭兩條長邊與該 body 邊求交
+ * 得 Q1/Q2（落在真實邊上，斜邊也貼齊），在 Q1→外角→外角→Q2 之間鑿出外凸繞道。
+ * 嵌不進（找不到吻合邊）回 null → 呼叫端 fallback 保留獨立矩形。
+ */
+function spliceTenonGeneral(outline: Pt[], t: Rect): Pt[] | null {
+  const xs = outline.map((p) => p.x), ys = outline.map((p) => p.y);
+  const bbMinX = Math.min(...xs), bbMaxX = Math.max(...xs);
+  const bbMinY = Math.min(...ys), bbMaxY = Math.max(...ys);
+  const dir = tenonOutwardDir(t, bbMinX, bbMaxX, bbMinY, bbMaxY);
+  if (!dir) return null;
+  const { ext, s } = dir;
+  const getExt = (p: Pt) => (ext === "x" ? p.x : p.y);
+  const getCross = (p: Pt) => (ext === "x" ? p.y : p.x);
+  const mk = (cross: number, extv: number): Pt => (ext === "x" ? { x: extv, y: cross } : { x: cross, y: extv });
+
+  let crossLo: number, crossHi: number, outerV: number;
+  if (ext === "x") {
+    crossLo = Math.min(t.y0, t.y1); crossHi = Math.max(t.y0, t.y1);
+    outerV = s > 0 ? Math.max(t.x0, t.x1) : Math.min(t.x0, t.x1);
+  } else {
+    crossLo = Math.min(t.x0, t.x1); crossHi = Math.max(t.x0, t.x1);
+    outerV = s > 0 ? Math.max(t.y0, t.y1) : Math.min(t.y0, t.y1);
   }
-  return null;
+
+  // 找 body 邊：cross 跨距涵蓋榫頭、非平行 ext，取朝伸出方向最外側那條（斜度多大都吃）。
+  // 只有兩條「端邊」會跨滿榫頭橫跨，故最外側者＝榫頭該接的那條；造型/端邊多斜都貼齊。
+  const n = outline.length;
+  let bestI = -1, bestExt = s > 0 ? -Infinity : Infinity;
+  for (let i = 0; i < n; i++) {
+    const A = outline[i], B = outline[(i + 1) % n];
+    const ca = getCross(A), cb = getCross(B);
+    if (Math.abs(ca - cb) < 0.5) continue;                       // 與 ext 平行的邊（cross 幾乎不變）跳過
+    if (Math.min(ca, cb) > crossLo + 0.5 || Math.max(ca, cb) < crossHi - 0.5) continue; // 未涵蓋榫頭
+    const edgeExt = (getExt(A) + getExt(B)) / 2;
+    if (s > 0 ? edgeExt > bestExt : edgeExt < bestExt) { bestExt = edgeExt; bestI = i; }
+  }
+  if (bestI < 0) return null;
+
+  const A = outline[bestI], B = outline[(bestI + 1) % n];
+  const at = (cross: number): Pt => {
+    const ca = getCross(A), cb = getCross(B);
+    const tt = (cross - ca) / (cb - ca);
+    return mk(cross, getExt(A) + tt * (getExt(B) - getExt(A)));
+  };
+  const Qlo = at(crossLo), Qhi = at(crossHi);
+  const OuterLo = mk(crossLo, outerV), OuterHi = mk(crossHi, outerV);
+  const incr = getCross(B) > getCross(A);                        // A→B cross 遞增 → 先遇 crossLo
+  const detour = incr ? [Qlo, OuterLo, OuterHi, Qhi] : [Qhi, OuterHi, OuterLo, Qlo];
+
+  const out: Pt[] = [];
+  for (let k = 0; k <= bestI; k++) out.push(outline[k]);
+  for (const d of detour) out.push(d);
+  for (let k = bestI + 1; k < n; k++) out.push(outline[k]);
+  // 去相鄰重複（Q 與端點重合時）
+  const dd: Pt[] = [];
+  for (const p of out) {
+    const q = dd[dd.length - 1];
+    if (!q || Math.abs(p.x - q.x) > 0.02 || Math.abs(p.y - q.y) > 0.02) dd.push(p);
+  }
+  if (dd.length > 1) {
+    const f = dd[0], l = dd[dd.length - 1];
+    if (Math.abs(f.x - l.x) < 0.02 && Math.abs(f.y - l.y) < 0.02) dd.pop();
+  }
+  return dd.length >= 4 ? dd : null;
 }
 
 /** 取某 view 的外框 raw 點 + bbox。 */
@@ -410,11 +461,11 @@ function buildFace(
     const merged = rectUnionOutline([bodyRect, ...tenonRects]);
     if (merged) { finalOutline = merged; tenons = []; }
   } else if (tenonRects.length > 0) {
-    // 造型曲線本體（壸門/波浪牙板・橫撐）：榫頭沿長度軸從平直端邊伸出，逐個嵌接進外框。
+    // 非矩形本體（造型曲線牙板/橫撐、錐腳/斜腳梯形面）：逐個把榫頭嵌接進外框。
     let cur = outline;
     const leftover: FaceTenon[] = [];
     for (let ti = 0; ti < tenonRects.length; ti++) {
-      const spliced = spliceTenonIntoOutline(cur, tenonRects[ti]);
+      const spliced = spliceTenonGeneral(cur, tenonRects[ti]);
       if (spliced) cur = spliced;
       else {
         const r = tenonRects[ti];
