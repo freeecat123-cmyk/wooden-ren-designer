@@ -187,3 +187,19 @@ summary {
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* 🖥 全螢幕工具頁（/cnc 有權限時的 iframe）：把站台外框整個收起來。
+   ⭐為什麼需要:站台 layout 無條件渲染 SiteHeader/SiteFooter，而 SiteHeader 是 sticky z-40，
+   會直接壓在全螢幕工具上面（user 實機截圖回報：導覽列與頁尾出現在工具中間）。
+   只在工具實際掛載時由 CncClient 打上這個旗標，銷售頁（同一個 /cnc 路由）不受影響。 */
+html[data-fullscreen-tool] > body > header,
+html[data-fullscreen-tool] > body > footer,
+html[data-fullscreen-tool] header.no-print,
+html[data-fullscreen-tool] footer.no-print {
+  display: none;
+}
+html[data-fullscreen-tool],
+html[data-fullscreen-tool] > body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
