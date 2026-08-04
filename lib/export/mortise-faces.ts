@@ -93,6 +93,8 @@ interface RawHole {
   uMax: number;
   vMin: number;
   vMax: number;
+  /** 外斜腳剪切後的 4 角 raw(u,v)（平行四邊形，跟腳身斜同角度）；有值時取代 uMin..vMax 的矩形。 */
+  quad?: Array<{ u: number; v: number }>;
   through: boolean;
   label: string;
 }
@@ -179,24 +181,34 @@ export function boxToRawHoles(
 }
 
 /**
- * 外斜腳（splayed 家族）補償：silhouette 把腳身沿高度線性剪切（底端偏 dxMm/dzMm、
- * 頂端不偏，splayDx = dx·(1−taperT)），但 mortiseLocalBox 不含此剪切 → 榫孔會留在
- * 未剪切的位置、落到斜腳外面。這裡對榫孔中心套同一組剪切，讓孔跟著腳身斜過去。
- * 只動匯出用的 box（不改 mortiseLocalBox，避免影響 3D / 零件圖紅框）。
+ * 外斜腳（splayed 家族）補償：silhouette 把腳身沿高度線性剪切
+ * （projectFeaturePolygon 同款：xL += dx·t、zL += dz·t，t = 1 − (y+ly/2)/ly = 1 − v/ly），
+ * 但 boxToRawHoles 出的是軸對齊矩形 → 榫孔畫成正的、跟斜腳外框不一致（且會落到腳外）。
+ * 這裡對每個矩形榫孔的 4 角各套自己 v 的剪切 → 平行四邊形，跟腳身同角度斜、也自動落回腳內。
+ * 只動匯出（不改 mortiseLocalBox，避免影響 3D / 零件圖紅框）。前/後面剪 x(dx)、左/右面剪 z(dz)；
+ * 俯視面（top）長軸在孔內不變化 → 不剪。圓榫（circle）維持圓孔不剪。
  */
-function applySplayShift(part: Part, lb: LocalBoxWithAxis): LocalBoxWithAxis {
+function applySplayShear(part: Part, holes: RawHole[]): RawHole[] {
   const sh = part.shape as { kind?: string; dxMm?: number; dzMm?: number } | undefined;
-  if (!sh || (sh.kind !== "splayed" && sh.kind !== "splayed-tapered" && sh.kind !== "splayed-round-tapered")) return lb;
+  if (!sh || (sh.kind !== "splayed" && sh.kind !== "splayed-tapered" && sh.kind !== "splayed-round-tapered")) return holes;
   const ly = part.visible.thickness;
-  const taperT = (lb.cy + ly / 2) / ly;         // 0 = 底端, 1 = 頂端（對齊 geometry silhouette）
-  const f = 1 - taperT;
-  return { ...lb, cx: lb.cx + (sh.dxMm ?? 0) * f, cz: lb.cz + (sh.dzMm ?? 0) * f };
+  if (ly <= 0) return holes;
+  return holes.map((h) => {
+    if (h.kind !== "rect") return h;
+    const D = h.view === "front" ? (sh.dxMm ?? 0) : h.view === "side" ? (sh.dzMm ?? 0) : 0;
+    if (D === 0) return h;
+    const shear = (v: number) => D * (1 - v / ly);           // 該高度 v 的 u 偏移量
+    const q = (u: number, v: number) => ({ u: u - shear(v), v });
+    // 4 角（同一 v 的兩角剪同量 → 上下邊仍水平、左右邊隨 v 斜）
+    return { ...h, quad: [q(h.uMin, h.vMin), q(h.uMax, h.vMin), q(h.uMax, h.vMax), q(h.uMin, h.vMax)] };
+  });
 }
 
-/** 一個母榫 → raw 榫孔框（wrapper：算 box → 外斜補償 → 交給 boxToRawHoles）。 */
+/** 一個母榫 → raw 榫孔框（wrapper：算 box → boxToRawHoles → 外斜剪切成平行四邊形）。 */
 function mortiseToRawHoles(part: Part, m: Part["mortises"][number], idx: number): RawHole[] {
-  const lb = applySplayShift(part, mortiseLocalBox(part, m));
-  return boxToRawHoles(lb, part.visible.thickness, m.through, m.shape === "round", m.label ?? `榫孔${idx + 1}`);
+  const lb = mortiseLocalBox(part, m);
+  const raw = boxToRawHoles(lb, part.visible.thickness, m.through, m.shape === "round", m.label ?? `榫孔${idx + 1}`);
+  return applySplayShear(part, raw);
 }
 
 /** 判斷輪廓是不是軸對齊矩形（4 點、邊全水平/垂直）。 */
@@ -434,7 +446,11 @@ function buildFace(
       const r = Math.min(Math.abs(hr.uMax - hr.uMin), Math.abs(hr.vMax - hr.vMin)) / 2;
       return { kind: "circle", cx: cxN, cy: cyN, r, through: hr.through, label: hr.label };
     }
-    return { kind: "rect", pts: rectPts(hr.uMin, hr.uMax, hr.vMin, hr.vMax), through: hr.through, label: hr.label };
+    // 外斜腳剪切後的平行四邊形（4 角各自 nx/ny，含 mirrorU）；否則軸對齊矩形。
+    const pts = hr.quad
+      ? hr.quad.map((c) => ({ x: nx(c.u), y: ny(c.v) }))
+      : rectPts(hr.uMin, hr.uMax, hr.vMin, hr.vMax);
+    return { kind: "rect", pts, through: hr.through, label: hr.label };
   });
 
   // 該面平面內的公榫凸出矩形

@@ -150,7 +150,7 @@ check("案例5：無母榫回空陣列", partMachiningFaces(leg([])).length === 
   o.legShape = "splayed";
   const design = squareStool({ length: 350, width: 350, height: 450, material: "maple", options: o } as never);
   const leg = design.parts.find((p) => p.id === "leg-1")!;
-  let allIn = true, nHoles = 0;
+  let allIn = true, nHoles = 0, anySlanted = false;
   for (const f of partMachiningFaces(leg)) {
     for (const h of f.holes) {
       nHoles++;
@@ -158,10 +158,17 @@ check("案例5：無母榫回空陣列", partMachiningFaces(leg([])).length === 
         ? { x: h.cx ?? 0, y: h.cy ?? 0 }
         : { x: h.pts!.reduce((s, p) => s + p.x, 0) / h.pts!.length, y: h.pts!.reduce((s, p) => s + p.y, 0) / h.pts!.length };
       if (!inPoly(c, f.outline)) allIn = false;
+      // 平行四邊形：4 角中至少有一對「同一水平邊的兩端 x 不同」→ 左右邊有斜（跟腳同角度）
+      if (h.pts && h.pts.length === 4) {
+        const [p0, p1, p2, p3] = h.pts; // rectPts 順序：LL,LR,UR,UL → 斜切後上下邊仍水平、左右邊 x 隨 y 變
+        // 左邊兩端（p0 下、p3 上）x 不同 = 有剪切
+        if (Math.abs(p0.x - p3.x) > 1 || Math.abs(p1.x - p2.x) > 1) anySlanted = true;
+      }
     }
   }
   check("案例8：外斜腳有榫孔可驗", nHoles >= 2);
   check("案例8：外斜腳榫孔全落在腳身外框內（不出框）", allIn);
+  check("案例8：外斜腳榫孔畫成平行四邊形（跟腳身同角度斜，非正矩形）", anySlanted);
 }
 
 // --- 收尾 ---
