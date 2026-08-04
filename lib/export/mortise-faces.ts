@@ -258,6 +258,56 @@ function rectUnionOutline(rects: Rect[]): Array<{ x: number; y: number }> | null
   return out.length >= 4 ? out : loop;
 }
 
+/**
+ * 把一個「內邊貼在本體某條垂直端邊上、往外伸出」的榫頭矩形嵌接進本體外框，
+ * 成為單一封閉輪廓。給「有造型曲線的牙板/橫撐」用（外框非矩形，rectUnionOutline
+ * 不適用；但牙板/橫撐的榫頭一定沿長度軸從平直端邊伸出 → 只需在那條垂直邊上鑿出凸起）。
+ * 榫頭內邊 x 必須貼齊本體極端 x（左端 = minX、右端 = maxX），y 範圍落在該端邊內。
+ * 嵌不進去（找不到吻合的垂直端邊）回 null，呼叫端 fallback 到「榫頭畫成獨立矩形」。
+ */
+function spliceTenonIntoOutline(
+  outline: Array<{ x: number; y: number }>,
+  t: Rect,
+  eps = 0.6,
+): Array<{ x: number; y: number }> | null {
+  const xsAll = outline.map((p) => p.x);
+  const bodyMinX = Math.min(...xsAll), bodyMaxX = Math.max(...xsAll);
+  let innerX: number, outerX: number;
+  if (Math.abs(t.x0 - bodyMaxX) < eps) { innerX = t.x0; outerX = t.x1; }        // 右端榫頭
+  else if (Math.abs(t.x1 - bodyMinX) < eps) { innerX = t.x1; outerX = t.x0; }   // 左端榫頭
+  else return null;                                                             // 非端邊榫頭
+  const ty0 = Math.min(t.y0, t.y1), ty1 = Math.max(t.y0, t.y1);
+
+  const n = outline.length;
+  for (let i = 0; i < n; i++) {
+    const a = outline[i], b = outline[(i + 1) % n];
+    // 找 x≈innerX 的垂直邊，且 y 跨距涵蓋榫頭 [ty0,ty1]
+    if (Math.abs(a.x - innerX) > eps || Math.abs(b.x - innerX) > eps) continue;
+    const lo = Math.min(a.y, b.y), hi = Math.max(a.y, b.y);
+    if (ty0 < lo - eps || ty1 > hi + eps) continue;
+    // 沿 a→b 走：往外凸出繞過榫頭（outerX 一定在本體外 → 加面積 = 聯集，與繞向無關）
+    const detour = a.y < b.y
+      ? [{ x: innerX, y: ty0 }, { x: outerX, y: ty0 }, { x: outerX, y: ty1 }, { x: innerX, y: ty1 }]
+      : [{ x: innerX, y: ty1 }, { x: outerX, y: ty1 }, { x: outerX, y: ty0 }, { x: innerX, y: ty0 }];
+    const out: Array<{ x: number; y: number }> = [];
+    for (let k = 0; k <= i; k++) out.push(outline[k]);
+    for (const d of detour) out.push(d);
+    for (let k = i + 1; k < n; k++) out.push(outline[k]);
+    // 去除相鄰重複點（榫頭邊與端點重合時）
+    const dedup: Array<{ x: number; y: number }> = [];
+    for (let k = 0; k < out.length; k++) {
+      const p = out[k], q = dedup[dedup.length - 1];
+      if (!q || Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01) dedup.push(p);
+    }
+    if (dedup.length > 1) {
+      const first = dedup[0], last = dedup[dedup.length - 1];
+      if (Math.abs(first.x - last.x) < 0.01 && Math.abs(first.y - last.y) < 0.01) dedup.pop();
+    }
+    return dedup;
+  }
+  return null;
+}
+
 /** 取某 view 的外框 raw 點 + bbox。 */
 function outlineRaw(lp: Part, view: OrthoView): {
   pts: Array<{ x: number; y: number }>;
@@ -352,12 +402,27 @@ function buildFace(
     label: `榫頭${i + 1}`,
   }));
 
-  // 榫頭 union 進外框成單一輪廓（body 為軸對齊矩形時）——修「榫頭跟本體該是一條線 + 缺口」。
+  // 榫頭 union 進外框成單一輪廓——修「榫頭跟本體該是一條線 + 缺口」。
   if (tenonRects.length > 0 && isAxisRect(outline)) {
+    // 矩形本體（腳等）：格線聯集，可同時併頂/底/端各向榫頭。
     const bxs = outline.map((p) => p.x), bys = outline.map((p) => p.y);
     const bodyRect = { x0: Math.min(...bxs), y0: Math.min(...bys), x1: Math.max(...bxs), y1: Math.max(...bys) };
     const merged = rectUnionOutline([bodyRect, ...tenonRects]);
     if (merged) { finalOutline = merged; tenons = []; }
+  } else if (tenonRects.length > 0) {
+    // 造型曲線本體（壸門/波浪牙板・橫撐）：榫頭沿長度軸從平直端邊伸出，逐個嵌接進外框。
+    let cur = outline;
+    const leftover: FaceTenon[] = [];
+    for (let ti = 0; ti < tenonRects.length; ti++) {
+      const spliced = spliceTenonIntoOutline(cur, tenonRects[ti]);
+      if (spliced) cur = spliced;
+      else {
+        const r = tenonRects[ti];
+        leftover.push({ pts: [ { x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 } ], label: `榫頭${ti + 1}` });
+      }
+    }
+    finalOutline = cur;
+    tenons = leftover; // 嵌接成功的併進外框；嵌不進的（極少）保留獨立矩形
   }
 
   // 邊界含榫頭一起算、整體平移歸零（union 後外框已含榫頭；未 union 時用榫頭矩形擴框）。

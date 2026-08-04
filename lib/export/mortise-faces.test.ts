@@ -92,6 +92,31 @@ check("案例4：圓榫畫成 circle", f4[0]?.holes[0]?.kind === "circle" && nea
 // --- 案例 5：無母榫零件 → 回 []（呼叫端 fallback 純外框）---
 check("案例5：無母榫回空陣列", partMachiningFaces(leg([])).length === 0);
 
+// --- 案例 6：造型牙板/橫撐（曲線外框）→ 兩端榫頭要嵌接進外框成單一輪廓、不留獨立矩形 ---
+// 修「造型牙板匯出時榫頭跟本體有縫」：body 非矩形時走 spliceTenonIntoOutline。
+{
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { squareStool, squareStoolOptions } = require("@/lib/templates/square-stool") as typeof import("@/lib/templates/square-stool");
+  const o: Record<string, unknown> = {};
+  for (const s of squareStoolOptions) if (s.defaultValue !== undefined) o[s.key] = s.defaultValue;
+  o.apronProfile = "kunmen"; o.withLowerStretcher = true; o.stretcherProfile = "wave";
+  const design = squareStool({ length: 350, width: 350, height: 450, material: "maple", options: o } as never);
+  for (const [id, name] of [["apron-front", "壸門牙板"], ["ls-front", "波浪橫撐"]] as const) {
+    const part = design.parts.find((p) => p.id === id)!;
+    const nTenon = part.tenons?.length ?? 0;
+    const faces = partMachiningFaces(part);
+    check(`案例6：${name} 有兩端榫頭`, nTenon === 2);
+    check(`案例6：${name} 回一片攤平面`, faces.length === 1);
+    const f = faces[0];
+    // 曲線外框（非矩形）
+    check(`案例6：${name} 外框非矩形（造型曲線）`, f.outline.length > 8);
+    // 榫頭全嵌進外框 → 不留獨立 tenon 矩形
+    check(`案例6：${name} 榫頭已 union 進外框（tenons 清空）`, f.tenons.length === 0);
+    // bbox 寬度含兩端榫頭（本體 length 305mm + 兩端各 25mm 榫 ≈ 330mm 以上）
+    check(`案例6：${name} 外框寬含榫頭`, f.w > 320);
+  }
+}
+
 // --- 收尾 ---
 if (failed > 0) {
   console.error(`\n${failed} 個測試失敗`);
