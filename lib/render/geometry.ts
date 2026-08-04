@@ -58,6 +58,88 @@ export function frenchCleatSection(
 }
 
 /**
+ * 牙板／下橫撐「造型邊」2D 輪廓（edge-profile）——在 length(X) × width(U) 大面上，
+ * 下緣（U=+w/2，rotation x=π/2 後為世界下方）依 style 內凹造型，沿厚度擠出。
+ * 3D（buildEdgeProfileGeometry）、正視 polygon、零件 SVG 匯出三方共用，保證逐點一致。
+ *
+ * style：
+ *  - arch        下緣圓弧（單一大弧往上收，兩端歸零）
+ *  - kunmen      壸門曲線（兩端 cos 弧肩上收 → 中段平直於深度 d）
+ *  - wave        波浪連續弧（waveCount 個圓滑波峰，兩端歸零）
+ *  - corner-round 下緣兩端圓角（半徑 = depth 的四分之一圓，中段平直）
+ *  - double-arch 上下都往內圓弧（上下緣各一道內凹弧＝束腰）
+ *
+ * 回傳閉合順序頂點 [x, u]（u 軸 = local Z；+u = 下緣）。深度自動 clamp 保結構。
+ */
+export function edgeProfileOutline(
+  lx: number,
+  w: number,
+  style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch",
+  depthMm: number,
+  waveCount: number = 4,
+  /** 選配梯形補償（同 apron-trapezoid 語意）：上緣（-u）/下緣（+u）長度縮放，
+   *  輪廓 x 依 u 位置線性插值縮放 → 造型與斜腳/弧肩斜腳的牙板梯形補償可同時成立。 */
+  topLengthScale: number = 1,
+  bottomLengthScale: number = 1,
+): Array<[number, number]> {
+  const hx = lx / 2;
+  const hu = w / 2;
+  // u → x 縮放：-hu(上緣)=topLengthScale、+hu(下緣)=bottomLengthScale
+  const xScaleAt = (u: number): number =>
+    topLengthScale + ((bottomLengthScale - topLengthScale) * (u + hu)) / (w || 1);
+  // 深度 clamp：單邊 ≤ 45% 高；double-arch 兩邊各 ≤ 35%（中段至少留 30%）
+  const d = Math.max(0, Math.min(depthMm, style === "double-arch" ? w * 0.35 : w * 0.45));
+  const N = style === "wave" ? 96 : 32;
+  const pts: Array<[number, number]> = [];
+  // 下緣內凹量 f(t)，t ∈ [0,1] 由 -hx → +hx
+  const inset = (t: number): number => {
+    if (d <= 0) return 0;
+    if (style === "top-arch") return 0; // 上緣圓弧：下緣平直
+    if (style === "arch-out") {
+      // 下緣外圓弧（凸弧）：中間垂到全高、兩端上收 d（弧朝外/下鼓）
+      return d * (1 - Math.sin(Math.PI * t));
+    }
+    if (style === "kunmen") {
+      const s = 0.22; // 兩端弧肩占比
+      if (t < s) return (d * (1 - Math.cos(Math.PI * (t / s)))) / 2;
+      if (t > 1 - s) return (d * (1 - Math.cos(Math.PI * ((1 - t) / s)))) / 2;
+      return d;
+    }
+    if (style === "wave") {
+      const n = Math.max(2, Math.round(waveCount));
+      return (d * (1 - Math.cos(2 * Math.PI * n * t))) / 2;
+    }
+    if (style === "corner-round") {
+      // 兩端 r=d 四分之一圓角，中段平直貼下緣
+      const r = Math.min(d, hx * 0.9);
+      const xAbs = (t: number) => -hx + lx * t;
+      const x = xAbs(t);
+      if (x < -hx + r) return r - Math.sqrt(Math.max(0, r * r - (x - (-hx + r)) ** 2));
+      if (x > hx - r) return r - Math.sqrt(Math.max(0, r * r - (x - (hx - r)) ** 2));
+      return 0;
+    }
+    // arch / double-arch 下緣：單一正弦大弧
+    return d * Math.sin(Math.PI * t);
+  };
+  // 上緣內凹量（double-arch 束腰 / top-arch 上緣圓弧）
+  const insetTop = (t: number): number =>
+    style === "double-arch" || style === "top-arch" ? d * Math.sin(Math.PI * t) : 0;
+  // 下緣：-hx → +hx（+u 邊往 -u 內凹）
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const u = hu - inset(t);
+    pts.push([(-hx + lx * t) * xScaleAt(u), u]);
+  }
+  // 上緣：+hx → -hx（-u 邊往 +u 內凹）
+  for (let i = 0; i <= N; i++) {
+    const t = 1 - i / N;
+    const u = -hu + insetTop(t);
+    pts.push([(-hx + lx * t) * xScaleAt(u), u]);
+  }
+  return pts;
+}
+
+/**
  * 弧肩斜腳（curved-taper）側面 2D 輪廓（local X=寬、Y=高 平面），沿厚度 Z 擠出。
  * ⚠️ 必須與 part-geometry.ts `buildCurvedTaperGeometry` 的 `pts` 逐點一致
  *   （同 clamp 相對係數、同弧參數 x=-hx+shoulder·cos(th)、y=yCoveEnd+coveSpan·sin(th)）。
@@ -266,6 +348,29 @@ export function projectPartSilhouette(
         const t = shearT(yp);
         pushPoint(xp + ctDx * t, yp, zL + ctDz * t);
       }
+    }
+    return convexHull2D(projected);
+  }
+
+  // 牙板／下橫撐造型邊（edge-profile）：輪廓在 local X–Z 大面、沿 local Y（厚度）擠出。
+  // 對著大面法線（旋轉後的 local Y）的視角 → 輸出有序輪廓（保留內凹弧，不跑 hull）；
+  // 其他視角 → 兩端（y=±hy）採樣 hull（側看本來就是矩形/傾斜四邊形）。
+  if (part.shape?.kind === "edge-profile") {
+    const prof = edgeProfileOutline(lx, lz, part.shape.style, part.shape.depthMm, part.shape.waveCount ?? 4, part.shape.topLengthScale ?? 1, part.shape.bottomLengthScale ?? 1);
+    // n = R·(0,1,0)（Rx→Ry→Rz，與 pushPoint 同序）
+    const nZ = sx * cy;                       // → front
+    const nX = sx * sy * cz - cx * sz;        // → side
+    const nY = sx * sy * sz + cx * cz;        // → top
+    const alongFace =
+      (view === "front" && Math.abs(nZ) > 0.99) ||
+      (view === "side" && Math.abs(nX) > 0.99) ||
+      (view === "top" && Math.abs(nY) > 0.99);
+    if (alongFace) {
+      for (const [xp, up] of prof) pushPoint(xp, 0, up);
+      return projected; // 有序、保留內凹造型
+    }
+    for (const yL of [-ly / 2, ly / 2]) {
+      for (const [xp, up] of prof) pushPoint(xp, yL, up);
     }
     return convexHull2D(projected);
   }
@@ -771,6 +876,12 @@ export function projectPartPolygon(
   // 側視為矩形（Z 面全寬不收）→ box。俯視在 svg-views useShape 不納入 → 走 box path。
   // 帶旋轉（零件圖橫躺）→ delegate 給 silhouette（3D 採樣→旋轉→投影），比照 tapered 先例。
   // ⚠️ 不 delegate 給 projectPartSilhouette 的 hull 路徑（會填平凹弧）；正視直接輸出有序輪廓。
+  // 牙板／橫撐造型邊：一律走 silhouette（造型件必帶 rotation x=π/2，silhouette 分支
+  // 會對正視輸出有序輪廓、其他視角 hull；比照 curved-taper 帶旋轉的 delegate 先例）。
+  if (part.shape.kind === "edge-profile") {
+    return projectPartSilhouette(part, view);
+  }
+
   if (part.shape.kind === "curved-taper") {
     const hasRotCT =
       (part.rotation?.x ?? 0) !== 0 ||

@@ -17,7 +17,7 @@ import {
   Vector2,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { frenchCleatSection } from "./geometry";
+import { frenchCleatSection, edgeProfileOutline } from "./geometry";
 
 /**
  * 車旋腳輪廓（古典花瓶/baluster 風格）：
@@ -52,6 +52,7 @@ export type ShapeSpec =
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number }
+  | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
@@ -922,6 +923,44 @@ export function buildCurvedTaperGeometry(
   }
   extrude.computeVertexNormals();
   return extrude;
+}
+
+/**
+ * 牙板／下橫撐「造型邊」（edge-profile）：輪廓在 local X–Z 大面（length×width），
+ * 沿 local Y（厚度）擠出。輪廓點來自 lib/render/geometry.ts `edgeProfileOutline`
+ * （3D / 正視 polygon / 零件 SVG 匯出三方共用，逐點一致）。
+ * local +Z 邊＝下緣（牙板/橫撐 rotation x=π/2 後為世界下方）。
+ * size 與 depth 同單位（3D 傳入時已 ×SCALE，輪廓函式是相對比例運算、無絕對常數）。
+ */
+export function buildEdgeProfileGeometry(
+  size: [number, number, number],
+  style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch",
+  depth: number,
+  waveCount: number = 4,
+  topLengthScale: number = 1,
+  bottomLengthScale: number = 1,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hy = ly / 2;
+  const pts = edgeProfileOutline(lx, lz, style, depth, waveCount, topLengthScale, bottomLengthScale);
+  // CCW 校正（ExtrudeGeometry 側壁法線朝外）
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[(i + 1) % pts.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  const P = area < 0 ? [...pts].reverse() : pts;
+  const shape2D = new Shape();
+  shape2D.moveTo(P[0][0], P[0][1]);
+  for (let i = 1; i < P.length; i++) shape2D.lineTo(P[i][0], P[i][1]);
+  shape2D.closePath();
+  const geom = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
+  // shape 平面 (x,u) → local (x, y, z)：rotateX(π/2) 把 (x,u,e) 映到 (x,-e,u)，再抬 y 置中
+  geom.rotateX(Math.PI / 2);
+  geom.translate(0, hy, 0);
+  geom.computeVertexNormals();
+  return geom;
 }
 
 export function buildFingerJointEndsGeometry(
@@ -2154,6 +2193,9 @@ export function buildShapeGeometry(
   }
   if (shape.kind === "curved-taper") {
     return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0);
+  }
+  if (shape.kind === "edge-profile") {
+    return buildEdgeProfileGeometry(size, shape.style, shape.depthMm, shape.waveCount ?? 4, shape.topLengthScale ?? 1, shape.bottomLengthScale ?? 1);
   }
   if (shape.kind === "splayed-tapered") {
     return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);

@@ -1110,6 +1110,15 @@ export function PerspectiveView({
               ...(part.shape.dxMm ? { dxMm: part.shape.dxMm * SCALE } : {}),
               ...(part.shape.dzMm ? { dzMm: part.shape.dzMm * SCALE } : {}),
             };
+          } else if (part.shape?.kind === "edge-profile") {
+            shape = {
+              kind: "edge-profile",
+              style: part.shape.style,
+              depthMm: part.shape.depthMm * SCALE,
+              waveCount: part.shape.waveCount,
+              topLengthScale: part.shape.topLengthScale,
+              bottomLengthScale: part.shape.bottomLengthScale,
+            };
           } else if (part.shape?.kind === "round") {
             shape = {
               kind: "round",

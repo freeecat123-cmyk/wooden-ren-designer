@@ -335,6 +335,14 @@ export interface Part {
      *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。
      *  套用後上下緣面在 world 中保持水平 → 可貼緊椅面 / 地面。 */
     | { kind: "apron-beveled"; bevelAngle: number }
+    /** 牙板／下橫撐「造型邊」：在 length×width 大面上下緣做內凹造型，沿厚度擠出。
+     *  局部 +Z 邊＝下緣（牙板/橫撐 rotation x=π/2 後為世界下方）。
+     *  style: arch 下緣圓弧 / kunmen 壸門 / wave 波浪(waveCount 峰) /
+     *  corner-round 下緣兩端圓角(r=depth) / double-arch 上下內凹弧(束腰)。
+     *  depthMm 內凹深度（自動 clamp ≤45% 高、double-arch 每邊 ≤35%）。 */
+    | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number;
+        /** 選配梯形補償（同 apron-trapezoid）：上/下緣長度縮放，與造型同時成立（斜腳/弧肩斜腳用）。 */
+        topLengthScale?: number; bottomLengthScale?: number }
     /** Half-beveled apron（頂水平、底斜）— 牙條頂面跟椅面重疊（apronDropFromTop=0）時用。
      *  上 4 vertex 不動（頂面保持水平、可貼緊椅面），下 4 vertex shear: z' = z - y × tan(bevelAngle)。
      *  bevelAngle = 腳外斜傾角（signed radians）。 */

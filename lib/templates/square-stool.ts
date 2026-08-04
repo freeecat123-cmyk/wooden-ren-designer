@@ -35,6 +35,17 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（正視圖看到全寬的那對）相對左右牙條下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
+  // 牙條造型（下緣/上下緣內凹曲線）。外斜（斜腳系列或弧肩斜腳外斜>0）時牙板需
+  // 梯形補償（一件一 shape），造型暫不套用——help 註明。
+  { group: "apron", type: "select", key: "apronProfile", label: "牙條造型", defaultValue: "none", choices: [
+    { value: "none", label: "無（直邊）" },
+    { value: "arch", label: "下緣圓弧" },
+    { value: "arch-out", label: "下緣外圓弧（凸弧垂邊）" },
+    { value: "kunmen", label: "壸門曲線（明式）" },
+    { value: "wave", label: "波浪連續弧" },
+    { value: "double-arch", label: "上下內凹弧（束腰）" },
+  ], help: "牙板下緣（束腰款含上緣）的造型。兩端自動留腳肩不吃榫。選造型後牙條倒角不套用（一件一種造型）" },
+  { group: "apron", type: "number", key: "apronProfileDepth", label: "牙條造型深度", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "0 = 自動（牙條高的 40%）", dependsOn: { key: "apronProfile", notIn: ["none"] } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "top", type: "checkbox", key: "seatPenetratingTenon", label: "椅面通透（腳頂穿透）", defaultValue: false, help: "勾選：腳頂榫穿透座板上面（明式装饰）；未勾：盲榫，深度上限座板厚 × 4/5、不穿透" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: true, help: "在腳下方 1/4 高加一圈橫撐，結構更穩；傳統方凳必備（取消勾選 = 簡約款）" },
@@ -48,6 +59,16 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（側視圖看到全寬的那對）相對前後下橫撐上移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）", dependsOn: { key: "withLowerStretcher", equals: true } },
   stretcherEdgeOption("stretcher", 0),
   stretcherEdgeStyleOption("stretcher"),
+  // 下橫撐造型（同牙條那組曲線；X 字交叉款斜料不適用故僅 H 字形顯示）
+  { group: "stretcher", type: "select", key: "stretcherProfile", label: "下橫撐造型", defaultValue: "none", choices: [
+    { value: "none", label: "無（直邊）" },
+    { value: "arch", label: "下緣圓弧" },
+    { value: "top-arch", label: "上緣圓弧" },
+    { value: "kunmen", label: "壸門曲線（明式）" },
+    { value: "wave", label: "波浪連續弧" },
+    { value: "double-arch", label: "上下內凹弧（束腰）" },
+  ], help: "下橫撐緣的造型。選造型後下橫撐倒角不套用（一件一種造型）", dependsOn: { all: [{ key: "withLowerStretcher", equals: true }, { key: "lowerStretcherStyle", notIn: ["x-cross"] }] } },
+  { group: "stretcher", type: "number", key: "stretcherProfileDepth", label: "下橫撐造型深度", defaultValue: 0, min: 0, max: 80, step: 1, unit: "mm", help: "0 = 自動（下橫撐高的 40%）", dependsOn: { all: [{ key: "withLowerStretcher", equals: true }, { key: "stretcherProfile", notIn: ["none"] }] } },
 ];
 
 /**
@@ -93,6 +114,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
+  const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
+  const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
+  const stretcherProfile = getOption<string>(input, opt(o, "stretcherProfile"));
+  const stretcherProfileDepth = getOption<number>(input, opt(o, "stretcherProfileDepth"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
@@ -215,7 +240,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const APRON_TOP_SHOULDER = 10;
   // 弧肩斜腳：牙板底緣＝接撐段底＝弧起點，榫直接開到底會破進弧裡。加底肩把榫往上移，
   // 讓榫眼留在上面全寬實體區、避開弧起點（＝user「榫應該要上移」）。方腳無此需求＝0。
-  const apronBottomShoulder = legShape === "curved-taper" ? 6 : 0;
+  // 牙條造型「下緣外圓弧」（arch-out）兩端上收 = 造型深度 → 貼下緣的下半榫會露出
+  // （user 2026-08-04 截圖紅點），底肩同步抬到 ≥ 造型深度把榫上移進實體。
+  const apronProfileDepthEff =
+    apronProfile !== "none"
+      ? (apronProfileDepth > 0 ? apronProfileDepth : Math.round(apronWidth * 0.4))
+      : 0;
+  const apronBottomShoulder = Math.max(
+    legShape === "curved-taper" ? 6 : 0,
+    apronProfile === "arch-out" ? apronProfileDepthEff : 0,
+  );
   const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER - apronBottomShoulder;  // 上下榫合計高
   // 錯開不夠大讓整榫頭岔開時走半榫錯位避免榫眼撞
   // 半榫高度依 stagger 連續成長：combined ≤ apronTotalTenonH + stagger（兩榫剛好接觸不撞）
@@ -516,9 +550,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // bevel 規則：頂面跟椅面重疊（dropFromTop=0）才半 bevel 讓頂面水平；其他情況無 bevel
     const apronTopAtSeat = apronDropFromTop === 0;
     const useTopBevel = isSplayed && apronTopAtSeat;
-    const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
-      : legEdgeShape(apronEdge, apronEdgeStyle);
+    // 牙條造型（edge-profile）：梯形補償以 topLengthScale/bottomLengthScale 合成進輪廓
+    // （斜腳/弧肩斜腳的牙板長度補償與造型同時成立）。外斜的頂面斜切（useTopBevel）
+    // 無法合成 → 造型優先、捨棄斜切：牙板頂緣外角微陷座板底 ~2mm、藏在座板內看不見
+    // （比「造型整個沒反應」好——user 2026-08-04 回報外斜時選了造型沒反應）。
+    // profile=none 時走原路 → byte 不變。
+    const partShape = apronProfile !== "none"
+      ? { kind: "edge-profile" as const, style: apronProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: apronProfileDepthEff, waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+      : trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
+        : legEdgeShape(apronEdge, apronEdgeStyle);
     return {
       id: s.id,
       nameZh: s.nameZh,
@@ -779,9 +820,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             : s.axis === "z" && hasShapeBend
               ? lsButtHalfZBot(lsZSplayZBot) / lsButtHalfZ(lsZSplayZ)
               : 1;
-        const lsShape = trapTopScale !== null
-          ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
-          : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+        // 下橫撐造型：梯形補償合成進輪廓（弧肩斜腳斜降區的長度補償與造型同時成立）
+        const lsShape = stretcherProfile !== "none"
+          ? { kind: "edge-profile" as const, style: stretcherProfile as "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch", depthMm: stretcherProfileDepth > 0 ? stretcherProfileDepth : Math.round(lowerW * 0.4), waveCount: 4, topLengthScale: trapTopScale ?? 1, bottomLengthScale: trapBotScale ?? 1 }
+          : trapTopScale !== null
+            ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+            : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
         parts.push({
           id: s.id,
           nameZh: s.nameZh,
