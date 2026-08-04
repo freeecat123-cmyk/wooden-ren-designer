@@ -24,7 +24,7 @@
  */
 import type { Part } from "@/lib/types";
 import { projectPartSilhouette, type OrthoView } from "@/lib/render/geometry";
-import { mortiseLocalBox } from "@/lib/render/svg-views";
+import { mortiseLocalBox, tenonLocalBox } from "@/lib/render/svg-views";
 
 export interface FaceHole {
   kind: "rect" | "circle";
@@ -39,17 +39,34 @@ export interface FaceHole {
   label: string;
 }
 
+/** 公榫（榫頭）在該面上的凸出矩形——沿在平面內的軸伸出外框，供切外形時一起切出。 */
+export interface FaceTenon {
+  pts: Array<{ x: number; y: number }>;
+  label: string;
+}
+
 export interface MachiningFace {
-  /** "top" | "bottom" | "front" | "back" | "left" | "right" */
+  /** "top" | "bottom" | "front" | "back" | "left" | "right" | "flat" */
   faceKey: string;
   faceLabelZh: string;
   /** 外框輪廓（歸一化 SVG mm 框，左上原點、Y 向下）。 */
   outline: Array<{ x: number; y: number }>;
   holes: FaceHole[];
+  /** 該面上的公榫凸出（矩形，已歸一化）。 */
+  tenons: FaceTenon[];
   /** 外框寬 / 高（mm）。 */
   w: number;
   h: number;
 }
+
+/** 榫頭沿哪個 part-local 軸伸出（由 position 決定）。 */
+const TENON_EXT_AXIS: Record<string, "x" | "y" | "z"> = {
+  start: "x", end: "x", top: "y", bottom: "y", left: "z", right: "z",
+};
+/** 每個 view 平面內的兩軸（榫頭沿這兩軸伸出才畫得到）。 */
+const VIEW_IN_PLANE: Record<string, Array<"x" | "y" | "z">> = {
+  top: ["x", "z"], front: ["x", "y"], side: ["z", "y"],
+};
 
 function toLocalPart(part: Part): Part {
   return { ...part, rotation: { x: 0, y: 0, z: 0 }, origin: { x: 0, y: 0, z: 0 } };
@@ -177,13 +194,121 @@ function outlineRaw(lp: Part, view: OrthoView): {
   return { pts: raw, minX, minY, maxX, maxY };
 }
 
+/** 公榫在某 view 平面內的 raw(u,v) 凸出矩形；沿垂直該面的軸伸出（畫不到）回 null。 */
+function tenonRawRect(
+  part: Part,
+  tenon: Part["tenons"][number],
+  view: OrthoView,
+): { uMin: number; uMax: number; vMin: number; vMax: number } | null {
+  const ext = TENON_EXT_AXIS[tenon.position];
+  if (!VIEW_IN_PLANE[view].includes(ext)) return null;
+  const lb = tenonLocalBox(part, tenon);
+  const ly = part.visible.thickness;
+  const yShift = ly / 2;
+  if (view === "top") {
+    return { uMin: -(lb.cx + lb.hx), uMax: -(lb.cx - lb.hx), vMin: lb.cz - lb.hz, vMax: lb.cz + lb.hz };
+  }
+  if (view === "front") {
+    return { uMin: -(lb.cx + lb.hx), uMax: -(lb.cx - lb.hx), vMin: lb.cy - lb.hy + yShift, vMax: lb.cy + lb.hy + yShift };
+  }
+  return { uMin: -(lb.cz + lb.hz), uMax: -(lb.cz - lb.hz), vMin: lb.cy - lb.hy + yShift, vMax: lb.cy + lb.hy + yShift };
+}
+
+/** 用 view 的外框 bbox 把一面組成 MachiningFace（外框 + 榫孔 + 榫頭凸出）。 */
+function buildFace(
+  lp: Part,
+  part: Part,
+  faceKey: string,
+  view: OrthoView,
+  mirrorU: boolean,
+  holesRaw: RawHole[],
+): MachiningFace | null {
+  const ol = outlineRaw(lp, view);
+  if (!ol) return null;
+  const { pts: rawPts, minX, maxY } = ol;
+  const w = ol.maxX - ol.minX;
+  const h = ol.maxY - ol.minY;
+  const nx = (u: number) => {
+    const x = u - minX;
+    return mirrorU ? w - x : x;
+  };
+  const ny = (v: number) => maxY - v;
+  const rectPts = (uMin: number, uMax: number, vMin: number, vMax: number) => {
+    const x1 = nx(uMin), x2 = nx(uMax), y1 = ny(vMin), y2 = ny(vMax);
+    const xa = Math.min(x1, x2), xb = Math.max(x1, x2), ya = Math.min(y1, y2), yb = Math.max(y1, y2);
+    return [ { x: xa, y: ya }, { x: xb, y: ya }, { x: xb, y: yb }, { x: xa, y: yb } ];
+  };
+
+  const outline = rawPts.map((p) => ({ x: nx(p.x), y: ny(p.y) }));
+
+  const holes: FaceHole[] = holesRaw.map((hr) => {
+    if (hr.kind === "circle") {
+      const cxN = (nx(hr.uMin) + nx(hr.uMax)) / 2;
+      const cyN = (ny(hr.vMin) + ny(hr.vMax)) / 2;
+      const r = Math.min(Math.abs(hr.uMax - hr.uMin), Math.abs(hr.vMax - hr.vMin)) / 2;
+      return { kind: "circle", cx: cxN, cy: cyN, r, through: hr.through, label: hr.label };
+    }
+    return { kind: "rect", pts: rectPts(hr.uMin, hr.uMax, hr.vMin, hr.vMax), through: hr.through, label: hr.label };
+  });
+
+  // 該面平面內的公榫凸出
+  const tenons: FaceTenon[] = [];
+  (part.tenons ?? []).forEach((t, i) => {
+    const r = tenonRawRect(part, t, view);
+    if (r) tenons.push({ pts: rectPts(r.uMin, r.uMax, r.vMin, r.vMax), label: `榫頭${i + 1}` });
+  });
+
+  // 榫頭會凸出外框（負座標或 > w/h）→ 把邊界含榫頭一起算、整體平移歸零，
+  // 否則套料 packing 只用外框 bbox 會讓榫頭撞到隔壁片。
+  if (tenons.length > 0) {
+    let bx0 = 0, by0 = 0, bx1 = w, by1 = h;
+    for (const t of tenons) for (const p of t.pts) {
+      if (p.x < bx0) bx0 = p.x; if (p.x > bx1) bx1 = p.x;
+      if (p.y < by0) by0 = p.y; if (p.y > by1) by1 = p.y;
+    }
+    if (bx0 !== 0 || by0 !== 0 || bx1 !== w || by1 !== h) {
+      const sh = (p: { x: number; y: number }) => ({ x: p.x - bx0, y: p.y - by0 });
+      const shifted = { w: bx1 - bx0, h: by1 - by0 };
+      return {
+        faceKey, faceLabelZh: FACE_LABELS[faceKey] ?? faceKey,
+        outline: outline.map(sh),
+        holes: holes.map((hle) => hle.kind === "circle"
+          ? { ...hle, cx: (hle.cx ?? 0) - bx0, cy: (hle.cy ?? 0) - by0 }
+          : { ...hle, pts: hle.pts!.map(sh) }),
+        tenons: tenons.map((t) => ({ ...t, pts: t.pts.map(sh) })),
+        w: shifted.w, h: shifted.h,
+      };
+    }
+  }
+
+  return { faceKey, faceLabelZh: FACE_LABELS[faceKey] ?? faceKey, outline, holes, tenons, w, h };
+}
+
+/** 沒有母榫的零件（牙條/橫撐等只有榫頭）→ 挑「榫頭在平面內最多、其次面積最大」的攤平面。 */
+function bestFlatView(lp: Part, part: Part): OrthoView {
+  const views: OrthoView[] = ["top", "front", "side"];
+  let best: OrthoView = "top";
+  let bestScore = -1;
+  for (const v of views) {
+    const ol = outlineRaw(lp, v);
+    if (!ol) continue;
+    const area = (ol.maxX - ol.minX) * (ol.maxY - ol.minY);
+    const nTenon = (part.tenons ?? []).filter((t) => VIEW_IN_PLANE[v].includes(TENON_EXT_AXIS[t.position])).length;
+    const score = nTenon * 1e9 + area; // 榫頭數優先，其次面積
+    if (score > bestScore) { bestScore = score; best = v; }
+  }
+  return best;
+}
+
 /**
- * 一個零件 → 它所有母榫的加工面清單（每個入榫面一項，含外框 + 榫孔內框）。
- * 沒有母榫的零件回 []（呼叫端可 fallback 到單純外框）。
+ * 一個零件 → 加工面清單：每個入榫面（含外框 + 榫孔 + 該面榫頭凸出）。
+ * 只有榫頭沒母榫的零件（牙條/橫撐）→ 回一片攤平面（外框 + 榫頭）。
+ * 完全沒榫接的零件 → 回 []（呼叫端 fallback 到純外框）。
  */
 export function partMachiningFaces(part: Part): MachiningFace[] {
   const mortises = part.mortises ?? [];
-  if (mortises.length === 0) return [];
+  const tenons = part.tenons ?? [];
+  const lp = toLocalPart(part);
 
   // 依加工面把 raw 榫孔分組
   const byFace = new Map<string, RawHole[]>();
@@ -195,52 +320,24 @@ export function partMachiningFaces(part: Part): MachiningFace[] {
     }
   });
 
-  const lp = toLocalPart(part);
   const faces: MachiningFace[] = [];
-  // 面順序穩定輸出
-  const ORDER = ["front", "back", "left", "right", "top", "bottom"];
-  const keys = [...byFace.keys()].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
 
-  for (const faceKey of keys) {
-    const holesRaw = byFace.get(faceKey)!;
-    const view = holesRaw[0].view;
-    const mirrorU = holesRaw[0].mirrorU;
-    const ol = outlineRaw(lp, view);
-    if (!ol) continue;
-    const { pts: rawPts, minX, maxY } = ol;
-    const w = ol.maxX - ol.minX;
-    const h = ol.maxY - ol.minY;
+  if (byFace.size > 0) {
+    const ORDER = ["front", "back", "left", "right", "top", "bottom"];
+    const keys = [...byFace.keys()].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+    for (const faceKey of keys) {
+      const holesRaw = byFace.get(faceKey)!;
+      const f = buildFace(lp, part, faceKey, holesRaw[0].view, holesRaw[0].mirrorU, holesRaw);
+      if (f) faces.push(f);
+    }
+    return faces;
+  }
 
-    // 歸一化：X = u - minX；Y = maxY - v（翻 Y）。負向面再鏡射 U：X = w - X。
-    const nx = (u: number) => {
-      const x = u - minX;
-      return mirrorU ? w - x : x;
-    };
-    const ny = (v: number) => maxY - v;
-
-    const outline = rawPts.map((p) => ({ x: nx(p.x), y: ny(p.y) }));
-
-    const holes: FaceHole[] = holesRaw.map((hr) => {
-      if (hr.kind === "circle") {
-        const cxN = (nx(hr.uMin) + nx(hr.uMax)) / 2;
-        const cyN = (ny(hr.vMin) + ny(hr.vMax)) / 2;
-        const r = Math.min(Math.abs(hr.uMax - hr.uMin), Math.abs(hr.vMax - hr.vMin)) / 2;
-        return { kind: "circle", cx: cxN, cy: cyN, r, through: hr.through, label: hr.label };
-      }
-      // rect 4 角（nx 已含鏡射，順序仍構成合法閉合矩形）
-      const x1 = nx(hr.uMin), x2 = nx(hr.uMax);
-      const y1 = ny(hr.vMin), y2 = ny(hr.vMax);
-      const xa = Math.min(x1, x2), xb = Math.max(x1, x2);
-      const ya = Math.min(y1, y2), yb = Math.max(y1, y2);
-      return {
-        kind: "rect",
-        pts: [ { x: xa, y: ya }, { x: xb, y: ya }, { x: xb, y: yb }, { x: xa, y: yb } ],
-        through: hr.through,
-        label: hr.label,
-      };
-    });
-
-    faces.push({ faceKey, faceLabelZh: FACE_LABELS[faceKey] ?? faceKey, outline, holes, w, h });
+  // 無母榫但有榫頭 → 一片攤平面（外框 + 榫頭凸出）
+  if (tenons.length > 0) {
+    const view = bestFlatView(lp, part);
+    const f = buildFace(lp, part, "flat", view, false, []);
+    if (f) { f.faceLabelZh = "攤平面"; faces.push(f); }
   }
   return faces;
 }

@@ -187,9 +187,9 @@ export function nestedSheetSvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_S
 
 // ---- 榫孔加工面 SVG（榫接版：連榫孔一起洗）----
 
-/** 這個設計有沒有真的母榫（決定要不要顯示「榫孔面 SVG」按鈕）。 */
+/** 這個設計有沒有榫接（母榫或公榫）——決定要不要顯示榫孔加工面 / 套料按鈕。 */
 export function designHasMortises(design: FurnitureDesign): boolean {
-  return design.parts.some((p) => (p.mortises?.length ?? 0) > 0);
+  return design.parts.some((p) => (p.mortises?.length ?? 0) > 0 || (p.tenons?.length ?? 0) > 0);
 }
 
 /** 單一加工面 → 完整 SVG（外框 cut line + 每個榫孔內框）。 */
@@ -215,10 +215,14 @@ export function machiningFaceSvg(
       );
     }
   }
+  const tenonPaths = (face.tenons ?? []).map(
+    (t) => `  <path d="${outlinePathD(t.pts.map(shift))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"><title>${escapeXml(t.label + "（公榫，切外形時一起切出）")}</title></path>`,
+  );
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${round1(vbW)}mm" height="${round1(vbH)}mm" viewBox="0 0 ${round1(vbW)} ${round1(vbH)}">`,
     `  <title>${escapeXml(title)}</title>`,
     `  <path d="${outlinePathD(face.outline.map(shift))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+    ...tenonPaths,
     ...holePaths,
     `</svg>`,
     "",
@@ -268,6 +272,7 @@ export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, st
 interface NestPiece {
   outline: Array<{ x: number; y: number }>;
   holes: MachiningFace["holes"];
+  tenons: MachiningFace["tenons"];
   w: number;
   h: number;
   label: string;
@@ -287,7 +292,7 @@ function partNestPieces(part: Part, code: string): NestPiece[] {
   const faces = partMachiningFaces(part);
   if (faces.length === 0) {
     const o = partFlatOutline(part);
-    return [{ outline: o.pts, holes: [], w: o.w, h: o.h, label: code }];
+    return [{ outline: o.pts, holes: [], tenons: [], w: o.w, h: o.h, label: code }];
   }
   // 依軸收斂：同軸只留榫孔最多（同數取面積大）的一張
   const byAxis = new Map<string, MachiningFace>();
@@ -301,6 +306,7 @@ function partNestPieces(part: Part, code: string): NestPiece[] {
   return [...byAxis.values()].map((f) => ({
     outline: f.outline,
     holes: f.holes,
+    tenons: f.tenons,
     w: f.w,
     h: f.h,
     label: byAxis.size > 1 ? `${code} ${f.faceLabelZh}` : code,
@@ -360,11 +366,15 @@ export function nestedJoinerySheetSvg(
         );
       }
     }
+    const tenonPaths = (pl.item.tenons ?? []).map(
+      (t) => `    <path d="${outlinePathD(t.pts.map(off))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+    );
     const cx = pl.x + pl.item.w / 2;
     const cy = pl.y + pl.item.h / 2;
     parts.push(
       `  <g>`,
       `    <path d="${d}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+      ...tenonPaths,
       ...holePaths,
       `    <text x="${round1(cx)}" y="${round1(cy)}" font-size="8" text-anchor="middle" fill="#888888">${escapeXml(pl.item.label)}</text>`,
       `  </g>`,
