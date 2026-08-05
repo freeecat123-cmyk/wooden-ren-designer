@@ -44,6 +44,17 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   seatEdgeStyle: "Edge profile",
   seatEdgeBottom: "Bottom edge size",
   seatProfile: "Seat scoop",
+  seatOutline: "Top outline",
+  seatOutlineSize: "Outline size",
+  seatOutlineSizeZ: "Corner cut depth Z",
+  seatOutlineSquareness: "Squareness",
+  seatOutlineArchSides: "Arched edges",
+  seatOutlineLobes: "Lobe count",
+  ctSplay: "Splay angle (°)",
+  apronProfile: "Apron profile",
+  apronProfileDepth: "Apron profile depth",
+  stretcherProfile: "Stretcher profile",
+  stretcherProfileDepth: "Stretcher profile depth",
   topPanelPieces: "Top board glue-up",
   backRake: "Back rake (°)",
   seatBendMm: "Seat dish",
@@ -485,6 +496,24 @@ export const SPEC_HELP_EN: Record<string, string> = {
   legEdgeStyle: "Style for the leg edge chamfer (V-bit 45° vs. round-over bit).",
   seatProfile:
     "Whether to scoop the seat. A scooped seat is more comfortable but needs a hand plane or carving router.",
+  seatOutline:
+    "Plan-view outline of the top — CNC-ready as a single cut path. Corner-cut / arch / petal amounts use “Outline size”. Non-rectangular outlines disable edge chamfer / scoop / bend, and automatically keep clear of the leg mortises (more leg inset allows deeper cuts).",
+  seatOutlineSize:
+    "Corner cut = leg length trimmed off each corner; arch = end pull-in depth; petal = valley depth between lobes. Not used by the oval outline.",
+  seatOutlineSizeZ:
+    "0 = same as “Outline size” (equal 45° corner cut). Set a value to cut the Z direction independently for an elongated octagon.",
+  seatOutlineSquareness:
+    "0 = true circle/ellipse; higher values transition toward a rounded square (superellipse). Also frees up room around the leg mortises.",
+  seatOutlineArchSides:
+    "Which edges bulge outward. “All” pulls in the four corners and bulges every edge — a pillow shape.",
+  seatOutlineLobes:
+    "Lobes bulge on the axes with valleys between them (4 lobes = classic begonia). Valley depth uses “Outline size”.",
+  apronProfile:
+    "Decorative curve along the apron edge. Ends automatically keep a shoulder so the tenons stay buried. Selecting a profile disables the apron chamfer (one shape per part).",
+  apronProfileDepth: "0 = automatic (40% of the apron height).",
+  stretcherProfile:
+    "Decorative curve along the lower stretcher edge. Selecting a profile disables the stretcher chamfer (one shape per part).",
+  stretcherProfileDepth: "0 = automatic (40% of the stretcher height).",
   topPanelPieces:
     "Affects the cut-list / material display. Solid tops wider than ~12 in (300 mm) should be glued up from narrower pieces to resist cupping.",
   backRake:
@@ -1264,6 +1293,39 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "useCase:shaker-tea-tray": "Shaker tea tray (15° splay + compound miter + pill handles)",
   "useCase:stationery-grid": "Stationery grid tray (finger joint + 9-cell grid, no handles)",
   "useCase:woodworker-caddy": "Woodworker's caddy (square + 9 cells + grooved panel)",
+
+  // === seatOutline (top outline, 凳椅+桌類 9 模板) ===
+  "seatOutline:rect": "Rectangular (default)",
+  "seatOutline:octagon": "Corner cut (octagon)",
+  "seatOutline:oval": "Circle / oval (full span)",
+  "seatOutline:arch": "Outward arch",
+  "seatOutline:petal": "Petal (begonia)",
+
+  // === seatOutlineArchSides ===
+  "seatOutlineArchSides:front-back": "Front & back edges",
+  "seatOutlineArchSides:left-right": "Left & right edges",
+  "seatOutlineArchSides:all": "All four (pillow)",
+
+  // === seatOutlineLobes ===
+  "seatOutlineLobes:4": "4 lobes (begonia)",
+  "seatOutlineLobes:6": "6 lobes",
+  "seatOutlineLobes:8": "8 lobes",
+
+  // === apronProfile (牙條造型) ===
+  "apronProfile:none": "None",
+  "apronProfile:arch": "Bottom arch",
+  "apronProfile:arch-out": "Bottom outward arch",
+  "apronProfile:kunmen": "Kunmen curve",
+  "apronProfile:wave": "Wave",
+  "apronProfile:double-arch": "Waisted (double arch)",
+
+  // === stretcherProfile (下橫撐造型) ===
+  "stretcherProfile:none": "None",
+  "stretcherProfile:arch": "Bottom arch",
+  "stretcherProfile:top-arch": "Top arch",
+  "stretcherProfile:kunmen": "Kunmen curve",
+  "stretcherProfile:wave": "Wave",
+  "stretcherProfile:double-arch": "Waisted (double arch)",
 };
 
 export function choiceLabel(
