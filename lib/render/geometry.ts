@@ -139,6 +139,121 @@ export function edgeProfileOutline(
   return pts;
 }
 
+/** top-outline 細節參數（全部選配，預設 = 第一版行為）。 */
+export type TopOutlineOpts = {
+  /** octagon：Z 向切深；undefined / 0 = 同 sizeMm（45° 等邊切角）。 */
+  sizeZMm?: number;
+  /** oval：方圓程度 0..1（0 = 正橢圓；愈大愈接近圓角方形＝超橢圓 n=2..8）。 */
+  squareness?: number;
+  /** arch：外凸弧套用邊；預設 "front-back"。"all" = 四邊枕形。 */
+  archSides?: "front-back" | "left-right" | "all";
+  /** petal：瓣數（4 = 海棠形、6、8）；預設 4。 */
+  lobes?: number;
+};
+
+/**
+ * 座板／桌面「俯視輪廓」2D 造型（top-outline）——在 length(X) × width(Z) 大面上
+ * 依 style 重塑外輪廓，沿厚度（local Y）擠出。
+ * 3D（buildTopOutlineGeometry）、silhouette、零件 SVG 匯出三方共用，保證逐點一致。
+ *
+ * style：
+ *  - octagon 四角切角（X 向切 sizeMm、Z 向切 sizeZMm｜預設同值 45° → 八角面）
+ *  - oval    滿版橢圓／超橢圓（squareness 0..1 由正橢圓過渡到圓角方；sizeMm 不用）
+ *  - arch    外凸弧（archSides 選前後／左右／四邊枕形；兩端各收 sizeMm、中段滿幅）
+ *  - petal   海棠／花瓣形（lobes 瓣、瓣深 sizeMm；瓣鼓在軸向、凹谷在瓣間）
+ *
+ * 回傳閉合順序頂點 [x, z]（俯視慣例 §A1：+z = 後緣）。尺寸自動 clamp 保結構。
+ */
+export function topOutlinePoints(
+  lx: number,
+  lz: number,
+  style: "octagon" | "oval" | "arch" | "petal",
+  sizeMm: number,
+  opts: TopOutlineOpts = {},
+): Array<[number, number]> {
+  const hx = lx / 2;
+  const hz = lz / 2;
+  const rectPts: Array<[number, number]> = [
+    [-hx, -hz], [hx, -hz], [hx, hz], [-hx, hz],
+  ];
+  if (style === "octagon") {
+    const a = Math.max(0, Math.min(sizeMm, hx * 0.9));
+    const bRaw = opts.sizeZMm !== undefined && opts.sizeZMm > 0 ? opts.sizeZMm : sizeMm;
+    const b = Math.max(0, Math.min(bRaw, hz * 0.9));
+    if (a < 0.01 || b < 0.01) return rectPts; // 退化成方形，避免重複點
+    return [
+      [-hx + a, -hz], [hx - a, -hz], [hx, -hz + b], [hx, hz - b],
+      [hx - a, hz], [-hx + a, hz], [-hx, hz - b], [-hx, -hz + b],
+    ];
+  }
+  if (style === "oval" || style === "petal") {
+    // 極座標統一式：base = 超橢圓 r̂(θ) = (|cosθ|^n + |sinθ|^n)^(−1/n)（n=2 即橢圓），
+    // petal 再乘瓣調變 m(θ) = 1 − d̂·(1 − cos(kθ))/2（凹谷在 θ=π/k 奇數倍＝瓣間、鼓在軸向）
+    const s = Math.max(0, Math.min(1, style === "oval" ? (opts.squareness ?? 0) : 0));
+    const n = 2 + s * 6;
+    const k = Math.max(2, Math.round(opts.lobes ?? 4));
+    const dNorm =
+      style === "petal"
+        ? Math.max(0, Math.min(sizeMm, Math.min(hx, hz) * 0.3)) / Math.min(hx, hz)
+        : 0;
+    const N = 96;
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i < N; i++) {
+      const th = (2 * Math.PI * i) / N;
+      const c = Math.cos(th);
+      const si = Math.sin(th);
+      const rBase = Math.pow(Math.pow(Math.abs(c), n) + Math.pow(Math.abs(si), n), -1 / n);
+      const m = 1 - (dNorm * (1 - Math.cos(k * th))) / 2;
+      pts.push([hx * rBase * m * c, hz * rBase * m * si]);
+    }
+    return pts;
+  }
+  // arch：外凸弧。archSides 決定哪些邊鼓（中段滿幅、兩端各收 d）
+  const sides = opts.archSides ?? "front-back";
+  const N = 32;
+  const pts: Array<[number, number]> = [];
+  const bow = (t: number, d: number) => d * (1 - Math.sin(Math.PI * t)); // 端點=d、中段=0
+  if (sides === "front-back") {
+    const d = Math.max(0, Math.min(sizeMm, hz * 0.35));
+    if (d < 0.01) return rectPts;
+    for (let i = 0; i <= N; i++) { const t = i / N; pts.push([-hx + lx * t, -(hz - bow(t, d))]); }
+    for (let i = 0; i <= N; i++) { const t = 1 - i / N; pts.push([-hx + lx * t, hz - bow(t, d)]); }
+    return pts;
+  }
+  if (sides === "left-right") {
+    const d = Math.max(0, Math.min(sizeMm, hx * 0.35));
+    if (d < 0.01) return rectPts;
+    // 右緣（+x）：-hz → +hz；左緣（-x）：+hz → -hz；上下緣為直線（由端點相接）
+    for (let i = 0; i <= N; i++) { const t = i / N; pts.push([hx - bow(t, d), -hz + lz * t]); }
+    for (let i = 0; i <= N; i++) { const t = 1 - i / N; pts.push([-(hx - bow(t, d)), -hz + lz * t]); }
+    return pts;
+  }
+  // all：四邊枕形——四角各縮 d、四邊中段鼓到滿幅，角點由相鄰兩弧共用
+  const d = Math.max(0, Math.min(sizeMm, Math.min(hx, hz) * 0.35));
+  if (d < 0.01) return rectPts;
+  // 前緣：(-(hx-d), -(hz-d)) → (hx-d, -(hz-d))，中段垂到 -hz
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    pts.push([-(hx - d) + (lx - 2 * d) * t, -(hz - bow(t, d))]);
+  }
+  // 右緣：(hx-d, -(hz-d)) → (hx-d, hz-d)，中段鼓到 +hx
+  for (let i = 1; i <= N; i++) {
+    const t = i / N;
+    pts.push([hx - bow(t, d), -(hz - d) + (lz - 2 * d) * t]);
+  }
+  // 後緣：(hx-d, hz-d) → (-(hx-d), hz-d)，中段鼓到 +hz
+  for (let i = 1; i <= N; i++) {
+    const t = i / N;
+    pts.push([hx - d - (lx - 2 * d) * t, hz - bow(t, d)]);
+  }
+  // 左緣：(-(hx-d), hz-d) → (-(hx-d), -(hz-d))，中段鼓到 -hx
+  for (let i = 1; i < N; i++) {
+    const t = i / N;
+    pts.push([-(hx - bow(t, d)), hz - d - (lz - 2 * d) * t]);
+  }
+  return pts;
+}
+
 /**
  * 弧肩斜腳（curved-taper）側面 2D 輪廓（local X=寬、Y=高 平面），沿厚度 Z 擠出。
  * ⚠️ 必須與 part-geometry.ts `buildCurvedTaperGeometry` 的 `pts` 逐點一致
@@ -371,6 +486,34 @@ export function projectPartSilhouette(
     }
     for (const yL of [-ly / 2, ly / 2]) {
       for (const [xp, up] of prof) pushPoint(xp, yL, up);
+    }
+    return convexHull2D(projected);
+  }
+
+  // 座板／桌面俯視輪廓（top-outline）：輪廓在 local X–Z 大面、沿 local Y（厚度）擠出。
+  // 對著大面法線（旋轉後的 local Y）的視角 → 輸出有序輪廓（§A9 不跑 hull）；
+  // 其他視角 → 兩端（y=±hy）採樣 hull（正/側視本來就是矩形範圍）。
+  if (part.shape?.kind === "top-outline") {
+    const prof = topOutlinePoints(lx, lz, part.shape.style, part.shape.sizeMm, {
+      sizeZMm: part.shape.sizeZMm,
+      squareness: part.shape.squareness,
+      archSides: part.shape.archSides,
+      lobes: part.shape.lobes,
+    });
+    // n = R·(0,1,0)（Rx→Ry→Rz，與 pushPoint 同序）——與 edge-profile 分支同式
+    const nZ = sx * cy;                       // → front
+    const nX = sx * sy * cz - cx * sz;        // → side
+    const nY = sx * sy * sz + cx * cz;        // → top
+    const alongFace =
+      (view === "front" && Math.abs(nZ) > 0.99) ||
+      (view === "side" && Math.abs(nX) > 0.99) ||
+      (view === "top" && Math.abs(nY) > 0.99);
+    if (alongFace) {
+      for (const [xp, zp] of prof) pushPoint(xp, 0, zp);
+      return projected; // 有序、保留輪廓細節
+    }
+    for (const yL of [-ly / 2, ly / 2]) {
+      for (const [xp, zp] of prof) pushPoint(xp, yL, zp);
     }
     return convexHull2D(projected);
   }
@@ -879,6 +1022,11 @@ export function projectPartPolygon(
   // 牙板／橫撐造型邊：一律走 silhouette（造型件必帶 rotation x=π/2，silhouette 分支
   // 會對正視輸出有序輪廓、其他視角 hull；比照 curved-taper 帶旋轉的 delegate 先例）。
   if (part.shape.kind === "edge-profile") {
+    return projectPartSilhouette(part, view);
+  }
+
+  // 座板／桌面俯視輪廓：一律走 silhouette（俯視輸出有序輪廓、正/側視 hull 出矩形範圍）。
+  if (part.shape.kind === "top-outline") {
     return projectPartSilhouette(part, view);
   }
 

@@ -14,6 +14,13 @@ import {
   seatEdgeStyleOption,
   seatEdgeNote,
   seatEdgeShape,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineNote,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  ovalMinLegInset,
   legEdgeOption,
   legEdgeStyleOption,
   legEdgeNote,
@@ -29,7 +36,7 @@ import {
   legBottomScale,
   legScaleAt,
 } from "./_helpers";
-import { applyStandardChecks, appendSuggestion } from "./_validators";
+import { applyStandardChecks, appendSuggestion, appendWarnings } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 import { formatMm } from "@/lib/units/format";
 
@@ -48,8 +55,12 @@ export const teaTableOptions: OptionSpec[] = [
     { value: "two-sides", label: "雙側翻板" },
   ], help: "桌面長邊用蝶式鉸鏈加可摺疊延伸板。配 1.5\" 鋼製蝶式鉸鏈" },
   { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬", defaultValue: 200, unit: "mm", min: 150, max: 400, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
-  { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
+  // 桌面俯視輪廓造型（top-outline）：與 liveEdge 互斥、非方形時倒角欄隱藏（一件一 shape）
+  { ...seatOutlineOption("top", "桌面"), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "dropLeaf", oneOf: ["none"] }] } },
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   ...curvedTaperLegOptions("leg"),
@@ -134,7 +145,12 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
+  const legInset = (seatOutline === "oval" || seatOutline === "petal") && !liveEdge && getOption<string>(input, opt(o, "dropLeaf")) === "none"
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const shelfOrientation = getOption<string>(input, opt(o, "shelfOrientation")) as "length" | "width";
@@ -651,6 +667,31 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ? `Top tenons sized off material thickness; upper/lower stretchers half-lap-staggered into legs (Z upper / X lower); the lower shelf is broken into ${slatCount} slats resting on the lower stretchers (no joinery — gravity-held).${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "Single" : "Double"}-side drop leaf (each ${formatMm(dropLeafWidth, "inch")} wide, 1.5\" butterfly hinges).` : ""}${liveEdge ? " Live edge (bark-line kept)." : ""}`
       : `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板拆 ${slatCount} 條 slat 平鋪在下橫撐上面（不開榫，靠重力卡位）。${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
   };
+  // 桌面俯視輪廓造型：對 top part 的「最終榫眼」clamp 後套用
+  // （octagon/arch 縮尺寸防露榫;oval 塞不下退方形＋警告;liveEdge 已由 UI 互斥）
+  if (!liveEdge && dropLeaf === "none" && seatOutline !== "rect") {
+    const topPartOutline = design.parts.find((p) => p.id === "top");
+    if (topPartOutline) {
+      const resolvedOutline = resolveTopOutlineShape(
+        seatOutline,
+        seatOutlineParams,
+        topPartOutline.visible.length,
+        topPartOutline.visible.width,
+        topPartOutline.mortises,
+      );
+      if (resolvedOutline !== null) {
+        topPartOutline.shape = resolvedOutline;
+        design.notes += seatOutlineNote(seatOutline, resolvedOutline.sizeMm, locale, "桌面");
+      } else {
+        appendWarnings(design, [
+          isEn
+            ? "The full-span curved top outline (oval / petal) conflicts with existing top mortises — reverted to a rectangular top. Increase leg inset to enable it."
+            : "滿版曲線桌面（圓／橢圓／海棠）與桌面既有榫眼衝突，已退回方形。加大「桌腳內縮」即可啟用。",
+        ]);
+      }
+    }
+  }
+
   // 拼板花紋（herringbone / chevron / book-match / end-grain）：3D 視覺化做法
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,

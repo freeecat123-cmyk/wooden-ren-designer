@@ -1119,6 +1119,16 @@ export function PerspectiveView({
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
             };
+          } else if (part.shape?.kind === "top-outline") {
+            shape = {
+              kind: "top-outline",
+              style: part.shape.style,
+              sizeMm: part.shape.sizeMm * SCALE,
+              sizeZMm: part.shape.sizeZMm ? part.shape.sizeZMm * SCALE : undefined,
+              squareness: part.shape.squareness,
+              archSides: part.shape.archSides,
+              lobes: part.shape.lobes,
+            };
           } else if (part.shape?.kind === "round") {
             shape = {
               kind: "round",

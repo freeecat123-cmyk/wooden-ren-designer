@@ -8,6 +8,13 @@ import {
   seatEdgeOption,
   seatEdgeBottomOption,
   seatEdgeStyleOption,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  seatOutlineNote,
+  ovalMinLegInset,
   seatEdgeNote,
   seatProfileOption,
   seatProfileNote,
@@ -34,10 +41,14 @@ export const benchOptions: OptionSpec[] = [
   ...curvedTaperLegOptions("leg"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, unit: "mm", min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "座板厚", defaultValue: 30, unit: "mm", min: 12, max: 60, step: 1 },
-  seatEdgeOption("top", 5),
-  { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
-  seatProfileOption("top"),
+  // 椅面俯視輪廓造型（top-outline）：非方形時倒角/挖型欄全隱藏（一件一 shape）
+  seatOutlineOption("top"),
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatOutline", oneOf: ["rect"] }, { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }] } },
+  { ...seatProfileOption("top"), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
@@ -115,7 +126,13 @@ export const bench: FurnitureTemplate = (input) => {
   const slatBackInset = getOption<number>(input, opt(o, "slatBackInset"));
   const slatEndInset = getOption<number>(input, opt(o, "slatEndInset"));
   const topRailBendMm = getOption<number>(input, opt(o, "topRailBendMm"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓（含海棠形）座板：自動抬高椅腳內縮讓腳（含頂榫）落在輪廓內、防露榫。
+  // 椅背直料等後加榫眼由收尾的 resolveTopOutlineShape 對「最終榫眼」再驗一次。
+  const legInset = seatOutline === "oval" || seatOutline === "petal"
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
   const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const ladderRungs = getOption<number>(input, opt(o, "ladderRungs"));
@@ -738,6 +755,31 @@ export const bench: FurnitureTemplate = (input) => {
       tenons: [],
       mortises: [],
     });
+  }
+
+  // 座板俯視輪廓造型：所有椅背/直料榫眼都已加到 top part 之後才套用，
+  // 用「最終榫眼」point-in-polygon 驗證＋二分縮小（oval/petal 塞不下退方形＋警告）。
+  if (seatOutline !== "rect") {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      const resolved = resolveTopOutlineShape(
+        seatOutline,
+        seatOutlineParams,
+        topPart.visible.length,
+        topPart.visible.width,
+        topPart.mortises,
+      );
+      if (resolved !== null) {
+        topPart.shape = resolved;
+        design.notes += seatOutlineNote(seatOutline, resolved.sizeMm, locale);
+      } else {
+        appendWarnings(design, [
+          isEn
+            ? "The full-span curved seat outline (oval / petal) conflicts with existing seat mortises (back slats/posts near the edge) — reverted to a rectangular seat. Increase leg inset or back insets to enable it."
+            : "滿版曲線座板（圓／橢圓／海棠）與座板既有榫眼衝突（椅背直料／邊柱貼近邊緣），已退回方形。加大「椅腳內縮」或椅背內縮量即可啟用。",
+        ]);
+      }
+    }
   }
 
   applyStandardChecks(design, {

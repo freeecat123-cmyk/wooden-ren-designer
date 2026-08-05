@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -24,11 +24,16 @@ export const squareStoolOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   ...curvedTaperLegOptions("leg"),  // 含 ctSplay 外斜角度（共用欄，預設 0=垂直）
   { group: "top", type: "number", key: "seatThickness", label: "座板厚", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
-  seatEdgeOption("top", 5),
-  { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
-  seatProfileOption("top"),
-  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile" },
+  // 椅面俯視輪廓造型（top-outline）：非方形時倒角/挖型/彎曲/圓角欄全隱藏（一件一 shape）
+  seatOutlineOption("top"),
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { group: "top", type: "number", key: "seatCornerR", label: "椅面四角圓角", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 2, help: "俯視看，椅面 4 個角的圓弧半徑；0 = 直角，30~50 是常見柔角；拉到寬度一半＝跑道形", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatOutline", oneOf: ["rect"] }, { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }] } },
+  { ...seatProfileOption("top"), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高度", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm", help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚度", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距座板", defaultValue: 0, min: 0, max: 400, step: 5, unit: "mm", help: "牙條頂面距座板下緣的距離；小凳子建議 10–15 才不會頭重腳輕" },
@@ -108,7 +113,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legW = legWidthOverride > 0 ? legWidthOverride : legSize; // 沿 X（座板長邊）
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize; // 沿 Z（座板寬邊）＝前後厚
   const legShortDim = Math.min(legW, legD); // 榫接母件厚取較薄面
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
+  // 滿版圓／橢圓（含海棠形）椅面：自動抬高腳內縮讓腳（含頂榫）完整落在輪廓內、防露榫
+  // （比照 arch-out 榫上移先例；腳/牙條/橫撐位置全體一致跟著 legInset 移動）
+  // 海棠形瓣間凹谷在對角＝腳的位置 → margin 額外加瓣深
+  const legInset = seatOutline === "oval" || seatOutline === "petal"
+    ? ovalMinLegInset(length, width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const legEdge = getOption<string>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
@@ -282,6 +295,22 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     ? Math.max(0, Math.round((legW - legTenonStd.width) / 2))
     : 0;
 
+  // 輪廓造型防露榫：對腳頂榫眼做 point-in-polygon 驗證＋二分縮小尺寸
+  // （縮到 0 = 退回方形；oval/petal 塞不下回 null → 退方形＋警告）
+  const seatOutlineResolved = resolveTopOutlineShape(
+    seatOutline,
+    seatOutlineParams,
+    length,
+    width,
+    legCorners.map((c) => ({
+      origin: { x: c.x - Math.sign(c.x) * legTopInsetX, z: c.z },
+      length: legTenonStd.width,
+      width: legTenonStd.thickness,
+    })),
+  );
+  const seatOutlineBlocked =
+    (seatOutline === "oval" || seatOutline === "petal") && seatOutlineResolved === null;
+
   // 預計算 splay 數據（seatPanel 的 mortise.axis 跟 legs 共用）
   const _splayMmForLegs = Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight);
   // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed"。
@@ -304,9 +333,19 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatBendMm > 0
-      ? { kind: "face-rounded" as const, cornerR: 0, bendMm: -seatBendMm, bendAxis: "y" as const }
-      : seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, seatEdgeBottomClamped),
+    shape: seatOutlineResolved
+      ?? (seatBendMm > 0
+        ? { kind: "face-rounded" as const, cornerR: seatCornerR, bendMm: -seatBendMm, bendAxis: "y" as const }
+        : (() => {
+            // 圓角組合順序照餐椅先例：挖型 > 倒角(+cornerR) > 純 cornerR
+            const scoop = seatScoopShape(seatProfile);
+            if (scoop) return scoop;
+            const edge = seatEdgeShape(seatEdge, seatEdgeStyle, seatEdgeBottomClamped);
+            if (edge && seatCornerR > 0) return { ...edge, cornerR: seatCornerR };
+            if (edge) return edge;
+            if (seatCornerR > 0) return { kind: "chamfered-top" as const, chamferMm: 0, cornerR: seatCornerR };
+            return undefined;
+          })()),
     tenons: [],
     mortises: [
       // 座板四角榫眼：通榫（座板薄）或盲榫（座板厚 > 25），depth 跟 tenon length 同步
@@ -981,7 +1020,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             : " Plus H-form lower stretchers."
           : "") +
         ` ${seatEdgeNote(seatEdge, undefined, locale)}` +
-        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "")
+        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+        (seatOutlineResolved ? seatOutlineNote(seatOutline, seatOutlineResolved.sizeMm, locale) : "")
       : `腳樣式：${legShapeLabel(legShape)}。座板與凳腳用通榫，凳腳與橫撐用半榫。` +
         (withLowerStretcher
           ? lowerStretcherStyle === "x-cross"
@@ -989,12 +1029,20 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             : " 加 H 字下橫撐結構。"
           : "") +
         ` ${seatEdgeNote(seatEdge, undefined, locale)}` +
-        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
+        (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+        (seatOutlineResolved ? seatOutlineNote(seatOutline, seatOutlineResolved.sizeMm, locale) : ""),
   };
   applyStandardChecks(design, {
     minLength: 250, minWidth: 250, minHeight: 350,
     maxLength: 600, maxWidth: 600, maxHeight: 550,
   });
+  if (seatOutlineBlocked) {
+    appendWarnings(design, [
+      isEn
+        ? "The full-span curved seat outline conflicts with the leg mortises — reverted to a rectangular seat. Increase leg inset (or reduce petal depth) to enable it."
+        : "滿版曲線椅面（圓／橢圓／海棠）與腳榫眼衝突，已退回方形。加大「腳內縮」（海棠形可再減小瓣深）即可啟用。",
+    ]);
+  }
   // 尺寸明顯比較像桌類 → 建議切茶几模板
   if (length > 600 || width > 600) {
     appendSuggestion(design, {

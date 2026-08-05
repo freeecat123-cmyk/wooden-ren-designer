@@ -5,12 +5,19 @@ import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { caseFurniture } from "./_builders/case-furniture";
 import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-row";
 import { applyLowerStretcherArrangement } from "./dining-table";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendWarnings } from "./_validators";
 import { formatMm } from "@/lib/units/format";
 import {
   seatEdgeOption,
   seatEdgeBottomOption,
   seatEdgeStyleOption,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineNote,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  ovalMinLegInset,
   legEdgeOption,
   legEdgeStyleOption,
   stretcherEdgeOption,
@@ -37,10 +44,14 @@ import {
 export const deskOptions: OptionSpec[] = [
   // ───────────── ① 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, unit: "mm", min: 12, max: 60, step: 2 },
-  { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
-  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }, { key: "liveEdge", notIn: [true] }] } },
-  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
+  // 桌面俯視輪廓造型（top-outline）：與 liveEdge 互斥、非方形時倒角欄隱藏（一件一 shape）
+  { ...seatOutlineOption("top", "桌面"), dependsOn: { key: "liveEdge", notIn: [true] } },
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
 
   // ───────────── ② 桌腳 ─────────────
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", help: "選「牙板位置抽屜」時只支援：直腳、方斜腳（沿寬邊單向）、夏克腳—其他腳型自動隱藏", choices: [
@@ -183,7 +194,12 @@ export const desk: FurnitureTemplate = (input) => {
   const apronDrawerWidth = getOption<number>(input, opt(o, "apronDrawerWidth"));
   const apronDrawerPosition = getOption<string>(input, opt(o, "apronDrawerPosition"));
   const apronDrawerFrontInset = getOption<number>(input, opt(o, "apronDrawerFrontInset"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
+  const legInset = (seatOutline === "oval" || seatOutline === "petal") && !liveEdge
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
   const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
@@ -762,6 +778,30 @@ export const desk: FurnitureTemplate = (input) => {
       tenons: [],
       mortises: [],
     });
+  }
+  // 桌面俯視輪廓造型：對 top part 的「最終榫眼」clamp 後套用
+  // （octagon/arch 縮尺寸防露榫;oval 塞不下退方形＋警告;liveEdge 已由 UI 互斥）
+  if (!liveEdge && seatOutline !== "rect") {
+    const topPartOutline = design.parts.find((p) => p.id === "top");
+    if (topPartOutline) {
+      const resolvedOutline = resolveTopOutlineShape(
+        seatOutline,
+        seatOutlineParams,
+        topPartOutline.visible.length,
+        topPartOutline.visible.width,
+        topPartOutline.mortises,
+      );
+      if (resolvedOutline !== null) {
+        topPartOutline.shape = resolvedOutline;
+        design.notes += seatOutlineNote(seatOutline, resolvedOutline.sizeMm, locale, "桌面");
+      } else {
+        appendWarnings(design, [
+          isEn
+            ? "The full-span curved top outline (oval / petal) conflicts with existing top mortises — reverted to a rectangular top. Increase leg inset to enable it."
+            : "滿版曲線桌面（圓／橢圓／海棠）與桌面既有榫眼衝突，已退回方形。加大「桌腳內縮」即可啟用。",
+        ]);
+      }
+    }
   }
   applyStandardChecks(design, {
     minLength: 900, minWidth: 400, minHeight: 650,

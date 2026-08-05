@@ -17,7 +17,7 @@ import {
   Vector2,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { frenchCleatSection, edgeProfileOutline } from "./geometry";
+import { frenchCleatSection, edgeProfileOutline, topOutlinePoints } from "./geometry";
 
 /**
  * 車旋腳輪廓（古典花瓶/baluster 風格）：
@@ -53,6 +53,7 @@ export type ShapeSpec =
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number }
   | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
+  | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number; sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
@@ -957,6 +958,41 @@ export function buildEdgeProfileGeometry(
   shape2D.closePath();
   const geom = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
   // shape 平面 (x,u) → local (x, y, z)：rotateX(π/2) 把 (x,u,e) 映到 (x,-e,u)，再抬 y 置中
+  geom.rotateX(Math.PI / 2);
+  geom.translate(0, hy, 0);
+  geom.computeVertexNormals();
+  return geom;
+}
+
+/**
+ * 座板／桌面俯視輪廓（top-outline）：輪廓在 local X–Z 大面（length×width），
+ * 沿 local Y（厚度）擠出。輪廓點來自 lib/render/geometry.ts `topOutlinePoints`
+ * （3D / silhouette / 零件 SVG 匯出三方共用，逐點一致）。
+ * size 與 sizeMm 同單位（3D 傳入時已 ×SCALE，輪廓函式是相對比例運算、無絕對常數）。
+ */
+export function buildTopOutlineGeometry(
+  size: [number, number, number],
+  style: "octagon" | "oval" | "arch" | "petal",
+  sizeMm: number,
+  opts: { sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number } = {},
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hy = ly / 2;
+  const pts = topOutlinePoints(lx, lz, style, sizeMm, opts);
+  // CCW 校正（ExtrudeGeometry 側壁法線朝外）
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[(i + 1) % pts.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  const P = area < 0 ? [...pts].reverse() : pts;
+  const shape2D = new Shape();
+  shape2D.moveTo(P[0][0], P[0][1]);
+  for (let i = 1; i < P.length; i++) shape2D.lineTo(P[i][0], P[i][1]);
+  shape2D.closePath();
+  const geom = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
+  // shape 平面 (x,z) → local (x, y, z)：rotateX(π/2) 把 (x,z,e) 映到 (x,-e,z)，再抬 y 置中
   geom.rotateX(Math.PI / 2);
   geom.translate(0, hy, 0);
   geom.computeVertexNormals();
@@ -2196,6 +2232,14 @@ export function buildShapeGeometry(
   }
   if (shape.kind === "edge-profile") {
     return buildEdgeProfileGeometry(size, shape.style, shape.depthMm, shape.waveCount ?? 4, shape.topLengthScale ?? 1, shape.bottomLengthScale ?? 1);
+  }
+  if (shape.kind === "top-outline") {
+    return buildTopOutlineGeometry(size, shape.style, shape.sizeMm, {
+      sizeZMm: shape.sizeZMm,
+      squareness: shape.squareness,
+      archSides: shape.archSides,
+      lobes: shape.lobes,
+    });
   }
   if (shape.kind === "splayed-tapered") {
     return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);

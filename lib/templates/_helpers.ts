@@ -4,6 +4,7 @@
 
 import type { Part, OptionSpec, OptionGroup, FurnitureTemplateInput } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { topOutlinePoints } from "@/lib/render/geometry";
 
 /**
  * Z 面 mortise origin / rotation for splayed-leg apron-to-leg joint.
@@ -825,6 +826,256 @@ export function seatProfileNote(profile: string): string {
     return "座板前緣大圓角下垂（瀑布邊），坐久了大腿後側不會被銳邊壓。";
   }
   return "";
+}
+
+/** 椅面／座板「俯視輪廓」造型選單（top-outline shape）。
+ *  rect = 方形（預設、不建 shape）；octagon = 四角 45° 切角；oval = 滿版圓／橢圓；
+ *  arch = 前後緣外凸弧。非方形時挖型／倒角／彎曲不套用（一件一 shape），
+ *  template 應對衝突欄加 dependsOn { key:"seatOutline", oneOf:["rect"] } 隱藏。 */
+export function seatOutlineOption(group: OptionGroup = "top", noun: string = "椅面"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "seatOutline",
+    label: `${noun}輪廓`,
+    defaultValue: "rect",
+    choices: [
+      { value: "rect", label: "方形（預設）" },
+      { value: "octagon", label: "切角（八角面）" },
+      { value: "oval", label: "圓形／橢圓（滿版）" },
+      { value: "arch", label: "外凸弧" },
+      { value: "petal", label: "海棠／花瓣形" },
+    ],
+    help: "俯視看的外輪廓造型，可直接下 CNC 切外形。切角／外凸弧／瓣深的量在「輪廓尺寸」調；圓形＝長寬相等時，否則為橢圓（「方圓程度」可往圓角方過渡）。非方形時倒角／挖型／彎曲不套用；造型會自動避開腳榫眼（腳內縮愈大可切愈多）",
+  };
+}
+
+export function seatOutlineSizeOption(group: OptionGroup = "top", defaultValue: number = 40): OptionSpec {
+  return {
+    group,
+    type: "number",
+    key: "seatOutlineSize",
+    label: "輪廓尺寸",
+    defaultValue,
+    min: 5,
+    max: 150,
+    step: 5,
+    unit: "mm",
+    help: "切角＝每角沿兩邊切掉的長度（Z 向可用「切角深 Z」分開調）；外凸弧＝兩端往內收的弧深；海棠＝瓣間凹谷深。圓形／橢圓不使用此值",
+    dependsOn: { key: "seatOutline", notIn: ["rect", "oval"] },
+  };
+}
+
+/** 椅面／桌面輪廓「細節鈕」：各款式的進階參數（依款式顯示）。 */
+export function seatOutlineDetailOptions(group: OptionGroup = "top"): OptionSpec[] {
+  return [
+    {
+      group,
+      type: "number",
+      key: "seatOutlineSizeZ",
+      label: "切角深 Z",
+      defaultValue: 0,
+      min: 0,
+      max: 150,
+      step: 5,
+      unit: "mm",
+      help: "0 = 跟「輪廓尺寸」同值（45° 等邊切角）。填值 = Z 向切深與 X 向分開，可做長八角／緩斜角",
+      dependsOn: { key: "seatOutline", oneOf: ["octagon"] },
+    },
+    {
+      group,
+      type: "number",
+      key: "seatOutlineSquareness",
+      label: "方圓程度",
+      defaultValue: 0,
+      min: 0,
+      max: 100,
+      step: 5,
+      unit: "%",
+      help: "0 = 正圓／橢圓；愈大愈接近圓角方形（超橢圓）。腳榫空間也會變寬",
+      dependsOn: { key: "seatOutline", oneOf: ["oval"] },
+    },
+    {
+      group,
+      type: "select",
+      key: "seatOutlineArchSides",
+      label: "外凸弧套用邊",
+      defaultValue: "front-back",
+      choices: [
+        { value: "front-back", label: "前後緣" },
+        { value: "left-right", label: "左右緣" },
+        { value: "all", label: "四邊（枕形）" },
+      ],
+      help: "弧鼓在哪幾邊；四邊＝四角內收、四邊中段鼓滿的枕形",
+      dependsOn: { key: "seatOutline", oneOf: ["arch"] },
+    },
+    {
+      group,
+      type: "select",
+      key: "seatOutlineLobes",
+      label: "瓣數",
+      defaultValue: "4",
+      choices: [
+        { value: "4", label: "4 瓣（海棠形）" },
+        { value: "6", label: "6 瓣" },
+        { value: "8", label: "8 瓣" },
+      ],
+      help: "瓣鼓在前後左右軸向、凹谷在瓣間；瓣深在「輪廓尺寸」調",
+      dependsOn: { key: "seatOutline", oneOf: ["petal"] },
+    },
+  ];
+}
+
+/** 讀齊椅面／桌面輪廓相關選項（9 個模板共用，避免逐檔重複 getOption）。 */
+export function readSeatOutlineParams(
+  input: FurnitureTemplateInput,
+  o: OptionSpec[],
+): { outline: string; params: TopOutlineParams } {
+  const outline = getOption<string>(input, opt(o, "seatOutline"));
+  const sizeZ = getOption<number>(input, opt(o, "seatOutlineSizeZ"));
+  return {
+    outline,
+    params: {
+      sizeMm: getOption<number>(input, opt(o, "seatOutlineSize")),
+      sizeZMm: sizeZ > 0 ? sizeZ : undefined,
+      squareness: getOption<number>(input, opt(o, "seatOutlineSquareness")) / 100,
+      archSides: getOption<string>(input, opt(o, "seatOutlineArchSides")) as TopOutlineParams["archSides"],
+      lobes: parseInt(getOption<string>(input, opt(o, "seatOutlineLobes")), 10) || 4,
+    },
+  };
+}
+
+export type TopOutlineStyle = "octagon" | "oval" | "arch" | "petal";
+export type TopOutlineParams = {
+  sizeMm: number;
+  sizeZMm?: number;
+  squareness?: number; // 0..1
+  archSides?: "front-back" | "left-right" | "all";
+  lobes?: number;
+};
+export type TopOutlineShape = {
+  kind: "top-outline";
+  style: TopOutlineStyle;
+  sizeMm: number;
+  sizeZMm?: number;
+  squareness?: number;
+  archSides?: "front-back" | "left-right" | "all";
+  lobes?: number;
+};
+
+/** ray-casting 點在多邊形內（top-outline 輪廓皆繞原點閉合）。 */
+function pointInPolygon(px: number, pz: number, pts: Array<[number, number]>): boolean {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, zi] = pts[i];
+    const [xj, zj] = pts[j];
+    if (zi > pz !== zj > pz && px < ((xj - xi) * (pz - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** 泛用防露榫解算器：把輪廓造型對「座板全部榫眼」驗證（榫眼外角＋margin 必須
+ *  落在輪廓內，實際 point-in-polygon 測試），不合就把尺寸參數二分縮小到安全值。
+ *  - octagon/arch/petal → 回傳 clamp 後的 shape（縮到 0 = 視覺退回方形／純橢圓）
+ *  - oval（無可縮參數）或縮到 0 仍不合 → 回 null（caller 退方形＋出警告，
+ *    引導使用者加大腳內縮／背柱內縮）。mortise 座標為座板 local（中心原點）。 */
+export function resolveTopOutlineShape(
+  outline: string,
+  params: TopOutlineParams,
+  lx: number,
+  lz: number,
+  mortises: Array<{ origin: { x: number; z: number }; length: number; width: number }>,
+  marginMm: number = 4,
+): TopOutlineShape | null {
+  if (outline !== "octagon" && outline !== "oval" && outline !== "arch" && outline !== "petal") {
+    return null;
+  }
+  const style = outline as TopOutlineStyle;
+  // 榫眼外角（對稱輪廓 → 取第一象限代表點）＋margin 斜向外推
+  const cornerPts = mortises.map(
+    (m) =>
+      [
+        Math.abs(m.origin.x) + m.length / 2 + marginMm,
+        Math.abs(m.origin.z) + m.width / 2 + marginMm,
+      ] as [number, number],
+  );
+  const fitsAt = (t: number): boolean => {
+    const pts = topOutlinePoints(lx, lz, style, params.sizeMm * t, {
+      sizeZMm: params.sizeZMm !== undefined ? params.sizeZMm * t : undefined,
+      squareness: params.squareness,
+      archSides: params.archSides,
+      lobes: params.lobes,
+    });
+    return cornerPts.every(([px, pz]) => pointInPolygon(px, pz, pts));
+  };
+  const mk = (t: number): TopOutlineShape => ({
+    kind: "top-outline",
+    style,
+    sizeMm: Math.floor(params.sizeMm * t),
+    ...(params.sizeZMm !== undefined ? { sizeZMm: Math.floor(params.sizeZMm * t) } : {}),
+    ...(params.squareness ? { squareness: params.squareness } : {}),
+    ...(params.archSides && params.archSides !== "front-back" ? { archSides: params.archSides } : {}),
+    ...(params.lobes && params.lobes !== 4 ? { lobes: params.lobes } : {}),
+  });
+  if (fitsAt(1)) return mk(1);
+  if (style === "oval") return null; // 滿版無可縮參數
+  if (!fitsAt(0)) return null; // 縮到 0（方形／純橢圓）仍不合 → 整個不套
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (fitsAt(mid)) lo = mid;
+    else hi = mid;
+  }
+  // floor 後再驗一次（floor 只會更小＝更安全）
+  return mk(lo);
+}
+
+export function seatOutlineNote(outline: string, sizeMm: number, locale: string = "zh-TW", noun: string = "座板"): string {
+  const isEn = locale === "en";
+  const nounEn = noun === "桌面" ? "Table top" : "Seat";
+  if (outline === "octagon") {
+    return isEn
+      ? ` ${nounEn} corners cut (${sizeMm}mm legs) — octagonal top; cut the outline first, then rout mortises.`
+      : ` ${noun}四角切角（每角切 ${sizeMm}mm）＝八角面；先切外形再挖榫眼。`;
+  }
+  if (outline === "oval") {
+    return isEn
+      ? ` ${nounEn} cut to a full-span oval — band-saw / CNC the outline first, then rout mortises.`
+      : ` ${noun}切成滿版圓／橢圓；先帶鋸或 CNC 切外形，再挖腳榫眼。`;
+  }
+  if (outline === "arch") {
+    return isEn
+      ? ` ${nounEn} edges bulge outward (${sizeMm}mm arch at the ends).`
+      : ` ${noun}外凸弧（兩端各收 ${sizeMm}mm、中段滿幅）。`;
+  }
+  if (outline === "petal") {
+    return isEn
+      ? ` ${nounEn} cut to a petal (begonia) outline (${sizeMm}mm valleys) — band-saw / CNC the outline first, then rout mortises.`
+      : ` ${noun}切成海棠／花瓣形（瓣間凹谷 ${sizeMm}mm）；先帶鋸或 CNC 切外形，再挖榫眼。`;
+  }
+  return "";
+}
+
+/** 滿版橢圓椅面的最小腳內縮：腳外角 (hx−i, hz−i)＋margin 必須落在橢圓內。
+ *  由 insetFloor（使用者設的腳內縮）起 1mm 步進找最小滿足值。 */
+export function ovalMinLegInset(
+  lx: number,
+  lz: number,
+  insetFloor: number,
+  marginMm: number = 5,
+): number {
+  const hx = lx / 2;
+  const hz = lz / 2;
+  const fits = (i: number): boolean => {
+    const px = Math.max(0, hx - i + marginMm);
+    const pz = Math.max(0, hz - i + marginMm);
+    return (px * px) / (hx * hx) + (pz * pz) / (hz * hz) <= 1;
+  };
+  const cap = Math.min(hx, hz) * 0.6;
+  let i = Math.max(0, insetFloor);
+  while (i < cap && !fits(i)) i += 1;
+  return Math.round(i);
 }
 
 /** 桌面 / 座板拼板片數選項。1 = 整片實木（小桌面）；2-4 = 拼板（大桌面常見）。

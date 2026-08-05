@@ -6,6 +6,13 @@ import {
   legShapeLabel,
   seatEdgeOption,
   seatEdgeStyleOption,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineNote,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  ovalMinLegInset,
   legEdgeOption,
   legEdgeStyleOption,
   stretcherEdgeOption,
@@ -15,7 +22,7 @@ import {
   apronProfileOptions,
   stretcherProfileOptions,
 } from "./_helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendWarnings } from "./_validators";
 import { formatMm } from "@/lib/units/format";
 
 export const diningTableOptions: OptionSpec[] = [
@@ -36,9 +43,13 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   // 桌面 (top)
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 30, unit: "mm", min: 12, max: 60, step: 2 },
-  { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
-  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true },
+  // 桌面俯視輪廓造型（top-outline）：與 liveEdge 互斥、非方形時倒角欄隱藏（一件一 shape）
+  { ...seatOutlineOption("top", "桌面"), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "dropLeaf", oneOf: ["none"] }] } },
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },
     { value: "one-side", label: "單側翻板（一端可延伸）" },
@@ -241,8 +252,39 @@ export const diningTable: FurnitureTemplate = (input) => {
   const o = diningTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
+  const legInset = (seatOutline === "oval" || seatOutline === "petal")
+      && getOption<boolean>(input, opt(o, "liveEdge")) !== true
+      && getOption<string>(input, opt(o, "dropLeaf")) === "none"
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  // 桌面俯視輪廓造型：對 top part 的「最終榫眼」驗證後套用（兩個 builder 分支共用）
+  const applySeatOutline = (design: FurnitureDesign, liveEdgeOn: boolean) => {
+    if (liveEdgeOn) return;
+    if (seatOutline === "rect") return;
+    const topPartOutline = design.parts.find((p) => p.id === "top");
+    if (!topPartOutline) return;
+    const resolvedOutline = resolveTopOutlineShape(
+      seatOutline,
+      seatOutlineParams,
+      topPartOutline.visible.length,
+      topPartOutline.visible.width,
+      topPartOutline.mortises,
+    );
+    if (resolvedOutline !== null) {
+      topPartOutline.shape = resolvedOutline;
+      design.notes += seatOutlineNote(seatOutline, resolvedOutline.sizeMm, locale, "桌面");
+    } else {
+      appendWarnings(design, [
+        isEn
+          ? "The full-span curved top outline (oval / petal) conflicts with existing top mortises — reverted to a rectangular top. Increase leg inset to enable it."
+          : "滿版曲線桌面（圓／橢圓／海棠）與桌面既有榫眼衝突，已退回方形。加大「桌腳內縮」即可啟用。",
+      ]);
+    }
+  };
   // trestle 走獨立 builder（不走 simpleTable 4 腳結構）
   if (legShape === "trestle") {
     const design = buildTrestleDiningTable({
@@ -254,6 +296,7 @@ export const diningTable: FurnitureTemplate = (input) => {
       legSize,
       locale,
     });
+    applySeatOutline(design, false);
     applyStandardChecks(design, {
       minLength: 900, minWidth: 600, minHeight: 600,
       maxLength: 2400, maxWidth: 1200, maxHeight: 800,
@@ -348,6 +391,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     });
   }
 
+  applySeatOutline(design, liveEdge || dropLeaf !== "none");
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,
     maxLength: 2400, maxWidth: 1200, maxHeight: 800,

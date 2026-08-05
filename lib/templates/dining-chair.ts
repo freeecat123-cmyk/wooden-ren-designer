@@ -5,9 +5,9 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
@@ -27,10 +27,14 @@ export const diningChairOptions: OptionSpec[] = [
   // 座板
   { group: "top", type: "number", key: "seatThickness", label: "座板厚", defaultValue: 25, unit: "mm", min: 12, max: 60, step: 1 },
   { group: "top", type: "number", key: "seatHeight", label: "坐高", defaultValue: DINING_CHAIR.seatHeightMm, unit: "mm", min: 350, max: 550, step: 10, help: `地面到座板上緣，一般 ${DINING_CHAIR.seatHeightRangeMm[0]}–${DINING_CHAIR.seatHeightRangeMm[1]}（FWW 共識）` },
-  { group: "top", type: "number", key: "seatCornerR", label: "椅面四角圓角", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 2, help: "俯視看，椅面 4 個角的圓弧半徑；0 = 直角，30~50 是常見柔角" },
-  seatEdgeOption("top", 5),
-  { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
+  // 椅面俯視輪廓造型（top-outline）：非方形時倒角/挖型/彎曲/圓角欄全隱藏（一件一 shape）
+  seatOutlineOption("top"),
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { group: "top", type: "number", key: "seatCornerR", label: "椅面四角圓角", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 2, help: "俯視看，椅面 4 個角的圓弧半徑；0 = 直角，30~50 是常見柔角", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatOutline", oneOf: ["rect"] }, { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   ...curvedTaperLegOptions("leg"),
@@ -38,9 +42,9 @@ export const diningChairOptions: OptionSpec[] = [
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 座面舒適度
-  seatProfileOption("top"),
-  { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true },
-  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall" },
+  { ...seatProfileOption("top"), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   // 牙條
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
@@ -121,7 +125,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const legW = legWidthOverride > 0 ? legWidthOverride : legSize;
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize;
   const legShortDim = Math.min(legW, legD);
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓（含海棠形）椅面：自動抬高椅腳內縮讓腳（含頂榫）落在輪廓內、防露榫
+  const legInset = seatOutline === "oval" || seatOutline === "petal"
+    ? ovalMinLegInset(length, width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const rearPostMode = getOption<string>(input, opt(o, "rearPostMode"));
   const isContinuous = rearPostMode !== "split";
@@ -587,6 +596,37 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatPanelWidth = width - seatBackShrink;
   const seatPanelZOffset = -seatBackShrink / 2;
   // 座板（前腳通榫進來）
+  // 座板全部榫眼先算出來（腳頂榫＋背柱榫），輪廓造型防露榫 clamp 要用（座標為 seat local）
+  const seatMortises = [
+    // continuous 模式：只給前 2 腳座板榫眼（後腳已過座板，背柱也不再進座板）
+    // origin.z 是 part-local，需扣掉 seat 自己的 z origin 偏移
+    ...cornerPts
+      .filter((c) => isContinuous ? c.z < 0 : true)
+      .map((c) => ({
+        // legInset=0：mortise 也跟著 tenon 朝中心偏（榫眼在座板上跟榫頭對齊）
+        origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z - seatPanelZOffset },
+        depth: legTenonStd.length,
+        length: legTenonStd.width,
+        width: legTenonStd.thickness,
+        through: legTopTenonType === "through-tenon",
+      })),
+    ...(backPostOffset && !isContinuous
+      ? cornerPts.filter((c) => c.z > 0).map((c) => ({
+          // backPost 自己有 backInsetFromEnd 計算 X 位置，這裡的 mortise 不再額外偏
+          origin: { x: backPostX(c), y: 0, z: backPostZ(c) - seatPanelZOffset },
+          depth: legTenonStd.length,
+          length: legTenonStd.width,
+          width: legTenonStd.thickness,
+          through: legTopTenonType === "through-tenon",
+        }))
+      : []),
+  ];
+  // 輪廓造型防露榫：point-in-polygon 驗證＋二分縮小；oval/petal 塞不下
+  // （如背柱貼後緣）→ 退方形＋警告
+  const seatOutlineResolved = resolveTopOutlineShape(seatOutline, seatOutlineParams, length, seatPanelWidth, seatMortises);
+  const seatOutlineBlocked =
+    (seatOutline === "oval" || seatOutline === "petal") && seatOutlineResolved === null;
+
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
@@ -596,6 +636,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length, width: seatPanelWidth, thickness: seatThickness },
     origin: { x: 0, y: seatHeight - seatThickness, z: seatPanelZOffset },
     shape: (() => {
+      // 俯視輪廓造型優先（一件一 shape；非方形時倒角/挖型/彎曲欄已隱藏）
+      if (seatOutlineResolved) return seatOutlineResolved;
       if (seatBendMm > 0) {
         return { kind: "face-rounded" as const, cornerR: seatCornerR, bendMm: -seatBendMm, bendAxis: "y" as const };
       }
@@ -616,30 +658,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // 4 腳通榫進來（榫頭從下方刺穿座板，背柱也從上方接，共用同一個榫眼）
     // mortise depth + through 跟 tenon type 同步（座板薄→通榫穿透；厚→盲榫不穿頂）
     // backInset > 0 時，背柱已偏離後腳角，需另外給背柱獨立的座板榫眼
-    mortises: [
-      // continuous 模式：只給前 2 腳座板榫眼（後腳已過座板，背柱也不再進座板）
-      // origin.z 是 part-local，需扣掉 seat 自己的 z origin 偏移
-      ...cornerPts
-        .filter((c) => isContinuous ? c.z < 0 : true)
-        .map((c) => ({
-          // legInset=0：mortise 也跟著 tenon 朝中心偏（榫眼在座板上跟榫頭對齊）
-          origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z - seatPanelZOffset },
-          depth: legTenonStd.length,
-          length: legTenonStd.width,
-          width: legTenonStd.thickness,
-          through: legTopTenonType === "through-tenon",
-        })),
-      ...(backPostOffset && !isContinuous
-        ? cornerPts.filter((c) => c.z > 0).map((c) => ({
-            // backPost 自己有 backInsetFromEnd 計算 X 位置，這裡的 mortise 不再額外偏
-            origin: { x: backPostX(c), y: 0, z: backPostZ(c) - seatPanelZOffset },
-            depth: legTenonStd.length,
-            length: legTenonStd.width,
-            width: legTenonStd.thickness,
-            through: legTopTenonType === "through-tenon",
-          }))
-        : []),
-    ],
+    mortises: seatMortises,
   };
 
   // 4 座面下牙板 —— 套 bar-stool buildSides 算法（端面軸心對齊腳軸、上下緣保持水平、
@@ -1547,6 +1566,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       ? `Leg style: ${legShapeLabel(legShape)}. Front legs join seat with through tenon; rear legs extend up as backrest posts; aprons to legs with blind tenons; back slats use top/bottom tenons into the crest rail and rear apron.` +
         ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}` +
         (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+        (seatOutlineResolved ? seatOutlineNote(seatOutlineResolved.style, seatOutlineResolved.sizeMm, locale) : "") +
         (seatFrontWaterfall ? " Seat front R25 waterfall edge to reduce thigh pressure." : "") +
         (backStyle === "windsor" ? " Windsor spindle back: 5-7 turned spindles socketed from seat top into the crest rail." : "") +
         (backStyle === "curved-splat" ? " Curved center splat: single wide steam-bent panel at R600 to follow the back curve." : "") +
@@ -1555,6 +1575,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       : `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
         ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}` +
         (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+        (seatOutlineResolved ? seatOutlineNote(seatOutlineResolved.style, seatOutlineResolved.sizeMm, locale) : "") +
         (seatFrontWaterfall ? " 座板前緣 R25 大圓化（waterfall edge），減少對大腿後側壓迫。" : "") +
         (backStyle === "windsor" ? " Windsor spindle 椅背：5-7 支車旋圓棒由座板上緣插入頂橫木。" : "") +
         (backStyle === "curved-splat" ? " 曲面中板：中央單片寬板用蒸彎木 R600 弧度成型，貼合背部曲線。" : "") +
@@ -1565,5 +1586,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     minLength: 350, minWidth: 350, minHeight: 700,
     maxLength: 600, maxWidth: 650, maxHeight: 1100,
   });
+  if (seatOutlineBlocked) {
+    appendWarnings(design, [
+      isEn
+        ? "The full-span curved seat outline (oval / petal) conflicts with existing seat mortises (rear posts near the edge) — reverted to a rectangular seat. Increase leg inset or back post inset to enable it."
+        : "滿版曲線椅面（圓／橢圓／海棠）與座板既有榫眼衝突（背柱貼近邊緣），已退回方形。加大「椅腳內縮」或背柱內縮量即可啟用。",
+    ]);
+  }
   return design;
 };
