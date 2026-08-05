@@ -306,7 +306,19 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerLegSizeCenter = legSize * legScaleAt(lowerCenterY, legHeight, bottomScale);
   const lowerLegSizeTop = legSize * legScaleAt(stretcherFloorOffset + lowerStretcherWidth, legHeight, bottomScale);
   const lowerLegSizeBot = legSize * legScaleAt(stretcherFloorOffset, legHeight, bottomScale);
+  // 弧肩斜腳（curved-taper）：內面收窄只發生在腳的 X 面（2D 側輪廓沿 Z 擠出、Z 面全寬）。
+  // X 下橫撐長度用 curvedTaperInnerScaleAt 對到「該高度實際內面」（§A11），Z 不補償
+  // （榫長 clamp ctStretcherNarrow 早就按窄面算，這裡補漏掉的長度；同 simple-table 修法）。
+  const lowerScaleAtX = (y: number): number =>
+    isCurvedTaper
+      ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset)
+      : legScaleAt(y, legHeight, bottomScale);
+  const lowerLegSizeCenterX = legSize * lowerScaleAtX(lowerCenterY);
+  const lowerLegSizeTopX = legSize * lowerScaleAtX(stretcherFloorOffset + lowerStretcherWidth);
+  const lowerLegSizeBotX = legSize * lowerScaleAtX(stretcherFloorOffset);
   const hasShapeBend = bottomScale !== 1;
+  // X 下橫撐端面要貼收窄斜面 → 梯形補償也要開
+  const hasShapeBendLowerX = hasShapeBend || isCurvedTaper;
 
   // ----- 桌面板 -----
   const topLen = length;
@@ -450,14 +462,14 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronTrapTopScaleZ = hasShapeBend ? apronButtHalfZTop / apronButtHalfZ : null;
   const apronTrapBotScaleZ = hasShapeBend ? apronButtHalfZBot / apronButtHalfZ : 1;
 
-  const lowerButtHalfX = apronEdgeX - lowerLegSizeCenter / 2;
+  const lowerButtHalfX = apronEdgeX - lowerLegSizeCenterX / 2;
   const lowerButtHalfZ = apronEdgeZ - lowerLegSizeCenter / 2;
-  const lowerButtHalfXTop = apronEdgeX - lowerLegSizeTop / 2;
-  const lowerButtHalfXBot = apronEdgeX - lowerLegSizeBot / 2;
+  const lowerButtHalfXTop = apronEdgeX - lowerLegSizeTopX / 2;
+  const lowerButtHalfXBot = apronEdgeX - lowerLegSizeBotX / 2;
   const lowerButtHalfZTop = apronEdgeZ - lowerLegSizeTop / 2;
   const lowerButtHalfZBot = apronEdgeZ - lowerLegSizeBot / 2;
-  const lowerTrapTopScaleX = hasShapeBend ? lowerButtHalfXTop / lowerButtHalfX : null;
-  const lowerTrapBotScaleX = hasShapeBend ? lowerButtHalfXBot / lowerButtHalfX : 1;
+  const lowerTrapTopScaleX = hasShapeBendLowerX ? lowerButtHalfXTop / lowerButtHalfX : null;
+  const lowerTrapBotScaleX = hasShapeBendLowerX ? lowerButtHalfXBot / lowerButtHalfX : 1;
   const lowerTrapTopScaleZ = hasShapeBend ? lowerButtHalfZTop / lowerButtHalfZ : null;
   const lowerTrapBotScaleZ = hasShapeBend ? lowerButtHalfZBot / lowerButtHalfZ : 1;
 
@@ -473,7 +485,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     z: width - legSize - 2 * legInset - apronLegSizeCenter,
   };
   const lowerInnerSpan = {
-    x: length - legSize - 2 * legInset - lowerLegSizeCenter,
+    x: length - legSize - 2 * legInset - lowerLegSizeCenterX,
     z: width - legSize - 2 * legInset - lowerLegSizeCenter,
   };
 

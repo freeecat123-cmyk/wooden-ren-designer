@@ -758,17 +758,29 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // visible.length 一律算到腳內面（leg-inner-to-leg-inner），與 apron 同慣例
     // (§A10 butt-joint)。3D 防 z-fighting 的插入量屬渲染細節、不烤進 visible.length，
     // 否則三視圖會把橫撐實體畫進腳裡。
+    // 弧肩斜腳（curved-taper）：內面收窄只發生在腳的 X 面（2D 側輪廓沿 Z 擠出、Z 面全寬）。
+    // X 下橫撐長度要用 curvedTaperInnerScaleAt 對到「該高度實際內面」（§A11），Z 不補償。
+    // 上面榫長 clamp（ctStretcherNarrow）早就按窄面算，這裡是漏掉的長度補償
+    // （bench 弧肩斜腳下橫撐兩端懸空，user 2026-08-05 截圖回報）。
+    // 非 curved-taper 時兩式等價（走 legScaleAt）→ 既有輸出 byte 不變。
+    const sScaleAtX = (y: number): number =>
+      isCurvedTaper
+        ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset)
+        : legScaleAt(y, legHeight, bottomScale);
+    const sLegSizeCenterX = isRoundLeg ? 0 : legSize * sScaleAtX(sCenterY);
+    const sLegSizeTopX = isRoundLeg ? 0 : legSize * sScaleAtX(stretcherY + stretcherWidth);
+    const sLegSizeBotX = isRoundLeg ? 0 : legSize * sScaleAtX(stretcherY);
     const sLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(sCenterY, legHeight, bottomScale);
     const sLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale);
     const sLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY, legHeight, bottomScale);
     const sInnerSpan = {
-      x: 2 * apronEdgeX - sLegSizeCenter,
+      x: 2 * apronEdgeX - sLegSizeCenterX,
       z: 2 * apronEdgeZ - sLegSizeCenter,
     };
-    const sButtHalfX = (splay: number) => apronEdgeX + splay - sLegSizeCenter / 2;
+    const sButtHalfX = (splay: number) => apronEdgeX + splay - sLegSizeCenterX / 2;
     const sButtHalfZ = (splay: number) => apronEdgeZ + splay - sLegSizeCenter / 2;
-    const sButtHalfXTop = (splay: number) => apronEdgeX + splay - sLegSizeTop / 2;
-    const sButtHalfXBot = (splay: number) => apronEdgeX + splay - sLegSizeBot / 2;
+    const sButtHalfXTop = (splay: number) => apronEdgeX + splay - sLegSizeTopX / 2;
+    const sButtHalfXBot = (splay: number) => apronEdgeX + splay - sLegSizeBotX / 2;
     const sButtHalfZTop = (splay: number) => apronEdgeZ + splay - sLegSizeTop / 2;
     const sButtHalfZBot = (splay: number) => apronEdgeZ + splay - sLegSizeBot / 2;
     const lowerSides = [
@@ -781,7 +793,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       const bevelAngle = isSplayed
         ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
         : 0;
-      const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+      // curved-taper 的 X 下橫撐端面要貼「隨高度收窄的斜面」→ 也走梯形補償
+      const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1 || (isCurvedTaper && s.axis === "x");
       const trapTopScale =
         s.axis === "x" && hasShapeBend
           ? sButtHalfXTop(sSplayXTop) / sButtHalfX(sSplayX)
