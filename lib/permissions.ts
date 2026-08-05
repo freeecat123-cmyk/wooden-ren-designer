@@ -133,10 +133,28 @@ export interface UserPlanProfile {
 }
 
 /**
+ * 「已付費到 subscription_expires_at 為止」的狀態。
+ *
+ * ⭐`cancelled` 一定要含在內：取消訂閱只是**停止下次自動扣款**，該期的錢已經收了。
+ *   - `/api/cancel-subscription` 只把 status 改 cancelled，plan 與 expires_at 都原封不動
+ *   - Lemon Squeezy webhook 也一樣（原始碼註解寫「保留 expires_at，仍可用到 ends_at」）
+ *   - 真正的降級是 `/api/cron/subscription-sweep` 在**過期＋寬限期之後**才做（plan→free、
+ *     status→expired）；退款則走 refunds 直接改 expired
+ *   也就是說整套後端都以「cancelled 但未到期＝仍有權限」在運作，只有這支函式沒跟上，
+ *   導致使用者一按「取消訂閱」就當場被降成免費版（付到 9/4 卻 8/4 就沒得用）。
+ *
+ * `expired` / `inactive` 不算：那是掃描降級、退款、admin 停權明確標記的「已無權限」。
+ */
+const ENTITLED_SUB_STATUSES: readonly UserPlanProfile["subscription_status"][] = [
+  "active",
+  "cancelled",
+];
+
+/**
  * 取得使用者實際可用的方案：
  * - student：檢查 student_expires_at，過期降 free
  * - lifetime：永久
- * - 一般訂閱：subscription_status=active 且 subscription_expires_at 未到
+ * - 一般訂閱：subscription_status 為 active/cancelled 且 subscription_expires_at 未到
  */
 export function getEffectivePlan(profile: UserPlanProfile | null | undefined): PlanId {
   if (!profile) return "free";
@@ -154,7 +172,7 @@ export function getEffectivePlan(profile: UserPlanProfile | null | undefined): P
   if (profile.plan === "lifetime") return "lifetime";
 
   if (
-    profile.subscription_status === "active" &&
+    ENTITLED_SUB_STATUSES.includes(profile.subscription_status) &&
     profile.subscription_expires_at &&
     new Date(profile.subscription_expires_at) > new Date()
   ) {
