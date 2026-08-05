@@ -53,6 +53,20 @@ const nanGeo = new BufferGeometry();
 nanGeo.setAttribute("position", new Float32BufferAttribute([0, 0, 0, NaN, 0, 0, 0, 10, 0], 3));
 check("偵測到 NaN 頂點", validateGeometry(nanGeo).nanVertices >= 1);
 
+// 零面積退化面不判 bad：封閉方塊 + 一個退化三角面（三點共線，面積 0）→ 仍 ok
+// （對應圓桌/圓座板 LatheGeometry 極點退化面誤報破面的修正）
+// 注意：BoxGeometry 是 indexed，要 toNonIndexed() 展開成正確的 36 頂點 soup 再附加，
+// 否則只取 position(24 頂點)當無索引會變成亂三角面。
+const boxPos = Array.from(new BoxGeometry(10, 10, 10).toNonIndexed().getAttribute("position").array);
+const withDegen = new BufferGeometry();
+withDegen.setAttribute(
+  "position",
+  new Float32BufferAttribute([...boxPos, 0, 0, 0, 5, 0, 0, 10, 0, 0], 3), // 末三點共線 = 零面積
+);
+const degV = validateGeometry(withDegen);
+check("退化面被計數", degV.degenerateTris >= 1);
+check("純零面積退化面不判破面（ok 仍 true）", degV.ok && degV.nonManifoldEdges === 0);
+
 // --- validateGroup ---
 const goodGroup = new Group();
 const m = new MeshBasicMaterial();

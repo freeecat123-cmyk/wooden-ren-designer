@@ -43,6 +43,7 @@ const DEGENERATE_AREA_EPS = 1e-6;
 export interface GeometryValidation {
   ok: boolean;
   nanVertices: number;
+  /** 零面積（退化）三角面數——僅供參考，不影響 ok（見下）。 */
   degenerateTris: number;
   /** 被「不等於 2 個三角面」共用的邊數——破洞或自交的徵兆 */
   nonManifoldEdges: number;
@@ -121,8 +122,11 @@ export function validateGeometry(geom: BufferGeometry): GeometryValidation {
 
   merged.dispose();
   posOnly.dispose();
+  // ok 只看 NaN 與非流形邊：零面積退化面對列印無害（slicer 直接略過）且已被排除在
+  // 邊統計外，水密破洞仍會經 nonManifoldEdges 抓到。故不再讓 degenerateTris 判 bad
+  // ——否則圓桌/圓座板的 LatheGeometry 極點退化面（上下各 48）每次都被誤判破面。
   return {
-    ok: nanVertices === 0 && degenerateTris === 0 && nonManifoldEdges === 0,
+    ok: nanVertices === 0 && nonManifoldEdges === 0,
     nanVertices,
     degenerateTris,
     nonManifoldEdges,
