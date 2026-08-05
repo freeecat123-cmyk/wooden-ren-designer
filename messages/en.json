@@ -2230,6 +2230,8 @@
     "preview3dAlt": "{name} 3D preview"
   },
   "mySubscription": {
+    "metaTitle": "My Subscription · Wooden Ren Blueprints",
+    "metaDescription": "View your active subscription plan and status.",
     "loading": "Loading…",
     "h1": "My Subscription",
     "loginRequired": "Sign in to view your subscription status (top-right \"Sign in with Google\").",

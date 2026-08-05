@@ -2230,6 +2230,8 @@
     "preview3dAlt": "{name} 3D preview"
   },
   "mySubscription": {
+    "metaTitle": "我的訂閱 · 木頭仁 木作藍圖",
+    "metaDescription": "查看你目前生效的訂閱方案與到期狀態。",
     "loading": "載入中…",
     "h1": "我的訂閱",
     "loginRequired": "請先登入才能看訂閱狀態（右上角點「使用 Google 登入」）。",
