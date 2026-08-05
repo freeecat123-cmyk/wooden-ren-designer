@@ -3,7 +3,10 @@ import { getTemplate } from "@/lib/templates";
 import { MATERIALS } from "@/lib/materials";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 
-export const runtime = "edge";
+// nodejs runtime（不是 edge）：og 透過 getTemplate import 整套模板/geometry 引擎，
+// 模板持續長大後 edge bundle 撐破 1 MB 上限→部署失敗卡住整批。Node 函式 ~250MB 無此限，
+// next/og 的 ImageResponse 在 Node runtime 一樣可用（見 next docs image-response 範例）。
+export const runtime = "nodejs";
 
 const STYLE_LABEL_ZH: Record<string, string> = {
   shaker: "⛪ Shaker",
