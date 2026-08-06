@@ -28,6 +28,50 @@ const SHEET_PRESETS: Array<{ label: string; cfg: NestSheetConfig }> = [
   { label: "雷切板 600×400（刀縫 1mm）", cfg: { sheetLengthMm: 600, sheetWidthMm: 400, kerfMm: 1 } },
 ];
 
+/**
+ * mm 數字欄。**打字期間完全不校正，離開欄位（或按 Enter）才套用範圍**。
+ *
+ * ⭐每次 onChange 就 clamp 會讓人打不出數字：想輸入 2440，打完第一個「2」立刻被拉到
+ *  下限 100，游標後面接的字全接在 100 後面 —— user 回報「沒辦法正常輸入數字」。
+ *  數字欄的中間狀態（空字串、只打了一位）本來就不合法，那是過程不是結果，不該即時糾正。
+ */
+function MmInput({
+  value, min, max, step = 1, width, onCommit, title,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  width: string;
+  onCommit: (n: number) => void;
+  title?: string;
+}) {
+  const [txt, setTxt] = useState(String(value));
+  // 外部改值（例如選了料規預設）要同步回來
+  useEffect(() => { setTxt(String(value)); }, [value]);
+  const commit = () => {
+    const n = Number(txt);
+    // 空白／亂打就退回原值，不要自作主張變成下限
+    const next = txt.trim() === "" || !Number.isFinite(n) ? value : Math.min(max, Math.max(min, n));
+    setTxt(String(next));
+    onCommit(next);
+  };
+  return (
+    <input
+      type="number"
+      value={txt}
+      min={min}
+      max={max}
+      step={step}
+      title={title}
+      onChange={(e) => setTxt(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+      className={`${width} px-1.5 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700 outline-none focus:ring-2 focus:ring-emerald-400`}
+    />
+  );
+}
+
 function clampNest(v: NestSheetConfig): NestSheetConfig {
   const c = (n: number, lo: number, hi: number, dflt: number) =>
     Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
@@ -194,25 +238,23 @@ export function ThreeDExportButton({ design }: Props) {
           </select>
           <label className="flex items-center gap-1 text-zinc-600">
             板長
-            <input
-              type="number"
+            <MmInput
               value={nest.sheetLengthMm}
               min={100}
               max={6000}
-              onChange={(e) => patchNest({ sheetLengthMm: Number(e.target.value) })}
-              className="w-20 px-1.5 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700 outline-none focus:ring-2 focus:ring-emerald-400"
+              width="w-24"
+              onCommit={(n) => patchNest({ sheetLengthMm: n })}
             />
             mm
           </label>
           <label className="flex items-center gap-1 text-zinc-600">
             板寬
-            <input
-              type="number"
+            <MmInput
               value={nest.sheetWidthMm}
               min={50}
               max={3000}
-              onChange={(e) => patchNest({ sheetWidthMm: Number(e.target.value) })}
-              className="w-20 px-1.5 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700 outline-none focus:ring-2 focus:ring-emerald-400"
+              width="w-24"
+              onCommit={(n) => patchNest({ sheetWidthMm: n })}
             />
             mm
           </label>
@@ -221,14 +263,13 @@ export function ThreeDExportButton({ design }: Props) {
             title="零件之間、以及零件與板邊之間要空出來的寬度。CNC 要放得下刀具（6mm 銑刀留 8mm 剛好）；雷切幾乎不吃料，1mm 就夠；圓鋸台鋸路約 3mm。留太小 CNC 切完第一片就會把隔壁那片的邊也吃掉。"
           >
             刀縫
-            <input
-              type="number"
+            <MmInput
               value={nest.kerfMm}
               min={0}
               max={30}
               step={0.5}
-              onChange={(e) => patchNest({ kerfMm: Number(e.target.value) })}
-              className="w-16 px-1.5 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700 outline-none focus:ring-2 focus:ring-emerald-400"
+              width="w-20"
+              onCommit={(n) => patchNest({ kerfMm: n })}
             />
             mm
           </label>
