@@ -473,19 +473,21 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * 套料結果一律以 **.svg 檔**下載，一張板一個檔，多張就下載多次。
+ *
+ * ⭐不打包 ZIP：user 回報「榫孔套料 svg 被存成 zip 檔了，我要 svg 檔」。
+ *  這些檔是要直接拖進 CNC 刀路工具 / 雷切軟體的，中間多一層解壓縮就斷了工作流程。
+ *  多檔連續下載時瀏覽器會問一次「允許下載多個檔案嗎」，按允許之後就都進下載資料夾。
+ *  ⚠️必須錯開時間：同一個 tick 連續 click 多個 <a download>，Chrome 只會收下第一個。
+ */
 function downloadSvgFiles(files: Record<string, string>, stem: string) {
-  const names = Object.keys(files);
-  // 只有一張板就直接給 SVG，不要為了一個檔逼人解壓縮；多張才打包。
-  if (names.length === 1) {
-    triggerDownload(new Blob([files[names[0]]], { type: "image/svg+xml" }), `${stem}_${names[0]}`);
-    return;
-  }
-  const enc = new TextEncoder();
-  const zipFiles: Record<string, Uint8Array> = {};
-  for (const [name, svg] of Object.entries(files)) zipFiles[name] = enc.encode(svg);
-  const zip = zipStore(zipFiles);
-  const ab = zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) as ArrayBuffer;
-  triggerDownload(new Blob([ab], { type: "application/zip" }), `${stem}.zip`);
+  const entries = Object.entries(files);
+  entries.forEach(([name, svg], i) => {
+    const go = () => triggerDownload(new Blob([svg], { type: "image/svg+xml" }), `${stem}_${name}`);
+    if (i === 0) go();
+    else setTimeout(go, i * 250);
+  });
 }
 
 /** 下載「每零件一張輪廓 SVG」的 ZIP。 */
