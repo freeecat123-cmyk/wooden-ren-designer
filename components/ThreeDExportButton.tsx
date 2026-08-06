@@ -94,7 +94,7 @@ export function ThreeDExportButton({ design }: Props) {
           type="button"
           onClick={() => downloadNestedSvg(design)}
           className="px-2.5 py-1 border border-emerald-300 rounded-md bg-white hover:border-emerald-400 hover:bg-emerald-50 text-emerald-800 transition-colors"
-          title="所有零件自動排進一張板材（1220mm 寬）的套料 SVG，一次切完。"
+          title="所有零件自動排進 4×8 板材（2440×1220mm）的套料 SVG。刀線式排料（跟裁切計算器同一套演算法）：零件之間留 8mm 刀縫，小件會填進大件旁邊的空位；不同料厚／材質自動分成不同張板（18mm 夾板和 45mm 桌腳排同一張是切不出來的）。一張板直接下載 SVG，多張打包 ZIP，檔名帶利用率。"
         >
           套料 SVG
         </button>
@@ -113,7 +113,7 @@ export function ThreeDExportButton({ design }: Props) {
             type="button"
             onClick={() => downloadNestedJoinerySvg(design)}
             className="px-2.5 py-1 border border-amber-400 rounded-md bg-white hover:border-amber-500 hover:bg-amber-50 text-amber-800 transition-colors"
-            title="榫接版套料：所有零件的主加工面（含落在該面的榫孔）自動排進一張板材，一次切完外框＋榫孔。兩面都有孔的零件（如桌腳）只排主面，另一面請用「榫孔加工面 ZIP」翻面加工。"
+            title="榫接版套料：所有零件的主加工面（含落在該面的榫孔）刀線式排進板材，一次切完外框＋榫孔。同樣依料厚／材質分張、留 8mm 刀縫。兩面都有孔的零件（如桌腳）只排主面，另一面請用「榫孔加工面 ZIP」翻面加工。"
           >
             榫孔套料 SVG
           </button>

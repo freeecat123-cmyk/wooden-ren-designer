@@ -3,8 +3,9 @@
  * 供 CNC / 雷切 / 向量編輯用（直接餵進 designer.woodenren.com/cnc.html → G-code）。
  *
  * 兩種產出：
- *   1. partsSvgFiles(design)  → 每個零件（合併同形）一張輪廓 SVG，打包成 ZIP。
- *   2. nestedSheetSvg(design) → 所有零件輪廓自動排進板材（shelf packing），一張合併 SVG。
+ *   1. partsSvgFiles(design)      → 每個零件（合併同形）一張輪廓 SVG，打包成 ZIP。
+ *   2. nestedSheetSvgFiles(design) → 所有零件輪廓套料排進板材，依「材質×料厚」分張，
+ *      每張一個 SVG（刀線式排料 + 刀縫，見 lib/export/nest-sheet.ts）。
  *
  * 輪廓來源＝projectPartSilhouette（含所有造型：錐腳 / 弧肩斜腳 / 倒角 / 圓料 / 斜切…）。
  * 每個零件取「三主視圖（front/side/top）中投影面積最大者」＝攤平躺平的那一面。
@@ -15,6 +16,16 @@ import { groupPartsForDrawing, groupDisplayName } from "@/lib/render/part-drawin
 import { zipStore } from "@/lib/export/zip-store";
 import { partMachiningFaces, type MachiningFace, type DerivedMortise } from "@/lib/export/mortise-faces";
 import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
+import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
+import { effectiveBillableMaterial } from "@/lib/pricing/catalog";
+import { materialZh } from "@/lib/cutplan/group";
+import {
+  nestPieces,
+  DEFAULT_SHEET,
+  type NestPiece,
+  type NestSheetConfig,
+  type NestedSheet,
+} from "@/lib/export/nest-sheet";
 
 export interface PartOutline {
   /** 攤平面輪廓點（mm，已平移到左上原點，Y 向下為正＝SVG 慣例） */
@@ -119,71 +130,153 @@ export function partsSvgFiles(design: FurnitureDesign): Record<string, string> {
   return files;
 }
 
-// ---- 套料排版（shelf packing）：所有零件（依實際數量展開）排進板材，一張合併 SVG ----
+// ---- 套料排版（刀線式 guillotine）：所有零件排進實際板材，每張板一個 SVG ----
 
-const SHEET_GAP_MM = 8;
-const DEFAULT_SHEET_WIDTH_MM = 1220; // 4x8 夾板短邊常見值
+/**
+ * 零件的「料別」——決定它能跟誰排在同一張板上。
+ *
+ * ⭐一定要分開：18mm 夾板的側板和 45mm 的桌腳排在同一張圖上，那張圖根本切不出來
+ * （原本的版本不分料別，全部倒進同一張板）。實木還要再分木種，因為那是不同的板。
+ * 料厚取切料尺寸的最短邊（＝這片攤平躺在板上時的厚度），與裁切計算器同一套判定。
+ */
+function partStock(part: Part): Pick<NestPiece, "stockKey" | "stockLabel" | "allowRotate"> {
+  const cut = calculateCutDimensions(part);
+  const thickness = Math.min(cut.length, cut.width, cut.thickness);
+  const billable = effectiveBillableMaterial(part);
+  const isSheet = billable === "plywood" || billable === "mdf";
+  const thkTag = `${Math.round(thickness * 10) / 10}mm`;
+  const name = isSheet ? (billable === "mdf" ? "密迪板" : "夾板") : materialZh(billable);
+  return {
+    stockKey: `${billable}|${thkTag}`,
+    stockLabel: `${thkTag} ${name}`,
+    // 板材可以隨便轉 90° 擠得更緊；實木不行——轉了木紋就橫過來，強度與伸縮全變。
+    // 實木改用 orientGrain() 先擺成「長邊沿板長」，之後就不再翻動。
+    allowRotate: isSheet,
+  };
+}
 
-/** 把所有零件（實際數量）用 shelf packing 排成一張合併 SVG。 */
-export function nestedSheetSvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_SHEET_WIDTH_MM): string {
-  const groups = groupPartsForDrawing(design);
-  // 展開成每個實際零件一份，附輪廓
-  const items: Array<{ label: string; outline: PartOutline }> = [];
-  groups.forEach((g, i) => {
-    const outline = partFlatOutline(g.representative);
-    const label = `P-${String(i + 1).padStart(2, "0")}`;
-    for (let k = 0; k < g.count; k++) items.push({ label, outline });
-  });
-  // 大件優先（面積遞減）較省料
-  items.sort((a, b) => b.outline.w * b.outline.h - a.outline.w * a.outline.h);
+/**
+ * 實木零件先轉成「長邊橫放」再排。
+ *
+ * ⭐這不是為了美觀，是兩件事同時要解：
+ *  ① **木紋**：家具零件的纖維幾乎一定沿最長邊走（腳的木紋沿高度、橫檔沿長度）。
+ *    長邊橫放＝木紋沿板長，正是實木板該有的取料方向。
+ *  ② **不能亂放大板子**：攤平輪廓的方向是「面積最大的那個投影」決定的，本身是任意的。
+ *    一支 60×1664 的立柱剛好投影成直的，若死守方向不轉，板寬就得撐到 1.68m ——
+ *    世界上沒有這種板。轉成 1664×60 之後一張 4×8 就放得下。
+ * 板材不走這條（它可以自由旋轉，交給排料器決定）。
+ */
+function orientGrain(p: NestPiece): NestPiece {
+  if (p.allowRotate || p.h <= p.w) return p;
+  const H = p.h;
+  // 順時針 90°：(x,y) → (H−y, x)；外框、圓孔、內框要一起轉，不然孔會跑掉
+  const rot = (q: { x: number; y: number }) => ({ x: H - q.y, y: q.x });
+  return {
+    ...p,
+    outline: p.outline.map(rot),
+    circles: p.circles?.map((c) => ({ ...c, cx: H - c.cy, cy: c.cx })),
+    innerPaths: p.innerPaths?.map((ip) => ({ ...ip, pts: ip.pts.map(rot) })),
+    w: p.h,
+    h: p.w,
+  };
+}
 
-  // shelf packing：由左至右排，超過 sheetWidth 換列
-  let cursorX = SHEET_GAP_MM;
-  let cursorY = SHEET_GAP_MM;
-  let shelfH = 0;
-  let sheetH = 0;
-  const placed: Array<{ x: number; y: number; item: (typeof items)[number] }> = [];
-  let maxRight = SHEET_GAP_MM; // 追蹤實際用到的最右邊界（含超寬件），避免 viewBox 裁切
-  for (const it of items) {
-    const pw = it.outline.w;
-    const ph = it.outline.h;
-    if (cursorX + pw + SHEET_GAP_MM > sheetWidthMm && cursorX > SHEET_GAP_MM) {
-      // 換列
-      cursorX = SHEET_GAP_MM;
-      cursorY += shelfH + SHEET_GAP_MM;
-      shelfH = 0;
+/**
+ * 排料要不要收這個零件。
+ * 非木材（五金、玻璃、把手…帶 visual 提示的零件）不進切割圖——它們是買來的，
+ * 混進去只會多開一張「30mm 板」然後上面躺一顆銅把手。判定與裁切計算器同一條規則。
+ */
+function isCuttable(part: Part): boolean {
+  return part.visual === undefined;
+}
+
+/** 一張板 → SVG 字串。viewBox 就是板子的實際 mm 尺寸，直接餵 CNC / 雷切。 */
+function sheetSvg(sheet: NestedSheet, designName: string, kerfMm: number): string {
+  const body: string[] = [];
+  for (const pl of sheet.pieces) {
+    // 旋轉用 group transform 而不是把座標算進點裡：圓孔（<circle>）也才會跟著轉。
+    // SVG 的 rotate(90) 在 y 向下的座標系是順時針：(px,py) → (−py,px)，
+    // 所以再往 +x 補一個 h 才會落回擺放框的左上角。
+    const tf = pl.rotated
+      ? `translate(${round1(pl.x + pl.piece.h)} ${round1(pl.y)}) rotate(90)`
+      : `translate(${round1(pl.x)} ${round1(pl.y)})`;
+    const inner: string[] = [];
+    for (const c of pl.piece.circles ?? []) {
+      inner.push(
+        `    <circle cx="${round1(c.cx)}" cy="${round1(c.cy)}" r="${round1(c.r)}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+      );
     }
-    placed.push({ x: cursorX, y: cursorY, item: it });
-    cursorX += pw + SHEET_GAP_MM;
-    if (cursorX > maxRight) maxRight = cursorX;
-    if (ph > shelfH) shelfH = ph;
-    if (cursorY + ph + SHEET_GAP_MM > sheetH) sheetH = cursorY + ph + SHEET_GAP_MM;
-  }
-  // 板寬取「設定板寬」與「實際最寬件」較大者 → 超寬零件（如整片桌面）不被裁掉
-  const sheetW = Math.max(sheetWidthMm, maxRight);
-
-  const parts: string[] = [];
-  for (const pl of placed) {
-    const d = outlinePathD(
-      pl.item.outline.pts.map((p) => ({ x: p.x + pl.x, y: p.y + pl.y })),
-    );
-    const cx = pl.x + pl.item.outline.w / 2;
-    const cy = pl.y + pl.item.outline.h / 2;
-    parts.push(
-      `  <g>`,
-      `    <path d="${d}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
-      `    <text x="${round1(cx)}" y="${round1(cy)}" font-size="8" text-anchor="middle" fill="#888888">${escapeXml(pl.item.label)}</text>`,
+    for (const p of pl.piece.innerPaths ?? []) {
+      inner.push(
+        `    <path d="${outlinePathD(p.pts)}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+      );
+    }
+    body.push(
+      `  <g transform="${tf}">`,
+      `    <path d="${outlinePathD(pl.piece.outline)}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
+      ...inner,
       `  </g>`,
     );
+    // 編號畫在擺放框中央、**不進旋轉群組**，轉過的零件標籤才不會跟著側躺看不懂
+    body.push(
+      `  <text x="${round1(pl.x + pl.w / 2)}" y="${round1(pl.y + pl.h / 2)}" font-size="8" text-anchor="middle" fill="#888888">${escapeXml(pl.piece.label)}${pl.rotated ? " ↻" : ""}</text>`,
+    );
   }
+  const pct = Math.round(sheet.utilization * 100);
+  const title =
+    `${designName} 套料 — ${sheet.stockLabel} 板 ${sheet.index}/${sheet.total}` +
+    ` · 需備料 ${Math.round(sheet.lengthMm)}×${Math.round(sheet.widthMm)}mm` +
+    `（排進 ${Math.round(sheet.stockLengthMm)}×${Math.round(sheet.stockWidthMm)} 板材）` +
+    ` · 零件占 ${pct}% · 刀縫 ${kerfMm}mm` +
+    (sheet.enlarged ? " ⚠有零件超過標準板尺寸，板已放大" : "");
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${round1(sheetW)}mm" height="${round1(sheetH)}mm" viewBox="0 0 ${round1(sheetW)} ${round1(sheetH)}">`,
-    `  <title>${escapeXml(design.nameZh ?? "parts")} 套料排版 ${Math.round(sheetW)}×${Math.round(sheetH)}mm</title>`,
-    `  <rect x="0" y="0" width="${round1(sheetW)}" height="${round1(sheetH)}" fill="none" stroke="#cccccc" stroke-width="0.5"/>`,
-    ...parts,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${round1(sheet.lengthMm)}mm" height="${round1(sheet.widthMm)}mm" viewBox="0 0 ${round1(sheet.lengthMm)} ${round1(sheet.widthMm)}">`,
+    `  <title>${escapeXml(title)}</title>`,
+    `  <rect x="0" y="0" width="${round1(sheet.lengthMm)}" height="${round1(sheet.widthMm)}" fill="none" stroke="#cccccc" stroke-width="0.5"/>`,
+    ...body,
     `</svg>`,
     "",
   ].join("\n");
+}
+
+/** 排好的板 → { 檔名: svg }。檔名帶料別/第幾張/利用率，在 Finder 就看得出來。 */
+function sheetsToFiles(sheets: NestedSheet[], designName: string, kerfMm: number): Record<string, string> {
+  const files: Record<string, string> = {};
+  const used = new Set<string>();
+  for (const s of sheets) {
+    // 檔名帶「料別 + 第幾張 + 要備多大的料」——在 Finder 直接看得出要去買什麼、切多少
+    const base = safeFileName(
+      `${s.stockLabel}_板${s.index}of${s.total}_${Math.round(s.lengthMm)}x${Math.round(s.widthMm)}mm`,
+    );
+    let name = `${base}.svg`;
+    let n = 2;
+    while (used.has(name)) name = `${base}-${n++}.svg`;
+    used.add(name);
+    files[name] = sheetSvg(s, designName, kerfMm);
+  }
+  return files;
+}
+
+/**
+ * 所有零件（依實際數量展開）排進板材。**依料別分張、刀線式排料、留刀縫**。
+ * 回傳 { 檔名: svg }：料別 × 板數各一張。
+ */
+export function nestedSheetSvgFiles(
+  design: FurnitureDesign,
+  cfg: NestSheetConfig = DEFAULT_SHEET,
+): Record<string, string> {
+  const groups = groupPartsForDrawing(design);
+  const items: NestPiece[] = [];
+  groups.forEach((g, i) => {
+    const rep = g.representative;
+    if (!isCuttable(rep)) return;
+    const o = partFlatOutline(rep);
+    const stock = partStock(rep);
+    const label = `P-${String(i + 1).padStart(2, "0")}`;
+    const piece = orientGrain({ label, outline: o.pts, w: o.w, h: o.h, ...stock });
+    for (let k = 0; k < g.count; k++) items.push(piece);
+  });
+  return sheetsToFiles(nestPieces(items, cfg), design.nameZh ?? "parts", cfg.kerfMm);
 }
 
 // ---- 榫孔加工面 SVG（榫接版：連榫孔一起洗）----
@@ -271,7 +364,8 @@ export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, st
   return files;
 }
 
-interface NestPiece {
+/** 一個零件在「榫孔套料」上要排的一個加工面(外框+該面的榫孔/公榫)。 */
+interface JoineryFacePiece {
   outline: Array<{ x: number; y: number }>;
   holes: MachiningFace["holes"];
   tenons: MachiningFace["tenons"];
@@ -300,7 +394,7 @@ const FACE_AXIS: Record<string, string> = {
  * （桌腳兩個垂直面各一片）。同一軸的對面對（通榫掛在頂/底兩張）只留榫孔多的那張，
  * 避免同一塊板被排兩次。沒榫孔的零件回單片外框。
  */
-function partNestPieces(part: Part, code: string, derived: DerivedMortise[] = []): NestPiece[] {
+function partNestPieces(part: Part, code: string, derived: DerivedMortise[] = []): JoineryFacePiece[] {
   const faces = partMachiningFaces(part, derived);
   if (faces.length === 0) {
     const o = partFlatOutline(part);
@@ -326,82 +420,40 @@ function partNestPieces(part: Part, code: string, derived: DerivedMortise[] = []
 }
 
 /**
- * 榫孔套料：所有零件「每個有榫孔的加工面」（含該面榫孔）用 shelf packing 排進一張板，
- * 一張合併 SVG。桌腳等兩個垂直面有孔的零件會排兩片（各標面別，翻面分兩次夾）。
+ * 榫孔套料：所有零件「每個有榫孔的加工面」（含該面榫孔）刀線式排進板材，依料別分張。
+ * 桌腳等兩個垂直面有孔的零件會排兩片（各標面別，翻面分兩次夾）。
  */
-export function nestedJoinerySheetSvg(
+export function nestedJoinerySheetSvgFiles(
   design: FurnitureDesign,
-  sheetWidthMm = DEFAULT_SHEET_WIDTH_MM,
-): string {
+  cfg: NestSheetConfig = DEFAULT_SHEET,
+): Record<string, string> {
   const groups = groupPartsForDrawing(design);
   const derivedMap = deriveMortisesByPart(design.parts);
-  type Piece = NestPiece;
-  const items: Piece[] = [];
+  const items: NestPiece[] = [];
   groups.forEach((g, i) => {
     const rep = g.representative;
-    const pieces = partNestPieces(rep, `P-${String(i + 1).padStart(2, "0")}`, derivedFor(rep, derivedMap));
+    if (!isCuttable(rep)) return;
+    const stock = partStock(rep);
+    const faces = partNestPieces(rep, `P-${String(i + 1).padStart(2, "0")}`, derivedFor(rep, derivedMap));
+    const pieces = faces.map((f) =>
+      orientGrain({
+        label: f.label,
+        outline: f.outline,
+        w: f.w,
+        h: f.h,
+        circles: f.holes
+          .filter((h) => h.kind === "circle" && h.cx != null && h.cy != null && h.r != null)
+          .map((h) => ({ cx: h.cx!, cy: h.cy!, r: h.r!, title: h.label })),
+        innerPaths: [
+          ...(f.tenons ?? []).map((t) => ({ pts: t.pts, title: t.label })),
+          ...f.holes.filter((h) => h.kind !== "circle" && h.pts).map((h) => ({ pts: h.pts!, title: h.label })),
+        ],
+        ...stock,
+      }),
+    );
     for (let k = 0; k < g.count; k++) items.push(...pieces);
   });
-  items.sort((a, b) => b.w * b.h - a.w * a.h);
-
-  let cursorX = SHEET_GAP_MM;
-  let cursorY = SHEET_GAP_MM;
-  let shelfH = 0;
-  let sheetH = 0;
-  const placed: Array<{ x: number; y: number; item: Piece }> = [];
-  let maxRight = SHEET_GAP_MM;
-  for (const it of items) {
-    if (cursorX + it.w + SHEET_GAP_MM > sheetWidthMm && cursorX > SHEET_GAP_MM) {
-      cursorX = SHEET_GAP_MM;
-      cursorY += shelfH + SHEET_GAP_MM;
-      shelfH = 0;
-    }
-    placed.push({ x: cursorX, y: cursorY, item: it });
-    cursorX += it.w + SHEET_GAP_MM;
-    if (cursorX > maxRight) maxRight = cursorX;
-    if (it.h > shelfH) shelfH = it.h;
-    if (cursorY + it.h + SHEET_GAP_MM > sheetH) sheetH = cursorY + it.h + SHEET_GAP_MM;
-  }
-  const sheetW = Math.max(sheetWidthMm, maxRight);
-
-  const parts: string[] = [];
-  for (const pl of placed) {
-    const off = (p: { x: number; y: number }) => ({ x: p.x + pl.x, y: p.y + pl.y });
-    const d = outlinePathD(pl.item.outline.map(off));
-    const holePaths: string[] = [];
-    for (const h of pl.item.holes) {
-      if (h.kind === "circle" && h.cx != null && h.cy != null && h.r != null) {
-        holePaths.push(
-          `    <circle cx="${round1(h.cx + pl.x)}" cy="${round1(h.cy + pl.y)}" r="${round1(h.r)}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
-        );
-      } else if (h.pts) {
-        holePaths.push(
-          `    <path d="${outlinePathD(h.pts.map(off))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
-        );
-      }
-    }
-    const tenonPaths = (pl.item.tenons ?? []).map(
-      (t) => `    <path d="${outlinePathD(t.pts.map(off))}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
-    );
-    const cx = pl.x + pl.item.w / 2;
-    const cy = pl.y + pl.item.h / 2;
-    parts.push(
-      `  <g>`,
-      `    <path d="${d}" fill="none" stroke="#000000" stroke-width="${CUT_STROKE_MM}"/>`,
-      ...tenonPaths,
-      ...holePaths,
-      `    <text x="${round1(cx)}" y="${round1(cy)}" font-size="8" text-anchor="middle" fill="#888888">${escapeXml(pl.item.label)}</text>`,
-      `  </g>`,
-    );
-  }
-  return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${round1(sheetW)}mm" height="${round1(sheetH)}mm" viewBox="0 0 ${round1(sheetW)} ${round1(sheetH)}">`,
-    `  <title>${escapeXml(design.nameZh ?? "parts")} 榫孔套料 ${Math.round(sheetW)}×${Math.round(sheetH)}mm</title>`,
-    `  <rect x="0" y="0" width="${round1(sheetW)}" height="${round1(sheetH)}" fill="none" stroke="#cccccc" stroke-width="0.5"/>`,
-    ...parts,
-    `</svg>`,
-    "",
-  ].join("\n");
+  return sheetsToFiles(nestPieces(items, cfg), `${design.nameZh ?? "parts"} 榫孔`, cfg.kerfMm);
 }
 
 // ---- 瀏覽器下載 ----
@@ -421,6 +473,21 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function downloadSvgFiles(files: Record<string, string>, stem: string) {
+  const names = Object.keys(files);
+  // 只有一張板就直接給 SVG，不要為了一個檔逼人解壓縮；多張才打包。
+  if (names.length === 1) {
+    triggerDownload(new Blob([files[names[0]]], { type: "image/svg+xml" }), `${stem}_${names[0]}`);
+    return;
+  }
+  const enc = new TextEncoder();
+  const zipFiles: Record<string, Uint8Array> = {};
+  for (const [name, svg] of Object.entries(files)) zipFiles[name] = enc.encode(svg);
+  const zip = zipStore(zipFiles);
+  const ab = zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) as ArrayBuffer;
+  triggerDownload(new Blob([ab], { type: "application/zip" }), `${stem}.zip`);
+}
+
 /** 下載「每零件一張輪廓 SVG」的 ZIP。 */
 export function downloadPartsSvgZip(design: FurnitureDesign) {
   const files = partsSvgFiles(design);
@@ -432,16 +499,17 @@ export function downloadPartsSvgZip(design: FurnitureDesign) {
   triggerDownload(new Blob([ab], { type: "application/zip" }), `${safeStem(design)}_零件輪廓.zip`);
 }
 
-/** 下載「所有零件套料排版」的合併 SVG。 */
-export function downloadNestedSvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_SHEET_WIDTH_MM) {
-  const svg = nestedSheetSvg(design, sheetWidthMm);
-  triggerDownload(new Blob([svg], { type: "image/svg+xml" }), `${safeStem(design)}_套料排版.svg`);
+/**
+ * 下載套料排版。依料別（材質×厚度）分張、刀線式排料、留刀縫；
+ * 一張板 → 單一 SVG，多張 → ZIP（檔名帶料別 / 第幾張 / 利用率）。
+ */
+export function downloadNestedSvg(design: FurnitureDesign, cfg: NestSheetConfig = DEFAULT_SHEET) {
+  downloadSvgFiles(nestedSheetSvgFiles(design, cfg), `${safeStem(design)}_套料排版`);
 }
 
-/** 下載「榫孔套料」單張合併 SVG —— 所有零件主面（含榫孔）排一張板。 */
-export function downloadNestedJoinerySvg(design: FurnitureDesign, sheetWidthMm = DEFAULT_SHEET_WIDTH_MM) {
-  const svg = nestedJoinerySheetSvg(design, sheetWidthMm);
-  triggerDownload(new Blob([svg], { type: "image/svg+xml" }), `${safeStem(design)}_榫孔套料.svg`);
+/** 下載榫孔套料（同上，但每片含該面的榫孔／公榫，外框和孔一次裝夾切完）。 */
+export function downloadNestedJoinerySvg(design: FurnitureDesign, cfg: NestSheetConfig = DEFAULT_SHEET) {
+  downloadSvgFiles(nestedJoinerySheetSvgFiles(design, cfg), `${safeStem(design)}_榫孔套料`);
 }
 
 /** 下載「榫接版加工面 SVG（含榫孔）」的 ZIP —— 每零件每個入榫面一張。 */
