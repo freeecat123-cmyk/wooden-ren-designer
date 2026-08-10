@@ -136,6 +136,7 @@ export async function CncMarketing({
   const audienceItems = t.raw("audienceSection.items") as IconItem[];
   const notForItems = t.raw("audienceSection.notForItems") as string[];
   const scenarioItems = t.raw("scenariosSection.items") as ScenarioItem[];
+  const machineGroups = t.raw("machinesSection.groups") as { label: string; items: string[] }[];
   const faqItems = t.raw("faqSection.items") as FaqItem[];
   const relatedItems = t.raw("relatedSection.items") as RelatedItem[];
   const tierSingle = t.raw("pricingSection.tierSingle") as TierBlock;
@@ -390,6 +391,39 @@ export async function CncMarketing({
             </ul>
           </div>
         </div>
+      </section>
+
+      {/* ============ 相容機型 ============
+        ⭐這一段是**買不買的關鍵一問**:「我那台跑得動嗎?」
+         原本整頁只寫「照 Carvera Air 調校,其他尚未測試」—— 對 Carvera 以外的人
+         (也就是絕大多數讀者)那句話等於「不是給你用的」。
+         現在工具內建 15 個機型,而且相容性的來源是「只輸出各家控制器的交集」,
+         所以這裡把機型清單直接攤開給人看,並把那個設計原則一起講明白 ——
+         能講出「為什麼相容」的清單,比一句「支援很多機型」有說服力。
+      */}
+      <section className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-center text-zinc-900">
+          {t("machinesSection.h2")}
+        </h2>
+        <p className="mt-3 max-w-3xl mx-auto text-center text-sm text-zinc-600 leading-relaxed">
+          {t("machinesSection.sub")}
+        </p>
+        <div className="mt-10 grid sm:grid-cols-3 gap-5">
+          {machineGroups.map((g, i) => (
+            <div key={i} className="rounded-2xl bg-white ring-1 ring-stone-200 p-6">
+              <h3 className="font-bold text-zinc-900 text-sm">{g.label}</h3>
+              <ul className="mt-3 space-y-1.5 text-sm text-zinc-600">
+                {g.items.map((m, j) => (
+                  <li key={j} className="flex gap-2">
+                    <span className="shrink-0 text-amber-600">✓</span>
+                    <span>{m}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 text-center text-sm text-zinc-500">{t("machinesSection.customNote")}</p>
       </section>
 
       {/* ============ Scenarios ============ */}
