@@ -51,8 +51,11 @@ export async function GET() {
     {
       ok: access.allowed,
       reason: access.reason,
-      trialEndsAt: access.trialEndsAt,
-      trialDaysLeft: access.trialDaysLeft,
+      /** 權限何時失效（null = 買斷／永久版／admin，不會失效） */
+      expiresAt: access.expiresAt,
+      daysLeft: access.daysLeft,
+      /** 「個人版」「永久買斷」「免費試用」…工具直接顯示這串 */
+      planLabel: access.planLabel,
       graceHours: GRACE_HOURS,
       checkedAt: new Date().toISOString(),
     },

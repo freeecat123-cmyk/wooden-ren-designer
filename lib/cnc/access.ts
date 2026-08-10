@@ -29,10 +29,20 @@ export type CncAccessReason =
 export interface CncAccess {
   allowed: boolean;
   reason: CncAccessReason;
+  /**
+   * 這份權限**什麼時候失效**（ISO）。null = 不會失效（買斷／永久版／admin）。
+   *
+   * ⭐刻意不是「試用到期日」而是通用的到期日：訂閱個人版的人，CNC 權限是跟著
+   * 訂閱走的，訂閱一斷某天打開工具就突然變鎖頭。工具要能提前提醒他，
+   * 就必須拿得到這個日期 —— 只給試用用的欄位辦不到。
+   */
+  expiresAt: string | null;
+  /** 距離失效還剩幾天（無條件進位，最少 1）；不會失效是 null */
+  daysLeft: number | null;
+  /** 資格名稱，給工具顯示用（個人版／專業版／買斷…）；admin 是 null */
+  planLabel: string | null;
   /** 試用到期時間（ISO）。試用中或試用已到期都會有值；從沒試用過是 null */
   trialEndsAt: string | null;
-  /** 試用剩餘天數（無條件進位，最少 1；不在試用中是 null） */
-  trialDaysLeft: number | null;
   /** 這個帳號的試用資格已用掉（不論還在不在期內）→ 銷售頁不該再給「免費試用」鈕 */
   trialUsed: boolean;
 }
@@ -40,17 +50,39 @@ export interface CncAccess {
 const NO_ACCESS: CncAccess = {
   allowed: false,
   reason: "none",
+  expiresAt: null,
+  daysLeft: null,
+  planLabel: null,
   trialEndsAt: null,
-  trialDaysLeft: null,
   trialUsed: false,
 };
+
+/** 方案顯示名稱。工具本體只有中文，這裡就直接給中文。 */
+const PLAN_LABEL_ZH: Record<string, string> = {
+  personal: "個人版",
+  pro: "專業版",
+  student: "學員方案",
+  lifetime: "永久版",
+};
+
+/**
+ * 訂閱／學員資格什麼時候到期。
+ * lifetime 回 null＝不會到期，不要對他顯示任何倒數。
+ */
+function planExpiry(profile: UserPlanProfile | null): string | null {
+  if (!profile) return null;
+  if (profile.plan === "lifetime") return null;
+  if (profile.plan === "student") return profile.student_expires_at ?? null;
+  return profile.subscription_expires_at ?? null;
+}
 
 /**
  * 剩餘天數：無條件進位，且最少顯示 1。
  * 「剩 0 天」對還能用的人是錯的訊息（會以為已經不能用了），
  * 真的到期是走 allowed=false 那條路，不會落到這裡。
  */
-function daysLeft(expiresAt: string): number {
+function daysLeftOf(expiresAt: string | null): number | null {
+  if (!expiresAt) return null;
   const ms = new Date(expiresAt).getTime() - Date.now();
   return Math.max(1, Math.ceil(ms / 86_400_000));
 }
@@ -86,30 +118,51 @@ export async function resolveCncAccess(
       .maybeSingle(),
   ]);
 
+  const profile = profileRes.data as UserPlanProfile | null;
   const trialEndsAt = (trialRes.data?.expires_at as string | undefined) ?? null;
   const trialUsed = trialEndsAt !== null;
   const trialActive = trialEndsAt !== null && new Date(trialEndsAt) > new Date();
   const base = { trialEndsAt, trialUsed };
 
-  if (canUseFeature(profileRes.data as UserPlanProfile | null, "canUseCncTool")) {
-    return { ...base, allowed: true, reason: "plan", trialDaysLeft: null };
+  if (canUseFeature(profile, "canUseCncTool")) {
+    const expiresAt = planExpiry(profile);
+    return {
+      ...base,
+      allowed: true,
+      reason: "plan",
+      expiresAt,
+      daysLeft: daysLeftOf(expiresAt),
+      planLabel: PLAN_LABEL_ZH[profile?.plan ?? ""] ?? "訂閱方案",
+    };
   }
   if (unlockedTools.includes("cnc")) {
-    return { ...base, allowed: true, reason: "purchase", trialDaysLeft: null };
+    // 買斷沒有到期日 —— expiresAt 留 null，工具就不會對他顯示任何倒數
+    return {
+      ...base,
+      allowed: true,
+      reason: "purchase",
+      expiresAt: null,
+      daysLeft: null,
+      planLabel: "永久買斷",
+    };
   }
   if (trialActive) {
     return {
       ...base,
       allowed: true,
       reason: "trial",
-      trialDaysLeft: daysLeft(trialEndsAt!),
+      expiresAt: trialEndsAt,
+      daysLeft: daysLeftOf(trialEndsAt),
+      planLabel: "免費試用",
     };
   }
   return {
     ...base,
     allowed: false,
     reason: trialUsed ? "trialExpired" : "none",
-    trialDaysLeft: null,
+    expiresAt: null,
+    daysLeft: null,
+    planLabel: null,
   };
 }
 
