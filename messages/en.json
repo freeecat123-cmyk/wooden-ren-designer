@@ -983,7 +983,7 @@
         {
           "emoji": "🪵",
           "title": "Desktop CNC owners",
-          "body": "The essentials for a desktop CNC are built in: single-file M6 auto-pause tool changes, a spindle-speed ceiling and a work-area limit — shipped with presets tuned to the Makera Carvera Air (Smoothieware), and adjustable."
+          "body": "Everything a desktop CNC needs is built in: both M6 and M0 tool-change styles, RPM ceiling, work-area limits. Pick GRBL / Mach3 / LinuxCNC / FluidNC / Smoothieware from the list, or a named machine (Shapeoko, X-Carve, LongMill, Onefinity, 3018, 6040) with travels pre-filled."
         },
         {
           "emoji": "🎨",
@@ -998,7 +998,7 @@
       ],
       "notForTitle": "Where it can't help yet:",
       "notForItems": [
-        "Machines other than the Carvera Air aren't individually tested yet — the format is close, but verify with an air pass first",
+        "Always air-run the first file on any machine to verify the path — that's general CNC practice, not a limitation of this tool",
         "Complex 3D surface carving (multi-axis / ball-nose contouring) — the focus is 2.5D cutting for now",
         "Metalworking — parameters and strategy are tuned for wood / plywood / acrylic"
       ]
@@ -1078,7 +1078,7 @@
         },
         {
           "q": "Which CNC machines does it support?",
-          "a": "The post-processor is tuned to the Makera Carvera Air's firmware conventions (single-file M6 changes, speed ceiling, work area), so it's safest there. Other Smoothieware/Grbl machines use a similar format but aren't specifically tested — verify with an air pass first."
+          "a": "Most of them. The tool emits only the command set every controller shares (G17 G21 G90 G94, G0/G1/G2/G3, M3/M5, M0/M6, M30) and deliberately avoids canned cycles, cutter compensation and G28. Built-in profiles cover GRBL (both spindle modes), Mach3/Mach4, LinuxCNC, FluidNC, Smoothieware (Carvera), plus Shapeoko, X-Carve, LongMill, Onefinity, 3018 and 6040 class machines; anything else can be entered as a custom machine. Air-run the first file on any machine."
         },
         {
           "q": "Does my art get uploaded?",
@@ -1133,6 +1133,43 @@
       "breadcrumbHome": "Home",
       "breadcrumbTemplates": "Templates",
       "breadcrumbCurrent": "CNC Toolpath Generator"
+    },
+    "machinesSection": {
+      "h2": "Your CNC is on the list",
+      "sub": "Output is a standard ISO G-code subset (G0/G1/G2/G3 + M3/M5 + M0/M6 + M30). Canned cycles, cutter compensation and G28 are deliberately avoided because their meaning differs between controllers. Compatibility comes from using only the intersection, not from per-machine hacks.",
+      "groups": [
+        {
+          "label": "Generic by controller (pick here if your machine isn't listed)",
+          "items": [
+            "GRBL (programmable spindle)",
+            "GRBL (manual spindle dial)",
+            "Mach3 / Mach4",
+            "LinuxCNC",
+            "FluidNC"
+          ]
+        },
+        {
+          "label": "Common desktop machines (travels pre-filled)",
+          "items": [
+            "Shapeoko",
+            "X-Carve",
+            "LongMill",
+            "Onefinity Woodworker",
+            "Genmitsu 4040 / FoxAlien",
+            "CNC 3018 / 3018 PRO",
+            "6040 / 6090 steel-frame"
+          ]
+        },
+        {
+          "label": "Specific machines (different dialect, handled individually)",
+          "items": [
+            "Carvera Air",
+            "Carvera",
+            "GORDIX belt-driven CNC"
+          ]
+        }
+      ],
+      "customNote": "Not listed? Choose \"Custom machine\" and fill in travels, RPM ceiling, tool-change mode and end code yourself — no need to wait for us to add it."
     }
   },
   "ceilingMarketing": {

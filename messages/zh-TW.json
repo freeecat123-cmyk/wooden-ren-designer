@@ -983,7 +983,7 @@
         {
           "emoji": "🪵",
           "title": "有桌上型 CNC 的自造者",
-          "body": "常見桌上型 CNC 要顧的都內建：單檔 M6 自動暫停換刀、轉速上限、工作範圍上限；出廠預設照 Makera Carvera Air 韌體(Smoothieware)調，也能自己改。"
+          "body": "常見桌上型 CNC 要顧的都內建:M6/M0 兩種換刀方式、轉速上限、工作範圍上限。機型清單直接選 GRBL／Mach3／LinuxCNC／FluidNC/Smoothieware,或 Shapeoko、X-Carve、LongMill、Onefinity、3018、6040 等常見機種,尺寸都預先填好。"
         },
         {
           "emoji": "🎨",
@@ -998,7 +998,7 @@
       ],
       "notForTitle": "這些情況它還幫不上：",
       "notForItems": [
-        "Carvera Air 以外的機台目前尚未逐一測試—碼格式相近，建議先空跑驗證",
+        "任何機器第一份檔都建議先空跑驗證軌跡—這是 CNC 的通則,不是這個工具的限制",
         "複雜 3D 曲面雕刻(多軸/球刀等高)—目前聚焦 2.5D 切刻",
         "金屬加工—參數與策略是為木料/合板/壓克力調的"
       ]
@@ -1078,7 +1078,7 @@
         },
         {
           "q": "支援哪些 CNC 機台？",
-          "a": "後處理器是照 Makera Carvera Air 的韌體慣例調校(單檔 M6 換刀、轉速上限、工作範圍)，所以最保險。其他 Smoothieware/Grbl 機台碼格式相近但尚未針對測試，建議先空跑驗證。"
+          "a": "絕大多數都可以。工具只輸出各家控制器的共同交集(G17 G21 G90 G94、G0/G1/G2/G3、M3/M5、M0/M6、M30),刻意避開固定循環、刀徑補償、G28 那些各家語意不同的指令。機型清單內建 GRBL(兩種主軸模式)、Mach3/Mach4、LinuxCNC、FluidNC、Smoothieware(Carvera),以及 Shapeoko、X-Carve、LongMill、Onefinity、3018、6040 等常見機種;沒列到的用「自訂機型」自己填規格。任何機器的第一份檔都建議先空跑一次確認軌跡。"
         },
         {
           "q": "圖檔會上傳到雲端嗎？",
@@ -1133,6 +1133,43 @@
       "breadcrumbHome": "首頁",
       "breadcrumbTemplates": "範本介紹",
       "breadcrumbCurrent": "CNC 刀路產生器"
+    },
+    "machinesSection": {
+      "h2": "你的 CNC 就在清單裡",
+      "sub": "產出的是標準 ISO G-code 子集(G0/G1/G2/G3 + M3/M5 + M0/M6 + M30)——刻意不用各家語意會分岔的固定循環、刀徑補償、G28。所以「支援哪些機器」不是靠一堆特例,是靠只用交集。",
+      "groups": [
+        {
+          "label": "控制器通用(找不到你的機器就選這裡)",
+          "items": [
+            "GRBL(主軸可調速)",
+            "GRBL(旋鈕調速)",
+            "Mach3 / Mach4",
+            "LinuxCNC",
+            "FluidNC"
+          ]
+        },
+        {
+          "label": "常見桌上型機(尺寸已預先填好)",
+          "items": [
+            "Shapeoko",
+            "X-Carve",
+            "LongMill",
+            "Onefinity Woodworker",
+            "Genmitsu 4040 / FoxAlien",
+            "CNC 3018 / 3018 PRO",
+            "6040 / 6090 鋁架機"
+          ]
+        },
+        {
+          "label": "特定機型(方言不同,已個別處理)",
+          "items": [
+            "Carvera Air",
+            "Carvera(大台)",
+            "GORDIX 自走 CNC"
+          ]
+        }
+      ],
+      "customNote": "清單上沒有?選「自訂機型」自己填行程、轉速上限、換刀方式與結束碼即可——不必等我們支援。"
     }
   },
   "ceilingMarketing": {
@@ -5179,19 +5216,35 @@
       "monthlyPeriod": "/ month",
       "monthlySubtitle": "Cancel anytime",
       "monthlyCta": "Start monthly",
-      "monthlyFeatures": ["All templates", "Unlimited designs", "PDF & SVG export", "Bill of materials + cut list", "3D real-time preview"],
+      "monthlyFeatures": [
+        "All templates",
+        "Unlimited designs",
+        "PDF & SVG export",
+        "Bill of materials + cut list",
+        "3D real-time preview"
+      ],
       "annualTitle": "Annual",
       "annualPrice": "$79",
       "annualPeriod": "/ year",
       "annualSubtitle": "Save 27% — 2 months free",
       "annualCta": "Start annual",
-      "annualFeatures": ["Everything in Monthly", "Priority support", "Early access", "Annual billing"],
+      "annualFeatures": [
+        "Everything in Monthly",
+        "Priority support",
+        "Early access",
+        "Annual billing"
+      ],
       "lifetimeTitle": "Lifetime",
       "lifetimePrice": "$129",
       "lifetimePeriod": "",
       "lifetimeSubtitle": "One-time purchase",
       "lifetimeCta": "Buy lifetime",
-      "lifetimeFeatures": ["All current templates", "All future templates", "Unlimited designs forever", "No recurring charges"],
+      "lifetimeFeatures": [
+        "All current templates",
+        "All future templates",
+        "Unlimited designs forever",
+        "No recurring charges"
+      ],
       "signInPrefix": "Sign in to ",
       "alreadyOwned": "You already own this",
       "redirecting": "Redirecting…",
