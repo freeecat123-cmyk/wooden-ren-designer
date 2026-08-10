@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(new URL(`/login?next=${next}`, req.url), 303);
   }
 
-  const result = await startCncTrial(supabase, user);
+  const result = await startCncTrial(user);
   const url = new URL("/cnc", req.url);
   if (!result.ok) {
     // alreadyEntitled 不帶參數：他本來就能用，導回去就是直接進工具，不需要解釋什麼

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(salesPage, 302);
 
-  const access = await resolveCncAccess(supabase, user);
+  const access = await resolveCncAccess(user);
   if (!access.allowed) return NextResponse.redirect(salesPage, 302);
 
   const html = await readFile(

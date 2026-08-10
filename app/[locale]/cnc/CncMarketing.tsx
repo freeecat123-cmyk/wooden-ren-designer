@@ -16,8 +16,13 @@ interface Props {
   trialAvailable?: boolean;
   /** 試用已到期時的到期時間（ISO）；用來顯示「你的試用已在 X 結束」 */
   trialEndedAt?: string | null;
-  /** /api/trial/start 導回來時的結果：used = 這個帳號已用過、error = 啟用失敗 */
-  notice?: "used" | "error" | null;
+  /**
+   * used = 這個帳號已用過試用、error = 啟用失敗、
+   * unavailable = ⭐我們**查不到**他的權限狀態（資料庫暫時性錯誤）。
+   * unavailable 要跟 error 分開講：後者是「試用沒開成」，前者是
+   * 「你可能本來就有權限、只是我們現在查不到」——對付費客講錯話會讓他以為自己被降級了。
+   */
+  notice?: "used" | "error" | "unavailable" | null;
 }
 
 const SITE_URL =
@@ -210,7 +215,11 @@ export async function CncMarketing({
               </>
             ) : (
               <p className="text-sm text-zinc-700 leading-relaxed">
-                {notice === "used" ? t("trial.usedNotice") : t("trial.errorNotice")}
+                {notice === "used"
+                  ? t("trial.usedNotice")
+                  : notice === "unavailable"
+                    ? t("trial.unavailableNotice")
+                    : t("trial.errorNotice")}
               </p>
             )}
           </div>

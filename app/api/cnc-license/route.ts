@@ -45,7 +45,21 @@ export async function GET() {
     );
   }
 
-  const access = await resolveCncAccess(supabase, user);
+  const access = await resolveCncAccess(user);
+
+  // ⭐查不到 ≠ 沒權限。回 503 而不是 { ok:false }，因為工具端對這兩者的處理天差地遠：
+  //   { ok:false } 是**權威的拒絕** → 工具會清掉離線寬限快取並當場鎖住產碼；
+  //   非 200 則被當成「連不到伺服器」→ 工具改用 72 小時寬限，付費客照常能工作。
+  // 資料庫抽風一秒，不該讓工廠裡的買斷客永久失去他的離線寬限（那一步不可逆）。
+  //
+  // 注意這裡刻意不用 200 + 特殊 reason：工具是離線單檔 HTML，已經發出去的版本
+  // 認不得新 reason，只認得 HTTP 狀態。用 503 連舊版工具都會走對分支。
+  if (access.degraded) {
+    return NextResponse.json(
+      { reason: "unknown", checkedAt: new Date().toISOString() },
+      { status: 503, headers: noStore },
+    );
+  }
 
   return NextResponse.json(
     {

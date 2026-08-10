@@ -895,7 +895,8 @@
       "expiredTitle": "Your 7-day free trial has ended",
       "expiredBody": "Drawing, nesting and toolpath preview still work; generating G-code needs an unlock. Buy once for US$9.99 — permanent, and future updates are included.",
       "usedNotice": "This account has already used its free trial.",
-      "errorNotice": "Could not start the trial. Please refresh and try again."
+      "errorNotice": "Could not start the trial. Please refresh and try again.",
+      "unavailableNotice": "We can't check your access right now (likely a connection issue). If you already subscribed or purchased, just refresh in a moment — nothing is lost, and your free trial is still untouched."
     },
     "painSection": {
       "h2": "Still opening Fusion just to cut one panel?",

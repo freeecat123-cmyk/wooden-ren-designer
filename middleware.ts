@@ -33,7 +33,14 @@ const intlMiddleware = createIntlMiddleware(routing);
 const CNC_HOST = "cnc.woodenren.com";
 const MAIN_ORIGIN = "https://designer.woodenren.com";
 
-/** CNC 網域上允許存在的路徑（比對時先剝掉 /en 前綴，兩種語言同一份規則）。 */
+/**
+ * CNC 網域上允許存在的路徑（比對時先剝掉 /en 前綴，兩種語言同一份規則）。
+ *
+ * ⭐ /terms /privacy /refund 也要在名單裡：這三頁是**結帳前一定會有人點**的東西
+ * （尤其退款政策）。把它們 308 出去，等於使用者在 cnc.woodenren.com/pricing
+ * 準備刷卡時想確認退款條件，一點就被丟到另一個網域、而且回不來 —— 購物車情境
+ * 就這樣斷在最後一步。白名單的用意本來就是「保住買與登入流程」，這三頁屬於買的流程。
+ */
 function allowedOnCncHost(pathname: string): boolean {
   const p = pathname.replace(/^\/en(?=\/|$)/, "") || "/";
   return (
@@ -42,6 +49,9 @@ function allowedOnCncHost(pathname: string): boolean {
     p === "/login" ||
     p === "/pricing" ||
     p === "/my-subscription" ||
+    p === "/terms" ||
+    p === "/privacy" ||
+    p === "/refund" ||
     p.startsWith("/auth/")
   );
 }
@@ -89,16 +99,33 @@ export default async function middleware(request: NextRequest) {
   // （尤其 home 的「已登入 → 導去 /app 家具目錄」，會把 CNC 訪客彈去家具設計器）。
   if ((request.headers.get("host") ?? "").split(":")[0] === CNC_HOST) {
     if (!allowedOnCncHost(pathname)) {
+      // 把開頭連續的 / 與 \ 收斂成單一個 /。`new URL("//evil.com/x", MAIN_ORIGIN)`
+      // 會把它當協定相對網址解析，結果是導去 evil.com（開放重導）。
+      // 實測正式站的平台層已經先正規化過、打不進來，這行是不依賴那個外部行為的保險。
+      const safePath = "/" + pathname.replace(/^[/\\]+/, "");
       return NextResponse.redirect(
-        new URL(pathname + request.nextUrl.search, MAIN_ORIGIN),
+        new URL(safePath + request.nextUrl.search, MAIN_ORIGIN),
         308,
       );
     }
     if (pathname === "/" || pathname === "/en") {
+      // ⭐英文流量也要走語言偵測。主站的 `/` 有這段（見下方 shouldRedirectToEn），
+      //   但 CNC 分支原本在它之前就 return 了，導致英文訪客連 cnc.woodenren.com
+      //   永遠拿到中文頁 —— 而且 next-intl 的 syncCookie 會順手寫下
+      //   NEXT_LOCALE=zh-TW 把他釘住，站上又沒有語言切換 UI，等於沒有出口。
+      if (pathname === "/" && shouldRedirectToEn(request)) {
+        return NextResponse.redirect(new URL("/en", request.url));
+      }
       // 改寫 pathname 再交給 intl：直接回 rewrite 會跳過 locale 處理，
       // 而 /cnc 這頁住在 app/[locale]/cnc，沒有 locale 段就配不到路由。
       request.nextUrl.pathname = pathname === "/en" ? "/en/cnc" : "/cnc";
-      return intlMiddleware(request);
+      const cncResponse = intlMiddleware(request);
+      // geo cookie 也要補：這條 return 原本跳過了 ensureGeoDefaultsCookie，
+      // 害 cnc 網域首屏的幣別 toggle 落到 fallback 的 USD（台灣使用者看到美金）。
+      const withCookie =
+        cncResponse instanceof NextResponse ? cncResponse : NextResponse.next({ request });
+      ensureGeoDefaultsCookie(request, withCookie);
+      return withCookie;
     }
   }
 

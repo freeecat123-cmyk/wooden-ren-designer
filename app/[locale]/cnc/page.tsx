@@ -42,16 +42,26 @@ export default async function CncPage({
   // 訪客：一律銷售頁，且主打「免費試用 7 天」（他還沒有帳號，資格必然還在）
   if (!user) return <CncMarketing status="guest" trialAvailable />;
 
-  const access = await resolveCncAccess(supabase, user);
+  const access = await resolveCncAccess(user);
 
   // ?intro=1 = 有權限的人想回頭看銷售頁（分享／看方案），不要把他彈進工具
   if (intro === "1" || !access.allowed) {
     return (
       <CncMarketing
         status="loggedInNoAccess"
-        trialAvailable={!access.trialUsed && !access.allowed}
+        // ⭐查不到權限時（degraded）一律不給「開始試用」鈕：試用資格一輩子一次，
+        //   不能因為資料庫抽風就讓訂閱戶把它燒掉。改請他稍後重試。
+        trialAvailable={!access.degraded && !access.trialUsed && !access.allowed}
         trialEndedAt={access.reason === "trialExpired" ? access.trialEndsAt : null}
-        notice={trial === "used" ? "used" : trial === "error" ? "error" : null}
+        notice={
+          access.degraded
+            ? "unavailable"
+            : trial === "used"
+              ? "used"
+              : trial === "error"
+                ? "error"
+                : null
+        }
       />
     );
   }

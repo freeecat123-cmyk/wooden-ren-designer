@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeNext } from "@/lib/safe-next";
 import { routing, type Locale } from "@/i18n/routing";
 import { LoginPageClient } from "./LoginPageClient";
 
@@ -28,7 +29,10 @@ export default async function LoginPage({
   setRequestLocale(locale);
 
   const sp = await searchParams;
-  const next = sp.next ?? "/";
+  // ⭐一定要清洗：Next 的 redirect() 吃得下絕對外部網址，原本直接把 ?next= 餵進去
+  //   等於任何人都能用 /login?next=https://evil.com 把已登入的使用者送出站
+  //   （而 /login 正好在 cnc.woodenren.com 的白名單裡，那條路是活的）。
+  const next = sanitizeNext(sp.next);
 
   // 已登入 → 直接跳到 next
   const supabase = await createClient();
