@@ -628,7 +628,7 @@
       "raisedFloorName": "和室架高平台",
       "raisedFloorTagline": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。",
       "cncName": "CNC 刀路產生器",
-      "cncTagline": "拖 SVG/DXF/圖片 → 選加工排刀路 → 出 CNC 能直接跑的 G-code。",
+      "cncTagline": "拖 SVG/DXF/圖片 → 選加工排刀路 → 出 CNC 能直接跑的 G-code。免費試用 7 天。",
       "ctaIntro": "了解更多",
       "ctaStart": "開始試算"
     },
@@ -872,19 +872,30 @@
     },
     "hero": {
       "badge1": "CNC 工具",
-      "badge2": "個人版以上 / 可單買",
+      "badge2": "免費試用 7 天",
       "h1": "SVG 拖進去，G-code 直接跑",
       "leadLine1": "省掉 Fusion 360 那一整套 CAM 設定，",
       "leadLine2": "3 秒生出 CNC 能吃的刀路。",
       "body": "離線的桌上型 CNC 刀路產生器。畫好的向量圖或掃描稿拖進去，選加工方式與刀具，直接下載 .nc 檔上機——外形、挖槽、鑽孔、V 刻、浮雕、描圖十種加工一次到位。",
-      "ctaGuest": "免費登入開始用",
+      "ctaGuest": "免費試用 7 天",
       "ctaUpgrade": "解鎖 CNC 工具",
       "ctaSecondary": "看方案與單買",
-      "footnote": "訂閱個人版以上即免費使用；也可單買永久解鎖。工具完全離線運算，圖檔不上傳。",
+      "footnote": "工具完全離線運算，圖檔不上傳。訂閱個人版以上即免費使用，或單買 NT$499 永久解鎖。",
       "shareTitle": "CNC 刀路產生器 — SVG/DXF 轉 CNC G-code",
       "diagramLabel1": "拖入 SVG / DXF / 圖片",
       "diagramLabel2": "選加工 + 刀具，排刀路",
       "diagramLabel3": "下載 .nc 上機切"
+    },
+    "trial": {
+      "ctaStart": "開始 7 天免費試用",
+      "ctaBuy": "解鎖完整版 NT$499",
+      "noCard": "不用信用卡。7 天內功能不打折，可以真的產出 .nc 上機切。",
+      "activeTitle": "免費試用進行中",
+      "activeBody": "直接進工具就可以了。試用期間隨時可以買斷，剩下的天數不會被吃掉。",
+      "expiredTitle": "你的 7 天免費試用已經結束",
+      "expiredBody": "畫圖、排版、刀路預覽都還能繼續用；產生 G-code 需要解鎖。買斷 NT$499 一次付清、永久使用，工具日後更新也照拿。",
+      "usedNotice": "這個帳號的免費試用已經用過了。",
+      "errorNotice": "試用啟用失敗，請重新整理再試一次。"
     },
     "painSection": {
       "h2": "還在為了切一塊板，開 Fusion 摸半天？",

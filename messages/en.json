@@ -628,7 +628,7 @@
       "raisedFloorName": "Tatami raised platform",
       "raisedFloorTagline": "Draw the platform → frame, plywood, surface, moisture barrier, skirting → A4 client quote.",
       "cncName": "CNC toolpath generator",
-      "cncTagline": "Drag in SVG/DXF/image → pick ops & order paths → G-code your CNC runs.",
+      "cncTagline": "Drag in SVG/DXF/image → pick ops & order paths → G-code your CNC runs. 7-day free trial.",
       "ctaIntro": "Learn more",
       "ctaStart": "Start estimating"
     },
@@ -872,19 +872,30 @@
     },
     "hero": {
       "badge1": "CNC Tool",
-      "badge2": "Personal plan & up / one-time",
+      "badge2": "7-day free trial",
       "h1": "Drop in an SVG, run the G-code",
       "leadLine1": "Skip the entire Fusion 360 CAM setup —",
       "leadLine2": "get a toolpath your CNC runs in 3 seconds.",
       "body": "An offline toolpath generator for desktop CNC routers. Drag in your vector art or a scan, pick the operation and tool, download the .nc and cut — profile, pocket, drill, V-carve, relief and image-trace, ten operations in one file.",
-      "ctaGuest": "Log in free to start",
+      "ctaGuest": "Start the 7-day free trial",
       "ctaUpgrade": "Unlock the CNC tool",
       "ctaSecondary": "See plans & one-time",
-      "footnote": "Free on the Personal plan and up; or buy once for a permanent unlock. Runs fully offline — your art never leaves your browser.",
+      "footnote": "Runs fully offline; your art never leaves your browser. Free on the Personal plan and up, or buy once for a permanent unlock.",
       "shareTitle": "CNC Toolpath Generator — SVG/DXF to CNC G-code",
       "diagramLabel1": "Drop in SVG / DXF / image",
       "diagramLabel2": "Pick operation + tool",
       "diagramLabel3": "Download .nc & cut"
+    },
+    "trial": {
+      "ctaStart": "Start the 7-day free trial",
+      "ctaBuy": "Unlock for US$9.99",
+      "noCard": "No credit card. Nothing is held back for 7 days — cut real parts with it.",
+      "activeTitle": "Your free trial is running",
+      "activeBody": "Just open the tool. You can buy any time during the trial; you won't lose the remaining days.",
+      "expiredTitle": "Your 7-day free trial has ended",
+      "expiredBody": "Drawing, nesting and toolpath preview still work; generating G-code needs an unlock. Buy once for US$9.99 — permanent, and future updates are included.",
+      "usedNotice": "This account has already used its free trial.",
+      "errorNotice": "Could not start the trial. Please refresh and try again."
     },
     "painSection": {
       "h2": "Still opening Fusion just to cut one panel?",

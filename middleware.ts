@@ -18,6 +18,35 @@ import { GEO_DEFAULTS_COOKIE, resolveGeoDefaults } from "./lib/geo-defaults";
 const intlMiddleware = createIntlMiddleware(routing);
 
 /**
+ * cnc.woodenren.com — CNC 刀路產生器的獨立門面。
+ *
+ * 同一個 Next app 服務兩個網域：登入、綠界金流、電子發票、退款、對帳那一整套
+ * 原封不動沿用，只有「進來看到什麼」不同。另外開一個獨立站等於把付款基礎建設
+ * 重做一次，那是這個專案花最多力氣做起來的部分，不值得為了換網域重寫。
+ *
+ * 三條規則：
+ *  1. `/` 與 `/en` 直接吃 CNC 頁（rewrite，網址列保持乾淨的 cnc.woodenren.com）
+ *  2. 買／登入流程會用到的路徑照常放行
+ *  3. 其餘頁面 308 導回 designer 主站 —— 同一份內容掛在兩個網域，
+ *     Google 會當成重複內容讓兩邊互相稀釋，SEO 是雙輸
+ */
+const CNC_HOST = "cnc.woodenren.com";
+const MAIN_ORIGIN = "https://designer.woodenren.com";
+
+/** CNC 網域上允許存在的路徑（比對時先剝掉 /en 前綴，兩種語言同一份規則）。 */
+function allowedOnCncHost(pathname: string): boolean {
+  const p = pathname.replace(/^\/en(?=\/|$)/, "") || "/";
+  return (
+    p === "/" ||
+    p === "/cnc" ||
+    p === "/login" ||
+    p === "/pricing" ||
+    p === "/my-subscription" ||
+    p.startsWith("/auth/")
+  );
+}
+
+/**
  * 智慧語言偵測：根 `/` 路徑時，若使用者沒手動選過語言、且 Accept-Language 不是 zh-*，
  * 跳轉到 /en。避免英文行銷流量（Reddit / blog / pin）落到中文首頁秒跳走。
  *
@@ -54,6 +83,24 @@ function ensureGeoDefaultsCookie(request: NextRequest, response: NextResponse) {
 
 export default async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // ── cnc.woodenren.com ────────────────────────────────────────────────
+  // 放在最前面：這個網域上「首頁＝CNC 頁」，不該再走下面主站那套
+  // （尤其 home 的「已登入 → 導去 /app 家具目錄」，會把 CNC 訪客彈去家具設計器）。
+  if ((request.headers.get("host") ?? "").split(":")[0] === CNC_HOST) {
+    if (!allowedOnCncHost(pathname)) {
+      return NextResponse.redirect(
+        new URL(pathname + request.nextUrl.search, MAIN_ORIGIN),
+        308,
+      );
+    }
+    if (pathname === "/" || pathname === "/en") {
+      // 改寫 pathname 再交給 intl：直接回 rewrite 會跳過 locale 處理，
+      // 而 /cnc 這頁住在 app/[locale]/cnc，沒有 locale 段就配不到路由。
+      request.nextUrl.pathname = pathname === "/en" ? "/en/cnc" : "/cnc";
+      return intlMiddleware(request);
+    }
+  }
 
   // 根 `/` 智慧語言跳轉（在 intl 處理之前；只針對 `/`，不包含 `/en` 或其他路徑）
   if (pathname === "/" && shouldRedirectToEn(request)) {

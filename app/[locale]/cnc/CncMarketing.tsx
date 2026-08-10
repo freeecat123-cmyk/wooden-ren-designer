@@ -12,6 +12,12 @@ type UserStatus = "guest" | "loggedInNoAccess";
 
 interface Props {
   status: UserStatus;
+  /** 這個人還能不能開始 7 天免費試用（已用過或已有權限 → false，主 CTA 改推買斷） */
+  trialAvailable?: boolean;
+  /** 試用已到期時的到期時間（ISO）；用來顯示「你的試用已在 X 結束」 */
+  trialEndedAt?: string | null;
+  /** /api/trial/start 導回來時的結果：used = 這個帳號已用過、error = 啟用失敗 */
+  notice?: "used" | "error" | null;
 }
 
 const SITE_URL =
@@ -84,16 +90,40 @@ function TierCard({
   );
 }
 
-export async function CncMarketing({ status }: Props) {
+export async function CncMarketing({
+  status,
+  trialAvailable = false,
+  trialEndedAt = null,
+  notice = null,
+}: Props) {
   const t = await getTranslations("cncMarketing");
   const locale = await getLocale();
   const isEn = locale === "en";
 
-  const primaryHref =
-    status === "guest" ? "/login?next=/cnc" : "/pricing?upgrade=cnc";
-  const primaryLabel =
-    status === "guest" ? t("hero.ctaGuest") : t("hero.ctaUpgrade");
+  // 主 CTA 有三種樣子。訪客也主打試用（他還沒有帳號，資格必然還在）——
+  // 先讓他知道「可以免費試」，登入只是拿試用的必要步驟，不是門檻本身。
+  const primaryHref = status === "guest" ? "/login?next=/cnc" : "/pricing?upgrade=cnc";
+  const primaryLabel = trialAvailable ? t("trial.ctaStart") : t("hero.ctaUpgrade");
+  /** 已登入且還有試用資格 → 主 CTA 是「開始試用」的表單送出，不是連結 */
+  const startsTrial = status === "loggedInNoAccess" && trialAvailable;
   const pageUrl = `${SITE_URL}${isEn ? "/en" : ""}/cnc`;
+
+  /**
+   * 主行動鈕。試用啟用要寫進資料庫 → 必須是 POST（GET 會被瀏覽器/爬蟲預抓，
+   * 有人只是滑過連結就把試用燒掉）。用原生 form 不靠 JS，webview 內也能用。
+   */
+  const PrimaryCta = ({ className, label }: { className: string; label: string }) =>
+    startsTrial ? (
+      <form action="/api/trial/start" method="post" className="contents">
+        <button type="submit" className={className}>
+          {label} →
+        </button>
+      </form>
+    ) : (
+      <Link href={primaryHref} className={className}>
+        {label} →
+      </Link>
+    );
 
   const painItems = t.raw("painSection.items") as IconItem[];
   const featureItems = t.raw("featureSection.items") as IconItem[];
@@ -164,6 +194,29 @@ export async function CncMarketing({ status }: Props) {
         <span className="text-zinc-700 font-medium">{t("breadcrumb.current")}</span>
       </nav>
 
+      {/* 試用已到期／啟用失敗：一進頁就把現在的狀態講清楚，
+          不要讓他對著一頁銷售文案猜「我到底還能不能用」。 */}
+      {(trialEndedAt || notice) && (
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 pt-2">
+          <div className="rounded-2xl bg-amber-50 ring-1 ring-amber-300 px-5 py-4">
+            {trialEndedAt ? (
+              <>
+                <p className="font-serif-tc font-bold text-amber-900">
+                  {t("trial.expiredTitle")}
+                </p>
+                <p className="mt-1 text-sm text-zinc-700 leading-relaxed">
+                  {t("trial.expiredBody")}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-zinc-700 leading-relaxed">
+                {notice === "used" ? t("trial.usedNotice") : t("trial.errorNotice")}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ============ Hero ============ */}
       <section className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-white to-stone-100 border-b border-stone-200">
         <div
@@ -191,12 +244,10 @@ export async function CncMarketing({ status }: Props) {
               </p>
               <p className="mt-3 text-zinc-600 leading-relaxed">{t("hero.body")}</p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <Link
-                  href={primaryHref}
+                <PrimaryCta
+                  label={primaryLabel}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-700 text-white font-semibold shadow-lg shadow-amber-700/30 hover:bg-amber-800 hover:-translate-y-0.5 transition-all"
-                >
-                  {primaryLabel} →
-                </Link>
+                />
                 <Link
                   href="/pricing?upgrade=cnc"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-zinc-800 font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 transition-all"
@@ -204,7 +255,14 @@ export async function CncMarketing({ status }: Props) {
                   {t("hero.ctaSecondary")}
                 </Link>
               </div>
-              <p className="mt-4 text-xs text-zinc-500">{t("hero.footnote")}</p>
+              <p className="mt-4 text-xs text-zinc-500">
+                {trialAvailable && (
+                  <span className="block mb-1 text-amber-800 font-semibold">
+                    {t("trial.noCard")}
+                  </span>
+                )}
+                {t("hero.footnote")}
+              </p>
               <div className="mt-5">
                 <ShareButtons url={pageUrl} title={t("hero.shareTitle")} />
               </div>
@@ -408,12 +466,10 @@ export async function CncMarketing({ status }: Props) {
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-16 text-center">
           <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold">{t("finalCta.h2")}</h2>
           <p className="mt-3 text-amber-100 leading-relaxed">{t("finalCta.body")}</p>
-          <Link
-            href={primaryHref}
+          <PrimaryCta
+            label={trialAvailable ? t("trial.ctaStart") : t("finalCta.cta")}
             className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full bg-white text-amber-800 font-bold shadow-lg hover:-translate-y-0.5 transition-all"
-          >
-            {t("finalCta.cta")} →
-          </Link>
+          />
         </div>
       </section>
     </main>

@@ -1,6 +1,6 @@
 /**
  * 零件輪廓 SVG 匯出 —— 把每個零件的「攤平切割面」輸出成乾淨的 mm 尺寸向量輪廓，
- * 供 CNC / 雷切 / 向量編輯用（直接餵進 designer.woodenren.com/cnc.html → G-code）。
+ * 供 CNC / 雷切 / 向量編輯用（直接餵進 cnc.woodenren.com 的刀路產生器 → G-code）。
  *
  * 兩種產出：
  *   1. partsSvgFiles(design)      → 每個零件（合併同形）一張輪廓 SVG，打包成 ZIP。
