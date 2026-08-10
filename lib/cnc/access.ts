@@ -99,7 +99,7 @@ export async function resolveCncAccess(
   user: { id: string; email?: string | null },
 ): Promise<CncAccess> {
   if (isAdminEmail(user.email, getServerAdminEmails())) {
-    return { ...NO_ACCESS, allowed: true, reason: "admin" };
+    return { ...NO_ACCESS, allowed: true, reason: "admin", planLabel: "站方帳號" };
   }
 
   const admin = createAdminClient();
