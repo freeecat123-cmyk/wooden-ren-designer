@@ -20,6 +20,7 @@ import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
+import { isSimulatedPayment } from "@/lib/ecpay/simulated-payment";
 import { after } from "next/server";
 import { sendEmail } from "@/lib/email/send";
 import { periodicChargeSuccessEmail } from "@/lib/email/templates/payment-success";
@@ -57,6 +58,19 @@ export async function POST(req: NextRequest) {
   const tradeNo = params.TradeNo ?? params.gwsr ?? null;
   const amount = Number(params.amount ?? params.TradeAmt ?? 0);
   const totalSuccessTimes = Number(params.TotalSuccessTimes ?? 0);
+
+  // 同 /api/ecpay/return:模擬付款不撥款,不能延期也不能開發票。
+  // 這裡沒有實測過綠界的定期定額通知會不會帶 SimulatePaid,擋著是防禦性的——
+  // 沒帶這個欄位時這段完全不影響原有流程(admin 的 simulate-periodic 也不帶,照舊能用)。
+  if (isSimulatedPayment(params)) {
+    console.warn("[ecpay/periodic-notify] 模擬付款(SimulatePaid=1):不續期、不開發票、不寄信", {
+      orderId,
+      tradeNo,
+      amount,
+      rtnCode,
+    });
+    return new Response("1|OK");
+  }
 
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin

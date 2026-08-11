@@ -4,6 +4,8 @@
  *
  * 收到後流程:
  *   1. 驗 CheckMacValue
+ *   1.5 SimulatePaid === "1" → 綠界後台按的「模擬付款」,綠界不會撥款,
+ *       直接回 1|OK 走人（不給權限、不開發票、不寄信）。見 lib/ecpay/simulated-payment.ts
  *   2. 透過 MerchantTradeNo 撈回 placeholder subscription
  *   3. RtnCode === "1" 視為成功:
  *        - 定期定額（params 含 PeriodType）→ expires_at = now + 31 天，存 gwsr
@@ -20,6 +22,7 @@ import { type NextRequest, after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
+import { isSimulatedPayment } from "@/lib/ecpay/simulated-payment";
 import { sendEmail } from "@/lib/email/send";
 import { firstPaymentSuccessEmail, unlockSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
@@ -69,6 +72,22 @@ export async function POST(req: NextRequest) {
   const rtnCode = params.RtnCode;
   const tradeNo = params.TradeNo;
   const amount = Number(params.TradeAmt ?? 0);
+
+  // 模擬付款:RtnCode 同樣是 1,但綠界不會撥款 → 一律不出貨。
+  // 這一關必須擋在所有 DB 動作前面,因為底下每一條分支都是不可逆的:
+  // tool_unlocks 是永久買斷、發票是財政部認得的真號碼。
+  //
+  // 仍然回 1|OK:綠界後台要收到 1|OK 才會顯示「模擬付款成功」,那正是使用者
+  // 按這顆按鈕想確認的事(ReturnURL 通了)。回別的字串會被當失敗並持續重送。
+  if (isSimulatedPayment(params)) {
+    console.warn("[ecpay/return] 模擬付款(SimulatePaid=1):不出貨、不開發票、不寄信", {
+      orderId,
+      tradeNo,
+      amount,
+      rtnCode,
+    });
+    return new Response("1|OK");
+  }
 
   const admin = createAdminClient();
 
