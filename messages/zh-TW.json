@@ -1079,7 +1079,7 @@
         },
         {
           "q": "支援哪些 CNC 機台？",
-          "a": "絕大多數都可以。工具只輸出各家控制器的共同交集(G17 G21 G90 G94、G0/G1/G2/G3、M3/M5、M0/M6、M30),刻意避開固定循環、刀徑補償、G28 那些各家語意不同的指令。機型清單內建 GRBL(兩種主軸模式)、Mach3/Mach4、LinuxCNC、FluidNC、Smoothieware(Carvera),以及 Shapeoko、X-Carve、LongMill、Onefinity、3018、6040 等常見機種;沒列到的用「自訂機型」自己填規格。任何機器的第一份檔都建議先空跑一次確認軌跡。"
+          "a": "絕大多數都可以。工具只輸出各家控制器的共同交集(G17 G21 G90 G94、G0/G1/G2/G3、M3/M5、M0/M6、M30),刻意避開固定循環、刀徑補償、G28 那些各家語意不同的指令。機型清單內建 GRBL(兩種主軸模式)、Mach3/Mach4、LinuxCNC、FluidNC、Smoothieware(Carvera)、Marlin(Snapmaker 那類),以及 Shapeoko、X-Carve、LongMill、Onefinity、3018、6040 等常見機種;沒列到的用「自訂機型」自己填規格。任何機器的第一份檔都建議先空跑一次確認軌跡。"
         },
         {
           "q": "圖檔會上傳到雲端嗎？",
@@ -1146,7 +1146,8 @@
             "GRBL(旋鈕調速)",
             "Mach3 / Mach4",
             "LinuxCNC",
-            "FluidNC"
+            "FluidNC",
+            "Marlin 系(Snapmaker・3D 印表機改機)"
           ]
         },
         {

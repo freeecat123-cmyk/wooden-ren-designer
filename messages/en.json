@@ -1079,7 +1079,7 @@
         },
         {
           "q": "Which CNC machines does it support?",
-          "a": "Most of them. The tool emits only the command set every controller shares (G17 G21 G90 G94, G0/G1/G2/G3, M3/M5, M0/M6, M30) and deliberately avoids canned cycles, cutter compensation and G28. Built-in profiles cover GRBL (both spindle modes), Mach3/Mach4, LinuxCNC, FluidNC, Smoothieware (Carvera), plus Shapeoko, X-Carve, LongMill, Onefinity, 3018 and 6040 class machines; anything else can be entered as a custom machine. Air-run the first file on any machine."
+          "a": "Most of them. The tool emits only the command set every controller shares (G17 G21 G90 G94, G0/G1/G2/G3, M3/M5, M0/M6, M30) and deliberately avoids canned cycles, cutter compensation and G28. Built-in profiles cover GRBL (both spindle modes), Mach3/Mach4, LinuxCNC, FluidNC, Smoothieware (Carvera), Marlin (Snapmaker and similar), plus Shapeoko, X-Carve, LongMill, Onefinity, 3018 and 6040 class machines; anything else can be entered as a custom machine. Air-run the first file on any machine."
         },
         {
           "q": "Does my art get uploaded?",
@@ -1146,7 +1146,8 @@
             "GRBL (manual spindle dial)",
             "Mach3 / Mach4",
             "LinuxCNC",
-            "FluidNC"
+            "FluidNC",
+            "Marlin-based (Snapmaker, converted 3D printers)"
           ]
         },
         {
