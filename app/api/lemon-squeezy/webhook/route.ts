@@ -32,6 +32,7 @@ import {
   verifyLemonWebhook,
 } from "@/lib/lemon-squeezy/webhook";
 import { lookupVariant } from "@/lib/lemon-squeezy/variant-map";
+import { isTestModeEvent } from "@/lib/lemon-squeezy/test-mode";
 import { isSellableFurniture, isSellableTool } from "@/lib/lemon-squeezy/tier-map";
 
 export const runtime = "nodejs";
@@ -73,6 +74,24 @@ export async function POST(req: NextRequest) {
     }
     console.error("[ls/webhook] log insert failed", logErr);
     return new Response("Log insert failed", { status: 500 });
+  }
+
+  // 測試模式事件：LS 測試 store 的事件會走同一支 endpoint、同一把簽章密鑰送來，
+  // payload 逐欄跟正式一樣只多 test_mode=true，但背後沒有真的金流。
+  // 擋在 dispatchEvent 之前 = 一筆帳務資料都不寫（詳細實查數據見 lib/lemon-squeezy/test-mode.ts）。
+  //
+  // 刻意「先記 log 再擋」而不是直接走人：log 是純觀測、也是 idempotency 錨點，
+  // 留著才看得到測試訂閱還在每月送事件進來（admin 的 LS log 頁會顯示未處理＋原因）。
+  // 仍回 200：LS 沒收到 2xx 會重送。
+  if (isTestModeEvent(payload)) {
+    console.warn("[ls/webhook] 測試模式事件，不寫入任何帳務資料", { eventId, eventName });
+    await admin
+      .from("lemonsqueezy_webhook_log")
+      .update({
+        processing_error: "skipped: test_mode=true（測試模式事件，未寫入任何帳務資料）",
+      })
+      .eq("event_id", eventId);
+    return new Response("Test mode event ignored", { status: 200 });
   }
 
   // 背景處理 + 寫 processed_at（讓 LS 拿到 200 不重送）
@@ -549,9 +568,9 @@ async function handleSubscriptionPaymentFailed(
   const amount = Math.round(totalCents / 100);
   const userEmail = invoice.user_email as string | undefined;
   const declineReason = invoice.status_formatted as string | undefined;
-  const attempt = invoice.refunded_at ? undefined : (invoice.test_mode as boolean | undefined)
-    ? undefined
-    : undefined; // LS payload 沒固定 attempt_number 欄，留空交給文案處理
+  // LS payload 沒有固定的 attempt_number 欄位，重試次數留空交給文案處理。
+  // （這裡原本有一段三個分支都回 undefined 的死碼，順手清掉；它讀 test_mode 卻不做任何事，
+  //   看起來像有在防測試模式，其實沒有——真正的守門在這支 route 最上面。）
 
   // 反查訂閱拿 user_id + plan label
   const { data: subRow } = await admin
@@ -595,7 +614,7 @@ async function handleSubscriptionPaymentFailed(
       planLabel,
       amount,
       reason: declineReason,
-      attemptNumber: attempt,
+      attemptNumber: undefined,
     });
     await sendEmail({
       to: email,
