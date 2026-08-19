@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   // grant a new one to the second mount. Result: blank 透視圖 in dev.
   // Production builds don't double-mount, so this is dev-only.
   reactStrictMode: false,
+  // subset-font / harfbuzzjs 的 .wasm 在 `next dev --webpack` 下打包會壞
+  // （Module parse failed: WebAssembly module not flagged），導致
+  // /api/pdf-font 在本機 dev 回 500。標記為外部套件、runtime 用原生
+  // require 載入即可繞開，不影響 build（build 走 Turbopack）。
+  serverExternalPackages: ["subset-font", "harfbuzzjs"],
   experimental: {
     optimizePackageImports: [
       "three",
