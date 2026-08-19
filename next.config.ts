@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
     // matcher 排除（locale-agnostic）。Vercel 預設只 trace 程式碼引用到的檔，
     // 明確列出讓部署帶上這份 HTML。
     "/api/cnc-tool": ["./lib/cnc/cnc-tool.html"],
+    // 字型全字庫只在伺服器端用（子集化），Vercel 預設不會 trace 到，明確列出。
+    "/api/pdf-font": ["./lib/fonts/*.ttf"],
   },
   async redirects() {
     return [
