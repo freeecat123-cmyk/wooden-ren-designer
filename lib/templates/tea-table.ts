@@ -69,7 +69,7 @@ export const teaTableOptions: OptionSpec[] = [
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 下橫撐造型（茶几下橫撐環恆存在——無 withLowerStretcher 開關，故無額外顯示條件）
   ...stretcherProfileOptions("stretcher"),
-  { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
+  { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高」−「牙條距桌面」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙條厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "牙條頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
@@ -165,8 +165,21 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const isCurvedTaper = legShape === "curved-taper";
-  // 弧肩斜腳：牙條高自動＝接撐段高（牙條填滿上段全寬實體區、其下才收弧）
-  const upperApronWidth = isCurvedTaper ? ctBlockHeight : _upperApronWidthRaw;
+  /**
+   * 弧肩斜腳的牙條高度上限（同 square-stool，見該檔同段註解）。
+   *
+   * §A9.8：curved-taper 內面只有頂部 `blockHeightMm` 是全寬接撐段，其下即內凹弧肩收窄。
+   * §A10（apron-leg mortise）：`origin.y = legHeight − apronOffset − apronWidth/2`
+   * ⇒ 牙板要整片落在接撐段內即 `apronOffset + upperApronWidth ≤ ctBlockHeight`，
+   *   否則榫眼會切到已內縮的斜面而露出腳外。
+   *
+   * 原本直接鎖成 `= ctBlockHeight` 並用 dependsOn 隱藏欄位，等於為了防呆把功能拿掉。
+   * 改成夾上限：調得動，越界才被安全截住；預設值行為不變。
+   */
+  const ctApronMaxH = Math.max(0, ctBlockHeight - apronOffset);
+  const upperApronWidth = isCurvedTaper
+    ? Math.min(_upperApronWidthRaw, ctApronMaxH)
+    : _upperApronWidthRaw;
   const legHeight = height - topThickness;
   const lowerCenterY = stretcherFloorOffset + lowerStretcherWidth / 2;
   // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed" 慣例。

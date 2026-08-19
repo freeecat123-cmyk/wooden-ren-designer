@@ -46,7 +46,7 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   // 牙條
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時自動＝接撐段高，此欄不顯示", dependsOn: { key: "legShape", notIn: ["curved-taper"] } },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高」−「牙條距座板」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, help: "牙條頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量；0 = 等高（自動上下半榫避免穿模）" },
@@ -162,16 +162,30 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
   const _apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
-  // 弧肩斜腳：牙條高度自動＝接撐段高，讓牙板剛好填滿全寬接撐段（其下才是弧肩收窄）
-  const apronWidth = legShape === "curved-taper" ? ctBlockHeight : _apronWidthRaw;
-  // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
-  // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板
-  const withApron = apronWidth > 0;
-  const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronOffsetRaw = getOption<number>(input, opt(o, "apronOffset"));
   // 一木連做：牙板強制貼齊座板下緣（apronOffset = 0），讓椅背直立件能直接
   // 接到牙板頂緣形成連續視覺
+  // ⚠️ 這是「生效值」，弧肩斜腳的可用牙條高必須用它（不是 raw）來扣，否則一木連做時會少算。
   const apronOffset = isContinuous ? 0 : apronOffsetRaw;
+  /**
+   * 弧肩斜腳的牙條高度上限（同 square-stool，見該檔同段註解）。
+   *
+   * §A9.8：curved-taper 內面只有頂部 `blockHeightMm` 是全寬接撐段，其下即內凹弧肩收窄。
+   * §A10（apron-leg mortise）：`origin.y = legHeight − apronOffset − apronWidth/2`
+   * ⇒ 牙板要整片落在接撐段內即 `apronOffset + apronWidth ≤ ctBlockHeight`，
+   *   否則榫眼會切到已內縮的斜面而露出腳外。
+   *
+   * 原本直接鎖成 `= ctBlockHeight` 並用 dependsOn 隱藏欄位，等於為了防呆把功能拿掉。
+   * 改成夾上限：調得動，越界才被安全截住；預設值行為不變。
+   */
+  const ctApronMaxH = Math.max(0, ctBlockHeight - apronOffset);
+  const apronWidth = legShape === "curved-taper"
+    ? Math.min(_apronWidthRaw, ctApronMaxH)
+    : _apronWidthRaw;
+  // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
+  // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板。夾上限不破壞此語意
+  const withApron = apronWidth > 0;
+  const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
