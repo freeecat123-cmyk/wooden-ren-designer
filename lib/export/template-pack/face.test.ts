@@ -61,18 +61,15 @@ describe("pickTemplateFace", () => {
       console.log(`  Face ${i}: key=${f.faceKey}, w=${f.w}, h=${f.h}, area=${f.w * f.h}`);
     });
 
-    // 如果確實有多個面，驗證 pickTemplateFace 選出的是最大面
-    if (allFaces.length > 1) {
-      const maxArea = Math.max(...allFaces.map(f => f.w * f.h));
-      const selectedFace = pickTemplateFace(part);
-      const selectedArea = selectedFace.w * selectedFace.h;
-      expect(selectedArea).toBeCloseTo(maxArea, 0);
-    } else {
-      // 如果只有一個或零個面，pickTemplateFace 應該返回有效的面
-      const selectedFace = pickTemplateFace(part);
-      expect(selectedFace.outline.length).toBeGreaterThanOrEqual(3);
-      expect(selectedFace.w).toBeGreaterThan(0);
-      expect(selectedFace.h).toBeGreaterThan(0);
-    }
+    // 前提：這個 fixture 必須真的產生多個面，否則下面的面積比較等於沒測到。
+    // 用斷言而不是 if，這樣未來幾何邏輯改動導致只剩一個面時會直接失敗，
+    // 逼人回頭修 fixture，而不是靜默退化成弱測試。
+    expect(allFaces.length).toBeGreaterThan(1);
+
+    // 驗證 pickTemplateFace 選出面積最大的面
+    const maxArea = Math.max(...allFaces.map(f => f.w * f.h));
+    const selectedFace = pickTemplateFace(part);
+    const selectedArea = selectedFace.w * selectedFace.h;
+    expect(selectedArea).toBeCloseTo(maxArea, 0);
   });
 });
