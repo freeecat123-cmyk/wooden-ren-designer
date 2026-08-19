@@ -25,11 +25,35 @@
 //   - 字型子集：直接打真正在跑的 dev server 的 `/api/pdf-font`（跟前端
 //     fetchFontSubset 走的是同一支 API，不是重新實作一份），確認這支路由
 //     本身也沒有問題。
-//   - SVG → PDF：pdf.ts 的 svgsToPdf() 需要 DOM（document.createElement /
-//     getBBox），所以這段必須在真瀏覽器裡跑。用 Playwright 開一個空白頁，
-//     把 jspdf / svg2pdf.js 的 UMD build（node_modules 內建，已裝好）用
-//     addScriptTag 注入（不需要另外起 http server），依 pdf.ts 原本的呼叫順序
-//     （addFileToVFS → addFont → svg2pdf）重建每一份 PDF。
+//   - SVG → PDF：**直接呼叫 pdf.ts 真正 export 的 svgsToPdf()**，不是拿
+//     jsPDF/svg2pdf.js 手刻一份等效邏輯（第一版曾經這樣做，被複審抓到：手刻
+//     版是「複製品」，驗證的不是生產環境真正在跑的程式碼，抓不到動過 pdf.ts
+//     本體的迴歸）。用 esbuild（tsx 的相依，node_modules 已有）把
+//     `lib/export/template-pack/pdf.ts` 連同它動態 import 的 jspdf /
+//     svg2pdf.js 一起打包成瀏覽器可用的 IIFE（write:false，直接拿記憶體
+//     內容），用 Playwright 的 `addScriptTag({ content })` 注入頁面，再呼叫
+//     真正的 `window.TemplatePackPdf.svgsToPdf(svgs, pw, ph, fontB64)`。
+//     （複審原本要求的示範案例是把隱藏容器的 `left:-99999px` 改成
+//     `display:none`——pdf.ts 檔頭註解警告這樣會讓 svg2pdf 依賴的 getBBox()
+//     在沒參與版面的元素上回傳 0、整張圖崩掉。實測＋讀 svg2pdf.js 原始碼發現
+//     這支腳本現在裝的版本（jspdf 4.2.1 / svg2pdf.js 2.7.0）文字測量走的是
+//     TextMeasure 自己建立、另外掛在 document.body 下的量測用 SVG（可用
+//     canvas measureText 或它自己 visibility:hidden 的節點），完全不依賴呼叫
+//     端傳進去的容器可不可見，所以這個特定 mutation 對目前版本已經無效——
+//     真的跑了兩次（合成 SVG + 全部四份真實 stool SVG）都是 byte-identical
+//     輸出，只有時間戳／文件 ID 不同，證據見 task-10-report.md。這不代表
+//     「複製品 vs 真代碼」的架構問題不重要：後面找到的字型註冊名稱不符
+//     （`doc.addFont(..., "PackCJK-BROKEN", ...)` 對不上 SVG 的
+//     `font-family="PackCJK"`）跟原本三個 brief mutation（字重 700→600、
+//     PROOF_RULER_MM 100→95、collectChars 漏字）這支腳本現在都真的會擋下來，
+//     證明架構本身是對的、只是 display:none 這個特定案例剛好在目前版本上
+//     已經被上游修掉了。
+//   - 逐字元覆蓋檢查：光比對幾個「具名」字串（設計名稱／零件名稱）會漏——
+//     缺字未必掉在被比對的那幾個字上（例如標題「索引」的「引」、表頭
+//     「件號」的「號」）。所以額外在 Node 端**獨立**（不重用 pdf.ts 的
+//     collectChars，避免 collectChars 本身的 bug 同時把 expected 跟 actual
+//     都算錯、互相遮掩）重新抽一次每張 SVG 應該出現的全部非空白字元，逐字
+//     比對抽出的 PDF 文字，缺一個字元就報。
 // 這樣任何人 clone 下來、npm install 後就能跑，不用手動建臨時頁面或臨時帳號。
 //
 // 用法：
@@ -43,11 +67,11 @@ const path = require("path");
 const http = require("http");
 const { execFileSync } = require("child_process");
 const { chromium } = require("playwright");
+const esbuild = require("esbuild");
 
 const ROOT = process.cwd();
 const PDFJS_DIR = path.join(ROOT, "node_modules/pdfjs-dist/build");
-const JSPDF_UMD = require.resolve("jspdf/dist/jspdf.umd.js");
-const SVG2PDF_UMD = require.resolve("svg2pdf.js/dist/svg2pdf.umd.js");
+const PDF_TS_ENTRY = path.join(ROOT, "lib/export/template-pack/pdf.ts");
 
 const HELPER_PATH = path.join(ROOT, "scripts", ".verify-template-pdf-plan.mjs");
 const PLAN_PATH = path.join(ROOT, "scripts", ".verify-template-pdf-plan.json");
@@ -77,6 +101,52 @@ import { FURNITURE_CATALOG } from "../lib/templates/index.ts";
 import { buildPackPlan } from "../lib/export/template-pack/pack.ts";
 import { indexSheetSvg } from "../lib/export/template-pack/index-sheet.ts";
 import { collectChars } from "../lib/export/template-pack/pdf.ts";
+
+// 獨立於 pdf.ts 的 collectChars 之外，自己再抽一次每張 SVG「應該」出現的
+// 非空白字元——刻意不重用 collectChars（那正是「collectChars 漏字」這種
+// 回歸要抓的對象；用同一份邏輯算 expected 跟 actual，邏輯裡的 bug 會同時
+// 錯在兩邊，測不出來）。跟 pdf.ts 的 extractTextBlocks 一樣要追蹤 <text>/
+// </text> 巢狀深度，否則 <tspan> 混雜時會漏字。
+function extractPlainChars(svgs) {
+  const set = new Set();
+  for (const svg of svgs) {
+    const openTag = /<text\\b[^>]*>/g;
+    let om;
+    while ((om = openTag.exec(svg))) {
+      const contentStart = om.index + om[0].length;
+      const tagRe = /<\\/?text\\b[^>]*>/g;
+      tagRe.lastIndex = contentStart;
+      let depth = 1;
+      let contentEnd = svg.length;
+      let afterClose = svg.length;
+      let tm;
+      while ((tm = tagRe.exec(svg))) {
+        if (tm[0].startsWith("</")) {
+          depth--;
+          if (depth === 0) {
+            contentEnd = tm.index;
+            afterClose = tm.index + tm[0].length;
+            break;
+          }
+        } else {
+          depth++;
+        }
+      }
+      const raw = svg.slice(contentStart, contentEnd).replace(/<[^>]*>/g, "");
+      const decoded = raw
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, "&");
+      for (const ch of decoded) {
+        if (!/\\s/.test(ch)) set.add(ch);
+      }
+      openTag.lastIndex = afterClose;
+    }
+  }
+  return Array.from(set);
+}
 
 const category = process.argv[2];
 const outPath = process.argv[3];
@@ -108,20 +178,29 @@ if (plan.rows.length === 0) {
 const indexSvgs = indexSheetSvg(design.nameZh.replace(/[\\\\/:*?"<>|]/g, "_"), plan.rows);
 
 const sheets = [];
-sheets.push({ name: "00_索引", pw: 210, ph: 297, svgs: indexSvgs, hasRuler: false });
+sheets.push({
+  name: "00_索引",
+  pw: 210,
+  ph: 297,
+  svgs: indexSvgs,
+  hasRuler: false,
+  expectedChars: extractPlainChars(indexSvgs),
+});
 
 let n = 1;
 for (const [key, list] of plan.byPaper) {
   const { paper, swapped } = list[0].placement;
   const pw = swapped ? paper.h : paper.w;
   const ph = swapped ? paper.w : paper.h;
+  const svgs = list.map((x) => x.svg);
   sheets.push({
     name: \`\${String(n).padStart(2, "0")}_樣板_\${key}\`,
     pw,
     ph,
-    svgs: list.map((x) => x.svg),
+    svgs,
     hasRuler: true,
     partNames: list.map((x) => x.row.nameZh),
+    expectedChars: extractPlainChars(svgs),
   });
   n++;
 }
@@ -174,40 +253,30 @@ async function fetchFontSubsetB64(origin, chars) {
 // 不打包 zip——直接驗證每份 PDF，比對照 UI 下載再解壓更直接，省一層
 // zip round-trip 的變數；zipStore 本身是純函式，跟這裡要驗證的三件事無關。
 
-/** 用 jsPDF + svg2pdf.js（UMD build，跟 pdf.ts 用的是同一個 npm 套件）在真瀏覽器
- *  裡重建一份 PDF，回傳 base64。呼叫順序完全對齊 pdf.ts 的 svgsToPdf()。 */
+/** 用 esbuild 把 pdf.ts（連同它動態 import 的 jspdf / svg2pdf.js）打包成
+ *  瀏覽器可用的 IIFE，globalName 是 TemplatePackPdf，export 出
+ *  svgsToPdf / collectChars / fetchFontSubset / FontSubsetError。
+ *  write:false 直接拿記憶體內容，不落地成檔案。 */
+async function bundlePdfTs() {
+  const result = await esbuild.build({
+    entryPoints: [PDF_TS_ENTRY],
+    bundle: true,
+    format: "iife",
+    globalName: "TemplatePackPdf",
+    platform: "browser",
+    write: false,
+    absWorkingDir: ROOT,
+  });
+  return result.outputFiles[0].text;
+}
+
+/** 呼叫真正的 window.TemplatePackPdf.svgsToPdf(...)（不是手刻等效邏輯），
+ *  回傳 base64。這是這支腳本對「SVG → PDF」這一步唯一的迴歸保護：任何
+ *  動過 pdf.ts 本體（DOM 隱藏方式、字型註冊順序……）的問題都會在這裡冒出來。 */
 async function buildPdfB64(page, sheet, fontB64) {
   return page.evaluate(
     async ([svgs, pw, ph, fontB64]) => {
-      const { jsPDF } = window.jspdf;
-      const { svg2pdf } = window.svg2pdf;
-
-      const doc = new jsPDF({
-        unit: "mm",
-        format: [pw, ph],
-        orientation: pw >= ph ? "landscape" : "portrait",
-      });
-      doc.addFileToVFS("PackCJK.ttf", fontB64);
-      doc.addFont("PackCJK.ttf", "PackCJK", "normal");
-      doc.addFont("PackCJK.ttf", "PackCJK", "bold");
-      doc.setFont("PackCJK");
-
-      const box = document.createElement("div");
-      box.style.cssText = "position:absolute;left:-99999px;top:0";
-      document.body.appendChild(box);
-      try {
-        for (let i = 0; i < svgs.length; i++) {
-          if (i > 0) doc.addPage([pw, ph], pw >= ph ? "landscape" : "portrait");
-          box.innerHTML = svgs[i];
-          const el = box.querySelector("svg");
-          if (!el) throw new Error("SVG 解析失敗");
-          await svg2pdf(el, doc, { x: 0, y: 0, width: pw, height: ph });
-          await new Promise((r) => setTimeout(r, 0));
-        }
-      } finally {
-        box.remove();
-      }
-      const bytes = new Uint8Array(doc.output("arraybuffer"));
+      const bytes = await window.TemplatePackPdf.svgsToPdf(svgs, pw, ph, fontB64);
       let s = "";
       for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
       return btoa(s);
@@ -306,8 +375,8 @@ async function runVerification(browser, plan, fontB64) {
     if (msg.type() === "error") buildErrors.push(msg.text());
   });
   await buildPage.setContent("<!doctype html><html><body></body></html>");
-  await buildPage.addScriptTag({ path: JSPDF_UMD });
-  await buildPage.addScriptTag({ path: SVG2PDF_UMD });
+  const pdfTsBundle = await bundlePdfTs();
+  await buildPage.addScriptTag({ content: pdfTsBundle });
 
   const pdfB64ByName = {};
   for (const sheet of plan.sheets) {
@@ -353,6 +422,19 @@ async function runVerification(browser, plan, fontB64) {
         }
       }
 
+      // 逐字元比對，不只查具名字串——字重/字型子集漏字時，掉的字未必落在上面
+      // 挑的那幾個名稱裡（例如標題「索引」的「引」、表頭「件號」的「號」），
+      // 只查具名字串會漏抓。expectedChars 是在 Node 端獨立重新抽取的（不共用
+      // pdf.ts 的 collectChars），才不會「算 expected 跟算 actual 用同一份
+      // 有 bug 的邏輯」而互相遮掩。
+      const missingChars = (sheet.expectedChars || []).filter((ch) => !result.text.includes(ch));
+      if (missingChars.length) {
+        failures.push(
+          `✕ ${sheet.name}.pdf 抽出的文字裡完全找不到這些字元：「${missingChars.join("")}」—— 可能被字型子集或 svg2pdf 靜默吞掉\n` +
+            `     實際抽出：${result.text.slice(0, 300)}`,
+        );
+      }
+
       if (sheet.hasRuler && (result.rulerMm == null || Math.abs(result.rulerMm - 100) >= 0.5)) {
         failures.push(`✕ ${sheet.name}.pdf 證明尺量到 ${result.rulerMm?.toFixed(2)}mm，超出 100±0.5mm`);
       }
@@ -392,7 +474,7 @@ async function main() {
   const fontB64 = await fetchFontSubsetB64(origin, plan.chars);
   console.log(`  字型子集：${Buffer.from(fontB64, "base64").length} bytes（原始請求 ${plan.chars.length} 個字元）`);
 
-  console.log("[3/4] 開真瀏覽器，用專案實際用的 jsPDF + svg2pdf.js（UMD build）產生每份 PDF …");
+  console.log("[3/4] 用 esbuild 打包真正的 pdf.ts、開真瀏覽器呼叫真正的 svgsToPdf() 產生每份 PDF …");
   const browser = await chromium.launch();
   let failures, results;
   try {
