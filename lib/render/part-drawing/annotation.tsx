@@ -3172,7 +3172,7 @@ function ArchBentChord({
           textAnchor="end"
           dominantBaseline="middle"
           fill={stroke}
-          fontWeight={600}
+          fontWeight={700}
           fontSize={9}
         >
           毛料厚 ≥ {envThick}
@@ -3370,7 +3370,7 @@ function SplayedTrueLength({
 
   return (
     <g className="splayed-true-length" style={{ fontSize: 7.5 }}>
-      <text x={x0} y={y0} fontSize={8} fontWeight={600} fill="#111">
+      <text x={x0} y={y0} fontSize={8} fontWeight={700} fill="#111">
         {splayType}腳
       </text>
       <text x={x0} y={y0 + lineH * 1} fill="#374151">
@@ -3917,7 +3917,7 @@ export function ChamferRoundAnnotation({
         fontSize={10}
         fill="#111"
         fontFamily="sans-serif"
-        fontWeight={600}
+        fontWeight={700}
       >
         {label}
       </text>
@@ -4062,7 +4062,7 @@ export function SawSetupTable({
         x={x0 + colW[0] / 2}
         y={yHeader - 1.5}
         fontSize={3.2}
-        fontWeight={600}
+        fontWeight={700}
         textAnchor="middle"
         fill="#111"
       >
@@ -4072,7 +4072,7 @@ export function SawSetupTable({
         x={xCol1 + colW[1] / 2}
         y={yHeader - 1.5}
         fontSize={3.2}
-        fontWeight={600}
+        fontWeight={700}
         textAnchor="middle"
         fill="#111"
       >
@@ -4082,7 +4082,7 @@ export function SawSetupTable({
         x={xCol2 + colW[2] / 2}
         y={yHeader - 1.5}
         fontSize={3.2}
-        fontWeight={600}
+        fontWeight={700}
         textAnchor="middle"
         fill="#111"
       >
