@@ -878,6 +878,7 @@ git commit -m "feat(樣板): 中文字型即時子集 API
 - Consumes: `templateSheetSvg`(Task 3)、`/api/pdf-font`(Task 5)
 - Produces:
   - `collectChars(svgs: string[]): string`
+  - `fetchFontSubset(svgs: string[]): Promise<string>`(回 base64 TTF)
   - `svgsToPdf(svgs: string[], pageWmm: number, pageHmm: number, fontB64: string): Promise<Uint8Array>`
 
 - [ ] **Step 1: 寫失敗的測試(純函式)**
@@ -1174,39 +1175,60 @@ git commit -m "feat(樣板): 索引封面 — 每件印在哪張紙、什麼角�
 ```ts
 import { describe, it, expect } from "vitest";
 import { getTemplate } from "@/lib/templates";
+import type { FurnitureCatalogEntry } from "@/lib/templates";
+import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { buildPackPlan } from "./pack";
+
+/**
+ * 用範本預設值建一個 design。
+ * entry.template 本身就是 builder 函式（不是帶 .build 的物件），
+ * options 取 optionSchema 的 defaultValue —— 跟 scripts/audit-overlaps.ts 同一套。
+ */
+function buildDefaultDesign(category: FurnitureCategory): FurnitureDesign {
+  const entry = getTemplate(category) as FurnitureCatalogEntry | undefined;
+  if (!entry?.template) throw new Error(`找不到範本：${category}`);
+  const options = (entry.optionSchema ?? []).reduce<Record<string, string | number | boolean>>(
+    (acc, spec: OptionSpec) => {
+      acc[spec.key] = spec.defaultValue;
+      return acc;
+    },
+    {},
+  );
+  return entry.template({
+    length: entry.defaults.length,
+    width: entry.defaults.width,
+    height: entry.defaults.height,
+    material: "maple" as MaterialId,
+    options,
+  });
+}
 
 describe("buildPackPlan", () => {
   it("方凳：每個零件都有一列，凳腳落在 A3", () => {
-    const entry = getTemplate("stool");
-    const design = entry!.template!.build(entry!.template!.defaults);
-    const plan = buildPackPlan(design);
+    const plan = buildPackPlan(buildDefaultDesign("stool"));
     expect(plan.rows.length).toBeGreaterThan(0);
     const leg = plan.rows.find((r) => r.nameZh.includes("腳"));
     expect(leg?.placement?.paper.id).toBe("A3");
   });
 
   it("依紙張分組，同一種紙的零件收在同一組", () => {
-    const entry = getTemplate("stool");
-    const design = entry!.template!.build(entry!.template!.defaults);
-    const plan = buildPackPlan(design);
+    const plan = buildPackPlan(buildDefaultDesign("stool"));
     const total = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
     const placeable = plan.rows.filter((r) => r.placement).length;
     expect(total).toBe(placeable);
   });
 
-  it("書桌桌面板落在退回零件圖那組", () => {
-    const entry = getTemplate("desk");
-    const design = entry!.template!.build(entry!.template!.defaults);
-    const plan = buildPackPlan(design);
+  it("書桌桌面板太大 → placement 為 null（退回零件圖）", () => {
+    const plan = buildPackPlan(buildDefaultDesign("desk"));
     const topRow = plan.rows.find((r) => Math.max(r.wmm, r.hmm) > 1000);
+    expect(topRow).toBeDefined();
     expect(topRow?.placement).toBeNull();
   });
 });
 ```
 
-> 註:`getTemplate` 與 `template.build(defaults)` 的實際簽名以 `lib/templates/index.ts` 為準,
-> 若不符請照該檔調整這三個測試的 design 取得方式,斷言內容不變。
+> 註:`OptionSpec` 若不在 `@/lib/types`,改從 `@/lib/templates` 匯入(依 `scripts/audit-overlaps.ts`
+> 的實際 import 路徑為準)。斷言內容不變。
 
 - [ ] **Step 2: 跑測試確認失敗**
 
@@ -1357,8 +1379,7 @@ git commit -m "feat(樣板): 組包與下載 — 依紙張分檔、索引封面�
 
 import { useMemo, useState } from "react";
 import type { FurnitureDesign } from "@/lib/types";
-import { buildPackPlan } from "@/lib/export/template-pack/pack";
-import { downloadTemplatePack } from "@/lib/export/template-pack/pack";
+import { buildPackPlan, downloadTemplatePack } from "@/lib/export/template-pack/pack";
 
 export function TemplatePackButton({ design }: { design: FurnitureDesign }) {
   const [busy, setBusy] = useState(false);
