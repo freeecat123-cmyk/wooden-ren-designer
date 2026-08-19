@@ -8,7 +8,7 @@ import { buildPackPlan, downloadTemplatePack } from "@/lib/export/template-pack/
  * 1:1 實尺樣板下載——列印後貼在木料上照著描輪廓、點榫孔中心。太大的零件
  * 會自動退回既有的比例零件圖（buildPackPlan 內部處理，這裡只顯示退回件數）。
  *
- * 效能：buildPackPlan 對每個零件呼叫 pickTemplateFace 並產生完整樣板 SVG，
+ * 效能：buildPackPlan 對每個零件呼叫 pickTemplateFaces（每個加工面各一張）並產生完整樣板 SVG，
  * 但實測零件數最多的家具（chest-of-drawers 56 件、wardrobe 47 件）中位數
  * 分別 3.86ms／1.95ms（5 次量測，scripts 見 task-9-report.md），遠低於
  * 50ms 門檻，用 useMemo 在 render 期間算沒問題，不用等使用者點開才算。
@@ -52,7 +52,7 @@ export function TemplatePackButton({ design }: { design: FurnitureDesign }) {
         onClick={go}
         disabled={busy || sheetCount === 0}
         className="px-2.5 py-1 border border-sky-400 rounded-md bg-white hover:border-sky-500 hover:bg-sky-50 text-sky-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="每個零件一張 1:1 實尺樣板 PDF（依紙張大小分檔），打包 ZIP。列印後貼在木料上照著描輪廓、點榫孔中心。太大的零件會自動退回零件圖（比例縮尺，需自行放樣）。"
+        title="每個零件的每個加工面各一張 1:1 實尺樣板 PDF（依紙張大小分檔），打包 ZIP。列印後貼在木料上照著描輪廓、點榫孔中心。太大的零件會自動退回零件圖（比例縮尺，需自行放樣）。"
       >
         {busy
           ? progress

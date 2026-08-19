@@ -6,8 +6,10 @@
 //   2) PDF 內嵌的中文是「這批樣板真正的文字」，不是被靜默換成 Helvetica 的亂碼——
 //      這條管線踩過的雷是：字重 / 缺字時 svg2pdf 會靜默 fallback 或吞字，不報錯。
 //      所以這裡不只檢查「有中文」，要比對抽出的文字含有預期的中文字串。
-//   3) 樣板紙面左下角那條 100mm 證明尺，用 pdf.js 光柵化後量出來的實際長度
-//      誤差 < 0.5mm——這是整個功能的命脈，木工照著這條尺描，尺寸錯了就切錯料。
+//   3) 樣板紙面那條 100mm 證明尺，用 pdf.js 光柵化後量出來的實際長度誤差 < 0.5mm
+//      ——這是整個功能的命脈，木工照著這條尺描，尺寸錯了就切錯料。
+//      尺的位置不固定（會自動避開內容、必要時轉成直式），量測位置讀 SVG 自報的
+//      `data-ruler-box`；主線是灰色虛線，所以量的是兩端實線刻度之間的涵蓋範圍。
 //
 // 權限繞道說明（brief 沒交代、這裡補上判斷過程見 task-10-report.md）：
 // 下載按鈕鎖在 `isAdmin || getPlanFeatures(profile).canDownloadPdf` 後面。專案
@@ -34,8 +36,9 @@
 //     內容），用 Playwright 的 `addScriptTag({ content })` 注入頁面，再呼叫
 //     真正的 `window.TemplatePackPdf.svgsToPdf(svgs, pw, ph, fontB64)`。
 //     （複審原本要求的示範案例是把隱藏容器的 `left:-99999px` 改成
-//     `display:none`——pdf.ts 檔頭註解警告這樣會讓 svg2pdf 依賴的 getBBox()
-//     在沒參與版面的元素上回傳 0、整張圖崩掉。實測＋讀 svg2pdf.js 原始碼發現
+//     `display:none`——pdf.ts 檔頭當時的註解警告這樣會讓 svg2pdf 依賴的 getBBox()
+//     在沒參與版面的元素上回傳 0、整張圖崩掉（該註解已於 2026-08-19 依下述實測
+//     結果改寫成誠實版本）。實測＋讀 svg2pdf.js 原始碼發現
 //     這支腳本現在裝的版本（jspdf 4.2.1 / svg2pdf.js 2.7.0）文字測量走的是
 //     TextMeasure 自己建立、另外掛在 document.body 下的量測用 SVG（可用
 //     canvas measureText 或它自己 visibility:hidden 的節點），完全不依賴呼叫
@@ -175,6 +178,13 @@ if (plan.rows.length === 0) {
   process.exit(1);
 }
 
+/** 樣板 SVG 自報的證明尺保留框 —— 尺不再固定在左下角（會自動避開內容、必要時轉直式），
+ *  光柵化端要照這個框去量，不能再假設位置。 */
+function parseRulerBox(svg) {
+  const m = svg.match(/data-ruler-box="([-\\d.]+) ([-\\d.]+) ([-\\d.]+) ([-\\d.]+)"/);
+  return m ? { x0: +m[1], y0: +m[2], x1: +m[3], y1: +m[4] } : null;
+}
+
 const indexSvgs = indexSheetSvg(design.nameZh.replace(/[\\\\/:*?"<>|]/g, "_"), plan.rows);
 
 const sheets = [];
@@ -199,6 +209,7 @@ for (const [key, list] of plan.byPaper) {
     ph,
     svgs,
     hasRuler: true,
+    rulerBox: parseRulerBox(svgs[0]),
     partNames: list.map((x) => x.row.nameZh),
     expectedChars: extractPlainChars(svgs),
   });
@@ -310,9 +321,9 @@ function startPdfjsServer() {
 }
 
 /** 光柵化一份 PDF：抽全部頁的文字，並在第一頁量 100mm 證明尺（若 hasRuler）。 */
-async function rasterizeAndMeasure(page, port, b64, hasRuler) {
+async function rasterizeAndMeasure(page, port, b64, hasRuler, rulerBox) {
   return page.evaluate(
-    async ([b64, port, hasRuler]) => {
+    async ([b64, port, hasRuler, rulerBox]) => {
       const pdfjs = await import(`http://localhost:${port}/pdf.mjs`);
       pdfjs.GlobalWorkerOptions.workerSrc = `http://localhost:${port}/pdf.worker.mjs`;
       const raw = atob(b64);
@@ -338,30 +349,45 @@ async function rasterizeAndMeasure(page, port, b64, hasRuler) {
         const text = (await pdfPage.getTextContent()).items.map((i) => i.str).join("|");
         fullText += text + "|";
 
-        if (hasRuler && pageNo === 1) {
-          // 證明尺畫在 y = pageH-10mm、x = 10..110mm。掃該處上下各 3mm 的帶狀區，
-          // 找最長的水平深色連續段。
+        if (hasRuler && pageNo === 1 && rulerBox) {
+          // 尺不再固定在左下角、也可能是直式，位置由 SVG 的 data-ruler-box 告訴我們。
+          // 主線是虛線（灰色，跟要描的黑色輪廓區隔），所以不能量「最長連續深色段」
+          // ——那只會量到一小節虛線。改量兩端實線刻度之間的「涵蓋範圍」：
+          // 沿尺的軸向掃 ±2.5mm 的窄帶（正好含主線與端點刻度，排除上方那行說明字），
+          // 取最外側兩個深色像素的距離。
           const pxPerMm = (SCALE * 72) / 25.4;
-          const pageHmm = vp.height / pxPerMm;
-          const yc = Math.round((pageHmm - 10) * pxPerMm);
-          const band = Math.round(3 * pxPerMm);
-          let best = 0;
-          for (let y = yc - band; y <= yc + band; y++) {
-            if (y < 0 || y >= c.height) continue;
-            const row = ctx.getImageData(0, y, c.width, 1).data;
-            let run = 0;
-            for (let x = 0; x < c.width; x++) {
-              const dark = row[x * 4] < 128 && row[x * 4 + 1] < 128 && row[x * 4 + 2] < 128;
-              run = dark ? run + 1 : 0;
-              if (run > best) best = run;
+          const vertical = rulerBox.y1 - rulerBox.y0 > rulerBox.x1 - rulerBox.x0;
+          // 主線軸：橫式在框底往上 2.5mm，直式在框右往左 2.5mm
+          const axis = vertical ? rulerBox.x1 - 2.5 : rulerBox.y1 - 2.5;
+          const band = Math.round(2.5 * pxPerMm);
+          const axisPx = Math.round(axis * pxPerMm);
+          // 沿軸向只掃「尺自己那一段 ± 6mm」。掃整條線會撈到別處的內容（斜擺的腳
+          // 下端剛好落在同一個 y，量出來變成腳到尺的距離 244mm）；留 6mm 餘裕是
+          // 為了讓「線畫得比宣告的框還長」這種錯誤仍然量得出來。
+          const spanLo = Math.max(0, Math.floor(((vertical ? rulerBox.y0 : rulerBox.x0) - 6) * pxPerMm));
+          const spanHi = Math.ceil(((vertical ? rulerBox.y1 : rulerBox.x1) + 6) * pxPerMm);
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (let k = axisPx - band; k <= axisPx + band; k++) {
+            if (k < 0) continue;
+            const line = vertical
+              ? (k < c.width ? ctx.getImageData(k, 0, 1, c.height).data : null)
+              : (k < c.height ? ctx.getImageData(0, k, c.width, 1).data : null);
+            if (!line) continue;
+            const n = Math.min(vertical ? c.height : c.width, spanHi + 1);
+            for (let i = spanLo; i < n; i++) {
+              const dark = line[i * 4] < 160 && line[i * 4 + 1] < 160 && line[i * 4 + 2] < 160;
+              if (!dark) continue;
+              if (i < lo) lo = i;
+              if (i > hi) hi = i;
             }
           }
-          rulerMm = best / pxPerMm;
+          rulerMm = hi >= lo ? (hi - lo) / pxPerMm : null;
         }
       }
       return { text: fullText, rulerMm, numPages: doc.numPages };
     },
-    [b64, port, hasRuler],
+    [b64, port, hasRuler, rulerBox || null],
   );
 }
 
@@ -401,7 +427,7 @@ async function runVerification(browser, plan, fontB64) {
     const results = [];
 
     for (const sheet of plan.sheets) {
-      const result = await rasterizeAndMeasure(checkPage, port, pdfB64ByName[sheet.name], sheet.hasRuler);
+      const result = await rasterizeAndMeasure(checkPage, port, pdfB64ByName[sheet.name], sheet.hasRuler, sheet.rulerBox);
       results.push({ name: sheet.name, ...result });
 
       const cjkOk = /[一-鿿]/.test(result.text);

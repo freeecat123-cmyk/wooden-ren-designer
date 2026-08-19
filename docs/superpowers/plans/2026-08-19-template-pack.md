@@ -19,7 +19,7 @@
 - **兩段式紙張上限**:面板類(`categorizePart` 回 `case` / `divider` / `seat` / `door`)上限 **A2**;其餘(`leg` / `apron` / `drawer` / `misc`)上限 **A0**
 - **塞不下不拼接**,回 `null`,由呼叫端歸類為「退回既有比例零件圖」
 - **`font-weight` 只能是 400 或 700**。`svg2pdf` 遇到 500 / 600 會靜默改用 Helvetica,中文變亂碼且不報錯
-- **隱藏容器必須用 `position:absolute; left:-99999px`**,絕不可用 `display:none` —— `svg2pdf` 依賴 `getBBox()`,元素未參與版面時回傳 0
+- **隱藏容器用 `position:absolute; left:-99999px`**(防禦性寫法,不是硬性依賴)。2026-08-19 在釘住的 jspdf 4.2.1 / svg2pdf.js 2.7.0 上實測:改成 `display:none` 產出的 PDF 去掉 `/CreationDate` 與 `/ID` 後 byte-identical——這版 svg2pdf 的文字量測走自己掛在 `document.body` 下的節點,舊版那個「`getBBox()` 在未參與版面的元素上回 0」的地雷已被上游修掉。保留只因零成本、且可防未來升版又改回去
 - **輪廓 stroke 寬 0.3mm**。`parts-svg.ts` 的 `CUT_STROKE_MM = 0.1` 是雷切 hairline 慣例,列印看不清楚,樣板不沿用
 - **不得修改** `app/[locale]/design/[type]/print/` 與 `lib/render/part-drawing/` 的版面(唯一例外是 Task 4 的字重正規化)
 - API route 一律 `export const runtime = "nodejs"`(專案慣例)
@@ -946,8 +946,10 @@ export async function fetchFontSubset(svgs: string[]): Promise<string> {
 /**
  * 同一種紙張的多張 SVG → 一份多頁 PDF。
  *
- * ⚠️ 隱藏容器必須用 left:-99999px，不可用 display:none ——
- *    svg2pdf 依賴 getBBox()，元素沒有參與版面時回傳 0，整張圖會崩掉。
+ * ℹ️ 隱藏容器用 left:-99999px 而不是 display:none —— 防禦性寫法，不是硬性依賴。
+ *    2026-08-19 在釘住的 jspdf 4.2.1 / svg2pdf.js 2.7.0 上實測：兩種寫法產出的 PDF
+ *    去掉 /CreationDate 與 /ID 後 byte-identical（這版 svg2pdf 的文字量測走自己掛在
+ *    document.body 下的節點，不看呼叫端容器可不可見）。
  * ⚠️ SVG 內的 font-family 必須是 "PackCJK"（sheet.ts 已這樣寫），
  *    否則 svg2pdf 會去找 helvetica，中文變亂碼。
  */
@@ -1001,8 +1003,8 @@ Expected: PASS
 git add lib/export/template-pack/pdf.ts lib/export/template-pack/pdf.test.ts
 git commit -m "feat(樣板): SVG → PDF 管線（jsPDF + svg2pdf）
 
-隱藏容器用 left:-99999px 而非 display:none —— svg2pdf 依賴 getBBox()，
-元素不參與版面時回傳 0。每張之間讓出主執行緒避免 UI 卡死。"
+隱藏容器用 left:-99999px 而非 display:none（防禦性寫法；實測兩者輸出
+byte-identical）。每張之間讓出主執行緒避免 UI 卡死。"
 ```
 
 ---

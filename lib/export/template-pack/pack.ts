@@ -6,7 +6,7 @@ import { categorizePart } from "@/lib/render/categorize-part";
 import { zipStore } from "@/lib/export/zip-store";
 import { ladderFor } from "./paper";
 import { placeOnLadder, type Placement } from "./fit";
-import { pickTemplateFace } from "./face";
+import { pickTemplateFaces } from "./face";
 import { templateSheetSvg } from "./sheet";
 import { indexSheetSvg, type PackRow } from "./index-sheet";
 import { fetchFontSubset, svgsToPdf, FontSubsetError } from "./pdf";
@@ -25,28 +25,40 @@ export function buildPackPlan(design: FurnitureDesign): PackPlan {
 
   groups.forEach((g, i) => {
     const part = g.representative;
-    const face = pickTemplateFace(part, derivedMap.get(part.id) ?? []);
-    const placement = placeOnLadder(face.w, face.h, ladderFor(categorizePart(part.id)));
-    const row: PackRow = {
-      partNo: `P-${String(i + 1).padStart(2, "0")}`,
-      nameZh: groupDisplayName(g, "zh-TW"),
-      qty: Math.min(g.count, 99),
-      wmm: face.w,
-      hmm: face.h,
-      placement,
-    };
-    rows.push(row);
-    if (!placement) return;
-    const key = `${placement.paper.id}${placement.swapped ? "-P" : ""}`;
-    const svg = templateSheetSvg({
-      face,
-      placement,
-      partNo: row.partNo,
-      nameZh: row.nameZh,
-      qty: row.qty,
+    // 每個加工面各一張樣板。一隻腳兩個相鄰內側面各接一片牙板時，只印面積最大的
+    // 那面 = 另一面的榫孔在紙上完全不存在（全 catalog 實測會吃掉 291 個孔）。
+    const faces = pickTemplateFaces(part, derivedMap.get(part.id) ?? []);
+    const baseNo = `P-${String(i + 1).padStart(2, "0")}`;
+    faces.forEach((face, fi) => {
+      // 單面維持 P-01；多面加尾碼 P-01a / P-01b…（faces 最多 6 個，不會超出 a–f）
+      const partNo = faces.length > 1 ? `${baseNo}${String.fromCharCode(97 + fi)}` : baseNo;
+      const placement = placeOnLadder(face.w, face.h, ladderFor(categorizePart(part.id)));
+      const row: PackRow = {
+        partNo,
+        nameZh: groupDisplayName(g, "zh-TW"),
+        faceLabelZh: face.faceLabelZh,
+        faceIndex: fi,
+        faceCount: faces.length,
+        qty: Math.min(g.count, 99),
+        wmm: face.w,
+        hmm: face.h,
+        placement,
+      };
+      rows.push(row);
+      if (!placement) return;
+      const key = `${placement.paper.id}${placement.swapped ? "-P" : ""}`;
+      const svg = templateSheetSvg({
+        face,
+        placement,
+        partNo: row.partNo,
+        nameZh: row.nameZh,
+        qty: row.qty,
+        faceIndex: fi,
+        faceCount: faces.length,
+      });
+      if (!byPaper.has(key)) byPaper.set(key, []);
+      byPaper.get(key)!.push({ placement, row, svg });
     });
-    if (!byPaper.has(key)) byPaper.set(key, []);
-    byPaper.get(key)!.push({ placement, row, svg });
   });
 
   return { rows, byPaper };

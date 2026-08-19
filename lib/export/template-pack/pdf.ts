@@ -91,8 +91,12 @@ export async function fetchFontSubset(svgs: string[]): Promise<string> {
 /**
  * 同一種紙張的多張 SVG → 一份多頁 PDF。
  *
- * ⚠️ 隱藏容器必須用 left:-99999px，不可用 display:none ——
- *    svg2pdf 依賴 getBBox()，元素沒有參與版面時回傳 0，整張圖會崩掉。
+ * ℹ️ 隱藏容器用 left:-99999px 而不是 display:none —— 這是防禦性寫法，不是硬性依賴。
+ *    2026-08-19 在目前釘住的 jspdf 4.2.1 / svg2pdf.js 2.7.0 上實測過：兩種寫法產出的
+ *    PDF 去掉 /CreationDate 與 /ID 後 byte-identical。這版 svg2pdf 的文字量測走自己掛在
+ *    document.body 下的量測節點，不看呼叫端傳進來的容器可不可見，舊版那個「getBBox() 在
+ *    未參與版面的元素上回 0」的地雷已被上游修掉。保留只因零成本、且可防未來升版又改回去。
+ *    要改成 display:none 的話，先跑 `npm run verify:template` 比對輸出。
  * ⚠️ SVG 內的 font-family 必須是 "PackCJK"（sheet.ts 已這樣寫），
  *    否則 svg2pdf 會去找 helvetica，中文變亂碼。
  * ⚠️ 目前只有 Noto Sans TC Regular 一種粗細，normal / bold 都註冊同一支字型檔——

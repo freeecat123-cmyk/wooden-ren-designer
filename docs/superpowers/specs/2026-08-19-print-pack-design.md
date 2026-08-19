@@ -156,7 +156,11 @@ bh = w·sinθ + h·cosθ
 
 1. `renderToStaticMarkup(<TemplateSheet .../>)` → SVG 字串
 2. 注入隱藏容器:`position:absolute; left:-99999px`
-   **不可用 `display:none`** —— `svg2pdf` 依賴 `getBBox()`,元素未參與版面時回傳 0
+   這是**防禦性寫法,不是硬性依賴**。2026-08-19 在釘住的 jspdf 4.2.1 / svg2pdf.js 2.7.0
+   上實測:改成 `display:none` 產出的 PDF 去掉 `/CreationDate` 與 `/ID` 後 byte-identical
+   ——這版 svg2pdf 的文字量測走自己掛在 `document.body` 下的節點,不看呼叫端容器可不可見,
+   舊版那個「`getBBox()` 在未參與版面的元素上回 0」的地雷已被上游修掉。保留只因零成本、
+   且可防未來升版又改回去;真要改先跑 `npm run verify:template` 比對輸出
 3. `svg2pdf(el, doc, {...})`
 4. 每種紙開一份 `jsPDF({ unit:'mm', format:[W,H] })`,同尺寸的多張用 `addPage()`
 
@@ -199,7 +203,7 @@ zip 檔名:`{家具名}_實尺樣板_{日期}.zip`
 | 風險 | 對策 |
 |---|---|
 | `font-weight` 中間值靜默亂碼 | 加測試掃 `fontWeight={5xx/6xx}`;PDF 產出後斷言中文字串完整 |
-| `getBBox()` 在隱藏容器回 0 | 明定 `left:-99999px`,加測試斷言 bbox 非 0 |
+| `getBBox()` 在隱藏容器回 0 | 已於 jspdf 4.2.1 / svg2pdf.js 2.7.0 實測不成立(見 §6.4);仍用 `left:-99999px` 當防禦性寫法 |
 | 印表機自動縮放導致樣板不是實尺 | 100mm 證明尺 + 索引頁提醒「列印時務必選『實際大小 / 100%』,不要選『縮放至頁面大小』」 |
 | 細長零件名稱塞不進輪廓 | 輪廓內可用寬度 < 12mm 時改放輪廓外加引線 |
 | 大型家具零件多,前端產 PDF 卡 UI | 分批 `await` 讓出主執行緒,顯示進度 |

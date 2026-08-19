@@ -3976,7 +3976,7 @@ function OrthoViewImpl({
                   textAnchor="middle"
                   fontSize={11}
                   fill="#7a5a2b"
-                  fontWeight="600"
+                  fontWeight="700"
                 >
                   {isEn ? "Opening" : "內框口"} {dimMm(pf.openX)}×{dimMm(pf.openZ)}
                 </text>
@@ -4045,7 +4045,7 @@ function OrthoViewImpl({
                   textAnchor="middle"
                   fontSize={11}
                   fill="#7a5a2b"
-                  fontWeight="600"
+                  fontWeight="700"
                   fontFamily="sans-serif"
                   pointerEvents="none"
                 >
@@ -4713,7 +4713,7 @@ function OrthoViewImpl({
                         textAnchor="middle"
                         fontSize={11}
                         fill="#7a5a2b"
-                        fontWeight="600"
+                        fontWeight="700"
                       >
                         {isEn ? "Diamond" : "菱形"} Ø{dimMm(inscribed)}
                       </text>
@@ -4738,7 +4738,7 @@ function OrthoViewImpl({
                       textAnchor="middle"
                       fontSize={11}
                       fill="#7a5a2b"
-                      fontWeight="600"
+                      fontWeight="700"
                     >
                       {isEn ? "Cell" : "格"} {dimMm(rectNet)}×{dimMm(rectNet)}
                     </text>
@@ -4884,7 +4884,7 @@ function OrthoViewImpl({
               textAnchor="middle"
               fontSize={10}
               fill="#7a5a2b"
-              fontWeight="600"
+              fontWeight="700"
               fontFamily="sans-serif"
               pointerEvents="none"
             >
@@ -4900,7 +4900,7 @@ function OrthoViewImpl({
             textAnchor="middle"
             fontSize={10}
             fill="#7a5a2b"
-            fontWeight="600"
+            fontWeight="700"
             fontFamily="sans-serif"
             pointerEvents="none"
           >
@@ -5087,7 +5087,7 @@ export function DimensionLine({
         y={y - 5}
         textAnchor="middle"
         fontSize={13}
-        fontWeight="600"
+        fontWeight="700"
         stroke="none"
       >
         {label}
@@ -5137,7 +5137,7 @@ export function VerticalDimensionLine({
         textAnchor={x >= 0 ? "start" : "end"}
         dominantBaseline="middle"
         fontSize={13}
-        fontWeight="600"
+        fontWeight="700"
         stroke="none"
       >
         {label}
