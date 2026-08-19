@@ -1,12 +1,61 @@
 // SVG 字串 → PDF。用 jsPDF + svg2pdf.js，紙張尺寸精準到 mm。
 // 兩個實測踩過的坑寫在下面，改動前先讀。
 
-/** 從 SVG 字串抽出所有 <text>/<tspan> 的文字內容字元（去重）。 */
+/**
+ * 找出 svg 字串裡每一個 <text ...> 到其「對應」的 </text> 之間的區段（原始字串，未去標籤）。
+ *
+ * 不用一次到位的 regex 硬解巢狀標籤 —— <text>abc<tspan>def</tspan>ghi</text> 這種案例，
+ * 非貪婪 regex 撞到第一個 </tspan> 就會誤判成 <text> 的收尾，把 ghi 漏掉。
+ * 改成手動追蹤 <text>/</text> 的巢狀深度找到「真正對應」的收尾，中間不管有幾層 <tspan> 都算進區段內，
+ * 之後統一用 replace(/<[^>]*>/g, "") 把區段內所有標籤（含 tspan）剝掉即可。
+ */
+function extractTextBlocks(svg: string): string[] {
+  const blocks: string[] = [];
+  const openTag = /<text\b[^>]*>/g;
+  let om: RegExpExecArray | null;
+  while ((om = openTag.exec(svg))) {
+    const contentStart = om.index + om[0].length;
+    const tagRe = /<\/?text\b[^>]*>/g;
+    tagRe.lastIndex = contentStart;
+    let depth = 1;
+    let contentEnd = svg.length;
+    let afterClose = svg.length;
+    let tm: RegExpExecArray | null;
+    while ((tm = tagRe.exec(svg))) {
+      if (tm[0].startsWith("</")) {
+        depth--;
+        if (depth === 0) {
+          contentEnd = tm.index;
+          afterClose = tm.index + tm[0].length;
+          break;
+        }
+      } else {
+        depth++;
+      }
+    }
+    blocks.push(svg.slice(contentStart, contentEnd));
+    openTag.lastIndex = afterClose;
+  }
+  return blocks;
+}
+
+/** 把 sheet.ts 的 esc() 轉出的 XML 實體解回原字元。&amp; 一定要放最後，否則其他實體裡的 & 會被誤解碼。 */
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** 從 SVG 字串抽出所有 <text>（含巢狀 <tspan>）的文字內容字元，XML 實體解碼回原字元，去重。 */
 export function collectChars(svgs: string[]): string {
   const set = new Set<string>();
   for (const svg of svgs) {
-    for (const m of svg.matchAll(/<(?:text|tspan)\b[^>]*>([\s\S]*?)<\/(?:text|tspan)>/g)) {
-      for (const ch of m[1].replace(/<[^>]*>/g, "")) set.add(ch);
+    for (const block of extractTextBlocks(svg)) {
+      const plain = decodeXmlEntities(block.replace(/<[^>]*>/g, ""));
+      for (const ch of plain) set.add(ch);
     }
   }
   return Array.from(set).join("");

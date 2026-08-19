@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 const FONT_PATH = join(process.cwd(), "lib/fonts/NotoSansTC-Regular.ttf");
 /** 一律附帶的基本字元，省得每次都要前端帶。 */
-const ALWAYS = "0123456789.,-×:()／mm";
+const ALWAYS = "0123456789.,-×:()／mm 　";
 /** 單張樣板實測字元集只有 47 個字，整包遠不到這個數；超過視為異常請求。 */
 const MAX_CHARS = 2000;
 /** 一次匯出只打這支 API 一次，200/日/IP 綽綽有餘。 */
