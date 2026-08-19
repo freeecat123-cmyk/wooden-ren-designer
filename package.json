@@ -14,6 +14,7 @@
     "audit:pack-keys": "tsx scripts/audit-pack-keys.ts",
     "audit:dead-checkboxes": "tsx scripts/audit-dead-checkboxes.ts",
     "audit:floating-parts": "tsx scripts/audit-floating-parts.ts",
+    "verify:template": "node scripts/verify-template-pdf.cjs http://localhost:3000/design/stool",
     "prepare": "sh scripts/install-hooks.sh || true"
   },
   "dependencies": {
