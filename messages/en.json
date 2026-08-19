@@ -682,6 +682,9 @@
     "warnings": {
       "title": "Some parameters had issues (auto-corrected for the render):"
     },
+    "templatePack": {
+      "lockedCta": "Upgrade to download full-scale 1:1 templates →"
+    },
     "section": {
       "perspective": "Perspective",
       "perspectiveHint": "3D · drag to rotate, scroll to zoom",

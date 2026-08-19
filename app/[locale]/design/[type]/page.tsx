@@ -22,6 +22,7 @@ import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ThreeDExportButton } from "@/components/ThreeDExportButton";
+import { TemplatePackButton } from "@/components/TemplatePackButton";
 import { MATERIALS, materialName } from "@/lib/materials";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import {
@@ -558,6 +559,16 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
             {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) && (
               <ThreeDExportButton design={design} />
+            )}
+            {isAdmin || getPlanFeatures(profile).canDownloadPdf ? (
+              <TemplatePackButton design={design} />
+            ) : (
+              <Link
+                href={`/pricing?locked=${type}`}
+                className="block border-t border-zinc-100 px-4 py-2.5 text-[11px] text-zinc-500 hover:bg-zinc-50 hover:text-[#A47A64] transition-colors"
+              >
+                {t("templatePack.lockedCta")}
+              </Link>
             )}
           </div>
         </div>

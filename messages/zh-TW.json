@@ -682,6 +682,9 @@
     "warnings": {
       "title": "設計參數有問題（已自動修正後續渲染）："
     },
+    "templatePack": {
+      "lockedCta": "升級後可下載 1:1 實尺樣板 →"
+    },
     "section": {
       "perspective": "透視圖",
       "perspectiveHint": "3D · 拖曳旋轉、滾輪縮放",
