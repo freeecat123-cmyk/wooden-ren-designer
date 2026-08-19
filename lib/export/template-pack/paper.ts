@@ -28,6 +28,7 @@ const PANEL_CATEGORIES: ReadonlySet<PartCategory> = new Set<PartCategory>([
   "divider",
   "seat",
   "door",
+  "drawer",
 ]);
 
 export function isPanelCategory(category: PartCategory): boolean {

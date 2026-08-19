@@ -6,6 +6,9 @@ describe("ladderFor", () => {
   it("面板類截到 A2", () => {
     expect(ladderFor("seat").map((p) => p.id)).toEqual(["A4", "A3", "B3", "A2"]);
   });
+  it("抽屜面板類截到 A2（跟 case 同性質，避免長抽屜面板印成多張 A1）", () => {
+    expect(ladderFor("drawer").map((p) => p.id)).toEqual(["A4", "A3", "B3", "A2"]);
+  });
   it("非面板類開到 A0", () => {
     expect(ladderFor("leg").map((p) => p.id)).toEqual([
       "A4", "A3", "B3", "A2", "A1", "A0",

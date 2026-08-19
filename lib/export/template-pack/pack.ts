@@ -9,7 +9,7 @@ import { placeOnLadder, type Placement } from "./fit";
 import { pickTemplateFace } from "./face";
 import { templateSheetSvg } from "./sheet";
 import { indexSheetSvg, type PackRow } from "./index-sheet";
-import { fetchFontSubset, svgsToPdf } from "./pdf";
+import { fetchFontSubset, svgsToPdf, FontSubsetError } from "./pdf";
 
 export interface PackPlan {
   rows: PackRow[];
@@ -77,37 +77,53 @@ export async function downloadTemplatePack(
   allSvgs.push(...indexSvgs);
 
   // 一次要好整包會用到的所有字元，避免每份 PDF 各打一次 API。
-  // /api/pdf-font 對 chars 有 2000 字上限（超過回 400）——正常整包（去重後的唯一字
-  // 元）遠遠到不了，若真的超過，把錯誤包成使用者看得懂的訊息，而不是讓 fetch 400
-  // 無聲失敗。
+  // 依 HTTP 狀態碼分情況給使用者訊息——這個 catch 會接到任何失敗（400 字元過多 /
+  // 429 rate limit / 500 / 網路斷線），不能一律說成「字元過多」，否則使用者被
+  // rate limit 時會誤以為要簡化設計，回報理由也會是錯的（review 2026-08-19）。
   let fontB64: string;
   try {
     fontB64 = await fetchFontSubset(allSvgs);
   } catch (err) {
-    throw new Error(
-      `樣板包含的字元過多，無法產生字型（${err instanceof Error ? err.message : String(err)}）。請回報這個設計給開發者。`,
-    );
+    console.error("[template-pack] fetchFontSubset 失敗", err);
+    if (err instanceof FontSubsetError) {
+      if (err.status === 400) throw new Error("樣板文字包含的字元過多，請回報給開發者。");
+      if (err.status === 429) throw new Error("產生次數過於頻繁，請稍後再試。");
+    }
+    throw new Error("字型載入失敗，請檢查網路後重試。");
   }
 
   const files: Record<string, Uint8Array> = {};
   const total = plan.byPaper.size + 1;
   let done = 0;
 
-  files["00_索引.pdf"] = await svgsToPdf(indexSvgs, 210, 297, fontB64);
-  onProgress?.(++done, total);
-
-  let n = 1;
-  for (const [key, list] of plan.byPaper) {
-    const { paper, swapped } = list[0].placement;
-    const pw = swapped ? paper.h : paper.w;
-    const ph = swapped ? paper.w : paper.h;
-    const name = `${String(n).padStart(2, "0")}_樣板_${key}.pdf`;
-    files[name] = await svgsToPdf(list.map((x) => x.svg), pw, ph, fontB64);
-    n++;
+  // svgsToPdf 內部失敗訊息（例如「SVG 解析失敗」）是給開發者除錯用的技術字眼，
+  // 不該直接丟給使用者看，統一包成「PDF 產生失敗」。
+  try {
+    files["00_索引.pdf"] = await svgsToPdf(indexSvgs, 210, 297, fontB64);
     onProgress?.(++done, total);
+
+    let n = 1;
+    for (const [key, list] of plan.byPaper) {
+      const { paper, swapped } = list[0].placement;
+      const pw = swapped ? paper.h : paper.w;
+      const ph = swapped ? paper.w : paper.h;
+      const name = `${String(n).padStart(2, "0")}_樣板_${key}.pdf`;
+      files[name] = await svgsToPdf(list.map((x) => x.svg), pw, ph, fontB64);
+      n++;
+      onProgress?.(++done, total);
+    }
+  } catch (err) {
+    console.error("[template-pack] svgsToPdf 失敗", err);
+    throw new Error("PDF 產生失敗，請重試。");
   }
 
-  const zip = zipStore(files);
+  let zip: Uint8Array;
+  try {
+    zip = zipStore(files);
+  } catch (err) {
+    console.error("[template-pack] zipStore 失敗", err);
+    throw new Error("PDF 產生失敗，請重試。");
+  }
   const ab = zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) as ArrayBuffer;
   const date = new Date().toISOString().slice(0, 10);
   triggerDownload(new Blob([ab], { type: "application/zip" }), `${safeStem(design)}_實尺樣板_${date}.zip`);

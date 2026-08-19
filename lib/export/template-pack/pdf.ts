@@ -61,13 +61,27 @@ export function collectChars(svgs: string[]): string {
   return Array.from(set).join("");
 }
 
+/**
+ * fetchFontSubset 失敗時拋出的錯誤，帶 HTTP 狀態碼（若有）方便呼叫端依狀態碼
+ * 分情況給使用者訊息（400 字元過多 / 429 rate limit / 其他）。
+ */
+export class FontSubsetError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+  ) {
+    super(message);
+    this.name = "FontSubsetError";
+  }
+}
+
 /** 向伺服器要這批 SVG 用得到的字型子集，回 base64。 */
 export async function fetchFontSubset(svgs: string[]): Promise<string> {
   const res = await fetch("/api/pdf-font", {
     method: "POST",
     body: JSON.stringify({ chars: collectChars(svgs) }),
   });
-  if (!res.ok) throw new Error(`字型子集失敗：${res.status}`);
+  if (!res.ok) throw new FontSubsetError(`字型子集失敗：${res.status}`, res.status);
   const buf = new Uint8Array(await res.arrayBuffer());
   let s = "";
   for (let i = 0; i < buf.length; i++) s += String.fromCharCode(buf[i]);
