@@ -231,7 +231,7 @@ export function PartDrawingPaperSheet({
                 <text x={cx} y={189} fontSize={3} fill="#666" textAnchor="middle">
                   {c.label}
                 </text>
-                <text x={cx} y={198} fontSize={4.5} fontWeight={600} fill="#111" textAnchor="middle">
+                <text x={cx} y={198} fontSize={4.5} fontWeight={700} fill="#111" textAnchor="middle">
                   {c.value}
                 </text>
               </g>

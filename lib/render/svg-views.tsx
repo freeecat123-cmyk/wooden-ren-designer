@@ -1627,7 +1627,7 @@ function OrthoViewImpl({
                     x={cx}
                     y={198}
                     fontSize={4.5}
-                    fontWeight={600}
+                    fontWeight={700}
                     fill="#111"
                     textAnchor="middle"
                   >
