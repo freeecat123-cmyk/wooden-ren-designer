@@ -49,10 +49,27 @@ export async function POST(req: Request) {
     return new Response(null, { status: 304 });
   }
 
-  const full = await readFile(FONT_PATH);
-  const sub = await subsetFont(full, wanted, { targetFormat: "truetype" });
+  // 讀字型與子集化各自給明確錯誤。2026-08-20 正式站掛掉時這裡是裸 500，
+  // 從外面完全看不出是缺字型檔、還是 harfbuzz wasm 沒被部署帶上，
+  // 只能靠逐層 curl 反推。留訊息給下一個人。
+  let sub: Uint8Array<ArrayBuffer>;
+  try {
+    const full = await readFile(FONT_PATH);
+    try {
+      const buf = await subsetFont(full, wanted, { targetFormat: "truetype" });
+      const ab = new ArrayBuffer(buf.byteLength);
+      new Uint8Array(ab).set(buf);
+      sub = new Uint8Array(ab);
+    } catch (err) {
+      console.error("[pdf-font] 子集化失敗（harfbuzz wasm 是否隨部署帶上？）", err);
+      return new Response("font subset failed", { status: 500 });
+    }
+  } catch (err) {
+    console.error(`[pdf-font] 讀不到字型檔 ${FONT_PATH}（outputFileTracingIncludes 是否涵蓋？）`, err);
+    return new Response("font file missing", { status: 500 });
+  }
 
-  return new Response(new Uint8Array(sub), {
+  return new Response(sub, {
     status: 200,
     headers: {
       "Content-Type": "application/octet-stream",

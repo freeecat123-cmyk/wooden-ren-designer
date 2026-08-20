@@ -100,8 +100,13 @@ export async function downloadTemplatePack(
     if (err instanceof FontSubsetError) {
       if (err.status === 400) throw new Error("樣板文字包含的字元過多，請回報給開發者。");
       if (err.status === 429) throw new Error("產生次數過於頻繁，請稍後再試。");
+      if ((err.status ?? 0) >= 500) {
+        // 5xx 是伺服器端的事，叫使用者「檢查網路」會害他往錯的方向找
+        // （2026-08-20 就是這樣：Upstash 掛掉讓這支回 500，畫面卻說網路有問題）。
+        throw new Error("字型服務暫時異常，請稍後再試；持續發生請回報。");
+      }
     }
-    throw new Error("字型載入失敗，請檢查網路後重試。");
+    throw new Error("連不上字型服務，請檢查網路後重試。");
   }
 
   const files: Record<string, Uint8Array> = {};
