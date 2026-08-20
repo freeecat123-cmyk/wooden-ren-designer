@@ -11,6 +11,13 @@
 //   tileA 的裁切線（換算回 face 座標）＝ tileB 的對齊線（換算回 face 座標）
 // 見 tile-sheet.test.ts「裁切線與下一張對齊線指向同一個 face 座標」——這是
 // 整個拼接功能對不對得準的數學保證，不是畫好看而已，改動前務必先看那條測試。
+//
+// 驗收方式：對位十字＋裁切/對齊線本身就能抓平移錯位；另外每張資訊區塊都有
+// 「拼好後全長×全寬」（面的實際 w/h），拿捲尺一量就知道整組總長對不對——
+// 這條比「畫一條對角線，貼歪了應該會歪掉」可靠，原本真的有一條對角自檢線，
+// 2026-08-20 拿放大並排對照實測過（接縫 ±40mm、12px/mm，含一個角度刻意夠斜
+// 的 600×150 合成件），10mm 錯位造成的轉折在視覺上並不明顯，比不上十字本身
+// 的錯位／裁切線與對齊線的分離好辨識，所以拿掉了，不要再加回來。
 import type { MachiningFace } from "@/lib/export/mortise-faces";
 import { outlinePathD } from "@/lib/export/parts-svg";
 import { PAPERS } from "./paper";
@@ -21,9 +28,10 @@ import {
   holeMarkup,
   pickRuler,
   rulerMarkup,
-  boxPoly,
   estTextWidthMm,
   NOTE_COLOR,
+  PROOF_RULER_MM,
+  RULER_BOX_H,
   type Box,
   type Poly,
   type Pt,
@@ -36,8 +44,6 @@ const A4 = PAPERS.find((p) => p.id === "A4")!;
 const STROKE_MM = 0.3;
 /** 裁切線／對齊線線寬。裁切線要粗到用剪刀／美工刀沿著切好認，比輪廓稍粗。 */
 const SEAM_STROKE_MM = 0.5;
-/** 對角自檢線的顏色——淡灰，不能跟輪廓或裁切線混淆，純粹是「貼完是否還直」的自我檢查。 */
-const DIAGONAL_COLOR = "#bbb";
 
 export interface TilePageGeometry {
   pageW: number;
@@ -234,6 +240,181 @@ function pickRulerInFrame(usable: Box, blockers: Poly[]): RulerPlacement {
   };
 }
 
+// ---------------------------------------------------------------------------
+// 證明尺的位置——要避開裁切線／對齊線
+// ---------------------------------------------------------------------------
+
+/**
+ * 尺跟裁切線／對齊線之間至少要留這麼多 mm。
+ *
+ * 2026-08-20 coordinator 拿方凳凳腳的截圖（Tile A1，1 欄×2 列，下緣同時是唯一的
+ * 接縫）抓到：pickRulerInFrame 只知道內容跟資訊區塊是 blocker，不知道裁切線／
+ * 對齊線在哪，於是把尺排到紙面底部那條窄帶，跟裁切線的「沿此線裁」文字疊在一起——
+ * 使用者有可能真的沿著證明尺裁下去。這個常數就是修正後的最小安全距離。
+ */
+const RULER_SEAM_CLEARANCE_MM = 12;
+
+interface Interval1D { a: number; b: number }
+
+function mergeIntervals(ivs: Interval1D[]): Interval1D[] {
+  const sorted = ivs.filter((iv) => iv.b > iv.a).sort((x, y) => x.a - y.a);
+  const out: Interval1D[] = [];
+  for (const iv of sorted) {
+    const last = out[out.length - 1];
+    if (last && iv.a <= last.b) last.b = Math.max(last.b, iv.b);
+    else out.push({ ...iv });
+  }
+  return out;
+}
+
+/** 在 [lo,hi] 裡找一段長度 ≥ need 的空檔（避開 blocked），回傳起點；找不到回 null。 */
+function findFreeGap(lo: number, hi: number, blocked: Interval1D[], need: number): number | null {
+  const merged = mergeIntervals(blocked);
+  let cursor = lo;
+  for (const iv of merged) {
+    const gapEnd = Math.min(iv.a, hi);
+    if (gapEnd - cursor >= need) return cursor;
+    cursor = Math.max(cursor, iv.b);
+    if (cursor >= hi) break;
+  }
+  if (hi - cursor >= need) return cursor;
+  return null;
+}
+
+type TileEdge = "top" | "bottom" | "left" | "right";
+
+interface EdgeBand {
+  /** 尺「厚度」方向的兩個邊界（紙面座標）。 */
+  bandLo: number;
+  bandHi: number;
+  /** 尺「長度」方向可以掃的範圍（紙面座標）。 */
+  lenLo: number;
+  lenHi: number;
+  vertical: boolean;
+}
+
+/**
+ * 證明尺的位置。
+ *
+ * 跟 sheet.ts 的 pickRuler（只認四個角＋內容 blocker）不同，這裡還要避開裁切線／
+ * 對齊線本身（含它們的文字標籤）——方凳凳腳這種窄零件常常是「內容佔滿一整側＋
+ * 唯一的自由邊剛好被資訊區塊占掉一角」，純四角枚舉法在這種案例裡找不到真正安全
+ * 的位置（2026-08-20 實測踩到）。
+ *
+ * 改用「沿邊掃自由區間」：優先挑沒有接縫的邊（brief 決策：對位系統本來就沒有
+ * 要求四邊都要有記號，尺自然該讓給接縫），沿那條邊找一段跟內容／資訊區塊都不
+ * 重疊、長度夠放 100mm 尺的空檔；找不到才退回有接縫的邊，且離接縫線至少留
+ * RULER_SEAM_CLEARANCE_MM。
+ *
+ * MAX_TILES_PER_FACE=6 的網格最多只有 3 面會有鄰邊（例如 3×2 網格的中間欄），
+ * 一定至少留一面無接縫的邊，所以「優先邊」那輪理論上一定會成功；退回接縫邊
+ * 只是防禦性寫法，沒有實際案例會走到那裡。
+ */
+function pickTileRuler(
+  usable: Box,
+  seamGeom: Pick<TilePageGeometry, "leftX" | "topY" | "rightX" | "bottomY" | "hasLeft" | "hasRight" | "hasTop" | "hasBottom">,
+  contentBox: Box,
+  infoBox: Box,
+): RulerPlacement {
+  const { leftX, topY, rightX, bottomY, hasLeft, hasRight, hasTop, hasBottom } = seamGeom;
+  const need = PROOF_RULER_MM;
+  const thick = RULER_BOX_H;
+
+  const edgeHasSeam: Record<TileEdge, boolean> = { top: hasTop, bottom: hasBottom, left: hasLeft, right: hasRight };
+  const allEdges: TileEdge[] = ["bottom", "right", "top", "left"];
+  const noSeamEdges = allEdges.filter((e) => !edgeHasSeam[e]);
+  const seamEdges = allEdges.filter((e) => edgeHasSeam[e]);
+
+  // 即使不是「正在掛靠」的那條邊，垂直於掃描方向的接縫線也要當 blocker——不然
+  // 水平尺沿著沒有上下接縫的邊掃，卻可能從 x=leftX（左邊對齊線）開始起跑，
+  // 起點正好貼在那條線上，距離＝0（2026-08-20 實測踩到：tile c=1 的尺卡在
+  // 左邊對齊線上）。每條作用中的接縫都補一個寬 2×RULER_SEAM_CLEARANCE_MM 的
+  // 保留帶，跟 contentBox/infoBox 一起丟進同一套「找空檔」邏輯。
+  const seamBoxes: Box[] = [];
+  if (hasLeft) seamBoxes.push({ x0: leftX - RULER_SEAM_CLEARANCE_MM, y0: usable.y0, x1: leftX + RULER_SEAM_CLEARANCE_MM, y1: usable.y1 });
+  if (hasRight) seamBoxes.push({ x0: rightX - RULER_SEAM_CLEARANCE_MM, y0: usable.y0, x1: rightX + RULER_SEAM_CLEARANCE_MM, y1: usable.y1 });
+  if (hasTop) seamBoxes.push({ x0: usable.x0, y0: topY - RULER_SEAM_CLEARANCE_MM, x1: usable.x1, y1: topY + RULER_SEAM_CLEARANCE_MM });
+  if (hasBottom) seamBoxes.push({ x0: usable.x0, y0: bottomY - RULER_SEAM_CLEARANCE_MM, x1: usable.x1, y1: bottomY + RULER_SEAM_CLEARANCE_MM });
+
+  function bandFor(edge: TileEdge, inset: number): EdgeBand {
+    switch (edge) {
+      case "bottom":
+        return { bandHi: bottomY - inset, bandLo: bottomY - inset - thick, lenLo: usable.x0, lenHi: usable.x1, vertical: false };
+      case "top":
+        return { bandLo: topY + inset, bandHi: topY + inset + thick, lenLo: usable.x0, lenHi: usable.x1, vertical: false };
+      case "right":
+        return { bandHi: rightX - inset, bandLo: rightX - inset - thick, lenLo: usable.y0, lenHi: usable.y1, vertical: true };
+      case "left":
+        return { bandLo: leftX + inset, bandHi: leftX + inset + thick, lenLo: usable.y0, lenHi: usable.y1, vertical: true };
+    }
+  }
+
+  function tryEdge(edge: TileEdge, inset: number, blockersForTry: Box[]): RulerPlacement | null {
+    const { bandLo, bandHi, lenLo, lenHi, vertical } = bandFor(edge, inset);
+    // 帶子本身超出可用區（inset 太大、紙太窄）就放棄這個候選。
+    if (vertical) {
+      if (bandLo < usable.x0 - 1e-6 || bandHi > usable.x1 + 1e-6) return null;
+    } else if (bandLo < usable.y0 - 1e-6 || bandHi > usable.y1 + 1e-6) {
+      return null;
+    }
+    const blockedIntervals: Interval1D[] = [];
+    for (const b of blockersForTry) {
+      const bandOverlap = vertical ? b.x0 < bandHi && bandLo < b.x1 : b.y0 < bandHi && bandLo < b.y1;
+      if (!bandOverlap) continue;
+      blockedIntervals.push(vertical ? { a: b.y0, b: b.y1 } : { a: b.x0, b: b.x1 });
+    }
+    const start = findFreeGap(lenLo, lenHi, blockedIntervals, need);
+    if (start == null) return null;
+    const box: Box = vertical
+      ? { x0: bandLo, y0: start, x1: bandHi, y1: start + need }
+      : { x0: start, y0: bandLo, x1: start + need, y1: bandHi };
+    return { vertical, box };
+  }
+
+  /** 沒有接縫的邊優先，兩層退讓（跟 sheet.ts 的 RULER_MARGINS 同一個階梯）；
+   * 沒有無接縫邊可用（不會發生在 MAX_TILES_PER_FACE=6 的網格內，防禦性寫法）
+   * 才退回有接縫的邊，inset 用 RULER_SEAM_CLEARANCE_MM。 */
+  function sweep(blockersForTry: Box[]): RulerPlacement | null {
+    for (const inset of [8, 4]) {
+      for (const edge of noSeamEdges) {
+        const hit = tryEdge(edge, inset, blockersForTry);
+        if (hit) return hit;
+      }
+    }
+    for (const edge of seamEdges) {
+      const hit = tryEdge(edge, RULER_SEAM_CLEARANCE_MM, blockersForTry);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  // 接縫是硬性條件（尺跟裁切線混在一起會讓使用者真的裁錯地方），內容／資訊區塊
+  // 只是「儘量避開，避不開就疊」的軟性條件——一塊無孔洞的整片平板（例如大平板
+  // 中間那格 tile）本來就是整格都被內容佔滿，contentBox＝整個可用區，逼死也找
+  // 不到一個跟內容零重疊的位置。分三輪，一輪比一輪放寬，但接縫的 12mm 安全距離
+  // 三輪都不放鬆：
+  //   1. 內容＋資訊區塊＋接縫都避開（一般情況）
+  //   2. 只避開接縫＋資訊區塊（內容整格塞滿時）
+  //   3. 只避開接縫（資訊區塊也整格塞滿的極端情況）
+  const pass1 = sweep([contentBox, infoBox, ...seamBoxes]);
+  if (pass1) return pass1;
+  const pass2 = sweep([infoBox, ...seamBoxes]);
+  if (pass2) return pass2;
+  const pass3 = sweep(seamBoxes);
+  if (pass3) return pass3;
+
+  // 連只避開接縫都排不下：seamBoxes 最多吃掉 3 條×24mm，A4 可用區隨便一邊都有
+  // 180mm 以上，理論上不會發生。真的走到這裡就是防禦性 fallback——固定貼著
+  // 唯一的無接縫邊（或有接縫邊，inset 用 12mm），寧可跟接縫的安全帶邊界重疊
+  // 也不要直接崩潰；跟 sheet.ts fallback 的哲學一致（有畫出來，總比整個炸掉好）。
+  const fallbackEdge = noSeamEdges[0] ?? seamEdges[0] ?? "bottom";
+  const fb = bandFor(fallbackEdge, edgeHasSeam[fallbackEdge] ? RULER_SEAM_CLEARANCE_MM : 8);
+  const box: Box = fb.vertical
+    ? { x0: fb.bandLo, y0: fb.lenLo, x1: fb.bandHi, y1: fb.lenLo + need }
+    : { x0: fb.lenLo, y0: fb.bandLo, x1: fb.lenLo + need, y1: fb.bandHi };
+  return { vertical: fb.vertical, box };
+}
+
 export function tileSheetSvg(input: TileSheetInput): string {
   const { face, plan, tile, partNo, nameZh, qty } = input;
   const faceCount = input.faceCount ?? 1;
@@ -243,8 +424,16 @@ export function tileSheetSvg(input: TileSheetInput): string {
 
   const clipId = `tileclip-${partNo}-${tile.c}-${tile.r}`.replace(/[^A-Za-z0-9_-]/g, "_");
 
-  // 內容：輪廓、公榫、孔、以及整組對角自檢線。跟 outline 用同一組 translate + clip，
-  // 貼完之後這條線如果是直的，代表整組貼對了；有一張錯位或轉向，線會明顯歪掉。
+  // 內容：輪廓、公榫、孔。跟 outline 用同一組 translate + clip。
+  //
+  // （2026-08-20：原本這裡還有一條「整組貫穿對角自檢線」，貼歪了預期線會斷/歪。
+  // 拿方凳凳腳等級的窄長件、跟角度夠斜的 600×150 合成件各做一組「正確 vs 錯位
+  // 10mm」的放大並排對照（接縫 ±40mm、12px/mm）並用肉眼實際看過：即使是角度
+  // 「應該很明顯」的合成件案例，錯位造成的轉折在視覺上都很不起眼，遠不如
+  // 對位十字本身的錯位／裁切線與對齊線的分離來得一眼可辨。既然這條線驗不出
+  // 什麼東西，留著只是多一條可能讓人誤會「要描」的線，所以拿掉了——同一類
+  // 「總長貼歪」的錯誤現在由下面資訊區塊的「拼好後全長×全寬」標註來擋，
+  // 使用者拿捲尺一量就有明確答案，比「這條線看起來直不直」可靠得多。）
   const geometry = [
     `<path d="${outlinePathD(face.outline)}" fill="none" stroke="#000" stroke-width="${STROKE_MM}"/>`,
     ...(face.tenons ?? []).map(
@@ -252,8 +441,6 @@ export function tileSheetSvg(input: TileSheetInput): string {
         `<path d="${outlinePathD(tn.pts)}" fill="none" stroke="#000" stroke-width="${STROKE_MM}"><title>${esc(tn.label + "（公榫）")}</title></path>`,
     ),
     ...face.holes.map(holeMarkup),
-    `<line data-mark="diagonal-check" x1="0" y1="0" x2="${r2(face.w)}" y2="${r2(face.h)}"` +
-      ` stroke="${DIAGONAL_COLOR}" stroke-width="0.15"/>`,
   ].join("\n    ");
 
   // 這張實際會畫出內容的範圍（face 轉到紙面座標後跟可用區的交集）——資訊區塊
@@ -265,17 +452,24 @@ export function tileSheetSvg(input: TileSheetInput): string {
     y1: Math.min(Math.max(ty + face.h, usable.y0), usable.y1),
   };
 
-  // 格子編號＋箭頭＋件名。四角挑一個不撞內容的（見 pickInfoCorner）。
+  // 格子編號＋箭頭＋件名＋拼好後的實際尺寸。四角挑一個不撞內容的（見 pickInfoCorner）。
   const gridCode = `${colLetter(tile.c)}${tile.r + 1}`;
   const countsText = `共 ${plan.cols} 欄 × ${plan.rows} 列`;
+  // 「拼好後全長×全寬」——細長件沿長軸切開，最危險的錯誤是總長不對（貼太開或
+  // 重疊太多）：輪廓本身是兩條平行直線，貼歪了看起來還很正常，對位十字擋得住
+  // 平移/旋轉錯誤，但使用者沒有「拿捲尺一量就知道」的終點檢查。這行就是那個
+  // 檢查，帶入這個 face 實際的 w/h（四捨五入到整數 mm），每一張都要有，不是
+  // 只有多張拼接時才印——單張的情況使用者也該量一下確認沒有被印表機縮放。
+  const sizeLine = `拼好後全長 ${Math.round(face.h)}mm × 全寬 ${Math.round(face.w)}mm`;
   const nameLines = [`${partNo} ${nameZh}${qty > 1 ? ` ×${qty}` : ""}　【${face.faceLabelZh}】`];
   if (faceCount > 1) nameLines.push(`第 ${faceIndex + 1} 面 / 共 ${faceCount} 面`);
+  const extraLines = [sizeLine, ...nameLines];
 
   const ARROW_COL_W = 9;
   const headerW = ARROW_COL_W + Math.max(estTextWidthMm(gridCode, 9), estTextWidthMm(countsText, 3.5));
-  const nameW = Math.max(...nameLines.map((l) => estTextWidthMm(l, 4)));
-  const blockW = Math.max(headerW, nameW) + 3;
-  const blockH = 19 + nameLines.length * 5;
+  const extraW = Math.max(...extraLines.map((l) => estTextWidthMm(l, 4)));
+  const blockW = Math.max(headerW, extraW) + 3;
+  const blockH = 19 + extraLines.length * 5;
   const infoPos = pickInfoCorner(usable, blockW, blockH, contentBox);
   const infoX = infoPos.x0;
   const infoTop = infoPos.y0 + 8;
@@ -286,7 +480,7 @@ export function tileSheetSvg(input: TileSheetInput): string {
       ` font-weight="700" fill="#000" text-anchor="start">${esc(gridCode)}</text>`,
     `<text x="${r2(infoX + ARROW_COL_W)}" y="${r2(infoTop + 5)}" font-family="PackCJK" font-size="3.5"` +
       ` font-weight="400" fill="#000" text-anchor="start">${esc(countsText)}</text>`,
-    ...nameLines.map(
+    ...extraLines.map(
       (l, i) =>
         `<text x="${r2(infoX)}" y="${r2(infoTop + 11 + i * 5)}" font-family="PackCJK" font-size="4"` +
         ` font-weight="700" fill="#000" text-anchor="start">${esc(l)}</text>`,
@@ -310,10 +504,9 @@ export function tileSheetSvg(input: TileSheetInput): string {
     registerCross(rightX, bottomY),
   ].join("\n  ");
 
-  // 證明尺：blockers 用內容範圍加資訊區塊，沿用 sheet.ts 的 pickRuler／rulerMarkup，
-  // 跟單張樣板同一套視覺語言。
-  const blockers: Poly[] = [boxPoly(contentBox), boxPoly(infoBox)];
-  const ruler = pickRulerInFrame(usable, blockers);
+  // 證明尺：優先放在沒有接縫的那一側，跟內容範圍／資訊區塊都保持不重疊，
+  // 跟任何一條裁切線／對齊線至少距離 RULER_SEAM_CLEARANCE_MM（見 pickTileRuler）。
+  const ruler = pickTileRuler(usable, g, contentBox, infoBox);
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">`,

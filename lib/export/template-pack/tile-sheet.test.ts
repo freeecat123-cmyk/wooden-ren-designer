@@ -183,9 +183,16 @@ describe("tileSheetSvg", () => {
     expect(n).toBe(4);
   });
 
-  it("含整組對角自檢線（灰色細線，從 face 左上到右下）", () => {
+  /**
+   * 2026-08-20：原本這裡有一條「整組貫穿對角自檢線」，拿放大並排對照（接縫
+   * ±40mm、12px/mm，含角度刻意夠斜的 600×150 合成件）實測過，10mm 錯位造成
+   * 的轉折在視覺上並不明顯，比不上對位十字／裁切線與對齊線的分離好辨識，
+   * 已經拿掉（見 tile-sheet.ts 檔頭說明）。這條測試改守「不要有殘留」，
+   * 避免以後有人半途把線加回來又忘記補說明。
+   */
+  it("不再輸出對角自檢線（已拿掉，見檔頭說明）", () => {
     const svg = tileSheetSvg(baseInput(legFace, legPlan, 0, 0));
-    expect(svg).toContain('data-mark="diagonal-check"');
+    expect(svg).not.toContain('data-mark="diagonal-check"');
   });
 
   it("零件名稱／件號／面別仍然出現在頁面上", () => {
@@ -217,6 +224,112 @@ describe("tileSheetSvg", () => {
     expect(svg).not.toContain('data-mark="align-line"');
     expect((svg.match(/data-mark="tile-register"/g) ?? []).length).toBe(4);
     expect(svg).toContain('data-mark="up-arrow"');
+  });
+});
+
+/** 從 SVG 取出證明尺自報的保留框（rulerMarkup 的 data-ruler-box）。 */
+function rulerBoxFromSvg(svg: string) {
+  const m = svg.match(/data-ruler-box="([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)"/);
+  if (!m) throw new Error("找不到證明尺");
+  return { x0: Number(m[1]), y0: Number(m[2]), x1: Number(m[3]), y1: Number(m[4]) };
+}
+
+const RULER_SEAM_CLEARANCE_MM = 12;
+
+/** 這張的哪幾條線是「作用中」的接縫（cut 或 align），連同座標一起列出。 */
+function activeSeams(g: ReturnType<typeof tilePageGeometry>) {
+  const out: Array<{ axis: "x" | "y"; pos: number }> = [];
+  if (g.hasRight) out.push({ axis: "x", pos: g.rightX });
+  if (g.hasLeft) out.push({ axis: "x", pos: g.leftX });
+  if (g.hasBottom) out.push({ axis: "y", pos: g.bottomY });
+  if (g.hasTop) out.push({ axis: "y", pos: g.topY });
+  return out;
+}
+
+/** 證明尺保留框到一條座標線的最短距離（框如果整段都在線的同一側，距離＝到最近那條邊）。 */
+function boxDistanceToLine(box: { x0: number; y0: number; x1: number; y1: number }, seam: { axis: "x" | "y"; pos: number }) {
+  if (seam.axis === "x") {
+    if (seam.pos >= box.x0 && seam.pos <= box.x1) return 0; // 線穿過框，距離視為 0（絕對要避免）
+    return Math.min(Math.abs(seam.pos - box.x0), Math.abs(seam.pos - box.x1));
+  }
+  if (seam.pos >= box.y0 && seam.pos <= box.y1) return 0;
+  return Math.min(Math.abs(seam.pos - box.y0), Math.abs(seam.pos - box.y1));
+}
+
+describe("證明尺不得跟裁切線／對齊線擠在一起", () => {
+  /**
+   * 2026-08-20 coordinator 拿 v2-0（凳腳 Tile A1，1 欄×2 列，下緣同時是唯一的接縫）
+   * 截圖抓到：證明尺被排到紙面底部那一條窄帶，跟裁切線的「沿此線裁」文字疊在一起，
+   * 使用者有可能真的沿著證明尺裁下去。這裡把 legPlan／bigPlan 每一張都掃一遍，
+   * 證明尺保留框跟任何一條作用中的接縫線，距離都必須 ≥ 12mm。
+   */
+  it("legPlan（每張只有一條接縫）：證明尺離那條接縫至少 12mm", () => {
+    for (const tile of legPlan.tiles) {
+      const svg = tileSheetSvg(baseInput(legFace, legPlan, tile.c, tile.r));
+      const box = rulerBoxFromSvg(svg);
+      const g = tilePageGeometry(legPlan, tile);
+      for (const seam of activeSeams(g)) {
+        expect(
+          boxDistanceToLine(box, seam),
+          `tile c=${tile.c} r=${tile.r} 證明尺離 ${seam.axis}=${seam.pos} 太近`,
+        ).toBeGreaterThanOrEqual(RULER_SEAM_CLEARANCE_MM - 1e-6);
+      }
+    }
+  });
+
+  it("bigPlan（最多三面有接縫）：證明尺離任何一條接縫至少 12mm", () => {
+    for (const tile of bigPlan.tiles) {
+      const svg = tileSheetSvg(baseInput(bigFace, bigPlan, tile.c, tile.r));
+      const box = rulerBoxFromSvg(svg);
+      const g = tilePageGeometry(bigPlan, tile);
+      for (const seam of activeSeams(g)) {
+        expect(
+          boxDistanceToLine(box, seam),
+          `tile c=${tile.c} r=${tile.r} 證明尺離 ${seam.axis}=${seam.pos} 太近`,
+        ).toBeGreaterThanOrEqual(RULER_SEAM_CLEARANCE_MM - 1e-6);
+      }
+    }
+  });
+
+  it("證明尺永遠落在可用區內（沒有因為避接縫而跑出 15mm 框）", () => {
+    for (const tile of bigPlan.tiles) {
+      const svg = tileSheetSvg(baseInput(bigFace, bigPlan, tile.c, tile.r));
+      const box = rulerBoxFromSvg(svg);
+      const g = tilePageGeometry(bigPlan, tile);
+      expect(box.x0).toBeGreaterThanOrEqual(g.usable.x0 - 1e-6);
+      expect(box.x1).toBeLessThanOrEqual(g.usable.x1 + 1e-6);
+      expect(box.y0).toBeGreaterThanOrEqual(g.usable.y0 - 1e-6);
+      expect(box.y1).toBeLessThanOrEqual(g.usable.y1 + 1e-6);
+    }
+  });
+});
+
+describe("資訊區塊要有拼好後的實際尺寸標註", () => {
+  /**
+   * 細長件沿長軸切開時最危險的錯誤是「總長不對」（貼太開或重疊太多）——輪廓本身
+   * 是兩條平行直線，貼歪了看起來還很正常。對位十字擋得住平移/旋轉錯誤，但使用者
+   * 沒有一個「拿捲尺一量就知道對不對」的終點檢查。這行文字就是那個終點檢查，
+   * 每一張都要有、數字要是這個 face 的實際 w/h（四捨五入到整數 mm）。
+   */
+  it("凳腳 fixture（w=425,h=35）：每張都印「拼好後全長 35mm × 全寬 425mm」（全長＝face.h、全寬＝face.w）", () => {
+    for (const tile of legPlan.tiles) {
+      const svg = tileSheetSvg(baseInput(legFace, legPlan, tile.c, tile.r));
+      expect(svg).toContain("拼好後全長 35mm × 全寬 425mm");
+    }
+  });
+
+  it("數字四捨五入到整數 mm", () => {
+    const face = rect(444.6, 34.4);
+    const plan = planA4Tiles(face.w, face.h)!;
+    const svg = tileSheetSvg(baseInput(face, plan, 0, 0));
+    expect(svg).toContain("拼好後全長 34mm × 全寬 445mm");
+  });
+
+  it("單一 tile（不用拼接）也要有這行，不是只有多張才印", () => {
+    const small = rect(150, 80);
+    const plan = planA4Tiles(small.w, small.h)!;
+    const svg = tileSheetSvg(baseInput(small, plan, 0, 0));
+    expect(svg).toContain("拼好後全長 80mm × 全寬 150mm");
   });
 });
 
