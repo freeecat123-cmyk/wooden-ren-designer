@@ -271,6 +271,29 @@ Playwright 產 PDF → `pdf.js` 光柵化成 PNG 比對基準圖,並用 `getText
 10. `tray` 底板那張的證明尺仍與輪廓相交。非無解,是最小頁邊 4mm 的取捨——再往紙邊靠會落進
     多數家用印表機的不可列印區、反而把證明尺本身裁掉
 
+### 2026-08-20 線上事故紀錄
+
+木頭仁回報按「下載實尺樣板」顯示「字型載入失敗」。逐層診斷:
+
+```
+GET  /api/pdf-font          -> 405   route 有部署、模組載入正常
+POST 任何 body（含壞 JSON） -> 500   連參數檢查都還沒到
+/api/design/shorten         -> 500
+/api/quote/shorten          -> 500
+/api/ceiling/share          -> 500
+```
+
+四支的共同路徑是 handler 第一行的 `checkIpRateLimit`,它沒有 try/catch,
+Upstash 一連不上就整個 500。**注意「環境變數沒設」是安全的**(`getRedis()` 回 null
+直接放行),所以線上是「有設但連不上或額度用完」。
+
+已修(commit `478c2478`):限流器改成失敗放行 + `console.error`。用假 Upstash 憑證
+重現驗證:修正前 500 → 修正後 200(合法 TrueType 5324 bytes)。
+
+⚠️ **但 Upstash 本身仍需處理**——短網址(`/api/design/shorten`、`/api/quote/shorten`)
+與天花板分享是**真的需要 Redis 才能運作**的,限流器放行救不了它們的核心功能。
+請檢查 Upstash 額度與憑證。
+
 ### 一個要記住的實測結論
 
 `svg2pdf` **只認 `font-weight` 400 與 700**,中間值會靜默改用無中文字型 → 中文亂碼且不報錯;
