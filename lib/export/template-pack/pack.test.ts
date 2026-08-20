@@ -67,18 +67,18 @@ describe("每個加工面各一張樣板", () => {
     expect(new Set(legRows.map((r) => r.faceLabelZh))).toEqual(new Set(["正面", "右端"]));
     expect(legRows.every((r) => r.faceCount === 2)).toBe(true);
 
-    // 兩張樣板都真的產出來、都有孔（每張 4 個中心十字：2 個榫孔 × 各 1 個十字…
-    // 以實際 SVG 為準，只要求兩張加起來的孔數 = partMachiningFaces 的總和）
+    // 凳腳實際上就是 4 個榫眼：正面 榫孔1/榫孔3、右端 榫孔2/榫孔4。
+    // 這裡原本斷言 8，是把反推母榫產生的重複孔也算進去了（每個真孔旁邊都有一個
+    // 座標重合的反推分身）。pickTemplateFaces 已改成逐孔去重、真孔優先，所以是 4。
     const sheets = Array.from(plan.byPaper.values())
       .flat()
       .filter((s) => legRows.some((r) => r.partNo === s.row.partNo));
     expect(sheets).toHaveLength(2);
 
     const part = design.parts.find((p) => p.id === "leg-1")!;
-    const derived = deriveMortisesByPart(design.parts).get(part.id) ?? [];
-    const faces = partMachiningFaces(part, derived);
-    const totalHoles = faces.reduce((s, f) => s + f.holes.length, 0);
-    expect(totalHoles).toBe(8); // 正面 4 + 右端 4
+    const realFaces = partMachiningFaces(part, []);
+    const totalHoles = realFaces.reduce((s, f) => s + f.holes.length, 0);
+    expect(totalHoles).toBe(4); // 正面 2（榫孔1、榫孔3）+ 右端 2（榫孔2、榫孔4）
 
     const drawn = sheets.reduce(
       (s, x) => s + (x.svg.match(/data-mark="center-cross"/g) ?? []).length,
@@ -88,13 +88,15 @@ describe("每個加工面各一張樣板", () => {
   });
 
   /**
-   * 「底板」是面積平手的代表案例：頂面 2 孔、底面 10 孔、尺寸一模一樣。
-   * 舊版 `>` 嚴格大於平手不換人，留住排序第一的頂面 → 10 個孔全丟。
+   * 「底板」是面積平手的代表案例：頂面 2 孔、底面 6 孔、尺寸一模一樣。
+   * 舊版 `>` 嚴格大於平手不換人，留住排序第一的頂面 → 6 個孔全丟。
+   * （底面的 6 個是真母榫；頂面的 2 個只有反推母榫有——那是側板插進底板頂面的
+   *   接合，範本沒建母榫，正是反推存在的理由，去重時要保留。）
    *
    * 斗櫃預設 800×450 超過面板類的 A2 上限（594×420）兩面都退回零件圖，
    * 所以孔的實際渲染改用同款、尺寸塞得下的床頭櫃底板驗。
    */
-  it("底板：面積平手時 10 孔的底面排在前面（不是 2 孔的頂面）", () => {
+  it("底板：面積平手時 6 孔的底面排在前面（不是 2 孔的頂面）", () => {
     for (const category of ["chest-of-drawers", "nightstand"] as const) {
       const rows = buildPackPlan(buildDefaultDesign(category)).rows
         .filter((r) => r.nameZh === "底板");
@@ -108,15 +110,15 @@ describe("每個加工面各一張樣板", () => {
     }
   });
 
-  it("床頭櫃底板：10 孔的那一面真的印出 10 個孔中心", () => {
+  it("床頭櫃底板：6 孔的那一面真的印出 6 個孔中心", () => {
     const plan = buildPackPlan(buildDefaultDesign("nightstand"));
     const sheets = Array.from(plan.byPaper.values())
       .flat()
       .filter((s) => s.row.nameZh === "底板");
     expect(sheets).toHaveLength(2);
     const crosses = sheets.map((s) => (s.svg.match(/data-mark="center-cross"/g) ?? []).length);
-    expect(Math.max(...crosses)).toBe(10);
-    expect(crosses.reduce((a, b) => a + b, 0)).toBe(12); // 底面 10 + 頂面 2
+    expect(Math.max(...crosses)).toBe(6);
+    expect(crosses.reduce((a, b) => a + b, 0)).toBe(8); // 底面 6（真母榫）+ 頂面 2（只有反推）
   });
 
   it("單一加工面的零件維持 P-01 這種不帶尾碼的件號", () => {

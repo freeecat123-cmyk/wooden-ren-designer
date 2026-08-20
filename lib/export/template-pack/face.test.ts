@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import type { Part } from "@/lib/types";
 import { pickTemplateFaces } from "./face";
 import { partMachiningFaces } from "@/lib/export/mortise-faces";
+import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
+import { getTemplate } from "@/lib/templates";
+import type { FurnitureCatalogEntry } from "@/lib/templates";
+import type { MaterialId, OptionSpec } from "@/lib/types";
 
 /** 最小可用零件：400×80×20 的橫撐，兩端各一個公榫。 */
 function makePart(over: Partial<Part> = {}): Part {
@@ -90,6 +94,62 @@ describe("pickTemplateFaces", () => {
         expect(picked[i].w * picked[i].h).toBeLessThanOrEqual(picked[i - 1].w * picked[i - 1].h);
       }
     }
+  });
+
+  it("反推母榫與真母榫描述同一個接合時只留真的（凳腳實測：4 個孔不是 8 個）", () => {
+    // 反推母榫（deriveMortisesByPart）會對每一個真母榫再算一次，於是同一個孔被畫兩遍。
+    // 全 catalog 實測：孔數 312 → 514，多出的 202 個裡 130 對完全重合、5 對錯開
+    // 1.50~1.53mm（傾斜零件的 AABB 反推必然偏移）。印在 1:1 樣板上就是兩個相距
+    // 1.5mm 的中心十字，下鑿的人不知道該信哪一個。
+    // 用真實範本測，不用手捏 fixture —— 手捏的座標對不對本身就要靠猜。
+    const entry = getTemplate("stool") as FurnitureCatalogEntry;
+    const options = (entry.optionSchema ?? []).reduce<Record<string, string | number | boolean>>(
+      (acc, spec: OptionSpec) => { acc[spec.key] = spec.defaultValue; return acc; }, {});
+    const design = entry.template!({
+      length: entry.defaults.length, width: entry.defaults.width,
+      height: entry.defaults.height, material: "maple" as MaterialId, options,
+    });
+    const leg = design.parts.find((p) => p.id === "leg-1")!;
+    expect(leg.mortises).toHaveLength(4);
+
+    const derived = deriveMortisesByPart(design.parts).get(leg.id) ?? [];
+    expect(derived.length).toBeGreaterThan(0); // 前提：真的有反推孔，否則這條測試等於沒測
+
+    const faces = pickTemplateFaces(leg, derived);
+    const holes = faces.reduce((n, f) => n + f.holes.length, 0);
+    expect(holes).toBe(4); // 正面 榫孔1/榫孔3 + 右端 榫孔2/榫孔4
+
+    // 同一面上不得再有兩個中心貼在一起的孔
+    for (const f of faces) {
+      const cs = f.holes.map((h) => {
+        if (h.kind === "circle" && h.cx != null && h.cy != null) return { x: h.cx, y: h.cy };
+        const pts = h.pts ?? [];
+        return pts.length
+          ? { x: pts.reduce((a, q) => a + q.x, 0) / pts.length, y: pts.reduce((a, q) => a + q.y, 0) / pts.length }
+          : null;
+      }).filter(Boolean) as Array<{ x: number; y: number }>;
+      for (let i = 0; i < cs.length; i++) {
+        for (let j = i + 1; j < cs.length; j++) {
+          expect(Math.hypot(cs[i].x - cs[j].x, cs[i].y - cs[j].y)).toBeGreaterThan(5);
+        }
+      }
+    }
+  });
+
+  it("零件沒有真母榫時，反推母榫要保留（那正是它存在的理由）", () => {
+    const part = makePart({ mortises: [] });
+    const derived = [
+      {
+        lb: { cx: 100, cy: 10, cz: 2, hx: 15, hy: 4, hz: 4, depthAxis: "z" as const },
+        through: false,
+        label: "榫孔",
+      },
+    ] as unknown as Parameters<typeof pickTemplateFaces>[1];
+
+    const withDerived = pickTemplateFaces(part, derived);
+    const withoutDerived = pickTemplateFaces(part, []);
+    const n = (fs: typeof withDerived) => fs.reduce((s, f) => s + f.holes.length, 0);
+    expect(n(withDerived)).toBeGreaterThan(n(withoutDerived));
   });
 
   it("面積平手時排孔多的那面在前（舊版嚴格大於會留住排序第一個＝孔較少的面）", () => {
