@@ -42,6 +42,8 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
 /** 件名超過 14 字截斷加省略號。中文字寬約 4.5mm @ font-size 4.5，欄寬 66mm。 */
 function truncateName(nameZh: string): string {
   const MAX_CHARS = 14;
@@ -52,16 +54,64 @@ function truncateName(nameZh: string): string {
 }
 
 /**
+ * A4 拼接相關的提醒行文字（第一頁、hasA4 時才出現）。回傳的順序就是印出來的
+ * 順序，每行各佔一個 A4_REMINDER_LINE_STEP 的行高。
+ *
+ * calibrationMeasuredMm：使用者這次匯出用的印表機校正基準值（250mm 測試線量到
+ * 的長度，見 tiling.ts CALIBRATION_TEST_LINE_MM）。undefined＝沒套用校正（含
+ * printshop 模式、或 a4 模式但沒填校正），不加後面兩行——這個包不會因為多語
+ * 校正提醒就跟舊版索引頁長得不一樣。
+ *
+ * 文案刻意講人話（不用「係數／補償／幾何／縮放因子」這類詞）：這份索引頁常常
+ * 是使用者事後翻出舊 zip 才看到的東西，要讓他知道「這份是配哪台印表機校正
+ * 過的」，換印表機要重新來一次，而不是寫成系統除錯訊息。
+ */
+function a4ReminderLines(hasA4: boolean, calibrationMeasuredMm?: number): string[] {
+  if (!hasA4) return [];
+  const lines = [
+    "拼接前請先印 00_印表機測試頁，確認你的印表機邊界安全再印其餘 A4。",
+    "拼接紙的實體邊緣本來就會對不齊（進紙誤差，正常現象）；真正要對準的是紙上印出來的十字與線。",
+  ];
+  if (calibrationMeasuredMm != null) {
+    lines.push(
+      `這份樣板已經套用你量過的印表機校正（那次量到 ${r1(calibrationMeasuredMm)}mm）；列印設定還是要選「實際大小 / 100%」，不要再縮放一次。`,
+      "這個校正是配這台印表機的，換另一台印表機要重新量一次、重新下載。",
+    );
+  }
+  return lines;
+}
+
+/** A4 提醒行的行高（mm）與起始 y。 */
+const A4_REMINDER_LINE_STEP = 6;
+const A4_REMINDER_START_Y = 45;
+
+/** 首頁「列印提醒區塊」結束、底線畫在哪個 y（無 A4 提醒時＝原本的 46，完全不變）。 */
+function firstPageBaselineY(hasA4: boolean, calibrationMeasuredMm?: number): number {
+  const extra = a4ReminderLines(hasA4, calibrationMeasuredMm);
+  if (extra.length === 0) return 46;
+  return A4_REMINDER_START_Y + extra.length * A4_REMINDER_LINE_STEP - 1;
+}
+
+/**
  * 單頁表頭與設定（包括底線）。isFirstPage 決定是否加列印提醒。
  *
  * hasA4：這包裡有沒有 A4 拼接模式的列（PackRow.tiling 有值）。只有這種情況才
- * 加第三行提醒——printshop 模式的既有兩行提醒 y 座標（33／39）、底線 y=46、
- * 表頭 headY=53 全部維持原樣，不動既有 87 個測試守住的版面。第三行塞在
- * 39→46 中間（y=44），不影響 firstRowY／paginate 的容量計算。
+ * 加額外提醒——printshop 模式（hasA4=false）的既有兩行提醒 y 座標（33／39）、
+ * 底線 y=46、表頭 headY=53 全部維持原樣，不動既有 87 個測試守住的版面；
+ * hasA4=true 時底線／表頭／資料列起點改用 firstPageBaselineY() 動態往下推，
+ * 讓 2～4 行 A4 提醒（拼接說明＋邊緣不對齊說明＋校正說明）有地方印，不用再
+ * 塞進原本 39→46 那個只有 7mm 高的縫（上一輪修法的教訓：字級被迫縮到 4mm、
+ * 沒有實測過會不會太擠）。這條路徑不會被既有 139 個測試踩到——所有既有測試
+ * 的 fixture 都沒有 tiling 欄位（hasA4 恆為 false），行為完全不變。
  */
 function renderPageHeader(
-  title: string, pageNum: number, totalPages: number, isFirstPage: boolean, hasA4: boolean,
-): string[] {
+  title: string,
+  pageNum: number,
+  totalPages: number,
+  isFirstPage: boolean,
+  hasA4: boolean,
+  calibrationMeasuredMm: number | undefined,
+): { lines: string[]; baselineY: number } {
   const lines: string[] = [];
 
   // 標題 + 頁碼
@@ -70,6 +120,7 @@ function renderPageHeader(
     `<text x="14" y="24" font-family="PackCJK" font-size="9" font-weight="700" fill="#000">${esc(title)} — 1:1 實尺樣板索引${pageLabel}</text>`,
   );
 
+  let baselineY = 30;
   if (isFirstPage) {
     lines.push(
       `<text x="14" y="33" font-family="PackCJK" font-size="4.5" font-weight="400" fill="#000">列印時務必選「實際大小 / 100%」，不要選「縮放至頁面大小」，否則樣板不是實尺。</text>`,
@@ -77,23 +128,25 @@ function renderPageHeader(
     lines.push(
       `<text x="14" y="39" font-family="PackCJK" font-size="4.5" font-weight="400" fill="#000">每張樣板都有一條 100mm 證明尺（灰色虛線，在空白角），量一下就知道有沒有被縮放。</text>`,
     );
-    if (hasA4) {
+    const extra = a4ReminderLines(hasA4, calibrationMeasuredMm);
+    extra.forEach((text, i) => {
+      const y = A4_REMINDER_START_Y + i * A4_REMINDER_LINE_STEP;
       lines.push(
-        `<text x="14" y="44" font-family="PackCJK" font-size="4" font-weight="700" fill="#000">拼接前請先印 00_印表機測試頁，確認你的印表機邊界安全再印其餘 A4。</text>`,
+        `<text x="14" y="${y}" font-family="PackCJK" font-size="4" font-weight="${i === 0 || i === 2 ? "700" : "400"}" fill="#000">${esc(text)}</text>`,
       );
-    }
-    lines.push(`<line x1="14" y1="46" x2="196" y2="46" stroke="#000" stroke-width="0.5"/>`);
+    });
+    baselineY = firstPageBaselineY(hasA4, calibrationMeasuredMm);
+    lines.push(`<line x1="14" y1="${baselineY}" x2="196" y2="${baselineY}" stroke="#000" stroke-width="0.5"/>`);
   } else {
     lines.push(`<line x1="14" y1="30" x2="196" y2="30" stroke="#000" stroke-width="0.5"/>`);
   }
 
-  return lines;
+  return { lines, baselineY };
 }
 
-/** 表頭行（件號、件名、數量、攤平尺寸、印在哪張紙）。 */
-function renderTableHeader(): string[] {
+/** 表頭行（件號、件名、數量、攤平尺寸、印在哪張紙）。headY：見 renderPageHeader 的動態版面說明。 */
+function renderTableHeader(headY: number): string[] {
   const lines: string[] = [];
-  const headY = 53;
   const cells: Array<[number, string]> = [
     [COLS.partNo.x, "件號"],
     [COLS.nameZh.x, "件名"],
@@ -143,8 +196,25 @@ function renderTableRow(r: PackRow, y: number): string[] {
   return lines;
 }
 
-/** 第一列的基準線 y（首頁多了列印提醒，起點低一點）。 */
-const firstRowY = (isFirstPage: boolean) => (isFirstPage ? 62 : 60);
+/**
+ * 表頭（欄名那一列）的 y。非首頁固定 53（原本行為，不變）；首頁固定在
+ * 「列印提醒區塊底線」下方 7mm——沒有 A4 提醒時底線＝46，headY＝53，跟原本
+ * 一模一樣；有 A4 提醒時底線往下推，headY 跟著往下推，兩者永遠維持 7mm 間距。
+ */
+function pageHeadY(isFirstPage: boolean, hasA4: boolean, calibrationMeasuredMm?: number): number {
+  if (!isFirstPage) return 53;
+  return firstPageBaselineY(hasA4, calibrationMeasuredMm) + 7;
+}
+
+/**
+ * 第一列資料的基準線 y。非首頁固定 60（原本行為，不變）；首頁＝headY+9，
+ * 跟 pageHeadY 用同一個來源，兩者不會走鐘。
+ */
+function firstRowY(isFirstPage: boolean, hasA4: boolean, calibrationMeasuredMm?: number): number {
+  if (!isFirstPage) return 60;
+  return pageHeadY(true, hasA4, calibrationMeasuredMm) + 9;
+}
+
 /** 列距 mm。 */
 const ROW_STEP = 7;
 /** 資料列可用的最低 y（留下邊界）。 */
@@ -157,13 +227,22 @@ const MAX_ROW_Y = H - 20;
  * `while (y < maxY)`，兩套邏輯剛好都等於 31 列所以沒出事；只要有人動了起始 y、
  * 行距或頁邊，實際容量掉到 30，最後幾列就會靜默消失（沒有錯誤、沒有痕跡，
  * 使用者少印零件才發現）。現在容量只有這一個來源，頁數是它算出來的結果。
+ *
+ * hasA4／calibrationMeasuredMm 只影響第一頁的起始 y（見 firstRowY）——沒有
+ * tiling 欄位的既有呼叫（hasA4 恆為 false）容量完全不變，這是既有 139 個測試
+ * （含「1..120 全掃」「每頁列數＝實際填列容量」這種嚴格容量測試）安全的原因：
+ * 那些 fixture 全部不帶 tiling 欄位。
  */
-function paginate(rowCount: number): Array<{ start: number; end: number }> {
+function paginate(
+  rowCount: number,
+  hasA4: boolean,
+  calibrationMeasuredMm?: number,
+): Array<{ start: number; end: number }> {
   const pages: Array<{ start: number; end: number }> = [];
   let i = 0;
   do {
     const start = i;
-    let y = firstRowY(pages.length === 0);
+    let y = firstRowY(pages.length === 0, hasA4, calibrationMeasuredMm);
     while (i < rowCount && y < MAX_ROW_Y) {
       i++;
       y += ROW_STEP;
@@ -177,23 +256,30 @@ function paginate(rowCount: number): Array<{ start: number; end: number }> {
   return pages;
 }
 
-export function indexSheetSvg(title: string, rows: PackRow[]): string[] {
-  const ranges = paginate(rows.length);
-  const totalPages = ranges.length;
+/**
+ * @param calibrationMeasuredMm 這批樣板實際套用的印表機校正基準值（250mm 測試線
+ * 量到的長度）。undefined（預設）＝沒有校正提醒，索引頁跟原本一模一樣；只有
+ * a4 模式且使用者真的填了跟標稱值不同的校正時，呼叫端（pack.ts）才會傳這個值。
+ */
+export function indexSheetSvg(title: string, rows: PackRow[], calibrationMeasuredMm?: number): string[] {
   const hasA4 = rows.some((r) => r.tiling);
+  const ranges = paginate(rows.length, hasA4, calibrationMeasuredMm);
+  const totalPages = ranges.length;
 
   const pages = ranges.map(({ start, end }, idx) => {
     const isFirstPage = idx === 0;
     const lines: string[] = [];
 
     // 頁面標題 + 可選的列印提醒
-    lines.push(...renderPageHeader(title, idx + 1, totalPages, isFirstPage, hasA4));
+    const header = renderPageHeader(title, idx + 1, totalPages, isFirstPage, hasA4, calibrationMeasuredMm);
+    lines.push(...header.lines);
 
     // 表頭
-    lines.push(...renderTableHeader());
+    const headY = pageHeadY(isFirstPage, hasA4, calibrationMeasuredMm);
+    lines.push(...renderTableHeader(headY));
 
     // 資料列
-    let y = firstRowY(isFirstPage);
+    let y = firstRowY(isFirstPage, hasA4, calibrationMeasuredMm);
     for (let r = start; r < end; r++) {
       lines.push(...renderTableRow(rows[r], y));
       y += ROW_STEP;

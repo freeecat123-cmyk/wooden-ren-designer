@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { planA4Tiles, MAX_TILES_PER_FACE, TILE_OVERLAP_MM, TILE_MARGIN_MM } from "./tiling";
+import {
+  planA4Tiles,
+  MAX_TILES_PER_FACE,
+  TILE_OVERLAP_MM,
+  TILE_MARGIN_MM,
+  CALIBRATION_TEST_LINE_MM,
+  CALIBRATION_MIN_S,
+  CALIBRATION_MAX_S,
+  calibrationScale,
+} from "./tiling";
 
 // 留白 15mm（印表機不可列印區安全裕度，取代早期 5mm 草案）：
 // 橫放 usableW=297-30=267, usableH=210-30=180；直放 usableW=180, usableH=267。
@@ -82,6 +91,57 @@ describe("planA4Tiles", () => {
 
   it("三欄以上：每一張的 x 都是 stepW 的倍數，相鄰兩張重疊剛好 10mm", () => {
     const plan = planA4Tiles(700, 100)!; // 橫放，cols 應該 >= 2
+    expect(plan.cols).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < plan.cols; i++) {
+      const prev = plan.tiles.find((t) => t.c === i - 1 && t.r === 0)!;
+      const cur = plan.tiles.find((t) => t.c === i && t.r === 0)!;
+      const overlap = prev.x + prev.w - cur.x;
+      expect(overlap).toBeCloseTo(TILE_OVERLAP_MM, 6);
+    }
+  });
+});
+
+describe("印表機校正（s 參數）", () => {
+  it("常數：250mm 測試線、合理範圍 0.9–1.1", () => {
+    expect(CALIBRATION_TEST_LINE_MM).toBe(250);
+    expect(CALIBRATION_MIN_S).toBe(0.9);
+    expect(CALIBRATION_MAX_S).toBe(1.1);
+  });
+
+  it("calibrationScale：量到的 mm ÷ 250", () => {
+    expect(calibrationScale(250)).toBe(1);
+    expect(calibrationScale(248.75)).toBeCloseTo(0.995, 10);
+  });
+
+  it("s=1（不傳）跟明確傳 1 完全一樣——不校正時行為零改變", () => {
+    const a = planA4Tiles(425, 35);
+    const b = planA4Tiles(425, 35, 1);
+    expect(b).toEqual(a);
+  });
+
+  it("s=0.995（印表機縮水 0.5%）：每張涵蓋的 face 範圍縮小＝usablePaper×s", () => {
+    const s = 0.995;
+    const plan1 = planA4Tiles(700, 300, 1)!;
+    const planS = planA4Tiles(700, 300, s)!;
+    // usable 橫放＝267×180；s=0.995 時應該縮成 267×0.995／180×0.995。
+    expect(planS.tiles[0].w).toBeCloseTo(USABLE_W_LANDSCAPE * s, 6);
+    expect(planS.tiles[0].h).toBeCloseTo(USABLE_H_LANDSCAPE * s, 6);
+    expect(planS.tiles[0].w).toBeLessThan(plan1.tiles[0].w);
+    expect(planS.tiles[0].h).toBeLessThan(plan1.tiles[0].h);
+  });
+
+  it("縮水的印表機可能讓貼邊的零件多切一張——這是正確行為，不是 bug", () => {
+    // 266mm 在 s=1 時剛好塞進橫放可用區（267mm）＝1 張；
+    // s=0.995 時可用區縮成 267×0.995＝265.665mm，266 已經放不下，要切成 2 張。
+    const face = 266;
+    const s = 0.995;
+    expect(planA4Tiles(face, 100, 1)!.cols).toBe(1);
+    expect(planA4Tiles(face, 100, s)!.cols).toBe(2);
+  });
+
+  it("重疊量 TILE_OVERLAP_MM（10mm）本身不隨 s 換算——它是真實世界要重疊的量，跟校正無關", () => {
+    const s = 0.995;
+    const plan = planA4Tiles(700, 100, s)!;
     expect(plan.cols).toBeGreaterThanOrEqual(2);
     for (let i = 1; i < plan.cols; i++) {
       const prev = plan.tiles.find((t) => t.c === i - 1 && t.r === 0)!;

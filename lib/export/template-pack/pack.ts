@@ -8,7 +8,7 @@ import { ladderFor, PAPERS } from "./paper";
 import { placeOnLadder, type Placement } from "./fit";
 import { pickTemplateFaces } from "./face";
 import { templateSheetSvg } from "./sheet";
-import { planA4Tiles } from "./tiling";
+import { planA4Tiles, CALIBRATION_TEST_LINE_MM, calibrationScale } from "./tiling";
 import { tileSheetSvg, printerTestPageSvg } from "./tile-sheet";
 import { indexSheetSvg, type PackRow } from "./index-sheet";
 import { fetchFontSubset, svgsToPdf, FontSubsetError } from "./pdf";
@@ -24,7 +24,18 @@ export interface PackPlan {
   byPaper: Map<string, Array<{ placement: Placement; row: PackRow; svg: string }>>;
 }
 
-export function buildPackPlan(design: FurnitureDesign, mode: PackMode = "printshop"): PackPlan {
+/**
+ * @param calibrationMeasuredMm 使用者在印表機測試頁上量到的 250mm 校正線實際長度
+ * （mm）。預設 CALIBRATION_TEST_LINE_MM（250）＝沒校正，跟原本行為完全一樣。
+ * 只有 mode="a4" 會用到；printshop 模式送輸出中心印，不會撞到家用印表機的縮放
+ * 誤差問題。
+ */
+export function buildPackPlan(
+  design: FurnitureDesign,
+  mode: PackMode = "printshop",
+  calibrationMeasuredMm: number = CALIBRATION_TEST_LINE_MM,
+): PackPlan {
+  const s = calibrationScale(calibrationMeasuredMm);
   const groups = groupPartsForDrawing(design);
   const derivedMap = deriveMortisesByPart(design.parts);
   const rows: PackRow[] = [];
@@ -50,7 +61,7 @@ export function buildPackPlan(design: FurnitureDesign, mode: PackMode = "printsh
       if (mode === "a4") {
         // A4 拼接模式：張數上限 6，超過就退回零件圖（跟 printshop 的 placeOnLadder
         // 回 null 同一套語意，index-sheet 的「太大 → 見零件圖」不用另外改）。
-        const plan = planA4Tiles(face.w, face.h);
+        const plan = planA4Tiles(face.w, face.h, s);
         if (!plan) {
           rows.push({
             partNo, nameZh, faceLabelZh: face.faceLabelZh, faceIndex: fi,
@@ -72,7 +83,7 @@ export function buildPackPlan(design: FurnitureDesign, mode: PackMode = "printsh
         for (const tile of plan.tiles) {
           const svg = tileSheetSvg({
             face, plan, tile, partNo: row.partNo, nameZh: row.nameZh, qty: row.qty,
-            faceIndex: fi, faceCount: faces.length,
+            faceIndex: fi, faceCount: faces.length, s,
           });
           pushSheet(key, { placement, row, svg });
         }
@@ -117,22 +128,33 @@ function triggerDownload(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/**
+ * @param calibrationMeasuredMm 見 buildPackPlan 同名參數；只有 mode="a4" 用得到。
+ */
 export async function downloadTemplatePack(
   design: FurnitureDesign,
   onProgress?: (done: number, total: number) => void,
   mode: PackMode = "printshop",
+  calibrationMeasuredMm: number = CALIBRATION_TEST_LINE_MM,
 ): Promise<void> {
-  const plan = buildPackPlan(design, mode);
+  const plan = buildPackPlan(design, mode, calibrationMeasuredMm);
   const allSvgs: string[] = [];
   for (const list of plan.byPaper.values()) for (const it of list) allSvgs.push(it.svg);
-  const indexSvgs = indexSheetSvg(safeStem(design), plan.rows); // 多頁索引（避免超過每頁列數上限時漏印）
+  // 只有 a4 模式、且使用者真的填了跟標稱值不同的校正，索引頁才多印一行提醒
+  // （見 index-sheet.ts renderPageHeader）——printshop 模式或沒校正時完全不受影響。
+  const isCalibrated = mode === "a4" && calibrationMeasuredMm !== CALIBRATION_TEST_LINE_MM;
+  const indexSvgs = indexSheetSvg(
+    safeStem(design),
+    plan.rows,
+    isCalibrated ? calibrationMeasuredMm : undefined,
+  ); // 多頁索引（避免超過每頁列數上限時漏印）
   allSvgs.push(...indexSvgs);
 
   // a4 模式才需要印表機測試頁——printshop 模式送印刷店，不會撞到家用印表機的
   // 不可列印區問題。放在整包最前面（檔名開頭 00_，比 00_索引.pdf 先——見下方
   // files 的塞入順序＋檔名本身的字元排序，兩層都保證排在索引前面）。
-  const totalSheets = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
-  const testPageSvg = mode === "a4" ? printerTestPageSvg(totalSheets) : null;
+  const totalSheets = Array.from(plan.byPaper.values()).reduce((sum, a) => sum + a.length, 0);
+  const testPageSvg = mode === "a4" ? printerTestPageSvg(totalSheets, calibrationScale(calibrationMeasuredMm)) : null;
   if (testPageSvg) allSvgs.push(testPageSvg);
 
   // 一次要好整包會用到的所有字元，避免每份 PDF 各打一次 API。

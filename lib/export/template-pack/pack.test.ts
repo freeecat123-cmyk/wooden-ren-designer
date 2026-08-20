@@ -5,7 +5,7 @@ import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from 
 import { buildPackPlan } from "./pack";
 import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
 import { partMachiningFaces } from "@/lib/export/mortise-faces";
-import { planA4Tiles } from "./tiling";
+import { planA4Tiles, CALIBRATION_TEST_LINE_MM } from "./tiling";
 
 /**
  * 用範本預設值建一個 design。
@@ -186,5 +186,33 @@ describe("buildPackPlan mode=\"a4\"（A4 拼接模式）", () => {
         }
       }
     }
+  });
+});
+
+describe("buildPackPlan 印表機校正（calibrationMeasuredMm）", () => {
+  it("不傳、或傳標稱值 250，行為完全一樣（不校正）", () => {
+    const design = buildDefaultDesign("stool");
+    const a = buildPackPlan(design, "a4");
+    const b = buildPackPlan(design, "a4", CALIBRATION_TEST_LINE_MM);
+    expect(a.rows.map((r) => r.tiling)).toEqual(b.rows.map((r) => r.tiling));
+  });
+
+  it("printshop 模式完全忽略校正參數（送輸出中心印，跟家用印表機縮放無關）", () => {
+    const design = buildDefaultDesign("stool");
+    const a = buildPackPlan(design, "printshop");
+    const b = buildPackPlan(design, "printshop", 248.75);
+    expect(a.rows.map((r) => r.partNo)).toEqual(b.rows.map((r) => r.partNo));
+    expect(Array.from(a.byPaper.keys())).toEqual(Array.from(b.byPaper.keys()));
+  });
+
+  it("s=0.995（量到 248.75mm）：跟 planA4Tiles 直接算出來的一致", () => {
+    const design = buildDefaultDesign("stool");
+    const measuredMm = 248.75; // 248.75/250 = 0.995
+    const plan = buildPackPlan(design, "a4", measuredMm);
+    const leg = plan.rows.find((r) => r.nameZh.includes("凳腳") && r.faceLabelZh === "正面");
+    expect(leg?.tiling).toBeDefined();
+    const expected = planA4Tiles(leg!.wmm, leg!.hmm, measuredMm / CALIBRATION_TEST_LINE_MM);
+    expect(expected).not.toBeNull();
+    expect(leg?.tiling).toEqual({ landscape: expected!.landscape, cols: expected!.cols, rows: expected!.rows });
   });
 });

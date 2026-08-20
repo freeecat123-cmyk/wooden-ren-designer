@@ -21,7 +21,13 @@
 import type { MachiningFace } from "@/lib/export/mortise-faces";
 import { outlinePathD } from "@/lib/export/parts-svg";
 import { PAPERS } from "./paper";
-import { TILE_OVERLAP_MM, TILE_MARGIN_MM, type TilePlan, type TileSpec } from "./tiling";
+import {
+  TILE_OVERLAP_MM,
+  TILE_MARGIN_MM,
+  CALIBRATION_TEST_LINE_MM,
+  type TilePlan,
+  type TileSpec,
+} from "./tiling";
 import {
   r2,
   esc,
@@ -48,10 +54,15 @@ const SEAM_STROKE_MM = 0.5;
 export interface TilePageGeometry {
   pageW: number;
   pageH: number;
-  /** 內容 group 的 translate 量。 */
+  /** 內容 group 的 translate 量（紙面座標；套用在 scale 之後，見 tileSheetSvg 的 transform）。 */
   tx: number;
   ty: number;
-  /** clip 區（＝可用區，紙面座標）。 */
+  /**
+   * 內容 group 的縮放量＝1/s。s=1（無校正）時為 1，行為跟原本一樣（純平移，
+   * 不縮放）。見檔頭與下方 tilePageGeometry 註解。
+   */
+  scale: number;
+  /** clip 區（＝紙張可用區，紙面座標，永遠跟校正無關——這是印表機安全留白算出來的）。 */
   usable: Box;
   /** 四角／裁切線／對齊線座標，紙面座標。 */
   leftX: number;
@@ -71,8 +82,30 @@ export interface TilePageGeometry {
  * 每張的左／上邊本來就是「這張自己的起點」，不會有前導的重複內容——重複量全部
  * 堆在右／下側（窗格比 stepW 寬出 overlap）。這就是為什麼「只裁右／下」就夠、
  * 左／上邊不需要裁：那一側本來就沒有多餘的東西。
+ *
+ * ── 印表機校正（s≠1）時的推導 ──
+ * s＝校正比例（量到的/應該的）。畫在紙面座標 p 的東西，印出來實際是 p×s；
+ * 要讓印出來等於真實尺寸 f，就必須畫在 p = f/s。
+ *
+ * 內容的 face 絕對座標 faceX（跟 tiling.ts 的 tile.x/y 同一個座標系）要映成
+ * 紙面座標：pageX = margin + (faceX − tile.x) / s。
+ * 用 SVG `transform="translate(tx ty) scale(1/s)"`（scale 先套用、translate
+ * 後套用：pageX = tx + faceX/s）反推：tx = margin − tile.x/s。s=1 時
+ * tx = margin − tile.x，scale=1，跟原本的純平移完全一樣。
+ *
+ * rightX／bottomY 是「裁切線」的紙面座標，對應 face 座標裡「usableFace 內縮
+ * TILE_OVERLAP_MM」那個點（＝ tiling.ts 的 stepW 位置）：
+ *   pageX = margin + stepFaceW/s = margin + (usableFaceW − TILE_OVERLAP_MM)/s
+ *         = margin + usablePaperW − TILE_OVERLAP_MM/s     （因為 usableFaceW/s = usablePaperW）
+ *         = (pageW − margin) − TILE_OVERLAP_MM/s
+ * 也就是重疊量在紙面上要畫 TILE_OVERLAP_MM/s，不是 TILE_OVERLAP_MM 本身——
+ * 這是「重疊 10mm 是實際印出來要 10mm」的直接體現。s=1 時就是原本的
+ * `pageW - margin - TILE_OVERLAP_MM`。
+ *
+ * usable（clip 區）本身不隨 s 變：那是紙張的印表機安全留白，跟校正無關，永遠
+ * 用 TILE_MARGIN_MM 內縮。
  */
-export function tilePageGeometry(plan: TilePlan, tile: TileSpec): TilePageGeometry {
+export function tilePageGeometry(plan: TilePlan, tile: TileSpec, s: number = 1): TilePageGeometry {
   const pageW = plan.landscape ? A4.w : A4.h;
   const pageH = plan.landscape ? A4.h : A4.w;
   const margin = TILE_MARGIN_MM;
@@ -80,16 +113,18 @@ export function tilePageGeometry(plan: TilePlan, tile: TileSpec): TilePageGeomet
   const hasRight = tile.c < plan.cols - 1;
   const hasTop = tile.r > 0;
   const hasBottom = tile.r < plan.rows - 1;
+  const overlapPage = TILE_OVERLAP_MM / s;
   return {
     pageW,
     pageH,
-    tx: margin - tile.x,
-    ty: margin - tile.y,
+    tx: margin - tile.x / s,
+    ty: margin - tile.y / s,
+    scale: 1 / s,
     usable: { x0: margin, y0: margin, x1: pageW - margin, y1: pageH - margin },
     leftX: margin,
     topY: margin,
-    rightX: hasRight ? pageW - margin - TILE_OVERLAP_MM : pageW - margin,
-    bottomY: hasBottom ? pageH - margin - TILE_OVERLAP_MM : pageH - margin,
+    rightX: hasRight ? pageW - margin - overlapPage : pageW - margin,
+    bottomY: hasBottom ? pageH - margin - overlapPage : pageH - margin,
     hasLeft,
     hasRight,
     hasTop,
@@ -97,10 +132,14 @@ export function tilePageGeometry(plan: TilePlan, tile: TileSpec): TilePageGeomet
   };
 }
 
-/** 紙面座標換算回 face 座標（用 tile 自己的 tx/ty）——驗證跨張對位用。 */
-export function pageToFace(tile: TileSpec, px: number, py: number): { x: number; y: number } {
+/**
+ * 紙面座標換算回 face 座標（用 tile 自己的 x/y）——驗證跨張對位用。
+ * 是 tilePageGeometry 的反函式：pageX = margin + (faceX−tile.x)/s
+ * ⟹ faceX = (pageX−margin)×s + tile.x。s=1 時跟原本一樣。
+ */
+export function pageToFace(tile: TileSpec, px: number, py: number, s: number = 1): { x: number; y: number } {
   const margin = TILE_MARGIN_MM;
-  return { x: px - margin + tile.x, y: py - margin + tile.y };
+  return { x: (px - margin) * s + tile.x, y: (py - margin) * s + tile.y };
 }
 
 export interface TileSheetInput {
@@ -114,6 +153,8 @@ export interface TileSheetInput {
   faceIndex?: number;
   /** 該零件總共幾個加工面。單面時省略或給 1。 */
   faceCount?: number;
+  /** 印表機校正比例，預設 1（不校正，跟原本行為完全一樣）。見 tiling.ts 檔頭說明。 */
+  s?: number;
 }
 
 /** 欄字母：0→A, 1→B…（MAX_TILES_PER_FACE=6，欄數不會超過 F，用不到雙字母）。 */
@@ -225,10 +266,10 @@ function pickInfoCorner(usable: Box, blockW: number, blockH: number, contentBox:
  * 算完再把結果平移回真正的頁面座標——這樣退讓永遠是「離可用區邊緣 8mm」，
  * 換算成離紙張實體邊緣至少 15+4=19mm（貼邊 fallback 那一輪也一樣安全）。
  */
-function pickRulerInFrame(usable: Box, blockers: Poly[]): RulerPlacement {
+function pickRulerInFrame(usable: Box, blockers: Poly[], rulerLenMm: number = PROOF_RULER_MM): RulerPlacement {
   const shift = (p: Pt): Pt => ({ x: p.x - usable.x0, y: p.y - usable.y0 });
   const localBlockers = blockers.map((poly) => poly.map(shift));
-  const local = pickRuler(usable.x1 - usable.x0, usable.y1 - usable.y0, localBlockers);
+  const local = pickRuler(usable.x1 - usable.x0, usable.y1 - usable.y0, localBlockers, rulerLenMm);
   return {
     vertical: local.vertical,
     box: {
@@ -315,9 +356,10 @@ function pickTileRuler(
   seamGeom: Pick<TilePageGeometry, "leftX" | "topY" | "rightX" | "bottomY" | "hasLeft" | "hasRight" | "hasTop" | "hasBottom">,
   contentBox: Box,
   infoBox: Box,
+  rulerLenMm: number = PROOF_RULER_MM,
 ): RulerPlacement {
   const { leftX, topY, rightX, bottomY, hasLeft, hasRight, hasTop, hasBottom } = seamGeom;
-  const need = PROOF_RULER_MM;
+  const need = rulerLenMm;
   const thick = RULER_BOX_H;
 
   const edgeHasSeam: Record<TileEdge, boolean> = { top: hasTop, bottom: hasBottom, left: hasLeft, right: hasRight };
@@ -419,8 +461,9 @@ export function tileSheetSvg(input: TileSheetInput): string {
   const { face, plan, tile, partNo, nameZh, qty } = input;
   const faceCount = input.faceCount ?? 1;
   const faceIndex = input.faceIndex ?? 0;
-  const g = tilePageGeometry(plan, tile);
-  const { pageW, pageH, tx, ty, usable, leftX, topY, rightX, bottomY, hasLeft, hasRight, hasTop, hasBottom } = g;
+  const s = input.s ?? 1;
+  const g = tilePageGeometry(plan, tile, s);
+  const { pageW, pageH, tx, ty, scale, usable, leftX, topY, rightX, bottomY, hasLeft, hasRight, hasTop, hasBottom } = g;
 
   const clipId = `tileclip-${partNo}-${tile.c}-${tile.r}`.replace(/[^A-Za-z0-9_-]/g, "_");
 
@@ -445,11 +488,13 @@ export function tileSheetSvg(input: TileSheetInput): string {
 
   // 這張實際會畫出內容的範圍（face 轉到紙面座標後跟可用區的交集）——資訊區塊
   // 跟證明尺都要避開它，不然壓在輪廓線上（方凳凳腳 35mm 寬的窄零件最容易踩到）。
+  // 內容現在用 scale=1/s 畫，右／下緣要乘上 scale 才是紙面上的實際位置
+  // （s=1 時 scale=1，跟原本一樣）。
   const contentBox: Box = {
     x0: Math.min(Math.max(tx, usable.x0), usable.x1),
     y0: Math.min(Math.max(ty, usable.y0), usable.y1),
-    x1: Math.min(Math.max(tx + face.w, usable.x0), usable.x1),
-    y1: Math.min(Math.max(ty + face.h, usable.y0), usable.y1),
+    x1: Math.min(Math.max(tx + face.w * scale, usable.x0), usable.x1),
+    y1: Math.min(Math.max(ty + face.h * scale, usable.y0), usable.y1),
   };
 
   // 格子編號＋箭頭＋件名＋拼好後的實際尺寸。四角挑一個不撞內容的（見 pickInfoCorner）。
@@ -506,13 +551,22 @@ export function tileSheetSvg(input: TileSheetInput): string {
 
   // 證明尺：優先放在沒有接縫的那一側，跟內容範圍／資訊區塊都保持不重疊，
   // 跟任何一條裁切線／對齊線至少距離 RULER_SEAM_CLEARANCE_MM（見 pickTileRuler）。
-  const ruler = pickTileRuler(usable, g, contentBox, infoBox);
+  // 校正後紙面上要畫 PROOF_RULER_MM/s，這樣印出來量到的才會剛好是標稱的 100mm
+  // （跟測試頁的 250mm 校正線同一個道理）。s=1 時就是原本的 100mm。
+  const rulerLenMm = PROOF_RULER_MM / s;
+  const ruler = pickTileRuler(usable, g, contentBox, infoBox, rulerLenMm);
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">`,
     `  <defs><clipPath id="${clipId}"><rect x="${r2(usable.x0)}" y="${r2(usable.y0)}" width="${r2(usable.x1 - usable.x0)}" height="${r2(usable.y1 - usable.y0)}"/></clipPath></defs>`,
     `  <g clip-path="url(#${clipId})">`,
-    `    <g transform="translate(${r2(tx)} ${r2(ty)})">`,
+    // scale=1/s 放大內容，抵銷印表機把整張紙縮小 s 倍——兩者相乘＝1，印出來剛好
+    // 是真實尺寸。s=1（無校正）時 scale=1，等同原本純平移，行為完全不變。
+    // 用 6 位小數（而非其餘座標慣用的 r2 兩位小數）：scale 會乘上內容座標本身
+    // （可達 280mm 量級），2 位小數的捨入誤差在校正比例上會被放大成肉眼可見的
+    // 尺寸誤差（280mm×0.005≈1.4mm），6 位小數把誤差壓到 <0.001mm，遠低於量測
+    // 精度需求。
+    `    <g transform="translate(${r2(tx)} ${r2(ty)}) scale(${Math.round(scale * 1e6) / 1e6})">`,
     `      ${geometry}`,
     `    </g>`,
     `  </g>`,
@@ -532,10 +586,23 @@ export function tileSheetSvg(input: TileSheetInput): string {
 /**
  * A4 拼接整包的第一張，檔名要排在索引之前（見 pack.ts）——先花一張紙驗證印表機，
  * 不要印完 N 張才發現全部歪掉。內容：15mm 內縮框（跟每張拼接紙同一個
- * TILE_MARGIN_MM）、四角角標（跟樣板同一顆 registerCross）、100mm 證明尺、
+ * TILE_MARGIN_MM）、四角角標（跟樣板同一顆 registerCross）、250mm 校正線、
  * 操作說明。固定橫放，不用管特定零件的 face，所以不需要 clip／translate。
+ *
+ * 250mm 取代舊版 100mm：0.5% 的印表機誤差在 100mm 上只差 0.5mm 很難量準，
+ * 250mm 上變成 1.25mm，好量很多（見 tiling.ts 的 CALIBRATION_TEST_LINE_MM）。
+ *
+ * 校正線本身也套用校正（s≠1 時紙面上畫 CALIBRATION_TEST_LINE_MM/s）——這樣使用者
+ * 量過一次填了校正值之後，可以「重印這張測試頁再量一次」確認校正真的生效：
+ * 校正正確時，量到的會剛好是 250mm。s=1（還沒校正過，或本來就準）時就是單純的
+ * 250mm 直線，用來發現問題。
+ *
+ * 文案（2026-08-20 coordinator 定稿逐字採用，未改寫）：這是使用者手上唯一會看
+ * 的說明，用分流式寫法讓「印表機準不用校正」的人一眼知道自己不用做任何事，
+ * 不會把校正當成必要步驟；同時反覆強調列印設定要維持 100%，避免使用者在
+ * 校正之外又手動縮放一次造成「校正兩次」。
  */
-export function printerTestPageSvg(sheetCount: number): string {
+export function printerTestPageSvg(sheetCount: number, s: number = 1): string {
   const pageW = A4.w;
   const pageH = A4.h;
   const margin = TILE_MARGIN_MM;
@@ -554,39 +621,53 @@ export function printerTestPageSvg(sheetCount: number): string {
   ].join("\n  ");
 
   // 這頁沒有零件內容，說明文字集中在左上角、外框跟角標都貼在 usable 邊緣，
-  // pickRuler 本來就會找退讓過的角落，不需要額外 blocker。
-  const ruler = pickRulerInFrame(usable, []);
+  // pickRuler 本來就會找退讓過的角落，不需要額外 blocker。校正線畫
+  // CALIBRATION_TEST_LINE_MM/s（s=1 時就是原本的 250mm）。
+  const rulerLenMm = CALIBRATION_TEST_LINE_MM / s;
+  const ruler = pickRulerInFrame(usable, [], rulerLenMm);
 
-  const title = (x: number, y: number, size: number, s: string) =>
+  const title = (x: number, y: number, size: number, str: string) =>
     `<text x="${r2(x)}" y="${r2(y)}" font-family="PackCJK" font-size="${size}"` +
-    ` font-weight="700" fill="#000" text-anchor="start">${esc(s)}</text>`;
-  const body = (x: number, y: number, s: string) =>
+    ` font-weight="700" fill="#000" text-anchor="start">${esc(str)}</text>`;
+  const body = (x: number, y: number, str: string) =>
     `<text x="${r2(x)}" y="${r2(y)}" font-family="PackCJK" font-size="4.2"` +
-    ` font-weight="400" fill="#000" text-anchor="start">${esc(s)}</text>`;
+    ` font-weight="400" fill="#000" text-anchor="start">${esc(str)}</text>`;
+  // 「剛好 250mm」／「不是 250mm」這兩支分流用粗體＋縮排，讓使用者一眼找到
+  // 自己屬於哪一種（coordinator 明確要求要「明顯區分」）。
+  const branch = (x: number, y: number, str: string) =>
+    `<text x="${r2(x)}" y="${r2(y)}" font-family="PackCJK" font-size="4.2"` +
+    ` font-weight="700" fill="#000" text-anchor="start">${esc(str)}</text>`;
 
   const tx = usable.x0 + 6;
-  let ty = usable.y0 + 12;
+  const bx = tx + 4; // 分流兩支縮排
+  let ty = usable.y0 + 11;
   const texts: string[] = [];
-  texts.push(title(tx, ty, 8, "先只印這一張"));
+  texts.push(title(tx, ty, 7.5, "先印這一張，不要一次印完"));
+  ty += 10;
+  texts.push(body(tx, ty, `下面那條線，實際長度應該是 ${CALIBRATION_TEST_LINE_MM}mm。拿尺量它。`));
   ty += 10;
   texts.push(
-    body(tx, ty, "① 拿尺量下面那條線，必須剛好 100mm。不是的話，列印設定選「實際大小 / 100%」，"),
+    branch(bx, ty, `量起來剛好 ${CALIBRATION_TEST_LINE_MM}mm —— 你的印表機很準，直接把其餘 ${sheetCount} 張印完就好。`),
   );
-  ty += 6;
-  texts.push(body(tx, ty, "　不要選「縮放至頁面大小」，再印一次。"));
+  ty += 8;
+  texts.push(
+    branch(bx, ty, `量起來不是 ${CALIBRATION_TEST_LINE_MM}mm —— 印表機有微幅縮放，這很常見。把你量到的數字填回網頁上的`),
+  );
+  ty += 5.5;
+  texts.push(body(bx, ty, "「印表機校正」欄位，重新下載一次。這台印表機只要量這一次，之後系統會記得。"));
   ty += 9;
-  texts.push(body(tx, ty, "② 檢查四個角的記號有沒有完整印出來。缺角代表你的印表機邊界比較大，"));
-  ty += 6;
-  texts.push(body(tx, ty, "　請改用其他印表機，或回報給我們。"));
-  ty += 10;
-  texts.push(title(tx, ty, 6, `兩項都通過，再印其餘 ${sheetCount} 張。`));
+  texts.push(body(tx, ty, "不管有沒有校正，列印設定都維持「實際大小 / 100%」。不要選「符合頁面大小」，"));
+  ty += 5.5;
+  texts.push(body(tx, ty, "也不要自己改百分比。"));
+  ty += 8;
+  texts.push(body(tx, ty, "四個角的十字如果有缺角，代表這台印表機的邊界比較大，請換一台印。"));
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">`,
     `  ${frame}`,
     `  ${corners}`,
     ...texts.map((t) => `  ${t}`),
-    `  ${rulerMarkup(ruler)}`,
+    `  ${rulerMarkup(ruler, CALIBRATION_TEST_LINE_MM)}`,
     `</svg>`,
     "",
   ].join("\n");

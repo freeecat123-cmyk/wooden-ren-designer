@@ -268,13 +268,18 @@ export interface RulerPlacement { box: Box; vertical: boolean }
  * 橫尺，但左右各有 70mm 寬的白邊，轉 90° 就放得下。
  * 全部都撞（紙面真的沒空位）就回第一個候選——此時靠灰色虛線讓使用者分辨。
  */
-export function pickRuler(pageW: number, pageH: number, blockers: Poly[]): RulerPlacement {
+export function pickRuler(
+  pageW: number,
+  pageH: number,
+  blockers: Poly[],
+  rulerLenMm: number = PROOF_RULER_MM,
+): RulerPlacement {
   const order: CornerKey[] = ["BL", "BR", "TR", "TL"];
   const candidates: RulerPlacement[] = [];
   for (const m of RULER_MARGINS) {
     for (const vertical of [false, true]) {
-      const w = vertical ? RULER_BOX_H : PROOF_RULER_MM;
-      const h = vertical ? PROOF_RULER_MM : RULER_BOX_H;
+      const w = vertical ? RULER_BOX_H : rulerLenMm;
+      const h = vertical ? rulerLenMm : RULER_BOX_H;
       for (const key of order) {
         candidates.push({ box: cornerBox(key, pageW, pageH, w, h, m), vertical });
       }
@@ -288,27 +293,40 @@ export function pickRuler(pageW: number, pageH: number, blockers: Poly[]): Ruler
 }
 
 /**
- * 100mm 證明尺。座標全部是紙面絕對值（不包 transform），量測腳本與測試才好核對。
+ * 證明尺。座標全部是紙面絕對值（不包 transform），量測腳本與測試才好核對。
  *
  * 刻意用灰色虛線——舊版是黑色 0.3mm 實線、跟要描的輪廓一模一樣，重疊時描線分不出
  * 哪條是零件。端點刻度保持實線，量測時對得準。
+ *
+ * 畫的長度取自 box 本身的寬/高（不是寫死 PROOF_RULER_MM）——A4 拼接模式的印表機
+ * 校正需要「紙面上畫的長度」跟「標籤上寫的目標長度」不同（校正後紙面上要畫
+ * `目標長度 / s`，這樣印出來才會剛好是目標長度），呼叫端（tile-sheet.ts）
+ * 用自訂長度的 box 呼叫 pickRuler／pickTileRuler 就能達成，這裡只要老實把 box
+ * 的實際尺寸畫出來即可。s=1（無校正）時 box 尺寸＝PROOF_RULER_MM，跟原本行為
+ * 完全一樣。
+ *
+ * @param labelLengthMm 標籤要寫的目標長度（mm），預設 100（跟原本行為一樣）。
  */
-export function rulerMarkup({ box, vertical }: RulerPlacement): string {
+export function rulerMarkup(
+  { box, vertical }: RulerPlacement,
+  labelLengthMm: number = PROOF_RULER_MM,
+): string {
+  const lenMm = vertical ? box.y1 - box.y0 : box.x1 - box.x0;
   // 主線離「框內側」2.5mm，端點刻度往兩側各 2.5mm，文字再外推 4mm。
   const a = vertical
     ? { x: box.x1 - 2.5, y: box.y1 }
     : { x: box.x0, y: box.y1 - 2.5 };
   const b = vertical
-    ? { x: box.x1 - 2.5, y: box.y1 - PROOF_RULER_MM }
-    : { x: box.x0 + PROOF_RULER_MM, y: box.y1 - 2.5 };
+    ? { x: box.x1 - 2.5, y: box.y1 - lenMm }
+    : { x: box.x0 + lenMm, y: box.y1 - 2.5 };
   // 端點刻度垂直於主線
   const tick = (p: { x: number; y: number }) =>
     vertical
       ? `<line x1="${r2(p.x - 2.5)}" y1="${r2(p.y)}" x2="${r2(p.x + 2.5)}" y2="${r2(p.y)}"/>`
       : `<line x1="${r2(p.x)}" y1="${r2(p.y - 2.5)}" x2="${r2(p.x)}" y2="${r2(p.y + 2.5)}"/>`;
 
-  const tx = vertical ? box.x1 - 6.5 : box.x0 + PROOF_RULER_MM / 2;
-  const ty = vertical ? box.y1 - PROOF_RULER_MM / 2 : box.y1 - 6.5;
+  const tx = vertical ? box.x1 - 6.5 : box.x0 + lenMm / 2;
+  const ty = vertical ? box.y1 - lenMm / 2 : box.y1 - 6.5;
   const rotate = vertical ? ` transform="rotate(-90 ${r2(tx)} ${r2(ty)})"` : "";
 
   return [
@@ -319,7 +337,7 @@ export function rulerMarkup({ box, vertical }: RulerPlacement): string {
     tick(b),
     `</g>`,
     `<text x="${r2(tx)}" y="${r2(ty)}"${rotate} font-family="PackCJK" font-size="4"`,
-    ` font-weight="400" fill="${NOTE_COLOR}" text-anchor="middle">此線實長 100mm — 列印請選「實際大小」</text>`,
+    ` font-weight="400" fill="${NOTE_COLOR}" text-anchor="middle">此線實長 ${r2(labelLengthMm)}mm — 列印請選「實際大小」</text>`,
   ].join("");
 }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { MachiningFace } from "@/lib/export/mortise-faces";
-import { planA4Tiles } from "./tiling";
+import { planA4Tiles, CALIBRATION_TEST_LINE_MM } from "./tiling";
 import { tileSheetSvg, tilePageGeometry, pageToFace, printerTestPageSvg } from "./tile-sheet";
 import { PROOF_RULER_MM } from "./sheet";
 import { TILE_MARGIN_MM } from "./tiling";
@@ -339,8 +339,9 @@ describe("printerTestPageSvg", () => {
     expect(svg).toContain('viewBox="0 0 297 210"');
   });
 
-  it("含 100mm 證明尺", () => {
-    expect(printerTestPageSvg(14)).toContain("100mm");
+  it("含 250mm 校正線（2026-08-20：100mm 誤差太小難量準，改成 250mm，見 tiling.ts CALIBRATION_TEST_LINE_MM）", () => {
+    expect(CALIBRATION_TEST_LINE_MM).toBe(250);
+    expect(printerTestPageSvg(14)).toContain("250mm");
   });
 
   it("含四個角標（跟樣板同一顆 register mark）", () => {
@@ -364,12 +365,22 @@ describe("printerTestPageSvg", () => {
     expect(printerTestPageSvg(29)).toContain("29");
   });
 
-  it("含操作說明關鍵字", () => {
+  it("含操作說明關鍵字（2026-08-20 coordinator 定稿文案，逐字採用）", () => {
     const svg = printerTestPageSvg(14);
-    expect(svg).toContain("先只印這一張");
-    expect(svg).toContain("100mm");
-    expect(svg).toContain("實際大小");
-    expect(svg).toContain("縮放至頁面大小");
+    expect(svg).toContain("先印這一張，不要一次印完");
+    expect(svg).toContain("250mm");
+    expect(svg).toContain("實際大小 / 100%");
+    expect(svg).toContain("符合頁面大小");
+    // 分流式文案：兩支各自出現，不是舊版單一條件式的「①②」。
+    expect(svg).toContain("量起來剛好 250mm");
+    expect(svg).toContain("量起來不是 250mm");
+    expect(svg).toContain("印表機校正");
+    expect(svg).toContain("四個角的十字如果有缺角");
+  });
+
+  it("帶入實際張數的分流句子裡（不是舊版「兩項都通過」）", () => {
+    const svg = printerTestPageSvg(14);
+    expect(svg).toContain("直接把其餘 14 張印完就好");
   });
 
   it("不得出現 font-weight 500/600、字型一律 PackCJK", () => {
@@ -390,5 +401,110 @@ describe("printerTestPageSvg", () => {
       expect(Number(y)).toBeGreaterThanOrEqual(TILE_MARGIN_MM - 1e-6);
       expect(Number(y)).toBeLessThanOrEqual(210 - TILE_MARGIN_MM + 1e-6);
     }
+  });
+});
+
+/**
+ * 印表機校正（2026-08-20 實機回饋：印出的樣板全長少 2mm，量 100mm 證明尺只有
+ * 99.5mm）。s＝量到的/應該的＝99.5/100＝0.995，這裡統一用這個數字驗證。
+ */
+describe("印表機校正（s 參數）", () => {
+  const S = 0.995;
+
+  it("s=1（不傳）跟明確傳 1 完全一樣——不校正時 tilePageGeometry／tileSheetSvg 零改變", () => {
+    const tile = legPlan.tiles[0];
+    const gDefault = tilePageGeometry(legPlan, tile);
+    const gExplicit = tilePageGeometry(legPlan, tile, 1);
+    expect(gExplicit).toEqual(gDefault);
+
+    const svgDefault = tileSheetSvg(baseInput(legFace));
+    const svgExplicit = tileSheetSvg({ ...baseInput(legFace), s: 1 });
+    expect(svgExplicit).toBe(svgDefault);
+  });
+
+  it("s=0.995：scale＝1/s，tx/ty 帶入 tile.x/s（不再是純平移）", () => {
+    const tile = legPlan.tiles[0];
+    const g1 = tilePageGeometry(legPlan, tile, 1);
+    const gS = tilePageGeometry(legPlan, tile, S);
+    expect(gS.scale).toBeCloseTo(1 / S, 10);
+    expect(gS.tx).toBeCloseTo(TILE_MARGIN_MM - tile.x / S, 6);
+    expect(gS.ty).toBeCloseTo(TILE_MARGIN_MM - tile.y / S, 6);
+    // usable（紙張安全留白）本身跟校正無關，不隨 s 變。
+    expect(gS.usable).toEqual(g1.usable);
+  });
+
+  it("s=0.995：重疊量在紙面上要畫 10/s（『重疊 10mm 是實際印出來要 10mm』）", () => {
+    const tileA = bigPlan.tiles.find((t) => t.c === 0 && t.r === 0)!;
+    const gS = tilePageGeometry(bigPlan, tileA, S);
+    expect(gS.pageW - gS.rightX - TILE_MARGIN_MM).toBeCloseTo(10 / S, 6);
+  });
+
+  it("s=0.995：端到端恆等式——紙面上畫的內容，乘上印表機真實縮放 s，物理長度等於原始 face 長度", () => {
+    // 模擬 tileSheetSvg 的 content transform：pageX = tx + (faceX-tile.x) * scale。
+    // 印表機把整張紙印出來時，物理長度 = 頁面座標差 × s（印表機自己的縮放）。
+    // 這條測試驗證這兩件事疊起來剛好抵銷，物理長度 = face 座標差本身。
+    const tile = legPlan.tiles[0];
+    const g = tilePageGeometry(legPlan, tile, S);
+    const faceX1 = tile.x + 5;
+    const faceX2 = tile.x + 200;
+    const pageX1 = g.tx + (faceX1 - tile.x) * g.scale;
+    const pageX2 = g.tx + (faceX2 - tile.x) * g.scale;
+    const printedPhysicalMm = (pageX2 - pageX1) * S;
+    expect(printedPhysicalMm).toBeCloseTo(faceX2 - faceX1, 6);
+  });
+
+  it("s=0.995：裁切線與下一張對齊線仍解析到同一個 face 座標（欄方向，校正後對位不失準）", () => {
+    const planS = planA4Tiles(bigFace.w, bigFace.h, S)!;
+    for (let c = 0; c < planS.cols - 1; c++) {
+      const tileA = planS.tiles.find((t) => t.c === c && t.r === 0)!;
+      const tileB = planS.tiles.find((t) => t.c === c + 1 && t.r === 0)!;
+      const gA = tilePageGeometry(planS, tileA, S);
+      const gB = tilePageGeometry(planS, tileB, S);
+      const faceFromCut = pageToFace(tileA, gA.rightX, gA.topY, S);
+      const faceFromAlign = pageToFace(tileB, gB.leftX, gB.topY, S);
+      expect(faceFromCut.x).toBeCloseTo(faceFromAlign.x, 6);
+    }
+  });
+
+  it("s=0.995：裁切線與下一張對齊線仍解析到同一個 face 座標（列方向）", () => {
+    const planS = planA4Tiles(bigFace.w, bigFace.h, S)!;
+    for (let r = 0; r < planS.rows - 1; r++) {
+      const tileA = planS.tiles.find((t) => t.c === 0 && t.r === r)!;
+      const tileB = planS.tiles.find((t) => t.c === 0 && t.r === r + 1)!;
+      const gA = tilePageGeometry(planS, tileA, S);
+      const gB = tilePageGeometry(planS, tileB, S);
+      const faceFromCut = pageToFace(tileA, gA.leftX, gA.bottomY, S);
+      const faceFromAlign = pageToFace(tileB, gB.leftX, gB.topY, S);
+      expect(faceFromCut.y).toBeCloseTo(faceFromAlign.y, 6);
+    }
+  });
+
+  it("s=0.995：tile 內建的 100mm 證明尺，紙面上畫 100/s，標籤仍寫 100mm", () => {
+    const plan = planA4Tiles(legFace.w, legFace.h, S)!;
+    const svg = tileSheetSvg({ ...baseInput(legFace, plan, 0, 0), s: S });
+    const box = rulerBoxFromSvg(svg);
+    const drawnLen = Math.max(box.x1 - box.x0, box.y1 - box.y0);
+    expect(drawnLen).toBeCloseTo(PROOF_RULER_MM / S, 2);
+    expect(svg).toContain("此線實長 100mm");
+    // 校正正確時（印表機真的照 S 縮），印出來量到的會剛好是 100mm——容許 0.05mm
+    // 誤差，因為 rulerBoxFromSvg 讀回的是 SVG 字串裡 r2（2 位小數＝0.01mm）
+    // 捨入過的座標，不是數學上未捨入的原始值。
+    expect(drawnLen * S).toBeCloseTo(PROOF_RULER_MM, 1);
+  });
+
+  it("s=0.995：測試頁的 250mm 校正線，紙面上畫 250/s，印出來（×S）剛好 250mm", () => {
+    const svg = printerTestPageSvg(14, S);
+    const box = rulerBoxFromSvg(svg);
+    const drawnLen = Math.max(box.x1 - box.x0, box.y1 - box.y0);
+    expect(drawnLen).toBeCloseTo(CALIBRATION_TEST_LINE_MM / S, 2);
+    // 同上：0.05mm 容忍度來自 SVG 字串本身的 r2（0.01mm）捨入，不是公式誤差。
+    expect(drawnLen * S).toBeCloseTo(CALIBRATION_TEST_LINE_MM, 1);
+  });
+
+  it("s=1（預設）：測試頁校正線就是單純的 250mm（還沒校正 / 用來發現問題）", () => {
+    const svg = printerTestPageSvg(14);
+    const box = rulerBoxFromSvg(svg);
+    const drawnLen = Math.max(box.x1 - box.x0, box.y1 - box.y0);
+    expect(drawnLen).toBeCloseTo(CALIBRATION_TEST_LINE_MM, 6);
   });
 });

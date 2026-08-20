@@ -167,6 +167,57 @@ describe("indexSheetSvg", () => {
     expect(svgs.join("")).toContain("見零件圖");
   });
 
+  it("A4 拼接模式：即使沒填校正，也提醒「實體邊緣本來就會對不齊」", () => {
+    const svgs = indexSheetSvg("方凳", [
+      row({
+        partNo: "P-01a", nameZh: "凳腳 1",
+        placement: { paper: PAPERS.find((p) => p.id === "A4")!, angleDeg: 0, swapped: false },
+        tiling: { landscape: true, cols: 2, rows: 1 },
+      }),
+    ]);
+    const allText = svgs.join("");
+    expect(allText).toContain("對不齊");
+    expect(allText).toContain("十字與線");
+    // 沒傳 calibrationMeasuredMm，不該出現校正提醒的字樣。
+    expect(allText).not.toContain("已經套用你量過的印表機校正");
+  });
+
+  it("A4 拼接模式＋有套用校正：索引頁多一行講清楚基準值與『維持 100%』", () => {
+    const svgs = indexSheetSvg(
+      "方凳",
+      [
+        row({
+          partNo: "P-01a", nameZh: "凳腳 1",
+          placement: { paper: PAPERS.find((p) => p.id === "A4")!, angleDeg: 0, swapped: false },
+          tiling: { landscape: true, cols: 2, rows: 1 },
+        }),
+      ],
+      248.75,
+    );
+    const allText = svgs.join("");
+    // 索引頁四捨五入到小數點後 1 位（r1）——248.75 → 248.8。
+    expect(allText).toContain("248.8mm");
+    expect(allText).toContain("已經套用你量過的印表機校正");
+    expect(allText).toContain("實際大小 / 100%");
+    expect(allText).toContain("換另一台印表機要重新量一次");
+  });
+
+  it("不傳第三個參數（沒有校正）：索引頁跟原本（不帶 tiling）完全沒有分頁行為差異", () => {
+    // hasA4=false 時，firstRowY／headY／paginate 都要走原本固定的 46/53/62，
+    // 不受新加的動態版面邏輯影響——用「40 列分頁」那組 fixture 重跑一次確認容量沒變。
+    const rows: PackRow[] = Array.from({ length: 40 }, (_, i) =>
+      row({
+        partNo: `P-${String(i + 1).padStart(2, "0")}`,
+        nameZh: `零件${i + 1}`,
+        placement: i % 3 === 0 ? null : { paper: A3, angleDeg: 0, swapped: false },
+      }),
+    );
+    const before = indexSheetSvg("櫥櫃", rows);
+    const after = indexSheetSvg("櫥櫃", rows, undefined);
+    expect(after.length).toBe(before.length);
+    expect(after.join("")).toBe(before.join(""));
+  });
+
   it("頁碼標籤多頁時顯示，單頁時不顯示", () => {
     const rows = Array.from({ length: 34 }, (_, i) =>
       row({ partNo: `P-${String(i + 1).padStart(2, "0")}`, nameZh: `零件${i + 1}` }),
