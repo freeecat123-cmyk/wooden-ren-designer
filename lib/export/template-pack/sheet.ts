@@ -16,13 +16,13 @@ const LABEL_LINE_MM = 7;
 const MARK_FONT_MAX_MM = 6;
 const MARK_FONT_MIN_MM = 3;
 /** 頁面四角保留框距紙邊 mm。 */
-const CORNER_MARGIN_MM = 8;
+export const CORNER_MARGIN_MM = 8;
 /**
  * 證明尺／引線用的灰。
  * 這些是「紙面附註」，不是要描的線；跟輪廓同為黑色 0.3mm 實線時使用者分不出來，
  * 曾實測有樣板把腳的下端（正好是要點榫孔那端）疊在尺上。灰 + 虛線 = 一眼知道不要描。
  */
-const NOTE_COLOR = "#666";
+export const NOTE_COLOR = "#666";
 
 export interface TemplateSheetInput {
   face: MachiningFace;
@@ -36,9 +36,9 @@ export interface TemplateSheetInput {
   faceCount?: number;
 }
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
+export const r2 = (n: number) => Math.round(n * 100) / 100;
 
-function esc(s: string): string {
+export function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
@@ -67,7 +67,7 @@ export function estTextWidthMm(s: string, fontSizeMm: number): number {
   return textEm(s) * fontSizeMm;
 }
 
-function holeMarkup(h: FaceHole): string {
+export function holeMarkup(h: FaceHole): string {
   const t = `<title>${esc(h.label + (h.through ? "（通）" : "（盲）"))}</title>`;
   if (h.kind === "circle" && h.cx != null && h.cy != null && h.r != null) {
     const cross = Math.max(h.r * 0.8, 1.5);
@@ -157,11 +157,11 @@ export function contentCornersOnPage(
 // 紙面空白角的分配（證明尺、放不進輪廓的名稱牌）
 // ---------------------------------------------------------------------------
 
-interface Box { x0: number; y0: number; x1: number; y1: number }
-type Pt = { x: number; y: number };
-type Poly = Pt[];
+export interface Box { x0: number; y0: number; x1: number; y1: number }
+export type Pt = { x: number; y: number };
+export type Poly = Pt[];
 
-function boxPoly(b: Box): Poly {
+export function boxPoly(b: Box): Poly {
   return [
     { x: b.x0, y: b.y0 }, { x: b.x1, y: b.y0 },
     { x: b.x1, y: b.y1 }, { x: b.x0, y: b.y1 },
@@ -175,7 +175,7 @@ function boxPoly(b: Box): Poly {
  * 用 bbox 判定會說「四個角全都被佔住」，尺就退回原位繼續壓在腳上——但實際上那四個
  * 角是空的，斜擺留下的正是角落空間。必須拿真正的旋轉四邊形去判。
  */
-function polyOverlaps(a: Poly, b: Poly): boolean {
+export function polyOverlaps(a: Poly, b: Poly): boolean {
   for (const poly of [a, b]) {
     for (let i = 0; i < poly.length; i++) {
       const p1 = poly[i];
@@ -217,9 +217,9 @@ function centerOf(b: Box) {
   return { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
 }
 
-type CornerKey = "BL" | "BR" | "TL" | "TR";
+export type CornerKey = "BL" | "BR" | "TL" | "TR";
 
-function cornerBox(
+export function cornerBox(
   key: CornerKey, pageW: number, pageH: number, w: number, h: number,
   m: number = CORNER_MARGIN_MM,
 ): Box {
@@ -234,7 +234,7 @@ function cornerBox(
  * 從偏好順序挑第一個不撞任何 blocker 的角。
  * 四個角都撞就回 order[0]——此時整張紙本來就沒有空白角，寧可疊也不要畫到紙外。
  */
-function pickCorner(
+export function pickCorner(
   order: readonly CornerKey[],
   pageW: number,
   pageH: number,
@@ -251,11 +251,11 @@ function pickCorner(
 }
 
 /** 證明尺保留框的「厚度」mm（線 + 端點刻度 + 上方那行字）。 */
-const RULER_BOX_H = 11;
+export const RULER_BOX_H = 11;
 /** 角落保留框的退讓階梯：先照正常留白找，找不到就貼近紙邊再找一輪。 */
 const RULER_MARGINS = [CORNER_MARGIN_MM, 4] as const;
 
-interface RulerPlacement { box: Box; vertical: boolean }
+export interface RulerPlacement { box: Box; vertical: boolean }
 
 /**
  * 找證明尺畫在哪。
@@ -268,7 +268,7 @@ interface RulerPlacement { box: Box; vertical: boolean }
  * 橫尺，但左右各有 70mm 寬的白邊，轉 90° 就放得下。
  * 全部都撞（紙面真的沒空位）就回第一個候選——此時靠灰色虛線讓使用者分辨。
  */
-function pickRuler(pageW: number, pageH: number, blockers: Poly[]): RulerPlacement {
+export function pickRuler(pageW: number, pageH: number, blockers: Poly[]): RulerPlacement {
   const order: CornerKey[] = ["BL", "BR", "TR", "TL"];
   const candidates: RulerPlacement[] = [];
   for (const m of RULER_MARGINS) {
@@ -293,7 +293,7 @@ function pickRuler(pageW: number, pageH: number, blockers: Poly[]): RulerPlaceme
  * 刻意用灰色虛線——舊版是黑色 0.3mm 實線、跟要描的輪廓一模一樣，重疊時描線分不出
  * 哪條是零件。端點刻度保持實線，量測時對得準。
  */
-function rulerMarkup({ box, vertical }: RulerPlacement): string {
+export function rulerMarkup({ box, vertical }: RulerPlacement): string {
   // 主線離「框內側」2.5mm，端點刻度往兩側各 2.5mm，文字再外推 4mm。
   const a = vertical
     ? { x: box.x1 - 2.5, y: box.y1 }

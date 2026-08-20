@@ -5,6 +5,7 @@ import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from 
 import { buildPackPlan } from "./pack";
 import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
 import { partMachiningFaces } from "@/lib/export/mortise-faces";
+import { planA4Tiles } from "./tiling";
 
 /**
  * 用範本預設值建一個 design。
@@ -133,6 +134,57 @@ describe("每個加工面各一張樣板", () => {
       const plan = buildPackPlan(buildDefaultDesign(category));
       const total = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
       expect(total).toBe(plan.rows.filter((r) => r.placement).length);
+    }
+  });
+});
+
+describe("buildPackPlan mode=\"a4\"（A4 拼接模式）", () => {
+  it("不傳 mode 或傳 \"printshop\" 時行為完全不變（既有 87 個測試守的就是這個）", () => {
+    const design = buildDefaultDesign("stool");
+    const a = buildPackPlan(design);
+    const b = buildPackPlan(design, "printshop");
+    expect(a.rows.map((r) => r.partNo)).toEqual(b.rows.map((r) => r.partNo));
+    expect(a.rows.every((r) => r.tiling === undefined)).toBe(true);
+    expect(Array.from(a.byPaper.keys())).toEqual(Array.from(b.byPaper.keys()));
+  });
+
+  it("方凳凳腳：a4 模式落在 A4、拼接張數跟 planA4Tiles 算出來的一致，一律不旋轉", () => {
+    const plan = buildPackPlan(buildDefaultDesign("stool"), "a4");
+    const leg = plan.rows.find((r) => r.nameZh.includes("凳腳") && r.faceLabelZh === "正面");
+    expect(leg?.placement?.paper.id).toBe("A4");
+    expect(leg?.placement?.angleDeg).toBe(0);
+    expect(leg?.tiling).toBeDefined();
+    const expected = planA4Tiles(leg!.wmm, leg!.hmm);
+    expect(expected).not.toBeNull();
+    expect(leg?.tiling).toEqual({ landscape: expected!.landscape, cols: expected!.cols, rows: expected!.rows });
+    expect(leg!.tiling!.cols * leg!.tiling!.rows).toBeGreaterThan(1); // 前提：凳腳真的要拼多張，不然這條測試沒測到重點
+  });
+
+  it("byPaper 的樣板張數 = 每一列的拼接張數總和（不是列數）", () => {
+    const plan = buildPackPlan(buildDefaultDesign("stool"), "a4");
+    const totalSheets = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
+    const expected = plan.rows.reduce((s, r) => s + (r.tiling ? r.tiling.cols * r.tiling.rows : 0), 0);
+    expect(totalSheets).toBe(expected);
+    expect(totalSheets).toBeGreaterThan(plan.rows.filter((r) => r.placement).length); // 至少有一列被拆成多張
+  });
+
+  it("超過 6 張的面（書桌桌面板）在 a4 模式下也退回零件圖，不是靜默消失", () => {
+    const plan = buildPackPlan(buildDefaultDesign("desk"), "a4");
+    const topRow = plan.rows.find((r) => Math.max(r.wmm, r.hmm) > 1000);
+    expect(topRow).toBeDefined();
+    expect(topRow?.placement).toBeNull();
+    expect(topRow?.tiling).toBeUndefined();
+  });
+
+  it("a4 模式所有 sheet 都是 A4，且都不旋轉（angleDeg=0）", () => {
+    for (const category of ["stool", "chest-of-drawers", "dining-chair"] as const) {
+      const plan = buildPackPlan(buildDefaultDesign(category), "a4");
+      for (const list of plan.byPaper.values()) {
+        for (const it of list) {
+          expect(it.placement.paper.id).toBe("A4");
+          expect(it.placement.angleDeg).toBe(0);
+        }
+      }
     }
   });
 });

@@ -153,6 +153,20 @@ describe("indexSheetSvg", () => {
     expect(allText).not.toContain(longName);
   });
 
+  it("A4 拼接模式（有 tiling 欄位）：印在哪張紙顯示「A4 ×N（cols×rows 拼接）」", () => {
+    const svgs = indexSheetSvg("方凳", [
+      row({ partNo: "P-01a", nameZh: "凳腳 1", placement: { paper: PAPERS.find((p) => p.id === "A4")!, angleDeg: 0, swapped: false },
+        tiling: { landscape: true, cols: 2, rows: 1 } }),
+    ]);
+    const allText = svgs.join("");
+    expect(allText).toContain("A4 ×2（2×1 拼接）");
+  });
+
+  it("A4 拼接但太大（tiling 沒有值、placement 為 null）：仍走既有的「太大 → 見零件圖」", () => {
+    const svgs = indexSheetSvg("衣櫃", [row({ partNo: "P-09", nameZh: "背板", placement: null })]);
+    expect(svgs.join("")).toContain("見零件圖");
+  });
+
   it("頁碼標籤多頁時顯示，單頁時不顯示", () => {
     const rows = Array.from({ length: 34 }, (_, i) =>
       row({ partNo: `P-${String(i + 1).padStart(2, "0")}`, nameZh: `零件${i + 1}` }),

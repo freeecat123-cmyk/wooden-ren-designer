@@ -4,12 +4,19 @@ import { groupPartsForDrawing, groupDisplayName } from "@/lib/render/part-drawin
 import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
 import { categorizePart } from "@/lib/render/categorize-part";
 import { zipStore } from "@/lib/export/zip-store";
-import { ladderFor } from "./paper";
+import { ladderFor, PAPERS } from "./paper";
 import { placeOnLadder, type Placement } from "./fit";
 import { pickTemplateFaces } from "./face";
 import { templateSheetSvg } from "./sheet";
+import { planA4Tiles } from "./tiling";
+import { tileSheetSvg, printerTestPageSvg } from "./tile-sheet";
 import { indexSheetSvg, type PackRow } from "./index-sheet";
 import { fetchFontSubset, svgsToPdf, FontSubsetError } from "./pdf";
+
+/** "printshop" = 現有的選紙＋擺放（可能斜擺）；"a4" = 全部在家用 A4 拼接，不旋轉。 */
+export type PackMode = "printshop" | "a4";
+
+const A4_PAPER = PAPERS.find((p) => p.id === "A4")!;
 
 export interface PackPlan {
   rows: PackRow[];
@@ -17,11 +24,16 @@ export interface PackPlan {
   byPaper: Map<string, Array<{ placement: Placement; row: PackRow; svg: string }>>;
 }
 
-export function buildPackPlan(design: FurnitureDesign): PackPlan {
+export function buildPackPlan(design: FurnitureDesign, mode: PackMode = "printshop"): PackPlan {
   const groups = groupPartsForDrawing(design);
   const derivedMap = deriveMortisesByPart(design.parts);
   const rows: PackRow[] = [];
   const byPaper: PackPlan["byPaper"] = new Map();
+
+  const pushSheet = (key: string, entry: { placement: Placement; row: PackRow; svg: string }) => {
+    if (!byPaper.has(key)) byPaper.set(key, []);
+    byPaper.get(key)!.push(entry);
+  };
 
   groups.forEach((g, i) => {
     const part = g.representative;
@@ -32,17 +44,45 @@ export function buildPackPlan(design: FurnitureDesign): PackPlan {
     faces.forEach((face, fi) => {
       // 單面維持 P-01；多面加尾碼 P-01a / P-01b…（faces 最多 6 個，不會超出 a–f）
       const partNo = faces.length > 1 ? `${baseNo}${String.fromCharCode(97 + fi)}` : baseNo;
+      const nameZh = groupDisplayName(g, "zh-TW");
+      const qty = Math.min(g.count, 99);
+
+      if (mode === "a4") {
+        // A4 拼接模式：張數上限 6，超過就退回零件圖（跟 printshop 的 placeOnLadder
+        // 回 null 同一套語意，index-sheet 的「太大 → 見零件圖」不用另外改）。
+        const plan = planA4Tiles(face.w, face.h);
+        if (!plan) {
+          rows.push({
+            partNo, nameZh, faceLabelZh: face.faceLabelZh, faceIndex: fi,
+            faceCount: faces.length, qty, wmm: face.w, hmm: face.h, placement: null,
+          });
+          return;
+        }
+        // 拼接一律不旋轉（brief 決策 2）。placement 借用既有 Placement 形狀
+        // （paper=A4、angleDeg=0、swapped=直放與否），讓 byPaper／下載／進度
+        // 這些既有機制不用另外改一套。
+        const placement: Placement = { paper: A4_PAPER, angleDeg: 0, swapped: !plan.landscape };
+        const row: PackRow = {
+          partNo, nameZh, faceLabelZh: face.faceLabelZh, faceIndex: fi,
+          faceCount: faces.length, qty, wmm: face.w, hmm: face.h, placement,
+          tiling: { landscape: plan.landscape, cols: plan.cols, rows: plan.rows },
+        };
+        rows.push(row);
+        const key = `${placement.paper.id}${placement.swapped ? "-P" : ""}`;
+        for (const tile of plan.tiles) {
+          const svg = tileSheetSvg({
+            face, plan, tile, partNo: row.partNo, nameZh: row.nameZh, qty: row.qty,
+            faceIndex: fi, faceCount: faces.length,
+          });
+          pushSheet(key, { placement, row, svg });
+        }
+        return;
+      }
+
       const placement = placeOnLadder(face.w, face.h, ladderFor(categorizePart(part.id)));
       const row: PackRow = {
-        partNo,
-        nameZh: groupDisplayName(g, "zh-TW"),
-        faceLabelZh: face.faceLabelZh,
-        faceIndex: fi,
-        faceCount: faces.length,
-        qty: Math.min(g.count, 99),
-        wmm: face.w,
-        hmm: face.h,
-        placement,
+        partNo, nameZh, faceLabelZh: face.faceLabelZh, faceIndex: fi,
+        faceCount: faces.length, qty, wmm: face.w, hmm: face.h, placement,
       };
       rows.push(row);
       if (!placement) return;
@@ -56,8 +96,7 @@ export function buildPackPlan(design: FurnitureDesign): PackPlan {
         faceIndex: fi,
         faceCount: faces.length,
       });
-      if (!byPaper.has(key)) byPaper.set(key, []);
-      byPaper.get(key)!.push({ placement, row, svg });
+      pushSheet(key, { placement, row, svg });
     });
   });
 
@@ -81,12 +120,20 @@ function triggerDownload(blob: Blob, filename: string) {
 export async function downloadTemplatePack(
   design: FurnitureDesign,
   onProgress?: (done: number, total: number) => void,
+  mode: PackMode = "printshop",
 ): Promise<void> {
-  const plan = buildPackPlan(design);
+  const plan = buildPackPlan(design, mode);
   const allSvgs: string[] = [];
   for (const list of plan.byPaper.values()) for (const it of list) allSvgs.push(it.svg);
   const indexSvgs = indexSheetSvg(safeStem(design), plan.rows); // 多頁索引（避免超過每頁列數上限時漏印）
   allSvgs.push(...indexSvgs);
+
+  // a4 模式才需要印表機測試頁——printshop 模式送印刷店，不會撞到家用印表機的
+  // 不可列印區問題。放在整包最前面（檔名開頭 00_，比 00_索引.pdf 先——見下方
+  // files 的塞入順序＋檔名本身的字元排序，兩層都保證排在索引前面）。
+  const totalSheets = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
+  const testPageSvg = mode === "a4" ? printerTestPageSvg(totalSheets) : null;
+  if (testPageSvg) allSvgs.push(testPageSvg);
 
   // 一次要好整包會用到的所有字元，避免每份 PDF 各打一次 API。
   // 依 HTTP 狀態碼分情況給使用者訊息——這個 catch 會接到任何失敗（400 字元過多 /
@@ -110,12 +157,17 @@ export async function downloadTemplatePack(
   }
 
   const files: Record<string, Uint8Array> = {};
-  const total = plan.byPaper.size + 1;
+  const total = plan.byPaper.size + 1 + (testPageSvg ? 1 : 0);
   let done = 0;
 
   // svgsToPdf 內部失敗訊息（例如「SVG 解析失敗」）是給開發者除錯用的技術字眼，
   // 不該直接丟給使用者看，統一包成「PDF 產生失敗」。
   try {
+    if (testPageSvg) {
+      // A4 橫放，跟其他拼接紙同一個尺寸。
+      files["00_印表機測試頁.pdf"] = await svgsToPdf([testPageSvg], 297, 210, fontB64);
+      onProgress?.(++done, total);
+    }
     files["00_索引.pdf"] = await svgsToPdf(indexSvgs, 210, 297, fontB64);
     onProgress?.(++done, total);
 

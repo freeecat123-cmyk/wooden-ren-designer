@@ -15,6 +15,12 @@ export interface PackRow {
   hmm: number;
   /** null = 1:1 塞不下最大的紙 → 退回比例零件圖 */
   placement: Placement | null;
+  /**
+   * 只有 A4 拼接模式（buildPackPlan mode="a4"）且塞得下（≤6 張）時才有值。
+   * printshop 模式或拼接失敗的列一律不設這個欄位（undefined），
+   * 「印在哪張紙」欄照舊用 placement 那條分支——不會動到既有 87 個測試。
+   */
+  tiling?: { landscape: boolean; cols: number; rows: number };
 }
 
 const W = 210;
@@ -45,8 +51,17 @@ function truncateName(nameZh: string): string {
   return nameZh;
 }
 
-/** 單頁表頭與設定（包括底線）。isFirstPage 決定是否加列印提醒。 */
-function renderPageHeader(title: string, pageNum: number, totalPages: number, isFirstPage: boolean): string[] {
+/**
+ * 單頁表頭與設定（包括底線）。isFirstPage 決定是否加列印提醒。
+ *
+ * hasA4：這包裡有沒有 A4 拼接模式的列（PackRow.tiling 有值）。只有這種情況才
+ * 加第三行提醒——printshop 模式的既有兩行提醒 y 座標（33／39）、底線 y=46、
+ * 表頭 headY=53 全部維持原樣，不動既有 87 個測試守住的版面。第三行塞在
+ * 39→46 中間（y=44），不影響 firstRowY／paginate 的容量計算。
+ */
+function renderPageHeader(
+  title: string, pageNum: number, totalPages: number, isFirstPage: boolean, hasA4: boolean,
+): string[] {
   const lines: string[] = [];
 
   // 標題 + 頁碼
@@ -62,6 +77,11 @@ function renderPageHeader(title: string, pageNum: number, totalPages: number, is
     lines.push(
       `<text x="14" y="39" font-family="PackCJK" font-size="4.5" font-weight="400" fill="#000">每張樣板都有一條 100mm 證明尺（灰色虛線，在空白角），量一下就知道有沒有被縮放。</text>`,
     );
+    if (hasA4) {
+      lines.push(
+        `<text x="14" y="44" font-family="PackCJK" font-size="4" font-weight="700" fill="#000">拼接前請先印 00_印表機測試頁，確認你的印表機邊界安全再印其餘 A4。</text>`,
+      );
+    }
     lines.push(`<line x1="14" y1="46" x2="196" y2="46" stroke="#000" stroke-width="0.5"/>`);
   } else {
     lines.push(`<line x1="14" y1="30" x2="196" y2="30" stroke="#000" stroke-width="0.5"/>`);
@@ -95,9 +115,12 @@ function renderTableHeader(): string[] {
 function renderTableRow(r: PackRow, y: number): string[] {
   const lines: string[] = [];
 
-  const where = r.placement
-    ? `${r.placement.paper.label}${r.placement.swapped ? " 直放" : ""}${r.placement.angleDeg > 0 ? ` 斜 ${r.placement.angleDeg}°` : ""}`
-    : "太大 → 見零件圖";
+  const tileCount = r.tiling ? r.tiling.cols * r.tiling.rows : 0;
+  const where = r.tiling
+    ? `A4 ×${tileCount}（${r.tiling.cols}×${r.tiling.rows} 拼接）`
+    : r.placement
+      ? `${r.placement.paper.label}${r.placement.swapped ? " 直放" : ""}${r.placement.angleDeg > 0 ? ` 斜 ${r.placement.angleDeg}°` : ""}`
+      : "太大 → 見零件圖";
 
   // 多加工面時把「第 N/M 面」併進面別欄，使用者才知道同一支腳還有另一張要翻面做。
   const faceCell = r.faceCount > 1
@@ -157,13 +180,14 @@ function paginate(rowCount: number): Array<{ start: number; end: number }> {
 export function indexSheetSvg(title: string, rows: PackRow[]): string[] {
   const ranges = paginate(rows.length);
   const totalPages = ranges.length;
+  const hasA4 = rows.some((r) => r.tiling);
 
   const pages = ranges.map(({ start, end }, idx) => {
     const isFirstPage = idx === 0;
     const lines: string[] = [];
 
     // 頁面標題 + 可選的列印提醒
-    lines.push(...renderPageHeader(title, idx + 1, totalPages, isFirstPage));
+    lines.push(...renderPageHeader(title, idx + 1, totalPages, isFirstPage, hasA4));
 
     // 表頭
     lines.push(...renderTableHeader());
