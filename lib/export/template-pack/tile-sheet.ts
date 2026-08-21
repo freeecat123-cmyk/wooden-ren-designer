@@ -32,6 +32,8 @@ import {
   r2,
   esc,
   holeMarkup,
+  holeAngleMarkup,
+  shapeLineMarkup,
   pickRuler,
   rulerMarkup,
   estTextWidthMm,
@@ -479,12 +481,14 @@ export function tileSheetSvg(input: TileSheetInput): string {
   // 使用者拿捲尺一量就有明確答案，比「這條線看起來直不直」可靠得多。）
   const geometry = [
     `<path d="${outlinePathD(face.outline)}" fill="none" stroke="#000" stroke-width="${STROKE_MM}"/>`,
+    shapeLineMarkup(face),
     ...(face.tenons ?? []).map(
       (tn) =>
         `<path d="${outlinePathD(tn.pts)}" fill="none" stroke="#000" stroke-width="${STROKE_MM}"><title>${esc(tn.label + "（公榫）")}</title></path>`,
     ),
     ...face.holes.map(holeMarkup),
-  ].join("\n    ");
+    ...face.holes.map(holeAngleMarkup),
+  ].filter(Boolean).join("\n    ");
 
   // 這張實際會畫出內容的範圍（face 轉到紙面座標後跟可用區的交集）——資訊區塊
   // 跟證明尺都要避開它，不然壓在輪廓線上（方凳凳腳 35mm 寬的窄零件最容易踩到）。

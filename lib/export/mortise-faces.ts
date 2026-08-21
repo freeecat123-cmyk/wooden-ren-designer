@@ -37,6 +37,14 @@ export interface FaceHole {
   /** 是否打穿（display hint；深度仍在 CAM 端設）。 */
   through: boolean;
   label: string;
+  /**
+   * 鑿孔角度（度，相對於面的法線；0＝垂直進去）。
+   *
+   * 外斜腳的牙板／橫撐榫眼不是垂直進料的——在方料上鑿的時候必須知道歪幾度，
+   * 否則組起來牙條會頂不緊（木頭仁 2026-08-21：「榫孔旁邊必須要標出這個口要鑿
+   * 什麼角度」）。角度來源是 Mortise 的 rotX / rotZ，模板早就算好了。
+   */
+  angleDeg?: number;
 }
 
 /** 公榫（榫頭）在該面上的凸出矩形——沿在平面內的軸伸出外框，供切外形時一起切出。 */
@@ -54,6 +62,18 @@ export interface MachiningFace {
   holes: FaceHole[];
   /** 該面上的公榫凸出（矩形，已歸一化）。 */
   tenons: FaceTenon[];
+  /**
+   * 成型輪廓（切完造型之後的形狀），已歸一化到跟 outline 同一個框。
+   *
+   * outline 畫的是**方料**（翻型階段那根方的），這條是要鋸掉的線。木工實務是
+   * 「方料時先把孔找好、鑿好，之後才把造型切出來」（木頭仁 2026-08-21），所以
+   * 樣板貼上方料 → 照 outline 對齊、照 holes 鑿孔 → 再沿這條線鋸造型。
+   *
+   * 只有「造型落在方料範圍內」（＝真的是要鋸掉的切線）才有值。外斜腳那種
+   * shape 描述的是「裝上去之後歪掉的樣子」而不是切線，投影會超出方料，這時
+   * 不給值——把 72mm 寬的傾斜平行四邊形畫在 35mm 的方料上只會害人。
+   */
+  shapeOutline?: Array<{ x: number; y: number }>;
   /** 外框寬 / 高（mm）。 */
   w: number;
   h: number;
@@ -97,6 +117,8 @@ interface RawHole {
   quad?: Array<{ u: number; v: number }>;
   through: boolean;
   label: string;
+  /** 鑿孔角度（度，相對面法線；0＝垂直）。見 FaceHole.angleDeg。 */
+  angleDeg?: number;
 }
 
 /**
@@ -211,10 +233,30 @@ function applySplayTilt(part: Part, holes: RawHole[]): RawHole[] {
 }
 
 /** 一個母榫 → raw 榫孔框（wrapper：算 box → boxToRawHoles → 外斜腳旋轉成傾斜長方形）。 */
-function mortiseToRawHoles(part: Part, m: Part["mortises"][number], idx: number): RawHole[] {
+function mortiseToRawHoles(
+  part: Part,
+  m: Part["mortises"][number],
+  idx: number,
+  blankFrame: boolean,
+): RawHole[] {
   const lb = mortiseLocalBox(part, m);
   const raw = boxToRawHoles(lb, part.visible.thickness, m.through, m.shape === "round", m.label ?? `榫孔${idx + 1}`);
-  return applySplayTilt(part, raw);
+  // 方料座標系刻意**不套** applySplayTilt。那個剪切是把榫眼畫成「外斜腳裝上去
+  // 之後歪掉的平行四邊形」——成品／CNC 是對的，但 1:1 樣板貼在方料上用：方料
+  // 階段那個孔的開口就是正矩形，歪的是鑿進去的方向（改用 angleDeg 標註）。
+  // 套了剪切會讓同一條中線上的兩個孔在紙上橫移（實測外斜方凳差 23mm），貼到
+  // 方料上直接鑿錯位（木頭仁 2026-08-21 實際印出來抓到）。
+  const tilted = blankFrame ? raw : applySplayTilt(part, raw);
+  const angleDeg = mortiseAngleDeg(m);
+  return angleDeg === 0 ? tilted : tilted.map((h) => ({ ...h, angleDeg }));
+}
+
+/** 榫眼相對面法線的傾角（度）。模板把外斜補償寫在 rotX / rotZ，取非零的那個。 */
+function mortiseAngleDeg(m: Part["mortises"][number]): number {
+  const r = Math.abs(m.rotX ?? 0) > Math.abs(m.rotZ ?? 0) ? (m.rotX ?? 0) : (m.rotZ ?? 0);
+  const deg = Math.abs((r * 180) / Math.PI);
+  // 小於 0.1° 當垂直——浮點殘差不該印出「斜 0.03°」這種沒有意義的標註。
+  return deg < 0.1 ? 0 : Math.round(deg * 10) / 10;
 }
 
 /** 判斷輪廓是不是軸對齊矩形（4 點、邊全水平/垂直）。 */
@@ -426,6 +468,8 @@ function buildFace(
   view: OrthoView,
   mirrorU: boolean,
   holesRaw: RawHole[],
+  /** 帶 shape 的同一個零件（用來畫「要鋸掉的成型線」）。不給＝沒有成型線。 */
+  shapedLp?: Part,
 ): MachiningFace | null {
   const ol = outlineRaw(lp, view);
   if (!ol) return null;
@@ -450,13 +494,13 @@ function buildFace(
       const cxN = (nx(hr.uMin) + nx(hr.uMax)) / 2;
       const cyN = (ny(hr.vMin) + ny(hr.vMax)) / 2;
       const r = Math.min(Math.abs(hr.uMax - hr.uMin), Math.abs(hr.vMax - hr.vMin)) / 2;
-      return { kind: "circle", cx: cxN, cy: cyN, r, through: hr.through, label: hr.label };
+      return { kind: "circle", cx: cxN, cy: cyN, r, through: hr.through, label: hr.label, angleDeg: hr.angleDeg };
     }
     // 外斜腳剪切後的平行四邊形（4 角各自 nx/ny，含 mirrorU）；否則軸對齊矩形。
     const pts = hr.quad
       ? hr.quad.map((c) => ({ x: nx(c.u), y: ny(c.v) }))
       : rectPts(hr.uMin, hr.uMax, hr.vMin, hr.vMax);
-    return { kind: "rect", pts, through: hr.through, label: hr.label };
+    return { kind: "rect", pts, through: hr.through, label: hr.label, angleDeg: hr.angleDeg };
   });
 
   // 該面平面內的公榫凸出矩形
@@ -506,9 +550,33 @@ function buildFace(
     if (p.y < by0) by0 = p.y; if (p.y > by1) by1 = p.y;
   }
   const sh = (p: { x: number; y: number }) => ({ x: p.x - bx0, y: p.y - by0 });
+
+  // 成型線：同一個 view 的「帶 shape」輪廓，套同一組 nx/ny/sh 換算到同一個框。
+  // 只有整條線都落在方料範圍內才留——超出去代表那個 shape 描述的不是切線，
+  // 而是「裝上去之後歪掉的樣子」（外斜腳），畫上去只會害人。見 MachiningFace.shapeOutline。
+  let shapeOutline: Array<{ x: number; y: number }> | undefined;
+  if (shapedLp?.shape) {
+    const so = outlineRaw(shapedLp, view);
+    if (so) {
+      const pts = so.pts.map((p) => sh({ x: nx(p.x), y: ny(p.y) }));
+      const TOL = 0.05;
+      const inside = pts.every(
+        (p) => p.x >= -TOL && p.y >= -TOL && p.x <= bx1 - bx0 + TOL && p.y <= by1 - by0 + TOL,
+      );
+      // 跟方料本體同一條線（shape 在這個 view 看不出差別，例如只倒角一條邊）
+      // 就不用多畫一條重疊的線。比的是「併榫頭之前」的本體輪廓——finalOutline
+      // 已經把榫頭 union 進去，點數必然對不上，拿它比會永遠判成「有差」。
+      const body = outline.map(sh);
+      const differs = pts.length !== body.length
+        || pts.some((p, i) => Math.abs(p.x - body[i].x) > 0.05 || Math.abs(p.y - body[i].y) > 0.05);
+      if (inside && differs) shapeOutline = pts;
+    }
+  }
+
   return {
     faceKey, faceLabelZh: FACE_LABELS[faceKey] ?? faceKey,
     outline: finalOutline.map(sh),
+    ...(shapeOutline ? { shapeOutline } : {}),
     holes: holes.map((hle) => hle.kind === "circle"
       ? { ...hle, cx: (hle.cx ?? 0) - bx0, cy: (hle.cy ?? 0) - by0 }
       : { ...hle, pts: hle.pts!.map(sh) }),
@@ -544,10 +612,29 @@ export interface DerivedMortise {
   label: string;
 }
 
-export function partMachiningFaces(part: Part, derived: DerivedMortise[] = []): MachiningFace[] {
+/**
+ * 要在哪個座標系描述這個零件。
+ *
+ * - `"shaped"`（預設）＝**成品**：輪廓是切完造型的形狀，外斜腳的孔跟著剪切。
+ *   CNC 匯出要的是這個——機器切的就是成品輪廓。
+ * - `"blank"` ＝**方料**（翻型階段那根方的）：輪廓、孔位、榫頭全部在去掉 shape
+ *   的座標系裡算，另外附一條 `shapeOutline` 當「要鋸掉的線」。1:1 實尺樣板要的
+ *   是這個——木工是「方料時先把孔找好、鑿好，之後才把造型切出來」（木頭仁
+ *   2026-08-21，貼到料上才發現對不起來）。
+ */
+export type FaceFrame = "shaped" | "blank";
+
+export function partMachiningFaces(
+  part: Part,
+  derived: DerivedMortise[] = [],
+  frame: FaceFrame = "shaped",
+): MachiningFace[] {
   const mortises = part.mortises ?? [];
   const tenons = part.tenons ?? [];
-  const lp = toLocalPart(part);
+  const useBlank = frame === "blank";
+  const geomPart: Part = useBlank ? { ...part, shape: undefined } : part;
+  const lp = toLocalPart(geomPart);
+  const lpShaped = useBlank ? toLocalPart(part) : undefined;
 
   // 依加工面把 raw 榫孔分組（真母榫 + 從榫頭反推的母榫）
   const byFace = new Map<string, RawHole[]>();
@@ -557,7 +644,7 @@ export function partMachiningFaces(part: Part, derived: DerivedMortise[] = []): 
     else byFace.set(h.faceKey, [h]);
   };
   mortises.forEach((m, i) => {
-    for (const h of mortiseToRawHoles(part, m, i)) add(h);
+    for (const h of mortiseToRawHoles(geomPart, m, i, useBlank)) add(h);
   });
   for (const d of derived) {
     for (const h of boxToRawHoles(d.lb, part.visible.thickness, d.through, false, d.label)) add(h);
@@ -570,7 +657,7 @@ export function partMachiningFaces(part: Part, derived: DerivedMortise[] = []): 
     const keys = [...byFace.keys()].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
     for (const faceKey of keys) {
       const holesRaw = byFace.get(faceKey)!;
-      const f = buildFace(lp, part, faceKey, holesRaw[0].view, holesRaw[0].mirrorU, holesRaw);
+      const f = buildFace(lp, geomPart, faceKey, holesRaw[0].view, holesRaw[0].mirrorU, holesRaw, lpShaped);
       if (f) faces.push(f);
     }
     return faces;
@@ -579,7 +666,7 @@ export function partMachiningFaces(part: Part, derived: DerivedMortise[] = []): 
   // 無母榫但有榫頭 → 一片攤平面（外框 + 榫頭凸出）
   if (tenons.length > 0) {
     const view = bestFlatView(lp, part);
-    const f = buildFace(lp, part, "flat", view, false, []);
+    const f = buildFace(lp, geomPart, "flat", view, false, [], lpShaped);
     if (f) { f.faceLabelZh = "攤平面"; faces.push(f); }
   }
   return faces;
