@@ -205,17 +205,28 @@ export async function downloadTemplatePack(
   // svgsToPdf 內部失敗訊息（例如「SVG 解析失敗」）是給開發者除錯用的技術字眼，
   // 不該直接丟給使用者看，統一包成「PDF 產生失敗」。
   try {
+    // 每份檔案都給老實的文件屬性(標題/作者/產生器)。空白 metadata 是防毒
+    // 啟發式評分的加分項——2026-08-21 使用者的 Avast 把 02_樣板_A4.pdf 誤判成
+    // PDF:MalwareX-gen 丟進隔離區(拆檔掃過,無任何可執行構件)。見 pdf.ts。
+    const stem = safeStem(design);
     if (testPageSvg) {
       // A4 橫放，跟其他拼接紙同一個尺寸。
-      files["00_印表機測試頁.pdf"] = await svgsToPdf([testPageSvg], 297, 210, fontB64);
+      files["00_印表機測試頁.pdf"] = await svgsToPdf([testPageSvg], 297, 210, fontB64, {
+        title: `${stem} — 印表機測試頁`,
+        subject: "列印前先印這一張,量 250mm 校正線確認縮放",
+      });
       onProgress?.(++done, total);
     }
-    files["00_索引.pdf"] = await svgsToPdf(indexSvgs, 210, 297, fontB64);
+    files["00_索引.pdf"] = await svgsToPdf(indexSvgs, 210, 297, fontB64, {
+      title: `${stem} — 1:1 實尺樣板索引`,
+      subject: "每個零件印在哪張紙、攤平尺寸與列印注意事項",
+    });
     onProgress?.(++done, total);
 
     if (drawingSvgs.length) {
       files["04_零件圖.pdf"] = await svgsToPdf(
         drawingSvgs, DRAWING_PAGE_W_MM, DRAWING_PAGE_H_MM, fontB64,
+        { title: `${stem} — 零件圖`, subject: "每個零件的三視圖、主要尺寸與榫卯位置" },
       );
       onProgress?.(++done, total);
     }
@@ -226,7 +237,10 @@ export async function downloadTemplatePack(
       const pw = swapped ? paper.h : paper.w;
       const ph = swapped ? paper.w : paper.h;
       const name = `${String(n).padStart(2, "0")}_樣板_${key}.pdf`;
-      files[name] = await svgsToPdf(list.map((x) => x.svg), pw, ph, fontB64);
+      files[name] = await svgsToPdf(list.map((x) => x.svg), pw, ph, fontB64, {
+        title: `${stem} — 1:1 實尺樣板 ${key}`,
+        subject: "貼在木料上照著描的實尺樣板,列印請選「實際大小 / 100%」",
+      });
       n++;
       onProgress?.(++done, total);
     }
