@@ -1498,3 +1498,31 @@ export function pullStyleNote(style: string, locale: string = "zh-TW"): string {
   return "";
 }
 
+
+/**
+ * 夾住「腳內縮」,避免牙條 / 橫撐被算成負長度。
+ *
+ * §A10.2 的 butt-joint 公式:
+ *   `visible.length = length − 2×legSize − 2×legInset (+ 2×splay)`
+ * doc 沒有給 legInset 的上限,而各模板 OptionSpec 的 max 是**寫死的常數**
+ * (square-stool 200、bench/side-table/low-table 300、dining-table/desk 400),
+ * 跟家具實際尺寸無關 → 小尺寸家具把滑桿拉大就會產出**負長度**的牙條與橫撐,
+ * 而且完全沒有警告,負值一路流進材料單、裁切與報價。(2026-08-21 稽核發現。)
+ *
+ * ⚠️ 這裡夾的是**輸入**(內縮量)不是輸出(零件長度)。把長度夾成 0 只會生出一堆
+ *    沒有厚度的鬼零件,使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,
+ *    畫面上看得見、而且做得出來。呼應 2026-08-03「用限制代替修正」被打回的教訓。
+ *
+ * @param minSpanMm 牙條 / 橫撐至少要留的淨長。60mm 以下已經短到接不了榫。
+ */
+export function clampLegInset(
+  legInset: number,
+  o: { length: number; width: number; legW: number; legD: number; minSpanMm?: number },
+): number {
+  const min = o.minSpanMm ?? 60;
+  const capX = (o.length - 2 * o.legW - min) / 2;
+  const capZ = (o.width - 2 * o.legD - min) / 2;
+  const cap = Math.min(capX, capZ);
+  // cap < 0 = 這個尺寸連內縮 0 都放不下(家具本身太小),回 0 是能做的最好結果
+  return Math.max(0, Math.min(legInset, cap));
+}

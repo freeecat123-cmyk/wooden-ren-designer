@@ -2065,16 +2065,32 @@ export function projectPartPolygon(
       }
       return pts;
     };
-    // SVG: r.y 為頂、r.y+r.h 為底（y 軸向下），相對世界要鏡像。對拱：top 拱起 = 在 r.y 邊向上突 = 減 y。
+    /**
+     * ⚠️ **這裡的 r 是世界座標,y 向上** —— `r.y` 是零件的**下緣**、`r.y + r.h` 是**上緣**。
+     *    渲染端(svg-views.tsx:1321)才用 `-p.y` 翻成 SVG 的 y 向下。見 §A1 的備註:
+     *    「polygon 回世界座標 y 向上,caller 才用 -p.y 翻」。
+     *
+     * ⛔ 原本這行註解寫「r.y 為頂、y 軸向下」,整段拱形就照那個假設寫 → **上下顛倒**:
+     *    中式方角櫃全預設下,4 條壺門牙條的裝飾弧畫在牙條「上緣」(實際應在下緣)、
+     *    8 個如意牙頭整個倒過來而且尖端穿出地板線下方 60mm。零件圖同樣顛倒 →
+     *    木工照圖鋸,弧會挖在錯的那一邊,牙條報廢。
+     *
+     * ✅ 語意以 3D 那邊為準(part-geometry.ts:buildFaceRoundedExtrude,那邊是對的):
+     *      下緣 y = -hy + bottomArch × sin(πt)   ← 往 +y 拱「進」零件(壺門)
+     *      上緣 y = +hy + topArch    × sin(πt)   ← 往 +y 拱「出」零件(冠狀)
+     *    所以下面兩段迴圈:走在 `r.y` 那條邊的掛 bottomArch、走在 `r.y + r.h` 那條邊的掛 topArch,
+     *    兩者都是 **+**。(下面沿用原本「上緣/下緣」的變數命名順序以減少 diff,
+     *    但實際位置如上,別再被名字騙一次。)
+     */
     const pts: Array<{ x: number; y: number }> = [];
     // 左上角 R（順時針從左上開始繞）
     pts.push(...arc(r.x + c, r.y + c, Math.PI, (3 * Math.PI) / 2));
-    // 上緣（往右），可選拱起
-    if (topArch !== 0) {
+    // 走 `r.y` 這條邊（世界座標的**下緣**）→ 掛 bottomArch，往 +y 拱進零件
+    if (botArch !== 0) {
       for (let i = 1; i <= archSegs; i++) {
         const t = i / archSegs;
         const x = r.x + c + (r.w - 2 * c) * t;
-        const y = r.y - topArch * Math.sin(Math.PI * t);
+        const y = r.y + botArch * Math.sin(Math.PI * t);
         pts.push({ x, y });
       }
     }
@@ -2084,12 +2100,12 @@ export function projectPartPolygon(
     pts.push({ x: r.x + r.w, y: r.y + r.h - c });
     // 右下角 R
     pts.push(...arc(r.x + r.w - c, r.y + r.h - c, 0, Math.PI / 2));
-    // 下緣（往左），可選拱起（中央向上 = 減 y）
-    if (botArch !== 0) {
+    // 走 `r.y + r.h` 這條邊（世界座標的**上緣**）→ 掛 topArch，往 +y 拱出零件
+    if (topArch !== 0) {
       for (let i = 1; i <= archSegs; i++) {
         const t = i / archSegs;
         const x = r.x + r.w - c - (r.w - 2 * c) * t;
-        const y = r.y + r.h - botArch * Math.sin(Math.PI * t);
+        const y = r.y + r.h + topArch * Math.sin(Math.PI * t);
         pts.push({ x, y });
       }
     }

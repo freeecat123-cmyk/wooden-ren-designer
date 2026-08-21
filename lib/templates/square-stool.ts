@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -181,8 +181,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   const legHeight = height - seatThickness;
   // 非方腳：X 用 legW、Z 用 legD 各自算角落內縮（取代 corners() 的方腳假設）
-  const _halfLx = length / 2 - legW / 2 - legInset;
-  const _halfWz = width / 2 - legD / 2 - legInset;
+  // 夾住內縮量,避免牙條/橫撐算成負長度(§A10.2;見 _helpers.ts clampLegInset)
+  const _legInsetSafe = clampLegInset(legInset, { length: length, width: width, legW: legW, legD: legD });
+  const _halfLx = length / 2 - legW / 2 - _legInsetSafe;
+  const _halfWz = width / 2 - legD / 2 - _legInsetSafe;
   const legCorners = [
     { x: -_halfLx, z: -_halfWz },
     { x: _halfLx, z: -_halfWz },

@@ -239,7 +239,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const {
     yStart,
     height: zoneH,
-    rows,
+    rows: requestedRows,
     cols,
     idPrefix,
     labelPrefix,
@@ -260,6 +260,39 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     pullStyle,
     skipCaseDividers,
   } = cfg;
+  /**
+   * 🧷 排數上限:**這個區域的高度放得下幾排,就只能生幾排**。
+   *
+   * ⛔ 原本直接吃 cfg.rows,完全沒有下限保護。§A10.5 的公式是
+   *      drawerH = drawerSlotH − shelfT − 2×drawerGap
+   *    doc 沒有給下限,於是 slot 一小就會算出**負數**。
+   *    實測床頭櫃 /design/nightstand:上層抽屜區高 150mm,把「數量」拉到 5(UI 上限 8)
+   *    → 150/5 = 30mm,再扣 18(層板)+4(間隙) = **−7mm**,
+   *    產生 16 個 `visible.width = −7` 的零件,**完全沒有警告**,
+   *    一路流進材料單、裁切計算與報價(負的材積、負的價格)。
+   *
+   * ✅ 修法是**夾排數**,不是夾零件尺寸:零件尺寸夾成 0 只會生出一堆沒有厚度的鬼零件,
+   *    使用者看不出哪裡不對。夾排數則是「你要 5 排但只放得下 3 排」,
+   *    畫面立刻看得出來,而且每一排都是可以做出來的。
+   *
+   * MIN_DRAWER_H 取 30mm:再矮的抽屜盒側板連五金都裝不上,不是可製作的東西。
+   */
+  const MIN_DRAWER_H = 30;
+  /** 抽屜與 slot 之間的上下間隙。下面的 `drawerGap` 直接沿用這個常數,不要各寫一份。 */
+  const DRAWER_GAP = 2;
+  const perRowOverhead =
+    shelfT +
+    2 * DRAWER_GAP +
+    ((cfg.drawerBottomMode ?? "surface") === "surface" ? (cfg.drawerBottomThickness ?? 3) : 0);
+  const maxRows = Math.max(1, Math.floor(zoneH / (MIN_DRAWER_H + perRowOverhead)));
+  const rows = Math.min(requestedRows, maxRows);
+  if (rows < requestedRows) {
+    console.warn(
+      `[drawer-row] ${idPrefix}:區域高 ${zoneH.toFixed(0)}mm 放不下 ${requestedRows} 排,` +
+        `已夾到 ${rows} 排(每排至少需要 ${(MIN_DRAWER_H + perRowOverhead).toFixed(0)}mm)`,
+    );
+  }
+
   const zoneCx = cfg.xCenter ?? 0;
   const zoneW = cfg.colInnerW ?? innerW;
   // 每排高度（mm）：cfg.rowHeights 是 fraction（總和=1）；未傳走均分。長度不對也 fallback 均分。
@@ -315,7 +348,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     }
   }
 
-  const drawerGap = 2;
+  const drawerGap = DRAWER_GAP;
   const partitionT = cols > 1 ? panelT : 0;
   const totalPartitionW = (cols - 1) * partitionT;
   const drawerSlotW = (zoneW - totalPartitionW) / cols;
