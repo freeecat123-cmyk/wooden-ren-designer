@@ -43,7 +43,7 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
  * visible.length 在 butt-joint 慣例下 = 兩端肩到肩的裸露對接長度，
  * maker 切料看的「實際下料長」需要再 + 兩端榫頭長。
  */
-function grossPartDims(part: Part): { L: number; W: number; T: number } {
+export function grossPartDims(part: Part): { L: number; W: number; T: number } {
   let extL = 0;
   let extW = 0;
   let extT = 0;

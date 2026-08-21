@@ -91,12 +91,18 @@ function a4ReminderLines(hasA4: boolean, calibrationMeasuredMm?: number): string
 
 /** A4 提醒行的行高（mm）與起始 y。 */
 const A4_REMINDER_LINE_STEP = 6;
-const A4_REMINDER_START_Y = 45;
+const A4_REMINDER_START_Y = 51;
 
-/** 首頁「列印提醒區塊」結束、底線畫在哪個 y（無 A4 提醒時＝原本的 46，完全不變）。 */
+/**
+ * 首頁「列印提醒區塊」結束、底線畫在哪個 y。
+ *
+ * 2026-08-21 從 46 往下推到 52：中間多了一行「零件圖在同一包的 04_零件圖.pdf」
+ * （y=45）。那行不能省——索引上「太大 → 見零件圖」以前是斷頭路，現在圖真的在
+ * 包裡，但不講在哪個檔等於沒解掉。
+ */
 function firstPageBaselineY(hasA4: boolean, calibrationMeasuredMm?: number): number {
   const extra = a4ReminderLines(hasA4, calibrationMeasuredMm);
-  if (extra.length === 0) return 46;
+  if (extra.length === 0) return 52;
   return A4_REMINDER_START_Y + extra.length * A4_REMINDER_LINE_STEP - 1;
 }
 
@@ -135,6 +141,11 @@ function renderPageHeader(
     );
     lines.push(
       `<text x="14" y="39" font-family="PackCJK" font-size="4.5" font-weight="400" fill="#000">每張樣板都有一條 100mm 證明尺（灰色虛線，在空白角），量一下就知道有沒有被縮放。</text>`,
+    );
+    // 「太大 → 見零件圖」以前是斷頭路（zip 裡根本沒有零件圖，使用者得自己回網站找）。
+    // 現在同一包就有，這行負責告訴他在哪個檔。
+    lines.push(
+      `<text x="14" y="45" font-family="PackCJK" font-size="4.5" font-weight="400" fill="#000">標「見零件圖」的零件，圖在同一包的 04_零件圖.pdf（含三視圖與尺寸標註）。</text>`,
     );
     const extra = a4ReminderLines(hasA4, calibrationMeasuredMm);
     extra.forEach((text, i) => {

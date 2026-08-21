@@ -108,6 +108,7 @@ import { buildPackPlan } from "../lib/export/template-pack/pack.ts";
 import { indexSheetSvg } from "../lib/export/template-pack/index-sheet.ts";
 import { printerTestPageSvg } from "../lib/export/template-pack/tile-sheet.ts";
 import { CALIBRATION_TEST_LINE_MM } from "../lib/export/template-pack/tiling.ts";
+import { partDrawingSvgs } from "../lib/export/template-pack/part-drawing-svg.tsx";
 import { collectChars } from "../lib/export/template-pack/pdf.ts";
 
 // 獨立於 pdf.ts 的 collectChars 之外，自己再抽一次每張 SVG「應該」出現的
@@ -256,6 +257,22 @@ sheets.push({
   rulerBox: parseRulerBox(testPageSvg),
   expectedChars: extractPlainChars([testPageSvg]),
 });
+
+// 零件圖:React 元件渲成 SVG 字串再進 PDF。這條路獨有的雷是字型——零件圖原本
+// 寫 sans-serif / monospace,PDF 只嵌 PackCJK,svg2pdf 找不到字型會靜默掉回
+// Helvetica,中文全變亂碼而且不報錯。逐字元比對就是在擋這件事。
+const drawingSvgs = await partDrawingSvgs(design);
+if (drawingSvgs.length) {
+  sheets.push({
+    name: "04_零件圖",
+    pw: 297,
+    ph: 210,
+    svgs: drawingSvgs,
+    hasRuler: false,
+    partNames: Array.from(new Set(plan.rows.map((r) => r.nameZh))),
+    expectedChars: extractPlainChars(drawingSvgs),
+  });
+}
 
 const allSvgs = sheets.flatMap((s) => s.svgs);
 const chars = collectChars(allSvgs);

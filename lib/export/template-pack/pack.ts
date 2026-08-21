@@ -12,6 +12,7 @@ import { planA4Tiles, CALIBRATION_TEST_LINE_MM, calibrationScale } from "./tilin
 import { tileSheetSvg, printerTestPageSvg } from "./tile-sheet";
 import { indexSheetSvg, type PackRow } from "./index-sheet";
 import { fetchFontSubset, svgsToPdf, FontSubsetError } from "./pdf";
+import { partDrawingSvgs, DRAWING_PAGE_W_MM, DRAWING_PAGE_H_MM } from "./part-drawing-svg";
 
 /** "printshop" = 現有的選紙＋擺放（可能斜擺）；"a4" = 全部在家用 A4 拼接，不旋轉。 */
 export type PackMode = "printshop" | "a4";
@@ -170,6 +171,12 @@ export async function downloadTemplatePack(
   const testPageSvg = mode === "a4" ? printerTestPageSvg(totalSheets, calibrationScale(calibrationMeasuredMm)) : null;
   if (testPageSvg) allSvgs.push(testPageSvg);
 
+  // 零件圖(每個零件群組一張 A4 橫式)。索引上的「太大 → 見零件圖」原本是斷頭路——
+  // 承諾了這份檔案卻沒放進 zip,使用者得自己回網站找(斗櫃 24 件裡 16 件指向這條路)。
+  // 兩個模式都放:太大退回跟純矩形不出樣板的零件在兩種模式下都存在。
+  const drawingSvgs = await partDrawingSvgs(design);
+  allSvgs.push(...drawingSvgs);
+
   // 一次要好整包會用到的所有字元，避免每份 PDF 各打一次 API。
   // 依 HTTP 狀態碼分情況給使用者訊息——這個 catch 會接到任何失敗（400 字元過多 /
   // 429 rate limit / 500 / 網路斷線），不能一律說成「字元過多」，否則使用者被
@@ -192,7 +199,7 @@ export async function downloadTemplatePack(
   }
 
   const files: Record<string, Uint8Array> = {};
-  const total = plan.byPaper.size + 1 + (testPageSvg ? 1 : 0);
+  const total = plan.byPaper.size + 1 + (testPageSvg ? 1 : 0) + (drawingSvgs.length ? 1 : 0);
   let done = 0;
 
   // svgsToPdf 內部失敗訊息（例如「SVG 解析失敗」）是給開發者除錯用的技術字眼，
@@ -205,6 +212,13 @@ export async function downloadTemplatePack(
     }
     files["00_索引.pdf"] = await svgsToPdf(indexSvgs, 210, 297, fontB64);
     onProgress?.(++done, total);
+
+    if (drawingSvgs.length) {
+      files["04_零件圖.pdf"] = await svgsToPdf(
+        drawingSvgs, DRAWING_PAGE_W_MM, DRAWING_PAGE_H_MM, fontB64,
+      );
+      onProgress?.(++done, total);
+    }
 
     let n = 1;
     for (const [key, list] of plan.byPaper) {
