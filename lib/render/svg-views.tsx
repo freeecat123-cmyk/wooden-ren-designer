@@ -841,6 +841,29 @@ function warnInvalidMortiseSpec(partId: string, m: Part["mortises"][number], lx:
   }
 }
 
+/**
+ * 從 Mortise.axis（world-frame 入榫方向）取 part-local 的 depthAxis。
+ *
+ * 沒給 axis、或零件帶旋轉（world 軸 ≠ part-local 軸）時回 null，呼叫端退回既有
+ * 的「哪一軸離表面最近」啟發式。取主導分量而不是要求嚴格軸對齊——外斜腳的入榫
+ * 方向本來就帶一點傾斜（5° 的話主導分量仍然是那一軸）。
+ */
+function mortiseAxisHint(part: Part, m: Part["mortises"][number]): "x" | "y" | "z" | null {
+  const ax = m.axis;
+  if (!ax) return null;
+  const r = part.rotation;
+  if (r && (r.x !== 0 || r.y !== 0 || r.z !== 0)) return null;
+  const cand: Array<["x" | "y" | "z", number]> = [
+    ["x", Math.abs(ax.x ?? 0)],
+    ["y", Math.abs(ax.y ?? 0)],
+    ["z", Math.abs(ax.z ?? 0)],
+  ];
+  cand.sort((a, b) => b[1] - a[1]);
+  // 主導分量要真的主導——分不出來（例如剛好 45°）就別猜，退回啟發式。
+  if (cand[0][1] <= 0 || cand[0][1] < cand[1][1] * 1.5) return null;
+  return cand[0][0];
+}
+
 export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
@@ -876,7 +899,23 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   // 不能讓 mortiseLocalBox 的 yToFace/xToFace/zToFace 比較邏輯把 depthAxis
   // 切到 "z"——origin.y 隨外撇 θ 增大會超過 zToFace（θ ~18°），結果 mortise
   // box 方向反轉、marker 跑到天上。
-  if (m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0) {
+  // 明確指定入榫方向的優先——不要再猜。
+  //
+  // 下面那套「哪一軸離表面最近」的啟發式對絕大多數榫眼都對，但兩種情況會失手：
+  //   ① 榫眼靠近零件端部（弧肩斜腳的牙板榫眼 y=410、腳高 425 → 離頂面只剩 15mm，
+  //      比離側面的 16.5mm 更近）→ 被判成「頂面入榫」
+  //   ② 面別標記那一軸被拿去放位移量（弧肩斜腳橫撐榫眼的 ctZShift 外挪
+  //      origin.x=-7.99 → 離 X 面 9.5mm，比離 Z 面的 16.5mm 更近）→ 判成「左端入榫」
+  // 兩種都會讓 1:1 樣板把孔畫到錯的面上，照著鑿就鑿在別面（2026-08-21 追查
+  // 弧肩斜腳「沒有下橫撐榫孔」時挖到的）。
+  //
+  // Mortise.axis 是 world-frame 的入榫方向單位向量,型別早就有這個欄位。這裡取它
+  // 的主導分量當 depthAxis。**只在零件沒有旋轉時採用**——有旋轉時 world 軸跟
+  // part-local 軸不一致,換算另有學問,寧可退回既有啟發式(不會比現況差)。
+  const axisHint = mortiseAxisHint(part, m);
+  if (axisHint) {
+    depthAxis = axisHint;
+  } else if (m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0) {
     depthAxis = "y";
   } else if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {
     depthAxis = xToFace <= zToFace ? "x" : "z";

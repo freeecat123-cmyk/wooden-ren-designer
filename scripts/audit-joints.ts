@@ -59,10 +59,9 @@ const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory
 const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
   "dining-table:trestle",
   "round-table:trestle",
-  // stool × curved-taper（弧肩斜腳）:下橫撐接在腳的斜降/收弧段(腳身變窄處),
-  // 該處若開母榫孔會從斜面破出(破口),故刻意抑制腳上的橫撐母榫、讓公榫短榫嵌入
-  // 實心腳身——藍圖/3D 都乾淨不露孔(使用者明確要求)。公榫因此無對應母榫,屬設計取捨。
-  "stool:curved-taper",
+  // stool:curved-taper 已於 2026-08-21 修好、移出豁免：榫眼照建、標 Mortise.axis,
+  // 3D 靠 CSG 過濾器跳過 axis 榫眼維持乾淨,圖面則拿回真實孔位。現在 audit 實測
+  // 未匹配公榫 0 / 未匹配母榫 0。其餘 *:curved-taper 還沒改到,暫留。
   // curved-taper（弧肩斜腳）鋪到其他用腳模板：牙板/下橫撐進腳一律不挖母榫、靠實體遮
   // （非方腳/斜降窄區開孔會露破口），公榫因此無對應母榫，屬設計取捨。同 stool:curved-taper。
   "bench:curved-taper",
