@@ -497,10 +497,18 @@ async function runVerification(browser, plan, fontB64) {
           failures.push(`✕ ${sheet.name}.pdf 缺少文件屬性 ${key} —— 空白 metadata 容易被防毒誤判`);
         }
       }
-      for (const bad of ["/JavaScript", "/Launch", "/EmbeddedFile", "/XFA", "/SubmitForm"]) {
+      for (const bad of ["/JavaScript", "/JS", "/Launch", "/EmbeddedFile", "/XFA",
+        "/SubmitForm", "/RichMedia", "/GoToR", "/ImportData", "/AA", "/URI"]) {
         if (rawPdf.includes(bad)) {
           failures.push(`✕ ${sheet.name}.pdf 出現可執行構件 ${bad} —— 樣板 PDF 不該有這種東西`);
         }
+      }
+      // /OpenAction:這裡的它只是「開檔顯示第一頁」的目的地陣列、不是動作字典,但只做
+      // 字串比對的啟發式引擎分不出來,所以 stripOpenAction 會把它用等長空白蓋掉
+      // (2026-08-21:補完 metadata 之後 Avast 仍然誤判,這是最後一個可疑 token)。
+      // 這條同時是 stripOpenAction 的端到端保險:哪天它失效了,這裡會先紅。
+      if (rawPdf.includes("/OpenAction")) {
+        failures.push(`✕ ${sheet.name}.pdf 仍含 /OpenAction —— stripOpenAction 沒生效(見 lib/export/template-pack/pdf.ts)`);
       }
 
       const cjkOk = /[一-鿿]/.test(result.text);

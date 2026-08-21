@@ -15,6 +15,7 @@
     "audit:dead-checkboxes": "tsx scripts/audit-dead-checkboxes.ts",
     "audit:floating-parts": "tsx scripts/audit-floating-parts.ts",
     "verify:template": "node scripts/verify-template-pdf.cjs http://localhost:3000/design/stool",
+    "verify:pdf-openaction": "node scripts/verify-pdf-openaction.cjs",
     "prepare": "sh scripts/install-hooks.sh || true"
   },
   "dependencies": {
