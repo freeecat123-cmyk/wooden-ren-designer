@@ -127,6 +127,46 @@ const PDF_AUTHOR = "木頭仁 木作藍圖";
 const PDF_CREATOR = "木作藍圖 designer.woodenren.com";
 const PDF_KEYWORDS = "木工,家具,1:1 實尺樣板,woodworking template";
 
+/**
+ * 把 catalog 裡的 `/OpenAction [3 0 R /FitH null]` 用**等長空白**蓋掉。
+ *
+ * 為什麼要拿掉:2026-08-21 補完文件屬性之後,Avast 仍然把 `02_樣板_A4.pdf` 判成
+ * `PDF:MalwareX-gen [Scam]`(拆檔確認過:/JavaScript /JS /Launch /EmbeddedFile
+ * /XFA /SubmitForm /RichMedia /GoToR /ImportData /AA /URI **全部 0 次**,是誤判)。
+ * `/OpenAction` 是整份檔案裡最後一個「長得像動作」的 token —— 這裡的它其實只是
+ * `[頁物件 /FitH null]` 這種**目的地陣列**(開檔顯示第一頁、寬度符合視窗),不是
+ * 動作字典,但只做字串比對的啟發式引擎分不出來。拿掉它不保證解決誤判,只是把最後
+ * 一個可疑訊號也除掉;代價僅僅是開檔時不自動符合視窗寬度。
+ *
+ * ⭐**為什麼不從 jsPDF 那邊關掉**:`setZoomMode` 有白名單
+ * (undefined/null/fullwidth/fullheight/fullpage/original/數字/"N%"),傳別的字串會 throw;
+ * 而傳 null 之後 `putCatalog` 又有 `if (!zoomMode) zoomMode = "fullwidth"` 把它補回來。
+ * 公開 API 繞不掉,只能產完再動位元組。
+ *
+ * ⭐**為什麼是「等長空白」而不是刪掉**:PDF 的 xref 表記的是每個物件的**位元組偏移**。
+ * 刪掉任何位元組都會讓後面所有偏移失準 —— 而「xref 對不上」本身就是防毒眼中的可疑
+ * 特徵,那是拿一個誤判去換一個更大的誤判。用空白覆蓋則檔案長度一個位元組都不變,
+ * 字典裡多幾個空白在 PDF 語法上完全合法。
+ *
+ * ⭐**為什麼只在 catalog 那一段搜**:整份檔案含字型子集的二進位串流,對全檔跑正則
+ * 有機會誤命中串流內容、寫壞字型。故先錨定最後一個 `/Type /Catalog`,只在它到
+ * `endobj` 之間動手。
+ */
+export function stripOpenAction(bytes: Uint8Array): Uint8Array {
+  // latin1 = 1 byte 對 1 char,字元索引與位元組偏移一比一,才能安全換算回去。
+  const text = new TextDecoder("latin1").decode(bytes);
+  const cat = text.lastIndexOf("/Type /Catalog");
+  if (cat < 0) return bytes;
+  const endObj = text.indexOf("endobj", cat);
+  const seg = text.slice(cat, endObj < 0 ? Math.min(text.length, cat + 2000) : endObj);
+  const m = /\/OpenAction\s*\[[^\]]*\]/.exec(seg);
+  if (!m) return bytes;
+  const out = new Uint8Array(bytes); // 複製一份,不動呼叫端的 buffer
+  const start = cat + m.index;
+  for (let i = 0; i < m[0].length; i++) out[start + i] = 0x20; // 0x20 = 空白
+  return out;
+}
+
 export async function svgsToPdf(
   svgs: string[],
   pageWmm: number,
@@ -172,5 +212,5 @@ export async function svgsToPdf(
   } finally {
     box.remove();
   }
-  return new Uint8Array(doc.output("arraybuffer"));
+  return stripOpenAction(new Uint8Array(doc.output("arraybuffer")));
 }

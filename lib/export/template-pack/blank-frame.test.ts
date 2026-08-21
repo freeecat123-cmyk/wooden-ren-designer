@@ -133,3 +133,43 @@ describe("成型線", () => {
     expect(svg).toMatch(/data-mark="shape-line"[^>]*stroke-dasharray/);
   });
 });
+
+/**
+ * 弧肩斜腳／非方腳：腳上的牙板與下橫撐榫眼原本被模板**刻意不建**（3D 挖下去會從
+ * 斜降薄區破出「破口」），代價是 1:1 樣板上腳身完全沒有孔位——木頭仁 2026-08-21
+ * 實際印出來回報「沒有出現下橫撐的榫孔」。
+ *
+ * 改法：榫眼照建、標 Mortise.axis。axis 一石二鳥：mortiseLocalBox 不用再猜入榫面
+ * （這兩種腳的榫眼位置會讓「哪一軸離表面最近」判錯），而 joineryMode 的 CSG 過濾器
+ * 看到 axis 就跳過不挖 → 3D 維持乾淨。
+ */
+describe("弧肩斜腳的腳上榫眼", () => {
+  function leg(legShape: string) {
+    const design = stool(legShape);
+    return design.parts.find((p) => p.id === "leg-1")!;
+  }
+
+  it("弧肩斜腳的腳身有真母榫（舊版是 0 個）", () => {
+    expect(leg("curved-taper").mortises.length).toBeGreaterThan(0);
+  });
+
+  it("弧肩斜腳的榫眼帶明確 axis；一般方腳不帶（方腳的接合視圖還要挖得到孔）", () => {
+    expect(leg("curved-taper").mortises.every((m) => m.axis)).toBe(true);
+    expect(leg("box").mortises.some((m) => m.axis)).toBe(false);
+  });
+
+  it("樣板上剛好 4 個孔、分在 2 個面——不會在腳的外側面多一個幽靈孔", () => {
+    const faces = legFaces("curved-taper").filter((f) => f.holes.length > 0);
+    expect(faces).toHaveLength(2);
+    expect(faces.reduce((s, f) => s + f.holes.length, 0)).toBe(4);
+  });
+
+  it("模板宣告過 axis 的零件不再套反推——反推會把孔判到外側面（實測差 16mm）", () => {
+    const part = leg("curved-taper");
+    // 故意餵一堆反推進去，輸出的孔數不該變
+    const withDerived = pickTemplateFaces(part, deriveMortisesByPart(stool("curved-taper").parts).get(part.id) ?? []);
+    const withoutDerived = pickTemplateFaces(part, []);
+    const count = (fs: ReturnType<typeof pickTemplateFaces>) => fs.reduce((s, f) => s + f.holes.length, 0);
+    expect(count(withDerived)).toBe(count(withoutDerived));
+  });
+});

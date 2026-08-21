@@ -52,18 +52,30 @@ function holeCentre(h: MachiningFace["holes"][number]): { x: number; y: number }
 }
 
 export function pickTemplateFaces(part: Part, derived: DerivedMortise[] = []): MachiningFace[] {
+  // 模板明確宣告過入榫方向（Mortise.axis）的零件 → 完全不用反推。
+  //
+  // axis 只有「弧肩斜腳／非方腳」的腳會設，那是模板在說「這支腳的接合我自己
+  // 標清楚了」。這種腳的反推特別不可靠：實測弧肩斜腳凳腳的 4 個反推孔，3 個跟
+  // 真孔距離 0.0mm（純重複），第 4 個把孔判到**外側面**去（真孔 x=+9.5 在內側、
+  // 反推 x=−6.5 在外側，差 16mm）。在腳的外側面多鑿一個不存在的孔，那支料就廢了。
+  const templateDeclaresJoinery = part.mortises.some((m) => m.axis);
+  if (templateDeclaresJoinery) derived = [];
+
   // 算兩次：只有真母榫的版本當權威，含反推的版本用來補漏。
   const realByKey = new Map(partMachiningFaces(part, [], "blank").map((f) => [f.faceKey, f]));
   const faces = partMachiningFaces(part, derived, "blank").map((f) => {
     const real = realByKey.get(f.faceKey);
-    if (!real) return f; // 整個面只有反推孔（範本沒建母榫的接合）→ 全留
-    const realCentres = real.holes.map(holeCentre).filter(Boolean) as Array<{ x: number; y: number }>;
-    const extra = f.holes.filter((h) => {
-      const c = holeCentre(h);
-      if (!c) return true;
-      return !realCentres.some((rc) => Math.hypot(rc.x - c.x, rc.y - c.y) <= DUP_TOL_MM);
-    });
-    return { ...f, holes: [...real.holes, ...extra] };
+    // 這個面完全沒有真孔 → 範本沒建這一面的接合，靠反推補（8/20 撿回來的 9 個
+    // 真接合就是這種，例如床頭櫃底板頂面那兩個側板孔）。
+    if (!real || real.holes.length === 0) return f;
+    // 這個面有真孔 = 範本已經模型化了這一面 → 反推整面不要。
+    //
+    // 原本是「逐孔比中心距離、超過 DUP_TOL_MM(5mm) 才留」，只擋得住「幾乎重合」
+    // 的那種。實測全 catalog 還有 26 個零件群組、67 個孔是同一個接合被畫兩次而
+    // 距離遠大於 5mm（開放書櫃左側板 6 個真母榫畫出 12 個孔、斗櫃左側板 5 → 10）
+    // ——1:1 樣板上就是兩個相距很遠的孔，下鑿的人不知道該信哪一個，而多鑿一個
+    // 不存在的孔會直接毀掉那支料。真孔是權威，範本有建就整面聽它的。
+    return { ...f, holes: real.holes };
   });
   if (faces.length > 0) {
     const marks = (f: MachiningFace) => f.holes.length + (f.tenons?.length ?? 0);

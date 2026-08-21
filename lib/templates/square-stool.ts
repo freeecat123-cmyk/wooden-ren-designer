@@ -114,6 +114,18 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legDepthOverride = getOption<number>(input, opt(o, "legDepthOverride"));
   const legW = legWidthOverride > 0 ? legWidthOverride : legSize; // 沿 X（座板長邊）
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize; // 沿 Z（座板寬邊）＝前後厚
+  /**
+   * 弧肩斜腳／非方腳：腳上的牙板與下橫撐榫眼**照建**（1:1 樣板、零件圖、CNC 都
+   * 需要真實孔位——木工是在方料階段就把孔鑿好的），但給它們明確的 Mortise.axis。
+   *
+   * axis 一石二鳥：① mortiseLocalBox 不用再猜入榫面（這兩種腳的榫眼位置會讓
+   * 「哪一軸離表面最近」的啟發式判錯，孔會被畫到錯的面上）；② joineryMode 的
+   * CSG 過濾器看到 axis 就跳過不挖 → 3D 維持乾淨、不會從斜降薄區破出來。
+   *
+   * 舊做法是整個不建榫眼,3D 是乾淨了,但資料層跟著沒有那個孔——使用者印 1:1 樣板
+   * 照著鑿,腳上根本沒有下橫撐的孔位(2026-08-21 實際印出來回報)。
+   */
+  const legMortiseNeedsAxis = legShape === "curved-taper" || legW !== legD;
   const legShortDim = Math.min(legW, legD); // 榫接母件厚取較薄面
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
@@ -454,15 +466,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     ],
     // 凳腳內側 2 面要挖牙板的半榫眼（中段）
     // 無牙板（apronWidth=0）→ 不開榫眼
-    // 腳面上的牙板母榫孔在「非方腳（legW≠legD，腳面比牙條厚寬）」或「弧肩斜腳」時，會露在
-    // 牙條外緣＝使用者看到的紅/白小方塊「破口」。跟下橫撐同一處理：這兩種情況不在腳上挖牙板
-    // 母榫、靠實體遮，榫頭埋進實體腳身（apronTenonLengthX/Z 已 clamp 留背牆、確保埋得住）→
-    // 腳面乾淨無孔。方腳（legW===legD 且非弧肩）維持挖榫眼＝與基準版 byte 一致、無迴歸。
-    // 公榫因此無對應母榫（audit 已於 EXPECTED_FAILS_VARIANT 登記 stool:curved-taper 豁免；
-    // 方腳仍有母榫故 audit 照樣涵蓋）。
-    mortises: (!withApron || legShape === "curved-taper" || legW !== legD)
+    // 腳面上的牙板母榫孔在「非方腳」或「弧肩斜腳」時，3D 挖下去會從斜降薄區破出＝
+    // 使用者看到的紅/白小方塊「破口」。2026-08-21 改法：**榫眼照建、標 Mortise.axis**
+    // （legMortiseNeedsAxis）——資料層有真實孔位給樣板/零件圖/CNC 用，而 joineryMode
+    // 的 CSG 過濾器看到 axis 就跳過不挖，3D 外觀跟舊版一樣乾淨。
+    // 方腳（legW===legD 且非弧肩）不給 axis ＝ 與基準版 byte 一致、接合視圖照樣挖得到孔。
+    mortises: !withApron
       ? []
       : legMortisesForApron(c, length, width, {
+      explicitAxis: legMortiseNeedsAxis,
       // X 面榫眼（接前後牙板）用 legW-衍生值、Z 面榫眼（接左右牙板）用 legD-衍生值
       apronTenonLengthX,
       apronTenonLengthZ,
@@ -960,13 +972,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       for (const leg of legs) {
         const cx = leg.origin.x;
         const cz = leg.origin.z;
-        // 不挖下橫撐榫眼的兩種情況（跟牙板 legMortisesForApron 同條件）：
-        // ① 弧肩斜腳：斜降薄腳區挖榫眼會露出破口（榫眼口 + 紅榫頭外露，且內面收過中線
-        //    讓榫眼位置對不上橫撐肩）。
-        // ② 非方腳（legW≠legD，腳面比下橫撐厚寬）：榫眼孔露在橫撐外緣＝使用者看到的紅方塊。
-        // 兩者都改「不挖榫眼」→ 腳保持實體、下橫撐盲榫直接埋進實體被遮住（榫頭已 clamp 在
-        // 料厚內留背牆）。沒破口、沒露榫。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
-        if (legShape === "curved-taper" || legW !== legD) continue;
+        // 3D 不挖下橫撐榫眼的兩種情況（跟牙板同條件，見 legMortiseNeedsAxis）：
+        // ① 弧肩斜腳：斜降薄腳區挖榫眼會從斜面破出（榫眼口 + 紅榫頭外露）。
+        // ② 非方腳（legW≠legD，腳面比下橫撐厚寬）：榫眼孔露在橫撐外緣＝紅方塊。
+        //
+        // 2026-08-21 改法：**榫眼照建、標 Mortise.axis**，不再整個 continue 跳過。舊做法
+        // 3D 是乾淨了，但資料層沒有孔——1:1 樣板上腳身完全找不到下橫撐的孔位（使用者實際
+        // 印出來回報）。axis 同時解決兩件事：樣板不用猜入榫面、CSG 看到 axis 就跳過不挖。
         // 斜腳：下橫撐 mortise 跟 apron 同軸別約定
         // Z 面榫 → rotX（FRONT 看不到 tilt、entry 維持直矩形）
         // X 面榫 → rotZ（FRONT 看得到 tilt、透視過去變平行四邊形）
@@ -988,6 +1000,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               width: lowerTenonThick,
               through: lowerThroughZ,
               ...(lsZRotX ? { rotX: lsZRotX } : {}),
+              ...(legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: cz > 0 ? -1 : 1 } } : {}),
             },
             // X 面 mortise（接 X 軸 = 前後下橫撐, 靜止）— 下榫
             {
@@ -997,6 +1010,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               width: lowerTenonThick,
               through: lowerThroughX,
               ...(lsXRotZ ? { rotZ: lsXRotZ } : {}),
+              ...(legMortiseNeedsAxis ? { axis: { x: cx > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
             },
           );
         } else {
@@ -1008,6 +1022,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               width: lowerTenonThick,
               through: lowerThroughZ,
               ...(lsZRotX ? { rotX: lsZRotX } : {}),
+              ...(legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: cz > 0 ? -1 : 1 } } : {}),
             },
             {
               origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: 0 },
@@ -1016,6 +1031,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               width: lowerTenonThick,
               through: lowerThroughX,
               ...(lsXRotZ ? { rotZ: lsXRotZ } : {}),
+              ...(legMortiseNeedsAxis ? { axis: { x: cx > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
             },
           );
         }
@@ -1117,6 +1133,18 @@ function legMortisesForApron(
      *  trade-off。詳見 memory [[project-wrd-splayed-apron-mortise-fix]]。 */
     splayDx?: number;
     splayDz?: number;
+    /**
+     * 幫每個榫眼標上 world-frame 入榫方向（Mortise.axis）。
+     *
+     * 只有弧肩斜腳／非方腳要開：這兩種的榫眼位置會讓 mortiseLocalBox 那套
+     * 「哪一軸離表面最近」的啟發式判錯面（牙板榫眼太靠近腳頂 → 被判成頂面入榫），
+     * 1:1 樣板就會把孔畫到錯的面上。給了 axis 就不用猜。
+     *
+     * ⚠️ 一般方腳**刻意不給**：PerspectiveView 的 joineryMode CSG 過濾器看到
+     * axis 就會跳過那個榫眼不挖。對這兩種腳來說正好（斜降薄區挖下去會破口，
+     * 本來就不該挖），但方腳的接合視圖要看得到孔，給了反而挖不出來。
+     */
+    explicitAxis?: boolean;
   },
 ) {
   const {
@@ -1151,25 +1179,30 @@ function legMortisesForApron(
   // 視覺錯開時 X 向整支下移
   const zCenterY = legHeight - apronDropFromTop - apronWidth / 2;
   const xCenterY = zCenterY - visualStagger;
+  const wantAxis = opts.explicitAxis ?? false;
+  const zSign = corner.z > 0 ? -1 : 1;
+  const xSign = corner.x > 0 ? -1 : 1;
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     // origin.x = 0 / origin.z = ±LEG_FACE_INSET (=1) → 腳中心軸、對稱 12.5/12.5 肩位
     {
-      origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: corner.z > 0 ? -1 : 1 },
+      origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: zSign },
       depth: apronTenonLengthZ,
       length: apronUpperTenonH,
       width: apronTenonThick,
       through: throughZ,
       rotX: zFaceRotX || undefined,
+      ...(wantAxis ? { axis: { x: 0, y: 0, z: zSign } } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
-      origin: { x: corner.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset, z: 0 },
+      origin: { x: xSign, y: xCenterY + apronLowerTenonOffset, z: 0 },
       depth: apronTenonLengthX,
       length: apronLowerTenonH,
       width: apronTenonThick,
       through: throughX,
       rotZ: xFaceRotZ || undefined,
+      ...(wantAxis ? { axis: { x: xSign, y: 0, z: 0 } } : {}),
     },
   ];
 }

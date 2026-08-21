@@ -418,10 +418,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
-    // 弧肩斜腳：腳面上開牙板/下橫撐母榫孔會露在橫料外緣＝破口，改「不挖榫眼、靠實體遮」，
-    // 盲榫直接埋進實體腳身（榫長已 clamp、埋得住）。跟方凳 / simple-table 同處理。公榫因此無對應
-    // 母榫（audit 已於 EXPECTED_FAILS_VARIANT 登記 tea-table:curved-taper 豁免）。
-    mortises: isCurvedTaper ? [] : [
+    // 弧肩斜腳：3D 挖牙板／下橫撐母榫會從斜降薄區破出＝破口。2026-08-21 改法跟方凳
+    // 同步：**榫眼照建、標 Mortise.axis**——圖面（1:1 樣板／零件圖／CNC）拿回真實孔位
+    // （木工在方料階段就要把孔鑿好），3D 靠 CSG 過濾器跳過 axis 榫眼維持乾淨。
+    mortises: [
       // 上橫撐 Z 面（接左右上橫撐, 靜止）— 上半榫
       {
         origin: { x: 0, y: apronCenterY + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
@@ -429,6 +429,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
         width: apronTenonThick,
         through: apronThrough,
+        ...(isCurvedTaper ? { axis: { x: 0, y: 0, z: c.z > 0 ? -1 : 1 } } : {}),
       },
       // 上橫撐 X 面（接前後上橫撐, 物理下移 apronStaggerMm）— 下半榫
       {
@@ -437,6 +438,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
         width: apronTenonThick,
         through: apronThrough,
+        ...(isCurvedTaper ? { axis: { x: c.x > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
       },
       // 下橫撐 Z 面（接左右下橫撐, 物理上移 lowerStretcherStaggerMm）— 上半榫
       {
@@ -445,6 +447,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         length: lowerCanHalfStagger ? lowerHalfTenonH : lowerTenonW,
         width: lowerTenonThick,
         through: lowerThrough,
+        ...(isCurvedTaper ? { axis: { x: 0, y: 0, z: c.z > 0 ? -1 : 1 } } : {}),
       },
       // 下橫撐 X 面（接前後下橫撐, 靜止）— 下半榫
       {
@@ -453,6 +456,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         length: lowerCanHalfStagger ? lowerHalfTenonH : lowerTenonW,
         width: lowerTenonThick,
         through: lowerThrough,
+        ...(isCurvedTaper ? { axis: { x: c.x > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
       },
     ],
   });

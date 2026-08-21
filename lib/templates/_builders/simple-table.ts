@@ -450,9 +450,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
-    // 弧肩斜腳：腳面上開牙板母榫孔會露在牙條外緣＝破口，改「不挖榫眼、靠實體遮」，
-    // 牙板盲榫直接埋進全寬接撐段實體（apronTenonLen 已 < legSize、埋得住）。跟方凳同處理。
-    mortises: (!withApron || isCurvedTaper) ? [] : [
+    // 弧肩斜腳：3D 挖牙板母榫孔會從斜降薄區破出＝破口。2026-08-21 改法跟方凳同步：
+    // **榫眼照建、標 Mortise.axis**——資料層有真實孔位給 1:1 樣板／零件圖／CNC 用
+    // （木工在方料階段就要把孔鑿好），而 joineryMode 的 CSG 過濾器看到 axis 就跳過
+    // 不挖，3D 外觀跟舊版一樣乾淨。axis 同時讓 mortiseLocalBox 不必猜入榫面
+    // （這種腳的榫眼位置會讓「哪一軸離表面最近」判錯，孔會被畫到錯的面上）。
+    mortises: !withApron ? [] : [
       // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫，rotX 跟 splayDz
       {
         origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
@@ -461,6 +464,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         width: apronTenonThick,
         through: apronTenonType === "through-tenon",
         ...(zFaceGeom.rotX !== undefined && Math.abs(zFaceGeom.rotX) > 0.001 ? { rotX: zFaceGeom.rotX } : {}),
+        ...(isCurvedTaper ? { axis: { x: 0, y: 0, z: c.z > 0 ? -1 : 1 } } : {}),
       },
       // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫，rotZ 跟 splayDx
       {
@@ -470,6 +474,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         width: apronTenonThick,
         through: apronTenonType === "through-tenon",
         ...(Math.abs(xFaceRotZ) > 0.001 ? { rotZ: xFaceRotZ } : {}),
+        ...(isCurvedTaper ? { axis: { x: c.x > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
       },
     ],
   });
@@ -885,8 +890,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
-      // 弧肩斜腳：斜降窄區不挖下橫撐母榫（會露破口），靠實體遮、盲榫已 clamp 埋在料厚內。
-      if (isCurvedTaper) continue;
+      // 弧肩斜腳：3D 挖下橫撐母榫會從斜降窄區破出。跟牙板同處理——榫眼照建、標
+      // Mortise.axis，3D 靠 CSG 過濾器跳過維持乾淨，圖面拿回真實孔位（見上方註解）。
       const lsZRotX = (splayDz > 0 && legHeight > 0)
         ? Math.sign(cz || 1) * Math.atan(splayDz / legHeight)
         : 0;
@@ -901,6 +906,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           width: tenonThick,
           through: lsThrough,
           ...(Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {}),
+          ...(isCurvedTaper ? { axis: { x: 0, y: 0, z: cz > 0 ? -1 : 1 } } : {}),
         },
         {
           origin: { x: cx > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
@@ -909,6 +915,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           width: tenonThick,
           through: lsThrough,
           ...(Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {}),
+          ...(isCurvedTaper ? { axis: { x: cx > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
         },
       );
     }

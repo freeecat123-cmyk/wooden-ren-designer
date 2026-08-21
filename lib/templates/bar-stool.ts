@@ -97,6 +97,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legDepthOverride = getOption<number>(input, opt(o, "legDepthOverride"));
   const legW = legWidthOverride > 0 ? legWidthOverride : legSize;
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize;
+  /**
+   * 弧肩斜腳／非方腳：腳上的牙板與腳踏榫眼照建，但標明確的 Mortise.axis。
+   * 3D 靠 CSG 過濾器跳過帶 axis 的榫眼維持乾淨；圖面（1:1 樣板／零件圖／CNC）
+   * 拿回真實孔位——木工是在方料階段就把孔鑿好的。跟方凳同一套，見 Mortise.axis。
+   */
+  const legMortiseNeedsAxis = legShape === "curved-taper" || legW !== legD;
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
   // 滿版圓／橢圓（含海棠形）椅面：自動抬高椅腳內縮讓腳（含頂榫）落在輪廓內、防露榫
@@ -507,11 +513,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         const _xFaceRotZ = xFaceApronMortiseRotZ(c, _splayDxForLegs, _legHeight);
         return [
         // === 牙板 ===
-        // 不挖牙板母榫的三種情況（跟 square-stool 同條件）：無牙板 / 弧肩斜腳 / 非方腳。
-        // 弧肩斜腳與非方腳（legW≠legD，腳面比牙條厚寬）挖榫眼會露在牙條外緣＝使用者看到的破口。
-        // 這兩種情況不挖、靠實體遮，榫頭埋進實體腳身（apronTenonLengthX/Z 已 clamp 留背牆）→
-        // 腳面乾淨無孔。方腳（legW===legD 且非弧肩）維持挖榫眼＝與基準版 byte 一致、無迴歸。
-        ...((!withApron || legShape === "curved-taper" || legW !== legD) ? [] : [
+        // 弧肩斜腳與非方腳（legW≠legD）挖榫眼 3D 會從斜降薄區破出＝破口。2026-08-21
+        // 改法跟方凳同步：**榫眼照建、標 Mortise.axis**——圖面拿回真實孔位（木工在方料
+        // 階段就要鑿孔），3D 靠 CSG 過濾器跳過 axis 榫眼維持乾淨。見 Mortise.axis。
+        ...(!withApron ? [] : [
         // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫，rotX 跟 splayDz
         {
           origin: {
@@ -524,6 +529,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonThick,
           through: apronThroughZ,
           ...(Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {}),
+          ...(legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: c.z > 0 ? -1 : 1 } } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫，rotZ 跟 splayDx
         {
@@ -538,11 +544,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonThick,
           through: apronThroughX,
           ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
+          ...(legMortiseNeedsAxis ? { axis: { x: c.x > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
         },
         ]),
         // === 腳踏 ===（套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx）
-        // 弧肩斜腳／非方腳同牙板：不挖榫眼、靠實體遮（腳踏落在斜降薄腳區，挖榫眼會露破口）。
-        ...((legShape === "curved-taper" || legW !== legD) ? [] : [
+        // 弧肩斜腳／非方腳同牙板：榫眼照建、標 axis（見上）。
+        ...([
         // Z 面 mortise（接 Z 軸 = 左右腳踏, 上移）— 上榫，rotX 跟 splayDz
         {
           origin: {
@@ -556,6 +563,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           width: frTenonThick,
           through: frThroughZ,
           ...(Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {}),
+          ...(legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: c.z > 0 ? -1 : 1 } } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後腳踏, 靜止）— 下榫，rotZ 跟 splayDx
         {
@@ -569,6 +577,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           width: frTenonThick,
           through: frThroughX,
           ...(Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {}),
+          ...(legMortiseNeedsAxis ? { axis: { x: c.x > 0 ? -1 : 1, y: 0, z: 0 } } : {}),
         },
         ]),
         // 背腳：椅背頂橫木的母榫眼
