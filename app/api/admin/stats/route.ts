@@ -123,6 +123,17 @@ function statsSince(daysAgo: number): Date {
   return d > STATS_LAUNCH_DATE ? d : STATS_LAUNCH_DATE;
 }
 
+/**
+ * 「排除 admin 模擬扣款」的過濾條件。
+ *
+ * ⚠️ **一定要用 `.or(... is.null, ... neq)`,不可以只寫 `.neq()`。**
+ *    PostgREST 的 `neq` 對「該 key 不存在 → NULL」的列會判成 NULL(不是 TRUE),整批被濾掉。
+ *    2026-08-21 對正式站實測:單用 `.neq("raw_response->>_admin_simulation","true")`
+ *    會把 17 筆、11,092 元的真實營收全部變成 0;改成下面這個寫法才是 17 筆 / 11,092 元不變。
+ */
+const NOT_SIMULATED =
+  "raw_response->>_admin_simulation.is.null,raw_response->>_admin_simulation.neq.true";
+
 async function recentSubscriptions(svc: ReturnType<typeof getServiceSupabase>) {
   // 過去 30 天「成功付款」的訂單筆數與金額（受 STATS_LAUNCH_DATE clamp）
   const since = statsSince(30);
@@ -130,7 +141,8 @@ async function recentSubscriptions(svc: ReturnType<typeof getServiceSupabase>) {
     .from("payments")
     .select("amount, status, created_at")
     .gte("created_at", since.toISOString())
-    .eq("status", "success");
+    .eq("status", "success")
+    .or(NOT_SIMULATED);
   const list = (data ?? []) as Array<{ amount: number }>;
   return {
     count: list.length,

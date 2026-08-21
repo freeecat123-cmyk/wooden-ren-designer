@@ -152,7 +152,19 @@ export function EcpayLogClient() {
       setSimResult("請輸入 subscription_id");
       return;
     }
-    if (!confirm(`模擬綠界月扣 webhook(${simSuccess ? "成功" : "失敗"})打 sub=${simSubId}?`)) return;
+    // ⚠️ 這顆鈕會對**真實客戶的訂閱**寫資料,確認文字必須把「會動什麼、不會動什麼」講完整。
+    //    在 2026-08-21 修好之前,它還會開一張真號碼的電子發票寄給客戶,而這段文字完全沒提。
+    if (
+      !confirm(
+        `模擬綠界月扣 webhook(${simSuccess ? "成功" : "失敗"})打 sub=${simSubId}?\n\n` +
+          `會動到真實客戶的資料:\n` +
+          `  • 寫一筆 payment(標記為模擬,不列入營收統計)\n` +
+          (simSuccess ? `  • 延長到期日 31 天、方案還原成訂閱的方案\n` : "") +
+          `\n不會發生:\n` +
+          `  • 不開立電子發票\n  • 不寄任何通知信給客戶`,
+      )
+    )
+      return;
     setSimBusy(true);
     setSimResult("呼叫中…");
     try {

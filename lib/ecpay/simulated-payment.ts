@@ -23,3 +23,30 @@
 export function isSimulatedPayment(params: Record<string, string>): boolean {
   return String(params.SimulatePaid ?? "").trim() === "1";
 }
+
+/**
+ * admin 後台「模擬月扣」用的旗標,放在 CustomField1。
+ *
+ * 跟上面綠界自己的 SimulatePaid 是**不同的東西**,差別在「該做到哪裡為止」:
+ *
+ * | 來源 | DB 要不要動 | 開發票 / 寄信 |
+ * |---|---|---|
+ * | 綠界後台模擬付款 `SimulatePaid=1` | ❌ 什麼都不做 | ❌ |
+ * | admin 後台「模擬月扣」 `CustomField1=ADMIN_SIM` | ✅ 照跑(這正是要測的) | ❌ |
+ * | 真的扣款 | ✅ | ✅ |
+ *
+ * ⭐ 中間那格就是這個常數存在的理由:admin 這支工具的用途是**驗證續期邏輯**,
+ *   所以 DB 更新一定要真的跑;但它送的是一筆不存在的錢,發票與通知信絕對不能發出去。
+ *   在此之前這支工具送的回呼跟真回呼無法區分 → 會對真實客戶開出真號碼的電子發票
+ *   並寄「扣款成功」信,帳上還多一筆永遠不會入帳的營收。(2026-08-21 稽核發現;
+ *   查過正式站 93 筆 payments,這顆鈕從來沒被按過,屬於還沒踩到的地雷。)
+ *
+ * 放 CustomField1 的理由:它會被算進 CheckMacValue,沒有 HashKey 就偽造不了;
+ * 而真實綠界回呼這一欄一律是空字串(已核對正式站 raw_response)。
+ */
+export const ADMIN_SIMULATION_FLAG = "ADMIN_SIM";
+
+/** 這筆回呼是不是 admin 後台按「模擬月扣」打出來的(必須已通過 CheckMacValue 驗簽才可信)。 */
+export function isAdminSimulation(params: Record<string, string>): boolean {
+  return String(params.CustomField1 ?? "").trim() === ADMIN_SIMULATION_FLAG;
+}

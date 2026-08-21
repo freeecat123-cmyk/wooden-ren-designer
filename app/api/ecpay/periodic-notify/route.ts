@@ -20,7 +20,7 @@ import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
-import { isSimulatedPayment } from "@/lib/ecpay/simulated-payment";
+import { isSimulatedPayment, isAdminSimulation } from "@/lib/ecpay/simulated-payment";
 import { after } from "next/server";
 import { sendEmail } from "@/lib/email/send";
 import { periodicChargeSuccessEmail } from "@/lib/email/templates/payment-success";
@@ -175,6 +175,13 @@ export async function POST(req: NextRequest) {
   // Race condition 防護：先 INSERT payment（UNIQUE on ecpay_trade_no 擋並發 dup）
   // 只有 insert 成功才延長 subscription，避免兩個並發 webhook 各讀 expires_at
   // 各自 +31d update（最後贏的 update value 一樣）但實際只應扣一次。
+  /**
+   * ⚠️ admin 後台「模擬月扣」打進來的:DB 照跑(那正是要測的),
+   *    但**絕不可以開發票或寄信** —— 那是一筆不存在的錢。
+   *    只有通過上面的 CheckMacValue 驗簽才會走到這裡,所以這個旗標是可信的。
+   */
+  const adminSim = isAdminSimulation(params);
+
   const paymentDate = parseEcpayDate(params.process_date) ?? new Date().toISOString();
   const { data: insertedPayment, error: payInsErr } = await admin
     .from("payments")
@@ -185,8 +192,19 @@ export async function POST(req: NextRequest) {
       status: "success",
       ecpay_trade_no: tradeNo,
       ecpay_payment_date: paymentDate,
-      raw_response: params as Record<string, unknown>,
-      invoice_status: "pending",
+      raw_response: (adminSim
+        ? { ...params, _admin_simulation: true }
+        : params) as Record<string, unknown>,
+      /**
+       * 模擬扣款不開票 → 用 NULL,不是自創狀態字串。
+       * ⚠️ `invoice_status` 有 CHECK 限制(pending/issued/failed/invalid/allowanced,
+       *    見 migrations/20260519_invoice_integration.sql:22)。塞不在清單裡的值會讓
+       *    **整筆 insert 失敗**,而 supabase-js 不會 throw、只回 error 物件 → route 會把它
+       *    當成「重送」直接 return,模擬工具反而完全不動。這正是
+       *    migrations/20260519_payments_refunded_status.sql 開頭記載過的同一個坑。
+       * NULL 也不會被補開票的流程撈到:那支的條件是 invoice_status in ('pending','failed')。
+       */
+      invoice_status: adminSim ? null : "pending",
     })
     .select("id")
     .single();
@@ -252,6 +270,13 @@ export async function POST(req: NextRequest) {
   // Hobby plan 10s timeout 不夠串著跑 invoice + email,改 after() 背景
   after(async () => {
     try {
+      if (adminSim) {
+        console.log("[ecpay/periodic-notify:after] admin 模擬扣款:跳過發票與通知信", {
+          orderId,
+          paymentId: insertedPayment?.id,
+        });
+        return;
+      }
       // 1. 開立月扣這期 B2C 發票
       if (insertedPayment?.id) {
         try {

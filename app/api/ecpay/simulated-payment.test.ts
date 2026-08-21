@@ -83,7 +83,19 @@ const ACTIVE_SUB = {
 };
 
 /** 夠用的假 supabase：鏈式呼叫全部回自己，await 得到該表設定的結果。 */
-function makeQuery(table: string, result: { data: unknown; error: unknown }) {
+function makeQuery(
+  table: string,
+  result: { data: unknown; error: unknown; insertResult?: { data: unknown; error: unknown } },
+) {
+  /**
+   * ⭐ insert 之後的 `.select().single()` 要能回「剛插入那筆」,而不是 select 的結果。
+   *   沒有這一層的話,payments 的 insert 永遠回 null → route 裡
+   *   `if (insertedPayment?.id)` 包住的開發票區塊**永遠跳過**,
+   *   於是「不開發票」這種測試不管程式對錯都會通過(橡皮圖章)。
+   */
+  let didInsert = false;
+  const settle = async () =>
+    didInsert && result.insertResult ? result.insertResult : result;
   const q: Record<string, unknown> = {
     select: () => q,
     in: () => q,
@@ -99,16 +111,23 @@ function makeQuery(table: string, result: { data: unknown; error: unknown }) {
     },
     insert: (row: unknown) => {
       inserts.push({ table, row });
+      didInsert = true;
       return q;
     },
-    maybeSingle: async () => result,
-    single: async () => result,
-    then: (res: (v: unknown) => unknown) => Promise.resolve(result).then(res),
+    maybeSingle: async () => settle(),
+    single: async () => settle(),
+    then: (res: (v: unknown) => unknown) => settle().then(res),
   };
   return q;
 }
 
-let tableResults: Record<string, { data: unknown; error: unknown }>;
+type TableResult = {
+  data: unknown;
+  error: unknown;
+  /** insert 之後的 `.select().single()` 要回的東西（見 makeQuery 的說明）。 */
+  insertResult?: { data: unknown; error: unknown };
+};
+let tableResults: Record<string, TableResult>;
 
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: () => {
@@ -278,6 +297,78 @@ describe("/api/ecpay/periodic-notify", () => {
       const row = subs.find((r) => "expires_at" in r);
       expect(row, "沒有更新 subscriptions").toBeDefined();
       expect(row!.status).toBe("active");
+    });
+
+    /**
+     * 🧷 admin 後台「模擬月扣」：DB 要照跑（那正是要測的），但錢是假的 →
+     *    **不可以開發票、不可以寄信、不可以算進營收**。
+     *
+     * ⭐ 修好之前這支工具送出的回呼帶 RtnCode=1 與正確的 CheckMacValue，
+     *   跟真回呼完全無法區分 → 會對真實客戶開出一張**真號碼的財政部電子發票**、
+     *   寄「扣款成功」信，帳上還多一筆永遠不會入帳的營收，事後只能作廢或折讓。
+     */
+    describe("admin 模擬月扣", () => {
+      const simRenew = async () => {
+        // select 查無此筆(不是重送) + insert 回一個 id(不然開票區塊被 optional chaining 跳過,
+        // 「不開發票」就變成怎麼寫都會過的假測試)
+        tableResults.payments = {
+          data: null,
+          error: null,
+          insertResult: { data: { id: "pay-sim-1" }, error: null },
+        };
+        await periodicPOST(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          callback({
+            PeriodType: "M",
+            PeriodAmount: "390",
+            TradeAmt: "390",
+            CustomField1: "ADMIN_SIM",
+          }) as any,
+        );
+        await runAfterCallbacks();
+      };
+
+      it("⑤ 不開發票", async () => {
+        await simRenew();
+        expect(issueInvoiceCalls).toEqual([]);
+      });
+
+      it("⑥ 不寄任何信給客戶", async () => {
+        await simRenew();
+        expect(sendEmailCalls).toEqual([]);
+      });
+
+      it("⑦ 但 DB 照跑（這支工具的用途就是驗續期邏輯，不能整包 skip）", async () => {
+        await simRenew();
+        const users = updates.filter((u) => u.table === "users").map((u) => u.row);
+        expect(users.find((r) => "plan" in r)).toBeDefined();
+      });
+
+      it("⑧ payment 要留下可辨識的模擬標記，且 invoice_status 必須是 null", async () => {
+        await simRenew();
+        const pay = inserts.find((i) => i.table === "payments")?.row as Record<string, unknown>;
+        expect(pay).toBeDefined();
+        expect((pay.raw_response as Record<string, unknown>)._admin_simulation).toBe(true);
+        // ⚠️ 不可以自創字串：invoice_status 有 CHECK 限制，塞不在清單裡的值會讓整筆 insert 靜默失敗
+        expect(pay.invoice_status).toBeNull();
+      });
+
+      it("⑨ 負向對照：沒帶旗標的真扣款，發票與信照發（不能連真的一起擋掉）", async () => {
+        tableResults.payments = {
+          data: null,
+          error: null,
+          insertResult: { data: { id: "pay-real-1" }, error: null },
+        };
+        await periodicPOST(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          callback({ PeriodType: "M", PeriodAmount: "390", TradeAmt: "390" }) as any,
+        );
+        await runAfterCallbacks();
+        const pay = inserts.find((i) => i.table === "payments")?.row as Record<string, unknown>;
+        expect(pay.invoice_status).toBe("pending");
+        expect(issueInvoiceCalls.length).toBeGreaterThan(0);
+        expect(sendEmailCalls.length).toBeGreaterThan(0);
+      });
     });
 
     it("④ ⚠️保護既有行為：已取消的訂閱收到扣款通知，絕不可以被反轉成 active", async () => {

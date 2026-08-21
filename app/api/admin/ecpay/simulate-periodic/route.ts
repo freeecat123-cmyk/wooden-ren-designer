@@ -32,6 +32,7 @@ import {
   ECPAY_HASH_KEY,
   ECPAY_MERCHANT_ID,
 } from "@/lib/ecpay/config";
+import { ADMIN_SIMULATION_FLAG } from "@/lib/ecpay/simulated-payment";
 
 export const runtime = "nodejs";
 
@@ -120,6 +121,22 @@ export async function POST(req: Request) {
     process_date: nowEcpayDate(),
     PaymentDate: nowEcpayDate(),
     gwsr: sub.ecpay_periodic_no ?? fakeTradeNo,
+    /**
+     * ⭐ 這是「這一筆是 admin 在測試、不是真的收到錢」的旗標。
+     *
+     * 為什麼需要:這支 route 送出的 RtnCode=1 與**正確的 CheckMacValue**，
+     * 對 periodic-notify 而言跟真的綠界回呼完全無法區分 → 它會照流程
+     * 開一張**真號碼的財政部電子發票寄給真實客戶**、寄「扣款成功」信、
+     * 並在營收統計裡多一筆永遠不會入帳的錢。事後只能跑作廢或折讓。
+     *
+     * 為什麼放在 CustomField1 而不是自己發明一個欄位:
+     *   - 它會被算進 CheckMacValue，外部無法在沒有 HashKey 的情況下偽造
+     *   - 真實綠界回呼這欄一律是空字串(已核對正式站 payments.raw_response)
+     *
+     * ⚠️ 不能改用綠界自己的 SimulatePaid=1:那會讓 periodic-notify 在最前面就
+     *    整個 return，DB 一個欄位都不會動，這支測試工具就完全失去意義。
+     */
+    CustomField1: ADMIN_SIMULATION_FLAG,
   };
   params.CheckMacValue = calculateCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV);
 
