@@ -309,12 +309,16 @@ describe("資訊區塊要有拼好後的實際尺寸標註", () => {
    * 細長件沿長軸切開時最危險的錯誤是「總長不對」（貼太開或重疊太多）——輪廓本身
    * 是兩條平行直線，貼歪了看起來還很正常。對位十字擋得住平移/旋轉錯誤，但使用者
    * 沒有一個「拿捲尺一量就知道對不對」的終點檢查。這行文字就是那個終點檢查，
-   * 每一張都要有、數字要是這個 face 的實際 w/h（四捨五入到整數 mm）。
+   * 每一張都要有、數字要是這個 face 的實際尺寸（四捨五入到整數 mm）。
+   *
+   * 全長＝長邊、全寬＝短邊。舊版寫死 face.h 當全長，凳腳（445 長 × 35 寬）
+   * 會印成「全長 35mm × 全寬 445mm」——一個 445mm 的腳說它全長 35mm，讀的人
+   * 得先愣一下才知道要量哪一邊，而這行的整個用途就是「拿捲尺量一次確認」。
    */
-  it("凳腳 fixture（w=425,h=35）：每張都印「拼好後全長 35mm × 全寬 425mm」（全長＝face.h、全寬＝face.w）", () => {
+  it("凳腳 fixture（w=425,h=35）：每張都印「拼好後全長 425mm × 全寬 35mm」（全長＝長邊、全寬＝短邊）", () => {
     for (const tile of legPlan.tiles) {
       const svg = tileSheetSvg(baseInput(legFace, legPlan, tile.c, tile.r));
-      expect(svg).toContain("拼好後全長 35mm × 全寬 425mm");
+      expect(svg).toContain("拼好後全長 425mm × 全寬 35mm");
     }
   });
 
@@ -322,14 +326,14 @@ describe("資訊區塊要有拼好後的實際尺寸標註", () => {
     const face = rect(444.6, 34.4);
     const plan = planA4Tiles(face.w, face.h)!;
     const svg = tileSheetSvg(baseInput(face, plan, 0, 0));
-    expect(svg).toContain("拼好後全長 34mm × 全寬 445mm");
+    expect(svg).toContain("拼好後全長 445mm × 全寬 34mm");
   });
 
   it("單一 tile（不用拼接）也要有這行，不是只有多張才印", () => {
     const small = rect(150, 80);
     const plan = planA4Tiles(small.w, small.h)!;
     const svg = tileSheetSvg(baseInput(small, plan, 0, 0));
-    expect(svg).toContain("拼好後全長 80mm × 全寬 150mm");
+    expect(svg).toContain("拼好後全長 150mm × 全寬 80mm");
   });
 });
 
