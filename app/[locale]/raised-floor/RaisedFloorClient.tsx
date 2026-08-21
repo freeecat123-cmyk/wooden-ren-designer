@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { encodeState } from "@/lib/engineering-quote/url-codec";
-import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
+import { computeRaisedFloorBom, withRealPlywoodCount } from "@/lib/raised-floor/calc";
 import {
   DEFAULT_RAISED_FLOOR_INPUT,
   type Pillar,
@@ -81,7 +81,7 @@ export function RaisedFloorClient() {
   const currency = useCurrency();
   const fmt = (n: number) => formatPrice(n, currency);
   const [input, setInput] = useState<RaisedFloorInput>(DEFAULT_RAISED_FLOOR_INPUT);
-  const bom = useMemo(() => computeRaisedFloorBom(input, locale), [input, locale]);
+  const bom = useMemo(() => withRealPlywoodCount(computeRaisedFloorBom(input, locale)), [input, locale]);
   const [copied, setCopied] = useState(false);
 
   // 預覽 tab + 3D 控制

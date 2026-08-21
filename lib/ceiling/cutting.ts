@@ -120,8 +120,27 @@ export function splitLongPieces(
       result.push(p);
       continue;
     }
-    // 切法:前 N-1 段用 stockLength,最後一段 = 剩餘 + (N-1) × overlap
-    const N = Math.ceil(p.lengthCm / stockLengthCm);
+    /**
+     * 🧷 段數要把**拼接重疊**算進去。
+     *
+     * ⛔ 原本 `N = ceil(長度 / 原料長)` —— 那是「不重疊」的算法。
+     *    但每多一段就要多吃一段 overlap,所以有效覆蓋是:
+     *      第一段 stockLength + 之後每段 (stockLength − overlap)
+     *    用不含重疊的 N 去算,最後一段會**比原料還長**:
+     *      實測長邊 715cm、原料 360cm(12 尺)、重疊 10cm:
+     *        N = ceil(715/360) = 2 → 末段 = 715 − 360 + 10 = **365cm > 360cm**
+     *      裁切表就出現兩根 stock 各裝一段 365,`remainCm = −5.0`,利用率還顯示 97.1%。
+     *      師傅照表下料才發現「從 360 的料切不出 365」。(2026-08-21 稽核發現。)
+     *
+     * ✅ 正解:`stockLength + (N−1)(stockLength − overlap) ≥ 長度`
+     *          → N = ceil((長度 − overlap) / (stockLength − overlap))
+     *    重疊 ≥ 原料長時無解(參數本身不合理),退回不重疊的算法避免除以零 / 負數。
+     */
+    const effective = stockLengthCm - spliceOverlapCm;
+    const N =
+      effective > 0
+        ? Math.max(2, Math.ceil((p.lengthCm - spliceOverlapCm) / effective))
+        : Math.ceil(p.lengthCm / stockLengthCm);
     for (let i = 0; i < N - 1; i++) {
       result.push({
         ...p,
@@ -129,8 +148,8 @@ export function splitLongPieces(
         lengthCm: stockLengthCm,
       });
     }
-    const remainder =
-      p.lengthCm - (N - 1) * stockLengthCm + (N - 1) * spliceOverlapCm;
+    // 末段 = 總長 − 前面 N−1 段的「有效覆蓋」。有了正確的 N,這個值必定 ≤ stockLength。
+    const remainder = p.lengthCm - (N - 1) * effective;
     result.push({
       ...p,
       label: `${p.label} (拼${N}/${N})`,

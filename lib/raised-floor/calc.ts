@@ -16,6 +16,7 @@ import { computeFloorLayout } from "@/lib/floor/layout";
 import { optimizeOffcuts } from "@/lib/floor/cutting";
 import { buildPlatformPolygon, joistRunLengthsM, subJoistRunLengthsM } from "./geometry";
 import type { FloorInput } from "@/lib/floor/types";
+import { computePlywoodLayout } from "./cutting";
 
 const PING_M2 = 3.305;
 
@@ -297,5 +298,47 @@ export function computeRaisedFloorBom(
       skirtingLengthM,
       underlayRollCount,
     },
+  };
+}
+
+/**
+ * 用**實際 2D 排版**的訂料張數校正 BOM 的夾板數量與金額。
+ *
+ * ⛔ 為什麼需要:`computeRaisedFloorBom` 的夾板張數是**面積估算**
+ *    (`ceil(平台面積 / 單張面積 × (1 + 損耗))`),但同一頁的裁切表走的是真正的
+ *    2D shelf packing(`computePlywoodLayout`)。兩個數字會打架:
+ *      實測平台 140×500cm、夾板 18mm 4×8(122×244)、損耗 20%、單價 1500:
+ *        材料統計卡 → 夾板 **3 張**、cost.plywood = NT$4,500
+ *        同一頁的裁切表 → 「要訂 **5 張**」
+ *      差 2 張 = NT$3,000(40%),而**報價只跟偏低的那個面積估算走**。
+ *    板材不能按面積切——排版才是真的。(2026-08-21 稽核發現。)
+ *
+ * ⚠️ 只覆寫夾板那一項與對應金額,其餘一字不動。
+ *    排版本身只吃 `bom.trace.mainJoistCentersCm`,不吃估算張數,所以沒有循環。
+ */
+export function withRealPlywoodCount(bom: RaisedFloorBom): RaisedFloorBom {
+  const layout = computePlywoodLayout(bom);
+  const real = layout.orderSheetCount;
+  const est = bom.trace.plywoodSheetCount;
+  if (!Number.isFinite(real) || real <= 0 || real === est) return bom;
+
+  const unit = bom.input.plywoodPricePerSheet;
+  const newPlywoodCost = unit > 0 ? real * unit : bom.cost.plywood;
+  const delta = newPlywoodCost - bom.cost.plywood;
+
+  return {
+    ...bom,
+    trace: { ...bom.trace, plywoodSheetCount: real },
+    items: bom.items.map((it) =>
+      it.category === "plywood"
+        ? {
+            ...it,
+            count: real,
+            note: `依實際排版需訂 ${real} 張(面積估算 ${est} 張)`,
+            subtotal: unit > 0 ? real * unit : it.subtotal,
+          }
+        : it,
+    ),
+    cost: { ...bom.cost, plywood: newPlywoodCost, total: bom.cost.total + delta },
   };
 }

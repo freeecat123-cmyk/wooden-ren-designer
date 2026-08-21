@@ -315,8 +315,17 @@ export default async function Home({
           const restFurniture = furniture.filter((it) => !unlockedSet.has(it.category));
           const ceilingOwned = unlockedToolSet.has("ceiling");
           const floorOwned = unlockedToolSet.has("floor");
-          // 和室架高平台共用 floor 解鎖(同 server gate),不另開單買斷
-          const raisedFloorOwned = floorOwned;
+          /**
+           * ⛔ 這裡原本是 `const raisedFloorOwned = floorOwned;`,註解寫「同 server gate」。
+           *    **那個前提在 2026-05-27 就不成立了** —— server 端
+           *    `app/[locale]/raised-floor/page.tsx` 查的是 `unlockedTools.includes("raised-floor")`
+           *    (該檔開頭註解自己就寫著「2026-05-27 之前共用 /floor 的鑰匙當 fallback,
+           *     但 raised-floor 進 ToolId 之後改成獨立的鑰匙」)。
+           *    結果:買了 floor 的人在 /app 看到架高地板顯示「已解鎖」,點進去卻被擋在付費牆;
+           *    只買 raised-floor 的人則在 /app 看不到自己買的工具。兩個方向都錯。
+           *    (2026-08-21 稽核發現;跟 lib/supabase/server.ts 那條一樣是「註解寫的前提過期了」。)
+           */
+          const raisedFloorOwned = unlockedToolSet.has("raised-floor");
           const cncOwned = unlockedToolSet.has("cnc");
 
           if (!showTools) {

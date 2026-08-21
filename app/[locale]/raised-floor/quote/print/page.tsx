@@ -8,7 +8,7 @@
  */
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
+import { computeRaisedFloorBom, withRealPlywoodCount } from "@/lib/raised-floor/calc";
 import {
   DEFAULT_RAISED_FLOOR_INPUT,
   type RaisedFloorInput,
@@ -63,7 +63,7 @@ export default async function RaisedFloorQuotePrintPage({
     ? { ...EMPTY_CUSTOMER, ...safeDecode<CustomerInfo>(c) }
     : EMPTY_CUSTOMER;
 
-  const bom = computeRaisedFloorBom(input, locale);
+  const bom = withRealPlywoodCount(computeRaisedFloorBom(input, locale));
   const engInput = raisedFloorBomToEngInput(bom, opts, locale);
   const breakdown = computeEngineeringQuote(engInput, locale);
 

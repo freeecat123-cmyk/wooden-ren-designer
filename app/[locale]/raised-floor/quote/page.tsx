@@ -11,7 +11,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
 import { fetchUnlockedTools } from "@/lib/tool-unlocks";
-import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
+import { computeRaisedFloorBom, withRealPlywoodCount } from "@/lib/raised-floor/calc";
 import {
   DEFAULT_RAISED_FLOOR_INPUT,
   type RaisedFloorInput,
@@ -78,7 +78,7 @@ export default async function RaisedFloorQuotePage({
     }
   }
 
-  const bom = computeRaisedFloorBom(input, locale);
+  const bom = withRealPlywoodCount(computeRaisedFloorBom(input, locale));
   const engInput = raisedFloorBomToEngInput(bom, ENGINEERING_QUOTE_DEFAULTS, locale);
 
   return (
