@@ -229,3 +229,30 @@ describe("indexSheetSvg", () => {
     expect(indexSheetSvg("櫥櫃", [row()])[0]).not.toContain("第 1 頁 / 共");
   });
 });
+
+/**
+ * 「不需要樣板」跟「太大 → 見零件圖」是兩種狀態，索引上必須講得不一樣。
+ * 混為一談的後果：使用者拿著衣櫃那 30 件純矩形跑去找根本不存在的零件圖。
+ */
+describe("純矩形零件的索引說法", () => {
+  it("plainRect 的列寫「不需要樣板 · 直接量畫」，不寫「太大」", () => {
+    const svgs = indexSheetSvg("衣櫃", [row({ placement: null, plainRect: true })]);
+    const all = svgs.join("");
+    expect(all).toContain("不需要樣板 · 直接量畫");
+    expect(all).not.toContain("太大 → 見零件圖");
+  });
+
+  it("沒有 plainRect 的 null placement 仍然寫「太大 → 見零件圖」", () => {
+    const svgs = indexSheetSvg("書桌", [row({ placement: null })]);
+    expect(svgs.join("")).toContain("太大 → 見零件圖");
+  });
+
+  it("被判成不需要樣板的零件仍然要出現在索引上（不可無聲丟件）", () => {
+    const svgs = indexSheetSvg("衣櫃", [
+      row({ partNo: "P-07", nameZh: "前後底座板", placement: null, plainRect: true }),
+    ]);
+    const all = svgs.join("");
+    expect(all).toContain("P-07");
+    expect(all).toContain("前後底座板");
+  });
+});

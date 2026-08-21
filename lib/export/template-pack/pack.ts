@@ -7,6 +7,7 @@ import { zipStore } from "@/lib/export/zip-store";
 import { ladderFor, PAPERS } from "./paper";
 import { placeOnLadder, type Placement } from "./fit";
 import { pickTemplateFaces } from "./face";
+import { faceNeedsTemplate } from "./needs-template";
 import { templateSheetSvg } from "./sheet";
 import { planA4Tiles, CALIBRATION_TEST_LINE_MM, calibrationScale } from "./tiling";
 import { tileSheetSvg, printerTestPageSvg } from "./tile-sheet";
@@ -57,6 +58,18 @@ export function buildPackPlan(
       const partNo = faces.length > 1 ? `${baseNo}${String.fromCharCode(97 + fi)}` : baseNo;
       const nameZh = groupDisplayName(g, "zh-TW");
       const qty = Math.min(g.count, 99);
+
+      // 零孔零榫的純矩形不出樣板（見 needs-template.ts）。兩個模式都套同一套判定，
+      // 但仍然要進 rows —— 索引會把它標成「不需要樣板 · 直接量畫」，零件不可以
+      // 從清單上消失。
+      if (!faceNeedsTemplate(face)) {
+        rows.push({
+          partNo, nameZh, faceLabelZh: face.faceLabelZh, faceIndex: fi,
+          faceCount: faces.length, qty, wmm: face.w, hmm: face.h,
+          placement: null, plainRect: true,
+        });
+        return;
+      }
 
       if (mode === "a4") {
         // A4 拼接模式：張數上限 6，超過就退回零件圖（跟 printshop 的 placeOnLadder

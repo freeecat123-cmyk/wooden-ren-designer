@@ -112,7 +112,13 @@ export function TemplatePackButton({ design }: { design: FurnitureDesign }) {
     () => Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0),
     [plan],
   );
-  const fallbackCount = useMemo(() => plan.rows.filter((r) => !r.placement).length, [plan]);
+  // 「太大」只算真的塞不下的。plainRect（零孔零榫純矩形）是刻意不出樣板，
+  // 混進來會變成「另有 30 件太大」這種嚇人又不實的說法（衣櫃整台都是純矩形）。
+  const fallbackCount = useMemo(
+    () => plan.rows.filter((r) => !r.placement && !r.plainRect).length,
+    [plan],
+  );
+  const plainRectCount = useMemo(() => plan.rows.filter((r) => r.plainRect).length, [plan]);
   const papers = useMemo(() => Array.from(plan.byPaper.keys()).join("、"), [plan]);
 
   async function go() {
@@ -180,6 +186,11 @@ export function TemplatePackButton({ design }: { design: FurnitureDesign }) {
       </button>
       {fallbackCount > 0 && (
         <span className="text-zinc-500">另有 {fallbackCount} 件太大，請改印零件圖</span>
+      )}
+      {plainRectCount > 0 && (
+        <span className="text-zinc-500">
+          {plainRectCount} 件是無孔長方形，不出樣板（索引有尺寸，直接量畫）
+        </span>
       )}
       {err && <p className="w-full text-rose-600">{err}</p>}
       {mode === "a4" && (
