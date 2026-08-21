@@ -114,16 +114,28 @@ export function holeAngleMarkup(h: FaceHole): string {
 }
 
 /**
- * 成型線（切完造型的那條，要鋸掉方料到這條線）。
+ * 成型線（要鋸掉方料到這條線）。
  *
- * 灰色虛線，跟方料的黑實線分得開——兩條都是黑實線的話，描的人分不出該切哪條。
+ * **黑色、比方料外框更粗的長虛線。** 第一版畫成灰色 0.3mm 細虛線，木頭仁實際
+ * 輸出後回報「弧肩的造型怎麼沒了」——線是在的，但它是整張紙上最淡的一條，印在
+ * 紙上等於看不見，而黑色實線變成方料外框。
+ *
+ * 這條是**使用者真正要動鋸子的線**，不該是紙上最不起眼的。實線＝料邊、
+ * 長虛線＝要鋸的線，兩者用線型區分而不是用深淺。
  */
+export const SHAPE_LINE_STROKE_MM = 0.45;
+
 export function shapeLineMarkup(face: { shapeOutline?: Array<{ x: number; y: number }> }): string {
   if (!face.shapeOutline?.length) return "";
   return (
     `<path data-mark="shape-line" d="${outlinePathD(face.shapeOutline)}" fill="none"` +
-    ` stroke="#666" stroke-width="${STROKE_MM}" stroke-dasharray="4 2"/>`
+    ` stroke="#000" stroke-width="${SHAPE_LINE_STROKE_MM}" stroke-dasharray="7 2.5"/>`
   );
+}
+
+/** 名稱牌上的成型線說明；沒有成型線就不加這行。 */
+export function shapeLineNote(face: { shapeOutline?: Array<{ x: number; y: number }> }): string | null {
+  return face.shapeOutline?.length ? "粗虛線＝成型線：鑿完孔再沿它鋸" : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -401,6 +413,8 @@ export function templateSheetSvg(input: TemplateSheetInput): string {
   const faceMark = `【${face.faceLabelZh}】`;
   const lines = [`${partNo} ${nameZh}${qty > 1 ? ` ×${qty}` : ""}　${faceMark}`];
   if (faceCount > 1) lines.push(`第 ${faceIndex + 1} 面 / 共 ${faceCount} 面`);
+  const shapeNote = shapeLineNote(face);
+  if (shapeNote) lines.push(shapeNote);
 
   const labelW = Math.max(...lines.map((l) => estTextWidthMm(l, LABEL_FONT_MM)));
   const labelH = (lines.length - 1) * LABEL_LINE_MM + LABEL_FONT_MM;

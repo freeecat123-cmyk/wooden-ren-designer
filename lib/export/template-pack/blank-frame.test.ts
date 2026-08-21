@@ -173,3 +173,35 @@ describe("弧肩斜腳的腳上榫眼", () => {
     expect(count(withDerived)).toBe(count(withoutDerived));
   });
 });
+
+/**
+ * 成型線的可見度。第一版畫成灰色 0.3mm 細虛線，木頭仁實際輸出後回報
+ * 「弧肩的造型怎麼沒了」——線是在的，但它是整張紙上最淡的一條，印在紙上等於
+ * 看不見，而黑色實線變成方料外框。這條是使用者真正要動鋸子的線。
+ */
+describe("成型線要看得見", () => {
+  it("黑色、比方料外框粗，用線型（長虛線）而不是深淺來區分", () => {
+    const face = legFaces("curved-taper").find((f) => f.shapeOutline?.length)!;
+    const placement = placeOnLadder(face.w, face.h, ladderForOutline(face.outline))!;
+    const svg = templateSheetSvg({ face, placement, partNo: "P-01", nameZh: "凳腳", qty: 4 });
+    const line = /<path data-mark="shape-line"[^>]*>/.exec(svg)![0];
+    expect(line).toContain('stroke="#000"');
+    expect(line).toMatch(/stroke-dasharray="7 2\.5"/);
+    const w = Number(/stroke-width="([\d.]+)"/.exec(line)![1]);
+    expect(w).toBeGreaterThan(0.3); // 方料外框是 0.3
+  });
+
+  it("紙上要寫明那條虛線是什麼——不寫等於留給人猜", () => {
+    const face = legFaces("curved-taper").find((f) => f.shapeOutline?.length)!;
+    const placement = placeOnLadder(face.w, face.h, ladderForOutline(face.outline))!;
+    const svg = templateSheetSvg({ face, placement, partNo: "P-01", nameZh: "凳腳", qty: 4 });
+    expect(svg).toContain("粗虛線＝成型線");
+  });
+
+  it("沒有成型線的面不要多印那行說明", () => {
+    const face = legFaces("box")[0];
+    const placement = placeOnLadder(face.w, face.h, ladderForOutline(face.outline))!;
+    const svg = templateSheetSvg({ face, placement, partNo: "P-01", nameZh: "凳腳", qty: 4 });
+    expect(svg).not.toContain("粗虛線＝成型線");
+  });
+});
