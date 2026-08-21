@@ -150,8 +150,17 @@ export function partsSvgFiles(design: FurnitureDesign): Record<string, string> {
  * 料厚取切料尺寸的最短邊（＝這片攤平躺在板上時的厚度），與裁切計算器同一套判定。
  */
 function partStock(part: Part): Pick<NestPiece, "stockKey" | "stockLabel" | "allowRotate"> {
-  const cut = calculateCutDimensions(part);
-  const thickness = Math.min(cut.length, cut.width, cut.thickness);
+  /**
+   * ⛔ 原本取 `calculateCutDimensions()` 的最短邊 —— 那是**含公榫延伸**的切料尺寸。
+   *    榫頭只會加長、不會讓板變厚,拿它取最小邊會挑錯軸:
+   *    中式方角櫃的側牙板 `visible = {length:18, width:330, thickness:50}`(最薄是 length 18),
+   *    兩端各加榫頭後 cut.length 變 50 → `min(50, 330, 50)` = **50**
+   *    → 被丟進一張根本不存在的「50mm 板」(會多下載一張 50mm_楓木 的 SVG,
+   *    上面躺著 4 片其實是 18mm 的牙板)。(2026-08-21 稽核發現。)
+   * ✅ 改用實際物理尺寸的最短邊;這也跟裁切計算器(用零件自己的 thickness 分組)一致。
+   */
+  const phys = part.joineryView?.visible ?? part.visible;
+  const thickness = Math.min(phys.length, phys.width, phys.thickness);
   const billable = effectiveBillableMaterial(part);
   const isSheet = billable === "plywood" || billable === "mdf";
   const thkTag = `${Math.round(thickness * 10) / 10}mm`;

@@ -238,7 +238,16 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
   const expiryIso = taipeiIsoDate(expiry);
-  const deliveryIso = taipeiIsoDate(addWorkdays(today, quote.estimatedWorkdays));
+  /**
+   * ⛔ 這裡原本用 `quote.estimatedWorkdays`(系統估算),**沒有吃使用者填的「交貨工作天覆寫」**。
+   *    上面第 125 行早就算好了 `finalDeliveryWorkdays`(有覆寫就用覆寫),
+   *    但只被下方的條款文字用到。結果:表單把交貨天覆寫成 45,
+   *    列印出來給客戶的 A4 報價單 **抬頭寫「交貨日 = 開單日 + 6 個工作天」、
+   *    同一頁下方條款卻寫「交貨期 45 個工作天」** —— 同一張紙上兩個交期。
+   *    客戶依抬頭日期催貨,等於白填了覆寫欄位,還留下自相矛盾的書面承諾。
+   *    (2026-08-21 稽核發現。)
+   */
+  const deliveryIso = taipeiIsoDate(addWorkdays(today, finalDeliveryWorkdays));
 
   const entryName = getEntryName(entry, locale);
   const matName = materialName(material, locale);

@@ -720,7 +720,35 @@ const polyDesign: FurnitureDesign = {
       // 左壁上方完全留空（無 cap）讓 lid 從上方滑入
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
-        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm - 0.25 };
+        const shrink = sinkMm + 0.25;
+        const newWidth = wallLeft.visible.width - shrink;
+        /**
+         * ⛔ 這裡只改了 `visible.width`,**沒有同步它身上的角榫眼與對面的公榫**。
+         *    `box-builder.ts:109` 是用建構當下的 wallH 算 `cornerTenonW = wallH − 2×2`,
+         *    這裡事後把左壁縮 5.25mm,榫眼長度沒跟著縮 →
+         *    **榫眼比板還高**(§A10.9:mortise 必須落在母件範圍內),
+         *    三視圖畫出來會凸出板外,照圖鑿會鑿穿。(2026-08-21 稽核發現。)
+         * ✅ 板縮多少,落在它身上的榫眼與對面要插進來的公榫就縮多少;
+         *    夾 0 下限避免極端參數算出負值。
+         */
+        wallLeft.visible = { ...wallLeft.visible, width: newWidth };
+        /**
+         * ⚠️ 縮的是**沿板高**的那一維。左壁的角榫眼是 `length` 沿板高走
+         *    (實測:榫眼 length=62、而板高 visible.width=60.75 → 榫眼比板高 1.25mm),
+         *    不是 `width`(4.75,那是榫眼的厚度方向)。動這種地方前要先印出實際數字確認軸向。
+         */
+        for (const m of wallLeft.mortises ?? []) {
+          m.length = Math.max(0, m.length - shrink);
+        }
+        // 對面要插進來的公榫同步縮,不然榫頭比榫眼長、插不到底
+        for (const id of ["wall-front", "wall-back"]) {
+          const w = design.parts.find((p) => p.id === id);
+          for (const t of w?.tenons ?? []) {
+            if (t.position === "start" || t.position === "end") {
+              t.length = Math.max(0, t.length - shrink);
+            }
+          }
+        }
       }
       // v2 中央凸起：lid 加厚 sinkMm 到 fullT，4 邊銑掉 sinkMm 留邊條卡進槽
       // - F/B 滑槽、壁延伸、cap 全部跟 v1 一樣不動

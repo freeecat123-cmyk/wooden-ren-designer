@@ -7,6 +7,24 @@ import type { Part } from "@/lib/types";
  * Rotations are applied in three.js default Euler XYZ order (extrinsic around
  * world X, then world Y, then world Z). Only ~90° quarter-turns are supported.
  */
+/**
+ * 「這個視角算不算正對著零件的大面」的門檻(法線與視線夾角的 cos)。
+ *
+ * ⛔ 原本寫死 `> 0.99` —— 那是 **acos(0.99) = 8.1°**。但外斜角度的 UI 上限是 **15°**
+ *    (SPLAY_ANGLE.stoolMaxDeg),也就是一半以上的可用範圍會被判成「非正對」→
+ *    走 `convexHull2D` → **整條內凹弧被填平**。
+ *    實測 /design/stool 選 牙條造型=圓弧 + 外斜角度=10:
+ *    正視圖與零件圖的前後牙條變成完全平的長方形,弧不見了(3D 裡還在)。
+ *    木工照零件圖下料就少挖那道弧,做出來跟畫面上的 3D 不一樣。
+ *    (2026-08-21 稽核發現。)
+ *
+ * ✅ 放寬到 20°(cos = 0.9397),涵蓋 15° 上限並留餘裕。
+ *    取捨:略為傾斜的視角用「有序輪廓」會忽略厚度方向那幾 mm 的投影(silhouette 稍窄),
+ *    但 convex hull 是**整條弧直接消失**——前者小失真、後者資訊全毀,前者明顯較好。
+ *    超過 20° 才回去走 hull(那時大面已經明顯側斜,輪廓本來就不該當正視看)。
+ */
+const FACE_ON_COS = 0.9397; // cos(20°)
+
 export function worldExtents(part: Part) {
   let xExt = part.visible.length;
   let yExt = part.visible.thickness;
@@ -467,9 +485,9 @@ export function projectPartSilhouette(
     const nX = cx * sy * cz + sx * sz;       // n·(1,0,0) → side 視角
     const nY = cx * sy * sz - sx * cz;       // n·(0,1,0) → top 視角
     const alongProfile =
-      (view === "front" && Math.abs(nZ) > 0.99) ||
-      (view === "side" && Math.abs(nX) > 0.99) ||
-      (view === "top" && Math.abs(nY) > 0.99);
+      (view === "front" && Math.abs(nZ) > FACE_ON_COS) ||
+      (view === "side" && Math.abs(nX) > FACE_ON_COS) ||
+      (view === "top" && Math.abs(nY) > FACE_ON_COS);
     if (alongProfile) {
       // dz 沿擠出法線＝視線方向,投影上塌掉不可見 → 有序輪廓仍正確(凹弧保留)
       for (const [xp, yp] of prof) {
@@ -498,9 +516,9 @@ export function projectPartSilhouette(
     const nX = sx * sy * cz - cx * sz;        // → side
     const nY = sx * sy * sz + cx * cz;        // → top
     const alongFace =
-      (view === "front" && Math.abs(nZ) > 0.99) ||
-      (view === "side" && Math.abs(nX) > 0.99) ||
-      (view === "top" && Math.abs(nY) > 0.99);
+      (view === "front" && Math.abs(nZ) > FACE_ON_COS) ||
+      (view === "side" && Math.abs(nX) > FACE_ON_COS) ||
+      (view === "top" && Math.abs(nY) > FACE_ON_COS);
     if (alongFace) {
       for (const [xp, up] of prof) pushPoint(xp, 0, up);
       return projected; // 有序、保留內凹造型
@@ -526,9 +544,9 @@ export function projectPartSilhouette(
     const nX = sx * sy * cz - cx * sz;        // → side
     const nY = sx * sy * sz + cx * cz;        // → top
     const alongFace =
-      (view === "front" && Math.abs(nZ) > 0.99) ||
-      (view === "side" && Math.abs(nX) > 0.99) ||
-      (view === "top" && Math.abs(nY) > 0.99);
+      (view === "front" && Math.abs(nZ) > FACE_ON_COS) ||
+      (view === "side" && Math.abs(nX) > FACE_ON_COS) ||
+      (view === "top" && Math.abs(nY) > FACE_ON_COS);
     if (alongFace) {
       for (const [xp, zp] of prof) pushPoint(xp, 0, zp);
       return projected; // 有序、保留輪廓細節

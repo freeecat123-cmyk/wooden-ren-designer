@@ -166,9 +166,14 @@ export function splitSpecPrompt(
   const trimmed = input.trim();
   const baseName = stripSplitSuffix(src.name);
 
-  if (/[,，]/.test(trimmed)) {
+  if (/[,，、]/.test(trimmed)) {
     const widths = trimmed
-      .split(/[,,]/)
+      // ⛔ 偵測與分割原本用**不同的字元集**:test 是 [半形, 全形逗號]、
+      //    split 卻是 [半形, 頓號] —— 中文輸入法打「220，200，220」偵測得到卻切不開,
+      //    widths 只有 1 筆 → 跳「至少要 2 條有效寬度」,按鈕看起來壞掉。
+      //    (2026-08-21 稽核發現。)
+      // ✅ 兩邊統一成同一組:半形逗號 / 全形逗號 / 頓號(中文使用者三種都會打)。
+      .split(/[,，、]/)
       .map((s) => parseInt(s.trim(), 10))
       .filter((n) => Number.isFinite(n) && n > 0);
     if (widths.length < 2) {

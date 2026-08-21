@@ -662,6 +662,28 @@ function projectFeaturePolygon(
       const zOut = zL - (applyShear ? yL * bevShear : 0);
       return [xL * xScale, yL, zOut];
     }
+    /**
+     * 錐形腳(tapered / round-tapered):腳寬沿 Y 線性縮,**榫眼也要跟著縮**。
+     *
+     * §A11.2:`scaleAt(Y) = bottomScale + (1 − bottomScale) × Y / legHeight`
+     *   Y=0(底)→ bottomScale;Y=legHeight(頂)→ 1。
+     *
+     * ⛔ `deform` 原本**完全沒有 tapered 分支** → 榫眼虛線框照未縮的腳寬畫。
+     *    實測 /design/stool 選「方錐漸縮腳」+ 榫接模式:
+     *    正 / 側視圖的下橫撐榫眼虛線框整個畫到腳的輪廓**外面 7.7mm**;
+     *    零件卡 T2 還寫「10×18 深 25」,但腳在那個高度只有 19.7mm 厚 —— 照著鑿一定鑿穿。
+     *    (零件卡因為有 partClipId 把框裁進輪廓,反而把錯誤藏起來、只剩錯的數字。)
+     *    (2026-08-21 稽核發現。)
+     *
+     * ⚠️ 榫眼(isFeature)跟本體一樣要縮:它是挖在這支腳身上的,腳縮它就得縮。
+     */
+    if (shape.kind === "tapered" || shape.kind === "round-tapered") {
+      const bottomScale = shape.bottomScale ?? 1;
+      if (bottomScale === 1) return [xL, yL, zL];
+      const t = ly > 0 ? (yL + ly / 2) / ly : 1; // 0=底, 1=頂
+      const scale = bottomScale + (1 - bottomScale) * t;
+      return [xL * scale, yL, zL * scale];
+    }
     if (shape.kind === "apron-beveled") {
       const bevShear = Math.tan(shape.bevelAngle);
       const zOut = isFeature ? zL : zL - yL * bevShear;

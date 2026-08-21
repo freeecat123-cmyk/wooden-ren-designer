@@ -635,7 +635,16 @@ export function printerTestPageSvg(sheetCount: number, s: number = 1): string {
   // 這頁沒有零件內容，說明文字集中在左上角、外框跟角標都貼在 usable 邊緣，
   // pickRuler 本來就會找退讓過的角落，不需要額外 blocker。校正線畫
   // CALIBRATION_TEST_LINE_MM/s（s=1 時就是原本的 250mm）。
-  const rulerLenMm = CALIBRATION_TEST_LINE_MM / s;
+  /**
+   * ⛔ 原本直接用 `CALIBRATION_TEST_LINE_MM / s`,**沒有夾在紙面放得下的範圍內**。
+   *    校正值的 UI 合法區間是 250×[0.9, 1.1](= 225~275mm),
+   *    取到下限時 s = 225/250 = 0.9 → 線長 250/0.9 = **278mm**,
+   *    但橫放 A4(297mm)扣掉左右邊距各 15mm 只剩 **267mm** → 線直接畫出紙外,
+   *    使用者量不到,校正也就驗不了。(2026-08-21 稽核發現。)
+   * ✅ 夾到可用範圍內(留 1mm 讓線頭不貼邊)。線長會標在線上,所以縮短不影響判讀。
+   */
+  const maxRulerMm = Math.max(usable.x1 - usable.x0, usable.y1 - usable.y0) - 1;
+  const rulerLenMm = Math.min(CALIBRATION_TEST_LINE_MM / s, maxRulerMm);
   const ruler = pickRulerInFrame(usable, [], rulerLenMm);
 
   const title = (x: number, y: number, size: number, str: string) =>
@@ -679,7 +688,7 @@ export function printerTestPageSvg(sheetCount: number, s: number = 1): string {
     `  ${frame}`,
     `  ${corners}`,
     ...texts.map((t) => `  ${t}`),
-    `  ${rulerMarkup(ruler, CALIBRATION_TEST_LINE_MM)}`,
+    `  ${rulerMarkup(ruler, Math.round(rulerLenMm * s * 10) / 10)}`,
     `</svg>`,
     "",
   ].join("\n");

@@ -215,7 +215,25 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
     };
   }
   if (shape.kind === "top-outline") {
-    return { kind: "top-outline", style: shape.style, sizeMm: shape.sizeMm };
+    /**
+     * ⛔ 原本只帶 `style` 與 `sizeMm`,**漏掉另外 4 個造型參數**
+     *    (sizeZMm / squareness / archSides / lobes,見 lib/types/index.ts:352-353)。
+     *    結果:任何有「椅面/桌面輪廓」選項的模板(餐桌 / 書桌 / 矮桌 / 茶几 / 邊桌 /
+     *    餐椅 / 長凳 / 吧檯椅 / 方凳)只要選了 海棠形 8 瓣、或 圓形+方圓程度、
+     *    或 外凸弧「四邊(枕形)/左右緣」、或 切角+切角深 Z,
+     *    **匯出的 STL / OBJ / 3MF 桌面輪廓就跟畫面上的設計不一樣**——
+     *    3D 列印或送 CNC 出來的形狀是錯的。(2026-08-21 稽核發現。)
+     * ✅ 四個都帶上;它們在型別上是 optional,undefined 傳下去等同沒設,不影響既有行為。
+     */
+    return {
+      kind: "top-outline",
+      style: shape.style,
+      sizeMm: shape.sizeMm,
+      sizeZMm: shape.sizeZMm,
+      squareness: shape.squareness,
+      archSides: shape.archSides,
+      lobes: shape.lobes,
+    };
   }
   if (shape.kind === "pointed-ends") {
     return { kind: "pointed-ends" };
