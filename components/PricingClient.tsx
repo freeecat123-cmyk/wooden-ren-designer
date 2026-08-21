@@ -7,11 +7,12 @@ import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCa
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { TemplateUnlockSection } from "./TemplateUnlockSection";
 import { ToolUnlockSection } from "./ToolUnlockSection";
-import { FURNITURE_CATALOG } from "@/lib/templates";
+import { FURNITURE_CATALOG , DEV_CATEGORIES } from "@/lib/templates";
 import { isPaidCategory } from "@/lib/permissions";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 
-const DEVELOPMENT_CATEGORIES = new Set<string>(["chinese-cabinet", "bed", "coat-rack"]);
+// 名單見 lib/templates 的 DEV_CATEGORIES(單一真相來源;這裡以前漏了 wall-mounted-tool-storage)
+const DEVELOPMENT_CATEGORIES = DEV_CATEGORIES;
 
 interface CouponState {
   code: string;

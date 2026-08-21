@@ -413,3 +413,27 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
 export function getTemplate(category: FurnitureCategory): FurnitureCatalogEntry | undefined {
   return FURNITURE_CATALOG.find((e) => e.category === category);
 }
+
+/**
+ * 尚未完成、暫不對外的家具分類(單一真相來源)。
+ *
+ * ⭐ 2026-08-21 之前這份名單被**複製了 6 份**散在:
+ *   app/sitemap.ts、app/[locale]/design/[type]/page.tsx(兩處)、
+ *   app/[locale]/app/page.tsx、app/[locale]/templates/page.tsx、components/PricingClient.tsx
+ *   其中 **3 份漏了 `wall-mounted-tool-storage`** → 那頁被 sitemap 排除、
+ *   卻沒有加 `noindex`,Google 照爬照收,等於把半成品端出去。
+ *   稽核抓到的是症狀,真正的病是「同一份清單有六個地方要記得改」。
+ *
+ * ⚠️ 新增開發中家具**只改這裡**。要上線就從這裡拿掉。
+ */
+export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
+  "chinese-cabinet",
+  "bed",
+  "coat-rack",
+  "wall-mounted-tool-storage",
+]);
+
+/** 這個分類還在開發中嗎(sitemap 不收、頁面加 noindex、目錄不列)。 */
+export function isDevCategory(category: string): boolean {
+  return DEV_CATEGORIES.has(category);
+}

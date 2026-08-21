@@ -2,7 +2,7 @@ import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
-import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
+import { getTemplate, getEntryName, getEntryDescription , isDevCategory } from "@/lib/templates";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
@@ -70,6 +70,7 @@ import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatMm, formatDimensions } from "@/lib/units/format";
+import { bilingualAlternates } from "@/i18n/metadata";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -109,13 +110,19 @@ export async function generateMetadata({
   const description = tMeta("descriptionTemplate", { name: entryName, description: entryDesc });
   // 跟 app/sitemap.ts 同一份名單：尚未完成的模板從 sitemap 拿掉，但頁面仍可訪
   // 問。這裡同步加 robots noindex 防止 Google 仍照爬把半成品索引進去。
-  const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack"]);
-  const isDevCategory = DEV_CATEGORIES.has(entry.category);
+  const devCategory = isDevCategory(entry.category);
   return {
     title,
     description,
-    alternates: { canonical },
-    ...(isDevCategory ? { robots: { index: false, follow: false } } : {}),
+    /**
+     * ⛔ 原本只寫 `{ canonical }`。Next 的 metadata 對 alternates 是**整個物件覆蓋**,
+     *    不是淺層合併 —— 這一行會把 layout.tsx 設好的 `languages`(hreflang)整組清掉。
+     *    實測正式站 /design/stool:`rel="alternate"` 連結 **0 條**,只剩 canonical。
+     *    24 個設計頁全中,等於中英版本之間沒有任何互相指認,Google 會當成兩份無關的頁。
+     *    (i18n/metadata.ts 檔頭就寫過這個雷,只是這裡沒照做。)
+     */
+    alternates: bilingualAlternates(`/design/${entry.category}`, locale),
+    ...(devCategory ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title,
       description,
@@ -387,7 +394,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           e.category !== entry.category &&
           FAMILY_MAP[family].includes(e.category) &&
           // 跟 sitemap.ts 同名單，未完成的不出現在相關範本
-          !["chinese-cabinet", "bed", "coat-rack"].includes(e.category),
+          !isDevCategory(e.category),
       ).slice(0, 3)
     : [];
 

@@ -86,7 +86,13 @@ export async function generateMetadata({
         "x-default": SITE_URL,
       },
     },
-    manifest: "/manifest.json",
+    /**
+     * ⛔ 原本兩個語言都指同一份中文 manifest。英文使用者從 /en 或 /install 按
+     *    「加到主畫面」→ 桌面圖示名稱是中文「木作藍圖」,點開走 start_url "/"
+     *    直接落到中文首頁,等於裝了一個他看不懂的 App。
+     * ⚠️ 英文版的 start_url 是 "/en";scope 仍是 "/" 讓兩邊共用同一個安裝範圍。
+     */
+    manifest: locale === "en" ? "/manifest.en.json" : "/manifest.json",
     appleWebApp: {
       capable: true,
       title: locale === "en" ? "Wooden Ren Designer" : "木作藍圖",
