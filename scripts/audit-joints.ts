@@ -59,19 +59,17 @@ const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory
 const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
   "dining-table:trestle",
   "round-table:trestle",
-  // stool:curved-taper 已於 2026-08-21 修好、移出豁免：榫眼照建、標 Mortise.axis,
-  // 3D 靠 CSG 過濾器跳過 axis 榫眼維持乾淨,圖面則拿回真實孔位。現在 audit 實測
-  // 未匹配公榫 0 / 未匹配母榫 0。其餘 *:curved-taper 還沒改到,暫留。
-  // curved-taper（弧肩斜腳）鋪到其他用腳模板：牙板/下橫撐進腳一律不挖母榫、靠實體遮
-  // （非方腳/斜降窄區開孔會露破口），公榫因此無對應母榫，屬設計取捨。同 stool:curved-taper。
-  "bench:curved-taper",
-  "side-table:curved-taper",
-  "low-table:curved-taper",
-  "dining-table:curved-taper",
-  "desk:curved-taper",
-  "bar-stool:curved-taper",
-  "dining-chair:curved-taper",
-  "tea-table:curved-taper",
+  // *:curved-taper（弧肩斜腳）2026-08-21 全部修好、移出豁免。
+  //
+  // 舊狀態：牙板／下橫撐進腳一律不挖母榫、靠實體遮（斜降窄區開孔 3D 會露破口），
+  // 公榫因此無對應母榫。代價是 1:1 實尺樣板上腳身完全沒有孔位——使用者印出來
+  // 照著鑿才發現（木頭仁 2026-08-21 回報「沒有出現下橫撐的榫孔」）。
+  //
+  // 新做法：榫眼照建、標明確的 Mortise.axis。3D 靠 CSG 過濾器跳過帶 axis 的榫眼
+  // 維持乾淨，圖面則拿回真實孔位。9 種家具裡 8 種現在 0/0；餐椅剩 2/2，跟它自己的
+  // 方腳基準（dining-chair:box 也是 2 個未匹配）一致，屬既有問題不是腳型造成的。
+  // 註：dining-chair 整個 category 已在 EXPECTED_FAILS 豁免（椅背相關的既有問題），
+  // 這裡不用另外列。
   // shoe-cabinet plinth/panel-side：門內層板 tongue-and-groove 對不上 mortise
   // （待 zone-helpers 修腳款變化時門內 dado 寬度公式），先豁免不擋 commit
   "shoe-cabinet:plinth",

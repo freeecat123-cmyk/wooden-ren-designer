@@ -124,6 +124,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const legDepthOverride = getOption<number>(input, opt(o, "legDepthOverride"));
   const legW = legWidthOverride > 0 ? legWidthOverride : legSize;
   const legD = legDepthOverride > 0 ? legDepthOverride : legSize;
+  /**
+   * 弧肩斜腳／非方腳：腳上的牙板與下橫撐榫眼照建，但標明確的 Mortise.axis。
+   * 3D 靠 CSG 過濾器跳過帶 axis 的榫眼維持乾淨；圖面（1:1 樣板／零件圖／CNC）
+   * 拿回真實孔位——木工是在方料階段就把孔鑿好的。跟方凳同一套。
+   */
+  const legMortiseNeedsAxis = legShape === "curved-taper" || legW !== legD;
   const legShortDim = Math.min(legW, legD);
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
@@ -443,11 +449,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: (() => {
         // 無牙板（apronWidth=0）→ 腳上完全不開牙板榫眼
         if (!withApron) return [];
-        // 弧肩斜腳 或 非方腳（legW≠legD）：腳面上的牙板母榫孔會露在牙條外緣＝使用者看到的
-        // 「破口」紅/白方塊。改「不挖榫眼」→ 靠實體遮，榫頭埋進實體腳身（apronTenonLengthX/Z
-        // 已 clamp 留背牆、確保埋得住）。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
-        // 公榫因此無對應母榫（audit 已於 EXPECTED_FAILS_VARIANT 登記 dining-chair:curved-taper 豁免）。
-        if (legShape === "curved-taper" || legW !== legD) return [];
+        // 弧肩斜腳／非方腳：3D 挖牙板母榫會從斜降薄區破出＝破口。2026-08-21 改法跟方凳
+        // 同步：榫眼照建、標 Mortise.axis——圖面拿回真實孔位（木工在方料階段就要鑿孔），
+        // 3D 靠 CSG 過濾器跳過 axis 榫眼維持乾淨。見 Mortise.axis。
         // 牙板中心 Y（leg-local）；靜止 Z（左右）= 上榫；移動 X（前後）= 下榫
         // 餐椅 apronStaggerMm 固定為 0，xCenterY = zCenterY
         const zCenterY = apronY + apronWidth / 2;
@@ -479,6 +483,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         const _zRotProp = Math.abs(_zFaceRotX) > 0.001 ? { rotX: _zFaceRotX } : {};
         const _xFaceRotZ = xFaceApronMortiseRotZ(c, _splayDxForLegs, _legH);
         const _xRotProp = Math.abs(_xFaceRotZ) > 0.001 ? { rotZ: _xFaceRotZ } : {};
+        // 弧肩斜腳／非方腳：榫眼照建但標明確入榫方向（見上方註解與 Mortise.axis）
+        const _zAxisProp = legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: c.z > 0 ? -1 : 1 } } : {};
+        const _xAxisProp = legMortiseNeedsAxis ? { axis: { x: c.x > 0 ? -1 : 1, y: 0, z: 0 } } : {};
         if (apronCanHalfStagger) {
           return [
             // Z 面 mortise（接 Z 軸 = 左右牙板，靜止）— 上榫
@@ -489,6 +496,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               width: apronTenonThick,
               through: apronThrough,
               ..._zRotProp,
+              ..._zAxisProp,
             },
             // X 面 mortise（接 X 軸 = 前後牙板，下移）— 下榫，rotZ 跟 splayDx
             {
@@ -498,6 +506,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               width: apronTenonThick,
               through: apronThrough,
               ..._xRotProp,
+              ..._xAxisProp,
             },
           ];
         }
@@ -509,6 +518,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonThick,
             through: apronThrough,
             ..._zRotProp,
+            ..._zAxisProp,
           },
           {
             origin: { x: c.x > 0 ? -legHalfX : legHalfX, y: xCenterY, z: 0 },
@@ -517,6 +527,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonThick,
             through: apronThrough,
             ..._xRotProp,
+            ..._xAxisProp,
           },
         ];
       })(),
@@ -1221,12 +1232,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
       const cornerLs = { x: cx, z: cz };
-      // 弧肩斜腳 或 非方腳（legW≠legD）：下橫撐 mortise 跟牙板 mortise 同條件不挖——斜降薄腳區
-      // 或非方腳面開孔會露破口，改「不挖榫眼」→ 下橫撐盲榫直接埋進實體被遮（榫頭已 clamp 在料
-      // 厚內留背牆）。方腳（legW===legD 且非弧肩）維持挖榫眼＝byte 一致。
-      if (legShape === "curved-taper" || legW !== legD) continue;
+      // 弧肩斜腳／非方腳：下橫撐 mortise 跟牙板同處理——榫眼照建、標 Mortise.axis
+      // （見牙板段註解）。
       // 下橫撐 mortise 套同套 b3f09ad 公約：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 splayDx
-      // ctSplayMm fallback：curved-taper 在上面 continue（不挖榫眼）走不到這裡，理由同牙板 mortise 段。
       const _splayDxLs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(cx) * splayMm : Math.sign(cx) * ctSplayMm;
       const _splayDzLs = (legShape === "splayed" || legShape === "splayed-width") ? Math.sign(cz) * splayMm : Math.sign(cz) * ctSplayMm;
       const _legHLs = Math.max(1, legBaseHeight);
@@ -1236,6 +1244,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       const lsXRotZ = xFaceApronMortiseRotZ(cornerLs, _splayDxLs, _legHLs);
       const lsZRotProp = Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {};
       const lsXRotProp = Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {};
+      const lsZAxisProp = legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: cz > 0 ? -1 : 1 } } : {};
+      const lsXAxisProp = legMortiseNeedsAxis ? { axis: { x: cx > 0 ? -1 : 1, y: 0, z: 0 } } : {};
       if (lowerCanHalfStagger) {
         if (needZFace) {
           leg.mortises.push({
@@ -1245,6 +1255,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: lowerTenonThick,
             through: lsThrough,
             ...lsZRotProp,
+            ...lsZAxisProp,
           });
         }
         if (needXFace) {
@@ -1255,6 +1266,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: lowerTenonThick,
             through: lsThrough,
             ...lsXRotProp,
+            ...lsXAxisProp,
           });
         }
       } else {
@@ -1266,6 +1278,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: lowerTenonThick,
             through: lsThrough,
             ...lsZRotProp,
+            ...lsZAxisProp,
           });
         }
         if (needXFace) {
@@ -1276,6 +1289,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: lowerTenonThick,
             through: lsThrough,
             ...lsXRotProp,
+            ...lsXAxisProp,
           });
         }
       }
