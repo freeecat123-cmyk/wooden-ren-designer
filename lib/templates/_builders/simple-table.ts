@@ -174,8 +174,26 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const ctBlockHeight = opts.ctBlockHeight ?? 55;
   const ctShoulder = opts.ctShoulder ?? 8;
   const ctInset = opts.ctInset ?? 12;
-  // 弧肩斜腳：牙板高度自動＝接撐段高（牙板填滿上段全寬實體區、其下才收弧）
-  const apronWidth = isCurvedTaper ? ctBlockHeight : (opts.apronWidth ?? 70);
+  /**
+   * 弧肩斜腳的牙板高度：**夾上限**，不是無條件覆寫。
+   *
+   * 幾何約束（docs/drafting-math.md §A10 butt-joint 慣例／「榫眼只能落在全寬實體區」）：
+   * 牙板要整片落在腳頂部的全寬接撐段內，再往下腳就開始收弧，榫眼會切到已內縮的斜面而露出。
+   * 但這只擋得住「太高」——**比接撐段矮完全安全**。
+   *
+   * ⛔ 原本寫成 `isCurvedTaper ? ctBlockHeight : ...` 是無條件覆寫：使用者在 UI 把「牙條高」
+   *    調小完全沒作用，而這些模板的欄位**並沒有隱藏**（不像 square-stool 曾經隱藏過），
+   *    看得到、調得動、卻毫無效果 ＝ 死控制項。user 2026-08-03 已明確反對這種
+   *    「用限制代替修正」的做法，square-stool 那批四款當時改成夾上限，走共用 builder 的
+   *    這 7 款（bench / dining-chair / desk / dining-table / low-table / tea-table /
+   *    side-table）漏掉了。2026-08-21 稽核抓到。
+   *
+   * ⚠️ 預設輸出不變：7 款的 apronWidth 預設是 60~100，ctBlockHeight 預設 40，
+   *    `Math.min(≥60, 40)` 仍然是 40 ＝ 與原本的硬鎖結果逐值相同。
+   */
+  const apronWidth = isCurvedTaper
+    ? Math.min(opts.apronWidth ?? 70, ctBlockHeight)
+    : (opts.apronWidth ?? 70);
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板 + leg 對應榫眼都 skip，腳頂 through-tenon 直接拉桌面/座板
   const withApron = apronWidth > 0;

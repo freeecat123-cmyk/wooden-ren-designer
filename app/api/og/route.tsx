@@ -87,8 +87,11 @@ export async function GET(req: Request) {
           <div style={{ fontSize: 96, fontWeight: 800, color: "#1c1917", letterSpacing: -2 }}>
             {tmplName}
           </div>
+          {/* satori 規則：>1 個子節點的 div 必須明寫 display。
+              `{length} × {width} × {height} mm` 會被 JSX 拆成 6 個子節點 →
+              整張圖 500。合成單一字串節點，樣式完全不動。 */}
           <div style={{ fontSize: 56, fontWeight: 600, color: "#44403c" }}>
-            {length} × {width} × {height} mm
+            {`${length} × ${width} × ${height} mm`}
           </div>
           <div style={{ display: "flex", gap: 24, marginTop: 16, flexWrap: "wrap" }}>
             <span

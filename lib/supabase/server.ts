@@ -32,25 +32,32 @@ export async function createClient() {
 }
 
 /**
- * 高頻 SSR 頁面用的「免 HTTP roundtrip」session 讀取。
+ * SSR 頁面用的登入者讀取。**一定要驗簽**。
  *
- * 為什麼：`supabase.auth.getUser()` 每次都打 Supabase auth server 驗 JWT
- * 簽章（50-200ms TTFB）。但 middleware.ts 已經每個 request 跑一次 getUser()
- * 集中驗證並 refresh cookie，後續同一個 request 在 page 裡 cookie 已是
- * 有效狀態——直接從 cookie 解 session 即可，不再二次 HTTP。
+ * ⛔ 這裡原本用 `supabase.auth.getSession()`，理由寫著「middleware.ts 已經每個 request
+ *    跑一次 getUser() 集中驗證，所以 page 裡直接讀 cookie 就好，省 50-200ms TTFB」。
+ *    **那個前提是錯的**（2026-08-21 稽核實查）：middleware.ts:142-149 有
+ *      `if (!isHome) { ...; return passthrough; }`
+ *    —— 除了 `/` 與 `/en` 兩條首頁路徑，middleware 直接 return，全檔只有一處 getUser()
+ *    而且只為了「已登入就導去 /app」。也就是說 /design/[type]、/quote、/cut-plan、
+ *    /print 這些真正在用 getSessionUser() 的頁面，**從來沒有任何一段程式驗過那個 JWT**。
  *
- * 適用：唯讀 SSR 頁面（/design/[type]、/quote、/cut-plan 等）。
- * 不適用：寫入操作、敏感 API endpoint、Server Action——那邊用 getUser()
- * 保持 defense-in-depth。
+ * ⚠️ 為什麼這很嚴重：`getSession()` 在 server 端只解 cookie、**不驗簽章**（Supabase 官方
+ *    文件明講 server 端要用 getUser()）。而呼叫端拿 `user.email` 去餵 isAdminEmail()
+ *    決定 isAdmin、拿 `user.id` 去 createAdminClient()（繞過 RLS）查解鎖清單。
+ *    自帶一份偽造的 auth cookie ⇒ 可以自稱任何 email（含管理員）與任何 user id。
  *
- * 回傳 `null` = 未登入。session.user 直接給 id / email。
+ * 代價：每次多一趟 auth server 驗簽（50-200ms）。付費牆與管理員判定建立在這上面，
+ * 這個延遲換的是「不能被偽造」，值得。要省延遲請改快取驗證結果，不要改回不驗簽。
+ *
+ * 回傳 `null` = 未登入或驗簽失敗。
  */
 export async function getSessionUser() {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.user ?? null;
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user ?? null;
 }
 
 /**
