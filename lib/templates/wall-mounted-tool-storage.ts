@@ -374,7 +374,17 @@ function buildToolHolder(
   } else if (kind === "chisel") {
     // 鑿刀座：前擋板 + 底托（插孔用 cosmetic mortise）
     const frontH = 70;
-    const frontT = 18;
+    /**
+     * ⚠️ 插孔是**垂直**插鑿刀的圓孔(⌀`chiselHoleDia`),所以前擋板的**深度**必須容得下它。
+     *
+     * ⛔ 原本前擋板固定 18mm 深、插孔卻寫死 ⌀22 —— 孔比板還寬 4mm,
+     *    實體上鑽下去會把兩側整個破掉,做不出來。(2026-08-21 稽核發現。)
+     * ✅ 讓板厚跟著孔徑走(孔徑 + 兩側各留 4mm 壁厚),而不是把孔縮到裝不下鑿刀。
+     *    呼應 2026-08-03「用限制代替修正」被打回的教訓:先滿足功能,再讓尺寸配合。
+     */
+    const chiselHoleDia = 22;
+    const CHISEL_HOLE_WALL = 4;
+    const frontT = Math.max(18, chiselHoleDia + 2 * CHISEL_HOLE_WALL);
     const baseDepth = 90;
     const topY = cy;
     const baseY = topY - frontH;
@@ -396,10 +406,15 @@ function buildToolHolder(
     const mortises = Array.from({ length: holeCount }, (_, h) => {
       const hx = -holderW / 2 + (holderW * (h + 0.5)) / holeCount;
       return {
-        origin: { x: hx, y: 0, z: 0 },
+        /**
+         * §A10.9:Y 是 part-local **從底量**、而且 `origin` 是**孔的中心**。
+         * ⛔ 原本給 0 → 孔心落在板的底緣,一半掛在板外面。
+         * ✅ 插孔從頂緣往下,孔心 = 板高 − 孔徑/2 − 頂緣留材。
+         */
+        origin: { x: hx, y: frontH - chiselHoleDia / 2 - CHISEL_HOLE_WALL, z: 0 },
         depth: 12,
-        length: 22,
-        width: 22,
+        length: chiselHoleDia,
+        width: chiselHoleDia,
         through: true as const,
         shape: "round" as const,
         cosmetic: true as const,

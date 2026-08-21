@@ -173,7 +173,24 @@ export const desk: FurnitureTemplate = (input) => {
   const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
   // withApron / apronThickness 已在下方 declare 用 raw → 0；此處先用同樣邏輯
   // 但 withApron 變數還沒讀，先暫定後續會 reassign。為避免重複，直接讀。
-  const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthRaw : 0);
+  /**
+   * ⚠️ **這裡的 apronWidth 必須跟共用 builder 實際產出的牙板一致。**
+   *
+   * `_builders/simple-table.ts` 在 `legShape === "curved-taper"` 時會把牙板高
+   * 夾到 `ctBlockHeight`(牙板要整片落在腳頂的全寬接撐段內,否則榫眼會切到已收弧的斜面)。
+   * 但 desk 自己的抽屜區(前檔板 :720、抽屜面板、drawer-runner、apronY :589)
+   * 用的是**這個未夾的區域變數** → 兩邊各算各的。
+   *
+   * ⛔ 實測 /design/desk?legShape=curved-taper&drawerStyle=apron:
+   *      builder 產的牙條 width = **40**,desk 的前牙條填補板 width = **90** —— 差 50mm。
+   *    前檔板下緣兩端因此懸空,抽屜面板也跟牙條對不齊。(2026-08-21 稽核發現。)
+   *
+   * ✅ 用同一條夾制規則,不要各寫一份。
+   */
+  const ctBlockHeightForApron = getOption<number>(input, opt(o, "ctBlockHeight"));
+  const apronWidthClamped =
+    legShape === "curved-taper" ? Math.min(apronWidthRaw, ctBlockHeightForApron) : apronWidthRaw;
+  const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthClamped : 0);
   const apronThicknessRaw = getOption<number>(input, opt(o, "apronThickness"));
   const withApron = getOption<boolean>(input, opt(o, "withApron"));
   const apronThickness = withApron ? apronThicknessRaw : 0;
