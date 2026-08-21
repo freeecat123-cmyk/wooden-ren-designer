@@ -11,7 +11,7 @@ import type { MachiningFace } from "@/lib/export/mortise-faces";
 const RECT_TOL_MM = 0.05;
 
 /** 輪廓是不是四個角都落在外接矩形角上的正矩形。 */
-function isPlainRectOutline(outline: MachiningFace["outline"]): boolean {
+export function isPlainRectOutline(outline: MachiningFace["outline"]): boolean {
   // 只認剛好 4 點。5 點的「重複收尾點」或多點近似矩形一律當成需要樣板——
   // 這個判定是用來「少印紙」的，寧可多印一張，也不要因為判寬了而漏掉輪廓資訊。
   if (outline.length !== 4) return false;

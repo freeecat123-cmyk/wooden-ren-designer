@@ -2,9 +2,8 @@
 import type { FurnitureDesign } from "@/lib/types";
 import { groupPartsForDrawing, groupDisplayName } from "@/lib/render/part-drawing/grouping";
 import { deriveMortisesByPart } from "@/lib/export/derived-mortises";
-import { categorizePart } from "@/lib/render/categorize-part";
 import { zipStore } from "@/lib/export/zip-store";
-import { ladderFor, PAPERS } from "./paper";
+import { ladderForOutline, PAPERS } from "./paper";
 import { placeOnLadder, type Placement } from "./fit";
 import { pickTemplateFaces } from "./face";
 import { faceNeedsTemplate } from "./needs-template";
@@ -103,7 +102,8 @@ export function buildPackPlan(
         return;
       }
 
-      const placement = placeOnLadder(face.w, face.h, ladderFor(categorizePart(part.id)));
+      // 紙張上限看輪廓形狀,不看零件分類(見 paper.ts ladderForOutline)。
+      const placement = placeOnLadder(face.w, face.h, ladderForOutline(face.outline));
       const row: PackRow = {
         partNo, nameZh, faceLabelZh: face.faceLabelZh, faceIndex: fi,
         faceCount: faces.length, qty, wmm: face.w, hmm: face.h, placement,
