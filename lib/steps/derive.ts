@@ -780,6 +780,37 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Table / seating family sizeFactor — 工時隨**檯面面積**放大
+  //
+  // ⛔ 修好前只有 cabinet 有放大,桌椅完全沒有:同一個餐桌模板報 2400×1000 大餐桌,
+  //    加工工資仍是 15.1hr × NT$500 = NT$7,550,**跟 1200×800 一模一樣**
+  //    (整張報價只有材料在變:16,747 → 18,898)。大件桌椅/長凳一律報價偏低。
+  //    (2026-08-21 稽核發現。)
+  //
+  // ⭐ 為什麼用**面積**不是長度:§X1 明訂「砂磨 80→120→180→240 ≈ 1 hr/m² 全程」,
+  //    而桌椅的工時大頭就是檯面/座面砂磨。2400×1000 的檯面是 2.4m²,
+  //    1200×800 只有 0.96m² —— 差 2.5 倍,用長度算(2400/1200 = 2 倍)會低估。
+  //    (cabinet 用長度是因為櫃體工時大頭是層板/側板的切料與組裝,跟長度比較線性。)
+  //
+  // baseline: 1200×800 = 0.96 m² → sizeFactor = 1.0;clamp [0.7, 2.5] 同 cabinet。
+  // 套用工序與 cabinet 相同(切料 / 砂磨 / 膠合 / 試組),排除按件數計的五金安裝。
+  // ---------------------------------------------------------------------------
+  if (family === "table" || family === "seating") {
+    const baselineAreaMm2 = 1200 * 800;
+    const rawFactor = (design.overall.length * design.overall.width) / baselineAreaMm2;
+    const sizeFactor = Math.min(2.5, Math.max(0.7, rawFactor));
+    const scaledPhases: StepPhase[] = ["cut-stock", "sand", "glue", "fit"];
+    const excludedIds = new Set(["step-18-hinges", "step-19-drawer-slide"]);
+    for (const st of steps) {
+      if (!st.estimatedMinutes) continue;
+      if (excludedIds.has(st.id)) continue;
+      if (scaledPhases.includes(st.phase)) {
+        st.estimatedMinutes = Math.max(5, Math.round(st.estimatedMinutes * sizeFactor));
+      }
+    }
+  }
+
   // 小物件（accessory）整體工時調整。實做經驗：筆筒/書擋這種「真小物件」
   // 1-2 小時就能做完，跟櫃子用同一套估工時極不合理。分兩段套：
   //
