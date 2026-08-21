@@ -1,0 +1,35 @@
+# 型別 + 單元測試 + 斷言腳本 —— 每一次 push / PR 都跑,不做路徑過濾。
+#
+# ⭐ 為什麼要有這支:2026-08-21 稽核發現 repo 裡有 364 條 vitest 測試,
+#   但 package.json 連 `test` 指令都沒有,唯一的 CI(Geometry Audit)只跑幾何 audit
+#   而且路徑過濾只收 lib/templates 那幾個目錄 —— 金流、權限、匯出、SEO 的測試
+#   **從來沒有被任何自動化跑過**。等於寫了測試卻沒接線。
+#
+# ⚠️ 這支**故意不設 paths 過濾**:上面那個坑就是過濾造成的。
+#   跑一次約 1 分鐘,不值得為了省這點時間再瞎一次。
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: 型別檢查
+        run: npm run typecheck
+
+      - name: 單元測試（vitest）
+        run: npm test
+
+      - name: 斷言腳本（tsx）
+        run: npm run assert

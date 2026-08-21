@@ -5,9 +5,11 @@
 
 # 只在 lib/templates/、lib/geometry/、lib/joinery/、相關 audit script 有改動時跑
 changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(lib/templates/|lib/geometry/overlap\.ts$|lib/joinery/|scripts/audit-overlaps\.ts$|scripts/audit-joints\.ts$)')
-if [ -z "$changed" ]; then
-  exit 0
-fi
+# ⛔ 這裡以前是 `exit 0` —— 那會把**整支 hook 都短路掉**,
+#    導致後面「一律要跑」的單元測試永遠不會執行(2026-08-21 實測發現:
+#    故意把 lib/pricing/prorate.ts 改壞,commit 照樣過)。
+#    改成只跳過幾何 audit,不要中止整支 hook。
+if [ -n "$changed" ]; then
 
 echo "🔍 Running overlap audit (template / overlap / joinery code changed)..."
 if ! npx tsx scripts/audit-overlaps.ts > /tmp/wrd-audit.log 2>&1; then
@@ -36,3 +38,22 @@ if ! npx tsx scripts/audit-joints.ts > /tmp/wrd-joint-audit.log 2>&1; then
 fi
 echo "✅ Joint audit passed."
 exit 0
+
+fi
+
+# ── 單元測試（2026-08-21 加）──────────────────────────────────────────
+# ⭐ 為什麼:這個 repo 有 364 條 vitest 測試,但在此之前**沒有任何機制會跑它們**
+#   (package.json 沒有 test 指令、CI 只跑幾何 audit 且路徑過濾很窄)。
+#   跑一次約 2 秒,沒有理由不擋在 commit 前面。
+# ⚠️ 故意不做路徑過濾:上面的幾何 audit 因為過濾,金流/權限/匯出的改動一直沒被驗到。
+echo "🧪 Running unit tests..."
+if ! npx vitest run > /tmp/wrd-test.log 2>&1; then
+  echo ""
+  echo "❌ Unit tests failed:"
+  echo ""
+  tail -40 /tmp/wrd-test.log
+  echo ""
+  echo "To bypass for emergencies: git commit --no-verify"
+  exit 1
+fi
+echo "✅ Unit tests passed."

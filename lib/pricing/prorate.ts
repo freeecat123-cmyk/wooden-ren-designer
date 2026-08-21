@@ -56,3 +56,31 @@ export function calcProrateRefund(input: ProrateInput): ProrateResult {
   const refundAmount = Math.max(0, Math.min(input.paidAmount, raw));
   return { refundAmount, remainingDays, totalDays };
 }
+
+/**
+ * 從訂閱資料推回計費週期。`period` 欄位是 2026-05-19 才加的,**那天以前建立的訂閱是 NULL**。
+ *
+ * ⛔ 呼叫端原本寫 `(oldSub.period as ...) ?? "monthly"` —— 把舊的**年繳**戶當成月繳:
+ *    一個付了 NT$3,588、還剩 300 天的年繳戶按升級 →
+ *      raw = floor(3588 × 300 / 31) = 34,722
+ *      被 `Math.min(paidAmount)` 夾成 3,588 = **全額退款**(他只用掉 65 天卻整筆退回)。
+ *    正式站實查:目前有 2 筆 period 為 NULL 且仍 active 的訂閱,跨度都是 365 天(年繳)。
+ *
+ * ✅ 推法:用 `expires_at − started_at` 的實際天數。> 200 天只可能是年繳
+ *    (月繳一期 31 天,就算連續扣好幾期,單筆訂閱的 started_at→expires_at 也會一起長,
+ *     所以門檻取兩者中間、遠離兩端的 200 天最安全)。
+ *    兩個日期缺任一個 → 退回 "monthly"(保守:寧可少退也不要多退)。
+ */
+export function inferBillingPeriod(sub: {
+  period?: string | null;
+  started_at?: string | Date | null;
+  expires_at?: string | Date | null;
+}): BillingPeriod {
+  if (sub.period === "yearly" || sub.period === "monthly") return sub.period;
+  if (!sub.started_at || !sub.expires_at) return "monthly";
+  const start = typeof sub.started_at === "string" ? new Date(sub.started_at) : sub.started_at;
+  const exp = typeof sub.expires_at === "string" ? new Date(sub.expires_at) : sub.expires_at;
+  const days = (exp.getTime() - start.getTime()) / 86_400_000;
+  if (!Number.isFinite(days)) return "monthly";
+  return days > 200 ? "yearly" : "monthly";
+}

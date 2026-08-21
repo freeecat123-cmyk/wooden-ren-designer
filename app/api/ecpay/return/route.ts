@@ -32,7 +32,7 @@ import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
 import { voidOrAllowanceAfterRefund } from "@/lib/ecpay/invoice-after-refund";
 import { requestRefund } from "@/lib/ecpay/refund";
 import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
-import { calcProrateRefund } from "@/lib/pricing/prorate";
+import { calcProrateRefund, inferBillingPeriod } from "@/lib/pricing/prorate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -607,7 +607,7 @@ async function handleUpgradeRefund(
   try {
     const { data: oldSub } = await admin
       .from("subscriptions")
-      .select("id, period, expires_at, ecpay_merchant_trade_no")
+      .select("id, period, started_at, expires_at, ecpay_merchant_trade_no")
       .eq("id", oldSubId)
       .single();
     if (!oldSub?.ecpay_merchant_trade_no) {
@@ -639,7 +639,10 @@ async function handleUpgradeRefund(
 
     const refund = calcProrateRefund({
       paidAmount: Number(oldPayment.amount ?? 0),
-      period: (oldSub.period as "monthly" | "yearly") ?? "monthly",
+      // ⛔ 原本是 `?? "monthly"`:`period` 欄位 2026-05-19 才加,那天以前的**年繳**戶是 NULL,
+      //    被當成月繳會用 31 天當基準 → 算出來超過已付金額 → 夾成**全額退款**。
+      //    改成從 started_at → expires_at 的實際天數推回來(見 lib/pricing/prorate.ts)。
+      period: inferBillingPeriod(oldSub),
       expiresAt: oldSub.expires_at,
     });
     if (refund.refundAmount <= 0) {
