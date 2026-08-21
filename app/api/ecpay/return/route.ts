@@ -373,7 +373,58 @@ export async function POST(req: NextRequest) {
     (!sub.period && isPeriodicReturn(params));
   const days = periodic ? 31 : 365;
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + days * 86_400_000).toISOString();
+
+  /**
+   * 🧷 新到期日的**起算點**:如果他手上還有沒用完的權限,要從那天接續,不是從今天重算。
+   *
+   * ⛔ 原本一律 `now + days`。實際會發生的事:
+   *   年繳個人版 3/1 付款(權限到隔年 3/1)→ 6/1 按「取消訂閱」。
+   *   取消只把狀態改成 cancelled、**到期日原封不動**,而 permissions.ts 的
+   *   ENTITLED_SUB_STATUSES 包含 'cancelled' → 他到隔年 3/1 前都還有權限,這是設計。
+   *   6/15 他改變心意再買一次 → 到期日被寫成「今天 + 365 天」,
+   *   **中間那 9 個月已經付過錢的權限直接蒸發**。
+   *
+   * ⚠️ 為什麼 checkout 沒擋下來:`hasActivePaidSub` 的條件是
+   *    `currentStatus === "active"`,而取消後 users.subscription_status 是 'cancelled'
+   *    → 這個判斷是 false → 「已經是同方案」的擋門與升級退款那條路**整段都不會執行**。
+   *
+   * ⚠️ 不可以跟升級退款重複補償:`replaced_subscription_id` 有值 = 走升級流程,
+   *    webhook 會對舊訂閱按比例**退錢**給他(見 refundOldSubProrate)。
+   *    那種情況已經用錢補過了,再送時間就是補兩次。
+   */
+  const { data: profileBefore } = await admin
+    .from("users")
+    .select("plan, subscription_status, subscription_expires_at")
+    .eq("id", sub.user_id)
+    .single();
+
+  let baseTime = now.getTime();
+  if (!sub.replaced_subscription_id && profileBefore) {
+    const stillEntitled =
+      (profileBefore.subscription_status === "active" ||
+        profileBefore.subscription_status === "cancelled") &&
+      profileBefore.subscription_expires_at != null &&
+      new Date(profileBefore.subscription_expires_at).getTime() > now.getTime();
+    // 只在「買的是他現在持有的同一個方案」時接續:同級距 = 同價值,單純延續。
+    // 跨方案(例如取消個人版後改買專業版)接續等於免費送高階天數,那是另一個決定,先不動。
+    const samePlan = profileBefore.plan === sub.plan;
+    if (stillEntitled && samePlan) {
+      baseTime = new Date(profileBefore.subscription_expires_at as string).getTime();
+      console.log("[ecpay/return] 接續既有到期日,不從今天重算", {
+        userId: sub.user_id,
+        from: profileBefore.subscription_expires_at,
+        addDays: days,
+      });
+    } else if (stillEntitled && !samePlan) {
+      console.warn("[ecpay/return] 跨方案重新訂閱,既有未用天數未接續(需人工判斷是否補償)", {
+        userId: sub.user_id,
+        heldPlan: profileBefore.plan,
+        newPlan: sub.plan,
+        heldUntil: profileBefore.subscription_expires_at,
+      });
+    }
+  }
+  const expiresAt = new Date(baseTime + days * 86_400_000).toISOString();
   const paymentDate = parseEcpayDate(params.PaymentDate) ?? now.toISOString();
 
   const { error: upSubErr } = await admin

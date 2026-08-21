@@ -303,6 +303,90 @@ describe("/api/ecpay/return", () => {
     });
   });
 
+  /**
+   * 🧷 重新訂閱時,**已經付過錢但還沒用完的天數不可以蒸發**。
+   *
+   * ⭐ 情境:年繳 3/1 付款(權限到隔年 3/1)→ 6/1 按取消(狀態變 cancelled,到期日不動,
+   *   permissions 的 ENTITLED_SUB_STATUSES 含 cancelled → 他仍有權限)→ 6/15 改變心意再買一次。
+   *   修好前到期日被寫成「今天 + 365」,中間 9 個月直接消失。
+   *   checkout 沒擋是因為 `hasActivePaidSub` 要求 status === "active",取消後是 "cancelled"。
+   */
+  describe("重新訂閱的到期日起算點", () => {
+    const DAY = 86_400_000;
+    const subPay = async (profile: Record<string, unknown>, subExtra: Record<string, unknown> = {}) => {
+      // payments 查無 pending 買斷單 → 才會 fallback 到訂閱那條路
+      tableResults.payments = { data: null, error: null };
+      tableResults.subscriptions = { data: { ...ACTIVE_SUB, ...subExtra }, error: null };
+      tableResults.users = { data: { email: "buyer@example.com", ...profile }, error: null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await returnPOST(callback({ SimulatePaid: "0", TradeAmt: "390" }) as any);
+      await runAfterCallbacks();
+      const row = updates
+        .filter((u) => u.table === "users")
+        .map((u) => u.row)
+        .find((r) => "subscription_expires_at" in r);
+      return row?.subscription_expires_at as string | undefined;
+    };
+    const daysFromNow = (iso?: string) =>
+      iso ? Math.round((new Date(iso).getTime() - Date.now()) / DAY) : NaN;
+
+    it("① 手上沒有未用天數(到期日已過)→ 從今天算 365 天", async () => {
+      const got = await subPay({
+        plan: "personal",
+        subscription_status: "expired",
+        subscription_expires_at: new Date(Date.now() - 10 * DAY).toISOString(),
+      });
+      expect(daysFromNow(got)).toBe(365);
+    });
+
+    it("② ⭐取消但還有 200 天沒用完、買同一個方案 → 要接續(200 + 365)", async () => {
+      const got = await subPay({
+        plan: "personal",
+        subscription_status: "cancelled",
+        subscription_expires_at: new Date(Date.now() + 200 * DAY).toISOString(),
+      });
+      expect(daysFromNow(got)).toBe(565);
+    });
+
+    it("③ 升級流程(有 replaced_subscription_id)→ 不接續,因為已經按比例退錢了", async () => {
+      const got = await subPay(
+        {
+          plan: "personal",
+          subscription_status: "cancelled",
+          subscription_expires_at: new Date(Date.now() + 200 * DAY).toISOString(),
+        },
+        { replaced_subscription_id: "old-sub-1" },
+      );
+      expect(daysFromNow(got)).toBe(365);
+    });
+
+    it("④ 跨方案重新訂閱 → 維持現況不接續(免費送高階天數是另一個決定)", async () => {
+      const got = await subPay({
+        plan: "pro",
+        subscription_status: "cancelled",
+        subscription_expires_at: new Date(Date.now() + 200 * DAY).toISOString(),
+      });
+      expect(daysFromNow(got)).toBe(365);
+    });
+
+    it("⑥ 狀態還是 cancelled、但到期日早就過了 → 從今天算,不可以從過去那天接續", async () => {
+      // ⚠️ 沒有這條的話,「到期日還沒過」那個判斷被拿掉也不會有測試變紅:
+      //    ① 是靠 status='expired' 擋掉的,驗不到日期比較。
+      //    若真的從過去接續,客戶會拿到「不足 365 天」的權限。
+      const got = await subPay({
+        plan: "personal",
+        subscription_status: "cancelled",
+        subscription_expires_at: new Date(Date.now() - 100 * DAY).toISOString(),
+      });
+      expect(daysFromNow(got)).toBe(365);
+    });
+
+    it("⑤ 負向對照:讀不到使用者資料時要退回「從今天算」,不能爆掉或算出怪數字", async () => {
+      const got = await subPay({});
+      expect(daysFromNow(got)).toBe(365);
+    });
+  });
+
   it("SimulatePaid 前後有空白也算模擬付款", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await returnPOST(callback({ SimulatePaid: " 1 " }) as any);
