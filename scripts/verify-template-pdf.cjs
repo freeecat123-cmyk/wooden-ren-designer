@@ -6,7 +6,10 @@
 //   2) PDF 內嵌的中文是「這批樣板真正的文字」，不是被靜默換成 Helvetica 的亂碼——
 //      這條管線踩過的雷是：字重 / 缺字時 svg2pdf 會靜默 fallback 或吞字，不報錯。
 //      所以這裡不只檢查「有中文」，要比對抽出的文字含有預期的中文字串。
-//   3) 樣板紙面那條 100mm 證明尺，用 pdf.js 光柵化後量出來的實際長度誤差 < 0.5mm
+//   3) 兩種輸出模式都驗：printshop（選紙＋可能斜擺）與 A4 拼接（家用列印），
+//      外加整包 zip 第一張的「印表機測試頁」——那張的 250mm 校正線量錯的話，
+//      使用者會把錯的數字填回校正欄位，後面每一張樣板都跟著歪，比單張樣板錯更嚴重。
+//   4) 樣板紙面那條 100mm 證明尺（測試頁是 250mm 校正線），用 pdf.js 光柵化後量出來的實際長度誤差 < 0.5mm
 //      ——這是整個功能的命脈，木工照著這條尺描，尺寸錯了就切錯料。
 //      尺的位置不固定（會自動避開內容、必要時轉成直式），量測位置讀 SVG 自報的
 //      `data-ruler-box`；主線是灰色虛線，所以量的是兩端實線刻度之間的涵蓋範圍。
@@ -103,6 +106,8 @@ const HELPER_SRC = `
 import { FURNITURE_CATALOG } from "../lib/templates/index.ts";
 import { buildPackPlan } from "../lib/export/template-pack/pack.ts";
 import { indexSheetSvg } from "../lib/export/template-pack/index-sheet.ts";
+import { printerTestPageSvg } from "../lib/export/template-pack/tile-sheet.ts";
+import { CALIBRATION_TEST_LINE_MM } from "../lib/export/template-pack/tiling.ts";
 import { collectChars } from "../lib/export/template-pack/pdf.ts";
 
 // 獨立於 pdf.ts 的 collectChars 之外，自己再抽一次每張 SVG「應該」出現的
@@ -178,6 +183,16 @@ if (plan.rows.length === 0) {
   process.exit(1);
 }
 
+// A4 拼接模式（家用列印那條路）。2026-08-21 補上——在此之前這支腳本只驗
+// printshop 模式，A4 拼接的樣板與印表機測試頁「從來沒有被端對端驗過」，
+// 使用者回報印出來的 250mm 校正線只有 239mm 時，沒有任何自動驗證能立刻排除
+// 程式端的嫌疑（那次結論是列印設定，但這個缺口本身是真的）。
+const a4Plan = buildPackPlan(design, "a4");
+if (a4Plan.rows.length === 0) {
+  console.error("buildPackPlan(a4) 沒有任何零件，測試資料有問題");
+  process.exit(1);
+}
+
 /** 樣板 SVG 自報的證明尺保留框 —— 尺不再固定在左下角（會自動避開內容、必要時轉直式），
  *  光柵化端要照這個框去量，不能再假設位置。 */
 function parseRulerBox(svg) {
@@ -185,36 +200,62 @@ function parseRulerBox(svg) {
   return m ? { x0: +m[1], y0: +m[2], x1: +m[3], y1: +m[4] } : null;
 }
 
-const indexSvgs = indexSheetSvg(design.nameZh.replace(/[\\\\/:*?"<>|]/g, "_"), plan.rows);
-
+const stem = design.nameZh.replace(/[\\\\/:*?"<>|]/g, "_");
 const sheets = [];
-sheets.push({
-  name: "00_索引",
-  pw: 210,
-  ph: 297,
-  svgs: indexSvgs,
-  hasRuler: false,
-  expectedChars: extractPlainChars(indexSvgs),
-});
 
-let n = 1;
-for (const [key, list] of plan.byPaper) {
-  const { paper, swapped } = list[0].placement;
-  const pw = swapped ? paper.h : paper.w;
-  const ph = swapped ? paper.w : paper.h;
-  const svgs = list.map((x) => x.svg);
+/** 把一個 PackPlan 的索引頁＋各紙張樣板加進 sheets。prefix 用來區分兩種模式。 */
+function pushPlanSheets(p, prefix) {
+  const indexSvgs = indexSheetSvg(stem, p.rows);
   sheets.push({
-    name: \`\${String(n).padStart(2, "0")}_樣板_\${key}\`,
-    pw,
-    ph,
-    svgs,
-    hasRuler: true,
-    rulerBox: parseRulerBox(svgs[0]),
-    partNames: list.map((x) => x.row.nameZh),
-    expectedChars: extractPlainChars(svgs),
+    name: \`\${prefix}00_索引\`,
+    pw: 210,
+    ph: 297,
+    svgs: indexSvgs,
+    hasRuler: false,
+    isIndex: true,
+    expectedChars: extractPlainChars(indexSvgs),
   });
-  n++;
+
+  let n = 1;
+  for (const [key, list] of p.byPaper) {
+    const { paper, swapped } = list[0].placement;
+    const pw = swapped ? paper.h : paper.w;
+    const ph = swapped ? paper.w : paper.h;
+    const svgs = list.map((x) => x.svg);
+    sheets.push({
+      name: \`\${prefix}\${String(n).padStart(2, "0")}_樣板_\${key}\`,
+      pw,
+      ph,
+      svgs,
+      hasRuler: true,
+      // 樣板上的是 100mm 證明尺；印表機測試頁另有一條 250mm 校正線（見下面）。
+      rulerNominalMm: 100,
+      rulerBox: parseRulerBox(svgs[0]),
+      partNames: list.map((x) => x.row.nameZh),
+      expectedChars: extractPlainChars(svgs),
+    });
+    n++;
+  }
 }
+
+pushPlanSheets(plan, "");
+pushPlanSheets(a4Plan, "a4_");
+
+// 印表機測試頁：整包 zip 的第一張，使用者拿它量校正線決定要不要填校正。
+// 這條線量錯 = 後面每一張樣板都跟著錯，所以它比任何一張樣板都更該被驗。
+// 張數參數只影響文案，這裡帶 A4 模式真正的張數。
+const a4SheetCount = Array.from(a4Plan.byPaper.values()).reduce((sum, a) => sum + a.length, 0);
+const testPageSvg = printerTestPageSvg(a4SheetCount, 1);
+sheets.push({
+  name: "a4_00_印表機測試頁",
+  pw: 297,
+  ph: 210,
+  svgs: [testPageSvg],
+  hasRuler: true,
+  rulerNominalMm: CALIBRATION_TEST_LINE_MM,
+  rulerBox: parseRulerBox(testPageSvg),
+  expectedChars: extractPlainChars([testPageSvg]),
+});
 
 const allSvgs = sheets.flatMap((s) => s.svgs);
 const chars = collectChars(allSvgs);
@@ -437,8 +478,9 @@ async function runVerification(browser, plan, fontB64) {
       }
 
       // 逐一比對這份 PDF「應該」出現的中文字串，缺字是靜默的，只查「有中文」查不出來。
-      const expectedForThisSheet =
-        sheet.name === "00_索引" ? plan.expectedNames.concat(plan.nameZh) : sheet.partNames || [];
+      const expectedForThisSheet = sheet.isIndex
+        ? plan.expectedNames.concat(plan.nameZh)
+        : sheet.partNames || [];
       for (const name of expectedForThisSheet) {
         if (!result.text.includes(name)) {
           failures.push(
@@ -461,8 +503,14 @@ async function runVerification(browser, plan, fontB64) {
         );
       }
 
-      if (sheet.hasRuler && (result.rulerMm == null || Math.abs(result.rulerMm - 100) >= 0.5)) {
-        failures.push(`✕ ${sheet.name}.pdf 證明尺量到 ${result.rulerMm?.toFixed(2)}mm，超出 100±0.5mm`);
+      // 樣板是 100mm 證明尺、印表機測試頁是 250mm 校正線，容差都是 ±0.5mm。
+      // 測試頁那條線量錯的後果比樣板還嚴重（使用者會把錯的數字填回校正欄位，
+      // 讓後面每一張都跟著歪），所以它一樣不能放行。
+      const nominal = sheet.rulerNominalMm || 100;
+      if (sheet.hasRuler && (result.rulerMm == null || Math.abs(result.rulerMm - nominal) >= 0.5)) {
+        failures.push(
+          `✕ ${sheet.name}.pdf 證明尺量到 ${result.rulerMm?.toFixed(2)}mm，超出 ${nominal}±0.5mm`,
+        );
       }
     }
 
@@ -513,7 +561,8 @@ async function main() {
   console.log("");
   for (const r of results) {
     if (r.rulerMm != null) {
-      console.log(`  ${r.name}.pdf：證明尺 ${r.rulerMm.toFixed(3)}mm`);
+      const sheet = plan.sheets.find((s) => s.name === r.name);
+      console.log(`  ${r.name}.pdf：尺量到 ${r.rulerMm.toFixed(3)}mm（標稱 ${sheet?.rulerNominalMm || 100}mm）`);
     }
   }
   const indexResult = results.find((r) => r.name === "00_索引");
@@ -527,7 +576,10 @@ async function main() {
   }
 
   console.log("");
-  console.log(`✓ 全部 ${plan.sheets.length} 份 PDF：無錯誤、中文完整、100mm 證明尺誤差 < 0.5mm`);
+  console.log(
+    `✓ 全部 ${plan.sheets.length} 份 PDF（printshop ＋ A4 拼接 ＋ 印表機測試頁）：` +
+      `無錯誤、中文完整、證明尺／校正線誤差 < 0.5mm`,
+  );
 }
 
 main().catch((e) => {

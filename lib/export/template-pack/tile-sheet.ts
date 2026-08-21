@@ -505,7 +505,12 @@ export function tileSheetSvg(input: TileSheetInput): string {
   // 平移/旋轉錯誤，但使用者沒有「拿捲尺一量就知道」的終點檢查。這行就是那個
   // 檢查，帶入這個 face 實際的 w/h（四捨五入到整數 mm），每一張都要有，不是
   // 只有多張拼接時才印——單張的情況使用者也該量一下確認沒有被印表機縮放。
-  const sizeLine = `拼好後全長 ${Math.round(face.h)}mm × 全寬 ${Math.round(face.w)}mm`;
+  // 全長＝長邊、全寬＝短邊，不是寫死 face.h／face.w。凳腳（445 長 × 35 寬）
+  // 舊版會印成「全長 35mm × 全寬 445mm」——一個 445mm 的腳說它全長 35mm，
+  // 讀的人得先愣一下才知道要量哪一邊，而這行的整個用途就是「拿捲尺量一次確認」。
+  const sizeLine =
+    `拼好後全長 ${Math.round(Math.max(face.w, face.h))}mm` +
+    ` × 全寬 ${Math.round(Math.min(face.w, face.h))}mm`;
   const nameLines = [`${partNo} ${nameZh}${qty > 1 ? ` ×${qty}` : ""}　【${face.faceLabelZh}】`];
   if (faceCount > 1) nameLines.push(`第 ${faceIndex + 1} 面 / 共 ${faceCount} 面`);
   const extraLines = [sizeLine, ...nameLines];

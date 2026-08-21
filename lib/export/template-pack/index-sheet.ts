@@ -13,8 +13,16 @@ export interface PackRow {
   qty: number;
   wmm: number;
   hmm: number;
-  /** null = 1:1 塞不下最大的紙 → 退回比例零件圖 */
+  /** null = 1:1 塞不下最大的紙 → 退回比例零件圖；也可能是 plainRect（見下） */
   placement: Placement | null;
+  /**
+   * true = 零孔零榫的純矩形，**刻意不出樣板**（不是塞不下）。
+   *
+   * 跟 `placement === null`（太大 → 見零件圖）是兩種完全不同的狀態，索引上的
+   * 說法也不同：這種是「不需要樣板 · 直接量畫」，使用者不必去找零件圖。
+   * 兩者混為一談會讓人以為一堆零件都太大印不出來。
+   */
+  plainRect?: boolean;
   /**
    * 只有 A4 拼接模式（buildPackPlan mode="a4"）且塞得下（≤6 張）時才有值。
    * printshop 模式或拼接失敗的列一律不設這個欄位（undefined），
@@ -169,11 +177,15 @@ function renderTableRow(r: PackRow, y: number): string[] {
   const lines: string[] = [];
 
   const tileCount = r.tiling ? r.tiling.cols * r.tiling.rows : 0;
-  const where = r.tiling
-    ? `A4 ×${tileCount}（${r.tiling.cols}×${r.tiling.rows} 拼接）`
-    : r.placement
-      ? `${r.placement.paper.label}${r.placement.swapped ? " 直放" : ""}${r.placement.angleDeg > 0 ? ` 斜 ${r.placement.angleDeg}°` : ""}`
-      : "太大 → 見零件圖";
+  // plainRect 要排在 placement 之前判斷：它是「刻意不出」，不是「塞不下」，
+  // 講成「太大 → 見零件圖」會害使用者跑去找一張根本不需要的圖。
+  const where = r.plainRect
+    ? "不需要樣板 · 直接量畫"
+    : r.tiling
+      ? `A4 ×${tileCount}（${r.tiling.cols}×${r.tiling.rows} 拼接）`
+      : r.placement
+        ? `${r.placement.paper.label}${r.placement.swapped ? " 直放" : ""}${r.placement.angleDeg > 0 ? ` 斜 ${r.placement.angleDeg}°` : ""}`
+        : "太大 → 見零件圖";
 
   // 多加工面時把「第 N/M 面」併進面別欄，使用者才知道同一支腳還有另一張要翻面做。
   const faceCell = r.faceCount > 1

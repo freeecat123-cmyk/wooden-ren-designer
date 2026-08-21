@@ -216,3 +216,56 @@ describe("buildPackPlan 印表機校正（calibrationMeasuredMm）", () => {
     expect(leg?.tiling).toEqual({ landscape: expected!.landscape, cols: expected!.cols, rows: expected!.rows });
   });
 });
+
+/**
+ * 零孔零榫的純矩形不出樣板（2026-08-21）。
+ *
+ * 全 catalog A4 模式實測 559 張裡有 179 張（32%）是「沒有任何榫孔的長方形」——
+ * 1:1 樣板對它們等於零資訊，量兩個數字畫線就切了。斗櫃 44 張裡 43 張、
+ * 衣櫃 30 張全部都是這種，連玻璃展示櫃的玻璃片都在出木工樣板。
+ *
+ * 但零件不可以從索引消失（無聲丟件是這個功能最該防的錯），所以這裡同時鎖住
+ * 「不出紙」與「仍然有列」兩件事。
+ */
+describe("零孔零榫的純矩形不出樣板", () => {
+  it("衣櫃：純矩形件不佔紙，但每一件都還在 rows 裡", () => {
+    const design = buildDefaultDesign("wardrobe");
+    const plan = buildPackPlan(design, "a4");
+    const plainRows = plan.rows.filter((r) => r.plainRect);
+    expect(plainRows.length).toBeGreaterThan(0);
+    // 被判成純矩形的列一定沒有 placement，也就不會產生任何一張紙
+    for (const r of plainRows) {
+      expect(r.placement).toBeNull();
+      expect(r.tiling).toBeUndefined();
+    }
+  });
+
+  it("衣櫃：張數真的降下來（過濾前 30 張）", () => {
+    const plan = buildPackPlan(buildDefaultDesign("wardrobe"), "a4");
+    const sheets = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
+    expect(sheets).toBeLessThan(10);
+  });
+
+  it("方凳：14 張全都是該出的，一張都不該被過濾掉", () => {
+    const plan = buildPackPlan(buildDefaultDesign("stool"), "a4");
+    expect(plan.rows.filter((r) => r.plainRect)).toHaveLength(0);
+    const sheets = Array.from(plan.byPaper.values()).reduce((s, a) => s + a.length, 0);
+    expect(sheets).toBe(14);
+  });
+
+  it("printshop 模式套同一套判定", () => {
+    const plan = buildPackPlan(buildDefaultDesign("wardrobe"), "printshop");
+    const plainRows = plan.rows.filter((r) => r.plainRect);
+    expect(plainRows.length).toBeGreaterThan(0);
+    for (const r of plainRows) expect(r.placement).toBeNull();
+  });
+
+  it("純矩形跟「太大退回零件圖」是兩種狀態，不可以混為一談", () => {
+    const plan = buildPackPlan(buildDefaultDesign("wardrobe"), "a4");
+    const tooBig = plan.rows.filter((r) => !r.placement && !r.plainRect);
+    const plain = plan.rows.filter((r) => r.plainRect);
+    // 兩邊都要有東西，才證明這個設計真的分得開這兩種情況
+    expect(tooBig.length).toBeGreaterThan(0);
+    expect(plain.length).toBeGreaterThan(0);
+  });
+});
