@@ -33,9 +33,32 @@ const STYLE_LABEL_EN: Record<string, string> = {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const type = (searchParams.get("type") ?? "dining-chair") as FurnitureCategory;
-  const length = searchParams.get("length") ?? "?";
-  const width = searchParams.get("width") ?? "?";
-  const height = searchParams.get("height") ?? "?";
+  /**
+   * 🧷 尺寸只接受數字。
+   *
+   * ⛔ 原本直接把 query 的字串印進圖裡。任何人 GET
+   *      /api/og?length=<任意詐騙文案>&material=<任意文字>
+   *    就得到一張 1200×630、**網址掛在木頭仁正式網域**的圖,內容由對方決定 ——
+   *    可以直接拿去社群做假冒你的釣魚貼文。(2026-08-21 稽核發現。)
+   *
+   * ✅ `type` / `material` / `style` 本來就是查表(查不到就 fallback),等於白名單;
+   *    真正能塞任意文字的只有這三個尺寸。改成**只接受合理範圍內的數字**,
+   *    其餘一律顯示 "?"(跟原本缺參數時的行為一致)。
+   *
+   * ⚠️ 不額外加限流:這支的快取 key 就是 query string,擋不住換亂數參數的洗版;
+   *    但把「可控文字」拿掉之後,剩下的濫用價值只有燒 CPU,而那是 Vercel 平台層
+   *    (WAF / DDoS)該處理的事,不是在這裡疊一層擋不住的計數器。
+   */
+  const dim = (key: string): string => {
+    const raw = searchParams.get(key);
+    if (!raw) return "?";
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0 || n > 100000) return "?";
+    return String(Math.round(n));
+  };
+  const length = dim("length");
+  const width = dim("width");
+  const height = dim("height");
   const material = (searchParams.get("material") ?? "douglas-fir") as MaterialId;
   const style = searchParams.get("style") ?? "";
   const locale = searchParams.get("locale") === "en" ? "en" : "zh-TW";

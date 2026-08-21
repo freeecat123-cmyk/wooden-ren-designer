@@ -114,6 +114,13 @@ export async function POST(req: NextRequest) {
           { status: 401 },
         );
       }
+      // 讀不到今日用量 ≠ 已達上限。回 503,不要顯示成「額度用完請升級」(誤導)。
+      if (gate.reason === "quota_unknown") {
+        return NextResponse.json(
+          { errorCode: "unavailable" },
+          { status: 503 },
+        );
+      }
       return NextResponse.json(
         {
           errorCode: "rate-limited",

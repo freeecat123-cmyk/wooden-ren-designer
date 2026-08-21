@@ -81,6 +81,24 @@ export async function POST(
     }
   }
 
+  /**
+   * 🧷 答案大小上限。
+   *
+   * ⛔ 原本把 `body.answers` 原封寫進 jsonb,**沒有大小也沒有欄位白名單**。
+   *    已登入使用者 POST `{answers:{<必填題正常填>, pad:"A".repeat(4000000)}}` → 驗證通過
+   *    → 寫入一列約 4MB 的 jsonb。`unique(user_id, survey_id)` 只擋同帳號重複,
+   *    多開幾個免費帳號就能持續灌大列。(2026-08-21 稽核發現。)
+   *
+   * ⚠️ 用序列化後的長度判斷,而不是逐欄位白名單:問卷題目會變,白名單一定會漏更新;
+   *    大小上限則跟題目無關,不會過期。32KB 對正常問卷綽綽有餘。
+   */
+  const ANSWERS_MAX_BYTES = 32 * 1024;
+  const answersSize = new TextEncoder().encode(JSON.stringify(body.answers ?? {})).length;
+  if (answersSize > ANSWERS_MAX_BYTES) {
+    console.warn("[survey/submit] 答案過大,拒收", { userId: user.id, size: answersSize });
+    return NextResponse.json({ error: "answers_too_large" }, { status: 413 });
+  }
+
   // 寫 response
   const { error: respErr } = await svc.from("survey_responses").insert({
     user_id: user.id,
@@ -89,7 +107,9 @@ export async function POST(
     coupon_code: couponCode,
   });
   if (respErr) {
-    return NextResponse.json({ error: respErr.message }, { status: 500 });
+    // ⚠️ 不要把 Postgres 原始訊息回給前端(會洩漏欄位名 / 約束名 / 內部結構)。
+    console.error("[survey/submit] 寫入失敗", { userId: user.id, error: respErr.message });
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
   // 寄感謝信（失敗不擋 response，已寫進 DB 算成功）

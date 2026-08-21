@@ -104,7 +104,12 @@ export async function PATCH(
     .eq("user_id", auth.userId);
 
   if (error) {
-    return NextResponse.json({ error: "db_error", message: error.message }, { status: 500 });
+    // ⚠️ 原本把 `error.message` 直接回給前端 —— Postgres 的原始訊息會洩漏欄位名 /
+    //    約束名 / 內部結構(實測:PATCH 一個含 NUL 字元的 params 會回
+    //    "unsupported Unicode escape sequence ...")。改成只回代碼,細節寫進 server log,
+    //    不然移掉訊息會變成完全查不到。(2026-08-21 稽核發現。)
+    console.error("[designs/:id] db error", { userId: auth.userId, error: error.message });
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
   if (count === 0) {
     return NextResponse.json({ error: "not_found_or_forbidden" }, { status: 404 });
@@ -132,7 +137,12 @@ export async function DELETE(
     .eq("user_id", auth.userId);
 
   if (error) {
-    return NextResponse.json({ error: "db_error", message: error.message }, { status: 500 });
+    // ⚠️ 原本把 `error.message` 直接回給前端 —— Postgres 的原始訊息會洩漏欄位名 /
+    //    約束名 / 內部結構(實測:PATCH 一個含 NUL 字元的 params 會回
+    //    "unsupported Unicode escape sequence ...")。改成只回代碼,細節寫進 server log,
+    //    不然移掉訊息會變成完全查不到。(2026-08-21 稽核發現。)
+    console.error("[designs/:id] db error", { userId: auth.userId, error: error.message });
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
   if (count === 0) {
     return NextResponse.json({ error: "not_found_or_forbidden" }, { status: 404 });

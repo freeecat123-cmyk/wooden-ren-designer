@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
   if (insertErr) {
     console.error("[designs/create] insert failed", insertErr);
     return NextResponse.json(
-      { error: "db_error", message: insertErr.message },
+      { error: "db_error" },
       { status: 500 },
     );
   }
