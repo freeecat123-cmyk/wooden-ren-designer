@@ -24,6 +24,8 @@ import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
 import { isSimulatedPayment } from "@/lib/ecpay/simulated-payment";
 import { sendEmail } from "@/lib/email/send";
+import { escapeHtml } from "@/lib/email/escape";
+import { getServerAdminEmails } from "@/lib/admin";
 import { firstPaymentSuccessEmail, unlockSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
@@ -128,36 +130,70 @@ export async function POST(req: NextRequest) {
       }
       const rawResp = tplPending.raw_response as Record<string, unknown>;
       const kind = rawResp.kind as string;
-      if (kind === "template_unlock") {
-        const tplCategory = rawResp.category as string;
-        const { error: unlockErr } = await admin.from("template_unlocks").insert({
-          user_id: tplPending.user_id,
-          category: tplCategory,
-          paid_amount: expectedAmount,
-          ecpay_merchant_trade_no: orderId,
-        });
-        if (unlockErr && !unlockErr.message?.includes("duplicate")) {
-          console.error("[ecpay/return/template] insert unlock failed", unlockErr);
+
+      /**
+       * 🔴 客戶付了錢,這一步就是「把他買的東西給他」。
+       *
+       * ⛔ 原本寫成 `if (unlockErr && !...duplicate) console.error(...)` —— **只印一行 log 就往下走**:
+       *    payment 照樣標 success、照樣開一張真發票、照樣寄「解鎖成功」信(信裡的按鈕還會把他帶到
+       *    他買的那個工具頁),但他打開只會看到付費牆。錢收了、發票開了、東西沒給,
+       *    而且**沒有任何地方留下記號**,除非他自己來抱怨,否則永遠不會有人發現。
+       *
+       * 現在改成:
+       *   1. 失敗會重試(最常見的原因是資料庫瞬間抖動,重試就好了)
+       *   2. 真的失敗 → 在 payment 上留記號 + 寄信通知管理員 + **不寄那封會騙人的成功信**
+       *   3. 但**發票照開、payment 照標 success**:錢是真的收到了,不開票是另一個更麻煩的問題
+       *   4. 仍然回 1|OK —— 這個檔開頭就寫明「否則綠界會狂重送」,不推翻既有設計
+       *
+       * (2026-08-21 稽核發現。查過正式站:3 筆買斷全都有對應解鎖,目前 0 位受害者。)
+       */
+      const grantUnlock = async (): Promise<{ ok: boolean; detail?: string }> => {
+        const table = kind === "template_unlock" ? "template_unlocks" : "tool_unlocks";
+        const row =
+          kind === "template_unlock"
+            ? {
+                user_id: tplPending.user_id,
+                category: rawResp.category as string,
+                paid_amount: expectedAmount,
+                ecpay_merchant_trade_no: orderId,
+              }
+            : {
+                user_id: tplPending.user_id,
+                tool: rawResp.tool as string,
+                paid_amount: expectedAmount,
+                ecpay_merchant_trade_no: orderId,
+              };
+        let last = "";
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const { error } = await admin.from(table).insert(row);
+          if (!error) return { ok: true };
+          // duplicate = 綠界重送、之前那次已經寫進去了,這是成功不是失敗
+          if (error.message?.includes("duplicate")) return { ok: true };
+          last = error.message ?? String(error);
+          console.error(`[ecpay/return/${kind}] 解鎖寫入失敗(第 ${attempt} 次)`, error);
+          if (attempt < 3) await new Promise((r) => setTimeout(r, 300 * attempt));
         }
-      } else if (kind === "tool_unlock") {
-        const tool = rawResp.tool as string;
-        const { error: unlockErr } = await admin.from("tool_unlocks").insert({
-          user_id: tplPending.user_id,
-          tool,
-          paid_amount: expectedAmount,
-          ecpay_merchant_trade_no: orderId,
-        });
-        if (unlockErr && !unlockErr.message?.includes("duplicate")) {
-          console.error("[ecpay/return/tool] insert unlock failed", unlockErr);
-        }
-      }
+        return { ok: false, detail: last };
+      };
+
+      const unlockResult =
+        kind === "template_unlock" || kind === "tool_unlock"
+          ? await grantUnlock()
+          : { ok: true as const };
       await admin
         .from("payments")
         .update({
           status: "success",
           ecpay_trade_no: tradeNo ?? null,
           invoice_status: "pending",
-          raw_response: { ...(tplPending.raw_response as object), ecpay: params },
+          raw_response: {
+            ...(tplPending.raw_response as object),
+            ecpay: params,
+            // 解鎖沒寫成功時留下記號:admin 後台看得到,日後也查得出來是哪幾筆要補
+            ...(unlockResult.ok
+              ? {}
+              : { _unlock_failed: { at: new Date().toISOString(), detail: unlockResult.detail } }),
+          },
         })
         .eq("id", tplPending.id);
 
@@ -192,14 +228,53 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           console.warn("[ecpay/return:unlock:after] invoice 例外", e);
         }
-        // 2. 寄付款成功信
+        // 2. 寄信
         try {
           const { data: u } = await admin
             .from("users")
             .select("email")
             .eq("id", tplPending.user_id)
             .single();
-          if (u?.email) {
+
+          if (!unlockResult.ok) {
+            /**
+             * ⛔ 解鎖沒給成功 → **絕不能寄那封「解鎖成功」信**。
+             *    那封信裡的按鈕會把客戶帶到他買的工具頁,而他打開只會看到付費牆
+             *    ——「錢收了還騙他東西給了」比單純的失敗更傷。改成通知管理員手動補。
+             */
+            console.error("[ecpay/return:unlock] 解鎖失敗,改通知管理員", {
+              orderId,
+              userId: tplPending.user_id,
+              email: u?.email,
+              detail: unlockResult.detail,
+            });
+            const admins = getServerAdminEmails();
+            if (admins.length > 0) {
+              const lines = [
+                "客戶付款成功,但解鎖沒有寫進資料庫,需要手動補。",
+                "",
+                `品項:${invoiceItemName}`,
+                `金額:NT$${expectedAmount}`,
+                `客戶:${u?.email ?? tplPending.user_id}`,
+                `訂單編號:${orderId}`,
+                `綠界交易編號:${tradeNo ?? "(無)"}`,
+                `錯誤訊息:${unlockResult.detail ?? "(無)"}`,
+                "",
+                "發票已照常開立(錢是真的收到了);客戶尚未收到任何通知信。",
+                "補完解鎖後請自行通知客戶。",
+              ];
+              // ⚠️ sendEmail 的 to 是單一字串(內部再包成陣列),逗號串接會變成一個無效地址,
+              //    所以逐一寄。管理員通常只有 1~2 位。
+              for (const adminEmail of admins) {
+                await sendEmail({
+                  to: adminEmail,
+                  subject: `🔴 買斷解鎖失敗待手動補:${invoiceItemName}(${orderId})`,
+                  text: lines.join("\n"),
+                  html: `<pre style="font:14px/1.7 ui-monospace,Menlo,monospace">${escapeHtml(lines.join("\n"))}</pre>`,
+                });
+              }
+            }
+          } else if (u?.email) {
             const payload = unlockSuccessEmail({
               itemName: invoiceItemName,
               amount: expectedAmount,

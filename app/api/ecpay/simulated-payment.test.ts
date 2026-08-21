@@ -223,6 +223,86 @@ describe("/api/ecpay/return", () => {
     expect(sendEmailCalls).toHaveLength(1);
   });
 
+  /**
+   * 🧷 買斷解鎖寫入失敗時的行為。
+   *
+   * ⭐ 修好之前:寫入失敗只 `console.error` 就往下走 → payment 標 success、開一張真發票、
+   *   寄「解鎖成功」信(信裡的按鈕還會把客戶帶到他買的那個工具頁),但他打開只會看到付費牆。
+   *   錢收了、發票開了、東西沒給,而且沒有任何地方留記號。
+   *
+   * 現在的約定:重試 → 仍失敗就「不寄那封會騙人的信、改通知管理員、payment 上留記號」,
+   * 但發票照開、仍回 1|OK(這個檔開頭寫明回別的會被綠界狂重送)。
+   */
+  describe("解鎖寫入失敗", () => {
+    const failUnlock = async () => {
+      tableResults.tool_unlocks = { data: null, error: { message: "connection reset by peer" } };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await returnPOST(callback({ SimulatePaid: "0" }) as any);
+      await runAfterCallbacks();
+    };
+
+    it("① 會重試,不是寫一次就放棄", async () => {
+      await failUnlock();
+      expect(inserts.filter((i) => i.table === "tool_unlocks").length).toBeGreaterThan(1);
+    });
+
+    it("② ⛔ 絕不寄「解鎖成功」信給客戶(那封信的按鈕會把他帶到付費牆)", async () => {
+      await failUnlock();
+      const toCustomer = sendEmailCalls.filter(
+        (c) => (c as { to: string }).to === "buyer@example.com",
+      );
+      expect(toCustomer).toEqual([]);
+    });
+
+    it("③ 改寄通知信給管理員,內容要帶得出訂單編號", async () => {
+      await failUnlock();
+      const toAdmin = sendEmailCalls.filter(
+        (c) => (c as { to: string }).to !== "buyer@example.com",
+      ) as Array<{ subject: string; text: string }>;
+      expect(toAdmin.length).toBeGreaterThan(0);
+      expect(toAdmin[0].subject).toContain("解鎖失敗");
+      expect(toAdmin[0].text).toContain("ORDER1");
+    });
+
+    it("④ payment 上要留下 _unlock_failed 記號(不然沒人知道哪幾筆要補)", async () => {
+      await failUnlock();
+      const payUpdates = updates
+        .filter((u) => u.table === "payments")
+        .map((u) => u.row as Record<string, unknown>);
+      const marked = payUpdates.find(
+        (r) => (r.raw_response as Record<string, unknown> | undefined)?._unlock_failed,
+      );
+      expect(marked, "payment 沒有留下解鎖失敗的記號").toBeDefined();
+    });
+
+    it("⑤ 發票照開(錢是真的收到了,不開票是另一個更麻煩的問題)", async () => {
+      await failUnlock();
+      expect(issueInvoiceCalls).toHaveLength(1);
+    });
+
+    it("⑥ 仍然回 1|OK(回別的會被綠界狂重送——這是既有設計,不推翻)", async () => {
+      tableResults.tool_unlocks = { data: null, error: { message: "connection reset by peer" } };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await returnPOST(callback({ SimulatePaid: "0" }) as any);
+      expect(await res.text()).toBe("1|OK");
+    });
+
+    it("⑦ 負向對照:duplicate 錯誤要當成成功(綠界重送、上次已經寫進去了)", async () => {
+      tableResults.tool_unlocks = {
+        data: null,
+        error: { message: 'duplicate key value violates unique constraint' },
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await returnPOST(callback({ SimulatePaid: "0" }) as any);
+      await runAfterCallbacks();
+      expect(inserts.filter((i) => i.table === "tool_unlocks")).toHaveLength(1); // 不重試
+      const toCustomer = sendEmailCalls.filter(
+        (c) => (c as { to: string }).to === "buyer@example.com",
+      );
+      expect(toCustomer).toHaveLength(1); // 成功信照寄
+    });
+  });
+
   it("SimulatePaid 前後有空白也算模擬付款", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await returnPOST(callback({ SimulatePaid: " 1 " }) as any);
