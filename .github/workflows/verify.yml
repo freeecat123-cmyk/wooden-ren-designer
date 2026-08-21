@@ -33,3 +33,12 @@ jobs:
 
       - name: 斷言腳本（tsx）
         run: npm run assert
+
+      # 幾何 audit 另有一支專屬 workflow（Geometry Audit），但那支有 paths 過濾。
+      # 這裡再跑一次、不過濾：改到 lib/render 或 lib/knowledge 也會被驗到。
+      #
+      # ⚠️ 這支在 2026-08-21 之前是**永遠紅的**（audit:pack-keys 有 2 個死鍵，
+      #    10/10 次 CI 都 failure）。永遠紅的 CI 比沒有 CI 更糟——會訓練所有人
+      #    忽略那個叉叉，真的壞掉時反而看不見。死鍵已清掉，現在 exit 0。
+      - name: 幾何 / 資料 audit
+        run: npm run audit

@@ -399,10 +399,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 25,
-      "withBrace": true
-    },
     "photo-frame": {
       "frameWidth": 35,
       "frameThickness": 25,
@@ -860,10 +856,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 22,
-      "withBrace": true
-    },
     "photo-frame": {
       "frameWidth": 50,
       "frameThickness": 25,
@@ -1233,10 +1225,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "cornerJoinery": "miter",
       "dividers": 0,
       "crossDividers": 0
-    },
-    "bookend": {
-      "panelThickness": 18,
-      "withBrace": false
     },
     "photo-frame": {
       "frameWidth": 18,
@@ -1617,10 +1605,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "cornerJoinery": "stub-joint",
       "dividers": 1,
       "crossDividers": 0
-    },
-    "bookend": {
-      "panelThickness": 18,
-      "withBrace": true
     },
     "photo-frame": {
       "frameWidth": 22,
@@ -2049,10 +2033,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 14,
-      "withBrace": false
-    },
     "photo-frame": {
       "frameWidth": 18,
       "frameThickness": 12,
@@ -2452,10 +2432,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "cornerJoinery": "finger-joint",
       "dividers": 0,
       "crossDividers": 0
-    },
-    "bookend": {
-      "panelThickness": 22,
-      "withBrace": true
     },
     "photo-frame": {
       "frameWidth": 38,
@@ -3041,10 +3017,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "cornerJoinery": "miter",
       "dividers": 0,
       "crossDividers": 0
-    },
-    "bookend": {
-      "panelThickness": 20,
-      "withBrace": false
     },
     "photo-frame": {
       "frameWidth": 32,
