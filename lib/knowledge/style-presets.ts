@@ -344,6 +344,19 @@ export function applyStylePreset(
 
   // 變體：variantSeed > 0 時從 pool 隨機抽結構 + 尺寸 overlay（infinite variation）
   // baseSize 傳 adapterCtx（canonical-anchored）而非 URL current，避免複利暴衝
+  /**
+   * ⚠️ **沒有 ctx 時整段變體會被跳過** —— 而且是靜默的:呼叫端看不出差別,
+   *    使用者連按同一個風格只有計數在跳、參數一字不差 = 死控制項。
+   *    2026-08-21 稽核抓到的「手機版風格變體沒作用」,真因就是 MobileShell 漏傳
+   *    `designSize` → ctx undefined → 這個條件永遠不成立。
+   *    留一行警告,下次有人漏傳至少在 console 看得到,不會再查半天。
+   */
+  if (variantSeed > 0 && !adapterCtx) {
+    console.warn(
+      "[style-presets] 要求變體(seed>0)但沒有提供 ctx/designSize,變體會被略過 —— 呼叫端請把家具尺寸傳進來",
+      { styleId, category, variantSeed },
+    );
+  }
   if (variantSeed > 0 && adapterCtx) {
     const overlay = sampleStyleVariant(styleId, category, variantSeed,
       { length: adapterCtx.totalLength, width: adapterCtx.totalWidth, height: adapterCtx.totalHeight },

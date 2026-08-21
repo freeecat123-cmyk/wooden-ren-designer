@@ -17,11 +17,23 @@ interface Props {
   design: FurnitureDesign;
 }
 
-export function CsvExportButton({ design }: Props) {
-  const t = useTranslations("csvExport");
-  const locale = useLocale();
-  const unit = useUnit();
-  const download = () => {
+/**
+ * 產生並下載材料 CSV。
+ *
+ * ⭐ 從 `CsvExportButton` 抽出來的**唯一一份實作**:手機版的「📋 材料 CSV」以前是死控制項
+ *   (點了只跳「phase 2 整合」的 alert),而桌面版早就能用。
+ *   抽成函式而不是在手機那邊再寫一份 —— 這個 repo 今天已經因為
+ *   「同一個概念兩份實作」出過好幾次包(零件卡 vs 切料尺寸、BOM vs 裁切表)。
+ *   (2026-08-21 稽核發現。)
+ *
+ * 需要 t / locale / unit 三個 hook 的值,所以由呼叫端(client component)取好傳進來。
+ */
+export function downloadPartsCsv(
+  design: Props["design"],
+  deps: { t: (k: string, v?: Record<string, string>) => string; locale: string; unit: ReturnType<typeof useUnit> },
+) {
+  const { t, locale, unit } = deps;
+
     const rows: string[][] = [];
     rows.push([
       t("colPart"),
@@ -111,7 +123,14 @@ export function CsvExportButton({ design }: Props) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
+}
+
+export function CsvExportButton({ design }: Props) {
+  const t = useTranslations("csvExport");
+  const locale = useLocale();
+  const unit = useUnit();
+  const download = () => downloadPartsCsv(design, { t, locale, unit });
+
 
   return (
     <button

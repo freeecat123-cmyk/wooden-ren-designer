@@ -25,6 +25,30 @@ const PREFIX_DEFAULT = "customer";
 export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }: Props) {
   const t = useTranslations("customerForm");
   const [data, setData] = useState<CustomerInfo>(initial);
+  /**
+   * 🧷 外部把 `initial` 換掉時(從「最近報價」還原另一筆),欄位要跟著換。
+   *
+   * ⛔ 原本只有 `useState(initial)` —— 初始值只在掛載時取一次。
+   *    「最近報價」的連結是 `<Link href={同一個 route + 不同 query}>` = soft navigation,
+   *    **client component 不會 remount** → 上方的報價金額與抬頭都換成客戶 B 了,
+   *    下面的客戶欄位卻還停在客戶 A。使用者只要動任何一欄,
+   *    **客戶 A 的資料就被寫回客戶 B 的報價單**。(2026-08-21 稽核發現。)
+   *
+   * ✅ 跟 QuoteLaborForm 的 PercentField 同一種寫法:render 期間依 prop 重設,
+   *    不用 useEffect(那會先用舊值畫一幀,使用者看得到閃動)。
+   */
+  /**
+   * ⚠️ 比**值**不比參照:`initial` 來自 server component,同一次 render 內參照是穩定的,
+   *    但只要日後有人改成在父層 inline 建物件(`initial={{...}}`),
+   *    參照比較就會每次 render 都命中 → 使用者一打字就被重設,變成更難查的 bug。
+   *    欄位只有幾個字串,序列化比較的成本可以忽略。
+   */
+  const initialKey = JSON.stringify(initial);
+  const [lastInitialKey, setLastInitialKey] = useState(initialKey);
+  if (initialKey !== lastInitialKey) {
+    setLastInitialKey(initialKey);
+    setData(initial);
+  }
   const [history, setHistory] = useState<CustomerInfo[]>([]);
   const [hydrated, setHydrated] = useState(false);
 

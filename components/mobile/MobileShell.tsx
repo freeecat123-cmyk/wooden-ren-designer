@@ -34,6 +34,7 @@ import { MATERIALS } from "@/lib/materials";
 import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { groupSpecsByGroup, groupLabel } from "@/lib/design/option-groups";
 import { resolvePartIds } from "@/lib/design/option-part-map";
+import { downloadPartsCsv } from "@/components/CsvExportButton";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
 // serialised when passing from Server → Client Component. MobileShell
@@ -75,6 +76,8 @@ interface MobileShellProps {
 
 export function MobileShell(props: MobileShellProps) {
   const t = useTranslations("mobile");
+  // 材料 CSV 的欄位標題走 csvExport namespace(與桌面版共用同一份實作與字串)
+  const tCsv = useTranslations("csvExport");
   const locale = useLocale();
   const isEn = locale === "en";
   const unit = useUnit();
@@ -245,7 +248,20 @@ export function MobileShell(props: MobileShellProps) {
         <div className="rounded-xl bg-white px-3 py-2.5 ring-1 ring-amber-900/10 shadow-sm">
           <div className="text-[11px] font-semibold text-zinc-500 mb-1.5">{t("form.style")}</div>
           <fieldset disabled={previewLocked} className={lockCls}>
-            <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
+            {/*
+              ⛔ 這裡以前沒傳 `designSize` —— 而 `applyStylePreset` 沒有 ctx 時
+                 **變體完全失效**(4 個 seed 產出同一組參數)。
+                 症狀:手機連按同一個風格,chip 上的 #1 #2 一直加、URL 的 styleVariant 也在加,
+                 但除了那個計數以外的參數一字不差 —— 看起來就是「按了沒用」的死控制項。
+                 桌面版(design/[type]/page.tsx:1212)一直都有傳,只有手機漏了。
+                 (2026-08-21 稽核發現;稽核描述成「手機版的 bug」,真因是漏傳一個 prop。)
+            */}
+            <StylePresetButtons
+              optionSchema={optionSchema}
+              category={entry.category}
+              designSize={{ length, width, height }}
+              compact
+            />
           </fieldset>
         </div>
 
@@ -623,7 +639,11 @@ export function MobileShell(props: MobileShellProps) {
           alert(`${t("share.copied")}\n${shortUrl}`);
         }}
         onDownloadCsv={() => {
-          alert(t("share.csvWip"));
+          // ⛔ 這裡以前只跳一個「phase 2 整合」的 alert = 死控制項,
+          //    而桌面版(components/CsvExportButton.tsx)早就能用。
+          //    改成呼叫抽出來的**同一份實作**,不要在手機再寫一份。
+          //    (2026-08-21 稽核發現。)
+          downloadPartsCsv(design, { t: tCsv, locale, unit });
         }}
       />
     </div>

@@ -71,6 +71,7 @@ import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatMm, formatDimensions } from "@/lib/units/format";
 import { bilingualAlternates } from "@/i18n/metadata";
+import { localePath } from "@/i18n/metadata";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -982,7 +983,7 @@ async function ParameterForm({
     : "min-w-0 border-0 m-0 p-0";
   return (
     <DesignFormShell
-      action={`/${locale}/design/${type}`}
+      action={localePath(`/design/${type}`, locale)}
       className="p-5 rounded-2xl border border-amber-200/70 bg-amber-50/50 shadow-md shadow-amber-900/5"
     >
       {previewLocked && (

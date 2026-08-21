@@ -34,7 +34,16 @@ export function LoginButton({ className = "" }: { className?: string }) {
         onClick={() => setOpen((s) => !s)}
         className={`inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-amber-900/10 hover:bg-amber-800 hover:shadow-md active:scale-[0.98] transition ${className}`}
       >
-        {t("btn")}
+        {/*
+          ⛔ 手機的設計頁上,這顆鈕跟 UnitToggle 一起浮在 `fixed top-4 right-4`,
+             而 MobileTopBar 的標題是置中的。實測 iPhone 390px 開
+             /en/design/chest-of-drawers:這組佔 x=138–374(英文 "Sign in / Sign up"
+             一顆就 142px),**直接蓋掉家具名稱 116px**。中文版「登入 / 註冊」只有 102px,
+             所以只有英文會撞。(2026-08-21 稽核發現。)
+          ✅ 手機顯示短版、桌面維持完整字樣。不是把功能藏起來 —— 鈕還在、位置也沒動。
+        */}
+        <span className="hidden sm:inline">{t("btn")}</span>
+        <span className="sm:hidden">{t("btnShort")}</span>
       </button>
 
       {open && (

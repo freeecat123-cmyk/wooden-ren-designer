@@ -4682,7 +4682,8 @@
     "magicLinkNote": "First-time use = auto sign-up. Click the link in the email to finish — no password needed.",
     "googleDisabledTpl": "Google sign-in disabled inside {app}",
     "googleRedirecting": "Redirecting…",
-    "googleBtn": "Sign in with Google"
+    "googleBtn": "Sign in with Google",
+    "btnShort": "Sign in"
   },
   "headerUser": {
     "loggedInFallback": "Signed in",

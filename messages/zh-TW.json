@@ -4682,7 +4682,8 @@
     "magicLinkNote": "首次使用 = 自動註冊。點信內按鈕後登入完成，無需密碼。",
     "googleDisabledTpl": "{app} 內無法用 Google 登入",
     "googleRedirecting": "跳轉中…",
-    "googleBtn": "使用 Google 登入"
+    "googleBtn": "使用 Google 登入",
+    "btnShort": "登入"
   },
   "headerUser": {
     "loggedInFallback": "已登入",

@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { LABOR_BOUNDS } from "@/lib/pricing/labor";
 import type { CustomerInfo } from "@/components/customer/customer";
+import { localePath } from "@/i18n/metadata";
 
 type Defaults = {
   hourlyRate: number;
@@ -128,7 +129,7 @@ export function QuoteLaborForm({
       ref={formRef}
       onChange={handleChange}
       method="get"
-      action={`/${locale}/design/${type}/quote`}
+      action={localePath(`/design/${type}/quote`, locale)}
       className="rounded-lg border border-zinc-200 bg-white p-4"
     >
       {Object.entries(designParams).map(([k, v]) => (
@@ -384,7 +385,26 @@ function PercentField({
   step: number;
   hint?: string;
 }) {
+  /**
+   * 🧷 外部把 `value` 換掉時(例如按「快速套用」preset),欄位要跟著換。
+   *
+   * ⛔ 原本只有 `useState(value ?? 0)` —— 初始值只在**掛載時**取一次。
+   *    `applyPreset` 走的是 `router.replace` 改 URL,同一個 route 只換 query =
+   *    soft navigation,**元件不會 remount** → 折扣 / 議價單價欄位停在舊值。
+   *    畫面上方的總價確實跟著 preset 變了(server 重算),但表單還顯示舊數字;
+   *    使用者接著動任何一欄,舊值就跟著送出去 → **總價被偷偷改回去**。
+   *    (2026-08-21 稽核發現。)
+   *
+   * ✅ 用 React 官方的「render 期間依 prop 重設 state」寫法,而不是 useEffect:
+   *    useEffect 會先用舊值畫一次再修正,中間那一幀使用者看得到閃動。
+   *    https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+   */
   const [frac, setFrac] = useState<number>(value ?? 0);
+  const [lastValue, setLastValue] = useState<number | null>(value);
+  if (value !== lastValue) {
+    setLastValue(value);
+    setFrac(value ?? 0);
+  }
   const displayPct = (frac * 100).toFixed(frac * 100 < 10 ? 1 : 0);
   const minPct = min * 100;
   const maxPct = max * 100;

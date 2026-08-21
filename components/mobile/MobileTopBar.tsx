@@ -38,9 +38,28 @@ export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps)
         >
           ⋯
         </button>
-        <h1 className="font-serif-tc text-base font-bold text-amber-950 truncate flex-1 text-center pr-12">
+        {/*
+          ⛔ 這裡以前是 `pr-12`(48px)—— 用猜的固定值去閃避右上角那組 fixed 元件
+             (mm|inch 切換 + 幣別 + 登入鈕,SiteHeader.tsx:52)。
+             中文版剛好夠,**英文版那組更寬**(單位與幣別的英文字比中文長),
+             實測 iPhone 390px 開 /en/design/chest-of-drawers:
+             h1 佔 x=148–290,而右上那組佔 x=138–224 —— **直接蓋住家具名稱**。
+             (2026-08-21 稽核發現。)
+
+          ✅ 改法:不再猜寬度,而是讓標題**只佔左右兩側之間剩下的空間**:
+             左邊 ⋯ 鈕已經在 flex 裡,右邊補一個與 fixed 那組等寬的佔位
+             (用 min-w 保底 + max-w 讓長名稱自己 truncate)。
+             這樣中英文都不會被蓋,名稱太長時是截斷而不是疊字。
+        */}
+        <h1 className="font-serif-tc text-base font-bold text-amber-950 truncate flex-1 text-center min-w-0">
           {title}
         </h1>
+        {/* 右側佔位:留給 SiteHeader 那組 fixed 元件(單位切換 + 登入)。
+            ⚠️ 不寫死寬度——那組的寬度隨語系變(英文比中文寬一倍),猜一個值必定有一邊錯。
+            比例由**實測最寬的情況**回推:iPhone 390px 的英文版,
+            那組(mm|inch 86px + 登入 78px + gap)含右邊距共約 187px = 48%。
+            中文版較窄、留白多一點無妨;標題過長時是 truncate 而不是疊字。 */}
+        <div aria-hidden className="shrink-0 basis-[48%]" />
       </div>
     </div>
   );
