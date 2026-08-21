@@ -64,9 +64,29 @@ export function computeFloorBom(input: FloorInput, locale: string = "zh-TW"): Fl
   const skirtingActive = input.skirtingType !== "none";
   const skirtingLengthM = Math.max(0, perimeterM - doorDeductM);
 
+  /**
+   * 🧷 **要進貨幾片** —— 「經驗 +10%」必須真的加進數量與成本,不能只寫在備註。
+   *
+   * ⛔ 原本 `wasteMode === "empirical"` 只影響兩個地方:`wastePercent` 顯示成 10%、
+   *    以及備註文字「建議進貨 N 片」。**BOM 的 count 與 plankCost 都用未加損耗的片數。**
+   *    實測預設房間 420×300、地板 3000/坪:
+   *      computed → 56 片 / 材料 NT$11,590 / 總計 NT$16,196
+   *      empirical → **完全一樣的三個數字**,只有備註多一句話。
+   *    結果是 BOM 叫師傅進 62 片,報價卻按 56 片算(少 9.7%)——
+   *    毛利、稅、總價一路連動少收,師傅照報價接單就自己吸收多買的 6 片。
+   *    30 坪的案子少收約 1.5 萬。(2026-08-21 稽核發現。)
+   *
+   * ⚠️ 只加在「要買多少」,不動 layout.planks(那是實際鋪設的排版,本來就該是 56 片)。
+   */
+  const orderPlankCount =
+    input.wasteMode === "empirical"
+      ? Math.ceil(totalPlankCount * (1 + EMPIRICAL_WASTE))
+      : totalPlankCount;
+
   // 成本估算 — 地板/防潮墊每坪、踢腳板每米
   const PING_M2 = 3.305;
-  const boughtPing = plankNominalAreaCm2 / 10000 / PING_M2;
+  const boughtPing =
+    (orderPlankCount * input.plankLengthCm * input.plankWidthCm) / 10000 / PING_M2;
   const plankCost =
     input.plankPricePerPing > 0 ? boughtPing * input.plankPricePerPing : 0;
   const skirtingCost =
@@ -88,14 +108,15 @@ export function computeFloorBom(input: FloorInput, locale: string = "zh-TW"): Fl
     nameZh: "地板片",
     nameEn: "Flooring plank",
     spec: `${input.plankLengthCm}×${input.plankWidthCm} cm`,
-    count: totalPlankCount,
+    // count = **要進貨的片數**(含損耗),跟報價金額同一個數字,不會再兩邊打架
+    count: orderPlankCount,
     note:
       input.wasteMode === "empirical"
-        ? `含經驗損耗 10%;建議進貨 ${Math.ceil(totalPlankCount * 1.1)} 片`
+        ? `排版需 ${totalPlankCount} 片(整片 ${fullPlankCount} + 裁切 ${cutPlankCount}),含經驗損耗 10% 進貨 ${orderPlankCount} 片`
         : `整片 ${fullPlankCount} + 裁切 ${cutPlankCount}(實算損耗 ${wastePercent.toFixed(1)}%)`,
     noteEn:
       input.wasteMode === "empirical"
-        ? `Includes 10% empirical waste; order ${Math.ceil(totalPlankCount * 1.1)} planks`
+        ? `Layout needs ${totalPlankCount} (${fullPlankCount} full + ${cutPlankCount} cut); order ${orderPlankCount} with 10% empirical waste`
         : `${fullPlankCount} full + ${cutPlankCount} cut (actual waste ${wastePercent.toFixed(1)}%)`,
     subtotal: plankCost > 0 ? plankCost : undefined,
   });

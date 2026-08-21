@@ -94,11 +94,13 @@ export function computeCeilingBom(
       count: layout.mainJoistTimberCount,
       note: input.frameDoublesAsSupport
         ? `主支位置 ${layout.mainPositionCount} 處,扣除與邊框重疊 ${layout.mainPositionCount - layout.mainJoistTimberCount} 處 = ${layout.mainJoistTimberCount} 支`
-        : `主支根數 = floor(${input.longSideCm} / ${input.mainSpacingCm}) + 1 = ${layout.mainPositionCount} 支`,
+        // ⚠️ 這句以前寫死公式 `floor(長邊/間距)+1`,但排到牆外的那支會被剔掉
+        //    → 說明的數字跟實際排出的支數對不起來。改成講實際結果。
+        : `主支根數 ${layout.mainPositionCount} 支(間距 ${input.mainSpacingCm}cm,排不進牆內的不列)`,
       noteEn: isEn
         ? input.frameDoublesAsSupport
           ? `${layout.mainPositionCount} main-joist positions, minus ${layout.mainPositionCount - layout.mainJoistTimberCount} that overlap the frame = ${layout.mainJoistTimberCount} pieces`
-          : `Main joist count = floor(${input.longSideCm} / ${input.mainSpacingCm}) + 1 = ${layout.mainPositionCount} pieces`
+          : `${layout.mainPositionCount} main joists at ${input.mainSpacingCm}cm spacing (positions outside the room are dropped)`
         : undefined,
     });
   }
@@ -253,9 +255,32 @@ function computeMainJoistLayout(
   // 排版基準 → 決定剩餘收邊留哪側
   // 「靠左/靠右」會把主支貼邊框內側不重疊;「置中」保持對稱
   const firstCenter = computeFirstCenterByAlignment(input, auto.leftoverCm, n);
+  /**
+   * 🧷 主支中心必須**落在房間裡**。
+   *
+   * ⛔ `n = floor(長邊 / 間距) + 1` 是**假設第一支從 0 開始**算出來的,
+   *    但「靠左」的第一支中心在 `邊框寬 + 半角材`(貼邊框內側不重疊),
+   *    整排往右平移之後,最後一支就會掉到牆外。
+   *    實測預設(角材 3.6、自動間距 90.3、長邊 365、基準=靠左):
+   *      centers = 5.4 / 95.7 / 186 / 276.3 / **366.6** ← 已經超出 365cm 的牆
+   *    而 CeilingOverviewSvg 照 centers 畫,矩形直接畫到房間虛線框外面;
+   *    BOM 仍列 5 支(多買一支),副支也跟著多切一組。(2026-08-21 稽核發現。)
+   *
+   * ✅ 上界跟「靠右」用的是同一條線(`長邊 − 邊框寬 − 半角材`),兩個基準才對稱。
+   *    超出的直接不排 —— 那個位置本來就放不下一支角材。
+   */
+  const minCenter = input.timberWidthCm + input.timberWidthCm / 2;
+  const maxCenter =
+    input.longSideCm - input.timberWidthCm - input.timberWidthCm / 2;
   const centers: number[] = [];
   for (let i = 0; i < n; i++) {
-    centers.push(firstCenter + i * input.mainSpacingCm);
+    const c = firstCenter + i * input.mainSpacingCm;
+    // 容忍 0.01cm 浮點誤差,避免剛好貼齊的那支被誤刪
+    if (c > maxCenter + 0.01) break;
+    // 「靠右」是從右邊反推回來的,支數多一支時第一支會落到**牆左邊外面**
+    //  (實測長邊 365 時第一支中心 = −1.6)。同一個病的另一側,一起擋掉。
+    if (c < minCenter - 0.01) continue;
+    centers.push(c);
   }
 
   // 主支單支長度 = 短邊 − 2 × 邊框寬(對接邊框內側)
@@ -267,13 +292,16 @@ function computeMainJoistLayout(
   //   frameDoublesAsSupport = false → 全部下料
   // BUG 2 fix 2026-05-18:之前用 overlap 偵測 + 強制 fallback 寫得繞,
   // 實際行為就是 -2。改用直接 -2 表達語意清楚(behavior 不變)。
-  let timberCount = n;
-  if (input.frameDoublesAsSupport && n >= 2) {
-    timberCount = n - 2;
+  // ⚠️ 排不下的已經被剔掉,後面的數量一律以 centers.length 為準,
+  //    不然 BOM 會列出畫面上不存在的那一支。
+  const placed = centers.length;
+  let timberCount = placed;
+  if (input.frameDoublesAsSupport && placed >= 2) {
+    timberCount = placed - 2;
   }
 
   return {
-    mainPositionCount: n,
+    mainPositionCount: placed,
     mainJoistCentersCm: centers,
     mainJoistLengthCm,
     mainJoistTimberCount: timberCount,
