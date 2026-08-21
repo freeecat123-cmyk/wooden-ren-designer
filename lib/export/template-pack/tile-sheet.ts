@@ -34,6 +34,7 @@ import {
   holeMarkup,
   holeAngleMarkup,
   shapeLineMarkup,
+  shapeLineNote,
   pickRuler,
   rulerMarkup,
   estTextWidthMm,
@@ -517,6 +518,8 @@ export function tileSheetSvg(input: TileSheetInput): string {
     ` × 全寬 ${Math.round(Math.min(face.w, face.h))}mm`;
   const nameLines = [`${partNo} ${nameZh}${qty > 1 ? ` ×${qty}` : ""}　【${face.faceLabelZh}】`];
   if (faceCount > 1) nameLines.push(`第 ${faceIndex + 1} 面 / 共 ${faceCount} 面`);
+  const shapeNote = shapeLineNote(face);
+  if (shapeNote) nameLines.push(shapeNote);
   const extraLines = [sizeLine, ...nameLines];
 
   const ARROW_COL_W = 9;
