@@ -47,7 +47,18 @@ fi
 #   跑一次約 2 秒,沒有理由不擋在 commit 前面。
 # ⚠️ 故意不做路徑過濾:上面的幾何 audit 因為過濾,金流/權限/匯出的改動一直沒被驗到。
 echo "🧪 Running unit tests..."
-if ! npx vitest run > /tmp/wrd-test.log 2>&1; then
+# ⛔ 這裡以前是裸的 `npx vitest run` —— 它會連**工作區裡的殘留目錄**一起掃：
+#    `.claude/worktrees/*`（agent 用完沒清的整份 repo 副本）與 `node_modules.pnpm-old/`
+#    （改用 npm 前的 pnpm 殘骸，裡面有 zod 自帶的測試，缺 peer dep 必定載入失敗）。
+#    2026-08-22 實測：60 個 FAIL 全數來自這兩處、主樹 0 失敗，
+#    但 hook 只看 exit code → **在這種工作區裡任何 commit 都被擋死**，
+#    逼人改用 --no-verify（等於整層保護失效）或把檔案改名閃開。
+#    注意 vitest 的 --exclude 會**覆蓋**內建預設，所以 node_modules 要自己列回來。
+if ! npx vitest run \
+  --exclude '**/node_modules/**' \
+  --exclude '**/node_modules.pnpm-old/**' \
+  --exclude '**/.claude/**' \
+  > /tmp/wrd-test.log 2>&1; then
   echo ""
   echo "❌ Unit tests failed:"
   echo ""
