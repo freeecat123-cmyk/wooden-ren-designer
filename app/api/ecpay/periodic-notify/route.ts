@@ -207,15 +207,35 @@ export async function POST(req: NextRequest) {
     : Date.now();
   const newExpiresAt = new Date(baseDate + 31 * 86_400_000).toISOString();
 
+  /**
+   * ⚠️ 續扣成功 = 這個人現在是**付費中**，三個地方都要一起還原，少一個就對不起來。
+   *
+   * 原本只寫了 expires_at 與 subscription_status，**沒有寫回 users.plan**。
+   * 實際會發生的事（2026-08-21 稽核，四個環節都逐一驗過）：
+   *   1. 第 2 期扣款失敗 → expires_at 停住
+   *   2. 寬限期過後 /api/cron/subscription-sweep:58-64 把 users.plan 改成 'free'
+   *   3. 第 3 期扣款**成功**，錢真的入帳 → 這裡只補 status 與到期日，plan 仍是 'free'
+   *   4. lib/permissions.ts:179 的 getEffectivePlan 最後一行 `return profile.plan`
+   *      → 回 'free'，整站功能鎖住
+   * 客戶付了錢、收到「扣款成功」信、拿到發票，打開網站什麼都不能用。
+   * 而且 sweep 的查詢帶 `.not("plan","in","(free,lifetime)")`，之後**再也不會撈到他**，
+   * 狀態永久卡死，只能人工處理。
+   *
+   * 同理 subscriptions.status 也要從 'expired' 還原成 'active'：對帳工具只掃 status='active'，
+   * 不還原的話這筆持續扣款中的訂閱會從對帳範圍裡消失。
+   *
+   * ⚠️ 不影響已取消的訂閱：status === "cancelled" 在上面第 92 行就 return 了，走不到這裡。
+   */
   const { error: upSubErr } = await admin
     .from("subscriptions")
-    .update({ expires_at: newExpiresAt })
+    .update({ expires_at: newExpiresAt, status: "active" })
     .eq("id", sub.id);
   if (upSubErr) console.error("[ecpay/periodic-notify] 更新 subscription 失敗", upSubErr);
 
   const { error: upUserErr } = await admin
     .from("users")
     .update({
+      plan: sub.plan,
       subscription_status: "active",
       subscription_expires_at: newExpiresAt,
     })

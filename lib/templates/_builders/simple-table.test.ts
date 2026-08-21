@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { FURNITURE_CATALOG } from "../index";
-import type { FurnitureCatalogEntry, OptionSpec, MaterialId } from "../../types";
+import type { FurnitureCatalogEntry } from "../index";
+import type { OptionSpec, MaterialId, FurnitureDesign } from "../../types";
 
 /**
  * 🧷 弧肩斜腳(curved-taper)的「牙條高」必須是**夾上限**,不是無條件覆寫。
@@ -21,7 +22,9 @@ import type { FurnitureCatalogEntry, OptionSpec, MaterialId } from "../../types"
 const VIA_SIMPLE_TABLE = ["bench", "side-table", "low-table", "dining-table", "desk"] as const;
 
 function entryOf(category: string): FurnitureCatalogEntry {
-  const e = (FURNITURE_CATALOG as FurnitureCatalogEntry[]).find((x) => x.category === category);
+  const e = (FURNITURE_CATALOG as readonly FurnitureCatalogEntry[]).find(
+    (x: FurnitureCatalogEntry) => x.category === category,
+  );
   if (!e) throw new Error(`catalog 找不到 ${category}`);
   return e;
 }
@@ -31,9 +34,11 @@ function specDefault(entry: FurnitureCatalogEntry, key: string): number {
   return Number(s?.defaultValue);
 }
 
-function build(entry: FurnitureCatalogEntry, override: Record<string, unknown>) {
-  const options = (entry.optionSchema ?? []).reduce<Record<string, unknown>>(
-    (acc, s: OptionSpec) => ((acc[s.key] = s.defaultValue), acc),
+type OptVal = string | number | boolean;
+
+function build(entry: FurnitureCatalogEntry, override: Record<string, OptVal>) {
+  const options = (entry.optionSchema ?? []).reduce<Record<string, OptVal>>(
+    (acc: Record<string, OptVal>, s: OptionSpec) => ((acc[s.key] = s.defaultValue as OptVal), acc),
     {},
   );
   return entry.template!({
@@ -46,14 +51,14 @@ function build(entry: FurnitureCatalogEntry, override: Record<string, unknown>) 
 }
 
 /** 牙條零件的實際高度(visible.width)。取第一片,四片同高。 */
-function apronHeight(design: ReturnType<NonNullable<FurnitureCatalogEntry["template"]>>): number {
-  const p = design.parts.find((x) => /牙條|牙板/.test(x.nameZh ?? ""));
+function apronHeight(design: FurnitureDesign): number {
+  const p = design.parts.find((x: FurnitureDesign["parts"][number]) => /牙條|牙板/.test(x.nameZh ?? ""));
   if (!p) throw new Error("找不到牙條零件");
   return p.visible.width;
 }
 
-function apronTopY(design: ReturnType<NonNullable<FurnitureCatalogEntry["template"]>>): number {
-  const p = design.parts.find((x) => /牙條|牙板/.test(x.nameZh ?? ""))!;
+function apronTopY(design: FurnitureDesign): number {
+  const p = design.parts.find((x: FurnitureDesign["parts"][number]) => /牙條|牙板/.test(x.nameZh ?? ""))!;
   return p.origin.y + p.visible.width;
 }
 

@@ -24,6 +24,12 @@ let afterCallbacks: Array<() => Promise<unknown>>;
 let issueInvoiceCalls: unknown[];
 let sendEmailCalls: unknown[];
 let inserts: Array<{ table: string; row: unknown }>;
+/**
+ * ⭐ 這個假 DB 原本只記 insert、把 update 的內容整包丟掉（`update: () => q`）。
+ * 結果是「續扣成功卻沒還原 users.plan」這種**寫錯欄位**的 bug，再怎麼加測試都驗不到——
+ * 因為根本沒人看得到 update 送了什麼。2026-08-21 稽核抓到後補上。
+ */
+let updates: Array<{ table: string; row: Record<string, unknown> }>;
 
 /** CheckMacValue 本身不是這裡的主題，一律當作驗過。 */
 vi.mock("@/lib/ecpay/check-mac-value", () => ({
@@ -87,7 +93,10 @@ function makeQuery(table: string, result: { data: unknown; error: unknown }) {
     neq: () => q,
     order: () => q,
     limit: () => q,
-    update: () => q,
+    update: (row: unknown) => {
+      updates.push({ table, row: (row ?? {}) as Record<string, unknown> });
+      return q;
+    },
     insert: (row: unknown) => {
       inserts.push({ table, row });
       return q;
@@ -148,6 +157,7 @@ beforeEach(() => {
   issueInvoiceCalls = [];
   sendEmailCalls = [];
   inserts = [];
+  updates = [];
   tableResults = {
     payments: { data: PENDING_UNLOCK, error: null },
     tool_unlocks: { data: null, error: null },
@@ -220,5 +230,64 @@ describe("/api/ecpay/periodic-notify", () => {
       callback({ PeriodType: "M", PeriodAmount: "390" }) as any,
     );
     expect(fromCalls).toContain("subscriptions");
+  });
+
+  /**
+   * 🧷 續扣成功後「三個地方一起還原」。
+   *
+   * ⭐ 為什麼非測不可：ACTIVE_SUB 這筆 fixture 的 status 本來就是 "expired"，
+   *   模擬的正是「漏繳一期被 sweep 降級、下一期又扣款成功」的真實情境。
+   *   原本的程式只補 subscription_status 與到期日，**沒有寫回 users.plan**，
+   *   於是 getEffectivePlan（lib/permissions.ts 最後一行 `return profile.plan`）回 'free'：
+   *   客戶付了錢、拿到發票、收到成功信，網站功能全鎖。
+   *   而 sweep 帶 `.not("plan","in","(free,lifetime)")`，之後再也掃不到他 → 永久卡死。
+   */
+  describe("續扣成功後的狀態還原", () => {
+    const renew = async () => {
+      // ⚠️ 這張假 DB 的 payments 預設回 PENDING_UNLOCK（買斷那組測試在用），
+      //    但 route:124-136 會把「查得到同 TradeNo 的 payment」判成重送而提早 return。
+      //    要走到續期那段，這裡必須是「查無此筆」。
+      tableResults.payments = { data: null, error: null };
+      await periodicPOST(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        callback({ PeriodType: "M", PeriodAmount: "390", TradeAmt: "390" }) as any,
+      );
+      await runAfterCallbacks();
+      return {
+        users: updates.filter((u) => u.table === "users").map((u) => u.row),
+        subs: updates.filter((u) => u.table === "subscriptions").map((u) => u.row),
+      };
+    };
+
+    it("① users.plan 要被寫回訂閱本身的方案（不能只補 status）", async () => {
+      const { users } = await renew();
+      const withPlan = users.find((r) => "plan" in r);
+      expect(withPlan, "續扣成功卻完全沒有寫 users.plan").toBeDefined();
+      expect(withPlan!.plan).toBe(ACTIVE_SUB.plan);
+    });
+
+    it("② 同一次 update 也要把 subscription_status 補成 active、帶新到期日", async () => {
+      const { users } = await renew();
+      const row = users.find((r) => "plan" in r)!;
+      expect(row.subscription_status).toBe("active");
+      expect(typeof row.subscription_expires_at).toBe("string");
+    });
+
+    it("③ subscriptions.status 要從 expired 還原成 active（不然對帳工具掃不到）", async () => {
+      const { subs } = await renew();
+      const row = subs.find((r) => "expires_at" in r);
+      expect(row, "沒有更新 subscriptions").toBeDefined();
+      expect(row!.status).toBe("active");
+    });
+
+    it("④ ⚠️保護既有行為：已取消的訂閱收到扣款通知，絕不可以被反轉成 active", async () => {
+      tableResults.subscriptions = {
+        data: { ...ACTIVE_SUB, status: "cancelled" },
+        error: null,
+      };
+      const { users, subs } = await renew();
+      expect(users.some((r) => r.plan || r.subscription_status === "active")).toBe(false);
+      expect(subs.some((r) => r.status === "active")).toBe(false);
+    });
   });
 });
