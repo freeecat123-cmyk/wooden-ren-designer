@@ -210,6 +210,38 @@ zMax = bendMm > 0 ? +lzL/2 + bendMm : +lzL/2
 ex: 椅腳 / 後仰靠背的圓柱支撐）會跑出三角形怪形狀。這 case 走 A9 公式手算
 silhouette polygon 就對了。
 
+**A9.5b round 圓盤：判軸看「哪兩邊相等」，不是「哪邊最長」（2026-08-21）**
+A9.5 的修法在 `projectPartSilhouette` 用 `longestIsY`（thickness 最長 = 圓柱腳）
+判「圓截面在 X-Z、沿 Y 擠出」。**圓盤（圓桌面 700×700×25、圓座板 350×350×25）的
+thickness 是最短邊**，判不出來 → 掉進通用 bbox 角採樣 → 俯視輪廓變成一個正方形。
+
+3D 跟三視圖看起來沒事，是因為 `svg-views.tsx` 在繪圖層自己改畫圓
+（`projectPartPolygon` 的 round 分支註解寫著「俯視維持矩形，caller 改畫圓」），
+**但任何吃幾何資料的下游拿到的就是那個正方形** —— 1:1 實尺樣板照著印出一張
+正方形，木工描著切就是錯的。
+
+判軸的正確依據：圓截面所在的那兩軸必然等長。
+```
+axisIsY = |lx − lz| ≤ 0.5mm      → 圓截面在 X-Z（腳、立柱、圓盤都算）
+（ly ≈ lz → 軸 = X，橫桿／紡錘，走主 sample loop 舊路徑）
+條件：isRound && (round-tapered || longestIsY || axisIsY)
+```
+保留 `longestIsY` 是為了不動到「ly 最長但 lx≠lz」的橢圓截面既有行為。
+
+**圓的採樣點數要跟半徑走**：弦中點誤差 = `R(1 − cos(π/N))`。固定 16 點對腳、
+把手夠用，對 700mm 圓盤是 `350×(1−cos(π/16)) ≈ 6.7mm` —— 一般用途（AABB /
+overlap）看不出差別，但 1:1 樣板是照著描的，6.7mm 直接變成切錯 6.7mm。
+```
+N = clamp(⌈π / acos(1 − 0.2mm / R)⌉, 16, 128)
+R = median(lx, ly, lz) / 2   ← 圓截面在兩個相等的邊上，擠出方向是第三邊，
+                                所以中位數必然是圓的直徑
+```
+用 `max` 會把 450mm 高的圓腳誤判成 R=225 而過度採樣；用 `min` 會把圓盤誤判成板厚。
+
+⚠️ **尚未處理**（同一類「幾何資料是外接矩形」的問題，2026-08-21 盤點）：
+`shape.axis:"z"` 的圓件（黃銅圓把手）silhouette 忽略 axis 欄位、`hoof` 馬蹄足與
+`lathe-turned` 車旋輪廓在 silhouette 沒有分支，三者拿到的都還是矩形。
+
 **A9.6 三視圖必須同步**
 改任一視圖 transform 前確認另兩個視圖會跟著對。X 旋轉只動 YZ，所以：
 - 正視：X 不變、Y 範圍會拉寬（max yR − min yR）

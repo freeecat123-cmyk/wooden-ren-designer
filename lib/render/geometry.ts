@@ -357,7 +357,28 @@ export function projectPartSilhouette(
   // Round / round-tapered / lathe-turned / shaker：截面圓形，採樣 N 點而非 4 角
   const isRound = part.shape?.kind === "round" || part.shape?.kind === "round-tapered"
     || part.shape?.kind === "lathe-turned";
-  const ROUND_SAMPLES = 16;
+  /**
+   * 圓截面採樣點數。固定 16 點對腳、把手這種小圓件夠用,對大圓盤不夠:
+   * 弦中點誤差 = R(1−cos(π/N)),700mm 圓盤用 16 點是 350×(1−cos(π/16)) ≈ 6.7mm。
+   * 一般用途(AABB / overlap)看不出差別,但 1:1 實尺樣板是照著描的,6.7mm 直接
+   * 變成切錯 6.7mm。所以點數跟半徑走,把誤差壓在 ROUND_SAGITTA_TOL_MM 以內。
+   *
+   * 下限 16 維持小零件的既有行為;上限 128 擋住極端尺寸把點數炸開
+   * (128 點對 1000mm 圓的誤差是 0.3mm,已經遠低於木工實務解析度)。
+   */
+  const ROUND_SAGITTA_TOL_MM = 0.2;
+  // 圓的半徑取三邊的「中位數」÷2:圓截面一定落在兩個相等的邊上,擠出方向是第三邊,
+  // 所以中位數必然是圓的直徑。圓盤 (700,700,25)→700、圓腳 (40,40,450)→40、
+  // 橫桿 (300,20,20)→20,三種都準。用 max 會把 450mm 高的圓腳誤判成 R=225 而
+  // 過度採樣,用 min 則會把圓盤誤判成板厚。
+  const roundR = [lx, ly, lz].sort((a, b) => a - b)[1] / 2;
+  const ROUND_SAMPLES = (() => {
+    if (roundR <= 0) return 16;
+    const c = 1 - ROUND_SAGITTA_TOL_MM / roundR;
+    if (c <= -1) return 16;
+    const n = Math.ceil(Math.PI / Math.acos(Math.min(1, c)));
+    return Math.min(128, Math.max(16, n));
+  })();
 
   const projected: Array<{ x: number; y: number }> = [];
   const pushPoint = (xL: number, yL: number, zL: number) => {
@@ -623,7 +644,19 @@ export function projectPartSilhouette(
   // 正視/側視投影塌成水滴狀（user 2026-06-13 圓錐腳正視畫錯）。長軸 = X 的橫桿/
   // 紡錘維持舊路徑（圓截面 Y-Z）。round-tapered 一律是腳故恆走這條。
   const longestIsY = ly >= lx && ly >= lz;
-  if (isRound && (part.shape?.kind === "round-tapered" || longestIsY)) {
+  // 圓盤（圓桌面 700×700×25、圓座板 350×350×25）：圓截面同樣在 X-Z、沿 Y 擠出，
+  // 但 thickness 是**最短**邊，longestIsY 判不出來 → 掉進下面的通用 bbox 角採樣
+  // → 俯視輪廓變成一個正方形。3D 跟三視圖看起來沒事，是因為 svg-views 在繪圖層
+  // 自己改畫圓（projectPartPolygon 的 round 分支註解就寫著「俯視維持矩形，caller
+  // 改畫圓」），但任何吃幾何資料的下游拿到的就是那個正方形——1:1 實尺樣板會照著
+  // 印出一張正方形，木工描著切就是錯的（2026-08-21 抓到）。
+  //
+  // 判軸的正確依據不是「哪邊最長」，是「哪兩邊相等」：圓截面所在的那兩軸必然等長。
+  // lx≈lz → 軸 = Y（腳、立柱、圓盤都算）；ly≈lz → 軸 = X（橫桿/紡錘，走舊路徑）。
+  // 保留 longestIsY 是為了不動到「ly 最長但 lx≠lz」的橢圓截面既有行為。
+  const AXIS_TOL_MM = 0.5;
+  const axisIsY = Math.abs(lx - lz) <= AXIS_TOL_MM;
+  if (isRound && (part.shape?.kind === "round-tapered" || longestIsY || axisIsY)) {
     const sc0 = tapered; // round-tapered 的 bottomScale；round / lathe-turned = 1
     for (const eyS of [-1, 1] as const) {
       const yL = (eyS * ly) / 2;
