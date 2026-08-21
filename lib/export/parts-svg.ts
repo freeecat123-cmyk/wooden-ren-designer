@@ -118,6 +118,16 @@ export function partsSvgFiles(design: FurnitureDesign): Record<string, string> {
   const used = new Set<string>();
   groups.forEach((g, i) => {
     const rep = g.representative;
+    /**
+     * ⛔ 非木材(玻璃、五金、把手…帶 `visual` 提示的零件)**不進切割圖**。
+     *    這個檔案裡 `isCuttable()` 的註解就寫明了這條規則,套料那支也照做,
+     *    只有輪廓 / 加工面這兩支漏掉 → 玻璃門展示櫃的輪廓 ZIP 裡有玻璃片與銅古董把手、
+     *    五斗櫃有銅把手、相框有玻璃。那些是買來的件,印成切割圖只會讓人拿去鋸一片玻璃。
+     *    (2026-08-21 稽核發現;同一支檔案自相矛盾。)
+     * ⚠️ 用 `return` 跳過而不是先 filter:`i` 要維持原順序,
+     *    P-xx 編號必須跟零件卡 / 材料單對得起來。
+     */
+    if (!isCuttable(rep)) return;
     const code = `P-${String(i + 1).padStart(2, "0")}`;
     const name0 = groupDisplayName(g, "zh");
     const base = safeFileName(`${code}_${name0}`);
@@ -342,6 +352,16 @@ export function joineryFacesSvgFiles(design: FurnitureDesign): Record<string, st
   };
   groups.forEach((g, i) => {
     const rep = g.representative;
+    /**
+     * ⛔ 非木材(玻璃、五金、把手…帶 `visual` 提示的零件)**不進切割圖**。
+     *    這個檔案裡 `isCuttable()` 的註解就寫明了這條規則,套料那支也照做,
+     *    只有輪廓 / 加工面這兩支漏掉 → 玻璃門展示櫃的輪廓 ZIP 裡有玻璃片與銅古董把手、
+     *    五斗櫃有銅把手、相框有玻璃。那些是買來的件,印成切割圖只會讓人拿去鋸一片玻璃。
+     *    (2026-08-21 稽核發現;同一支檔案自相矛盾。)
+     * ⚠️ 用 `return` 跳過而不是先 filter:`i` 要維持原順序,
+     *    P-xx 編號必須跟零件卡 / 材料單對得起來。
+     */
+    if (!isCuttable(rep)) return;
     const code = `P-${String(i + 1).padStart(2, "0")}`;
     const name0 = groupDisplayName(g, "zh");
     const qtyTag = g.count > 1 ? ` ×${g.count}` : "";
@@ -434,7 +454,30 @@ export function nestedJoinerySheetSvgFiles(
     const rep = g.representative;
     if (!isCuttable(rep)) return;
     const stock = partStock(rep);
-    const faces = partNestPieces(rep, `P-${String(i + 1).padStart(2, "0")}`, derivedFor(rep, derivedMap));
+    const allFaces = partNestPieces(rep, `P-${String(i + 1).padStart(2, "0")}`, derivedFor(rep, derivedMap));
+    /**
+     * ⚠️ **套料只排「主加工面」一片,不是每個面各排一片。**
+     *
+     * 這顆鈕自己的說明就是這樣寫的(ThreeDExportButton.tsx:201):
+     *   「兩面都有孔的零件(如桌腳)**只排主面**,另一面請用『榫孔加工面 ZIP』翻面加工。」
+     *
+     * ⛔ 但程式把 `partNestPieces` 回的**每一個軸的面都排進去**,再乘上數量:
+     *      `for (let k = 0; k < g.count; k++) items.push(...pieces)`
+     *    實測方凳:同一支腳出現 `P-01 正面` 與 `P-01 右端` 兩片 → 4 支腳排成 **8 片**,
+     *    料量整整翻倍,而且每片只有一半的榫孔。使用者照這張圖買板/下料就會多買一倍。
+     *    (2026-08-21 稽核發現。)
+     *
+     * 「主面」的判準沿用 `partNestPieces` 內部同一套:**榫孔多的優先,同數取面積大的**。
+     * 另一面本來就有 ZIP 那條路可以走,不是資訊遺失。
+     */
+    const primary = allFaces.reduce((best, f) =>
+      !best ||
+      f.holes.length > best.holes.length ||
+      (f.holes.length === best.holes.length && f.w * f.h > best.w * best.h)
+        ? f
+        : best,
+    );
+    const faces = primary ? [primary] : [];
     const pieces = faces.map((f) =>
       orientGrain({
         label: f.label,
