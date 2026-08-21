@@ -53,8 +53,8 @@ function holeCentre(h: MachiningFace["holes"][number]): { x: number; y: number }
 
 export function pickTemplateFaces(part: Part, derived: DerivedMortise[] = []): MachiningFace[] {
   // 算兩次：只有真母榫的版本當權威，含反推的版本用來補漏。
-  const realByKey = new Map(partMachiningFaces(part, []).map((f) => [f.faceKey, f]));
-  const faces = partMachiningFaces(part, derived).map((f) => {
+  const realByKey = new Map(partMachiningFaces(part, [], "blank").map((f) => [f.faceKey, f]));
+  const faces = partMachiningFaces(part, derived, "blank").map((f) => {
     const real = realByKey.get(f.faceKey);
     if (!real) return f; // 整個面只有反推孔（範本沒建母榫的接合）→ 全留
     const realCentres = real.holes.map(holeCentre).filter(Boolean) as Array<{ x: number; y: number }>;

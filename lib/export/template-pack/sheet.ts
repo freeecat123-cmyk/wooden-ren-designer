@@ -91,6 +91,41 @@ export function holeMarkup(h: FaceHole): string {
   ].join("");
 }
 
+/**
+ * 榫孔旁的鑿孔角度標註。
+ *
+ * 每一個孔都標，不是只標傾斜的——沒標等於留給使用者猜，猜錯的代價是整組牙條
+ * 頂不緊（木頭仁 2026-08-21:「榫孔旁邊必須要標出這個口要鑿什麼角度」）。
+ * 垂直的寫「垂直」，傾斜的寫「斜 5°」並加粗。
+ */
+export function holeAngleMarkup(h: FaceHole): string {
+  const pts = h.pts ?? (h.cx != null && h.cy != null && h.r != null
+    ? [{ x: h.cx - h.r, y: h.cy - h.r }, { x: h.cx + h.r, y: h.cy + h.r }]
+    : []);
+  if (!pts.length) return "";
+  const x = Math.max(...pts.map((p) => p.x)) + 2;
+  const y = (Math.min(...pts.map((p) => p.y)) + Math.max(...pts.map((p) => p.y))) / 2 + 1.2;
+  const deg = h.angleDeg ?? 0;
+  const text = deg > 0 ? `斜 ${deg}°` : "垂直";
+  return (
+    `<text data-mark="hole-angle" x="${r2(x)}" y="${r2(y)}" font-family="PackCJK"` +
+    ` font-size="3.2" font-weight="${deg > 0 ? 700 : 400}" fill="#000">${esc(text)}</text>`
+  );
+}
+
+/**
+ * 成型線（切完造型的那條，要鋸掉方料到這條線）。
+ *
+ * 灰色虛線，跟方料的黑實線分得開——兩條都是黑實線的話，描的人分不出該切哪條。
+ */
+export function shapeLineMarkup(face: { shapeOutline?: Array<{ x: number; y: number }> }): string {
+  if (!face.shapeOutline?.length) return "";
+  return (
+    `<path data-mark="shape-line" d="${outlinePathD(face.shapeOutline)}" fill="none"` +
+    ` stroke="#666" stroke-width="${STROKE_MM}" stroke-dasharray="4 2"/>`
+  );
+}
+
 // ---------------------------------------------------------------------------
 // 版面幾何（純函式，sheet.test.ts 用它守住旋轉平移那條式子）
 // ---------------------------------------------------------------------------
@@ -352,12 +387,14 @@ export function templateSheetSvg(input: TemplateSheetInput): string {
 
   const geometry = [
     `<path d="${outlinePathD(face.outline)}" fill="none" stroke="#000" stroke-width="${STROKE_MM}"/>`,
+    shapeLineMarkup(face),
     ...(face.tenons ?? []).map(
       (tn) =>
         `<path d="${outlinePathD(tn.pts)}" fill="none" stroke="#000" stroke-width="${STROKE_MM}"><title>${esc(tn.label + "（公榫）")}</title></path>`,
     ),
     ...face.holes.map(holeMarkup),
-  ].join("\n    ");
+    ...face.holes.map(holeAngleMarkup),
+  ].filter(Boolean).join("\n    ");
 
   // 名稱牌內容。面別一定要出現——方料腳四個面外觀完全一樣，不標就會貼錯 90°；
   // 多加工面時再加一行「第 N 面 / 共 M 面」，使用者才知道還有另一張要翻面做。

@@ -344,13 +344,13 @@ async function bundlePdfTs() {
  *  動過 pdf.ts 本體（DOM 隱藏方式、字型註冊順序……）的問題都會在這裡冒出來。 */
 async function buildPdfB64(page, sheet, fontB64) {
   return page.evaluate(
-    async ([svgs, pw, ph, fontB64]) => {
-      const bytes = await window.TemplatePackPdf.svgsToPdf(svgs, pw, ph, fontB64);
+    async ([svgs, pw, ph, fontB64, title]) => {
+      const bytes = await window.TemplatePackPdf.svgsToPdf(svgs, pw, ph, fontB64, { title });
       let s = "";
       for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
       return btoa(s);
     },
-    [sheet.svgs, sheet.pw, sheet.ph, fontB64],
+    [sheet.svgs, sheet.pw, sheet.ph, fontB64, `驗證 — ${sheet.name}`],
   );
 }
 
@@ -487,6 +487,21 @@ async function runVerification(browser, plan, fontB64) {
     for (const sheet of plan.sheets) {
       const result = await rasterizeAndMeasure(checkPage, port, pdfB64ByName[sheet.name], sheet.hasRuler, sheet.rulerBox);
       results.push({ name: sheet.name, ...result });
+
+      // 文件屬性不可以是空的:空白 metadata + 程式產生器是防毒啟發式的加分項,
+      // 使用者的 Avast 就因此把樣板 PDF 誤判成 PDF:MalwareX-gen 丟進隔離區
+      // (拆檔掃過,無任何可執行構件)。同時順手確認沒有混進可執行構件。
+      const rawPdf = Buffer.from(pdfB64ByName[sheet.name], "base64").toString("latin1");
+      for (const key of ["/Title", "/Author", "/Creator"]) {
+        if (!rawPdf.includes(key)) {
+          failures.push(`✕ ${sheet.name}.pdf 缺少文件屬性 ${key} —— 空白 metadata 容易被防毒誤判`);
+        }
+      }
+      for (const bad of ["/JavaScript", "/Launch", "/EmbeddedFile", "/XFA", "/SubmitForm"]) {
+        if (rawPdf.includes(bad)) {
+          failures.push(`✕ ${sheet.name}.pdf 出現可執行構件 ${bad} —— 樣板 PDF 不該有這種東西`);
+        }
+      }
 
       const cjkOk = /[一-鿿]/.test(result.text);
       if (!cjkOk) {

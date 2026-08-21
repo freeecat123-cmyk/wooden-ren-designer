@@ -565,6 +565,25 @@ export function projectPartSilhouette(
     return projectPartPolygon(part, view);
   }
 
+  // hoof（馬蹄足）／ lathe-turned（車旋）：projectPartPolygon 早就有真實輪廓
+  // （hoof 6 點外撇、lathe-turned 12 段車旋），silhouette 卻沒有分支，於是吃
+  // 幾何資料的下游拿到一根直條矩形——中式方角櫃那四根 35×1478 的立柱在 A4 拼接
+  // 模式真的會印出來（6 張），馬蹄那段在 1:1 樣板上完全不存在，照著描會做成直腳
+  // （2026-08-21 盤點到，跟圓盤那個是同一類問題）。
+  //
+  // ⚠️ 只在「沒有旋轉」時 delegate。這兩條 polygon 分支都是 view-name 硬畫
+  // （假設零件直立），橫躺的話軸向會整個不對——那正是 §A9.7 shaker 踩過的坑。
+  // 帶旋轉時維持原本的通用採樣（形狀是矩形近似，但位置與 AABB 正確）。
+  // 樣板路徑本來就把 rotation 歸零後才呼叫（mortise-faces / parts-svg 的
+  // toLocalPart），所以這個守衛不影響它。
+  if (
+    part.shape &&
+    (part.shape.kind === "hoof" || part.shape.kind === "lathe-turned") &&
+    rx === 0 && ry === 0 && rz === 0
+  ) {
+    return projectPartPolygon(part, view);
+  }
+
   // 夏克風腳：上方 squareFrac 方頂（方截面）+ 下方圓錐（圓截面 taper 到 bottomScale）。
   // projectPartPolygon 的 view-name 硬畫梯形假設 taper 沿垂直 r.h 軸，零件圖橫躺
   // （rotation.z=-π/2）時軸向不對。改在 local frame 整支採樣 → rotate → project →

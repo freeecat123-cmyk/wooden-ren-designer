@@ -102,11 +102,37 @@ export async function fetchFontSubset(svgs: string[]): Promise<string> {
  * ⚠️ 目前只有 Noto Sans TC Regular 一種粗細，normal / bold 都註冊同一支字型檔——
  *    700 的字不會亂碼，只是不會真的變粗（刻意接受，見 task-6-brief）。
  */
+export interface PdfMeta {
+  /** 文件標題,會顯示在 PDF 閱讀器的視窗標題列。 */
+  title: string;
+  /** 一句話說明這份檔案是什麼。 */
+  subject?: string;
+}
+
+/**
+ * 產出檔案的固定文件屬性。
+ *
+ * 為什麼要設:2026-08-21 使用者的防毒(Avast)把 `02_樣板_A4.pdf` 判成
+ * `PDF:MalwareX-gen [Scam]` 丟進隔離區。實際拆檔掃過,裡面**沒有任何可執行
+ * 構件**——沒有 /JavaScript、/JS、/Launch、/EmbeddedFile、/URI、/XFA;唯一的
+ * /OpenAction 是 `[3 0 R /FitH null]`,純粹是「開檔跳到第幾頁」的位置指示,
+ * 不是動作字典。所以那是誤判。
+ *
+ * 但當時整份檔案的文件屬性**全是空的**(沒有 Title / Author / Subject /
+ * Creator,Producer 只有 "jsPDF 4.2.1")——「空白 metadata + 程式產生器」正是
+ * 啟發式引擎評分時的加分項。補上老實的屬性不保證不再被誤判,但拿掉了一個
+ * 明確的可疑訊號,順帶讓 PDF 在閱讀器裡有正確標題。
+ */
+const PDF_AUTHOR = "木頭仁 木作藍圖";
+const PDF_CREATOR = "木作藍圖 designer.woodenren.com";
+const PDF_KEYWORDS = "木工,家具,1:1 實尺樣板,woodworking template";
+
 export async function svgsToPdf(
   svgs: string[],
   pageWmm: number,
   pageHmm: number,
   fontB64: string,
+  meta?: PdfMeta,
 ): Promise<Uint8Array> {
   const { jsPDF } = await import("jspdf");
   const { svg2pdf } = await import("svg2pdf.js");
@@ -116,6 +142,15 @@ export async function svgsToPdf(
     format: [pageWmm, pageHmm],
     orientation: pageWmm >= pageHmm ? "landscape" : "portrait",
   });
+  if (meta) {
+    doc.setProperties({
+      title: meta.title,
+      subject: meta.subject ?? meta.title,
+      author: PDF_AUTHOR,
+      creator: PDF_CREATOR,
+      keywords: PDF_KEYWORDS,
+    });
+  }
   doc.addFileToVFS("PackCJK.ttf", fontB64);
   doc.addFont("PackCJK.ttf", "PackCJK", "normal");
   doc.addFont("PackCJK.ttf", "PackCJK", "bold");
