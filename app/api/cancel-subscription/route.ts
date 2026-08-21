@@ -11,6 +11,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { assertEcpayConfigured } from "@/lib/ecpay/config";
+import { cancelLemonSqueezySubscription } from "@/lib/lemon-squeezy/cancel";
 import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 
 export const runtime = "nodejs";
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   // 之前只取 .limit(1) 的最新一筆,留下 zombie active。
   const { data: subs, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, ecpay_merchant_trade_no, status")
+    .select("id, ecpay_merchant_trade_no, status, payment_provider, lemonsqueezy_subscription_id")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("started_at", { ascending: false });
@@ -54,10 +55,51 @@ export async function POST(req: NextRequest) {
   // 還在自動扣)。已成功 terminate 的不回滾(綠界端終止無法撤回,反正也對使用者有利)。
   const results: Array<{ subId: string; orderId: string | null; ok: boolean; rtnCode?: string; rtnMsg?: string }> = [];
   for (const sub of subs) {
-    if (!sub.ecpay_merchant_trade_no) {
-      // 沒 merchant_trade_no 的(theoretically shouldn't happen for active sub)→ 跳過 ECPay,只標 DB
+    /**
+     * ⛔ 這一段原本是「沒有綠界訂單編號 → 跳過金流商、只把 DB 標成 cancelled、回報成功」。
+     *    Lemon Squeezy(國際版)的訂閱正好沒有 ecpay_merchant_trade_no,
+     *    於是每一筆 LS 訂閱按取消都走進這裡:**畫面說已取消,LS 照樣每個月扣款**,
+     *    而且我們的 DB 還顯示他已經取消,對帳完全看不出來。(2026-08-21 稽核發現。)
+     */
+    if (sub.payment_provider === "lemonsqueezy" || sub.lemonsqueezy_subscription_id) {
+      if (!sub.lemonsqueezy_subscription_id) {
+        console.error("[cancel-subscription] LS 訂閱缺 lemonsqueezy_subscription_id,無法取消", {
+          subId: sub.id,
+        });
+        results.push({ subId: sub.id, orderId: null, ok: false, rtnMsg: "缺少 LS 訂閱編號" });
+        continue;
+      }
+      const ls = await cancelLemonSqueezySubscription(sub.lemonsqueezy_subscription_id);
+      if (!ls.ok) {
+        console.error("[cancel-subscription] LS 取消失敗,不標 DB(避免畫面說取消了卡還在扣)", {
+          subId: sub.id,
+          status: ls.status,
+          detail: ls.detail,
+        });
+        results.push({
+          subId: sub.id,
+          orderId: sub.lemonsqueezy_subscription_id,
+          ok: false,
+          rtnMsg: ls.detail ?? "LS 取消失敗",
+        });
+        continue;
+      }
       await admin.from("subscriptions").update({ status: "cancelled" }).eq("id", sub.id);
-      results.push({ subId: sub.id, orderId: null, ok: true });
+      results.push({ subId: sub.id, orderId: sub.lemonsqueezy_subscription_id, ok: true });
+      continue;
+    }
+
+    if (!sub.ecpay_merchant_trade_no) {
+      /**
+       * ⚠️ 走到這裡 = 既不是 LS、也沒有綠界訂單編號 —— 沒有任何金流商可以通知。
+       *    以前這裡直接標 cancelled 並回報成功,等於「假裝取消」。
+       *    現在標 DB 但**回報失敗**,讓呼叫端知道要人工確認,不會給使用者假的安心。
+       */
+      console.error("[cancel-subscription] 訂閱沒有任何金流商識別碼,只能標 DB,需人工確認", {
+        subId: sub.id,
+      });
+      await admin.from("subscriptions").update({ status: "cancelled" }).eq("id", sub.id);
+      results.push({ subId: sub.id, orderId: null, ok: false, rtnMsg: "查無金流商識別碼,請人工確認自動扣款已停止" });
       continue;
     }
     const r = await terminateEcpayPeriodic(sub.ecpay_merchant_trade_no);

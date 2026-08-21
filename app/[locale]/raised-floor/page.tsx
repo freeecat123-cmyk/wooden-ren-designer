@@ -13,7 +13,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
-import { fetchUnlockedTools } from "@/lib/tool-unlocks";
+import { fetchUnlockedToolsResult } from "@/lib/tool-unlocks";
 import { bilingualAlternates } from "@/i18n/metadata";
 import { RaisedFloorClient } from "./RaisedFloorClient";
 import { RaisedFloorMarketing } from "./RaisedFloorMarketing";
@@ -57,7 +57,7 @@ export default async function RaisedFloorPage({
   }
 
   // 已登入:plan 含 canUseRaisedFloorTool OR 已單買 "raised-floor" 解鎖 → 工具
-  const { data: profile } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from("users")
     .select("plan,subscription_status,subscription_expires_at,student_expires_at")
     .eq("id", user.id)
@@ -66,8 +66,28 @@ export default async function RaisedFloorPage({
     profile as UserPlanProfile | null,
     "canUseRaisedFloorTool",
   );
-  const unlockedTools = await fetchUnlockedTools(createAdminClient(), user.id);
-  const boughtUnlock = unlockedTools.includes("raised-floor");
+  const unlockResult = await fetchUnlockedToolsResult(createAdminClient(), user.id);
+  const boughtUnlock = unlockResult.tools.includes("raised-floor");
+  /**
+   * ⛔ 「查不到」不等於「沒買過」。
+   *    supabase 查詢失敗不會 throw,而是回 `{ data: null, error }`。
+   *    原本只解構 data → profile 變 null → canUseFeature(null) 判成免費版
+   *    → **對已經付費的客戶顯示銷售頁**,他會以為自己買的東西不見了。
+   *    解鎖清單那邊也一樣(fetchUnlockedTools 把 failed 旗標丟掉了)。
+   *    資料庫抖一下就會發生,而且不會留下任何線索。
+   *
+   *    這裡故意 throw 讓 app/[locale]/error.tsx 接手:顯示「暫時無法讀取」比
+   *    謊稱他沒有權限好。⚠️不可以改成放行——那會變成 DB 一壞就人人有權限。
+   */
+  if (profileErr || unlockResult.failed) {
+    console.error("[raised-floor] 讀取權限失敗,不當成沒權限", {
+      userId: user.id,
+      profileErr: profileErr?.message,
+      unlockFetchFailed: unlockResult.failed,
+    });
+    throw new Error("暫時無法確認你的方案狀態,請稍後再試一次。");
+  }
+
   if (!planAllows && !boughtUnlock) {
     return <RaisedFloorMarketing status="loggedInNoAccess" />;
   }

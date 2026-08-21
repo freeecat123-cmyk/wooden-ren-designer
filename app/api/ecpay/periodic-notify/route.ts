@@ -219,9 +219,19 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
-  // 成功：延長 31 天（從現有到期日 + 31 天，不從 now，保證連續性）
+  /**
+   * 成功:延長 31 天。起算點取「現有到期日」與「今天」之中**比較晚的那個**。
+   *
+   * - 正常按時扣款 → 到期日在未來 → 從到期日接續,服務不中斷(原本的用意,保留)
+   * - ⛔ 但原本寫成無條件用 `sub.expires_at`,漏繳一期就會出事:
+   *     第 2 期(D31)扣款失敗 → 到期日停在 D31
+   *     第 3 期(D61)扣款**成功**,收了整整一個月的錢
+   *     → D31 + 31 = D62,他只買到 **1 天**服務。
+   *   原本的註解寫「保證連續性」,但那個假設只在每一期都成功時成立。
+   *   (2026-08-21 稽核發現,跟「續扣不還原 users.plan」是同一個情境的另一半。)
+   */
   const baseDate = sub.expires_at
-    ? new Date(sub.expires_at).getTime()
+    ? Math.max(new Date(sub.expires_at).getTime(), Date.now())
     : Date.now();
   const newExpiresAt = new Date(baseDate + 31 * 86_400_000).toISOString();
 

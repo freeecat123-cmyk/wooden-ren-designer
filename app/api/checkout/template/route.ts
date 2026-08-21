@@ -73,12 +73,29 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
 
   // 已解鎖過 → 不要重複收錢
-  const { data: existing } = await admin
+  const { data: existing, error: existingErr } = await admin
     .from("template_unlocks")
     .select("id")
     .eq("user_id", user.id)
     .eq("category", category)
     .maybeSingle();
+  /**
+   * ⛔ 原本只解構 data、把 error 丟掉。supabase-js 查詢失敗不會 throw,
+   *    而是回 `{ data: null, error }` → existing 變成 null → 判定「還沒買過」
+   *    → **對已經買過的人再收一次錢**。
+   * 「查不到」跟「沒有」是兩件事:查詢壞掉時要讓結帳失敗,不是放行。
+   */
+  if (existingErr) {
+    console.error("[checkout/template] 查既有解鎖失敗,拒絕開單(不能當成沒買過)", {
+      userId: user.id,
+      category,
+      error: existingErr.message,
+    });
+    return NextResponse.json(
+      { error: "unavailable", message: "系統忙碌中,請稍後再試一次(不會重複扣款)。" },
+      { status: 503 },
+    );
+  }
   if (existing) {
     return NextResponse.json(
       { error: "already_unlocked", message: "你已經買過這個範本了" },

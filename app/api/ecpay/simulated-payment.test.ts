@@ -535,6 +535,54 @@ describe("/api/ecpay/periodic-notify", () => {
       });
     });
 
+    /**
+     * 🧷 漏繳一期之後補扣成功,要拿到「完整的一個月」,不是 1 天。
+     * ⛔ 原本 `baseDate = sub.expires_at` 無條件用舊到期日:
+     *   第 2 期(D31)失敗 → 到期日停在 D31;第 3 期(D61)成功收了整月的錢
+     *   → D31 + 31 = D62,只買到 1 天。
+     */
+    it("⑩ 漏繳一期後補扣成功 → 從今天起算 31 天,不是從過期的到期日往後加", async () => {
+      const DAY = 86_400_000;
+      tableResults.payments = { data: null, error: null };
+      tableResults.subscriptions = {
+        data: { ...ACTIVE_SUB, expires_at: new Date(Date.now() - 30 * DAY).toISOString() },
+        error: null,
+      };
+      await periodicPOST(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        callback({ PeriodType: "M", PeriodAmount: "390", TradeAmt: "390" }) as any,
+      );
+      const row = updates
+        .filter((u) => u.table === "users")
+        .map((u) => u.row)
+        .find((r) => "subscription_expires_at" in r);
+      const days = Math.round(
+        (new Date(row!.subscription_expires_at as string).getTime() - Date.now()) / DAY,
+      );
+      expect(days).toBe(31);
+    });
+
+    it("⑪ 負向對照:按時扣款(到期日還在未來)仍要從到期日接續,不可以改成從今天算", async () => {
+      const DAY = 86_400_000;
+      tableResults.payments = { data: null, error: null };
+      tableResults.subscriptions = {
+        data: { ...ACTIVE_SUB, expires_at: new Date(Date.now() + 5 * DAY).toISOString() },
+        error: null,
+      };
+      await periodicPOST(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        callback({ PeriodType: "M", PeriodAmount: "390", TradeAmt: "390" }) as any,
+      );
+      const row = updates
+        .filter((u) => u.table === "users")
+        .map((u) => u.row)
+        .find((r) => "subscription_expires_at" in r);
+      const days = Math.round(
+        (new Date(row!.subscription_expires_at as string).getTime() - Date.now()) / DAY,
+      );
+      expect(days).toBe(36); // 5 + 31,服務不中斷
+    });
+
     it("④ ⚠️保護既有行為：已取消的訂閱收到扣款通知，絕不可以被反轉成 active", async () => {
       tableResults.subscriptions = {
         data: { ...ACTIVE_SUB, status: "cancelled" },
