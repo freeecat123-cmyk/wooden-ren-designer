@@ -201,17 +201,49 @@ function buildTrestleDiningTable(input: {
       rotation: { x: 0, y: Math.PI / 2, z: 0 },
       tenons: [],
       mortises: [
-        // 中央橫木 mortise（內側 X 面）
+        /**
+         * 中央橫木 mortise:開在底足的**內側面**(朝另一個框的那一面)。
+         *
+         * ⛔ 原本 `origin.x = ±(frameFootWidth / 2 − 17)` = ±33.5。但這個零件的
+         *    local X 是 `visible.length` = 571(§A9.1),±33.5 落在**料的中段**、
+         *    根本不是任何一個面;`origin.z` 又給 0(深度方向置中)→ 沒有可辨識的面,
+         *    `mortiseLocalBox` 只好退到底面。
+         *    (frameFootWidth=101 是這個零件的 local Z,不是 X —— 拿錯軸了。)
+         *
+         * ✅ 正解:`origin.z` 給**真實座標**,離內側面剛好 depth/2(= 榫眼中心該在的位置)。
+         *    `mortiseLocalBox`(svg-views.tsx:854-884)是用「離哪個面最近」決定入榫軸的:
+         *    Y 置中時離上下面各 25,所以 Z 必須比 25 更靠近它那一面才會被選中
+         *    —— ±1 的 sign-flag 在這個零件行不通(離 Z 面還有 49.5)。
+         *    §A10.9 的 ±1 形式只在「其他軸都不含糊」時才夠用。
+         */
         {
-          origin: { x: fx < 0 ? +frameFootWidth / 2 - 17 : -frameFootWidth / 2 + 17, y: frameFootThickness / 2, z: 0 },
+          origin: {
+            x: 0,
+            y: frameFootThickness / 2,
+            z: (fx < 0 ? +1 : -1) * (frameFootWidth / 2 - 35 / 2),
+          },
           depth: 35,
           length: centerStretcherWidth - 12,
           width: 18,
           through: false,
         },
-        // 2 腳 bottom 榫眼（頂面，朝 +Y）
-        { origin: { x: -frameLegSpacing / 2, y: frameFootThickness / 2 - LEG_FACE_INSET, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
-        { origin: { x: +frameLegSpacing / 2, y: frameFootThickness / 2 - LEG_FACE_INSET, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
+        /**
+         * 2 腳 bottom 榫眼:立柱站在底足**上面**,榫頭朝下插進來 → 榫眼開在**頂面**。
+         *
+         * §A10.9:Mortise 的 **Y 是 part-local 從底量的真實座標**,而且
+         * `origin = mortise CENTER`。所以要開在頂面、深 `legBotTenonLen` 的榫眼,
+         * 中心必須在 `frameFootThickness − legBotTenonLen / 2`。
+         *
+         * ⛔ 原本寫 `frameFootThickness / 2 − LEG_FACE_INSET`(= 50/2 − 1 = 24)。
+         *    LEG_FACE_INSET 是「標哪一面」用的 ±1 **旗標**(§A10.9 明講「只用來標哪一面,
+         *    不是實際座標」),只能用在 X / Z;拿去減 Y 的結果是榫眼中心落在料的正中間
+         *    再往下 1mm → `mortiseLocalBox` 的「最近表面」解成**底面**。
+         *    實測「榫孔加工面 ZIP / 1:1 實尺樣板」:trestle 底足只吐出一張
+         *    `bottom 底面 571×101`,三個孔全跑到底面而且位置也錯 —— **照圖銑必毀料**。
+         *    (2026-08-21 稽核發現。中央橫木那個榫眼開在側面,y = 厚/2 置中是對的,不動。)
+         */
+        { origin: { x: -frameLegSpacing / 2, y: frameFootThickness - legBotTenonLen / 2, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
+        { origin: { x: +frameLegSpacing / 2, y: frameFootThickness - legBotTenonLen / 2, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
       ],
     });
   }

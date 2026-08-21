@@ -44,6 +44,20 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
  * maker 切料看的「實際下料長」需要再 + 兩端榫頭長。
  */
 export function grossPartDims(part: Part): { L: number; W: number; T: number } {
+  /**
+   * ⚠️ **物理尺寸要以 `joineryView.visible` 為準**(§A10.1)。
+   *
+   * `visible` 是「組裝版」幾何,只管畫面看起來對;`joineryView.visible` 才是實際下料尺寸
+   * (例如 45° 斜角接合會讓料延伸過重疊區)。`lib/geometry/cut-dimensions.ts:18`
+   * 早就寫明這件事並照做,但這張零件卡自己另寫了一份、只讀 `visible`。
+   *
+   * ⛔ 實測 /design/tray 選「斜角拼(45°)」+「壁外撇 15°」:
+   *      joineryView 的實際下料長 = 427.9mm,零件卡卻寫 **400mm**(短 28mm)。
+   *    材料單與報價走的是 calculateCutDimensions(正確的 427.9),兩邊對不起來。
+   *    木工照零件卡備 400mm 的料,複斜 miter 鋸完頂端長度不夠 → **四片牆全部報廢重買**。
+   *    (2026-08-21 稽核發現。)
+   */
+  const phys = part.joineryView?.visible ?? part.visible;
   let extL = 0;
   let extW = 0;
   let extT = 0;
@@ -57,9 +71,9 @@ export function grossPartDims(part: Part): { L: number; W: number; T: number } {
   // 弧高才切得出弧形（user 2026-06-02「沒有寫最厚厚度」）。
   const archBend = part.shape?.kind === "arch-bent" ? (part.shape.bendMm ?? 0) : 0;
   return {
-    L: (part.visible.length ?? 0) + extL,
-    W: (part.visible.width ?? 0) + extW + archBend,
-    T: (part.visible.thickness ?? 0) + extT,
+    L: (phys.length ?? 0) + extL,
+    W: (phys.width ?? 0) + extW + archBend,
+    T: (phys.thickness ?? 0) + extT,
   };
 }
 
