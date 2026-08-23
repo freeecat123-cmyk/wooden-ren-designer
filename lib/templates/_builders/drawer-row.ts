@@ -1,4 +1,5 @@
 import type { MaterialId, Part } from "@/lib/types";
+import { warnOnce } from "../_helpers";
 
 /**
  * 抽屜列共用 builder。原本嵌在 case-furniture 的 `renderDrawerZone` 與
@@ -286,8 +287,10 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     ((cfg.drawerBottomMode ?? "surface") === "surface" ? (cfg.drawerBottomThickness ?? 3) : 0);
   const maxRows = Math.max(1, Math.floor(zoneH / (MIN_DRAWER_H + perRowOverhead)));
   const rows = Math.min(requestedRows, maxRows);
+
   if (rows < requestedRows) {
-    console.warn(
+    warnOnce(
+      "drawer-rows",
       `[drawer-row] ${idPrefix}:區域高 ${zoneH.toFixed(0)}mm 放不下 ${requestedRows} 排,` +
         `已夾到 ${rows} 排(每排至少需要 ${(MIN_DRAWER_H + perRowOverhead).toFixed(0)}mm)`,
     );

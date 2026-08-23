@@ -31,6 +31,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
 | 端面側單肩 / mortise 邊緣保護 | `"端面側單肩\|edge-protection\|10mm 留材"` | §A10.10 |
+| 零件算成負尺寸 / 滑桿拉到底就爆 | `"負尺寸\|clampLegInset\|MIN_ZONE_H"` | §A10.11 |
 | 錐形腳 / 倒錐腳 → 牙條/橫撐補償 | `"tapered 補償\|legScaleAt\|legBottomScale"` | §A11 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
 | hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
@@ -472,6 +473,37 @@ mortise 跟外側端面距離 = 5mm < 10，自動觸發 5mm 偏移；對 legInse
 公榫件（tenon 所在）也要。Apron 等旋轉零件目前不在自動偏移範圍。
 
 ---
+
+**A10.11 零件尺寸不准是零或負數（滑桿上限 ≠ 幾何上限）**
+
+OptionSpec 的 `max` 是**寫死的常數**，跟這件家具實際多大無關。使用者把滑桿拉到底，
+下游公式就可能算出 ≤ 0 的零件尺寸 —— 而且**不會丟例外**，會安安靜靜流進裁切單、
+報價、3D 匯出。2026-08-21 全站掃描：28 款裡 14 款中招。
+
+已知會產生負尺寸的四條公式（都在「讀選項的地方」夾，不要在下游補）：
+
+| 公式 | 何時變負 | 夾在哪 |
+|---|---|---|
+| `牙板長 = length − 2×legW − 2×legInset`（§A10.2） | 窄家具 + 大腳內縮 | `clampLegInset()` @ `_helpers.ts` |
+| `門框開口 = 門寬 − 2×梃寬`、`門高 − 2×檔寬` | 矮區 / 多扇門 | `stileW`/`railW` effective @ `case-furniture.ts` |
+| `perDoorW = (區寬 − 縫) / 門扇數` | 窄櫃塞多扇門 | `doorCount` @ `case-furniture.ts` |
+| zone / layer 高度分配 | 某幾層吃光內高 | `MIN_ZONE_H=60` @ `case-furniture.ts`、`MIN_LAYER_H=60` @ `chinese-cabinet.ts` |
+
+三條規則：
+
+1. **夾輸入不夾輸出。** 在 `getOption()` 讀進來的那一行就夾，下游全部自動安全；
+   在某個 use-site 夾，同一個變數的其他 use-site 還是會爆（square-stool 就踩過）。
+2. **夾了要留痕。** 靜默把使用者設的 4 欄改成 3 欄本身就是 bug。走 `warnOnce(kind, msg)`
+   （用**類別**當 key，訊息帶尺寸所以整句去重沒用）或 `design.warnings`。
+3. **有效值不等於名目值。** `legSize` 可能被 `legWidthOverride` / `legDepthOverride`
+   蓋掉（最大 120mm > legSize），夾制要用 `Math.max()` 取實際會用到的值。
+
+**驗證：** `npm run audit:negative-dims`（基線 **0 / 28**，跟 audit-overlaps 不同，
+這支是硬 0、不是比對前後）＋ `lib/templates/__tests__/negative-dims.test.ts`
+（單選項極值 × 三種尺寸、任兩選項同時推極值）。
+
+⚠️ **只夾證明得出來的。** 加夾制前先拆掉它跑一次掃描確認會紅 —— 抽屜欄數那條當初
+加了，但任何組合都證不出它修到東西，就拿掉了（沒壞硬改 = 平白限制功能）。
 
 ### A11. Tapered 腳跟橫撐／牙條對齊
 

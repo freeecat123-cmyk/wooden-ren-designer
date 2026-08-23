@@ -21,6 +21,7 @@ import {
   apronEdgeStyleOption,
   apronProfileOptions,
   stretcherProfileOptions,
+  clampLegInset,
 } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 
@@ -99,9 +100,27 @@ export const lowTable: FurnitureTemplate = (input) => {
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
   // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
-  const legInset = (seatOutline === "oval" || seatOutline === "petal") && !liveEdge && dropLeaf === "none"
+  const _legInsetWanted = (seatOutline === "oval" || seatOutline === "petal") && !liveEdge && dropLeaf === "none"
     ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
     : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條會被算成**負長度**。
+   *
+   * §A10.2:`visible.length = length − 2×legSize − 2×legInset (+2×splay)`。
+   * doc 沒給 legInset 上限,而 OptionSpec 的 max 是**寫死的常數**(150~400)跟家具尺寸無關,
+   * 小尺寸家具把滑桿拉到底就會產出負長度的牙條 —— 完全沒有警告,
+   * 負值一路流進材料單、裁切與報價(負材積、負價格)。
+   * (2026-08-21 稽核只報了「床頭櫃抽屜」一條;實際全掃發現 10 個模板都中。)
+   *
+   * ⚠️ 夾的是**輸入**不是輸出:把零件長度夾成 0 只會生出沒厚度的鬼零件,
+   *    使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,畫面看得見也做得出來。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    legW: legSize,
+    legD: legSize,
+  });
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const design = simpleTable({

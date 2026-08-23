@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ, clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -106,9 +106,29 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
   // 滿版圓／橢圓（含海棠形）椅面：自動抬高椅腳內縮讓腳（含頂榫）落在輪廓內、防露榫
-  const legInset = seatOutline === "oval" || seatOutline === "petal"
+  const _legInsetWanted = seatOutline === "oval" || seatOutline === "petal"
     ? ovalMinLegInset(length, width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
     : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條會被算成**負長度**。
+   *
+   * §A10.2:`visible.length = length − 2×legSize − 2×legInset (+2×splay)`。
+   * doc 沒給 legInset 上限,而 OptionSpec 的 max 是**寫死的常數**(150~400)跟家具尺寸無關,
+   * 小尺寸家具把滑桿拉到底就會產出負長度的牙條 —— 而且完全沒有警告,
+   * 負值一路流進材料單、裁切與報價(負材積、負價格)。
+   * (2026-08-21 稽核只報了「床頭櫃抽屜」一條;實際全掃發現 10 個模板都中。)
+   *
+   * ⚠️ 夾的是**輸入**不是輸出:把零件長度夾成 0 只會生出一堆沒厚度的鬼零件,
+   *    使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,畫面看得見也做得出來。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length,
+    width,
+    // ⚠️ 腳寬 / 腳厚可被 legWidthOverride / legDepthOverride 蓋掉(最大 120mm > legSize)。
+    // 夾制要用**實際會用到的最大值**,不然扁腳 + 大內縮時牙板照樣算成負長度。
+    legW: Math.max(legSize, getOption<number>(input, opt(o, "legWidthOverride"))),
+    legD: Math.max(legSize, getOption<number>(input, opt(o, "legDepthOverride"))),
+  });
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));

@@ -1526,3 +1526,17 @@ export function clampLegInset(
   // cap < 0 = 這個尺寸連內縮 0 都放不下(家具本身太小),回 0 是能做的最好結果
   return Math.max(0, Math.min(legInset, cap));
 }
+
+/**
+ * 同一「類」警告只印一次（key 是類別，不是整句）。
+ *
+ * 夾制觸發時要留痕（不然靜默修正就是另一個 bug），但全模板 × 全選項掃描會把
+ * 同類警告印四千遍，CI log 直接被淹掉。訊息裡帶著實際尺寸所以整句去重沒用，
+ * 要用類別當 key。
+ */
+const _warnedOnce = new Set<string>();
+export function warnOnce(kind: string, msg: string): void {
+  if (_warnedOnce.has(kind)) return;
+  _warnedOnce.add(kind);
+  console.warn(`${msg}（同類警告只印一次）`);
+}

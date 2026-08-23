@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { renderDrawerZone as renderDrawerZoneShared, makePullParts as makePullPartsShared } from "./drawer-row";
+import { warnOnce } from "../_helpers";
 
 export interface CaseFurnitureOpts {
   category: FurnitureCategory;
@@ -312,6 +313,38 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   // match internal dividers / shelves. The mirror-pair skip in extract.ts
   // prevents the false positive where a side's own tongue would match its
   // mirror sibling's added mortise.
+  /**
+   * 🧷 分層高度的正值下限 —— 這是「負尺寸零件」最後一類、也是最難追的一類。
+   *
+   * ⛔ 每個模板自己算 zone 高度(shoe-cabinet 的 `innerHTotal − upperHeight`、
+   *    chinese-cabinet 的分層比例、zone-helpers 的 topH/midH/botH 壓縮),三套算法
+   *    都可能算出 ≤ 0 的層高:腳拉高 400mm、上層設 600mm,下層就剩 −26mm。
+   *    層高是負的 → 那層裡面的門 / 抽屜 / 層板**全部**變負尺寸,一路流進裁切單跟報價。
+   *
+   * 與其在三個模板各補一次(下一個新家具又會漏),不如夾在共同的消費端:
+   * 進到 caseFurniture 的 zone 一律至少 MIN_ZONE_H,並把「櫃子被塞爆」寫進警告。
+   *
+   * MIN_ZONE_H = 60mm:再矮連一個薄抽屜都放不下(§N 五金孔位:滑軌最小高度)。
+   * type === "none" 的空層維持 0,那是使用者故意留白、不產生任何零件。
+   */
+  if (opts.zones && opts.zones.length > 0) {
+    const MIN_ZONE_H = 60;
+    const squeezed: string[] = [];
+    for (const z of opts.zones) {
+      const hasParts = !(z.type === "shelves" && (z.count ?? 0) === 0);
+      if (hasParts && z.heightMm < MIN_ZONE_H) {
+        squeezed.push(`${z.type} ${Math.round(z.heightMm)}mm`);
+        z.heightMm = MIN_ZONE_H;
+      }
+    }
+    if (squeezed.length > 0) {
+      const msg =
+        `分層高度被擠到 ${squeezed.join("、")}，低於可用最小值 ${MIN_ZONE_H}mm，已自動撐開。` +
+        `實際做出來的櫃子會比設定高，請降低腳高、減少分層，或把某一層的高度調小。`;
+      (opts.warnings ??= []).push(msg);
+    }
+  }
+
   if (opts.zones && opts.zones.length > 0) {
     let cursor = 0;
     for (let i = 0; i < opts.zones.length; i++) {
@@ -798,17 +831,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const zoneCx = cfg.xCenter ?? 0;
     const zoneW = cfg.colInnerW ?? innerW;
     // 門框木條寬度（橫檔+豎梃同寬，傳統明清家具慣例）+ 厚度，可透過 option 覆寫
-    const stileW = opts.doorFrameRailWidth ?? 60;
-    const railW = opts.doorFrameRailWidth ?? 60;
+    const stileWReq = opts.doorFrameRailWidth ?? 60;
+    const railWReq = opts.doorFrameRailWidth ?? 60;
     const frameT = opts.doorFrameThickness ?? 22;
     const slabT = 18; // 平板門厚
     const panelT_door = 9; // 木鑲板厚度（玻璃時不計）
-    const cornerTenonLen = Math.round(stileW * 0.6);
-    // 門框榫卯尺寸（正規 cabinet door joinery）：
-    // 榫寬（沿 rail width 方向） = railW × 2/3 = 40mm，留 1/6 雙肩各 10mm
-    // 榫厚（沿 frameT 方向） = frameT / 3 ≈ 7mm，留約 1/3 雙肩各 7.5mm（防豎梃挖太空）
-    const doorTenonW = Math.round((railW * 2) / 3);
-    const doorTenonT = Math.round(frameT / 3);
     const grooveDepth = 8;
     const doorZoneH = cfg.height;
     const doorZoneBottomY = cfg.yStart;
@@ -833,7 +860,29 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     } else {
       totalSpan = zoneW + extendLeft + extendRight - 2 * outerGap;
     }
-    const perDoorW = (totalSpan - (cfg.count - 1) * middleGap) / cfg.count;
+    /**
+     * 🧷 夾住「一個區域裡塞幾扇門」—— 否則門框橫檔會被算成**負長度**。
+     *
+     * ⛔ `perDoorW = (totalSpan − 縫) / count` 沒有下限,而框門的橫檔長
+     *    `innerOpenW = perDoorW − 2 × stileW`。門一多,perDoorW 掉到 2×stileW 以下,
+     *    橫檔跟玻璃片就變負尺寸零件(而且完全沒有警告,直接進裁切單 / 報價)。
+     *    實測:展示櫃 topCount=8 → 24 個負件、床頭櫃 bottomCount=8 → 24 個。
+     *
+     * 下限分兩種:
+     *   框門(木鑲板 / 玻璃)= 2 × 梃寬 + 40mm,留 40mm 給鑲板 / 玻璃,不然只剩一條縫。
+     *   平板門 = 100mm,再窄鉸鏈杯孔(Ø35)+ 邊距裝不下。
+     */
+    const minLeafW = doorType === "slab" ? 100 : 2 * stileWReq + 40;
+    const maxLeaves = Math.max(1, Math.floor((totalSpan + middleGap) / (minLeafW + middleGap)));
+    const doorCount = Math.min(cfg.count, maxLeaves);
+    if (doorCount < cfg.count) {
+      warnOnce(
+        "door-leaf-count",
+        `[case-furniture] ${idPrefix}:區域寬 ${totalSpan.toFixed(0)}mm 放不下 ${cfg.count} 扇門,` +
+          `已夾到 ${doorCount} 扇(每扇至少 ${minLeafW}mm)`,
+      );
+    }
+    const perDoorW = (totalSpan - (doorCount - 1) * middleGap) / doorCount;
     // X 中心修正：左右延伸不對稱時，整組門需位移 (extendRight - extendLeft) / 2
     const zoneCxAdj = zoneCx + (extendRight - extendLeft) / 2;
 
@@ -849,7 +898,35 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const doorYBase = doorZoneBottomY + outerGap - extendBottom;
     const doorOuterHFull = doorZoneH - 4 + extendBottom + extendTop;
 
-    for (let i = 0; i < cfg.count; i++) {
+    /**
+     * 🧷 夾住門框梃 / 檔的寬度 —— 否則鑲板 / 玻璃會被算成**負尺寸**。
+     *
+     * ⛔ 框門的鑲板開口是 `門寬 − 2×梃寬` × `門高 − 2×檔寬`。
+     *    梃寬 / 檔寬是使用者選的固定值(預設 60mm),跟這個區域實際多高多寬無關
+     *    → 矮區(展示櫃 bottomHeight=80、床頭櫃被上層擠到只剩 102mm)算出來的
+     *    鑲板高是負的,直接進裁切單跟報價,沒有任何警告。
+     *
+     * 這也是實際做法:門洞矮的時候木工本來就會把橫檔做窄一點,不會硬用 60mm。
+     * 留 MIN_OPENING = 20mm 給鑲板 / 玻璃,梃 / 檔本身最少 10mm(再窄開不了榫)。
+     */
+    const MIN_OPENING = 20;
+    const stileW = Math.max(10, Math.min(stileWReq, (perDoorW - MIN_OPENING) / 2));
+    const railW = Math.max(10, Math.min(railWReq, (doorOuterHFull - MIN_OPENING) / 2));
+    if (doorType !== "slab" && (stileW < stileWReq || railW < railWReq)) {
+      warnOnce(
+        "door-frame-width",
+        `[case-furniture] ${idPrefix}:門洞 ${perDoorW.toFixed(0)}×${doorOuterHFull.toFixed(0)}mm 放不下 ` +
+          `${stileWReq}mm 的框料,已收窄成 梃${stileW.toFixed(0)} / 檔${railW.toFixed(0)}mm`,
+      );
+    }
+    const cornerTenonLen = Math.round(stileW * 0.6);
+    // 門框榫卯尺寸（正規 cabinet door joinery）：
+    // 榫寬（沿 rail width 方向） = railW × 2/3 = 40mm，留 1/6 雙肩各 10mm
+    // 榫厚（沿 frameT 方向） = frameT / 3 ≈ 7mm，留約 1/3 雙肩各 7.5mm（防豎梃挖太空）
+    const doorTenonW = Math.round((railW * 2) / 3);
+    const doorTenonT = Math.round(frameT / 3);
+
+    for (let i = 0; i < doorCount; i++) {
       const xCenter =
         zoneCxAdj - totalSpan / 2 + i * (perDoorW + middleGap) + perDoorW / 2;
       const doorOuterW = perDoorW;
@@ -901,15 +978,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         const slabPullInset = 40;
         const slabPullOffset = doorOuterW / 2 - slabPullInset;
         const slabPullX =
-          cfg.count === 2
+          doorCount === 2
             ? i === 0
               ? xCenter + slabPullOffset
               : xCenter - slabPullOffset
-            : cfg.count === 1 && cfg.pullSide === "center"
+            : doorCount === 1 && cfg.pullSide === "center"
               ? xCenter
-              : cfg.count === 1 && cfg.pullSide === "right"
+              : doorCount === 1 && cfg.pullSide === "right"
                 ? xCenter + slabPullOffset
-                : cfg.count === 1
+                : doorCount === 1
                   ? xCenter - slabPullOffset
                   : xCenter;
         parts.push(...makePullParts(
@@ -1236,15 +1313,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       //       pullSide 可覆寫為 right，或 "center" 顯式放板心。3 扇以上 → 居中。
       const innerStileOffset = doorOuterW / 2 - stileW / 2;
       const pullX =
-        cfg.count === 2
+        doorCount === 2
           ? i === 0
             ? xCenter + innerStileOffset // 左門 → 把手在右側內框
             : xCenter - innerStileOffset // 右門 → 把手在左側內框
-          : cfg.count === 1 && cfg.pullSide === "center"
+          : doorCount === 1 && cfg.pullSide === "center"
             ? xCenter
-            : cfg.count === 1 && cfg.pullSide === "right"
+            : doorCount === 1 && cfg.pullSide === "right"
               ? xCenter + innerStileOffset
-              : cfg.count === 1
+              : doorCount === 1
                 ? xCenter - innerStileOffset // 預設：把手靠左側豎梃
                 : xCenter;
       parts.push(...makePullParts(
@@ -1598,7 +1675,19 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         const effectiveDoorType = (z as { doorTypeOverride?: "wood" | "glass" | "slab" }).doorTypeOverride ?? doorType ?? "wood";
         const innerShelves = z.doorInnerShelves ?? 0;
         const doorHasHanging = z.doorInnerHanging === true;
-        const nDoorCols = Math.max(1, z.cols ?? 1);
+        /**
+         * 🧷 夾住門的欄數 —— 否則子欄寬會變負數。
+         *
+         * ⛔ 下面 `subUsableW = innerW − (nDoorCols−1) × panelT` 沒有下限:
+         *    櫃寬放不下那麼多欄門時,每扇門會被算成 0 或負寬 → 門板 / 門框全是負尺寸零件。
+         *    實測:展示櫃 topDoorCols=4 → 24 個負件、床頭櫃 bottomDoorCols=4 → 10 個。
+         *
+         * MIN_DOOR_W 取 150mm:再窄的門鉸鏈裝不下(西德鉸鏈杯孔 Ø35 + 邊距)。
+         */
+        const MIN_DOOR_W = 150;
+        const _doorColsWanted = Math.max(1, z.cols ?? 1);
+        const maxDoorCols = Math.max(1, Math.floor((innerW + panelT) / (MIN_DOOR_W + panelT)));
+        const nDoorCols = Math.min(_doorColsWanted, maxDoorCols);
         if (nDoorCols < 2) {
           renderDoorZone({
             yStart, height: usableH,

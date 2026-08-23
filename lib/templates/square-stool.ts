@@ -133,9 +133,26 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 滿版圓／橢圓（含海棠形）椅面：自動抬高腳內縮讓腳（含頂榫）完整落在輪廓內、防露榫
   // （比照 arch-out 榫上移先例；腳/牙條/橫撐位置全體一致跟著 legInset 移動）
   // 海棠形瓣間凹谷在對角＝腳的位置 → margin 額外加瓣深
-  const legInset = seatOutline === "oval" || seatOutline === "petal"
+  const _legInsetWanted = seatOutline === "oval" || seatOutline === "petal"
     ? ovalMinLegInset(length, width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
     : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條 / 橫撐會被算成**負長度**(§A10.2)。
+   *
+   * ⚠️ 這裡是**定義處**夾一次,不是在某個使用點夾。
+   *    先前只在 `_halfLx` 那一行用 `_legInsetSafe` 夾,但這個檔案裡還有別的地方直接用
+   *    `legInset`(座板倒角、橫撐位置…),那些沒吃到夾制 → 拉到 max=200 時仍會產出
+   *    8 個負尺寸零件。**在定義處夾,下游全部自動安全。**
+   *    legSize 是方腳邊長(legW / legD 由它推),此時尚未宣告,所以用 legSize。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length,
+    width,
+    // ⚠️ 腳寬 / 腳厚可被 legWidthOverride / legDepthOverride 蓋掉(最大 120mm > legSize)。
+    // 夾制要用**實際會用到的最大值**,不然扁腳 + 大內縮時牙板照樣算成負長度。
+    legW: Math.max(legSize, getOption<number>(input, opt(o, "legWidthOverride"))),
+    legD: Math.max(legSize, getOption<number>(input, opt(o, "legDepthOverride"))),
+  });
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const legEdge = getOption<string>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
@@ -193,10 +210,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   const legHeight = height - seatThickness;
   // 非方腳：X 用 legW、Z 用 legD 各自算角落內縮（取代 corners() 的方腳假設）
-  // 夾住內縮量,避免牙條/橫撐算成負長度(§A10.2;見 _helpers.ts clampLegInset)
-  const _legInsetSafe = clampLegInset(legInset, { length: length, width: width, legW: legW, legD: legD });
-  const _halfLx = length / 2 - legW / 2 - _legInsetSafe;
-  const _halfWz = width / 2 - legD / 2 - _legInsetSafe;
+  // legInset 已在定義處夾過(見上方 clampLegInset),這裡直接用,不要再夾第二次
+  const _halfLx = length / 2 - legW / 2 - legInset;
+  const _halfWz = width / 2 - legD / 2 - legInset;
   const legCorners = [
     { x: -_halfLx, z: -_halfWz },
     { x: _halfLx, z: -_halfWz },

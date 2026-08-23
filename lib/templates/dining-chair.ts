@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -134,9 +134,29 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
   // 滿版圓／橢圓（含海棠形）椅面：自動抬高椅腳內縮讓腳（含頂榫）落在輪廓內、防露榫
-  const legInset = seatOutline === "oval" || seatOutline === "petal"
+  const _legInsetWanted = seatOutline === "oval" || seatOutline === "petal"
     ? ovalMinLegInset(length, width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
     : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條會被算成**負長度**。
+   *
+   * §A10.2:`visible.length = length − 2×legSize − 2×legInset (+2×splay)`。
+   * doc 沒給 legInset 上限,而 OptionSpec 的 max 是**寫死的常數**(150~400)跟家具尺寸無關,
+   * 小尺寸家具把滑桿拉到底就會產出負長度的牙條 —— 完全沒有警告,
+   * 負值一路流進材料單、裁切與報價(負材積、負價格)。
+   * (2026-08-21 稽核只報了「床頭櫃抽屜」一條;實際全掃發現 10 個模板都中。)
+   *
+   * ⚠️ 夾的是**輸入**不是輸出:把零件長度夾成 0 只會生出沒厚度的鬼零件,
+   *    使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,畫面看得見也做得出來。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    // ⚠️ 腳寬 / 腳厚可被 legWidthOverride / legDepthOverride 蓋掉(最大 120mm > legSize)。
+    // 夾制要用**實際會用到的最大值**,不然扁腳 + 大內縮時牙板照樣算成負長度。
+    legW: Math.max(legSize, getOption<number>(input, opt(o, "legWidthOverride"))),
+    legD: Math.max(legSize, getOption<number>(input, opt(o, "legDepthOverride"))),
+  });
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const rearPostMode = getOption<string>(input, opt(o, "rearPostMode"));
   const isContinuous = rearPostMode !== "split";
@@ -214,7 +234,21 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const topRailHeightOpt = getOption<number>(input, opt(o, "backTopRailHeight"));
   const topRailThickness = getOption<number>(input, opt(o, "backTopRailThickness"));
   const backInsetFromRearMm = getOption<number>(input, opt(o, "backInsetFromRearMm"));
-  const backInsetFromEndMm = getOption<number>(input, opt(o, "backInsetFromEndMm"));
+  /**
+   * 🧷 夾住椅背內縮 —— 否則頂橫木會被算成**負長度**。
+   *
+   * ⛔ 背柱中心在 ±(length/2 − legW/2 − inset),頂橫木照 §A10.2 的 butt-joint 算法
+   *    `length − 2×legW − 2×inset`。滑桿上限 200 是寫死的、跟椅寬無關
+   *    → 窄椅拉到底就產出負長度的頂橫木(實測預設椅 = −20mm),直接進裁切單。
+   *
+   * MIN_BACK_SPAN 取 150mm:兩根背柱之間再窄就不是椅背了,人靠不上去(§O 人體工學)。
+   */
+  const _backInsetWanted = getOption<number>(input, opt(o, "backInsetFromEndMm"));
+  const MIN_BACK_SPAN = 150;
+  const backInsetFromEndMm = Math.max(
+    0,
+    Math.min(_backInsetWanted, (input.length - 2 * legW - MIN_BACK_SPAN) / 2),
+  );
   const stretcherStyle = getOption<string>(input, opt(o, "stretcherStyle"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const lowerStretcherWidthOpt = getOption<number>(input, opt(o, "lowerStretcherWidth"));

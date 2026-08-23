@@ -488,6 +488,30 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const scale = innerHeight / totalH;
     layerHeights = layerHeights.map(h => h * scale);
   }
+
+  /**
+   * 🧷 每層高度的正值下限 —— 否則整層的門 / 抽屜 / 層板全是負尺寸零件。
+   *
+   * ⛔ 上面 `autoHeight = max(0, innerHeight − 指定值總和) / 自動層數`:
+   *    只要使用者指定的幾層加起來就吃光內高(例:第 1、3 層各設 800mm),
+   *    剩下沒指定的層就分到 **0mm**,而後面的等比縮放只會讓 0 還是 0。
+   *    那層的門板 / 抽屜面板長寬就變成負的,直接進裁切單跟報價,毫無提示。
+   *
+   * MIN_LAYER_H = 60mm:再矮連一個薄抽屜都放不下(§N 五金孔位)。
+   * 撐開後總高會超過內高,所以要同時發警告 —— 不能默默做出一個裝不下的櫃子。
+   */
+  const MIN_LAYER_H = 60;
+  const squeezedLayers: number[] = [];
+  layerHeights = layerHeights.map((h, i) => {
+    if (h >= MIN_LAYER_H) return h;
+    squeezedLayers.push(i + 1);
+    return MIN_LAYER_H;
+  });
+  const layerWarnings: string[] = squeezedLayers.length > 0
+    ? [`第 ${squeezedLayers.join("、")} 層被擠到不足 ${MIN_LAYER_H}mm，已自動撐開。` +
+       `其他層指定的高度加起來已經吃掉整個內高 ${Math.round(innerHeight)}mm，` +
+       `請把某幾層的高度調小、或改成 0 讓它自動分配。`]
+    : [];
   // 累積：每層底端 Y 位置 = innerBottomY + 前 i 層高度之和
   const layerBottomYs: number[] = [];
   let acc = innerBottomY;
@@ -2026,6 +2050,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       : `${isCompound ? "中式頂箱櫃（compound）" : isRoundCorner ? "中式圓角櫃（splay-leg）" : "中式方角櫃"}（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ ${skirtStyle === "arched" ? "壼門" : skirtStyle === "cloud-head" ? "雲頭" : "直線素牙"}（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；4 立柱頂角為粽角榫（三向交會：上抹+側抹+頂蓋）—明式櫃靈魂榫卯，傳統做法是立柱頂端開十字槽容納兩條抹頭+頂蓋；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。${balustradeStyle !== "none" ? "頂層設 shelf 配圍欄即成万歷櫃形制。" : ""}${standingBraceStyle !== "none" ? "立柱底加站牙穩固。" : ""}${friezePanel !== "none" ? "頂蓋下絛環板裝飾橫帶。" : ""}${panelInlayActive ? "板心嵌屏心（中央開光）。" : ""}`,
   };
 
+  if (layerWarnings.length > 0) design.warnings = [...(design.warnings ?? []), ...layerWarnings];
   applyStandardChecks(design, {
     minLength: 500, minWidth: 250, minHeight: 600,
     maxLength: 1500, maxWidth: 600, maxHeight: isCompound ? 2600 : 2200,

@@ -12,7 +12,7 @@
     "assert": "for f in $(git ls-files '*.assert.ts'); do echo \"-- $f\" && npx tsx \"$f\" || exit 1; done",
     "verify": "npm run typecheck && npm run test && npm run audit",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
-    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts && tsx scripts/audit-dead-checkboxes.ts",
+    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts && tsx scripts/audit-dead-checkboxes.ts && tsx scripts/audit-negative-dims.ts",
     "audit:overlaps": "tsx scripts/audit-overlaps.ts",
     "audit:joints": "tsx scripts/audit-joints.ts",
     "audit:joinery-dims": "tsx scripts/audit-joinery-dynamic-dims.ts",
@@ -21,7 +21,8 @@
     "audit:floating-parts": "tsx scripts/audit-floating-parts.ts",
     "verify:template": "node scripts/verify-template-pdf.cjs http://localhost:3000/design/stool",
     "verify:pdf-openaction": "node scripts/verify-pdf-openaction.cjs",
-    "prepare": "sh scripts/install-hooks.sh || true"
+    "prepare": "sh scripts/install-hooks.sh || true",
+    "audit:negative-dims": "tsx scripts/audit-negative-dims.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

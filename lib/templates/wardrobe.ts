@@ -37,6 +37,7 @@ import {
   doorPullStyleOption,
   lockTotalHeightOptions,
   resolveLockedTotalHeight,
+  clampLegInset,
 } from "./_helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
@@ -93,7 +94,23 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const backPanelPlywood = getOption<boolean>(input, opt(o, "backPanelPlywood"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  /**
+   * 🧷 夾住腳內縮 —— 否則底座板會被算成**負長度**。
+   *
+   * §A10.2 同一條公式。這裡的 legInset 會傳進 case-furniture builder 算左右底座板,
+   * 滑桿上限 300 是寫死的常數、跟櫃體實際寬度無關 → 小尺寸櫃拉到底就產出負長度的底座板,
+   * 而且沒有任何警告。(2026-08-21 全站掃描發現;稽核只報了床頭櫃抽屜那一條。)
+   *
+   * 櫃體沒有「腳寬」這種東西,底座板本身就貼著側板走,所以 legW/legD 給 0
+   * —— 夾制只需要保證「兩側內縮後還留得下 minSpan」。
+   */
+  const _legInsetWanted = getOption<number>(input, opt(o, "legInset"));
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    legW: 0,
+    legD: 0,
+  });
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
   const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));

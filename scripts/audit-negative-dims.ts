@@ -32,3 +32,10 @@ for (const e of FURNITURE_CATALOG as any[]) {
 const cats = Object.keys(bad);
 console.log(`會產出非正尺寸零件的模板:${cats.length} / ${(FURNITURE_CATALOG as any[]).length}`);
 for (const c of cats) { console.log(`  ${c}:`); for (const x of bad[c]) console.log(`     ${x}`); }
+// 有中招就 exit 1 —— 這支跟 audit-overlaps 不一樣,基線是 0,不是「比對前後」。
+if (cats.length > 0) {
+  console.log("\n⛔ 非正尺寸零件會直接流進裁切單 / 報價 / 3D 匯出,而且沒有任何警告。");
+  console.log("   修法:在讀選項的地方夾上限(參考 clampLegInset / MIN_ZONE_H),不要在下游補。");
+  process.exit(1);
+}
+console.log("✅ 28 款家具、所有數字選項推到極值,零件尺寸全是正的。");
