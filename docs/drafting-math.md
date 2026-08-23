@@ -59,6 +59,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 椅子穩定性力學 | `"穩定\|stability\|tip-over"` | §V |
 | AI 看圖推薦模板 | `"vision\|GPT-4\|看圖"` | §W |
 | 報價工時演算法 | `"報價\|工時\|labor"` | §X §AG |
+| 報價參數從網址進來 / 印出爛單 | `"sanitizeLaborOpts\|ENG_RATE_BOUNDS"` | §X1b |
 | 3D 渲染（PBR / IBL / AO） | `"PBR\|IBL\|AO\|render"` | §Y |
 | 打包出貨 / 紙箱規格 | `"打包\|出貨\|紙箱"` | §Z |
 | 訂單管線 | `"訂單\|order pipeline"` | §AA |
@@ -2397,6 +2398,40 @@ Claude Sonnet 4 vision：input ~1500 tokens（含圖）+ output ~300 tokens ≈ 
 | | 現場組裝+調水平 | 0.5-2 hr/件 |
 
 > 業界俗語「三分木工、七分油工」— 表面處理工時容易被低估，**獨立科目不要併入塗裝固定金額**。
+
+### X1b. 報價參數一律在「進來的那一層」洗過
+
+grep keyword：`sanitizeLaborOpts|sanitizeEngQuoteOpts|LABOR_BOUNDS|ENG_RATE_BOUNDS`
+
+報價的費用參數（毛利 / 折扣 / 時薪 / 訂金 / 稅率…）**全部藏在網址裡**：
+家具走 query（`?hourlyRate=…`），裝潢工具走 base64 的 `?o=`。
+
+⛔ 表單元件有擋（`NumField` 的 `Math.max(0, …)`、`LABOR_BOUNDS` 的 min/max），
+**但列印頁完全繞過表單**——它直接從網址解析。而列印頁正是**要交到客戶手上**的那張單。
+報價連結本來就是分享出去的，被轉手、被手改、或是舊版留下的過期連結都會走到這條路。
+
+2026-08-23 實測做得出來的單：
+
+| 網址改成 | 印出來的結果 |
+|---|---|
+| `?discountRate=5` | 總價 **−73,198**、訂金 **−21,959** |
+| `?depositRate=3` | 訂金 54,897 **比總價 18,299 還多 3 倍** |
+| `?marginRate=abc` | 整張單 **NaN** |
+| `?hourlyRate=-500` | 家具報價 19,650 → **163** |
+| `?marginRate=-1` | 總價 **NT$0** |
+
+✅ **通則：夾在解析的那一層，不要改計算函式的語意。**
+- 家具：`sanitizeLaborOpts()` @ `lib/pricing/labor.ts`（用既有的 `LABOR_BOUNDS`）
+- 裝潢：`sanitizeEngQuoteOpts()` @ `lib/engineering-quote/defaults.ts`（`ENG_RATE_BOUNDS`）
+- 不是有限數字 → 退回預設值；是數字 → 夾進範圍；不認得的欄位 → 直接無視。
+- **不丟例外**：列印頁寧可印出一張合理的單，也不要整頁掛掉。
+
+⚠️ **「手動覆寫單價造成負毛利」（賠本接單）是正常功能，不可以順手夾掉。**
+夾的是 `marginRate`，不是 `overrideUnitPrice` 算出來的 `margin`。有測試釘住這條界線。
+
+**驗證：** `lib/pricing/quote.test.ts` + `lib/engineering-quote/sanitize.test.ts`
+（每個費用參數被亂改後，客戶拿到的單都不准有負數或 NaN，且訂金 + 尾款 = 總價）。
+
 
 ### X2. 損料率分級
 - 實木 10%

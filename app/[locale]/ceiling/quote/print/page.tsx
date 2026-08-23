@@ -5,7 +5,7 @@ import { DEFAULT_CEILING_INPUT, type CeilingInput } from "@/lib/ceiling/types";
 import { decodeState } from "@/lib/engineering-quote/url-codec";
 import { ceilingBomToEngInput } from "@/lib/ceiling/quote-adapter";
 import { computeEngineeringQuote } from "@/lib/engineering-quote/calc";
-import { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
+import { ENGINEERING_QUOTE_DEFAULTS, sanitizeEngQuoteOpts } from "@/lib/engineering-quote/defaults";
 import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
 import { EngineeringQuotePrint } from "@/components/engineering-quote/EngineeringQuotePrint";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
@@ -40,7 +40,10 @@ export default async function CeilingQuotePrintPage({
     }
   }
   const opts: EngQuoteOpts = o
-    ? { ...ENGINEERING_QUOTE_DEFAULTS, ...safeDecode<EngQuoteOpts>(o) }
+    // ⛔ 網址帶進來的報價參數一律洗過再用 —— 這張單是要交到客戶手上的。
+    //    decodeState 只做 base64 + JSON.parse、零驗證，直接攤平會印出
+    //    總價 −73,198 / 訂金比總價多 3 倍 / 整張 NaN。（2026-08-23）
+    ? sanitizeEngQuoteOpts(safeDecode<EngQuoteOpts>(o))
     : ENGINEERING_QUOTE_DEFAULTS;
   const customer: CustomerInfo = c
     ? { ...EMPTY_CUSTOMER, ...safeDecode<CustomerInfo>(c) }

@@ -5,7 +5,7 @@ import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS, materialName } from "@/lib/materials";
-import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
+import { sanitizeLaborOpts, LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { taipeiIsoDate } from "@/lib/utils/date-tw";
 import {
   calculateQuote,
@@ -72,7 +72,10 @@ export default async function QuotePrintPage({
 
   const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 
-  const laborOpts = {
+  // ⛔ 網址帶進來的費用參數一律夾進 LABOR_BOUNDS —— parseNum 只擋 NaN，
+  //    不擋負數也不看上下限。`?hourlyRate=-500` 會讓整張報價單從
+  //    NT$19,650 掉到 NT$163，而列印頁是要交到客戶手上的。（2026-08-23）
+  const laborOpts = sanitizeLaborOpts({
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
@@ -103,7 +106,7 @@ export default async function QuotePrintPage({
     overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
     laborHoursOverride: parseNum(sp.laborHoursOverride, LABOR_DEFAULTS.laborHoursOverride),
     deliveryDaysOverride: parseNum(sp.deliveryDaysOverride, LABOR_DEFAULTS.deliveryDaysOverride),
-  };
+  });
 
   // 模板 options（legStyle / 倒角 / 內縮腳…）必須一起讀，
   // 否則客戶看到的是 default-options 版本，跟使用者編輯的不一致。

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { calculateQuote } from "./quote";
-import { LABOR_DEFAULTS } from "./labor";
+import { LABOR_DEFAULTS, sanitizeLaborOpts } from "./labor";
 import { MM3_PER_BDFT, SHEET_AREA_MM2 } from "./catalog";
 import type { FurnitureDesign, Part } from "@/lib/types";
 
@@ -232,5 +232,68 @@ describe("板材的板厚要取三邊最小（立著的背板不能把高度當�
       { length: 3, width: 1200, thickness: 900 },
     ].map((v) => calculateQuote(mkDesign([mkPart({ id: "b", materialOverride: "plywood", visible: v } as any)]), SHEET).materialCost);
     expect(new Set(costs.map((c) => c.toFixed(6))).size).toBe(1);
+  });
+});
+
+describe("網址帶進來的費用參數要夾進合法範圍", () => {
+  /**
+   * 報價頁與列印頁的費用參數都是從 URL query 讀的，`parseNum` 只擋 NaN、
+   * 不擋負數也不看上下限。實測 `?hourlyRate=-500` 讓整張單從 NT$19,650 掉到 NT$163。
+   * 列印頁是要交到客戶手上的那張單。（2026-08-23）
+   */
+  const D = { ...LABOR_DEFAULTS, primaryMaterialPricePerBdft: 300 } as any;
+  const q = (t: any) => calculateQuote(mkDesign([mkPart({ id: "p1" })]), sanitizeLaborOpts({ ...D, ...t }));
+
+  it("正常值不動", () => {
+    const o: any = sanitizeLaborOpts({ ...D, hourlyRate: 800, marginRate: 0.35 });
+    expect(o.hourlyRate).toBe(800);
+    expect(o.marginRate).toBe(0.35);
+  });
+
+  it("時薪 −500 → 夾回下限，總價不會崩到零頭", () => {
+    expect((sanitizeLaborOpts({ ...D, hourlyRate: -500 }) as any).hourlyRate).toBe(200);
+    expect(q({ hourlyRate: -500 }).total).toBeGreaterThan(q({ hourlyRate: 200 }).total * 0.99);
+  });
+
+  it("毛利 −100% / 稅率 −50% / 數量 −5 全部夾回合法值", () => {
+    const o: any = sanitizeLaborOpts({ ...D, marginRate: -1, vatRate: -0.5, quantity: -5 });
+    expect(o.marginRate).toBe(0);
+    expect(o.vatRate).toBe(0);
+    expect(o.quantity).toBe(1);
+  });
+
+  it("填文字 / NaN → 退回預設值", () => {
+    const o: any = sanitizeLaborOpts({ ...D, hourlyRate: "abc", marginRate: NaN });
+    expect(o.hourlyRate).toBe(LABOR_DEFAULTS.hourlyRate);
+    expect(o.marginRate).toBe(LABOR_DEFAULTS.marginRate);
+  });
+
+  it("null 是有意義的（板材併入主材計價），不可以被夾成數字", () => {
+    const o: any = sanitizeLaborOpts({ ...D, plywoodPricePerBdft: null, mdfPricePerBdft: null });
+    expect(o.plywoodPricePerBdft).toBeNull();
+    expect(o.mdfPricePerBdft).toBeNull();
+  });
+
+  it("⚠️ 手動覆寫單價造成的負毛利（賠本接單）是正常功能，不可以被夾掉", () => {
+    const r = q({ overrideUnitPrice: 100, consumables: 1000, hourlyRate: 200 });
+    expect(r.makerUnitPriceExclVat).toBe(100);
+    expect(r.margin).toBeLessThan(0);
+  });
+
+  it("任何一個費用參數被亂改，客戶拿到的單都不會有負數或 NaN", () => {
+    const junk = [
+      { hourlyRate: -1e9 }, { marginRate: -5 }, { vatRate: -1 }, { quantity: -99 },
+      { discountRate: 9 }, { depositRate: -3 }, { primaryMaterialPricePerBdft: -300 },
+      { equipmentRate: NaN }, { designerMarkupRate: -2 },
+    ];
+    for (const t of junk) {
+      const r: any = q(t);
+      for (const [k, v] of Object.entries(r)) {
+        if (typeof v !== "number") continue;
+        expect(Number.isFinite(v), `${JSON.stringify(t)} → ${k}=${v}`).toBe(true);
+        if (k !== "margin") expect(v, `${JSON.stringify(t)} → ${k}=${v}`).toBeGreaterThanOrEqual(0);
+      }
+      expect(r.depositAmount + r.balanceAmount).toBe(Math.round(r.total));
+    }
   });
 });
