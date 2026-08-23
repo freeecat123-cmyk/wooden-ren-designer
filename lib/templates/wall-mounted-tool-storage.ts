@@ -106,6 +106,15 @@ export const wallMountedToolStorage: FurnitureTemplate = (input) => {
     material,
     grainDirection: "length",
     visible: { length: W, width: backT, thickness: H },
+    /**
+     * 🧷 拼板片數要跟說明文字用同一條公式。
+     *
+     * ⛔ 整片背板寬 = 工具牆全寬（預設 1200mm），沒宣告 panelPieces → 材料單寫「1 片 1200×1200 實木」、
+     *    裁切計算器直接報「排不下」（市面最寬集成材 800mm）。說明跟產出對不起來。
+     *
+     * 總材積不變，只影響材料單顯示與裁切拆片。（2026-08-23）
+     */
+    panelPieces: Math.max(1, Math.ceil(Math.min(W, H) / 280)),
     origin: { x: 0, y: 0, z: backCenterZ },
     tenons: [],
     mortises: [],

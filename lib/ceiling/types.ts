@@ -68,8 +68,10 @@ export interface CeilingInput {
 
 /** 由輸入自動算出、唯讀顯示的數字 */
 export interface AutoCalc {
-  /** 吊筋高度 = 板高 − 天花板高 (cm) */
+  /** 吊筋高度 = 板高 − 天花板高 (cm)，已夾住最小值不會是負的 */
   hangerHeightCm: number;
+  /** 夾之前的原始值；< 最小值代表使用者把天花板設得比樓板還高 */
+  rawHangerHeightCm: number;
   /** 房間面積 = 長 × 短 / 10000 (m²) */
   roomAreaM2: number;
   /** 坪數 = 房間面積 / 3.305 (1 坪 = 3.305 m²) */
@@ -155,6 +157,8 @@ export interface CeilingBom {
     /** 副支剩餘空間(短邊內側 - (N-1)*spacing) */
     subLeftoverCm: number;
   };
+  /** 參數不合理時自動產生的提醒(例:天花板高設得比樓板還高) */
+  warnings?: string[];
 }
 
 /** 給 UI 用的預設值 */

@@ -209,6 +209,14 @@ export function computeCeilingBom(
       subJoistYOffsetsCm: subLayout.offsetsCm.map(round1),
       subLeftoverCm: round1(subLayout.leftoverCm),
     },
+    warnings:
+      auto.rawHangerHeightCm < 5
+        ? [
+            isEn
+              ? `Ceiling height ${input.ceilingHeightCm}cm leaves only ${Math.round(auto.rawHangerHeightCm)}cm of hanger drop below the ${input.slabHeightCm}cm slab. Clamped to 5cm — lower the ceiling height or raise the slab.`
+              : `天花板高 ${input.ceilingHeightCm}cm 距離樓板 ${input.slabHeightCm}cm 只剩 ${Math.round(auto.rawHangerHeightCm)}cm 吊筋高度（主骨＋副骨疊起來就不只這麼厚）。已夾成 5cm，請把天花板高調低、或確認樓板高填對了。`,
+          ]
+        : undefined,
   };
 }
 
@@ -216,8 +224,20 @@ export function computeCeilingBom(
 // §CE.1 自動算
 // ─────────────────────────────────────────────────────────
 function computeAutoCalc(input: CeilingInput): AutoCalc {
-  // 吊筋高度 = 板高 − 天花板高
-  const hangerHeightCm = input.slabHeightCm - input.ceilingHeightCm;
+  /**
+   * 吊筋高度 = 板高 − 天花板高。
+   *
+   * ⛔ 這兩個值在 UI 上是**兩根各自獨立的滑桿**(樓板高 200–400、天花板高 180–380),
+   *    誰也不知道對方是多少 → 使用者把天花板高拉到 300、樓板高留 250,
+   *    吊筋長度就變成 **−50cm**,直接進材料單跟報價,沒有任何提示。
+   *    (2026-08-23 掃描發現)
+   *
+   * MIN_HANGER 取 5cm:輕鋼架主骨 + 副骨疊起來就吃掉這麼多,
+   * 再低吊筋根本鎖不上去。夾住之後一定發警告 —— 不能默默改掉使用者填的數字。
+   */
+  const MIN_HANGER_CM = 5;
+  const rawHangerHeightCm = input.slabHeightCm - input.ceilingHeightCm;
+  const hangerHeightCm = Math.max(MIN_HANGER_CM, rawHangerHeightCm);
   // 房間面積(m²)= 長 × 短 / 10000
   const roomAreaM2 = (input.longSideCm * input.shortSideCm) / 10000;
   // 坪數 = 房間面積 / 3.305  (1 坪 = 3.305 m²)
@@ -229,6 +249,7 @@ function computeAutoCalc(input: CeilingInput): AutoCalc {
 
   return {
     hangerHeightCm,
+    rawHangerHeightCm,
     roomAreaM2,
     pingShu,
     leftoverCm,

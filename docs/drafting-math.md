@@ -32,6 +32,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
 | 端面側單肩 / mortise 邊緣保護 | `"端面側單肩\|edge-protection\|10mm 留材"` | §A10.10 |
 | 零件算成負尺寸 / 滑桿拉到底就爆 | `"負尺寸\|clampLegInset\|MIN_ZONE_H"` | §A10.11 |
+| 板材算錯板厚 / 報價爆掉 / 排不下 | `"幾何三軸\|panelPieces\|先排序再取"` | §A10.12 |
 | 錐形腳 / 倒錐腳 → 牙條/橫撐補償 | `"tapered 補償\|legScaleAt\|legBottomScale"` | §A11 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
 | hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
@@ -504,6 +505,35 @@ OptionSpec 的 `max` 是**寫死的常數**，跟這件家具實際多大無關�
 
 ⚠️ **只夾證明得出來的。** 加夾制前先拆掉它跑一次掃描確認會紅 —— 抽屜欄數那條當初
 加了，但任何組合都證不出它修到東西，就拿掉了（沒壞硬改 = 平白限制功能）。
+
+**A10.12 `visible` 是幾何三軸，不是「長寬厚」——凡是要拿板厚 / 面寬的地方一律先排序**
+
+`visible = { length, width, thickness }` 對應的是 **X / Z / Y 三根軸**（§A9.1），
+不是零件的長寬厚。**立著的零件**（櫃子背板、側板、壁掛工具牆背板）真正的板厚
+存在 `width`，`thickness` 存的是它的高度。
+
+⛔ 已經踩過兩次，都是同一個假設：
+
+| 地方 | 症狀 | 錢的影響 |
+|---|---|---|
+| `pricing/quote.ts` 板材分組 | 把 1920mm 高度當板厚 → 一片 3mm 背板算成「1 張 1920mm 厚的夾板」 | 衣櫃報價 NT$54,571 → **NT$211,760**，勾夾板反而比實木貴 3 倍 |
+| `cutplan/group.ts` 拼板拆片 | `cut.width / pieces` 把 18mm 板厚切 5 份變 3.6mm，1200mm 面寬完全沒拆 | 裁切計算器照樣報「排不下」 |
+
+✅ **通則：先排序，再取。** 跟零件怎麼擺無關：
+
+```ts
+const [thin, mid, long] = [cut.length, cut.width, cut.thickness].sort((a, b) => a - b);
+// 板材：板厚 = thin、板面 = mid × long
+// 拼板：順紋長 = long、面寬 = mid（要除片數的是它）、板厚 = thin
+```
+
+**其他同源規則：**
+- **薄板一定是合板。** 厚度 ≤ 6mm 的零件不可以算實木——市面沒有這種商品（§T1，1 分 = 3mm 是薄合板規格）。`case-furniture.ts` 的 3mm「釘背」背板已強制 `materialOverride: "plywood"`。
+- **寬板一定要宣告 `panelPieces`。** 集成材最寬 800mm、角料最寬 180mm（§T3 / §T4）。超過就得拼板，否則材料單叫人買不存在的整片寬板、裁切計算器直接報「排不下」。⚠️ 說明文字如果已經在講「建議分 N 片拼」，`panelPieces` 就要用**同一條公式**，不要各說各話（round-table 踩過）。
+
+**驗證：** `lib/pricing/quote.test.ts`（同一片板三種擺法金額必須相等）＋
+`lib/cutplan/buyable-stock.test.ts`（全模板材料單逐件檢查台灣買不買得到）。
+
 
 ### A11. Tapered 腳跟橫撐／牙條對齊
 

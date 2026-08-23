@@ -305,9 +305,25 @@ export function calculateQuote(
       mat = design.primaryMaterial;
     }
     if (mat === "plywood" || mat === "mdf") {
-      const key = `${mat}-${cut.thickness}`;
-      const cur = sheetAreaByGroup.get(key) ?? { mat, thickness: cut.thickness, totalAreaMm2: 0 };
-      cur.totalAreaMm2 += cut.length * cut.width;
+      /**
+       * ⛔ 不可以直接拿 `cut.thickness` 當板厚。
+       *
+       * `visible` 是**幾何軸**三元組（length→X、width→Z 深、thickness→Y 垂直，§A9.1），
+       * 不是「長寬厚」。立著的零件（櫃子背板、側板）真正的板厚在 `width`，
+       * `thickness` 存的是它的高度。
+       *
+       * 實際踩到：衣櫃背板 visible = {length:1200, width:3, thickness:1920}
+       * → 舊碼把 1920mm 當板厚、把 1200×3 當板面積
+       * → 一片 3mm 背板算成「1 張 1920mm 厚的夾板」= NT$121,104。
+       * 6 款櫃類全中，最誇張差 640 倍。（2026-08-23 發現）
+       *
+       * 板材的板厚一定是三邊裡最小的那邊，板面就是另外兩邊——這跟零件怎麼擺無關。
+       * 裁切模組 `cutplan/group.ts` 本來就是這樣排序的，只有報價漏了。
+       */
+      const [boardT, faceA, faceB] = [cut.length, cut.width, cut.thickness].sort((a, b) => a - b);
+      const key = `${mat}-${boardT}`;
+      const cur = sheetAreaByGroup.get(key) ?? { mat, thickness: boardT, totalAreaMm2: 0 };
+      cur.totalAreaMm2 += faceA * faceB;
       sheetAreaByGroup.set(key, cur);
     } else {
       volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);

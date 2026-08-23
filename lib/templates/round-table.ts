@@ -54,6 +54,16 @@ function buildPedestalRoundTable(p: {
     material: material as "maple",
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
+    /**
+     * 🧷 拼板片數要跟說明文字用同一條公式。
+     *
+     * ⛔ 說明裡的 topPanelPiecingHint() 已經在跟使用者說「建議分 N 片拼板」，
+     *    但零件本身沒宣告 panelPieces → 材料單寫「1 片 1000×1000 實木」、
+     *    裁切計算器直接報「排不下」（市面最寬集成材 800mm）。說明跟產出對不起來。
+     *
+     * 總材積不變，只影響材料單顯示與裁切拆片。（2026-08-23）
+     */
+    panelPieces: diameter >= 600 ? Math.ceil(diameter / 280) : 1,
     origin: { x: 0, y: legHeight, z: 0 },
     shape:
       seatChamferMm > 0
@@ -213,6 +223,8 @@ function buildTrestleRoundTable(p: {
     material: material as "maple",
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
+    // 拼板片數跟說明文字 topPanelPiecingHint() 用同一條公式（見上方 pedestal 版註解）
+    panelPieces: diameter >= 600 ? Math.ceil(diameter / 280) : 1,
     origin: { x: 0, y: legHeight, z: 0 },
     shape:
       seatChamferMm > 0
@@ -545,6 +557,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
+    // 拼板片數跟說明文字 topPanelPiecingHint() 用同一條公式（見上方 pedestal 版註解）
+    panelPieces: diameter >= 600 ? Math.ceil(diameter / 280) : 1,
     origin: { x: 0, y: legHeight, z: 0 },
     shape:
       seatChamferMm > 0

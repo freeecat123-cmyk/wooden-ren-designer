@@ -710,8 +710,24 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const isSurfaceBack = backMode === "surface";
   // 後板計價材料：plywood/mdf 設 override；inherit/solid/undefined 不設 override → 用主材料
   const backBillable = opts.backPanelMaterial;
+  /**
+   * 🧷 薄背板一律算夾板 —— 買不到那麼薄的實木板。
+   *
+   * ⛔ 「釘背」背板厚 3mm(上面 backT)。3mm 的實木板**市面上不存在**
+   *    （§T1:1 分 = 3mm 是薄合板的規格，不是實木）。可是「背板用夾板」
+   *    這個選項預設沒勾 → 材料單叫使用者去買「1920×1200×3mm 的實木楓木板」，
+   *    裁切計算器也排不進任何實木庫存（最薄 25mm）。
+   *
+   * 入溝式背板是 9mm，實木鑲板是真的做法，那個維持照選項走。
+   * 分界取 6mm：再薄就只有合板做得到。（2026-08-23）
+   */
+  const backTooThinForSolid = backT > 0 && backT <= 6;
   const backOverride: "plywood" | "mdf" | undefined =
-    backBillable === "plywood" || backBillable === "mdf" ? backBillable : undefined;
+    backBillable === "plywood" || backBillable === "mdf"
+      ? backBillable
+      : backTooThinForSolid
+        ? "plywood"
+        : undefined;
   if (backMode !== "none") parts.push({
     id: "back",
     nameZh: isSurfaceBack ? "背板（釘背）" : "背板（入溝）",
