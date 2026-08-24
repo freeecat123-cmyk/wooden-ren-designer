@@ -496,6 +496,34 @@ export function projectPartSilhouette(
       }
       return projected; // 有序、保留接撐段+凹弧
     }
+    /**
+     * 兩向弧肩（§A9.9）：−Z 那面也有同一道弧肩 → 從 X 方向看過去也是輪廓，不是方框。
+     *
+     * 這一段的輪廓在 local **Z-Y** 平面（法線 = local X），所以要用 R·(1,0,0)
+     * 的世界分量判哪個視角看得到（上面那組 n 是 R·(0,0,1)，管的是 X-Y 那面）。
+     * m = R·(1,0,0) = (cy·cz, cy·sz, −sy)。
+     */
+    if (part.shape.twoWay) {
+      const mX = cy * cz;   // → side 視角
+      const mY = cy * sz;   // → top 視角
+      const mZ = -sy;       // → front 視角
+      const alongZProfile =
+        (view === "front" && Math.abs(mZ) > FACE_ON_COS) ||
+        (view === "side" && Math.abs(mX) > FACE_ON_COS) ||
+        (view === "top" && Math.abs(mY) > FACE_ON_COS);
+      if (alongZProfile) {
+        // 同一條輪廓函式，但寬度基準換成 lz、方向用 dz 的正負決定內面在哪一側
+        const dirZ = (ctDz < 0 ? -1 : 1) as -1 | 0 | 1;
+        const profZ = curvedTaperProfilePoints(
+          lz, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZ,
+        );
+        for (const [zp, yp] of profZ) {
+          const t = shearT(yp);
+          pushPoint(ctDx * t, yp, zp + ctDz * t);
+        }
+        return projected;
+      }
+    }
     // 看向擠出方向以外的視角:輪廓塌成線、擠出成矩形 → 兩端採樣 hull
     for (const zL of [-lz / 2, lz / 2]) {
       for (const [xp, yp] of prof) {
@@ -1110,6 +1138,24 @@ export function projectPartPolygon(
     const ctDz2 = part.shape.dzMm ?? 0;
     // 側/俯視:無外斜=矩形(box);有外斜=傾斜形,delegate silhouette(hull 出傾斜四邊形,
     // 凹弧本來就朝 X、側視看不到,無細節損失)。
+    /**
+     * 兩向弧肩（§A9.9）：−Z 那面也有弧肩 → 側視也要畫輪廓，不能回 box。
+     * 用同一條輪廓函式，寬度基準換成 width（local Z）。
+     */
+    if (view === "side" && part.shape.twoWay) {
+      const cxS = r.x + r.w / 2;
+      const midYS = r.y + r.h / 2;
+      const lyS = part.visible.thickness;
+      const dirZS = (ctDz2 < 0 ? -1 : 1) as -1 | 0 | 1;
+      const profS = curvedTaperProfilePoints(
+        part.visible.width, lyS,
+        part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZS,
+      );
+      return profS.map(([lzp, lyp]) => {
+        const t = (lyS / 2 - lyp) / lyS;
+        return { x: cxS - (lzp + ctDz2 * t), y: midYS + lyp };
+      });
+    }
     if (view !== "front") return ctDx2 !== 0 || ctDz2 !== 0 ? projectPartSilhouette(part, view) : box;
     const cx = r.x + r.w / 2;
     const midY = r.y + r.h / 2;

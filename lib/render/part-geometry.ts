@@ -51,7 +51,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number }
+  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean }
   | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
   | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number; sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
@@ -852,6 +852,117 @@ export function buildRegularPolygonGeometry(
  *
  * size = [總寬 lx, 腳高 ly, 厚度 lz]，Y 為高度軸（頂 +hy、底 -hy），與 buildTaperedGeometry 一致。
  */
+/**
+ * 弧肩輪廓：某個高度 y 處，內面往內縮了多少（0 = 全寬）。
+ *
+ * 這是把 `buildCurvedTaperGeometry` 的側面輪廓改寫成「高度 → 內縮量」的形式，
+ * 兩向弧肩（twoWay）要靠它逐層算矩形斷面。**參數的 clamp 必須跟原函式逐字一致**，
+ * 否則單向 / 兩向會長得不一樣。（§A9.9）
+ *
+ * 分三段（由上而下）：
+ *   1. 方肩段  y ∈ [yBlockBot, hy]      → 內縮 0（全寬，給牙條接合）
+ *   2. 凹弧肩  y ∈ [yCoveEnd, yBlockBot] → 圓弧，內縮 0 → shoulder
+ *   3. 直線斜降 y ∈ [-hy, yCoveEnd]      → 線性，內縮 shoulder → shoulder + inset
+ */
+export function curvedTaperInsetAtY(
+  lx: number,
+  ly: number,
+  blockHeightMm: number,
+  shoulderMm: number,
+  insetMm: number,
+  y: number,
+): number {
+  const hy = ly / 2;
+  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
+  const shoulder = Math.max(0, Math.min(shoulderMm, lx * 0.45));
+  const coveSpan = Math.min(shoulder, Math.max(0, ly - blockH));
+  const inset = Math.max(0, Math.min(insetMm, lx - shoulder - lx * 0.05));
+  const yBlockBot = hy - blockH;
+  const yCoveEnd = yBlockBot - coveSpan;
+
+  if (y >= yBlockBot) return 0;
+  if (y >= yCoveEnd) {
+    // 圓弧：圓心 (-hx, yCoveEnd)，x = -hx + shoulder·cos(th)、y = yCoveEnd + coveSpan·sin(th)
+    // → 內縮量 = shoulder·cos(th)，th 由 y 反解
+    if (coveSpan <= 0) return 0;
+    const sinTh = Math.max(0, Math.min(1, (y - yCoveEnd) / coveSpan));
+    const th = Math.asin(sinTh);
+    return shoulder * Math.cos(th);
+  }
+  // 直線斜降：yCoveEnd 處 = shoulder，yBot 處 = shoulder + inset
+  const span = yCoveEnd - -hy;
+  if (span <= 0) return shoulder + inset;
+  const t = Math.max(0, Math.min(1, (yCoveEnd - y) / span));
+  return shoulder + inset * t;
+}
+
+/**
+ * 兩向弧肩：同一道「方肩→凹弧→斜降」同時做在兩個相鄰內面（−X 與 −Z）。
+ *
+ * 不能再用 ExtrudeGeometry —— 那是「一個 2D 輪廓沿 Z 擠出」，只有一面有造型。
+ * 改成**逐層矩形放樣**：每個高度的斷面是一個從兩個相鄰邊往內縮的矩形，
+ * 內側立稜隨高度往對角線移動。
+ *
+ * dir 決定哪兩個面是「內面」（朝家具中心那兩面）。（§A9.9）
+ */
+export function buildTwoWayCurvedTaperGeometry(
+  size: [number, number, number],
+  blockHeightMm: number,
+  shoulderMm: number,
+  insetMm: number,
+  dirX: -1 | 0 | 1,
+  dirZ: -1 | 0 | 1,
+  dx: number = 0,
+  dz: number = 0,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2, hy = ly / 2, hz = lz / 2;
+  const sx = dirX < 0 ? -1 : 1;
+  const sz = dirZ < 0 ? -1 : 1;
+
+  // 取樣層數：方肩段與斜降段是直的，弧段要密一點。40 層在視覺上已經看不出稜線。
+  const N = 40;
+  const rings: number[][] = [];
+  for (let i = 0; i <= N; i++) {
+    const y = hy - (ly * i) / N;
+    const inX = curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y);
+    // Z 方向用同一條輪廓，但基準是 lz（腳可能不是正方斷面）
+    const inZ = curvedTaperInsetAtY(lz, ly, blockHeightMm, shoulderMm, insetMm, y);
+    // splay：頂固定、底外移（同 splayed 慣例）
+    const t = (hy - y) / ly;
+    const ox = dx * t, oz = dz * t;
+    // 內面在 −X/−Z（乘 s 鏡射到正確方向）
+    const xIn = sx * (-hx + inX) + ox, xOut = sx * hx + ox;
+    const zIn = sz * (-hz + inZ) + oz, zOut = sz * hz + oz;
+    const x0 = Math.min(xIn, xOut), x1 = Math.max(xIn, xOut);
+    const z0 = Math.min(zIn, zOut), z1 = Math.max(zIn, zOut);
+    rings.push([x0, z0, x1, z0, x1, z1, x0, z1, y]);
+  }
+
+  const pos: number[] = [];
+  const quad = (a: number[], b: number[], c: number[], d: number[]) => {
+    pos.push(...a, ...b, ...c, ...a, ...c, ...d);
+  };
+  const corner = (r: number[], k: number): number[] => [r[k * 2], r[8], r[k * 2 + 1]];
+
+  for (let i = 0; i < N; i++) {
+    const A = rings[i], B = rings[i + 1];
+    for (let k = 0; k < 4; k++) {
+      const k2 = (k + 1) % 4;
+      quad(corner(A, k), corner(B, k), corner(B, k2), corner(A, k2));
+    }
+  }
+  // 上下封蓋
+  const capTop = rings[0], capBot = rings[N];
+  quad(corner(capTop, 0), corner(capTop, 3), corner(capTop, 2), corner(capTop, 1));
+  quad(corner(capBot, 0), corner(capBot, 1), corner(capBot, 2), corner(capBot, 3));
+
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
 export function buildCurvedTaperGeometry(
   size: [number, number, number],
   blockHeightMm: number,
@@ -2228,6 +2339,14 @@ export function buildShapeGeometry(
     return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale, shape.dirX, shape.dirZ);
   }
   if (shape.kind === "curved-taper") {
+    // 兩向弧肩走放樣、單向走既有的擠出(byte 相容)
+    if (shape.twoWay) {
+      const dirZ = (shape.dzMm ?? 0) < 0 ? -1 : 1;
+      return buildTwoWayCurvedTaperGeometry(
+        size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm,
+        shape.dir, dirZ as -1 | 0 | 1, shape.dxMm ?? 0, shape.dzMm ?? 0,
+      );
+    }
     return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0);
   }
   if (shape.kind === "edge-profile") {

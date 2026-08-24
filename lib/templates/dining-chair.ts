@@ -164,6 +164,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
+  const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
   // 一木連做（A 直料）強制 backRake=0；B/C 用使用者設的角度
   // continuous 模式 backInsetFromRear/End 強制歸零（背柱已跟後腳對齊）
 
@@ -433,7 +434,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     if (legShape === "curved-taper") {
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm },
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay },
       });
     }
     return undefined;

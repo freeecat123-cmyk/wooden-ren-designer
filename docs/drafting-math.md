@@ -29,6 +29,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 我要做的事 | grep keyword | 對應 section |
 |---|---|---|
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
+| 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
 | 端面側單肩 / mortise 邊緣保護 | `"端面側單肩\|edge-protection\|10mm 留材"` | §A10.10 |
 | 零件算成負尺寸 / 滑桿拉到底就爆 | `"負尺寸\|clampLegInset\|MIN_ZONE_H"` | §A10.11 |
@@ -295,6 +296,41 @@ bbox 4 角採樣 / 尾端 `return box` → 正視/側視/俯視腳全畫成方�
   AABB-at-Y 正確 → `stool:curved-taper` 不再誤報，已從 `SHAPE_AWARE_CASES` allowlist 移除。
 - 驗證：helper 頂點對 `buildCurvedTaperGeometry` cap 頂點 max dist = 0.0000mm；
   正視多邊形 13 頂點（凹）、側視 4 頂點（矩形）。純視覺需 user 在瀏覽器確認。
+
+**A9.9 兩向弧肩（`curved-taper` + `twoWay`，2026-08-24）**
+
+`curved-taper` 是「一個 2D 側面輪廓沿厚度 Z 擠出」→ **只有一面有造型**。
+但腳站在家具角落，兩個方向都有牙條進來，本來就該有兩道弧肩；
+現況從側面看就是一根方料，三視圖裡有一張是錯的（而客人照三視圖做）。
+
+`twoWay: true` 時，把同一道「方肩→凹弧→斜降」同時做在兩個相鄰內面（−X 與 −Z）。
+
+**幾何：從「擠出」改成「逐層矩形放樣」**
+- `ExtrudeGeometry` 不能用了（它只吃一個 2D 輪廓）
+- 改 `buildTwoWayCurvedTaperGeometry()`：每個高度取一個矩形環，
+  斷面 = 從兩個相鄰邊各往內縮 `insetAtY`，內側立稜隨高度往對角線移動
+- 取樣 40 層（弧段最密，視覺上看不出稜線）
+
+**輪廓函式抽出來共用**
+`curvedTaperInsetAtY(lx, ly, blockH, shoulder, inset, y)` → 該高度的內縮量。
+⚠️ **clamp 必須跟 `buildCurvedTaperGeometry` 逐字一致**，否則單向 / 兩向會長得不一樣。
+有測試逐點比對兩者（誤差 < 0.001mm）。
+
+**投影（這是最容易漏的一半）**
+| 視角 | 單向 | 兩向 |
+|---|---|---|
+| 正視 | 有序輪廓（13 點） | 同左，**不變** |
+| 側視 | 方框（4 點） | **有序輪廓（13 點）** |
+| 俯視 | 矩形 | 同左，**不變**（斷面最寬處在頂部） |
+
+側視那面的法線是 **local X**，所以判「哪個視角看得到」要用 `m = R·(1,0,0)`
+（`= (cy·cz, cy·sz, −sy)`），**不是**上面那組管 X-Y 面的 `n = R·(0,0,1)`。
+`projectPartSilhouette` 與 `projectPartPolygon` 兩條路徑都要改，
+只改一條的話三視圖跟零件圖會對不起來。
+
+**相容性**：預設 `false`。實測 28 款家具在預設值下的 501 件零件與改動前逐件比對 100% 相同。
+測試見 `lib/render/two-way-cove.test.ts`（14 條，最重要的一條就是「關掉時輸出必須一致」）。
+
 
 ### A10. Part visible 慣例（butt-joint vs joinery）
 

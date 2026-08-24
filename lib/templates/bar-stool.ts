@@ -133,6 +133,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
+  const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const footrestStaggerMm = getOption<number>(input, opt(o, "footrestStaggerMm"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -402,7 +403,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "curved-taper")
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm },
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay },
       });
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };

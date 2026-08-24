@@ -160,6 +160,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
+  const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
   const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
   const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
   const stretcherProfile = getOption<string>(input, opt(o, "stretcherProfile"));
@@ -457,7 +458,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       splayMm: Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight),
       chamferMm: parseLegChamferMm(legEdge),
       chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
-      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm },
+      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay },
     }) ?? legEdgeShape(legEdge, legEdgeStyle),
     // tenon X 軸朝家具中心偏，內側無肩（朝中心那邊貼腳邊 → 移除對應 shoulderOn）
     tenons: [

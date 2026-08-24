@@ -289,7 +289,19 @@ export interface Part {
     | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1;
         /** 選配外斜（splay）：腳底相對腳頂的外移量 mm（頂固定、底外踢，同 splayed 慣例）。
          *  0 / undefined = 垂直（既有行為，byte 相容）。 */
-        dxMm?: number; dzMm?: number }
+        dxMm?: number; dzMm?: number;
+        /**
+         * 兩向弧肩：把同一道「方肩→凹弧→斜降」同時做在**兩個相鄰內面**上。
+         *
+         * 腳站在家具角落，兩個方向都有牙條進來，所以本來就該有兩道弧肩。
+         * 現有做法是「單一側面輪廓沿厚度擠出」→ 只有一面有造型，從另一邊看是方料。
+         *
+         * 開啟後幾何從「擠出」改成「逐層矩形放樣」：每個高度的斷面是一個從
+         * 兩個相鄰邊往內縮的矩形，內側立稜隨高度往對角線移動。
+         *
+         * false / undefined = 既有行為（單向擠出），舊設計 byte 相容。（§A9.9）
+         */
+        twoWay?: boolean }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，

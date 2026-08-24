@@ -249,6 +249,8 @@ export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] 
     { group, type: "number", key: "ctInset", label: "外面斜降", defaultValue: 12, min: 0, max: 100, step: 1, unit: "mm", help: "外面整支直線斜降、腳底往內收的量；內面弧肩以下維持垂直。", dependsOn },
     // 外斜獨立一欄（不共用 splayAngle）：splayAngle 各模板預設多為 5°，若讓 curved-taper
     // 直接吃它，所有既有弧肩斜腳設計會突然外傾 → 破壞既有 URL。此欄預設 0 = 垂直（既有行為）。
+    { group, type: "checkbox", key: "ctTwoWay", label: "兩向弧肩（兩個內面都做）", defaultValue: false, wide: true,
+      help: "腳站在角落，兩個方向都有牙條進來。開啟後兩個相鄰內面都做弧肩，從側面看不再是方料。會多耗料、加工也多一道。", dependsOn },
     { group, type: "number", key: "ctSplay", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: 12, step: 0.5, unit: "°", help: "整支腳外傾角度（對角外斜，同斜腳系列）。0 = 垂直。建議 3–8°，太斜底盤過大", dependsOn },
   ];
 }
@@ -438,7 +440,7 @@ export function rectLegShape(
      *  splayMm > 0 = 選配外斜：腳底沿 X/Z 對角外踢 splayMm（依 corner 正負號），頂固定。
      *  ⚠️ 刻意不用外層 opts.splayMm（那是 splayed 系列用、模板常帶預設 5° 值）——
      *  避免既有 curved-taper 呼叫者未 opt-in 就突然全部外斜。 */
-    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number };
+    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number; twoWay?: boolean };
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
@@ -494,6 +496,7 @@ export function rectLegShape(
       shoulderMm: ct?.shoulderMm ?? 8,
       insetMm: ct?.insetMm ?? 12,
       dir,
+      ...(ct?.twoWay ? { twoWay: true } : {}),
       ...(ctSplay > 0
         ? { dxMm: Math.sign(c.x) * ctSplay, dzMm: Math.sign(c.z) * ctSplay }
         : {}),
