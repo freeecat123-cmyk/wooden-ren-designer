@@ -250,7 +250,7 @@ export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] 
     // 外斜獨立一欄（不共用 splayAngle）：splayAngle 各模板預設多為 5°，若讓 curved-taper
     // 直接吃它，所有既有弧肩斜腳設計會突然外傾 → 破壞既有 URL。此欄預設 0 = 垂直（既有行為）。
     { group, type: "checkbox", key: "ctTwoWay", label: "兩向弧肩（兩個內面都做）", defaultValue: false, wide: true,
-      help: "腳站在角落，兩個方向都有牙條進來。開啟後兩個相鄰內面都做弧肩，從側面看不再是方料。會多耗料、加工也多一道。", dependsOn },
+      help: "腳站在角落，兩個方向都有牙條進來。開啟後兩個相鄰內面都做弧肩，從側面看不再是方料。用料不變（弧肩是從同一根方料挖掉的），但每支腳多一道挖弧工序。", dependsOn },
     { group, type: "number", key: "ctSplay", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: 12, step: 0.5, unit: "°", help: "整支腳外傾角度（對角外斜，同斜腳系列）。0 = 垂直。建議 3–8°，太斜底盤過大", dependsOn },
   ];
 }

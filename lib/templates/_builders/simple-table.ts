@@ -191,9 +191,22 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
    * ⚠️ 預設輸出不變：7 款的 apronWidth 預設是 60~100，ctBlockHeight 預設 40，
    *    `Math.min(≥60, 40)` 仍然是 40 ＝ 與原本的硬鎖結果逐值相同。
    */
+  const apronWidthWanted = opts.apronWidth ?? 70;
   const apronWidth = isCurvedTaper
-    ? Math.min(opts.apronWidth ?? 70, ctBlockHeight)
-    : (opts.apronWidth ?? 70);
+    ? Math.min(apronWidthWanted, ctBlockHeight)
+    : apronWidthWanted;
+  /**
+   * 🧷 夾了要出聲（§A10.11 第 2 條）。
+   *
+   * ⛔ 這個夾制本身是對的（牙條不能長過接撐段，否則下緣會蓋到弧肩），
+   *    但它**默默**把使用者設的 200mm 改成 40mm，畫面上一句話都沒有 ——
+   *    使用者會以為滑桿壞了。自己寫進 doc 的規矩自己漏做。（2026-08-24）
+   */
+  const apronClampWarnings: string[] =
+    isCurvedTaper && apronWidth < apronWidthWanted
+      ? [`牙條高 ${apronWidthWanted}mm 超過弧肩斜腳的接撐段高 ${ctBlockHeight}mm，已收到 ${apronWidth}mm。` +
+         `牙條下緣不能蓋到弧肩，否則交界處會露出一段空隙。要更高的牙條，請把「接撐段高」一起調高。`]
+      : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板 + leg 對應榫眼都 skip，腳頂 through-tenon 直接拉桌面/座板
   const withApron = apronWidth > 0;
@@ -1174,5 +1187,6 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     primaryMaterial: material,
     notes:
       opts.notes ?? "桌腳與桌面通榫；牙板與桌腳半榫；長桌建議加中央牙條防扭。",
+    ...(apronClampWarnings.length > 0 ? { warnings: apronClampWarnings } : {}),
   };
 }

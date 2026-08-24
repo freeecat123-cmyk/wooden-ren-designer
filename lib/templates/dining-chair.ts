@@ -209,6 +209,17 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronWidth = legShape === "curved-taper"
     ? Math.min(_apronWidthRaw, ctApronMaxH)
     : _apronWidthRaw;
+  /**
+   * 🧷 夾了要出聲（§A10.11 第 2 條，2026-08-24 補）。
+   *
+   * ⛔ 夾制本身是對的（牙板下緣不能蓋到弧肩），但它**默默**把使用者設的值改掉，
+   *    畫面上一句話都沒有 —— 使用者會以為滑桿壞了。自己寫進 doc 的規矩自己漏做。
+   */
+  const ctApronWarnings: string[] =
+    legShape === "curved-taper" && apronWidth < _apronWidthRaw
+      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
+         `牙板下緣一旦蓋到弧肩，交界處會露出空隙。要更高的牙板，請把「接撐段高」一起調高。`]
+      : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板。夾上限不破壞此語意
   const withApron = apronWidth > 0;
@@ -1645,6 +1656,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
         " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };
+  if (ctApronWarnings.length > 0) appendWarnings(design, ctApronWarnings);
   applyStandardChecks(design, {
     minLength: 350, minWidth: 350, minHeight: 700,
     maxLength: 600, maxWidth: 650, maxHeight: 1100,

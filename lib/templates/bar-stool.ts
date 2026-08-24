@@ -175,6 +175,17 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronWidth = legShape === "curved-taper"
     ? Math.min(_apronWidthRaw, ctApronMaxH)
     : _apronWidthRaw;
+  /**
+   * 🧷 夾了要出聲（§A10.11 第 2 條，2026-08-24 補）。
+   *
+   * ⛔ 夾制本身是對的（牙板下緣不能蓋到弧肩），但它**默默**把使用者設的值改掉，
+   *    畫面上一句話都沒有 —— 使用者會以為滑桿壞了。自己寫進 doc 的規矩自己漏做。
+   */
+  const ctApronWarnings: string[] =
+    legShape === "curved-taper" && apronWidth < _apronWidthRaw
+      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
+         `牙板下緣一旦蓋到弧肩，交界處會露出空隙。要更高的牙板，請把「接撐段高」一起調高。`]
+      : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；夾上限不破壞此語意
   const withApron = apronWidth > 0;
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
@@ -1157,6 +1168,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${seatOutlineResolved ? seatOutlineNote(seatOutlineResolved.style, seatOutlineResolved.sizeMm, locale) : ""}`,
   };
 
+  if (ctApronWarnings.length > 0) appendWarnings(design, ctApronWarnings);
   applyStandardChecks(design, {
     minLength: 300, minWidth: 300, minHeight: 600,
     maxLength: 550, maxWidth: 550, maxHeight: 900,

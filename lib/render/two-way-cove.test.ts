@@ -111,3 +111,87 @@ describe("三款有弧肩斜腳的家具，開兩向後輪廓都合法", () => {
     });
   }
 });
+
+describe("挖弧肩要算工時，但不該多算材料", () => {
+  /**
+   * 2026-08-24：工序推導原本完全不知道弧肩斜腳存在，挖弧的工時是 0。
+   * quote.ts 直接吃 totalEstimatedHours() 算工資 → 這道工白做。
+   *
+   * ⚠️ 同時修掉一個我自己寫錯的 UI 文案：原本寫「會多耗料」是**錯的** ——
+   *    弧肩是從同一根方料挖掉的，料一點都沒多，多的是工。
+   */
+  const build = (cat: string, twoWay: boolean) => {
+    const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
+    const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+    return e.template({
+      length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+      material: "maple", options: { ...base, legShape: "curved-taper", ctTwoWay: twoWay },
+    });
+  };
+
+  for (const cat of ["stool", "bar-stool", "dining-chair"]) {
+    it(`${cat}：兩向的挖弧工時剛好是單向的兩倍`, async () => {
+      const { deriveBuildSteps } = await import("@/lib/steps/derive");
+      const one = (deriveBuildSteps(build(cat, false)) as any[]).find((s) => s.id === "step-06b-cove-legs");
+      const two = (deriveBuildSteps(build(cat, true)) as any[]).find((s) => s.id === "step-06b-cove-legs");
+      expect(one, "單向也要有挖弧工序").toBeTruthy();
+      expect(two, "兩向也要有挖弧工序").toBeTruthy();
+      expect(two.estimatedMinutes / one.estimatedMinutes).toBeCloseTo(2, 6);
+    });
+
+    it(`${cat}：材料一點都沒多（弧是從同一根方料挖掉的）`, async () => {
+      const { calculateQuote } = await import("@/lib/pricing/quote");
+      const { LABOR_DEFAULTS } = await import("@/lib/pricing/labor");
+      const opts: any = { ...LABOR_DEFAULTS, primaryMaterialPricePerBdft: 300 };
+      const a: any = calculateQuote(build(cat, false), opts);
+      const b: any = calculateQuote(build(cat, true), opts);
+      expect(b.totalBdft).toBeCloseTo(a.totalBdft, 6);
+      expect(b.materialCost).toBeCloseTo(a.materialCost, 6);
+      // 但工時與總價要變高
+      expect(b.laborHours).toBeGreaterThan(a.laborHours);
+      expect(b.total).toBeGreaterThan(a.total);
+    });
+  }
+
+  it("沒有弧肩斜腳的家具不該長出挖弧工序", async () => {
+    const { deriveBuildSteps } = await import("@/lib/steps/derive");
+    const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === "stool")!;
+    const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+    const d = e.template({
+      length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+      material: "maple", options: { ...base, legShape: "box" },
+    });
+    expect((deriveBuildSteps(d) as any[]).some((s) => s.id === "step-06b-cove-legs")).toBe(false);
+  });
+});
+
+describe("牙板被夾住時要出聲（§A10.11 第 2 條）", () => {
+  /**
+   * 夾制本身是對的（牙板下緣不能蓋到弧肩），但原本**默默**把使用者設的 200mm
+   * 改成 40mm，畫面上一句話都沒有 —— 使用者會以為滑桿壞了。
+   */
+  for (const cat of ["stool", "bar-stool", "dining-chair"]) {
+    it(`${cat}：把牙板高拉到最大 → 有警告，而且講得出實際做出多少`, () => {
+      const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
+      const spec = (e.optionSchema ?? []).find((s: any) => s.key === "apronWidth");
+      const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+      const d: any = e.template({
+        length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+        material: "maple", options: { ...base, legShape: "curved-taper", apronWidth: spec.max },
+      });
+      const w = (d.warnings ?? []).find((x: string) => /牙板高/.test(x));
+      expect(w, "應該要有牙板被夾的警告").toBeTruthy();
+      expect(w).toContain(String(spec.max));
+    });
+
+    it(`${cat}：牙板在範圍內時不可以亂噴警告`, () => {
+      const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
+      const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+      const d: any = e.template({
+        length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+        material: "maple", options: { ...base, legShape: "curved-taper", apronWidth: 20, ctBlockHeight: 120 },
+      });
+      expect((d.warnings ?? []).filter((x: string) => /牙板高/.test(x))).toEqual([]);
+    });
+  }
+});

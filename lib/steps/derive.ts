@@ -132,6 +132,18 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   const hasBack = design.parts.some((p) => p.id === "back-panel" || p.id === "back" || /^back-/.test(p.id));
   const hasShelves = design.parts.some((p) => /shelf|shelves/.test(p.id));
   const hasUpperApron = design.parts.some((p) => /apron|stretcher/.test(p.id));
+  /**
+   * 弧肩斜腳:每支腳都要挖出「方肩→凹弧→斜降」的側面輪廓。
+   *
+   * ⛔ 工序推導原本完全不知道這種腳存在 —— 不管單向還是兩向,挖弧的工時都是 0。
+   *    而 quote.ts 直接吃 totalEstimatedHours() 算工資,等於這道工白做。
+   *    兩向弧肩(§A9.9)每支腳要挖兩道,工時當然是兩倍。(2026-08-24)
+   */
+  const coveLegs = design.parts.filter((p) => p.shape?.kind === "curved-taper");
+  const coveFaces = coveLegs.reduce(
+    (n, p) => n + ((p.shape as { twoWay?: boolean } | undefined)?.twoWay ? 2 : 1),
+    0,
+  );
   const isRoundTop = design.parts.some((p) => p.shape?.kind === "round" && /top|seat/.test(p.id));
   const wideTop = isRoundTop && design.overall.length >= 600;
 
@@ -644,6 +656,32 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   // ---------------------------------------------------------------------------
   // 9. 砂磨 — 4 階段細化
   // ---------------------------------------------------------------------------
+  if (coveFaces > 0) {
+    const facesPerLeg = coveFaces / coveLegs.length;
+    steps.push({
+      id: "step-06b-cove-legs",
+      phase: "cut-joinery",
+      title: `挖弧肩（${coveLegs.length} 支腳 × ${facesPerLeg} 面）`,
+      description:
+        `弧肩斜腳的側面輪廓：頂端保留一段全寬「接撐段」給牙板接合，往下一道內凹圓弧收肩，` +
+        `再直線斜降到腳底。先用帶鋸鋸掉大部分廢料，再靠模板 + 修邊機一次成形，最後手工修弧。` +
+        (facesPerLeg > 1
+          ? `兩向弧肩：每支腳的**兩個相鄰內面**都要做，第二面要重新夾持與對位。`
+          : `單向弧肩：只做朝家具中心的那一面。`),
+      toolIds: ["japanese-saw", "chisel-set-3-6-12", "sandpaper-set", "f-clamp-x4"],
+      // 每一面 25 分：鋸廢料 + 靠模銑 + 修弧。兩向不打折 —— 第二面要重新夾持對位，
+      // 省不下多少。
+      estimatedMinutes: 25 * coveFaces,
+      bullets: [
+        "靠模板銑弧比手工鑿準得多，四支腳才會一致",
+        "接撐段那一節不能銑到——牙板要靠它接合",
+        ...(facesPerLeg > 1
+          ? ["兩面交界的內側立稜要留利，那條稜線是這個腳型的重點"]
+          : []),
+      ],
+    });
+  }
+
   steps.push({
     id: "step-11-sand-coarse",
     phase: "sand",
