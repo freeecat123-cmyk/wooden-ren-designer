@@ -116,7 +116,7 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title={t("fabTitle")}
         aria-label={t("fabTitle")}
-        className="no-print fixed bottom-24 lg:bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 overflow-hidden"
+        className="no-print fixed bottom-24 lg:bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 overflow-hidden [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity"
       >
         <img
           src="/logo-mark.png"

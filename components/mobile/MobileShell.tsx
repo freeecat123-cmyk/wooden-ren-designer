@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
@@ -82,6 +82,23 @@ export function MobileShell(props: MobileShellProps) {
   const isEn = locale === "en";
   const unit = useUnit();
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  /**
+   * 🧷 進階面板開著時,在 <body> 掛一個旗標,讓右下角的浮動鈕自己讓開。
+   *
+   * ⛔ BugReportFab 是 `fixed bottom-24 right-4 z-50`,位置剛好壓在進階面板
+   *    右側那一欄控制項上。實測 iPhone 13:面板裡 91 個互動元件有 **21 個被它蓋住**,
+   *    點下去拿到的是浮動鈕不是控制項 —— 使用者會覺得「這個選項點不動 / 根本沒看到」。
+   *    (2026-08-24 木頭仁回報「手機版怎麼沒看到」,追出來是這個。)
+   *
+   * 用 body 旗標而不是 props:FAB 掛在全站 layout、面板狀態在這支,兩邊沒有父子關係。
+   */
+  useEffect(() => {
+    const cls = "wr-sheet-open";
+    if (advancedOpen) document.body.classList.add(cls);
+    else document.body.classList.remove(cls);
+    return () => document.body.classList.remove(cls);
+  }, [advancedOpen]);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
   // 場景切換：URL ?scene= 控制，初始值由 server 傳入；
