@@ -182,6 +182,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
+  const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const isCurvedTaper = legShape === "curved-taper";
   /**
@@ -335,9 +336,21 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
   const apronLegSizeTop = legSize * legScaleAt(upperApronY + upperApronWidth, legHeight, bottomScale);
   const apronLegSizeBot = legSize * legScaleAt(upperApronY, legHeight, bottomScale);
-  const lowerLegSizeCenter = legSize * legScaleAt(lowerCenterY, legHeight, bottomScale);
-  const lowerLegSizeTop = legSize * legScaleAt(stretcherFloorOffset + lowerStretcherWidth, legHeight, bottomScale);
-  const lowerLegSizeBot = legSize * legScaleAt(stretcherFloorOffset, legHeight, bottomScale);
+  /**
+   * 🧷 兩向弧肩(§A9.9)時,Z 面也會內縮 → Z 下橫撐也要補償。
+   *
+   * ⛔ 下面那段註解原本寫「Z 不補償」,理由是「內面收窄只發生在腳的 X 面」——
+   *    單向弧肩時那是對的,但**兩向弧肩把 Z 面也挖掉了**。
+   *    實測:茶几兩向 + 下橫撐 → Z 向那兩根短了 14.7mm,跟腳之間直接是一條縫。
+   *    (2026-08-24 逐接合點掃描抓到;X 向那兩根沒事,因為補償只做了一個方向。)
+   */
+  const lowerScaleAtZ = (y: number): number =>
+    isCurvedTaper && ctTwoWay
+      ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset)
+      : legScaleAt(y, legHeight, bottomScale);
+  const lowerLegSizeCenter = legSize * lowerScaleAtZ(lowerCenterY);
+  const lowerLegSizeTop = legSize * lowerScaleAtZ(stretcherFloorOffset + lowerStretcherWidth);
+  const lowerLegSizeBot = legSize * lowerScaleAtZ(stretcherFloorOffset);
   // 弧肩斜腳（curved-taper）：內面收窄只發生在腳的 X 面（2D 側輪廓沿 Z 擠出、Z 面全寬）。
   // X 下橫撐長度用 curvedTaperInnerScaleAt 對到「該高度實際內面」（§A11），Z 不補償
   // （榫長 clamp ctStretcherNarrow 早就按窄面算，這裡補漏掉的長度；同 simple-table 修法）。
@@ -416,7 +429,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: c.x, y: 0, z: c.z },
     // ctSplayMm > 0 → curvedTaper.splayMm 讓腳 3D/投影對角外踢（頂固定、底外移）
     shape: legShape === "curved-taper"
-      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm } })
+      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay } })
       : legShape === "tapered"
         ? { kind: "tapered", bottomScale: 0.55 }
         : legEdgeShape(legEdge, legEdgeStyle),

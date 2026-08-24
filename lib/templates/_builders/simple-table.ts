@@ -71,6 +71,8 @@ export interface SimpleTableOpts {
   ctBlockHeight?: number;
   ctShoulder?: number;
   ctInset?: number;
+  /** 兩向弧肩(§A9.9):兩個相鄰內面都做弧肩。預設 false = 既有行為 */
+  ctTwoWay?: boolean;
   /** 弧肩斜腳選配外斜角度（度）。0 / undefined = 垂直（既有行為）。 */
   ctSplay?: number;
   /** 牙條／下橫撐造型（edge-profile 曲線）。"none"/undefined = 直邊（既有行為）。
@@ -174,6 +176,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const ctBlockHeight = opts.ctBlockHeight ?? 55;
   const ctShoulder = opts.ctShoulder ?? 8;
   const ctInset = opts.ctInset ?? 12;
+  const ctTwoWay = opts.ctTwoWay ?? false;
   /**
    * 弧肩斜腳的牙板高度：**夾上限**，不是無條件覆寫。
    *
@@ -404,7 +407,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       };
     }
     if (legShape === "curved-taper") {
-      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm } });
+      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay } });
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     if (legShape === "shaker") return { kind: "shaker" };
