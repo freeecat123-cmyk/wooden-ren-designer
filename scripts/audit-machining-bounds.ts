@@ -28,6 +28,23 @@ for (const e of FURNITURE_CATALOG as any[]) {
     ["預設", base],
     ["入溝", { ...base, drawerBottomMode: "rebated", backMode: "rebated" }],
   ];
+  /**
+   * ⚠️ 勾選框（boolean）也要掃。
+   *
+   * 原本只掃數字選項的極值 → **「兩向弧肩」這種 checkbox 完全沒被驗過**。
+   * 2026-08-24 查新腳型的輸出時才發現這個漏洞。
+   * 腳型是 select，也一併把弧肩斜腳掃進來（它是唯一會挖曲面的腳型）。
+   */
+  for (const s of specs) {
+    if (s.type === "checkbox" || s.type === "boolean") {
+      variants.push([`${s.key}=${!s.defaultValue}`, { ...base, [s.key]: !s.defaultValue }]);
+    }
+  }
+  if (specs.some((s) => s.key === "legShape" && s.choices?.some((c: any) => c.value === "curved-taper"))) {
+    for (const tw of [false, true]) {
+      variants.push([`弧肩腳/兩向=${tw}`, { ...base, legShape: "curved-taper", ctTwoWay: tw }]);
+    }
+  }
   for (const s of specs) {
     if (s.type === "number" && s.min != null && s.max != null) {
       for (const v of [s.min, s.max]) variants.push([`${s.key}=${v}`, { ...base, [s.key]: v }]);
