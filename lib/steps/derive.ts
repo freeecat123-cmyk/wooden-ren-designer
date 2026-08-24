@@ -103,7 +103,32 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   const family = categoryFamily(design.category);
 
   const hasDrawer = design.parts.some((p) => /(?:^|-)drawer/.test(p.id) && /front|side|back|bottom/.test(p.id));
-  const hasDoor = design.parts.some((p) => /door|panel/.test(p.id));
+  /**
+   * 抽屜「組數」—— 用左側板數數,一個抽屜箱剛好一片。
+   *
+   * ⛔ 原本組抽屜箱 / 裝滑軌兩步都是寫死的固定分鐘數,3 組跟 9 組抽屜完全同價。
+   *    但 quote.ts 是直接吃 totalEstimatedHours() 去算工資的,所以
+   *    9 抽屜的五斗櫃「裝滑軌」只算 40 分鐘(一組 4.4 分鐘),光這項就少估兩千多。
+   *    抽屜愈多的案子賠愈多 —— 跟上一輪修掉的「桌椅工時不隨尺寸放大」同一種病。
+   *    (旁邊的鉸鏈那步本來就有乘門片數,只有抽屜這兩步漏了。2026-08-24)
+   */
+  const drawerBoxCount = Math.max(
+    1,
+    design.parts.filter((p) => /(?:^|-)drawer/.test(p.id) && /side-left/.test(p.id)).length,
+  );
+  /**
+   * ⛔ 原本是 `/door|panel/` —— 只要零件 id 含 "panel" 就算有門。
+   *    相框的 `back-panel`(背板)因此被判成有門,施工說明書長出一步
+   *    「裝鉸鏈與門把:在門板背面用 35mm forstner 鑽鉸鏈杯孔」
+   *    → 照做會在相框上鑽一個穿孔的洞。這一步同時被送進 Google 的
+   *    HowTo 結構化資料,SEO 也扣分。
+   *
+   * 改成只認「door」這個字段本身(`-door-` / `door-` / `-door`),
+   * 不再被 back-panel / side-panel / 木鑲板 之類的 panel 誤觸。
+   * 全目錄 1268 組設計掃過:16 組判定改變,全部都是「舊的說有門、
+   * 實際一片門都沒有」,沒有漏抓任何真的門。(2026-08-24)
+   */
+  const hasDoor = design.parts.some((p) => /(?:^|-)door(?:$|-)/.test(p.id));
   const hasBack = design.parts.some((p) => p.id === "back-panel" || p.id === "back" || /^back-/.test(p.id));
   const hasShelves = design.parts.some((p) => /shelf|shelves/.test(p.id));
   const hasUpperApron = design.parts.some((p) => /apron|stretcher/.test(p.id));
@@ -530,7 +555,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         `每個抽屜獨立組裝。順序：先做「前 + 兩側」（鳩尾或半搭接），確認方正再裝後板，`
         + `最後底板從後方滑入凹槽（不上膠，讓底板能熱漲冷縮）。`,
       toolIds: ["pva-glue", "f-clamp-x4", "try-square", "rubber-mallet"],
-      estimatedMinutes: 40,
+      estimatedMinutes: 40 * drawerBoxCount,  // 每組抽屜箱 40 分(見上方 drawerBoxCount 註解)
       bullets: [
         "抽屜箱要做到完全方正——歪了滑入櫃體會卡住",
         "底板留 1mm 膠縫不上膠，底板可以隨季節熱漲冷縮不撐裂側板",
@@ -728,7 +753,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         `三節滑軌：先把滑軌的「外軌」鎖到櫃體側板，「內軌」鎖到抽屜箱側板。`
         + `兩軌的高度位置必須完全水平、左右對齊，不然抽屜推進去會卡。傳統作法不用滑軌而用木滑條也可以。`,
       toolIds: ["drill", "drill-bits", "level", "tape-measure-5m"],
-      estimatedMinutes: 40,
+      estimatedMinutes: 40 * drawerBoxCount,  // 每對三節滑軌 40 分(對位水平最花時間)
       bullets: [
         "滑軌前緣要跟櫃體前緣切齊（裝抽屜面板才能蓋過滑軌）",
         "雙側滑軌高度誤差 ≤ 1mm；3mm 以上抽屜會卡",

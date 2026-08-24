@@ -375,6 +375,29 @@ export const TOOL_CATALOG: Record<string, Tool> = {
       "https://woodenren.easy.co/products/semi-auto-countersink-drill-set",
     notes: "螺絲頭埋進木面不外露，正面光潔；pocket-hole 進階版",
   },
+
+  // ----- 施工步驟直接點名、但型錄原本漏收的 14 樣（2026-08-24 補）-----
+  //
+  // ⛔ `deriveRequiredTools` 的 add() 遇到型錄沒有的 id 會**靜默跳過**,
+  //    工序卡上的「工具:」標籤因此後面空空的 —— 講平刨厚刨的那步不顯示平刨厚刨、
+  //    講砂磨的不顯示砂磨機、「裝背板」整排空白。使用者會以為網頁壞了。
+  //
+  // ⚠️ shopUrl 一律留空:我不知道這幾樣在木頭仁商店的實際商品網址,
+  //    編一個出來會變成死連結。有上架的再手動補上去。
+  "jointer-planer": { id: "jointer-planer", nameZh: "平刨機", nameEn: "Jointer", category: "power" },
+  thicknesser: { id: "thicknesser", nameZh: "厚刨機（自動鉋）", nameEn: "Thicknesser / Planer", category: "power" },
+  "orbital-sander": { id: "orbital-sander", nameZh: "震盪砂磨機", nameEn: "Random Orbital Sander", category: "power" },
+  jigsaw: { id: "jigsaw", nameZh: "線鋸機", nameEn: "Jigsaw", category: "power" },
+  "biscuit-joiner": { id: "biscuit-joiner", nameZh: "餅乾榫機", nameEn: "Biscuit Joiner", category: "power" },
+  "nail-gun": { id: "nail-gun", nameZh: "釘槍（背板釘合用）", nameEn: "Nail Gun", category: "power" },
+  "forstner-bit-35": { id: "forstner-bit-35", nameZh: "35mm 平翼鑽頭（西德鉸鏈杯孔專用）", nameEn: "35mm Forstner Bit", category: "power" },
+  "rubber-mallet": { id: "rubber-mallet", nameZh: "橡膠槌（敲合不留痕）", nameEn: "Rubber Mallet", category: "chisel" },
+  screwdriver: { id: "screwdriver", nameZh: "螺絲起子組", nameEn: "Screwdriver Set", category: "hardware" },
+  level: { id: "level", nameZh: "水平尺", nameEn: "Spirit Level", category: "measure" },
+  "shelf-pin": { id: "shelf-pin", nameZh: "層板粒（含鑽孔模板）", nameEn: "Shelf Pins", category: "hardware" },
+  "steel-wool-0000": { id: "steel-wool-0000", nameZh: "0000 號鋼絲絨（塗裝層間輕磨）", nameEn: "0000 Steel Wool", category: "sand" },
+  "tack-cloth": { id: "tack-cloth", nameZh: "除塵黏布（砂磨後清粉塵）", nameEn: "Tack Cloth", category: "sand" },
+  "lint-free-cloth": { id: "lint-free-cloth", nameZh: "無棉絮擦拭布（擦塗護木油）", nameEn: "Lint-free Cloth", category: "finish" },
 };
 
 /**

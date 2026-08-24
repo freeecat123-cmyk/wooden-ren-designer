@@ -1,6 +1,7 @@
 import type { FurnitureDesign, JoineryType } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { TOOL_CATALOG, type Tool, type ToolPriority } from "./catalog";
+import { deriveBuildSteps } from "@/lib/steps/derive";
 
 export interface RequiredTool {
   tool: Tool;
@@ -154,6 +155,7 @@ const EXTRA_REASONS = {
   sharpening: { zh: "鑿刀／鉋刀定角開刃,搭配磨刀石使用", en: "Fixed-angle sharpening jig for chisels / plane blades — pairs with a waterstone" },
   lubricant: { zh: "帶鋸／台鋸／平刨台面防鏽＋離型,推料順暢", en: "Rust prevention + release for bandsaw / table saw / jointer tables — feeds smoother" },
   routerEngraving: { zh: "修邊機加底座做圓弧／龜甲紋雕刻裝飾", en: "Router base for arc / honeycomb decorative carving" },
+  fromBuildStep: { zh: "施工步驟裡直接用到這把工具", en: "Called for directly by a build step" },
 };
 
 export function deriveRequiredTools(
@@ -234,6 +236,29 @@ export function deriveRequiredTools(
     design.category === "display-cabinet"
   ) {
     add("router-engraving-base", "optional", EXTRA_REASONS.routerEngraving);
+  }
+
+  /**
+   * 🧷 工序叫人用的工具,一定要出現在購物清單裡。
+   *
+   * ⛔ 上面整份清單是從**零件的榫頭**(`part.tenons[].type`)推的,
+   *    但工序表是另一條路徑(`deriveBuildSteps`)推的 —— 兩邊必然對不起來:
+   *    - 組裝版(網址預設、新手最常按進來的那個)沒有榫頭 → 推不出任何接合工具,
+   *      但工序內文正是「斜孔治具 + 電鑽」。28 款**全部**漏列 drill / pocket-hole-jig。
+   *    - 鳩尾盒的工序寫「鋸製鳩尾榫」列了鳩尾鋸 / 鳩尾規 / 鑿刀,
+   *      清單裡卻只有紙膠帶和矽膠膠水盒 —— 那是這件家具唯一的工法。
+   *
+   *    使用者照清單買齊料開工,做到第四步才發現少了最關鍵的工具;
+   *    商店端也少賣了客單價最高的那幾樣(每項工具都掛商店連結)。
+   *
+   * 修法跟其他「一個判斷兩套答案」的問題一樣:**讓下游吃上游**,
+   * 直接把工序聲明的 toolIds 併進來,不要各推各的。
+   * 併進來的一律標 required —— 工序寫著要用,就是必需品。(2026-08-24)
+   */
+  for (const step of deriveBuildSteps(design)) {
+    for (const id of step.toolIds ?? []) {
+      add(id, "required", EXTRA_REASONS.fromBuildStep);
+    }
   }
 
   return Array.from(map.values()).sort((a, b) => {
