@@ -2,7 +2,8 @@
 
 import { memo, Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { nextPartSelection } from "@/lib/render/part-selection";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
@@ -870,6 +871,12 @@ export function PerspectiveView({
     }
     return brushes;
   }, [design.parts]);
+
+  const tPV = useTranslations("perspectiveView");
+  const pvLocale = useLocale();
+  const selectedPart = selectedPartId
+    ? design.parts.find((p) => p.id === selectedPartId)
+    : null;
 
   return (
     <div className={
@@ -1861,7 +1868,22 @@ export function PerspectiveView({
           return (
             <group
               key={part.id}
-              onClick={onPartSelect ? (e) => { e.stopPropagation(); onPartSelect(part.id); } : undefined}
+              /**
+               * ⚠️ 再點同一個零件 = **取消選取**,不要一律 set。
+               *
+               * `MaterialListWithSelection.tsx:25` 一直是這樣寫的
+               * (`id === selectedPartId ? null : id`),3D 這邊卻漏了 ——
+               * 兩邊行為不一致的後果:手機上不小心點到零件,其他零件全被
+               * 打成 18% 半透明(DIM_OPACITY),再點同一個也解不掉,
+               * 看起來就是「表面不見了、變透視」。
+               *
+               * 空白處雖然會清(onPointerMissed),但按「填滿」放大後模型幾乎
+               * 塞滿畫布,手機上根本找不到空白可點。(2026-08-25 木頭仁回報)
+               */
+              onClick={onPartSelect ? (e) => {
+                e.stopPropagation();
+                onPartSelect(nextPartSelection(selectedPartId, part.id));
+              } : undefined}
             >
               <Part
                 position={[px, py, pz]}
@@ -1924,6 +1946,29 @@ export function PerspectiveView({
         />
         <InvalidateOnDep dep={selectedPartId} />
       </Canvas>
+      {/**
+        * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
+        * 沒有這條提示的話,使用者只會看到「表面不見了、變透視」,
+        * 不知道是自己點到零件、更不知道怎麼取消 ——
+        * 空白處雖然會清,但按「填滿」放大後手機上幾乎沒有空白可點。
+        * (2026-08-25 木頭仁回報)
+        */}
+      {selectedPart && onPartSelect ? (
+        <button
+          type="button"
+          onClick={() => onPartSelect(null)}
+          className="absolute left-2 bottom-2 z-10 max-w-[calc(100%-1rem)] flex items-center gap-1.5 min-h-[36px] max-md:min-h-[44px] px-2.5 rounded-full bg-amber-600/95 text-white text-xs font-medium shadow-lg ring-1 ring-amber-700 hover:bg-amber-700 transition"
+        >
+          <span className="truncate">
+            {tPV("selectedPartChip", {
+              name:
+                (pvLocale === "en" ? selectedPart.nameEn : undefined) ??
+                selectedPart.nameZh,
+            })}
+          </span>
+          <span aria-hidden className="shrink-0 text-sm leading-none">&#10005;</span>
+        </button>
+      ) : null}
       </div>
     </div>
   );

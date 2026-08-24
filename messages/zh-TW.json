@@ -4600,7 +4600,8 @@
     "lidLiftBtnClosed": "📦 掀蓋",
     "wireframeLabel": "⊞ 線框",
     "lidLiftTitleTpl": "掀蓋（看 lid 底下結構）：當前 {state}，點切下一檔",
-    "viewLbl": "視角"
+    "viewLbl": "視角",
+    "selectedPartChip": "已選取：{name} · 點此取消"
   },
   "photoToParams": {
     "errReadFail": "讀檔失敗",

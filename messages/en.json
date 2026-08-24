@@ -4600,7 +4600,8 @@
     "lidLiftBtnClosed": "📦 Lift lid",
     "wireframeLabel": "⊞ Wireframe",
     "lidLiftTitleTpl": "Lift lid (reveal what's under): currently {state} — click to cycle",
-    "viewLbl": "View"
+    "viewLbl": "View",
+    "selectedPartChip": "Selected: {name} · tap to clear"
   },
   "photoToParams": {
     "errReadFail": "File read failed",
