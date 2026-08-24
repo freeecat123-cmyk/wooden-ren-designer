@@ -184,6 +184,30 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const sideRailThickness = getOption<number>(input, opt(o, "sideRailThickness"));
   const mattressClearanceMmRaw = getOption<number>(input, opt(o, "mattressClearanceMm"));
   const mattressClearanceMm = mattressClearanceMmRaw === 250 && preset?.mattressClearanceMm !== undefined ? preset.mattressClearanceMm : mattressClearanceMmRaw;
+
+  /**
+   * 🧷 側板高不能超過「床板離地高 − 腳底留料」。
+   *
+   * ⛔ 床腳只做到側板頂面(`legHeight = mattressClearanceMm`,見下方),
+   *    而側板的榫眼是以側板中心 `mattressClearanceMm − sideRailWidth/2` 定位、
+   *    垂直尺寸等於側板高。側板一旦比床板離地高還大,榫眼就整段穿出腳的頂面:
+   *    - 側板高 300 + 床板離地 250(兩個都在滑桿範圍內)→ 榫眼超出腳頂 **40mm**
+   *    - 床板離地 150 + 側板高 180(預設)→ 超出 20mm
+   *    「榫孔加工面 ZIP」匯出的 SVG 會把切線畫到料件外面,拿去 CNC 是直接
+   *    打到夾具 / 犧牲板,手工鑿則是把整支腳鑿斷。
+   *    (2026-08-24 大軍稽核抓到;全站 17,214 張加工圖只有床中招)
+   *
+   * MIN_LEG_STOCK 取 40mm:榫眼下緣到腳底至少要留這麼多料,不然腳會從榫眼處斷。
+   */
+  const MIN_LEG_STOCK = 40;
+  const sideRailWidthCapped = Math.max(60, mattressClearanceMm - MIN_LEG_STOCK);
+  const sideRailWidthWanted = sideRailWidth;
+  const sideRailWidthFinal = Math.min(sideRailWidthWanted, sideRailWidthCapped);
+  const sideRailWidthWarnings: string[] = sideRailWidthFinal < sideRailWidthWanted
+    ? [`側板高 ${sideRailWidthWanted}mm 超過床板離地高 ${mattressClearanceMm}mm 能容納的上限，` +
+       `已收到 ${sideRailWidthFinal}mm（腳底要留 ${MIN_LEG_STOCK}mm 料，否則榫眼會穿出腳頂、腳會從那裡斷）。` +
+       `想要更高的側板，請把「床板距地高」一起調高。`]
+    : [];
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const slatGapMmRaw = getOption<number>(input, opt(o, "slatGapMm"));
   const slatGapMm = slatGapMmRaw === 80 && preset?.slatGapMm !== undefined ? preset.slatGapMm : slatGapMmRaw;
@@ -210,7 +234,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const sideRailTenonStd = standardTenon({
     type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: sideRailThickness,
-    childWidth: sideRailWidth,
+    childWidth: sideRailWidthFinal,
     motherThickness: legSize,
   });
   // 通榫 +5mm 補償（即使床通常直立 splay=0，仍套用一致規則）
@@ -224,7 +248,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const headboardTenonStd = standardTenon({
     type: headboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: headboardThickness,
-    childWidth: Math.min(legHeight - 20, sideRailWidth), // 進腳的有效榫高 ≤ side-rail width
+    childWidth: Math.min(legHeight - 20, sideRailWidthFinal), // 進腳的有效榫高 ≤ side-rail width
     motherThickness: legSize,
   });
   const headboardTenonLength = headboardTenonStd.length + (headboardTenonType === "through-tenon" ? 5 : 0);
@@ -234,7 +258,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const footboardTenonStd = standardTenon({
     type: footboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: footboardThickness,
-    childWidth: Math.min(legHeight - 20, sideRailWidth),
+    childWidth: Math.min(legHeight - 20, sideRailWidthFinal),
     motherThickness: legSize,
   });
   const footboardTenonLength = footboardTenonStd.length + (footboardTenonType === "through-tenon" ? 5 : 0);
@@ -265,11 +289,11 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       }) ?? legEdgeShape(legEdge, legEdgeStyle),
       tenons: [],
       // mortises：side-rail（X 面，朝家具中心）+ headboard/footboard（Z 面對齊）
-      // side rail 中心 Y = mattressClearance - sideRailWidth/2
+      // side rail 中心 Y = mattressClearance - sideRailWidthFinal/2
       // splay 公約（b3f09ad）：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 -sign(corner.x)×splayDx
       mortises: (() => {
         const mortises: Part["mortises"] = [];
-        const sideRailCenterY_local = mattressClearanceMm - sideRailWidth / 2;
+        const sideRailCenterY_local = mattressClearanceMm - sideRailWidthFinal / 2;
         const _splayDx = (legShape === "splayed" || legShape === "splayed-length") ? splayMm : 0;
         const _splayDz = (legShape === "splayed" || legShape === "splayed-width") ? splayMm : 0;
         const _zRotX = (_splayDz !== 0 && legHeight > 0)
@@ -320,8 +344,8 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   // tapered 補償：腳 cross-section 隨 Y 線性變化，rail 端面要對到 rail Y 處實際腳寬
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
-  const sideRailY = mattressClearanceMm - sideRailWidth;
-  const sideRailCenterY = mattressClearanceMm - sideRailWidth / 2;
+  const sideRailY = mattressClearanceMm - sideRailWidthFinal;
+  const sideRailCenterY = mattressClearanceMm - sideRailWidthFinal / 2;
   const bottomScale = legBottomScale(legShape);
   const railLegSizeAtCenter = legSize * legScaleAt(sideRailCenterY, legHeight, bottomScale);
   const railLegSizeAtTop = legSize * legScaleAt(mattressClearanceMm, legHeight, bottomScale);
@@ -354,7 +378,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh,
       material,
       grainDirection: "length",
-      visible: { length: sideRailInnerSpan, width: sideRailWidth, thickness: sideRailThickness },
+      visible: { length: sideRailInnerSpan, width: sideRailWidthFinal, thickness: sideRailThickness },
       origin: { x: 0, y: sideRailY, z: sz * apronEdgeZ },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
@@ -551,7 +575,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: headboardTenonStd.width,
           thickness: headboardTenonStd.thickness,
           shoulderOn: [...headboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - headboardPlateHeight / 2,
         },
         {
           position: "end",
@@ -560,7 +584,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: headboardTenonStd.width,
           thickness: headboardTenonStd.thickness,
           shoulderOn: [...headboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - headboardPlateHeight / 2,
         },
       ],
       mortises: [],
@@ -669,7 +693,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: footboardTenonStd.width,
           thickness: footboardTenonStd.thickness,
           shoulderOn: [...footboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - footPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - footPlateHeight / 2,
         },
         {
           position: "end",
@@ -678,7 +702,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: footboardTenonStd.width,
           thickness: footboardTenonStd.thickness,
           shoulderOn: [...footboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - footPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - footPlateHeight / 2,
         },
       ],
       mortises: [],
@@ -758,15 +782,15 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // 床特有警告
-  const warnings: string[] = [];
+  const warnings: string[] = [...sideRailWidthWarnings];
   if (slatGapMm > 100) {
     warnings.push(`床板條間距 ${slatGapMm}mm 超過 100mm — 床墊容易塌陷且護腰不足，建議 ≤100mm。`);
   }
   if (legSize < 60) {
     warnings.push(`床腳 ${legSize}mm 偏細 — 雙人床建議 70mm 起跳，承重才穩固。`);
   }
-  if (sideRailWidth < 120) {
-    warnings.push(`側板高 ${sideRailWidth}mm 偏窄 — 床承重大，建議 150mm 起跳避免長期下垂。`);
+  if (sideRailWidthFinal < 120) {
+    warnings.push(`側板高 ${sideRailWidthFinal}mm 偏窄 — 床承重大，建議 150mm 起跳避免長期下垂。`);
   }
   if (mattressClearanceMm < headboardPlateHeight && headboardPlateHeight - mattressClearanceMm < 200) {
     warnings.push(`床頭板高 ${headboardPlateHeight}mm 比床板高 ${mattressClearanceMm}mm 高出不到 200mm — 靠背效果有限，建議床頭板總高 ≥ ${mattressClearanceMm + 400}mm。`);

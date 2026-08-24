@@ -577,8 +577,22 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
                 z: boxHRow / 2 - (6 + drawerBottomT / 2),
               },
               depth: 6,
-              // 跟底板 X length=drawerInnerW+12 對齊（前 +4 太短、底板 corner 撞前板實心區顯紅）
-              length: drawerInnerW + 12,
+              /**
+               * ⛔ 原本寫 `drawerInnerW + 12`,理由註解是「跟底板 X length 對齊」——
+               *    但那個 +12 是**底板**的:底板要兩端各嵌進側板的溝裡 6mm,
+               *    所以底板總寬 = drawerInnerW + 12。前板的溝只沿著**前板自己**跑,
+               *    不該加那 12mm。
+               *
+               *    實測(五斗櫃預設 · 榫接版):前板 711mm、溝卻 723mm →
+               *    「榫孔加工面」那張圖上,溝從板子左端跑出去 12mm。
+               *    照著切 CNC 是從料外面下刀,手工開槽則是把前板左端整個開穿。
+               *    ⚠️ 榫接版會自動把「釘底」升級成「入溝」
+               *    (lib/design/parse-search-params.ts:69),所以這是榫接版抽屜櫃的
+               *    **預設路徑**,不是極端值。5 款櫃體中招。(2026-08-24)
+               *
+               * 前板長度見下方 `useFullLap ? drawerInnerW : boxExtW`,溝跟它同寬。
+               */
+              length: useFullLap ? drawerInnerW : boxExtW,
               width: drawerBottomT,
               through: false,
               cosmetic: true,
