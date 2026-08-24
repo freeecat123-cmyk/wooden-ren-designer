@@ -496,7 +496,17 @@ export function rectLegShape(
       shoulderMm: ct?.shoulderMm ?? 8,
       insetMm: ct?.insetMm ?? 12,
       dir,
-      ...(ct?.twoWay ? { twoWay: true } : {}),
+      ...(ct?.twoWay
+        ? {
+            twoWay: true as const,
+            // ⚠️ 一定要跟上面 `dir` 用**完全一樣**的式子(sign(座標),不加負號)。
+            // 實測(scripts/audit-leg-shapes 的 side silhouette):dir=sign(c.x) 時,
+            // 弧會挖在「朝家具中心」那一面 —— 這是單向弧肩既有且正確的外觀。
+            // 之前這裡多乘了 -1,結果 Z 的弧全挖到**朝外**那面:看不到弧,而且
+            // 朝中心的面沒退,橫撐照「已退」的長度做 → 直接穿進腳裡。
+            dirZ: (Math.sign(c.z) || 1) as -1 | 0 | 1,
+          }
+        : {}),
       ...(ctSplay > 0
         ? { dxMm: Math.sign(c.x) * ctSplay, dzMm: Math.sign(c.z) * ctSplay }
         : {}),

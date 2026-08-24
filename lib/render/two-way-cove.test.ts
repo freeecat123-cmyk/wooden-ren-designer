@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { projectPartSilhouette, projectPartPolygon, curvedTaperProfilePoints } from "./geometry";
 import { curvedTaperInsetAtY } from "./part-geometry";
 import { FURNITURE_CATALOG } from "@/lib/templates";
+import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
 /**
  * 兩向弧肩（§A9.9）：把同一道「方肩→凹弧→斜降」同時做在兩個相鄰內面。
@@ -192,6 +193,65 @@ describe("牙板被夾住時要出聲（§A10.11 第 2 條）", () => {
         material: "maple", options: { ...base, legShape: "curved-taper", apronWidth: 20, ctBlockHeight: 120 },
       });
       expect((d.warnings ?? []).filter((x: string) => /牙板高/.test(x))).toEqual([]);
+    });
+  }
+});
+
+/**
+ * ⭐ 方向迴歸 —— 這一組釘住 2026-08-24 上線後回報的 bug（詳見 docs §A9.9）。
+ *
+ * 當時 `dirZ` 多乘了一個 -1，弧被挖到「朝外」那面：
+ *   使用者看到的是「新做的這面沒有弧」+「透視穿了 15.6mm」，
+ *   而所有既有稽核都是綠的（它們只掃 legShape 下拉選單，不掃勾選框）。
+ *
+ * 這裡不看 dirZ 這個欄位本身，直接量**投影出來的輪廓**：
+ * 弧一定要出現在「朝家具中心」那一面 —— 跟單向弧肩的 X 面同一個慣例。
+ */
+describe("兩向弧肩：弧要挖在朝家具中心那面（不是朝外）", () => {
+  // side: vx = -worldZ ; front: vx = -worldX（geometry.ts:422）
+  const spanAtY = (poly: { x: number; y: number }[], y: number) => {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      if ((a.y - y) * (b.y - y) > 0) continue;
+      const t = Math.abs(b.y - a.y) < 1e-9 ? 0 : (y - a.y) / (b.y - a.y);
+      const v = a.x + t * (b.x - a.x);
+      lo = Math.min(lo, v); hi = Math.max(hi, v);
+    }
+    return lo > hi ? null : { min: -hi, max: -lo };   // 轉回 world 座標
+  };
+
+  for (const cat of ["tea-table", "stool", "side-table", "low-table"]) {
+    it(`${cat}：四支腳的兩個弧都朝中心`, () => {
+      const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
+      const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+      const d: any = toBeginnerMode(e.template({
+        length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+        material: "maple", options: { ...base, legShape: "curved-taper", ctTwoWay: true },
+      }));
+      const legs = d.parts.filter((p: any) => p.shape?.kind === "curved-taper" && p.shape?.twoWay);
+      expect(legs.length, "應該要有兩向弧肩的腳").toBeGreaterThan(0);
+
+      for (const leg of legs) {
+        const y = leg.origin.y + leg.visible.thickness * 0.35;   // 弧段中間
+        const wx = spanAtY(projectPartSilhouette(leg, "front"), y);
+        const wz = spanAtY(projectPartSilhouette(leg, "side"), y);
+        expect(wx, `${leg.id} front 輪廓在 y=${y} 取不到`).toBeTruthy();
+        expect(wz, `${leg.id} side 輪廓在 y=${y} 取不到`).toBeTruthy();
+
+        const hx = leg.visible.length / 2, hz = leg.visible.width / 2;
+        // 「朝中心」= 座標絕對值較小那一端；退了 = 該端離腳中心變近
+        const inX = leg.origin.x < 0 ? hx - (wx!.max - leg.origin.x) : hx - (leg.origin.x - wx!.min);
+        const outX = leg.origin.x < 0 ? hx - (leg.origin.x - wx!.min) : hx - (wx!.max - leg.origin.x);
+        const inZ = leg.origin.z < 0 ? hz - (wz!.max - leg.origin.z) : hz - (leg.origin.z - wz!.min);
+        const outZ = leg.origin.z < 0 ? hz - (leg.origin.z - wz!.min) : hz - (wz!.max - leg.origin.z);
+
+        expect(inX, `${leg.id}: X 朝中心那面必須被挖`).toBeGreaterThan(1);
+        expect(outX, `${leg.id}: X 朝外那面不可以動`).toBeLessThan(0.05);
+        expect(inZ, `${leg.id}: Z 朝中心那面必須被挖（dirZ 符號反了就會是 0）`).toBeGreaterThan(1);
+        expect(outZ, `${leg.id}: Z 朝外那面不可以動（dirZ 符號反了就會是這個被挖）`).toBeLessThan(0.05);
+        expect(inZ, `${leg.id}: 兩個方向挖的量要一樣`).toBeCloseTo(inX, 3);
+      }
     });
   }
 });

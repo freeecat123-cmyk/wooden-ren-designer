@@ -1109,7 +1109,7 @@ export function PerspectiveView({
               dir: part.shape.dir,
               ...(part.shape.dxMm ? { dxMm: part.shape.dxMm * SCALE } : {}),
               ...(part.shape.dzMm ? { dzMm: part.shape.dzMm * SCALE } : {}),
-              ...(part.shape.twoWay ? { twoWay: true } : {}),
+              ...(part.shape.twoWay ? { twoWay: true, dirZ: part.shape.dirZ ?? 1 } : {}),
             };
           } else if (part.shape?.kind === "edge-profile") {
             shape = {

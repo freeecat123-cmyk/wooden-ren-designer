@@ -48,6 +48,22 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 弧肩斜腳（curved-taper）同 box/tapered：下棚 slat 端角 × 腳，silhouette
   // 看不到 slat notched-corner → 誤報。腳實際內面已收窄、離 slat 更遠，非真重疊。
   "tea-table:curved-taper",
+  /**
+   * 兩向弧肩:4 對「下橫撐 × 下橫撐」在腳的內角互切 1.6 × 50 × 1.6mm。
+   *
+   * 這**不是**腳的 bug（腳 × 橫撐 已經 0 重疊、0 縫,見 audit-leg-joints）。
+   * 成因:四根下橫撐同高度圍成一圈,兩個方向都補償到腳的弧面之後,在腳的內角
+   * 搶同一塊「被挖掉」的空間 ——
+   *     y=120 時腳的斷面被弧挖成 34.4×34.4(名目 50×50),
+   *     而橫撐 22mm 厚、對齊腳的名目中心線 → 內側緣超出腳 1.6mm。
+   *     楔形,到 y≈163 收斂為 0。
+   *
+   * 沒有修,因為兩條解法都會動到既有外觀(木頭仁明確要求不准動舊的):
+   *   a) 縮短 X 向橫撐 → 單向弧肩也會跟著變(它早就伸到 215.6mm)
+   *   b) 把橫撐移離腳中心線 7.8mm → 單向 / 直腳 / 錐形腳全部跟著位移
+   * 真家具在這個角落是格肩榫互讓,本來就不是兩塊實體對撞。
+   */
+  "tea-table:curved-taper+ctTwoWay",
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
   // 才能視覺接合柱底 lathe 輪廓——audit 用 box 算 overlap 看不到柱「實際變細」。
   "round-table:pedestal",
@@ -117,7 +133,12 @@ function legShapeChoices(entry: FurnitureCatalogEntry): string[] {
   );
   if (!spec || spec.type !== "select") return ["default"];
   const choices = spec.choices ?? [];
-  return choices.map((c: { value: string | number | boolean }) => String(c.value));
+  const base = choices.map((c: { value: string | number | boolean }) => String(c.value));
+  // 弧肩斜腳額外掃一次「兩向弧肩」(勾選框原本完全沒被掃到)
+  const hasTwoWay = (entry.optionSchema ?? []).some((o: OptionSpec) => o.key === "ctTwoWay");
+  return hasTwoWay && base.includes("curved-taper")
+    ? [...base, "curved-taper+ctTwoWay"]
+    : base;
 }
 
 function buildDesign(
@@ -132,7 +153,17 @@ function buildDesign(
     return acc;
   }, {});
   if (legShapeOverride && legShapeOverride !== "default") {
-    opts.legShape = legShapeOverride;
+    /**
+     * ⚠️ variant 字串可以帶 "+ctTwoWay" 後綴,代表「這個腳型 + 兩向弧肩」。
+     *
+     * ⛔ 原本只掃 legShape 的 choices,**勾選框完全沒被掃到** ——
+     *    兩向弧肩上線後,四支腳的 Z 內面全做在同一側(dirZ 從外斜量誤推),
+     *    兩支腳的弧朝外、跟牙條穿模,而這支稽核照樣綠燈。
+     *    (2026-08-24 木頭仁截圖回報「透視穿了」才發現。)
+     */
+    const [shape, ...flags] = legShapeOverride.split("+");
+    opts.legShape = shape;
+    for (const f of flags) if (f) opts[f] = true;
   }
   return entry.template({
     length: entry.defaults.length,

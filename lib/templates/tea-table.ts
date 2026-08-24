@@ -364,6 +364,19 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const hasShapeBend = bottomScale !== 1;
   // X 下橫撐端面要貼收窄斜面 → 梯形補償也要開
   const hasShapeBendLowerX = hasShapeBend || isCurvedTaper;
+  /**
+   * 🧷 Z 向下橫撐的梯形補償 —— 兩向弧肩時 Z 面也會隨高度收窄。
+   *
+   * 「橫撐長度」由上面 lowerScaleAtZ 補;這裡補的是**端面形狀** ——
+   * 橫撐端面若是垂直的,而腳的 Z 內面是斜的 → 端角會差一個楔形。
+   * X 向早就有 hasShapeBendLowerX 這條(`|| isCurvedTaper`),Z 向漏了。
+   *
+   * (木頭仁截圖回報的「透視穿了」不是這條,是 _helpers.ts 的 dirZ 符號寫反:
+   *  弧挖到朝外那面,朝中心的面沒退,橫撐卻照「已退」的長度做。2026-08-24)
+   *
+   * ⚠️ 只在**兩向**時開 —— 單向弧肩的 Z 面本來就是全寬,補了反而做出斜端面。
+   */
+  const hasShapeBendLowerZ = hasShapeBend || (isCurvedTaper && ctTwoWay);
 
   // ----- 桌面板 -----
   const topLen = length;
@@ -519,8 +532,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerButtHalfZBot = apronEdgeZ - lowerLegSizeBot / 2;
   const lowerTrapTopScaleX = hasShapeBendLowerX ? lowerButtHalfXTop / lowerButtHalfX : null;
   const lowerTrapBotScaleX = hasShapeBendLowerX ? lowerButtHalfXBot / lowerButtHalfX : 1;
-  const lowerTrapTopScaleZ = hasShapeBend ? lowerButtHalfZTop / lowerButtHalfZ : null;
-  const lowerTrapBotScaleZ = hasShapeBend ? lowerButtHalfZBot / lowerButtHalfZ : 1;
+  const lowerTrapTopScaleZ = hasShapeBendLowerZ ? lowerButtHalfZTop / lowerButtHalfZ : null;
+  const lowerTrapBotScaleZ = hasShapeBendLowerZ ? lowerButtHalfZBot / lowerButtHalfZ : 1;
 
   // butt-joint span：兩端各扣「leg 中心點 X 距離 + leg 在該 Y 的半寬」
   //   = length/2 - legSize/2（leg 中心）+ legSizeAtY/2（leg 半寬）

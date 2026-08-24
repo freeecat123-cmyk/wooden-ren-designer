@@ -301,7 +301,14 @@ export interface Part {
          *
          * false / undefined = 既有行為（單向擠出），舊設計 byte 相容。（§A9.9）
          */
-        twoWay?: boolean }
+        twoWay?: boolean;
+        /**
+         * 兩向弧肩時,Z 方向那一面的內側朝哪邊(−1 = 內面在 −Z、+1 = 在 +Z)。
+         * ⛔ 不可以從 `dzMm`(外斜量)去推 —— 沒開外斜時它是 0,四支腳會全部
+         *    把弧做在同一側,結果兩支腳的弧朝外、跟牙條互相穿模。
+         *    `hoof` 腳型本來就有 dirX/dirZ 兩個欄位,這裡是抄漏了。(2026-08-24)
+         */
+        dirZ?: -1 | 0 | 1 }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，

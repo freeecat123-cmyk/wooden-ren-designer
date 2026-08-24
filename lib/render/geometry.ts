@@ -513,7 +513,7 @@ export function projectPartSilhouette(
         (view === "top" && Math.abs(mY) > FACE_ON_COS);
       if (alongZProfile) {
         // 同一條輪廓函式，但寬度基準換成 lz、方向用 dz 的正負決定內面在哪一側
-        const dirZ = (ctDz < 0 ? -1 : 1) as -1 | 0 | 1;
+        const dirZ = (part.shape.dirZ ?? 1) as -1 | 0 | 1;
         const profZ = curvedTaperProfilePoints(
           lz, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZ,
         );
@@ -1146,7 +1146,7 @@ export function projectPartPolygon(
       const cxS = r.x + r.w / 2;
       const midYS = r.y + r.h / 2;
       const lyS = part.visible.thickness;
-      const dirZS = (ctDz2 < 0 ? -1 : 1) as -1 | 0 | 1;
+      const dirZS = (part.shape.dirZ ?? 1) as -1 | 0 | 1;
       const profS = curvedTaperProfilePoints(
         part.visible.width, lyS,
         part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZS,

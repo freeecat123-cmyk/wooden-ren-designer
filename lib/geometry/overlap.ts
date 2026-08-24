@@ -43,7 +43,9 @@ export interface Overlap {
  *
  * 投影座標慣例（見 lib/render/geometry.ts pushPoint）：
  *   front: vx = -worldX, vy = worldY
- *   side:  vx = worldZ,  vy = worldY
+ *   side:  vx = -worldZ, vy = worldY   ← 是負的(geometry.ts:422)。這裡本來寫成
+ *                                          `vx = worldZ`,取 min/max 對稱所以沒出錯,
+ *                                          但照抄去量「單一面」會看到反面。
  *   top:   vx = -worldX, vy = worldZ
  *
  * 因此 worldX 從 front 或 top 的 -vx 取，worldY 從 front/side 的 vy 取，worldZ

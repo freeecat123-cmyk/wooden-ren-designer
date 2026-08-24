@@ -51,7 +51,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean }
+  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1 }
   | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
   | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number; sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
@@ -2341,7 +2341,7 @@ export function buildShapeGeometry(
   if (shape.kind === "curved-taper") {
     // 兩向弧肩走放樣、單向走既有的擠出(byte 相容)
     if (shape.twoWay) {
-      const dirZ = (shape.dzMm ?? 0) < 0 ? -1 : 1;
+      const dirZ = shape.dirZ ?? 1;
       return buildTwoWayCurvedTaperGeometry(
         size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm,
         shape.dir, dirZ as -1 | 0 | 1, shape.dxMm ?? 0, shape.dzMm ?? 0,
