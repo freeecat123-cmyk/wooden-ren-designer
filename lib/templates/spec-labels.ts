@@ -30,6 +30,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   ctBlockHeight: "Block height (rail joint)",
   ctShoulder: "Cove shoulder inset",
   ctInset: "Foot taper inset",
+  ctTwoWay: "Two-way cove (both inner faces)",
   legDepthOverride: "Leg depth override",
   legPenetratingTenon: "Through tenons (decorative)",
   splayAngle: "Splay angle (°)",
@@ -466,6 +467,8 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  * Missing → falls back to spec.help (zh).
  */
 export const SPEC_HELP_EN: Record<string, string> = {
+  ctTwoWay:
+    "The leg stands at a corner — aprons come in from two directions, so both inner faces should be coved. Uses the same stock (the cove is carved out of it), but adds one more shaping operation per leg.",
   legInset: "Distance from leg center to seat edge. > 0 makes the top overhang the legs — crisper visual.",
   splayAngle: "Splay angle relative to vertical, in the splayed-leg family. Default ~3° is mild; 10°+ reads boldly (Nordic), max ~15°.",
   legPenetratingTenon: "Checked: apron / stretcher tenons go all the way through the leg (Ming-style decorative). Unchecked: blind tenon at 2/3 mother thickness.",

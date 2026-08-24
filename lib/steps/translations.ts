@@ -118,6 +118,36 @@ const JOINERY_STEP_BULLETS_EN: Record<JoineryType, string[]> = {
 };
 
 const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
+  "step-06b-cove-legs": {
+    title: (d) => {
+      const legs = d.parts.filter((p) => p.shape?.kind === "curved-taper");
+      const two = legs.some((p) => (p.shape as { twoWay?: boolean } | undefined)?.twoWay);
+      return `Cut the cove shoulders (${legs.length} legs × ${two ? 2 : 1} face${two ? "s" : ""})`;
+    },
+    description: (d) => {
+      const two = d.parts.some(
+        (p) => p.shape?.kind === "curved-taper" && (p.shape as { twoWay?: boolean }).twoWay,
+      );
+      return (
+        "Shape the leg profile: keep a full-width block at the top for the apron joint, " +
+        "then a concave cove, then a straight taper down to the foot. " +
+        "Bandsaw away the bulk first, template-rout to final shape, then hand-finish the curve. " +
+        (two
+          ? "Two-way cove: both adjacent inner faces get the same profile — the second face needs re-clamping and re-registering."
+          : "Single cove: only the face pointing at the furniture centre.")
+      );
+    },
+    bullets: (d) => {
+      const two = d.parts.some(
+        (p) => p.shape?.kind === "curved-taper" && (p.shape as { twoWay?: boolean }).twoWay,
+      );
+      return [
+        "A router template beats hand-chopping — that's how all four legs come out identical",
+        "Do not rout the block section — the apron joins onto it",
+        ...(two ? ["Keep the inner arris between the two coves crisp — that line is the whole point of this leg"] : []),
+      ];
+    },
+  },
   "step-01-select-stock": {
     title: () => "Select and inspect stock",
     description: (design) => {
