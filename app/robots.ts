@@ -23,7 +23,20 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        /**
+         * ⛔ `Disallow: /api/` 把 `/api/og` 也一起擋掉了 —— 那是**自己的分享預覽圖
+         *    產生器**。設計頁與範本頁的 og:image 全部指向它
+         *    (`app/[locale]/design/[type]/page.tsx:101`、
+         *     `app/[locale]/templates/[type]/page.tsx:55`)。
+         *    Facebook / LINE / Twitter 的爬蟲都會遵守 robots.txt,
+         *    所以貼到社群的卡片只剩一行字、沒有圖。
+         *    圖本身是好的(實測 /api/og 回 200、81KB PNG),
+         *    是我們自己在門口貼了禁止進入。
+         *
+         * robots.txt 是「最長前綴優先」,所以這條 Allow 會蓋過下面的
+         * `Disallow: /api/`,而其他 /api/* 端點仍然擋著。(2026-08-24)
+         */
+        allow: ["/", "/api/og"],
         disallow: withEnglishPaths([
           "/admin",
           "/admin/",

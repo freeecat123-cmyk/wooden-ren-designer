@@ -103,7 +103,26 @@ export async function generateMetadata({
   const canonical = isDefault
     ? `/design/${entry.category}`
     : `/${locale}/design/${entry.category}`;
-  const shareUrl = ogParams.toString() ? `${canonical}?${ogParams.toString().replace(/^type=[^&]+&?/, "")}` : canonical;
+  /**
+   * og:url —— 分享出去時平台用它當「同一篇貼文」的識別。
+   *
+   * ⛔ 舊寫法拿 ogParams 去剝 `type=`,但 ogParams **一定**含 type
+   *    (第 95 行就塞進去了),所以:
+   *    - 沒帶任何尺寸參數時 → 剝完剩空字串,但外層條件已成立 → `/design/stool?`
+   *      (一個孤零零的問號,Facebook / LINE 會把它跟 `/design/stool` 當成
+   *       兩個不同網址,讚數留言數拆成兩份)
+   *    - 英文站還會多帶一個沒用的 `locale=en` 擴散出去
+   *
+   * 改成獨立建一份「只放使用者真的帶了的設計參數」的 query,
+   * 空的就直接用 canonical。(2026-08-24)
+   */
+  const shareParams = new URLSearchParams();
+  for (const k of ["length", "width", "height", "material", "style"]) {
+    const v = sp[k];
+    if (typeof v === "string" && v) shareParams.set(k, v);
+  }
+  const shareQuery = shareParams.toString();
+  const shareUrl = shareQuery ? `${canonical}?${shareQuery}` : canonical;
 
   const entryName = getEntryName(entry, locale);
   const entryDesc = getEntryDescription(entry, locale) ?? "";

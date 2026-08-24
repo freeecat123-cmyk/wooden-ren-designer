@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { Geist, Geist_Mono, Noto_Serif_TC } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getMessages } from "next-intl/server";
 import "../globals.css";
 import { routing, type Locale } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +15,7 @@ import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
 import { WebInstallBanner } from "@/components/WebInstallBanner";
+import { pickClientMessages } from "@/lib/i18n/client-namespaces";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -245,7 +246,21 @@ export default async function LocaleLayout({
             }),
           }}
         />
-        <NextIntlClientProvider>
+        {/*
+          ⛔ 不傳 messages 的話,next-intl 會把**整包** 243KB 的翻譯字典塞進
+             每一頁的 HTML —— gzip 後佔傳輸量約 69%,而其中九成以上是那一頁
+             根本用不到的(後台、問卷、天花板算料、各行銷頁文案全都跟著送)。
+             設計頁「拉滑桿改尺寸」是整頁重新導覽,所以每動一下就再吃一次。
+
+          只送 client 元件真的會讀的命名空間(92 / 129),gzip 少 35KB。
+          server 元件的翻譯在伺服器就解完了,不需要進 client payload。
+
+          ⚠️ 名單由 scripts/gen-client-namespaces.ts **掃描產生**,不手寫 ——
+             漏一個命名空間,畫面上就會直接顯示 key 名稱,而且只在那個元件
+             被 render 到才看得出來。改完 client 元件的 useTranslations 要重跑,
+             CI 有 `--check` 擋過期。(2026-08-24)
+        */}
+        <NextIntlClientProvider messages={pickClientMessages(await getMessages())}>
           <AuthProvider initialUser={user}>
             {/* 學員到期前 30 天頂部橫幅（其他狀態自動隱藏） */}
             <StudentExpiryNotice />
