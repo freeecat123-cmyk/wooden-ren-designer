@@ -51,12 +51,33 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  const { data: existing } = await admin
+  const { data: existing, error: existingErr } = await admin
     .from("tool_unlocks")
     .select("id")
     .eq("user_id", user.id)
     .eq("tool", tool)
     .maybeSingle();
+  /**
+   * ⛔ 原本只解構 data、把 error 丟掉。supabase-js 查詢失敗不會 throw,
+   *    而是回 `{ data: null, error }` → existing 變成 null → 判定「還沒買過」
+   *    → **對已經買過的人再收一次 499**。
+   * 「查不到」跟「沒有」是兩件事:查詢壞掉時要讓結帳失敗,不是放行。
+   *
+   * 姊妹路由 checkout/template 已經這樣修了(同一輪),這支漏掉。
+   * 更糟的是畫面上「已擁有」的灰色按鈕也是查同一張表 —— DB 抽風時那個按鈕
+   * 會變回「立即購買」,客人很自然就按下去。(2026-08-24)
+   */
+  if (existingErr) {
+    console.error("[checkout/tool] 查既有解鎖失敗,拒絕開單(不能當成沒買過)", {
+      userId: user.id,
+      tool,
+      error: existingErr.message,
+    });
+    return NextResponse.json(
+      { error: "unavailable", message: "系統忙碌中,請稍後再試一次(不會重複扣款)。" },
+      { status: 503 },
+    );
+  }
   if (existing) {
     const url = new URL(`/pricing?tool_notice=owned`, req.url);
     return NextResponse.redirect(url, 303);

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
 import { computeCeilingBom } from "@/lib/ceiling/calc";
@@ -11,6 +11,7 @@ import { ceilingBomToEngInput } from "@/lib/ceiling/quote-adapter";
 import { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
 import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
 import { EngineeringQuoteClient } from "@/components/engineering-quote/EngineeringQuoteClient";
+import { fetchUnlockedTools } from "@/lib/tool-unlocks";
 
 export async function generateMetadata({
   params,
@@ -50,7 +51,17 @@ export default async function CeilingQuotePage({
       .select("plan,subscription_status,subscription_expires_at,student_expires_at")
       .eq("id", user.id)
       .single();
-    if (!canUseFeature(profile as UserPlanProfile | null, "canUseCeilingTool")) {
+    /**
+     * ⛔ 原本只看方案,沒查買斷紀錄 → **買斷了 ceiling 工具的客人,
+     *    進到工具內的「產生報價單」照樣被踢到 /pricing**(工具本體進得去、
+     *    報價頁進不去)。錢收了功能沒給,是客訴級的。
+     *    姊妹頁 /raised-floor/quote 本來就有查(那支是對的),這兩支漏了。
+     *    (2026-08-24 大軍稽核抓到)
+     */
+    const planAllows = canUseFeature(profile as UserPlanProfile | null, "canUseCeilingTool");
+    const unlockedTools = await fetchUnlockedTools(createAdminClient(), user.id);
+    const boughtUnlock = unlockedTools.includes("ceiling");
+    if (!planAllows && !boughtUnlock) {
       redirect({ href: "/pricing?upgrade=ceiling", locale });
     }
   }

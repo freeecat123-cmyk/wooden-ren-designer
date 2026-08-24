@@ -83,11 +83,28 @@ export async function POST(req: NextRequest) {
   // ──────────────────────────────────────────────────────────────
   // 升級/降級偵測:user 有 active sub 時不能直接買第二份(會被綠界雙扣)
   // ──────────────────────────────────────────────────────────────
-  const { data: currentUser } = await admin
+  const { data: currentUser, error: currentUserErr } = await admin
     .from("users")
     .select("plan, subscription_status")
     .eq("id", user.id)
     .single();
+  /**
+   * ⛔ 原本只解構 data。讀不到會員資料時 currentPlan/currentStatus 變 null,
+   *    hasActivePaidSub 直接 false → 上面那整段「不能買第二份」的防護全部跳過
+   *    → **訂閱中的人再開一張定期定額,被綠界每月雙扣**。
+   * 畫面上「你已經是訂閱中」的提示也是讀同一張表,DB 抽風時提示也不會出現,
+   * 客人看到的就是一個正常的「立即訂閱」按鈕。(2026-08-24)
+   */
+  if (currentUserErr) {
+    console.error("[checkout] 讀不到會員方案,拒絕開單(不能當成沒有訂閱)", {
+      userId: user.id,
+      error: currentUserErr.message,
+    });
+    return NextResponse.json(
+      { error: "unavailable", message: "系統忙碌中,請稍後再試一次(不會重複扣款)。" },
+      { status: 503 },
+    );
+  }
   const currentPlan = currentUser?.plan as string | null;
   const currentStatus = currentUser?.subscription_status as string | null;
   const hasActivePaidSub =

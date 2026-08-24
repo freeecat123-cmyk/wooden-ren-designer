@@ -158,10 +158,39 @@ describe("到期日：算錯就是誤擋付費客或白送產品", () => {
     expect(a.expiresAt).toBe(tables.users.data && (tables.users.data as Record<string, string>).student_expires_at);
   });
 
-  it("訂閱已過期 → 擋下", async () => {
+  /**
+   * ⚠️ 2026-08-24 更新：到期後有 3 天寬限期（GRACE_PERIOD_DAYS）。
+   *
+   * 這條原本用 past(1)（到期 1 天）當「已過期」，但那落在寬限期內。
+   * 綠界月扣失敗時 subscription_status 還是 active、綠界還在重試，
+   * /my-subscription 也正在跟使用者說「寬限期剩 N 天 · 付費功能仍可使用」，
+   * cron 的 isExpiredPastGrace() 這 3 天內也不會降級。
+   * CNC 沒有理由自己一套 —— 判準只能有一個。
+   */
+  it("到期後 1 天（扣款重試中，寬限期內）→ 還能用", async () => {
     tables.users = ok({
       plan: "personal",
       subscription_status: "active",
+      subscription_expires_at: past(1),
+      student_expires_at: null,
+    });
+    expect((await resolveCncAccess(USER)).allowed).toBe(true);
+  });
+
+  it("過了 3 天寬限期 → 擋下", async () => {
+    tables.users = ok({
+      plan: "personal",
+      subscription_status: "active",
+      subscription_expires_at: past(4),
+      student_expires_at: null,
+    });
+    expect((await resolveCncAccess(USER)).allowed).toBe(false);
+  });
+
+  it("自己按取消 + 已到期 → 不給寬限，直接擋下", async () => {
+    tables.users = ok({
+      plan: "personal",
+      subscription_status: "cancelled",
       subscription_expires_at: past(1),
       student_expires_at: null,
     });

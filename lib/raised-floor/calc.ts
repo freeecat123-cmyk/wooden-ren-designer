@@ -70,8 +70,21 @@ export function computeRaisedFloorBom(
   );
   const plankCutNewCount = cutResult.cutPlankCount;
   const offcutReuseLog = cutResult.reuseLog;
+  /**
+   * 🧷 「要買幾片」＝ 整片 + 裁切片**餘料優化後**實際開的新片數。
+   *
+   * ⛔ 原本用 `plankTotalCount`（＝ full + cut，優化**前**）算片數 / 坪數 / 金額,
+   *    但 `reuseOffcuts` 在這支是寫死 true、優化一定會跑,結果只寫進 trace。
+   *    同一頁自己就對不起來:裁切表寫「整片 38 + 裁切 26(實耗新片 16)= 64 片」——
+   *    38 + 16 = 54,那句話裡的加法根本不成立。實測 400×300 平台多收 NT$2,142。
+   *
+   * 姊妹引擎 lib/floor/calc.ts:42-43 對完全相同的排版就是用優化後的數字
+   * (`fullPlankCount + cutPlankCount`),兩支工具對同一塊地板給出兩個價錢。
+   * (2026-08-24)
+   */
+  const plankBuyCount = plankFullCount + plankCutNewCount;
   const plankNominalCm2 =
-    plankTotalCount * input.plankLengthCm * input.plankWidthCm;
+    plankBuyCount * input.plankLengthCm * input.plankWidthCm;
   const plankUsedCm2 = layout.planks.reduce((s, p) => s + p.usedAreaCm2, 0);
   const plankWastePercent =
     plankUsedCm2 > 0
@@ -163,10 +176,10 @@ export function computeRaisedFloorBom(
       nameZh: "面材(地板片)",
       nameEn: "Floor planks",
       spec: `${input.plankLengthCm}×${input.plankWidthCm} cm`,
-      count: plankTotalCount,
-      note: `整片 ${plankFullCount} + 裁切 ${plankCutCount}(實算損耗 ${plankWastePercent.toFixed(1)}%)`,
+      count: plankBuyCount,
+      note: `整片 ${plankFullCount} + 裁切片實耗新片 ${plankCutNewCount}(裁切 ${plankCutCount} 片、餘料再利用後;實算損耗 ${plankWastePercent.toFixed(1)}%)`,
       noteEn: isEn
-        ? `${plankFullCount} full + ${plankCutCount} cut (waste ${plankWastePercent.toFixed(1)}%)`
+        ? `${plankFullCount} full + ${plankCutNewCount} new for ${plankCutCount} cut pieces (offcuts reused, waste ${plankWastePercent.toFixed(1)}%)`
         : undefined,
       subtotal: plankCost > 0 ? plankCost : undefined,
     },

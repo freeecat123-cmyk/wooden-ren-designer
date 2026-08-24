@@ -4,6 +4,7 @@
  */
 
 import type { FurnitureCategory } from "./types";
+import { isExpiredPastGrace } from "@/lib/pricing/expiry";
 
 export type PlanId = "free" | "personal" | "pro" | "lifetime" | "student";
 
@@ -178,6 +179,33 @@ export function getEffectivePlan(profile: UserPlanProfile | null | undefined): P
   ) {
     return profile.plan;
   }
+
+  /**
+   * ⭐ 扣款失敗的 3 天寬限期也算有權限。
+   *
+   * ⛔ 綠界月扣失敗時 `subscription_status` 還是 `active`(periodic-notify 只記一筆
+   *    失敗的 payment、不動狀態),到期日一過這裡就直接回 free →
+   *    **付費功能當場全沒**。但同一時間:
+   *    - `/my-subscription` 正在顯示「⚠️ 訂閱已到期 — 寬限期剩 N 天」,
+   *      內文白紙黑字寫「**付費功能仍可使用**,請於 N 天內續訂」
+   *      (messages/zh-TW.json:2341-2342)
+   *    - `/api/cron/subscription-sweep` 用 `isExpiredPastGrace()` 判斷,
+   *      這 3 天內**不會**把他降級
+   *    三邊各說各話,使用者看到的是「說我還能用,點下去卻被踢到 /pricing」。
+   *    (2026-08-24 大軍稽核抓到,跟 cancelled 那條同一個病根:判準不只一套)
+   *
+   * ⚠️ 只給 `active`:寬限期是為了「錢還沒收到、綠界還在重試」而存在。
+   *    `cancelled` 是使用者自己按的,到期就是到期,不給寬限。
+   */
+  if (
+    profile.subscription_status === "active" &&
+    profile.plan !== "free" &&
+    profile.subscription_expires_at &&
+    !isExpiredPastGrace(profile.subscription_expires_at)
+  ) {
+    return profile.plan;
+  }
+
   return "free";
 }
 

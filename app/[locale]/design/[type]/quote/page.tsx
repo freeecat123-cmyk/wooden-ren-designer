@@ -29,6 +29,8 @@ import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatDimensions } from "@/lib/units/format";
+import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
+import { createAdminClient } from "@/lib/supabase/server";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -115,7 +117,21 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     const next = `${prefix}/design/${type}/quote`;
     redirect(`${prefix}/login?next=${encodeURIComponent(next)}`);
   }
-  if (!(await isPaidUser(user.id))) {
+  /**
+   * ⛔ 原本用 `isPaidUser()`(只問「有沒有付錢」)。但報價系統是**專業版**功能,
+   *    個人版(NT$390)的 canUseQuoteSystem 是 false —— 個人版照樣通過這道閘,
+   *    伺服器把整份報價 render 出去,只剩 client 端 QuoteAccessGate 的 CSS 模糊擋著。
+   *    上面第 109 行的註解自己就寫了「DevTools 砍 blur class 就破」,
+   *    但這一行用錯判準,那句註解等於沒生效。
+   *    → 個人版按 F12 就拿到專業版報價,NT$500 的價差沒有意義。
+   *    (2026-08-24 大軍稽核抓到)
+   */
+  const { data: quoteProfile } = await createAdminClient()
+    .from("users")
+    .select("plan,subscription_status,subscription_expires_at,student_expires_at")
+    .eq("id", user.id)
+    .single();
+  if (!canUseFeature(quoteProfile as UserPlanProfile | null, "canUseQuoteSystem")) {
     redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
