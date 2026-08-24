@@ -12,7 +12,7 @@
     "assert": "for f in $(git ls-files '*.assert.ts'); do echo \"-- $f\" && npx tsx \"$f\" || exit 1; done",
     "verify": "npm run typecheck && npm run test && npm run audit",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
-    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts && tsx scripts/audit-dead-checkboxes.ts && tsx scripts/audit-negative-dims.ts && tsx scripts/gen-client-namespaces.ts --check && tsx scripts/audit-machining-bounds.ts",
+    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts && tsx scripts/audit-dead-checkboxes.ts && tsx scripts/audit-negative-dims.ts && tsx scripts/gen-client-namespaces.ts --check && tsx scripts/audit-machining-bounds.ts && tsx scripts/audit-dead-options.ts",
     "audit:overlaps": "tsx scripts/audit-overlaps.ts",
     "audit:joints": "tsx scripts/audit-joints.ts",
     "audit:joinery-dims": "tsx scripts/audit-joinery-dynamic-dims.ts",
@@ -24,7 +24,8 @@
     "prepare": "sh scripts/install-hooks.sh || true",
     "audit:negative-dims": "tsx scripts/audit-negative-dims.ts",
     "gen:client-ns": "tsx scripts/gen-client-namespaces.ts",
-    "audit:machining": "tsx scripts/audit-machining-bounds.ts"
+    "audit:machining": "tsx scripts/audit-machining-bounds.ts",
+    "audit:dead-options": "tsx scripts/audit-dead-options.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

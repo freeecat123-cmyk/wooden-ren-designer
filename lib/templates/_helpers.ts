@@ -606,7 +606,10 @@ export function stretcherEdgeOption(
     max: 15,
     step: 1,
     unit: "mm",
-    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊；8 起明顯八角斷面",
+    // ⚠️ 跟 apronEdge 一樣:tapered/splayed/圓腳時橫撐斷面會變梯形,倒角無效。
+    //    apronEdge 的 help 有寫、這支漏了 → 圓凳(預設圓腳)上拉了完全沒反應。
+    //    (2026-08-24 大軍稽核順藤摸出來的,agent 沒報這條)
+    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊；8 起明顯八角斷面。tapered / splayed / 圓腳時橫撐會變梯形斷面，倒角無效",
   };
 }
 
@@ -1359,6 +1362,17 @@ export function backPanelMaterialOption(group: OptionGroup = "back"): OptionSpec
 }
 
 /** 後板省料開關：勾起改用夾板（裝潢慣例最 CP 值），不勾則跟主材料同。 */
+/**
+ * ⛔ 這個選項只在「入溝背板」(9mm) 才有意義。
+ *
+ *    「釘背」背板是 3mm —— 3mm 的實木板市面上不存在(§T1,1 分 = 3mm 是薄合板的
+ *    規格),所以不管勾不勾都一定算夾板(見 case-furniture.ts 的 backTooThinForSolid)。
+ *    原本這個框在釘背模式下照樣顯示、勾了報價一毛不變,而且說明文字寫「不勾 =
+ *    後板跟主材料同」跟實際相反 —— 使用者會以為網站壞掉,或照著這張單去買錯料。
+ *    (2026-08-24 大軍稽核抓到)
+ *
+ * 修法是讓它**只在有意義的時候出現**,不是硬讓 3mm 實木背板變成可選。
+ */
 export const backPanelPlywoodOption: OptionSpec = {
   group: "structure",
   type: "checkbox",
@@ -1366,7 +1380,8 @@ export const backPanelPlywoodOption: OptionSpec = {
   label: "後板改用夾板（省料）",
   defaultValue: false,
   wide: true,
-  help: "勾起：後板計入夾板（4-6mm，省木材費）；不勾：後板跟主材料同（整體感最好）",
+  help: "勾起：後板計入夾板（省木材費）；不勾：後板跟主材料同（整體感最好）。※ 釘背（3mm）一律是夾板——市面沒有 3mm 的實木板。",
+  dependsOn: { key: "backMode", equals: "rebated" },
 };
 
 export function backPanelMaterialNote(mat: string, mainMaterialLabel?: string): string {

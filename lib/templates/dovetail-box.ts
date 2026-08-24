@@ -104,8 +104,8 @@ export const dovetailBoxOptions: OptionSpec[] = [
   ], dependsOn: { key: "boxShape", notIn: ["rect"] }, help: "六/八角盒專用。單片穿過盒中心；八角還可以選十字（六角因壁間距 60° 不對齊垂直，不支援）。" },
   { group: "divider", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿長邊方向插入的縱向隔板（把盒內切成數欄）", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "divider", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿短邊方向插入的橫向隔板（與縱向隔板交叉可分多格）", dependsOn: { key: "boxShape", equals: "rect" } },
-  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", help: "rect 用縱/橫向隔板、六/八角用穿心隔板共用此厚度" },
-  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（隔板上緣跟壁頂齊），>0 自訂高度（不可超過壁內高）" },
+  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", help: "rect 用縱/橫向隔板、六/八角用穿心隔板共用此厚度", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "dividers", notIn: [0] }] } },
+  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（隔板上緣跟壁頂齊），>0 自訂高度（不可超過壁內高）", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "dividers", notIn: [0] }] } },
   { group: "divider", type: "number", key: "dividerInset", label: "隔板入溝深度", defaultValue: 3, min: 0, max: 8, step: 1, unit: "mm", help: "隔板兩端嵌入壁內側 dado 的深度（4 壁內面鋸槽嵌入，固定但可拆）", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "divider", type: "checkbox", key: "withInnerTray", label: "活動分隔抽板", defaultValue: false, help: "盒內加一片可拆活動隔板（30mm 高 × 6 格），首飾分類用；與固定隔板可共存", wide: true },
 ];

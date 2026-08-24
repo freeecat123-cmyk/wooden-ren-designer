@@ -109,7 +109,7 @@ export const bedOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", help: "床腳要承重，建議 70mm 起跳；明式架子床常 90~100mm" },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 100, step: 5, unit: "mm", help: "腳中心離側板外緣的內縮量；0 = 腳貼齊外緣" },
-  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: "斜腳系列才有效；床腳通常直立（0°）以便對牆。" },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: "斜腳系列才有效；床腳通常直立（0°）以便對牆。", dependsOn: { key: "legShape", oneOf: ["splayed", "splayed-length", "splayed-width"] } },
   legEdgeOption("leg", 0),
   legEdgeStyleOption("leg"),
 
