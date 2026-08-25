@@ -205,7 +205,30 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
    * 原本直接鎖成 `= ctBlockHeight` 並用 dependsOn 隱藏欄位，等於為了防呆把功能拿掉。
    * 改成夾上限：調得動，越界才被安全截住；預設值行為不變。
    */
-  const ctApronMaxH = Math.max(0, ctBlockHeight - apronOffset);
+  /**
+   * ⭐ 會把牙條往下推的**有兩個**,兩個都要扣。
+   *
+   * 原本只扣了「牙板下垂」(apronOffset),漏了「牙條錯開」(apronStaggerMm) ——
+   * 錯開是把前後那對牙條**整支下移**,底緣一樣會掉到接撐段以下、蓋到弧肩。
+   * 沒扣的話牙條底緣懸空在凹弧上方:方凳最多 10.3mm,3D 一眼就看得到一個缺口。
+   * (2026-08-25 木頭仁截圖回報「這麼明顯」;我前兩輪只量了「沒錯開」的情況,
+   *  所以一直量到 0.00mm 說「有對齊」,是我掃描漏了這個選項。)
+   *
+   * 🧷 錯開只下移前後那對,但牙條高度是**共用一個值**,所以要用比較嚴的那個 ——
+   *    左右牙條跟著短一點,總比前後那對露出缺口好。
+   */
+  /** 夾制要在讀 apronStaggerMm 之前算,所以這裡先讀一次(下面那個宣告保持不動) */
+  const _ctApronStaggerRaw = getOption<number>(input, opt(o, "apronStaggerMm"));
+  /**
+   * 錯開本身也要夾:接撐段扣掉下垂與錯開之後,至少要留 CT_APRON_MIN_H 給牙條。
+   * 不夾的話「錯開 80 vs 接撐段 40」會把牙條夾成**高度 0 的零件**(存在但沒有厚度)。
+   */
+  const CT_APRON_MIN_H = 10;
+  const _ctApronStaggerForClamp = legShape === "curved-taper"
+    ? Math.max(0, Math.min(_ctApronStaggerRaw, ctBlockHeight - apronOffset - CT_APRON_MIN_H))
+    : _ctApronStaggerRaw;
+  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp;
+  const ctApronMaxH = Math.max(0, ctBlockHeight - _ctApronDrop);
   const apronWidth = legShape === "curved-taper"
     ? Math.min(_apronWidthRaw, ctApronMaxH)
     : _apronWidthRaw;
@@ -217,14 +240,19 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const ctApronWarnings: string[] =
     legShape === "curved-taper" && apronWidth < _apronWidthRaw
-      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
+      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
          `牙板下緣一旦蓋到弧肩，交界處會露出空隙。要更高的牙板，請把「接撐段高」一起調高。`]
       : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板。夾上限不破壞此語意
   const withApron = apronWidth > 0;
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
-  const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
+  /**
+   * ⚠️ 用**夾過**的值,不要再讀一次原始值。
+   *    夾制算的是「扣掉錯開之後牙條還剩多高」,如果實際位移用的是沒夾過的值,
+   *    兩邊就對不起來 —— 牙條照 80mm 往下移,夾制卻以為只移了 30mm,底緣照樣懸空。
+   */
+  const apronStaggerMm = _ctApronStaggerForClamp;
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
   const backRakeRaw = getOption<number>(input, opt(o, "backRake"));

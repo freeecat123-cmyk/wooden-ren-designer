@@ -139,10 +139,26 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const _upperApronWidthRaw = getOption<number>(input, opt(o, "upperApronWidth"));
   const upperApronThickness = getOption<number>(input, opt(o, "upperApronThickness"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
+  /** 夾制要在讀 apronStaggerMm 之前算,所以這裡先讀一次(下面那個宣告保持不動) */
+  const _ctApronStaggerRaw = getOption<number>(input, opt(o, "apronStaggerMm"));
+  /**
+   * 錯開本身也要夾:接撐段扣掉下垂與錯開之後,至少要留 CT_APRON_MIN_H 給牙條。
+   * 不夾的話「錯開 80 vs 接撐段 40」會把牙條夾成**高度 0 的零件**(存在但沒有厚度)。
+   */
+  const CT_APRON_MIN_H = 10;
+  const _ctApronStaggerForClamp = legShape === "curved-taper"
+    ? Math.max(0, Math.min(_ctApronStaggerRaw, ctBlockHeight - apronOffset - CT_APRON_MIN_H))
+    : _ctApronStaggerRaw;
   const stretcherFloorOffset = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const hasLowerShelf = getOption<boolean>(input, opt(o, "hasLowerShelf"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
-  const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
+  /**
+   * ⚠️ 用**夾過**的值,不要再讀一次原始值。
+   *    夾制算的是「扣掉錯開之後牙條還剩多高」,如果實際位移用的是沒夾過的值,
+   *    兩邊就對不起來 —— 牙條照 80mm 往下移,夾制卻以為只移了 30mm,底緣照樣懸空。
+   */
+  const apronStaggerMm = _ctApronStaggerForClamp;
   const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
@@ -179,7 +195,6 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const shelfSlatEdgeStyle = getOption<string>(input, opt(o, "shelfSlatEdgeStyle"));
 
   // 弧肩斜腳（curved-taper）：接撐段全寬高度 / 弧肩內收 / 外面斜降內縮
-  const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
@@ -196,10 +211,35 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
    * 原本直接鎖成 `= ctBlockHeight` 並用 dependsOn 隱藏欄位，等於為了防呆把功能拿掉。
    * 改成夾上限：調得動，越界才被安全截住；預設值行為不變。
    */
-  const ctApronMaxH = Math.max(0, ctBlockHeight - apronOffset);
+  /**
+   * ⭐ 會把牙條往下推的**有兩個**,兩個都要扣。
+   *
+   * 原本只扣了「牙板下垂」(apronOffset),漏了「牙條錯開」(apronStaggerMm) ——
+   * 錯開是把前後那對牙條**整支下移**,底緣一樣會掉到接撐段以下、蓋到弧肩。
+   * 沒扣的話牙條底緣懸空在凹弧上方:方凳最多 10.3mm,3D 一眼就看得到一個缺口。
+   * (2026-08-25 木頭仁截圖回報「這麼明顯」;我前兩輪只量了「沒錯開」的情況,
+   *  所以一直量到 0.00mm 說「有對齊」,是我掃描漏了這個選項。)
+   *
+   * 🧷 錯開只下移前後那對,但牙條高度是**共用一個值**,所以要用比較嚴的那個 ——
+   *    左右牙條跟著短一點,總比前後那對露出缺口好。
+   */
+  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp;
+  const ctApronMaxH = Math.max(0, ctBlockHeight - _ctApronDrop);
   const upperApronWidth = isCurvedTaper
-    ? Math.min(_upperApronWidthRaw, ctApronMaxH)
+    ? Math.max(0, Math.min(_upperApronWidthRaw, ctApronMaxH))
     : _upperApronWidthRaw;
+  /**
+   * 🧷 夾了要出聲(§A10.11 第 2 條)。
+   *
+   * ⛔ 這一款漏了 —— 方凳 / 餐椅 / 吧檯椅三款都有這段警告,只有茶几沒有,
+   *    使用者把牙條高從 90 調到 200 完全沒有反應也沒有訊息,會以為滑桿壞了。
+   *    (2026-08-25 補;夾制本身早就在,只是默默改掉使用者設的值。)
+   */
+  const ctApronWarnings: string[] =
+    isCurvedTaper && upperApronWidth < _upperApronWidthRaw
+      ? [`牙條高 ${_upperApronWidthRaw}mm 放不進弧肩斜腳的接撐段(接撐段 ${ctBlockHeight}mm − 牙條距桌面 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm = 可用 ${ctApronMaxH}mm),已收到 ${upperApronWidth}mm。` +
+         `牙條下緣一旦蓋到弧肩,交界處會露出缺口。要更高的牙條,請把「接撐段高」一起調高、或把「牙條錯開」調小。`]
+      : [];
   const legHeight = height - topThickness;
   const lowerCenterY = stretcherFloorOffset + lowerStretcherWidth / 2;
   // 弧肩斜腳的選配外斜（ctSplay 欄，預設 0=垂直）：對角外踢，同 "splayed" 慣例。
@@ -765,6 +805,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       }
     }
   }
+
+  if (ctApronWarnings.length) appendWarnings(design, ctApronWarnings);
 
   // 拼板花紋（herringbone / chevron / book-match / end-grain）：3D 視覺化做法
   applyStandardChecks(design, {
