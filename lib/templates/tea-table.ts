@@ -37,7 +37,7 @@ import {
   legScaleAt,
   clampLegInset,
   apronSetbackOption,
-  resolveApronSetback,
+  resolveApronSetbackForLeg,
   apronCenterOffset,
   apronMortiseOffset,
 } from "./_helpers";
@@ -147,7 +147,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   /** 夾制要在讀 apronStaggerMm 之前算,所以這裡先讀一次(下面那個宣告保持不動) */
-  const apronSetback = resolveApronSetback(getOption<number>(input, opt(o, "apronSetback")), legSize, upperApronThickness);
+  const apronSetback = resolveApronSetbackForLeg(getOption<number>(input, opt(o, "apronSetback")), legShape, legSize, upperApronThickness);
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
   const apronMortiseOff = apronMortiseOffset(legSize, upperApronThickness, apronSetback);
   const _ctApronStaggerRaw = getOption<number>(input, opt(o, "apronStaggerMm"));

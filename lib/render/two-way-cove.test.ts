@@ -446,3 +446,39 @@ describe("弧肩的弧必須夠密（不可以是幾片平面）", () => {
     expect(worst, "弧的曲率有尖點 = 不是順的圓弧").toBeLessThan(SH * 0.25);
   });
 });
+
+/**
+ * ⭐ 「牙條縮進」只准對弧肩腳生效（木頭仁 2026-08-25:「只改弧肩腳」）。
+ *
+ * 這條釘住兩件事:
+ *   1. 弧肩腳 → 牙條齊腳外面（縮進 0）
+ *   2. 其他腳型 → 一律置中,跟改動前逐字等價（改壞了就是動到既有外觀）
+ */
+describe("牙條縮進只對弧肩腳生效", () => {
+  const outerStep = (cat: string, legShape: string) => {
+    const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
+    const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+    const d: any = e.template({ length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+      material: "pine", options: { ...base, legShape } });
+    const ap = (d.parts as any[]).find((p) => /^apron-front$|^upper-apron-front$/.test(p.id));
+    const leg = (d.parts as any[]).filter((p) => /^leg-/.test(p.id)).sort((a, b) => a.origin.z - b.origin.z)[0];
+    // 用名目方框比即可（這裡要驗的是「有沒有位移」,不是外斜腳的實際傾角）
+    return (ap.origin.z - ap.visible.thickness / 2) - (leg.origin.z - leg.visible.width / 2);
+  };
+
+  for (const cat of ["stool", "bench", "dining-table", "dining-chair", "bar-stool", "tea-table"]) {
+    it(`${cat}：弧肩腳 → 牙條齊腳外面`, () => {
+      expect(outerStep(cat, "curved-taper")).toBeCloseTo(0, 1);
+    });
+    it(`${cat}：直腳 → 維持置中（不准被改到）`, () => {
+      const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
+      const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+      const d: any = e.template({ length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
+        material: "pine", options: { ...base, legShape: "box" } });
+      const ap = (d.parts as any[]).find((p) => /^apron-front$|^upper-apron-front$/.test(p.id));
+      const leg = (d.parts as any[]).filter((p) => /^leg-/.test(p.id)).sort((a, b) => a.origin.z - b.origin.z)[0];
+      const expected = (leg.visible.width - ap.visible.thickness) / 2;   // 置中
+      expect(outerStep(cat, "box"), "直腳的牙條被移動了 = 動到既有外觀").toBeCloseTo(expected, 1);
+    });
+  }
+});

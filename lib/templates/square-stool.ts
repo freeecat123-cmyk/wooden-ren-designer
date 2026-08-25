@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetback, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -255,8 +255,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
    * X 牙條(前後)貼腳的 Z 面 → 用 legD 夾;Z 牙條(左右)貼 X 面 → 用 legW。
    */
   const _apronSetbackRaw = getOption<number>(input, opt(o, "apronSetback"));
-  const apronSetbackZ = resolveApronSetback(_apronSetbackRaw, legD, apronThickness);
-  const apronSetbackX = resolveApronSetback(_apronSetbackRaw, legW, apronThickness);
+  const apronSetbackZ = resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legD, apronThickness);
+  const apronSetbackX = resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legW, apronThickness);
   const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, apronSetbackZ);
   const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, apronSetbackX);
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));

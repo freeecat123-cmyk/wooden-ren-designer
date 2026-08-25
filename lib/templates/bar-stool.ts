@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { apronSetbackOption, resolveApronSetback, apronCenterOffset, apronMortiseOffset, corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ, clampLegInset } from "./_helpers";
+import { apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ, clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -252,7 +252,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const withBack = backStyle !== "none";
 
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
-  const apronSetback = resolveApronSetback(getOption<number>(input, opt(o, "apronSetback")), Math.min(legW, legD), apronThickness);
+  const apronSetback = resolveApronSetbackForLeg(getOption<number>(input, opt(o, "apronSetback")), legShape, Math.min(legW, legD), apronThickness);
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
   const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, apronSetback);
   const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, apronSetback);

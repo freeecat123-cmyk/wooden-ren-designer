@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { apronSetbackOption, resolveApronSetback, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
+import { apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -260,8 +260,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const _apronSetbackRaw = getOption<number>(input, opt(o, "apronSetback"));
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
-  const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, resolveApronSetback(_apronSetbackRaw, legD, apronThickness));
-  const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, resolveApronSetback(_apronSetbackRaw, legW, apronThickness));
+  const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legD, apronThickness));
+  const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legW, apronThickness));
   /**
    * ⚠️ 用**夾過**的值,不要再讀一次原始值。
    *    夾制算的是「扣掉錯開之後牙條還剩多高」,如果實際位移用的是沒夾過的值,
@@ -804,8 +804,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
    * 牙條自己的中心線(受「牙條縮進」影響),**只用在 origin**。
    * 長度計算一律用上面的 apronLegEdge*(＝腳的中心線)。
    */
-  const apronAxisX = apronCenterOffset(length / 2, legInset, apronThickness, resolveApronSetback(_apronSetbackRaw, legW, apronThickness));
-  const apronAxisZ = apronCenterOffset(width / 2, legInset, apronThickness, resolveApronSetback(_apronSetbackRaw, legD, apronThickness));
+  const apronAxisX = apronCenterOffset(length / 2, legInset, apronThickness, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legW, apronThickness));
+  const apronAxisZ = apronCenterOffset(width / 2, legInset, apronThickness, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legD, apronThickness));
 
   const apronShiftAt = (yMm: number) => legBaseHeight > 0 ? Math.max(0, 1 - yMm / legBaseHeight) : 0;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——

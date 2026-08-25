@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { apronSetbackOption, resolveApronSetback, apronMortiseOffset, legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { apronSetbackOption, resolveApronSetbackForLeg, apronMortiseOffset, legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
@@ -110,7 +110,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
    * 0 = 齊腳外面(腳外面 = cornerOffset + legSize/2)。
    */
   const _apronSetbackRaw2 = getOption<number>(input, opt(o, "apronSetback"));
-  const apronSetback = resolveApronSetback(_apronSetbackRaw2, legSize, apronThickness);
+  const apronSetback = resolveApronSetbackForLeg(_apronSetbackRaw2, legShape, legSize, apronThickness);
   const apronAxis = cornerOffset + legSize / 2 - apronThickness / 2 - apronSetback;
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
   const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);

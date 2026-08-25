@@ -1589,8 +1589,8 @@ export const apronSetbackOption = (group: string, dependsOn?: unknown): OptionSp
     max: 60,
     step: 1,
     unit: "mm",
-    help: "牙條外面離腳外面多遠。0 = 齊腳外面（明式常見）。以前固定置中，等於縮進「(腳寬 − 牙條厚) ÷ 2」。超過腳能容納的量會自動夾住。",
-    ...(dependsOn ? { dependsOn } : {}),
+    help: "牙條外面離腳外面多遠。0 = 齊腳外面（明式常見）。⚠️ 只對弧肩斜腳生效——其他腳型維持置中。超過腳能容納的量會自動夾住。",
+    dependsOn: dependsOn ?? { key: "legShape", equals: "curved-taper" },
   }) as OptionSpec;
 
 /**
@@ -1632,4 +1632,22 @@ export function apronMortiseOffset(
   setback: number,
 ): number {
   return (legDim - apronThickness) / 2 - setback;
+}
+
+/**
+ * ⭐ 「牙條縮進」只對**弧肩腳**生效（木頭仁 2026-08-25 拍板:「只改弧肩腳」）。
+ *
+ * 其他腳型（直腳 / 錐形腳 / 圓柱腳 / 外斜腳…）一律回到原本的**置中**,
+ * 也就是 setback = (腳寬 − 牙條厚) / 2 ——
+ * 代進 `apronCenterOffset()` 會化簡成舊公式 `半跨距 − 腳內縮 − 腳寬/2`,
+ * 代進 `apronMortiseOffset()` 會得到 0（榫眼回腳中心軸）。逐字等價 = 0 迴歸。
+ */
+export function resolveApronSetbackForLeg(
+  raw: number,
+  legShape: string,
+  legDim: number,
+  apronThickness: number,
+): number {
+  if (legShape !== "curved-taper") return Math.max(0, (legDim - apronThickness) / 2);
+  return resolveApronSetback(raw, legDim, apronThickness);
 }

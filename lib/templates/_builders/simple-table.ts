@@ -13,7 +13,7 @@ import {
 } from "../_constants";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
-import { apronCenterOffset, apronMortiseOffset, resolveApronSetback } from "../_helpers";
+import { apronCenterOffset, apronMortiseOffset, resolveApronSetbackForLeg } from "../_helpers";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -299,7 +299,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const legHeight = height - topThickness;
   const apronY = legHeight - apronWidth - apronOffset;
   const legInset = opts.legInset ?? 0;
-  const apronSetback = resolveApronSetback(opts.apronSetback ?? 0, legSize, apronThickness);
+  const apronSetback = resolveApronSetbackForLeg(opts.apronSetback ?? 0, opts.legShape ?? "box", legSize, apronThickness);
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
   const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
   // legInset=0 時 tenon 沿 X 軸朝家具中心偏，內側緣貼腳內緣 → 內側無肩、外側多留肩
