@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
+import { apronSetbackOption, resolveApronSetback, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -47,6 +47,7 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   // 牙條
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高 − 弧肩內收 − 牙條下移量」；弧肩斜腳時上限＝「接撐段高」−「牙條距座板」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, help: "牙條頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
@@ -257,6 +258,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板。夾上限不破壞此語意
   const withApron = apronWidth > 0;
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
+  const _apronSetbackRaw = getOption<number>(input, opt(o, "apronSetback"));
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, resolveApronSetback(_apronSetbackRaw, legD, apronThickness));
+  const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, resolveApronSetback(_apronSetbackRaw, legW, apronThickness));
   /**
    * ⚠️ 用**夾過**的值,不要再讀一次原始值。
    *    夾制算的是「扣掉錯開之後牙條還剩多高」,如果實際位移用的是沒夾過的值,
@@ -574,7 +579,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           return [
             // Z 面 mortise（接 Z 軸 = 左右牙板，靜止）— 上榫
             {
-              origin: { x: _zFaceGeom.x, y: _zFaceGeom.y, z: _zFaceGeom.z },
+              origin: { x: _zFaceGeom.x + Math.sign(c.x || 1) * apronMortiseOffX, y: _zFaceGeom.y, z: _zFaceGeom.z },
               depth: apronTenonLen,
               length: apronUpperTenonH,
               width: apronTenonThick,
@@ -584,7 +589,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             },
             // X 面 mortise（接 X 軸 = 前後牙板，下移）— 下榫，rotZ 跟 splayDx
             {
-              origin: { x: c.x > 0 ? -legHalfX : legHalfX, y: xCenterY + apronLowerTenonOffset, z: 0 },
+              origin: { x: c.x > 0 ? -legHalfX : legHalfX, y: xCenterY + apronLowerTenonOffset, z: Math.sign(c.z || 1) * apronMortiseOffZ },
               depth: apronTenonLen,
               length: apronLowerTenonH,
               width: apronTenonThick,
@@ -596,7 +601,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         }
         return [
           {
-            origin: { x: _zFaceGeom.x, y: _zFaceGeom.y, z: _zFaceGeom.z },
+            origin: { x: _zFaceGeom.x + Math.sign(c.x || 1) * apronMortiseOffX, y: _zFaceGeom.y, z: _zFaceGeom.z },
             depth: apronTenonLen,
             length: apronTenonW,
             width: apronTenonThick,
@@ -795,6 +800,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronInnerSpanZ = width - legD - 2 * legInset;
   const apronLegEdgeX = length / 2 - legW / 2 - legInset;
   const apronLegEdgeZ = width / 2 - legD / 2 - legInset;
+  /**
+   * 牙條自己的中心線(受「牙條縮進」影響),**只用在 origin**。
+   * 長度計算一律用上面的 apronLegEdge*(＝腳的中心線)。
+   */
+  const apronAxisX = apronCenterOffset(length / 2, legInset, apronThickness, resolveApronSetback(_apronSetbackRaw, legW, apronThickness));
+  const apronAxisZ = apronCenterOffset(width / 2, legInset, apronThickness, resolveApronSetback(_apronSetbackRaw, legD, apronThickness));
 
   const apronShiftAt = (yMm: number) => legBaseHeight > 0 ? Math.max(0, 1 - yMm / legBaseHeight) : 0;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
@@ -832,10 +843,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: number; z: number };
   };
   const apronSides: ApronSideDef[] = [
-    { key: "front", nameZh: "前牙條", nameEn: "Front apron", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronGeomX.splayZc) } },
-    { key: "back",  nameZh: "後牙條", nameEn: "Back apron", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronGeomX.splayZc } },
-    { key: "left",  nameZh: "左牙條", nameEn: "Left apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronGeomZ.splayXc), z: 0 } },
-    { key: "right", nameZh: "右牙條", nameEn: "Right apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
+    { key: "front", nameZh: "前牙條", nameEn: "Front apron", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronAxisZ + apronGeomX.splayZc) } },
+    { key: "back",  nameZh: "後牙條", nameEn: "Back apron", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronAxisZ + apronGeomX.splayZc } },
+    { key: "left",  nameZh: "左牙條", nameEn: "Left apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronAxisX + apronGeomZ.splayXc), z: 0 } },
+    { key: "right", nameZh: "右牙條", nameEn: "Right apron", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronAxisX + apronGeomZ.splayXc, z: 0 } },
   ];
 
   const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1 || legShape === "curved-taper";

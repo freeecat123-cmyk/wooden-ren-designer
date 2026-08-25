@@ -58,15 +58,29 @@ describe("樣板畫方料，不畫成品", () => {
     }
   });
 
-  it("外斜腳同一面的兩個孔落在同一條中線上（舊版橫移 23mm）", () => {
-    for (const f of legFaces("splayed")) {
-      const rects = f.holes.filter((h) => h.pts?.length);
-      if (rects.length < 2) continue;
-      const first = xRange(rects[0].pts!);
-      for (const h of rects.slice(1)) {
-        const r = xRange(h.pts!);
-        expect(r.lo).toBeCloseTo(first.lo, 1);
-        expect(r.hi).toBeCloseTo(first.hi, 1);
+  /**
+   * ⚠️ 2026-08-25 收窄:原本要求「同一面的**所有**孔共用一條中線」。
+   *
+   * 那個條件以前剛好成立(牙條與橫撐都置中在腳上),但它比真正要防的東西寬 ——
+   * 這條測試要防的是「外斜腳把孔橫移 23mm」,而那件事由下一條
+   * 「外斜腳的孔位跟直腳完全一樣」直接守著,而且守得更準。
+   *
+   * 加了「牙條縮進」之後,牙條孔與橫撐孔本來就在不同中線上(牙條齊腳外面、
+   * 橫撐仍置中),那是**正確的幾何**,不該被這條擋下來。
+   * 改成:比較**同一個孔在外斜腳與直腳之間**有沒有橫移。
+   */
+  it("外斜腳的每個孔都沒有被橫移（舊版橫移 23mm）", () => {
+    const splayed = legFaces("splayed");
+    const box = legFaces("box");
+    expect(splayed.length).toBe(box.length);
+    for (let i = 0; i < splayed.length; i++) {
+      const a = splayed[i].holes.filter((h) => h.pts?.length);
+      const b = box[i].holes.filter((h) => h.pts?.length);
+      expect(a.length).toBe(b.length);
+      for (let k = 0; k < a.length; k++) {
+        const ra = xRange(a[k].pts!), rb = xRange(b[k].pts!);
+        expect(ra.lo, `第 ${k + 1} 個孔被橫移了`).toBeCloseTo(rb.lo, 1);
+        expect(ra.hi, `第 ${k + 1} 個孔被橫移了`).toBeCloseTo(rb.hi, 1);
       }
     }
   });

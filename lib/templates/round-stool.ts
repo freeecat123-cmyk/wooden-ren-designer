@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { apronSetbackOption, resolveApronSetback, apronMortiseOffset, legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
@@ -35,6 +35,7 @@ export const roundStoolOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙條/橫撐會跟著腳一起斜同角度。僅外斜系列有效", dependsOn: { key: "legShape", oneOf: ["splayed-tapered", "splayed-round-taper-down", "splayed-round-taper-up"] } },
   { group: "apron", type: "checkbox", key: "withApron", label: "加牙條", defaultValue: true, help: "座板下方接腳的牙條，結構穩固" },
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm", dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距座板", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
@@ -104,6 +105,15 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legHeight = height - seatThickness;
   // 4 隻腳於圓內接正方形的 4 個角，距中心 = (R - legInset) / sqrt(2)
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
+  /**
+   * 牙條自己的中心線(受「牙條縮進」影響),只用在 origin;長度計算仍用 cornerOffset。
+   * 0 = 齊腳外面(腳外面 = cornerOffset + legSize/2)。
+   */
+  const _apronSetbackRaw2 = getOption<number>(input, opt(o, "apronSetback"));
+  const apronSetback = resolveApronSetback(_apronSetbackRaw2, legSize, apronThickness);
+  const apronAxis = cornerOffset + legSize / 2 - apronThickness / 2 - apronSetback;
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
   // 外斜：底部偏移總長 = legHeight × tan(angle)，方向沿腳對角線（45°）外推
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   // 座板厚 ≤25mm 自動通榫（同 autoTenonType 規則）
@@ -403,10 +413,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const apronGeomZ = apronGeomFor(apronYCenter0);
     const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
     const sides = [
-      { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-      { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-      { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-      { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+      { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronAxis + apronGeomX.dz) } },
+      { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronAxis + apronGeomX.dz } },
+      { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronAxis + apronGeomZ.dx), z: 0 } },
+      { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: apronAxis + apronGeomZ.dx, z: 0 } },
     ];
     // half-bevel 條件：apronDropFromTop===0（牙板頂面貼椅面）才用 half-bevel 讓頂面水平
     const apronTopAtSeat = apronDropFromTop === 0;

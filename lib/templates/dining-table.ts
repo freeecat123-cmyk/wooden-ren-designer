@@ -1,7 +1,7 @@
 import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
-import {
+import { apronSetbackOption,
   curvedTaperLegOptions,
   legShapeLabel,
   seatEdgeOption,
@@ -62,6 +62,7 @@ export const diningTableOptions: OptionSpec[] = [
   { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 牙條 (apron)
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 100, unit: "mm", min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 2 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
@@ -388,6 +389,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     material: input.material,
     legSize,
     topThickness,
+    apronSetback: getOption<number>(input, opt(o, "apronSetback")),
     apronWidth,
     apronThickness,
     legPenetratingTenon,

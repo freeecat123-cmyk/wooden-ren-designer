@@ -7,7 +7,7 @@ import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-r
 import { applyLowerStretcherArrangement } from "./dining-table";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { formatMm } from "@/lib/units/format";
-import {
+import { apronSetbackOption,
   seatEdgeOption,
   seatEdgeBottomOption,
   seatEdgeStyleOption,
@@ -76,6 +76,7 @@ export const deskOptions: OptionSpec[] = [
 
   // ───────────── ③ 牙條 ─────────────
   { group: "apron", type: "checkbox", key: "withApron", label: "加牙條", defaultValue: true, help: "牙條連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, unit: "mm", min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
@@ -252,6 +253,7 @@ export const desk: FurnitureTemplate = (input) => {
     material: input.material,
     legSize,
     topThickness,
+    apronSetback: getOption<number>(input, opt(o, "apronSetback")),
     apronWidth,
     apronThickness,
     legPenetratingTenon,

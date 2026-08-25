@@ -36,6 +36,10 @@ import {
   legBottomScale,
   legScaleAt,
   clampLegInset,
+  apronSetbackOption,
+  resolveApronSetback,
+  apronCenterOffset,
+  apronMortiseOffset,
 } from "./_helpers";
 import { applyStandardChecks, appendSuggestion, appendWarnings } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -75,6 +79,7 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙條厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "牙條頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
   // 選了牙條造型時隱藏倒角欄（同 square-stool）
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
@@ -142,6 +147,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const ctBlockHeight = getOption<number>(input, opt(o, "ctBlockHeight"));
   /** 夾制要在讀 apronStaggerMm 之前算,所以這裡先讀一次(下面那個宣告保持不動) */
+  const apronSetback = resolveApronSetback(getOption<number>(input, opt(o, "apronSetback")), legSize, upperApronThickness);
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOff = apronMortiseOffset(legSize, upperApronThickness, apronSetback);
   const _ctApronStaggerRaw = getOption<number>(input, opt(o, "apronStaggerMm"));
   /**
    * 錯開本身也要夾:接撐段扣掉下垂與錯開之後,至少要留 CT_APRON_MIN_H 給牙條。
@@ -519,7 +527,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [
       // 上橫撐 Z 面（接左右上橫撐, 靜止）— 上半榫
       {
-        origin: { x: 0, y: apronCenterY + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
+        // ⭐ x 跟著「牙條縮進」位移（牙條置中時 apronMortiseOff = 0）
+        origin: { x: Math.sign(c.x || 1) * apronMortiseOff, y: apronCenterY + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
         depth: apronTenonLength,
         length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
         width: apronTenonThick,
@@ -528,7 +537,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       },
       // 上橫撐 X 面（接前後上橫撐, 物理下移 apronStaggerMm）— 下半榫
       {
-        origin: { x: c.x > 0 ? -1 : 1, y: apronCenterY - apronStaggerMm + apronLowerTenonOffset, z: 0 },
+        origin: { x: c.x > 0 ? -1 : 1, y: apronCenterY - apronStaggerMm + apronLowerTenonOffset, z: Math.sign(c.z || 1) * apronMortiseOff },
         depth: apronTenonLength,
         length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
         width: apronTenonThick,
@@ -619,6 +628,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     apronWidth: upperApronWidth,
     apronThickness: upperApronThickness,
+    setback: apronSetback,   // 只有上牙條環套縮進;下橫撐環不傳 = 維持置中
     tenonLength: apronTenonLength,
     tenonThickness: apronTenonThick,
     tenonWidth: apronTenonW,
@@ -875,6 +885,8 @@ interface ApronRingOpts {
   material: Part["material"];
   apronWidth: number;
   apronThickness: number;
+  /** 牙條縮進(外面離腳外面)。undefined = 沿用舊的置中 —— 下橫撐環不傳就不受影響。 */
+  setback?: number;
   tenonLength: number;
   tenonThickness: number;
   tenonWidth: number;
@@ -917,6 +929,13 @@ function makeApronRing(o: ApronRingOpts): Part[] {
   const inset = o.legInset ?? 0;
   const edgeX = o.overallLength / 2 - o.legSize / 2 - inset;
   const edgeZ = o.overallWidth / 2 - o.legSize / 2 - inset;
+  /**
+   * 這一環自己的中心線(受「牙條縮進」影響),只用在 origin。
+   * setback 沒給 = 沿用舊的置中(等於 edgeX/edgeZ)。長度一律用 edgeX/edgeZ。
+   */
+  const sb = o.setback;
+  const axisX = sb === undefined ? edgeX : apronCenterOffset(o.overallLength / 2, inset, o.apronThickness, sb);
+  const axisZ = sb === undefined ? edgeZ : apronCenterOffset(o.overallWidth / 2, inset, o.apronThickness, sb);
   // ctSplay 外斜補償：X 環（前後）長度每端 +outX、環 Z 位置外移 outX；Z 環（左右）同理用 outZ。
   const ctOutX = o.ctSplay?.outX ?? 0;
   const ctOutZ = o.ctSplay?.outZ ?? 0;
@@ -928,7 +947,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
       visibleLength: o.span.x + 2 * ctOutX,
       axis: "x" as const,
       sx: 0 as const, sz: -1 as const,
-      origin: { x: 0, z: -(edgeZ + ctOutX) },
+      origin: { x: 0, z: -(axisZ + ctOutX) },
     },
     {
       key: "back",
@@ -937,7 +956,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
       visibleLength: o.span.x + 2 * ctOutX,
       axis: "x" as const,
       sx: 0 as const, sz: 1 as const,
-      origin: { x: 0, z: edgeZ + ctOutX },
+      origin: { x: 0, z: axisZ + ctOutX },
     },
     {
       key: "left",
@@ -946,7 +965,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
       visibleLength: o.span.z + 2 * ctOutZ,
       axis: "z" as const,
       sx: -1 as const, sz: 0 as const,
-      origin: { x: -(edgeX + ctOutZ), z: 0 },
+      origin: { x: -(axisX + ctOutZ), z: 0 },
     },
     {
       key: "right",
@@ -955,7 +974,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
       visibleLength: o.span.z + 2 * ctOutZ,
       axis: "z" as const,
       sx: 1 as const, sz: 0 as const,
-      origin: { x: edgeX + ctOutZ, z: 0 },
+      origin: { x: axisX + ctOutZ, z: 0 },
     },
   ];
 

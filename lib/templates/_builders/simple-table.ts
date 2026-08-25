@@ -13,6 +13,7 @@ import {
 } from "../_constants";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
+import { apronCenterOffset, apronMortiseOffset, resolveApronSetback } from "../_helpers";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -25,6 +26,8 @@ export interface SimpleTableOpts {
   legSize?: number;
   topThickness?: number;
   apronWidth?: number;
+  /** 牙條外面離腳外面多遠。0 = 齊腳外面（預設）。 */
+  apronSetback?: number;
   apronThickness?: number;
   /** Distance from top-underside down to the apron top edge. */
   apronOffset?: number;
@@ -296,6 +299,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const legHeight = height - topThickness;
   const apronY = legHeight - apronWidth - apronOffset;
   const legInset = opts.legInset ?? 0;
+  const apronSetback = resolveApronSetback(opts.apronSetback ?? 0, legSize, apronThickness);
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
   // legInset=0 時 tenon 沿 X 軸朝家具中心偏，內側緣貼腳內緣 → 內側無肩、外側多留肩
   // 防止桌面端頭沿 X 木紋方向破裂。跟 square-stool / dining-chair 同規則。
   const legTopInsetX = legInset === 0
@@ -488,7 +494,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     mortises: !withApron ? [] : [
       // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫，rotX 跟 splayDz
       {
-        origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
+        // ⭐ x 要跟著「牙條縮進」位移;牙條置中(舊行為)時 apronMortiseOff = 0
+        origin: { x: zFaceGeom.x + Math.sign(c.x || 1) * apronMortiseOff, y: zFaceGeom.y, z: zFaceGeom.z },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
@@ -498,7 +505,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       },
       // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫，rotZ 跟 splayDx
       {
-        origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
+        origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: Math.sign(c.z || 1) * apronMortiseOff },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
@@ -517,6 +524,14 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const bottomScale = legBottomScale(legShape);
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  /**
+   * 牙條自己的中心線(受「牙條縮進」影響),**只用在 origin**。
+   * ⚠️ 長度計算(apronInnerSpan / buttHalf*)一律用上面的 apronEdge*(＝腳的中心線),
+   *    把縮進算進長度會讓牙條變長、插進腳裡。
+   * 0 = 齊腳外面(預設);setback = (腳寬 − 牙條厚)/2 時 === apronEdge*(舊的置中)。
+   */
+  const apronAxisZ = apronCenterOffset(width / 2, legInset, apronThickness, apronSetback);
+  const apronAxisX = apronCenterOffset(length / 2, legInset, apronThickness, apronSetback);
   // 外斜支援 5 種：對角 splayed、單向 splayed-length（只沿 X）、splayed-width
   // （只沿 Z）、splayed-tapered（雙軸+下收）、splayed-round-tapered（圓料雙軸+下收）
   // splayDx/splayDz 分別記錄該軸是否啟用外斜，給 apron 計算對應的位移和傾角
@@ -569,7 +584,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       sx: 0,
       sz: -1,
       // Z 位移由 Z 軸外斜決定
-      origin: { x: 0, z: -(apronEdgeZ + apronSplayZ) },
+      origin: { x: 0, z: -(apronAxisZ + apronSplayZ) },
     },
     {
       key: "back",
@@ -578,7 +593,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       axis: "x" as const,
       sx: 0,
       sz: 1,
-      origin: { x: 0, z: apronEdgeZ + apronSplayZ },
+      origin: { x: 0, z: apronAxisZ + apronSplayZ },
     },
     {
       key: "left",
@@ -588,7 +603,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       axis: "z" as const,
       sx: -1,
       sz: 0,
-      origin: { x: -(apronEdgeX + apronSplayX), z: 0 },
+      origin: { x: -(apronAxisX + apronSplayX), z: 0 },
     },
     {
       key: "right",
@@ -597,7 +612,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       axis: "z" as const,
       sx: 1,
       sz: 0,
-      origin: { x: apronEdgeX + apronSplayX, z: 0 },
+      origin: { x: apronAxisX + apronSplayX, z: 0 },
     },
   ];
   const aprons: Part[] = !withApron ? [] : apronSides

@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ, clampLegInset } from "./_helpers";
+import { apronSetbackOption, resolveApronSetback, apronCenterOffset, apronMortiseOffset, corners, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, rectLegShape, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ, clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -41,6 +41,7 @@ export const barStoolOptions: OptionSpec[] = [
   // 腳踏（＝吧檯椅的下橫撐）造型：套在 4 支 footrest 上；椅背橫木不套
   ...stretcherProfileOptions("stretcher"),
   { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高", defaultValue: 350, unit: "mm", min: 50, max: 700, step: 10, help: "腳踏離地高度。吧檯椅標準＝座面下 400–450mm（座面 750→腳踏 300–350；座面 800→腳踏 350–400）；counter stool 較矮，距座面約 300mm" },
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, help: "弧肩斜腳時上限＝「接撐段高 − 弧肩內收 − 牙條下移量」；弧肩斜腳時上限＝「接撐段高」−「牙條距座板」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 18, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
@@ -251,6 +252,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const withBack = backStyle !== "none";
 
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
+  const apronSetback = resolveApronSetback(getOption<number>(input, opt(o, "apronSetback")), Math.min(legW, legD), apronThickness);
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, apronSetback);
+  const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, apronSetback);
   // 直榫標準（drafting-math.md §B2）：榫厚 = 公件厚 / 3、肩寬固定 5mm 4 邊全肩、
   // 盲榫長 = round(2/3 × 母厚, ≥25mm)、通榫長 = 母厚。
   // 自動類型規則：母厚 ≤ 25mm → 通榫；> 25mm → 盲榫
@@ -590,7 +595,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫，rotX 跟 splayDz
         {
           origin: {
-            x: _zFaceMortiseX,
+            // ⭐ x 跟著「牙條縮進」位移（牙條置中時 apronMortiseOffX = 0）
+            x: _zFaceMortiseX + Math.sign(c.x || 1) * apronMortiseOffX,
             y: _zFaceMortiseY,
             z: _zFaceMortiseZ,
           },
@@ -607,7 +613,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             x: c.x > 0 ? -1 : 1,
             y: (seatY - apronWidth / 2 - apronOffset) - (apronVisuallyStaggered ? apronStaggerMm : 0)
               + (apronCanHalfStagger ? apronLowerTenonOffset : 0),
-            z: 0,
+            z: Math.sign(c.z || 1) * apronMortiseOffZ,
           },
           depth: apronTenonLengthX,
           length: apronCanHalfStagger ? apronLowerTenonH : apronTenonW,
@@ -748,7 +754,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / seatY) : 0;
 
   // 通用：給定該層橫撐的「橫撐料」中軸 Y 與料厚 W，產生四面 sides。
-  const buildSides = (centerY: number, beamWidth: number, namePrefix: string, namePrefixEn: string) => {
+  const buildSides = (centerY: number, beamWidth: number, namePrefix: string, namePrefixEn: string, setback?: number) => {
+    /**
+     * 這一環自己的中心線(受「牙條縮進」影響),只用在 origin;長度一律用 legEdge*。
+     * setback 沒給 = 沿用舊的置中 —— 橫撐環不傳就不受影響。
+     */
+    const axisZ = setback === undefined ? legEdgeZ : apronCenterOffset(width / 2, legInset, apronThickness, setback);
+    const axisX = setback === undefined ? legEdgeX : apronCenterOffset(length / 2, legInset, apronThickness, setback);
     const botY = centerY - beamWidth / 2;
     const topY = centerY + beamWidth / 2;
     const shiftAt = (yMm: number) => seatY > 0 ? 1 - yMm / seatY : 0;
@@ -776,10 +788,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面（含 taper 補償）
         // = innerSpan(中心到中心) − legW@centerY(扣兩半邊腳) + 2×splayXc（外斜補償）
         // joinery 模式靠 cut-dimensions 加 tenon，3D 不延伸到腳裡。
-        { key: "front", nameZh: `前${namePrefix}`, nameEn: `Front ${namePrefixEn}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
-        { key: "back", nameZh: `後${namePrefix}`, nameEn: `Back ${namePrefixEn}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
-        { key: "left", nameZh: `左${namePrefix}`, nameEn: `Left ${namePrefixEn}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
-        { key: "right", nameZh: `右${namePrefix}`, nameEn: `Right ${namePrefixEn}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
+        { key: "front", nameZh: `前${namePrefix}`, nameEn: `Front ${namePrefixEn}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(axisZ + splayZc) } },
+        { key: "back", nameZh: `後${namePrefix}`, nameEn: `Back ${namePrefixEn}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: axisZ + splayZc } },
+        { key: "left", nameZh: `左${namePrefix}`, nameEn: `Left ${namePrefixEn}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(axisX + splayXc), z: 0 } },
+        { key: "right", nameZh: `右${namePrefix}`, nameEn: `Right ${namePrefixEn}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: axisX + splayXc, z: 0 } },
       ],
       splayXc, splayZc, splayXt, splayZt, splayXb, splayZb,
       lwC, lwT, lwB, ldC, ldT, ldB,
@@ -789,9 +801,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronCenterY = ringY + apronWidth / 2;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
   // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legW/innerSpan，否則接不到腳
-  const apronBZ = buildSides(apronCenterY, apronWidth, "牙條", "apron");
+  const apronBZ = buildSides(apronCenterY, apronWidth, "牙條", "apron", apronSetback);
   const apronBX = apronVisuallyStaggered
-    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙條", "apron")
+    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙條", "apron", apronSetback)
     : apronBZ;
   // X 軸用 apronBX 的 sides[0,1]（前/後），Z 軸用 apronBZ 的 sides[2,3]（左/右）
   const apronCombinedSides = [

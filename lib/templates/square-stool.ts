@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
+import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetback, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -40,6 +40,7 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高度", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm", help: "弧肩斜腳時上限＝「接撐段高 − 弧肩內收 − 牙條下移量」；弧肩斜腳時上限＝「接撐段高」−「牙條距座板」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚度", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距座板", defaultValue: 0, min: 0, max: 400, step: 5, unit: "mm", help: "牙條頂面距座板下緣的距離；小凳子建議 10–15 才不會頭重腳輕" },
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（正視圖看到全寬的那對）相對左右牙條下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
   // 選了牙條造型時隱藏倒角欄（造型件一件一種 shape、倒角無效——user 2026-08-04 被混淆過）
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
@@ -249,6 +250,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
    *    兩邊就對不起來 —— 牙條照 80mm 往下移,夾制卻以為只移了 30mm,底緣照樣懸空。
    */
   const apronStaggerMm = _ctApronStaggerForClamp;
+  /**
+   * 牙條縮進(牙條外面離腳外面)。0 = 齊腳外面。
+   * X 牙條(前後)貼腳的 Z 面 → 用 legD 夾;Z 牙條(左右)貼 X 面 → 用 legW。
+   */
+  const _apronSetbackRaw = getOption<number>(input, opt(o, "apronSetback"));
+  const apronSetbackZ = resolveApronSetback(_apronSetbackRaw, legD, apronThickness);
+  const apronSetbackX = resolveApronSetback(_apronSetbackRaw, legW, apronThickness);
+  const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, apronSetbackZ);
+  const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, apronSetbackX);
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const seatPenetratingTenon = getOption<boolean>(input, opt(o, "seatPenetratingTenon"));
   const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
@@ -552,6 +562,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronLowerTenonOffset,
       apronTenonThick,
       apronVisualStaggerMm: apronVisuallyStaggered ? apronStaggerMm : 0,
+      apronMortiseOffZ,
+      apronMortiseOffX,
       apronWidth,
       legHeight,
       apronDropFromTop,
@@ -607,8 +619,24 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronCenterY = apronY + apronWidth / 2;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
+  /**
+   * ⚠️ 這兩個是「牙條中心線離家具中心多遠」,不是腳的中心線。
+   *    以前寫死 `− legD/2` = 牙條永遠置中在腳上,裡外各留一個台階
+   *    (方凳 7.5mm、餐桌 21mm)。改成由「牙條縮進」決定,預設 0 = 齊腳外面。
+   *    ⭐ 腳上的榫眼要做同樣位移(apronMortiseOffsetZ/X),否則榫頭對不到孔。
+   */
+  /**
+   * ⚠️ 這兩個是**腳的中心線**位置,長度計算全靠它們(牙條/橫撐要頂到腳的內面),
+   *    **不要**把牙條縮進算進來 —— 改過一次,結果牙條長度多了 7.5mm 插進腳裡。
+   */
   const apronEdgeZ = width / 2 - legD / 2 - legInset;
   const apronEdgeX = length / 2 - legW / 2 - legInset;
+  /**
+   * 這兩個才是**牙條自己的中心線**(受「牙條縮進」影響),只用在 origin。
+   * 0 = 齊腳外面;setback = (腳寬 − 牙條厚)/2 時 === apronEdgeZ/X(舊的置中)。
+   */
+  const apronAxisZ = apronCenterOffset(width / 2, legInset, apronThickness, apronSetbackZ);
+  const apronAxisX = apronCenterOffset(length / 2, legInset, apronThickness, apronSetbackX);
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
   // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legSize/innerSpan，否則接不到腳。
   // legDim：X 牙板接腳的 X 面用 legW、Z 牙板接 Z 面用 legD。
@@ -643,19 +671,19 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
       axis: "x" as const, sx: 0, sz: -1,
-      origin: { x: 0, z: -(apronEdgeZ + apronGeomX.splayZ) } },
+      origin: { x: 0, z: -(apronAxisZ + apronGeomX.splayZ) } },
     { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
       axis: "x" as const, sx: 0, sz: 1,
-      origin: { x: 0, z: apronEdgeZ + apronGeomX.splayZ } },
+      origin: { x: 0, z: apronAxisZ + apronGeomX.splayZ } },
     { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron",
       visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
       axis: "z" as const, sx: -1, sz: 0,
-      origin: { x: -(apronEdgeX + apronGeomZ.splayX), z: 0 } },
+      origin: { x: -(apronAxisX + apronGeomZ.splayX), z: 0 } },
     { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron",
       visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
       axis: "z" as const, sx: 1, sz: 0,
-      origin: { x: apronEdgeX + apronGeomZ.splayX, z: 0 } },
+      origin: { x: apronAxisX + apronGeomZ.splayX, z: 0 } },
   ];
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
@@ -1229,6 +1257,13 @@ function legMortisesForApron(
     legHeight: number;
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
+    /**
+     * 榫眼要離開腳中心軸多少(腳的外側方向為正)。
+     * 牙條齊腳外面時 = (腳寬 − 牙條厚)/2;牙條置中(舊行為)時 = 0。
+     * ⚠️ 一定要跟牙條本身用同一個值算,不然榫頭對不到孔。
+     */
+    apronMortiseOffZ?: number;
+    apronMortiseOffX?: number;
     /** 已停用：以前 splayed 腳給 mortise 加 splayShift/rotation 對齊 deformed
      *  leg material + apron tenon 世界位置、但 user 2026-05-26 確認 maker 製作
      *  優先 > 3D 視覺對齊，要求 mortise 回到腳中心軸（對稱 12.5/12.5 肩位、乾淨
@@ -1256,6 +1291,9 @@ function legMortisesForApron(
     apronTenonThick, apronWidth, legHeight, apronDropFromTop,
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
+  // Z 面榫眼(接左右牙條)沿腳的 X 軸位移;X 面榫眼(接前後牙條)沿 Z 軸位移
+  const offZFace = opts.apronMortiseOffX ?? 0;
+  const offXFace = opts.apronMortiseOffZ ?? 0;
   const throughX = opts.apronThroughX ?? false;
   const throughZ = opts.apronThroughZ ?? false;
   const splayDx = opts.splayDx ?? 0;
@@ -1289,7 +1327,7 @@ function legMortisesForApron(
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     // origin.x = 0 / origin.z = ±LEG_FACE_INSET (=1) → 腳中心軸、對稱 12.5/12.5 肩位
     {
-      origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: zSign },
+      origin: { x: Math.sign(corner.x || 1) * offZFace, y: zCenterY + apronUpperTenonOffset, z: zSign },
       depth: apronTenonLengthZ,
       length: apronUpperTenonH,
       width: apronTenonThick,
@@ -1299,7 +1337,7 @@ function legMortisesForApron(
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
-      origin: { x: xSign, y: xCenterY + apronLowerTenonOffset, z: 0 },
+      origin: { x: xSign, y: xCenterY + apronLowerTenonOffset, z: Math.sign(corner.z || 1) * offXFace },
       depth: apronTenonLengthX,
       length: apronLowerTenonH,
       width: apronTenonThick,

@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
+import { apronSetbackOption, resolveApronSetback, apronMortiseOffset, legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 import { formatMm } from "@/lib/units/format";
 
@@ -388,6 +388,7 @@ export const roundTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
   { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
   { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
@@ -486,6 +487,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
+  /**
+   * 牙條自己的中心線(受「牙條縮進」影響),只用在 origin;長度計算仍用 cornerOffset。
+   * 0 = 齊腳外面(腳外面 = cornerOffset + legSize/2)。
+   */
+  const _apronSetbackRaw2 = getOption<number>(input, opt(o, "apronSetback"));
+  const apronSetback = resolveApronSetback(_apronSetbackRaw2, legSize, apronThickness);
+  const apronAxis = cornerOffset + legSize / 2 - apronThickness / 2 - apronSetback;
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter0 = apronY0 + apronWidth / 2;
@@ -748,10 +758,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronYCenter0);
   const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronAxis + apronGeomX.dz) } },
+    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronAxis + apronGeomX.dz } },
+    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronAxis + apronGeomZ.dx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: apronAxis + apronGeomZ.dx, z: 0 } },
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響

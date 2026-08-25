@@ -935,8 +935,24 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   // 的主導分量當 depthAxis。**只在零件沒有旋轉時採用**——有旋轉時 world 軸跟
   // part-local 軸不一致,換算另有學問,寧可退回既有啟發式(不會比現況差)。
   const axisHint = mortiseAxisHint(part, m);
+  /**
+   * ⭐ 「離面 1mm」的面別標記優先於下面那套猜測。
+   *
+   * 腳上的牙條 / 橫撐榫眼慣例是:入榫那一軸放 ±LEG_FACE_INSET(±1),
+   * **另一軸放橫向位移量**。位移量一大(例如牙條縮進讓 origin.x = −7.5),
+   * 「哪一軸離面最近」就會挑錯軸 —— 上面第 ② 條註解講的就是這個,
+   * 2026-08-25 加「牙條縮進」時再度撞到:1:1 樣板從 2 張變 4 張、孔畫在錯的面。
+   *
+   * 標記本身是明確訊號,不用猜:剛好一個軸的絕對值 === 1 就用那一軸。
+   * (兩軸都是 1 或都不是 1 → 退回原本的啟發式,行為不變。)
+   */
+  const MARK = 1;   // LEG_FACE_INSET
+  const xMarked = Math.abs(Math.abs(m.origin.x) - MARK) < 1e-6;
+  const zMarked = Math.abs(Math.abs(m.origin.z) - MARK) < 1e-6;
   if (axisHint) {
     depthAxis = axisHint;
+  } else if (xMarked !== zMarked && lx > 2 * MARK + 1 && lz > 2 * MARK + 1) {
+    depthAxis = xMarked ? "x" : "z";
   } else if (m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0) {
     depthAxis = "y";
   } else if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {

@@ -1568,3 +1568,68 @@ export function warnOnce(kind: string, msg: string): void {
   _warnedOnce.add(kind);
   console.warn(`${msg}（同類警告只印一次）`);
 }
+
+/**
+ * 「牙條縮進」—— 牙條外面離腳外面多遠。
+ *
+ * 🩸 2026-08-25 之前沒有這個參數:牙條一律**置中**在腳上,所以裡外各露一個台階。
+ *    方凳 7.5mm、餐桌 21mm —— 木頭仁回報「這麼明顯」的落差之一。
+ *    明式家具的牙條通常是**齊腳的外面**,或只縮 2~3mm。
+ *
+ * 0 = 齊腳外面(預設)。要回到舊的置中外觀,設成 `(腳寬 − 牙條厚) / 2`。
+ */
+export const apronSetbackOption = (group: string, dependsOn?: unknown): OptionSpec =>
+  ({
+    group,
+    type: "number",
+    key: "apronSetback",
+    label: "牙條縮進",
+    defaultValue: 0,
+    min: 0,
+    max: 60,
+    step: 1,
+    unit: "mm",
+    help: "牙條外面離腳外面多遠。0 = 齊腳外面（明式常見）。以前固定置中，等於縮進「(腳寬 − 牙條厚) ÷ 2」。超過腳能容納的量會自動夾住。",
+    ...(dependsOn ? { dependsOn } : {}),
+  }) as OptionSpec;
+
+/**
+ * 夾住牙條縮進:最多只能縮到「牙條內面貼齊腳的內面」,再多就懸空了。
+ * 腳比牙條薄時(legDim < apronThickness)回 0 —— 那種情況牙條本來就比腳寬。
+ */
+export function resolveApronSetback(
+  raw: number,
+  legDim: number,
+  apronThickness: number,
+): number {
+  return Math.max(0, Math.min(raw, Math.max(0, legDim - apronThickness)));
+}
+
+/**
+ * 牙條中心線離家具中心多遠(沿厚度方向)。
+ *
+ *   齊腳外面(setback=0):  半跨距 − 腳內縮 − 牙條厚/2
+ *   置中(舊行為):         setback = (腳寬 − 牙條厚)/2 時,結果 = 半跨距 − 腳內縮 − 腳寬/2
+ *
+ * ⚠️ 腳上的榫眼要用 `apronMortiseOffset()` 做**同樣的位移**,不然榫頭對不到孔。
+ */
+export function apronCenterOffset(
+  halfSpan: number,
+  legInset: number,
+  apronThickness: number,
+  setback: number,
+): number {
+  return halfSpan - legInset - apronThickness / 2 - setback;
+}
+
+/**
+ * 榫眼在腳斷面上要離開腳中心軸多少(往腳的外側為正的量,呼叫端再乘方向)。
+ * setback = (legDim − apronThickness)/2 時回 0 = 舊的「榫眼在腳中心軸」行為。
+ */
+export function apronMortiseOffset(
+  legDim: number,
+  apronThickness: number,
+  setback: number,
+): number {
+  return (legDim - apronThickness) / 2 - setback;
+}
