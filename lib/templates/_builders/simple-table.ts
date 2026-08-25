@@ -12,6 +12,7 @@ import {
   MIN_SHOULDER_MM,
 } from "../_constants";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
+import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -195,8 +196,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
    *    `Math.min(≥60, 40)` 仍然是 40 ＝ 與原本的硬鎖結果逐值相同。
    */
   const apronWidthWanted = opts.apronWidth ?? 70;
+  /**
+   * ⭐ 牙條底緣還要**讓開弧肩那一段**,不能貼著接撐段底。
+   *
+   * 接撐段是全寬的沒錯,所以牙條做滿接撐段高「幾何上」撐得住 —— 但弧的上端是
+   * 水平切線(§A11.8),一離開接撐段底就立刻往內切(1mm 內縮 3.8mm),
+   * 牙條底緣等於架在一道刀口上。
+   * 木頭仁 2026-08-25 實測:接撐段 40 / 弧肩內收 8 → 牙條要 **32** 才對,
+   * 差的正好就是弧肩那一段。
+   *
+   * 🩸 這 5 款(長凳 / 邊桌 / 矮桌 / 餐桌 / 書桌)走這支共用 builder,
+   *    原本只夾到 ctBlockHeight,所以預設就少讓 7.95mm。
+   */
+  const ctCoveSpan = curvedTaperCoveSpan(legSize, opts.height, ctBlockHeight, ctShoulder);
   const apronWidth = isCurvedTaper
-    ? Math.min(apronWidthWanted, ctBlockHeight)
+    ? Math.max(0, Math.min(apronWidthWanted, ctBlockHeight - ctCoveSpan))
     : apronWidthWanted;
   /**
    * 🧷 夾了要出聲（§A10.11 第 2 條）。
@@ -207,8 +221,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
    */
   const apronClampWarnings: string[] =
     isCurvedTaper && apronWidth < apronWidthWanted
-      ? [`牙條高 ${apronWidthWanted}mm 超過弧肩斜腳的接撐段高 ${ctBlockHeight}mm，已收到 ${apronWidth}mm。` +
-         `牙條下緣不能蓋到弧肩，否則交界處會露出一段空隙。要更高的牙條，請把「接撐段高」一起調高。`]
+      ? [`牙條高 ${apronWidthWanted}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 弧肩 ${ctCoveSpan}mm = 可用 ${ctBlockHeight - ctCoveSpan}mm），已收到 ${apronWidth}mm。` +
+         `牙條下緣要讓開弧肩,否則底緣會架在弧的起點上、交界處看起來像一個缺口。要更高的牙條，請把「接撐段高」一起調高、或把「弧肩內收」調小。`]
       : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
   // 整段牙板 + leg 對應榫眼都 skip，腳頂 through-tenon 直接拉桌面/座板

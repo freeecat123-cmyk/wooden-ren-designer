@@ -40,6 +40,7 @@ import {
 import { applyStandardChecks, appendSuggestion, appendWarnings } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 import { formatMm } from "@/lib/units/format";
+import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -70,7 +71,7 @@ export const teaTableOptions: OptionSpec[] = [
   { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   // 下橫撐造型（茶几下橫撐環恆存在——無 withLowerStretcher 開關，故無額外顯示條件）
   ...stretcherProfileOptions("stretcher"),
-  { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高」−「牙條距桌面」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
+  { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高 − 弧肩內收 − 牙條下移量」；弧肩斜腳時上限＝「接撐段高」−「牙條距桌面」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙條厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "牙條頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
@@ -223,7 +224,16 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
    * 🧷 錯開只下移前後那對,但牙條高度是**共用一個值**,所以要用比較嚴的那個 ——
    *    左右牙條跟著短一點,總比前後那對露出缺口好。
    */
-  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp;
+  /**
+   * ⭐ 牙條底緣還要**讓開弧肩那一段**,不能貼著接撐段底。
+   *
+   * 接撐段是全寬的沒錯,所以牙條做滿 40 幾何上撐得住 —— 但弧的上端是水平切線,
+   * 一離開接撐段底就立刻往內切(1mm 內縮 3.8mm),牙條底緣等於架在刀口上。
+   * 木頭仁 2026-08-25 實測:接撐段 40 / 弧肩內收 8 → 牙條要 **32** 才對,
+   * 差的正好就是弧肩那一段。
+   */
+  const _ctCoveSpan = curvedTaperCoveSpan((legSize), input.height, ctBlockHeight, ctShoulder);
+  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp + _ctCoveSpan;
   const ctApronMaxH = Math.max(0, ctBlockHeight - _ctApronDrop);
   const upperApronWidth = isCurvedTaper
     ? Math.max(0, Math.min(_upperApronWidthRaw, ctApronMaxH))
@@ -237,7 +247,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const ctApronWarnings: string[] =
     isCurvedTaper && upperApronWidth < _upperApronWidthRaw
-      ? [`牙條高 ${_upperApronWidthRaw}mm 放不進弧肩斜腳的接撐段(接撐段 ${ctBlockHeight}mm − 牙條距桌面 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm = 可用 ${ctApronMaxH}mm),已收到 ${upperApronWidth}mm。` +
+      ? [`牙條高 ${_upperApronWidthRaw}mm 放不進弧肩斜腳的接撐段(接撐段 ${ctBlockHeight}mm − 牙條距桌面 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm − 弧肩 ${_ctCoveSpan}mm = 可用 ${ctApronMaxH}mm),已收到 ${upperApronWidth}mm。` +
          `牙條下緣一旦蓋到弧肩,交界處會露出缺口。要更高的牙條,請把「接撐段高」一起調高、或把「牙條錯開」調小。`]
       : [];
   const legHeight = height - topThickness;
@@ -591,7 +601,14 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     z: width - legSize - 2 * legInset - lowerLegSizeCenter,
   };
 
-  const upperAprons: Part[] = makeApronRing({
+  /**
+   * 🧷 沒有牙條就不要產零件。
+   *
+   * 夾制在極端設定下會把牙條高夾成 0(例:接撐段 2mm 比弧肩 8mm 還小),
+   * 原本仍然照產 4 個**高度 0 的零件** —— 材料單上會出現 0mm 的料,
+   * 3D 也有 4 個看不見的東西。方凳那邊早就有 `withApron` 這道閘,茶几漏了。
+   */
+  const upperAprons: Part[] = upperApronWidth <= 0 ? [] : makeApronRing({
     idPrefix: "upper-apron",
     nameZhPrefix: "牙條",
     nameEnSuffix: "apron",

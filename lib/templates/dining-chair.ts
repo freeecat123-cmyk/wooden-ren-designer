@@ -10,6 +10,7 @@ import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 
 export const diningChairOptions: OptionSpec[] = [
   // 腳
@@ -46,7 +47,7 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲", defaultValue: 0, unit: "mm", min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall", dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   // 牙條
-  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高」−「牙條距座板」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高 − 弧肩內收 − 牙條下移量」；弧肩斜腳時上限＝「接撐段高」−「牙條距座板」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, unit: "mm", min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, help: "牙條頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量；0 = 等高（自動上下半榫避免穿模）" },
@@ -227,7 +228,16 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const _ctApronStaggerForClamp = legShape === "curved-taper"
     ? Math.max(0, Math.min(_ctApronStaggerRaw, ctBlockHeight - apronOffset - CT_APRON_MIN_H))
     : _ctApronStaggerRaw;
-  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp;
+  /**
+   * ⭐ 牙條底緣還要**讓開弧肩那一段**,不能貼著接撐段底。
+   *
+   * 接撐段是全寬的沒錯,所以牙條做滿 40 幾何上撐得住 —— 但弧的上端是水平切線,
+   * 一離開接撐段底就立刻往內切(1mm 內縮 3.8mm),牙條底緣等於架在刀口上。
+   * 木頭仁 2026-08-25 實測:接撐段 40 / 弧肩內收 8 → 牙條要 **32** 才對,
+   * 差的正好就是弧肩那一段。
+   */
+  const _ctCoveSpan = curvedTaperCoveSpan((legSize), input.height, ctBlockHeight, ctShoulder);
+  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp + _ctCoveSpan;
   const ctApronMaxH = Math.max(0, ctBlockHeight - _ctApronDrop);
   const apronWidth = legShape === "curved-taper"
     ? Math.min(_apronWidthRaw, ctApronMaxH)
@@ -240,7 +250,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const ctApronWarnings: string[] =
     legShape === "curved-taper" && apronWidth < _apronWidthRaw
-      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
+      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm − 弧肩 ${_ctCoveSpan}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
          `牙板下緣一旦蓋到弧肩，交界處會露出空隙。要更高的牙板，請把「接撐段高」一起調高。`]
       : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；

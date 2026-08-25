@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { FURNITURE_CATALOG } from "../index";
 import type { FurnitureCatalogEntry } from "../index";
 import type { OptionSpec, MaterialId, FurnitureDesign } from "../../types";
+import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 
 /**
  * 🧷 弧肩斜腳(curved-taper)的「牙條高」必須是**夾上限**,不是無條件覆寫。
@@ -65,14 +66,36 @@ function apronTopY(design: FurnitureDesign): number {
 describe.each(VIA_SIMPLE_TABLE)("弧肩斜腳的牙條高 — %s", (category) => {
   const entry = entryOf(category);
   const ctBlock = specDefault(entry, "ctBlockHeight");
+  /**
+   * 弧肩在接撐段底以下佔掉的高度 —— 牙條底緣必須讓開它。
+   * 用跟 builder / 幾何**同一支**函式算,不要在測試裡自己寫一份公式
+   * (自己寫的話,實作改了測試也跟著「對」,等於沒防護)。
+   */
+  const COVE = curvedTaperCoveSpan(
+    specDefault(entry, "legSize"),
+    entry.defaults.height,
+    ctBlock,
+    specDefault(entry, "ctShoulder"),
+  );
   const apronDefault = specDefault(entry, "apronWidth");
 
   it("① 前提:預設牙條高比接撐段高還高(否則本檔其他案例驗不到東西)", () => {
     expect(apronDefault).toBeGreaterThan(ctBlock);
   });
 
-  it("② 全預設時的牙條高＝接撐段高(⚠️這條釘住『修正不得改動既有設定』)", () => {
-    expect(apronHeight(build(entry, { legShape: "curved-taper" }))).toBe(ctBlock);
+  /**
+   * ⚠️ 這條 2026-08-25 從「＝接撐段高」改成「＝接撐段高 − 弧肩內收」。
+   *
+   * 不是放水,是**木頭仁實測後要求的**:接撐段 40 / 弧肩內收 8 時,
+   * 他要手動把牙條高調到 32 才「剛剛好」。差的正好是弧肩那一段 ——
+   * 弧的上端是水平切線,牙條底緣貼著接撐段底就等於架在刀口上
+   * (1mm 內腳就縮 3.8mm)。
+   *
+   * ⇒ 規則改成:牙條底緣必須讓開弧肩。這會讓 5 款走這支 builder 的家具
+   *    (長凳/邊桌/矮桌/餐桌/書桌)預設牙條高 40 → 32。**這是刻意的外觀改動。**
+   */
+  it("② 全預設時的牙條高＝接撐段高 − 弧肩內收(牙條底緣要讓開弧肩)", () => {
+    expect(apronHeight(build(entry, { legShape: "curved-taper" }))).toBe(ctBlock - COVE);
   });
 
   it("③ 使用者把牙條高調到比接撐段矮 → 要照他的數字走,不能被吃掉", () => {
@@ -80,9 +103,16 @@ describe.each(VIA_SIMPLE_TABLE)("弧肩斜腳的牙條高 — %s", (category) =>
     expect(apronHeight(build(entry, { legShape: "curved-taper", apronWidth: low }))).toBe(low);
   });
 
-  it("④ 使用者把牙條高調到比接撐段高 → 仍要夾回接撐段高(榫眼不能掉出全寬實體區)", () => {
+  it("④ 使用者把牙條高調到超過上限 → 夾回「接撐段高 − 弧肩內收」", () => {
     const hi = ctBlock + 60;
-    expect(apronHeight(build(entry, { legShape: "curved-taper", apronWidth: hi }))).toBe(ctBlock);
+    expect(apronHeight(build(entry, { legShape: "curved-taper", apronWidth: hi }))).toBe(ctBlock - COVE);
+  });
+
+  it("⑦ 夾到的時候要出聲,而且訊息要講得出可用高度是多少", () => {
+    const d: any = build(entry, { legShape: "curved-taper", apronWidth: ctBlock + 60 });
+    const w = (d.warnings ?? []).find((x: string) => /牙條高|牙板高/.test(x));
+    expect(w, "夾了卻沒有任何警告 = 使用者會以為滑桿壞了").toBeTruthy();
+    expect(w).toContain(String(ctBlock - COVE));
   });
 
   it("⑤ 不管牙條高多少,牙條頂面都貼齊同一個高度(改高度不該讓它浮起來或陷進去)", () => {

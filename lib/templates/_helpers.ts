@@ -244,7 +244,7 @@ export const RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER = [
 export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] {
   const dependsOn = { key: "legShape", oneOf: ["curved-taper"] };
   return [
-    { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。", dependsOn },
+    { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。⚠️ 牙條可用高度 =「這個值 − 弧肩內收」——牙條底緣要讓開弧肩，不然會架在弧的起點上。例：接撐段 40、弧肩 8 → 牙條最高 32。", dependsOn },
     { group, type: "number", key: "ctShoulder", label: "弧肩內收", defaultValue: 8, min: 0, max: 40, step: 1, unit: "mm", help: "接橫撐那面的凹弧肩往內收的量（同時是弧的半徑）。0＝無弧肩。", dependsOn },
     { group, type: "number", key: "ctInset", label: "外面斜降", defaultValue: 12, min: 0, max: 100, step: 1, unit: "mm", help: "外面整支直線斜降、腳底往內收的量；內面弧肩以下維持垂直。", dependsOn },
     // 外斜獨立一欄（不共用 splayAngle）：splayAngle 各模板預設多為 5°，若讓 curved-taper

@@ -2559,3 +2559,28 @@ export function buildShapeGeometry(
   }
   return null;
 }
+
+/**
+ * 弧肩在「接撐段底」以下佔掉的垂直高度(＝凹弧的縱向跨距)。
+ *
+ * ⭐ 牙條底緣必須讓開這一段,不能貼著接撐段底。
+ *
+ * 接撐段是全寬的沒錯,所以牙條做滿接撐段高度「幾何上」撐得住 ——
+ * 但弧的上端是**水平切線**(§A11.8),一離開接撐段底就立刻往內切
+ * (1mm 內就縮 3.8mm),牙條底緣等於架在一道刀口上,榫眼底部也緊貼破口。
+ * 木頭仁 2026-08-25 實測:接撐段 40 / 弧肩內收 8 時,牙條要調到 **32** 才對 ——
+ * 差的正好是這一段。
+ *
+ * 夾制邏輯要跟 `curvedTaperInsetAtY` 用**同一套 clamp**,否則兩邊算出來的
+ * 弧起點會差一點點(shoulder 會被腳寬夾住)。
+ */
+export function curvedTaperCoveSpan(
+  legSizeMm: number,
+  legHeightMm: number,
+  blockHeightMm: number,
+  shoulderMm: number,
+): number {
+  const blockH = Math.max(0, Math.min(blockHeightMm, legHeightMm * 0.9));
+  const shoulder = Math.max(0, Math.min(shoulderMm, legSizeMm * 0.45));
+  return Math.min(shoulder, Math.max(0, legHeightMm - blockH));
+}
