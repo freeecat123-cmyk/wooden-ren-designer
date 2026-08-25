@@ -1,9 +1,9 @@
 "use client";
 
-import { memo, Component, useEffect, useMemo, useState, type ReactNode } from "react";
+import { memo, Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { nextPartSelection } from "@/lib/render/part-selection";
+import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
@@ -874,8 +874,37 @@ export function PerspectiveView({
 
   const tPV = useTranslations("perspectiveView");
   const pvLocale = useLocale();
-  const selectedPart = selectedPartId
-    ? design.parts.find((p) => p.id === selectedPartId)
+
+  /**
+   * ⭐ 轉動模型 ≠ 點選零件。
+   *
+   * R3F 的 onClick 是在 pointerup 觸發的,**不管中間拖了多遠** ——
+   * 所以用手指轉一下 3D,放手時就會選到手指下面那個零件,
+   * 其他零件全被打成 18% 半透明(DIM_OPACITY)。
+   * 使用者的感受是「我根本沒點,畫面自己變透視」。(2026-08-25 木頭仁回報)
+   *
+   * Canvas 那層早就知道這件事 —— 它的註解寫著「不接 onClick 因為 OrbitControls
+   * 拖動結束會 fire click」,所以改用 onPointerMissed。但**零件那層漏了同一道防護**。
+   *
+   * 作法:記下 pointerdown 的座標,放手時位移超過 DRAG_SLOP_PX 就當成「轉動」,不改選取。
+   */
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedAway = (e: { clientX: number; clientY: number }) =>
+    isDragRelease(pointerDownRef.current, { x: e.clientX, y: e.clientY });
+
+  /**
+   * 🧷 選取的 id 在目前設計裡找不到時,一律當成「沒選」。
+   *
+   * 不這樣做的話會出現最難解釋的死局:**全部零件都半透明,卻沒有任何一根亮起來**
+   * (因為 isDimmed 只看 `selectedPartId !== null`),而且取消鈕也不會出現
+   * —— 使用者完全沒有出口。換家具 / 換模式導致零件 id 變動時就會撞到。
+   */
+  const activeSelectedId =
+    selectedPartId && design.parts.some((p) => p.id === selectedPartId)
+      ? selectedPartId
+      : null;
+  const selectedPart = activeSelectedId
+    ? design.parts.find((p) => p.id === activeSelectedId)
     : null;
 
   return (
@@ -885,7 +914,13 @@ export function PerspectiveView({
         : "w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
     }>
       <ViewPresetBar onSelect={setViewPreset} hasLid={design.parts.some((p) => p.id === "lid")} />
-      <div data-thumb="3d" className="flex-1 min-h-0 relative">
+      <div
+        data-thumb="3d"
+        className="flex-1 min-h-0 relative"
+        onPointerDownCapture={(e) => {
+          pointerDownRef.current = { x: e.clientX, y: e.clientY };
+        }}
+      >
       <Canvas
         // VSMShadowMap (variance) 取代預設 PCFSoftShadowMap—— PCFSoftShadowMap
         // 在 Three.js r170+ 已 deprecated 並 fallback 到硬陰影 PCFShadowMap，
@@ -895,7 +930,7 @@ export function PerspectiveView({
         // 點到家具零件之外的空白處（場景空地、grid）→ 清掉 selectedPartId
         // 不接 onClick 因為 OrbitControls 拖動結束會 fire click。
         // onPointerMissed 是 R3F 提供：pointer up 沒打到任何 mesh 才 fire。
-        onPointerMissed={onPartSelect ? () => onPartSelect(null) : undefined}
+        onPointerMissed={onPartSelect ? (e: MouseEvent) => { if (draggedAway(e)) return; onPartSelect(null); } : undefined}
         // frameloop="always" 確保 selectedPartId / dim opacity 變化即時反映
         // （之前 demand 模式有 race condition：material prop 變更但 invalidate
         //  時 GPU 還沒收到 → 透明效果失效）。代價：scroll 時 3D 持續渲染
@@ -1770,8 +1805,8 @@ export function PerspectiveView({
                       // DoubleSide：tenon 從各角度看都要可見，避免 FrontSide
                       // culling 在側向視角讓 tenon face 不渲染只剩 edge 一條紅線
                       side={DoubleSide}
-                      transparent={selectedPartId !== null && selectedPartId !== part.id}
-                      opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
+                      transparent={activeSelectedId !== null && activeSelectedId !== part.id}
+                      opacity={activeSelectedId !== null && activeSelectedId !== part.id ? 0.18 : 1}
                     />
                   </mesh>
                 );
@@ -1779,8 +1814,8 @@ export function PerspectiveView({
             : null;
 
           // 選中：本體 emissive 黃光；其他零件半透明變灰（聚焦選中件）
-          const isSelected = selectedPartId === part.id;
-          const isDimmed = selectedPartId !== null && !isSelected;
+          const isSelected = activeSelectedId === part.id;
+          const isDimmed = activeSelectedId !== null && !isSelected;
           // Hover 預覽（Bot B）：context 命中即發弱光；不影響 dim 行為（hover 不該讓其他件變灰）
           const isHovered = hoveredPartIds.has(part.id);
           // Audit mode：overlap part 加紅色半透明 wireframe overlay box
@@ -1882,7 +1917,8 @@ export function PerspectiveView({
                */
               onClick={onPartSelect ? (e) => {
                 e.stopPropagation();
-                onPartSelect(nextPartSelection(selectedPartId, part.id));
+                if (draggedAway(e)) return;   // 轉動模型放手,不是點選
+                onPartSelect(nextPartSelection(activeSelectedId, part.id));
               } : undefined}
             >
               <Part
@@ -1944,7 +1980,7 @@ export function PerspectiveView({
           ]}
           onApplied={() => setViewPreset(null)}
         />
-        <InvalidateOnDep dep={selectedPartId} />
+        <InvalidateOnDep dep={activeSelectedId} />
       </Canvas>
       {/**
         * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
