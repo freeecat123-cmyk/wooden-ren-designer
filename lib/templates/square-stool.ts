@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
+import { resolveCtBlockForApron, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -227,7 +227,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const _ctCoveSpan = curvedTaperCoveSpan((legW), input.height, ctBlockHeight, ctShoulder);
   const _ctApronDrop = apronDropFromTop + _ctApronStaggerForClamp + _ctCoveSpan;
-  const ctApronMaxH = Math.max(0, ctBlockHeight - _ctApronDrop);
+  /**
+   * ⭐ 反過來:**接撐段長高去容納牙條**,不要把牙條砍掉。
+   *    (2026-08-25 木頭仁「牙條高度又卡住了」—— 原本不管設多少都被砍成 32mm。)
+   *    使用者自己把接撐段調更大時取大的那個。
+   */
+  const ctBlockEff = resolveCtBlockForApron(
+    ctBlockHeight, _apronWidthRaw, apronDropFromTop, _ctApronStaggerForClamp, _ctCoveSpan, height - seatThickness,
+  );
+  const ctApronMaxH = Math.max(0, ctBlockEff - _ctApronDrop);
   const apronWidth = legShape === "curved-taper"
     ? Math.min(_apronWidthRaw, ctApronMaxH)
     : _apronWidthRaw;
@@ -534,7 +542,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       splayMm: Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight),
       chamferMm: parseLegChamferMm(legEdge),
       chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
-      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
+      curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
     }) ?? legEdgeShape(legEdge, legEdgeStyle),
     // tenon X 軸朝家具中心偏，內側無肩（朝中心那邊貼腳邊 → 移除對應 shoulderOn）
     tenons: [
@@ -602,7 +610,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 其餘走既有線性 legScaleAt。牙板/橫撐長度都靠這個對到腳的實際內面。
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, legHeight, bottomScale);
   /**
    * ⭐ Z 面的等效 scale —— **兩向弧肩專用**。
@@ -620,7 +628,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const legSizeScaleAtZ = (y: number): number =>
     legShape === "curved-taper" && ctTwoWay
-      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, legHeight, bottomScale);
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償

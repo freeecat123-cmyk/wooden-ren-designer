@@ -1646,3 +1646,28 @@ export function resolveApronSetbackForLeg(
   if (legShape !== "curved-taper") return Math.max(0, (legDim - apronThickness) / 2);
   return resolveApronSetback(raw, legDim, apronThickness);
 }
+
+/**
+ * ⭐ 接撐段高「自動長高去容納牙條」—— 不要反過來把牙條砍掉。
+ *
+ * 🩸 2026-08-25 木頭仁:「牙條高度又卡住了」。
+ *    原本的規則是「牙條高 ≤ 接撐段 − 下垂 − 錯開 − 弧肩」,而接撐段預設只有 40、
+ *    弧肩 8 → **不管設多少,牙條一律被砍成 32mm**。
+ *    餐桌預設牙條 100 → 32、書桌 90 → 32,整個比例都毀了。
+ *
+ * 關係反過來:牙條高是使用者的設計決定,**接撐段跟著它長**。
+ * 使用者自己把接撐段調更大時取大的那個（不會縮小他設的值）。
+ *
+ * 回傳實際要用的接撐段高;上限是腳高的 90%（跟幾何的 clamp 一致）。
+ */
+export function resolveCtBlockForApron(
+  blockRaw: number,
+  apronWanted: number,
+  dropMm: number,
+  staggerMm: number,
+  coveSpanMm: number,
+  legHeightMm: number,
+): number {
+  const need = dropMm + staggerMm + apronWanted + coveSpanMm;
+  return Math.max(0, Math.min(Math.max(blockRaw, need), legHeightMm * 0.9));
+}

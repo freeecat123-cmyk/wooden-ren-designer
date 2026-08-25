@@ -13,7 +13,7 @@ import {
 } from "../_constants";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
-import { apronCenterOffset, apronMortiseOffset, resolveApronSetbackForLeg } from "../_helpers";
+import { apronCenterOffset, apronMortiseOffset, resolveApronSetbackForLeg, resolveCtBlockForApron } from "../_helpers";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -214,8 +214,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
    *    原本只夾到 ctBlockHeight,所以預設就少讓 7.95mm。
    */
   const ctCoveSpan = curvedTaperCoveSpan(legSize, opts.height, ctBlockHeight, ctShoulder);
+  /**
+   * ⭐ 反過來:**接撐段長高去容納牙條**,不要把牙條砍掉。
+   *    (2026-08-25 木頭仁「牙條高度又卡住了」—— 餐桌預設牙條 100 被砍成 32、
+   *     書桌 90 → 32,整個比例都毀了。牙條高是使用者的設計決定,接撐段跟著它長。)
+   */
+  const ctBlockEff = isCurvedTaper
+    // ⚠️ 上限要用**腳高**(height − 面板厚),不是家具總高 —— 用總高會讓接撐段超過腳
+    ? resolveCtBlockForApron(ctBlockHeight, apronWidthWanted, 0, 0, ctCoveSpan, opts.height - topThickness)
+    : ctBlockHeight;
   const apronWidth = isCurvedTaper
-    ? Math.max(0, Math.min(apronWidthWanted, ctBlockHeight - ctCoveSpan))
+    ? Math.max(0, Math.min(apronWidthWanted, ctBlockEff - ctCoveSpan))
     : apronWidthWanted;
   /**
    * 🧷 夾了要出聲（§A10.11 第 2 條）。
@@ -226,7 +235,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
    */
   const apronClampWarnings: string[] =
     isCurvedTaper && apronWidth < apronWidthWanted
-      ? [`牙條高 ${apronWidthWanted}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 弧肩 ${ctCoveSpan}mm = 可用 ${ctBlockHeight - ctCoveSpan}mm），已收到 ${apronWidth}mm。` +
+      ? [`牙條高 ${apronWidthWanted}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockEff}mm − 弧肩 ${ctCoveSpan}mm = 可用 ${ctBlockEff - ctCoveSpan}mm），已收到 ${apronWidth}mm。` +
          `牙條下緣要讓開弧肩,否則底緣會架在弧的起點上、交界處看起來像一個缺口。要更高的牙條，請把「接撐段高」一起調高、或把「弧肩內收」調小。`]
       : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
@@ -440,7 +449,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       };
     }
     if (legShape === "curved-taper") {
-      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange } });
+      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange } });
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     if (legShape === "shaker") return { kind: "shaker" };
@@ -806,7 +815,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // 弧肩斜腳：下橫撐接在斜降窄區，把榫長 clamp 到「該高度實際腳寬 − 3mm」內才不戳出斜面
     // （legXDepthLS 公式照搬 square-stool：外面垂直、只內面收窄，材料 X 深 = legSize×(1+scale)/2）。
     const ctStretcherNarrow = isCurvedTaper
-      ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(stretcherY + stretcherWidth / 2, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange))) / 2)
+      ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(stretcherY + stretcherWidth / 2, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange))) / 2)
       : legSize;
     const tenonLen = isCurvedTaper
       ? Math.max(6, Math.min(tenonLenRaw, Math.floor(ctStretcherNarrow - 3)))
@@ -846,7 +855,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // 非 curved-taper 時兩式等價（走 legScaleAt）→ 既有輸出 byte 不變。
     const sScaleAtX = (y: number): number =>
       isCurvedTaper
-        ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
+        ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
         : legScaleAt(y, legHeight, bottomScale);
     const sLegSizeCenterX = isRoundLeg ? 0 : legSize * sScaleAtX(sCenterY);
     const sLegSizeTopX = isRoundLeg ? 0 : legSize * sScaleAtX(stretcherY + stretcherWidth);

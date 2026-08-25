@@ -199,17 +199,21 @@ describe("牙板被夾住時要出聲（§A10.11 第 2 條）", () => {
    * 改成 40mm，畫面上一句話都沒有 —— 使用者會以為滑桿壞了。
    */
   for (const cat of ["stool", "bar-stool", "dining-chair"]) {
-    it(`${cat}：把牙板高拉到最大 → 有警告，而且講得出實際做出多少`, () => {
+    it(`${cat}：牙條高到腳裝不下時要出聲`, () => {
       const e = (FURNITURE_CATALOG as never[] as any[]).find((x) => x.category === cat)!;
       const spec = (e.optionSchema ?? []).find((s: any) => s.key === "apronWidth");
       const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+      /**
+       * ⚠️ 2026-08-25 反轉:接撐段會長高去容納牙條,所以在滑桿範圍內**不會**再被夾。
+       *    要驗「夾了要出聲」得推到真的放不下(牙條高過腳高)。
+       */
+      const tooTall = Math.round(e.defaults.height * 1.5);
       const d: any = e.template({
         length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
-        material: "maple", options: { ...base, legShape: "curved-taper", apronWidth: spec.max },
+        material: "maple", options: { ...base, legShape: "curved-taper", apronWidth: tooTall },
       });
-      const w = (d.warnings ?? []).find((x: string) => /牙板高/.test(x));
-      expect(w, "應該要有牙板被夾的警告").toBeTruthy();
-      expect(w).toContain(String(spec.max));
+      const w = (d.warnings ?? []).find((x: string) => /牙板高|牙條高/.test(x));
+      expect(w, "真的放不下卻沒有警告 = 使用者會以為滑桿壞了").toBeTruthy();
     });
 
     it(`${cat}：牙板在範圍內時不可以亂噴警告`, () => {

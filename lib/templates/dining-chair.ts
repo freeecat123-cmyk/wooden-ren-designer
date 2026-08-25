@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
+import { resolveCtBlockForApron, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -239,7 +239,15 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const _ctCoveSpan = curvedTaperCoveSpan((legSize), input.height, ctBlockHeight, ctShoulder);
   const _ctApronDrop = apronOffset + _ctApronStaggerForClamp + _ctCoveSpan;
-  const ctApronMaxH = Math.max(0, ctBlockHeight - _ctApronDrop);
+  /**
+   * ⭐ 反過來:**接撐段長高去容納牙條**,不要把牙條砍掉。
+   *    (2026-08-25 木頭仁「牙條高度又卡住了」—— 原本不管設多少都被砍成 32mm。)
+   *    使用者自己把接撐段調更大時取大的那個。
+   */
+  const ctBlockEff = resolveCtBlockForApron(
+    ctBlockHeight, _apronWidthRaw, apronOffset, _ctApronStaggerForClamp, _ctCoveSpan, seatHeight,
+  );
+  const ctApronMaxH = Math.max(0, ctBlockEff - _ctApronDrop);
   const apronWidth = legShape === "curved-taper"
     ? Math.min(_apronWidthRaw, ctApronMaxH)
     : _apronWidthRaw;
@@ -495,7 +503,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     if (legShape === "curved-taper") {
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
+        curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
       });
     }
     return undefined;
@@ -790,7 +798,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // legSizeScaleAt === legScaleAt(y, legBaseHeight, bottomScale) → 兩者等價、無迴歸。
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, legBaseHeight, bottomScale);
   const apronCenterY = apronY + apronWidth / 2;
   void backHeight;

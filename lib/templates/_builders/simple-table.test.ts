@@ -94,8 +94,8 @@ describe.each(VIA_SIMPLE_TABLE)("弧肩斜腳的牙條高 — %s", (category) =>
    * ⇒ 規則改成:牙條底緣必須讓開弧肩。這會讓 5 款走這支 builder 的家具
    *    (長凳/邊桌/矮桌/餐桌/書桌)預設牙條高 40 → 32。**這是刻意的外觀改動。**
    */
-  it("② 全預設時的牙條高＝接撐段高 − 弧肩內收(牙條底緣要讓開弧肩)", () => {
-    expect(apronHeight(build(entry, { legShape: "curved-taper" }))).toBe(ctBlock - COVE);
+  it("② 全預設時牙條高就是使用者設的值（接撐段自己長高去容納）", () => {
+    expect(apronHeight(build(entry, { legShape: "curved-taper" }))).toBe(specDefault(entry, "apronWidth"));
   });
 
   it("③ 使用者把牙條高調到比接撐段矮 → 要照他的數字走,不能被吃掉", () => {
@@ -103,16 +103,21 @@ describe.each(VIA_SIMPLE_TABLE)("弧肩斜腳的牙條高 — %s", (category) =>
     expect(apronHeight(build(entry, { legShape: "curved-taper", apronWidth: low }))).toBe(low);
   });
 
-  it("④ 使用者把牙條高調到超過上限 → 夾回「接撐段高 − 弧肩內收」", () => {
+  /**
+   * ⚠️ 2026-08-25 反轉:規則從「把牙條砍到接撐段」改成「**接撐段長高去容納牙條**」。
+   *    (木頭仁「牙條高度又卡住了」—— 餐桌預設牙條 100 被砍成 32、書桌 90 → 32。)
+   *    牙條高是使用者的設計決定,接撐段跟著它長。
+   */
+  it("④ 把牙條高調高 → 照他的數字做,接撐段自己長高", () => {
     const hi = ctBlock + 60;
-    expect(apronHeight(build(entry, { legShape: "curved-taper", apronWidth: hi }))).toBe(ctBlock - COVE);
+    expect(apronHeight(build(entry, { legShape: "curved-taper", apronWidth: hi }))).toBe(hi);
   });
 
-  it("⑦ 夾到的時候要出聲,而且訊息要講得出可用高度是多少", () => {
-    const d: any = build(entry, { legShape: "curved-taper", apronWidth: ctBlock + 60 });
+  it("⑦ 真的夾到時（牙條高過腳高 90%）要出聲", () => {
+    const legH = entry.defaults.height;
+    const d: any = build(entry, { legShape: "curved-taper", apronWidth: Math.round(legH * 1.5) });
     const w = (d.warnings ?? []).find((x: string) => /牙條高|牙板高/.test(x));
     expect(w, "夾了卻沒有任何警告 = 使用者會以為滑桿壞了").toBeTruthy();
-    expect(w).toContain(String(ctBlock - COVE));
   });
 
   it("⑤ 不管牙條高多少,牙條頂面都貼齊同一個高度(改高度不該讓它浮起來或陷進去)", () => {

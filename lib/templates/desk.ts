@@ -1,13 +1,14 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
+import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { caseFurniture } from "./_builders/case-furniture";
 import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-row";
 import { applyLowerStretcherArrangement } from "./dining-table";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { formatMm } from "@/lib/units/format";
-import { apronSetbackOption,
+import { resolveCtBlockForApron, apronSetbackOption,
   seatEdgeOption,
   seatEdgeBottomOption,
   seatEdgeStyleOption,
@@ -189,9 +190,26 @@ export const desk: FurnitureTemplate = (input) => {
    *
    * ✅ 用同一條夾制規則,不要各寫一份。
    */
+  /**
+   * 🩸 2026-08-25 更新:規則從「把牙條砍到接撐段」改成「**接撐段長高去容納牙條**」
+   *    (木頭仁「牙條高度又卡住了」)。這裡是 desk 為了跟 builder 同步而抄的一份 ——
+   *    規則一改它就過期了(builder 不再砍,desk 還在砍 → 書桌牙條被砍成 40)。
+   *    ⇒ 改成呼叫**同一支** `resolveCtBlockForApron()`,不要再抄邏輯。
+   */
   const ctBlockHeightForApron = getOption<number>(input, opt(o, "ctBlockHeight"));
+  const _deskCoveSpan = curvedTaperCoveSpan(
+    getOption<number>(input, opt(o, "legSize")),
+    input.height,
+    ctBlockHeightForApron,
+    getOption<number>(input, opt(o, "ctShoulder")),
+  );
   const apronWidthClamped =
-    legShape === "curved-taper" ? Math.min(apronWidthRaw, ctBlockHeightForApron) : apronWidthRaw;
+    legShape === "curved-taper"
+      ? Math.min(
+          apronWidthRaw,
+          resolveCtBlockForApron(ctBlockHeightForApron, apronWidthRaw, 0, 0, _deskCoveSpan, input.height) - _deskCoveSpan,
+        )
+      : apronWidthRaw;
   const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthClamped : 0);
   const apronThicknessRaw = getOption<number>(input, opt(o, "apronThickness"));
   const withApron = getOption<boolean>(input, opt(o, "withApron"));
