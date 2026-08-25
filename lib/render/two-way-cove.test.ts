@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { projectPartSilhouette, projectPartPolygon, curvedTaperProfilePoints } from "./geometry";
-import { curvedTaperInsetAtY } from "./part-geometry";
+import { buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperInsetAtY } from "./part-geometry";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
@@ -140,15 +140,34 @@ describe("挖弧肩要算工時，但不該多算材料", () => {
       expect(two.estimatedMinutes / one.estimatedMinutes).toBeCloseTo(2, 6);
     });
 
-    it(`${cat}：材料一點都沒多（弧是從同一根方料挖掉的）`, async () => {
+    it(`${cat}：腳的用料一點都沒多（弧是從同一根方料挖掉的）`, () => {
+      /**
+       * ⚠️ 這條原本斷言「總材積完全不變」,2026-08-25 改成「腳不變、總量只准微增」。
+       *
+       * 原因不是放水:兩向弧肩把腳的 Z 內面也挖掉了,兩腳之間在橫撐高度的
+       * **淨距離真的變寬**,Z 向橫撐必須做長才頂得到腳的實際面
+       * (不補的話端頭懸空在凹弧裡,埋在裡面的紅色榫頭會露出來)。
+       * 所以材料本來就該多一點點 —— 多的是橫撐,不是腳。
+       *
+       * 守住真正該守的:**腳的材積必須逐一相同**,而且總量增幅要很小(<2%)。
+       */
+      const legBdft = (d: any) =>
+        (d.parts as any[])
+          .filter((p) => p.shape?.kind === "curved-taper")
+          .map((p) => p.visible.length * p.visible.width * p.visible.thickness)
+          .sort((x, y) => x - y);
+      const A = build(cat, false), B = build(cat, true);
+      expect(legBdft(B), "腳的材積不可以變").toEqual(legBdft(A));
+    });
+
+    it(`${cat}：兩向的總材積只准微增（橫撐變長）、工時與總價要變高`, async () => {
       const { calculateQuote } = await import("@/lib/pricing/quote");
       const { LABOR_DEFAULTS } = await import("@/lib/pricing/labor");
       const opts: any = { ...LABOR_DEFAULTS, primaryMaterialPricePerBdft: 300 };
       const a: any = calculateQuote(build(cat, false), opts);
       const b: any = calculateQuote(build(cat, true), opts);
-      expect(b.totalBdft).toBeCloseTo(a.totalBdft, 6);
-      expect(b.materialCost).toBeCloseTo(a.materialCost, 6);
-      // 但工時與總價要變高
+      expect(b.totalBdft).toBeGreaterThanOrEqual(a.totalBdft);
+      expect((b.totalBdft - a.totalBdft) / a.totalBdft, "增幅超過 2% 代表有東西算爆了").toBeLessThan(0.02);
       expect(b.laborHours).toBeGreaterThan(a.laborHours);
       expect(b.total).toBeGreaterThan(a.total);
     });
@@ -254,4 +273,89 @@ describe("兩向弧肩：弧要挖在朝家具中心那面（不是朝外）", (
       }
     });
   }
+});
+
+/**
+ * ⭐⭐ 網格朝向 —— 這一組就是 2026-08-25 木頭仁連報三次都沒被我抓到的那個 bug。
+ *
+ * 症狀:「表面不見了」「變透視」「外層不見了」。
+ * 真因:兩向弧肩的側面四邊形繞行順序寫反 → 法線全部朝內 →
+ *       GPU 的 FrontSide culling 把腳的外皮整個剔掉不畫 →
+ *       從外面看穿進腳裡,埋在裡面的紅色榫頭全部露出來。
+ *
+ * ⚠️ 為什麼原本 14 條測試全綠卻沒抓到:它們驗的都是 **2D 輪廓函式與投影**
+ *    (curvedTaperInsetAtY / projectPartSilhouette),那些本來就是對的。
+ *    **3D 網格本身從頭到尾沒有任何一條測試碰過。**
+ *    ⇒ 教訓:做「新的幾何 builder」時,2D 數學對不等於 3D 網格對。
+ */
+describe("兩向弧肩的 3D 網格必須是封閉、面朝外的實體", () => {
+  /** 散度定理:封閉網格的有號體積。正 = 面朝外;負 = 法線反了(外皮會被剔掉) */
+  const signedVolume = (g: { getAttribute: (n: string) => any; getIndex: () => any }) => {
+    const pos = g.getAttribute("position");
+    const idx = g.getIndex();
+    const n = idx ? idx.count : pos.count;
+    const at = (i: number) => {
+      const k = idx ? idx.getX(i) : i;
+      return [pos.getX(k), pos.getY(k), pos.getZ(k)] as const;
+    };
+    let v = 0;
+    for (let i = 0; i < n; i += 3) {
+      const [ax, ay, az] = at(i), [bx, by, bz] = at(i + 1), [cx, cy, cz] = at(i + 2);
+      v += (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6;
+    }
+    return v;
+  };
+  /** 每條邊要剛好被 2 個三角形共用,否則有破口(缺蓋 / 破面) */
+  const openEdges = (g: { getAttribute: (n: string) => any; getIndex: () => any }) => {
+    const pos = g.getAttribute("position");
+    const idx = g.getIndex();
+    const n = idx ? idx.count : pos.count;
+    const key = (i: number) => {
+      const k = idx ? idx.getX(i) : i;
+      return `${pos.getX(k).toFixed(4)},${pos.getY(k).toFixed(4)},${pos.getZ(k).toFixed(4)}`;
+    };
+    const m = new Map<string, number>();
+    for (let i = 0; i < n; i += 3) {
+      const v = [key(i), key(i + 1), key(i + 2)];
+      for (let e = 0; e < 3; e++) {
+        const a = v[e], b = v[(e + 1) % 3];
+        const k = a < b ? `${a}|${b}` : `${b}|${a}`;
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+    }
+    return [...m.values()].filter((c) => c !== 2).length;
+  };
+
+  const SIZE: [number, number, number] = [35, 425, 35];
+  const [BH, SH, INS] = [40, 8, 12];
+
+  it("有號體積必須為正（繞反 = 外皮被 culling 剔掉 = 外層不見了）", () => {
+    const g = buildTwoWayCurvedTaperGeometry(SIZE, BH, SH, INS, -1, -1, 0, 0);
+    expect(signedVolume(g as never), "體積是負的 → 側面法線朝內,腳會變透明").toBeGreaterThan(0);
+  });
+
+  it("網格必須封閉（沒有破口邊）", () => {
+    const g = buildTwoWayCurvedTaperGeometry(SIZE, BH, SH, INS, -1, -1, 0, 0);
+    expect(openEdges(g as never), "有破口邊 → 缺蓋或破面").toBe(0);
+  });
+
+  it("體積要比單向小（兩面都挖,料一定更少）而且落在合理範圍", () => {
+    const one = buildCurvedTaperGeometry(SIZE, BH, SH, INS, -1, 0, 0);
+    const two = buildTwoWayCurvedTaperGeometry(SIZE, BH, SH, INS, -1, -1, 0, 0);
+    const vOne = signedVolume(one as never), vTwo = signedVolume(two as never);
+    expect(vOne).toBeGreaterThan(0);
+    expect(vTwo).toBeGreaterThan(0);
+    expect(vTwo, "兩向挖掉更多料,體積必須比單向小").toBeLessThan(vOne);
+    // 不能挖到只剩皮:至少要有方料的 1/3
+    expect(vTwo).toBeGreaterThan((SIZE[0] * SIZE[1] * SIZE[2]) / 3);
+  });
+
+  it("四個方向組合都要是正體積、封閉", () => {
+    for (const dx of [-1, 1] as const)
+      for (const dz of [-1, 1] as const) {
+        const g = buildTwoWayCurvedTaperGeometry(SIZE, BH, SH, INS, dx, dz, 0, 0);
+        expect(signedVolume(g as never), `dirX=${dx} dirZ=${dz} 體積是負的`).toBeGreaterThan(0);
+        expect(openEdges(g as never), `dirX=${dx} dirZ=${dz} 有破口`).toBe(0);
+      }
+  });
 });

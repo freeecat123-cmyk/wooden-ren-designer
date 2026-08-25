@@ -64,6 +64,18 @@ const SHAPE_AWARE_CASES = new Set<string>([
    * 真家具在這個角落是格肩榫互讓,本來就不是兩塊實體對撞。
    */
   "tea-table:curved-taper+ctTwoWay",
+  /**
+   * 方凳兩向弧肩:4 對「下橫撐 × 下橫撐」在腳的內角互切 1.1 × 40 × 9.1mm。
+   * 跟上面茶几完全同一類 —— 兩個方向的橫撐都補償到腳的弧面之後,
+   * 在腳被挖掉的內角搶同一塊空間。
+   *
+   * 方凳更明顯是因為腳只有 35mm、弧最深挖 16mm → 該高度腳斷面只剩 19×19,
+   * 而橫撐本身就 18mm 厚,幾乎塞滿。
+   *
+   * 腳 × 橫撐 是 0 重疊、0 縫、0 榫頭外露(這三件才是使用者看得到的)。
+   * 不修的理由同茶几:兩條解法都會動到既有外觀。
+   */
+  "stool:curved-taper+ctTwoWay",
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
   // 才能視覺接合柱底 lathe 輪廓——audit 用 box 算 overlap 看不到柱「實際變細」。
   "round-table:pedestal",

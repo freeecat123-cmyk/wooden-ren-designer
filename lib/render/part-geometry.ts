@@ -949,7 +949,18 @@ export function buildTwoWayCurvedTaperGeometry(
     const A = rings[i], B = rings[i + 1];
     for (let k = 0; k < 4; k++) {
       const k2 = (k + 1) % 4;
-      quad(corner(A, k), corner(B, k), corner(B, k2), corner(A, k2));
+      /**
+       * ⚠️ 繞行順序 = 上_k → 上_k+1 → 下_k+1 → 下_k(**不是** 上_k → 下_k → …)。
+       *
+       * 寫成後者的話側面法線全部朝**內**:GPU 的 FrontSide culling 會把外皮整個
+       * 剔掉不畫,於是「腳的外層不見了」——從外面直接看穿到腳裡面,埋在裡面的
+       * 紅色榫頭全部露出來。
+       * (2026-08-25 木頭仁連報三次「表面不見了 / 變透視 / 外層不見了」都是這個。
+       *  他從第一次就講對了,是我一直在別的地方找。)
+       *
+       * 🧷 有測試用散度定理驗有號體積必須為正 —— 繞反就會是負的,一定會紅。
+       */
+      quad(corner(A, k), corner(A, k2), corner(B, k2), corner(B, k));
     }
   }
   // 上下封蓋

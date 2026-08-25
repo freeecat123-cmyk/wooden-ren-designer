@@ -537,6 +537,24 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     legShape === "curved-taper"
       ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockHeight, ctShoulder, ctInset)
       : legScaleAt(y, legHeight, bottomScale);
+  /**
+   * ⭐ Z 面的等效 scale —— **兩向弧肩專用**。
+   *
+   * 單向弧肩是「2D 側輪廓沿 Z 擠出」,Z 面任何高度都全寬,所以下面那段舊註解
+   * 說「Z 面不收窄、不可補償」是對的。
+   *
+   * 但 `ctTwoWay`(兩向弧肩)把弧同時挖在 Z 面上 → **那個前提失效了**。
+   * 沒改的話:牙板 / 橫撐照舊長度做,端頭停在腳的「名目」內面,而實際那面已經
+   * 退離中心 → 端頭懸空在被挖掉的凹弧裡,埋在裡面的紅色榫頭直接露出來。
+   * (2026-08-25 木頭仁回報「外層不見了」,實測方凳榫接版露出 774 個紅色像素。)
+   *
+   * 🧷 `ctTwoWay` 關掉時 === `legScaleAt(y, legHeight, bottomScale)`,
+   *    跟改動前逐字等價 → 既有腳型 0 迴歸(npm run audit 的 165 組指紋會驗)。
+   */
+  const legSizeScaleAtZ = (y: number): number =>
+    legShape === "curved-taper" && ctTwoWay
+      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockHeight, ctShoulder, ctInset)
+      : legScaleAt(y, legHeight, bottomScale);
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償
   // splayMm = tan(splayAngle) × legHeight，跟 rectLegShape 內部用一致的角度
@@ -562,9 +580,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   //     不可用 X 內面收縮 scale 補償（否則 apronDropFromTop>0 時左右牙板每端多伸插進腳），
   //     故 compensate=false → 走 legScaleAt(bottomScale)（curved-taper bottomScale=1＝不補償）。
   //   對非 curved-taper 腳形，legSizeScaleAt === legScaleAt(y,legHeight,bottomScale)，兩者等價 → 無迴歸。
-  const apronGeomFor = (yCenter: number, legDim: number, compensate: boolean) => {
-    const scaleFn = (y: number): number =>
-      compensate ? legSizeScaleAt(y) : legScaleAt(y, legHeight, bottomScale);
+  const apronGeomFor = (yCenter: number, legDim: number, axis: "x" | "z") => {
+    const scaleFn = axis === "x" ? legSizeScaleAt : legSizeScaleAtZ;
     const yTop = yCenter + apronWidth / 2;
     const yBot = yCenter - apronWidth / 2;
     const centerShift = legHeight > 0 ? 1 - yCenter / legHeight : 0;
@@ -582,8 +599,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       legSizeBot: legDim * scaleFn(yBot),
     };
   };
-  const apronGeomZ = apronGeomFor(apronCenterY, legD, false);  // 左右（Z）牙板，靜止，接腳 Z 面（不補償）
-  const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0), legW, true);  // 前後（X）牙板，下移後，接腳 X 面（補償內面收窄）
+  const apronGeomZ = apronGeomFor(apronCenterY, legD, "z");  // 左右（Z）牙板，靜止，接腳 Z 面（不補償）
+  const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0), legW, "x");  // 前後（X）牙板，下移後，接腳 X 面（補償內面收窄）
   const apronSides = [
     { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
@@ -755,12 +772,22 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "curved-taper"
         ? Math.max(8, (legW * (1 + legSizeScaleAt(lowerY + lowerW / 2))) / 2)
         : legW;
+    /**
+     * Z 向的同一件事 —— **只有兩向弧肩需要**。
+     * 單向弧肩的 Z 面是全寬擠出蓋、料厚就是 legD(所以下面 else 分支跟改動前等價);
+     * 兩向弧肩把弧也挖在 Z 面 → 該高度實際 Z 料只剩一半多一點,
+     * 榫頭照 legD 算就會從腳的另一面戳出來(榫接版看到紅榫頭)。
+     */
+    const legZDepthLS =
+      legShape === "curved-taper" && ctTwoWay
+        ? Math.max(8, (legD * (1 + legSizeScaleAtZ(lowerY + lowerW / 2))) / 2)
+        : legD;
     const lowerTenonTypeX = legPenetratingTenon
       ? "through-tenon"
       : legShape === "curved-taper" || legW < legD
         ? "blind-tenon"
         : autoTenonType(legW);
-    const lowerTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legD < legW ? "blind-tenon" : autoTenonType(legD));
+    const lowerTenonTypeZ = legPenetratingTenon ? "through-tenon" : (legShape === "curved-taper" && ctTwoWay) || legD < legW ? "blind-tenon" : autoTenonType(legD);
     const lowerTenonLenFor = (motherT: number, isThrough: boolean) =>
       clampBlindDepth(
         standardTenon({ type: isThrough ? "through-tenon" : "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: motherT }).length + (isThrough ? 5 : 0),
@@ -779,7 +806,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "curved-taper"
         ? Math.max(6, Math.min(lowerRawLenX, Math.floor(legXDepthLS - 3)))
         : lowerTenonLenFor(legXDepthLS, lowerThroughX);
-    const lowerTenonZ = lowerTenonLenFor(legD, lowerThroughZ);
+    // 兩向弧肩:跟 X 向同一套「埋進實際料厚、留 3mm」夾制(見 legZDepthLS)
+    const lowerRawLenZ = standardTenon({
+      type: "blind-tenon", childThickness: lowerT, childWidth: lowerW, motherThickness: legZDepthLS,
+    }).length;
+    const lowerTenonZ =
+      legShape === "curved-taper" && ctTwoWay
+        ? Math.max(6, Math.min(lowerRawLenZ, Math.floor(legZDepthLS - 3)))
+        : lowerTenonLenFor(legD, lowerThroughZ);
     // 下橫撐錯開策略（連續位移）：
     //   stagger > 0 → 左右下橫撐（Z 軸，側視圖全寬）整支物理上移，榫頭跟著
     //   stagger == 0 → 自動上下半榫錯位：靜止 X（前後）下榫；移動 Z（左右，上移）上榫
@@ -836,10 +870,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lsLegSizeCenter = legW * legSizeScaleAt(lsCenterY);
     const lsLegSizeTop = legW * legSizeScaleAt(lowerY + lowerW);
     const lsLegSizeBot = legW * legSizeScaleAt(lowerY);
-    // Z 向下橫撐接腳的「Z 面」＝平的全寬擠出蓋（curved-taper 不在此面收窄）→ 不補償
-    const lsZLegSizeCenter = legD * legScaleAt(lsZShiftedY, legHeight, bottomScale);
-    const lsZLegSizeTop = legD * legScaleAt(lsZShiftedY + lowerW / 2, legHeight, bottomScale);
-    const lsZLegSizeBot = legD * legScaleAt(lsZShiftedY - lowerW / 2, legHeight, bottomScale);
+    // Z 向下橫撐接腳的「Z 面」——單向弧肩是平的全寬擠出蓋、不收窄;
+    // **兩向弧肩(ctTwoWay)會把弧也挖在這一面**,就得跟 X 向一樣補償,
+    // 否則端頭停在名目內面、懸空在凹弧裡,紅色榫頭會露出來(見 legSizeScaleAtZ 註解)。
+    const lsZLegSizeCenter = legD * legSizeScaleAtZ(lsZShiftedY);
+    const lsZLegSizeTop = legD * legSizeScaleAtZ(lsZShiftedY + lowerW / 2);
+    const lsZLegSizeBot = legD * legSizeScaleAtZ(lsZShiftedY - lowerW / 2);
     const lsInnerSpan = {
       x: 2 * apronEdgeX - lsLegSizeCenter,
       z: 2 * apronEdgeZ - lsZLegSizeCenter,
