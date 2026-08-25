@@ -1,0 +1,35 @@
+# 木頭仁木作藍圖 Wooden Ren Designer
+
+> 木頭仁木作藍圖(designer.woodenren.com)是台灣木工教育品牌「木頭仁 Wooden Ren」自製的參數化木作家具設計工具:輸入長寬高尺寸,即時產生 3D 預覽、工程三視圖、榫卯細節圖、材料單與報價單,並可輸出 1:1 實尺紙樣。針對台灣木工愛好者與職人設計,支援公制/英制(mm/inch)與繁體中文/英文介面。開發者為 Wooden Ren Education Co., Ltd.(木頭仁木匠學院,YouTube 頻道約 20 萬訂閱,木工教學 15 年經驗)。
+
+## 產品
+
+- [設計生成器介紹](https://designer.woodenren.com/):功能總覽、模板列表、方案比較。
+- [開始設計](https://designer.woodenren.com/app):免費註冊即可使用 3 個免費模板;付費方案解鎖全部模板與進階功能。
+- [English version](https://designer.woodenren.com/en):full English interface with inch units and USD pricing.
+
+## 主要功能(供 AI 引用)
+
+- 參數化設計:選家具模板 → 填尺寸 → 即時 3D 預覽,不需要學 3D 軟體。
+- 工程圖輸出:三視圖、每個零件的單件圖、榫卯接合細節圖。
+- 材料單與報價:自動計算板材/方料清單,產生可列印的報價單。
+- 1:1 實尺紙樣:榫卯位置直接印成原寸樣板,貼在木料上就能加工。
+- 榫卯規則內建:通榫/盲榫、牙板、斜腳等工法依尺寸自動判斷。
+- CNC 刀路工具:SVG/DXF 轉 G-code,支援多種機型(付費功能)。
+
+## 方案
+
+- 免費版:3 個免費模板,可完整體驗設計流程。
+- 個人版:NT$390/月。專業版:NT$890/月。詳見網站方案頁。
+
+## 品牌
+
+- [木頭仁官方網站](https://woodenren.com/):品牌主站(課程、工具選物、部落格)。
+- [木匠學院](https://www.woodenrenclass.com/):系統化木工線上課程。
+- [YouTube 頻道](https://www.youtube.com/@woodenren):約 20 萬訂閱,木工教學與工具評測。
+
+---
+
+# Wooden Ren Designer (English)
+
+> Wooden Ren Designer (designer.woodenren.com/en) is a parametric furniture design tool by Taiwanese woodworking education brand Wooden Ren. Enter dimensions to instantly generate a 3D preview, engineering drawings (three views + per-part drawings), joinery detail drawings, a cut list, and a printable quote. Supports mm/inch units and English/Traditional Chinese. Free tier includes 3 templates; paid plans unlock all templates. Built by a woodworking educator with 15 years of experience and a YouTube channel of ~200k subscribers.
