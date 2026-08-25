@@ -163,6 +163,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
+  const ctLowerCove = getOption<boolean>(input, opt(o, "ctLowerCove"));
   const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
   const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
   const stretcherProfile = getOption<string>(input, opt(o, "stretcherProfile"));
@@ -266,6 +267,22 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
+  /**
+   * 「橫撐處也做弧肩」用的高度區間（leg-local,從腳底量）。
+   *
+   * ⚠️ 腳的形狀在下橫撐那段程式**之前**就要決定,所以這裡先把同一條公式算一次。
+   *    跟下面 `lowerY` 用**完全一樣**的式子 —— 不一致的話弧會跑到橫撐旁邊。
+   *    沒有下橫撐、或沒勾這個選項時給 undefined = 維持單道弧。
+   */
+  const ctLowerCoveRange = ctLowerCove && withLowerStretcher && legShape === "curved-taper"
+    ? (() => {
+        const lh = height - seatThickness;
+        const y0 = lowerStretcherHeightOpt > 0
+          ? lowerStretcherHeightOpt
+          : Math.round(lh * LOWER_STRETCHER_HEIGHT_RATIO);
+        return { botMm: y0, topMm: y0 + lowerStretcherWidth };
+      })()
+    : undefined;
   const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
 
   const legHeight = height - seatThickness;
@@ -517,7 +534,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       splayMm: Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight),
       chamferMm: parseLegChamferMm(legEdge),
       chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
-      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay },
+      curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
     }) ?? legEdgeShape(legEdge, legEdgeStyle),
     // tenon X 軸朝家具中心偏，內側無肩（朝中心那邊貼腳邊 → 移除對應 shoulderOn）
     tenons: [
@@ -585,7 +602,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 其餘走既有線性 legScaleAt。牙板/橫撐長度都靠這個對到腳的實際內面。
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockHeight, ctShoulder, ctInset)
+      ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, legHeight, bottomScale);
   /**
    * ⭐ Z 面的等效 scale —— **兩向弧肩專用**。
@@ -603,7 +620,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const legSizeScaleAtZ = (y: number): number =>
     legShape === "curved-taper" && ctTwoWay
-      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockHeight, ctShoulder, ctInset)
+      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, legHeight, bottomScale);
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償

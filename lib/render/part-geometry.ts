@@ -51,7 +51,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1 }
+  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1; lowerCove?: CurvedTaperLowerCove }
   | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
   | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number; sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
@@ -864,6 +864,56 @@ export function buildRegularPolygonGeometry(
  *   2. 凹弧肩  y ∈ [yCoveEnd, yBlockBot] → 圓弧，內縮 0 → shoulder
  *   3. 直線斜降 y ∈ [-hy, yCoveEnd]      → 線性，內縮 shoulder → shoulder + inset
  */
+/**
+ * 弧段取樣數。⚠️ `lib/render/geometry.ts` 的三視圖輪廓必須用同一個值 ——
+ * 有測試釘住兩邊一致（two-way-cove.test.ts）。
+ * 8 段在 8mm 的弧上等於每段 1mm，放大看就是「好幾個平面」；24 段每段 0.33mm。
+ */
+export const CURVED_TAPER_ARC_SEG = 24;
+
+/**
+ * 下接撐段（橫撐位置的第二道弧肩，A 案）。
+ * `botMm` / `topMm` 是 leg-local **從腳底量**的高度區間（＝下橫撐佔的高度）。
+ */
+export interface CurvedTaperLowerCove {
+  botMm: number;
+  topMm: number;
+}
+
+/** 把所有 clamp 集中一處 —— 以前散在三個檔案,改一個忘兩個。 */
+function ctGeom(
+  lx: number, ly: number, blockHeightMm: number, shoulderMm: number, insetMm: number,
+  lower?: CurvedTaperLowerCove,
+) {
+  const hy = ly / 2;
+  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
+  const shoulder = Math.max(0, Math.min(shoulderMm, lx * 0.45));
+  const coveSpan = Math.min(shoulder, Math.max(0, ly - blockH));
+  const yBlockBot = hy - blockH;
+  const yCoveEnd = yBlockBot - coveSpan;
+  /**
+   * 有第二道弧時,腳底的總內縮 = 2×shoulder + inset ——
+   * 要留至少 5% 腳寬的肉,否則腳底細到不能用。
+   */
+  const nCove = lower ? 2 : 1;
+  const inset = Math.max(0, Math.min(insetMm, lx - nCove * shoulder - lx * 0.05));
+  if (!lower) return { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd, lower: null as null };
+  // 轉成中心原點座標
+  const bTop = Math.min(lower.topMm - hy, yCoveEnd);
+  const bBot = Math.min(lower.botMm - hy, bTop);
+  const cove2End = Math.max(-hy, bBot - coveSpan);
+  /** 外面的斜降分成兩段:上段（弧1→下接撐段）拿一半,下段（弧2→腳底）拿另一半 */
+  const taper1 = inset / 2;
+  return { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd, lower: { bTop, bBot, cove2End, taper1 } };
+}
+
+/** 弧的內縮量:`shoulder·cos(θ)`,θ 由高度反解（§A11.8） */
+function coveInset(y: number, yEnd: number, coveSpan: number, shoulder: number): number {
+  if (coveSpan <= 0) return 0;
+  const sinTh = Math.max(0, Math.min(1, (y - yEnd) / coveSpan));
+  return shoulder * Math.cos(Math.asin(sinTh));
+}
+
 export function curvedTaperInsetAtY(
   lx: number,
   ly: number,
@@ -871,29 +921,38 @@ export function curvedTaperInsetAtY(
   shoulderMm: number,
   insetMm: number,
   y: number,
+  lowerCove?: CurvedTaperLowerCove,
 ): number {
-  const hy = ly / 2;
-  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
-  const shoulder = Math.max(0, Math.min(shoulderMm, lx * 0.45));
-  const coveSpan = Math.min(shoulder, Math.max(0, ly - blockH));
-  const inset = Math.max(0, Math.min(insetMm, lx - shoulder - lx * 0.05));
-  const yBlockBot = hy - blockH;
-  const yCoveEnd = yBlockBot - coveSpan;
+  const g = ctGeom(lx, ly, blockHeightMm, shoulderMm, insetMm, lowerCove);
+  const { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd } = g;
 
   if (y >= yBlockBot) return 0;
-  if (y >= yCoveEnd) {
-    // 圓弧：圓心 (-hx, yCoveEnd)，x = -hx + shoulder·cos(th)、y = yCoveEnd + coveSpan·sin(th)
-    // → 內縮量 = shoulder·cos(th)，th 由 y 反解
-    if (coveSpan <= 0) return 0;
-    const sinTh = Math.max(0, Math.min(1, (y - yCoveEnd) / coveSpan));
-    const th = Math.asin(sinTh);
-    return shoulder * Math.cos(th);
+  if (y >= yCoveEnd) return coveInset(y, yCoveEnd, coveSpan, shoulder);
+
+  if (!g.lower) {
+    // 單道弧（原本的行為）：直線斜降,yCoveEnd 處 = shoulder、腳底 = shoulder + inset
+    const span = yCoveEnd + hy;
+    if (span <= 0) return shoulder + inset;
+    return shoulder + inset * Math.max(0, Math.min(1, (yCoveEnd - y) / span));
   }
-  // 直線斜降：yCoveEnd 處 = shoulder，yBot 處 = shoulder + inset
-  const span = yCoveEnd - -hy;
-  if (span <= 0) return shoulder + inset;
-  const t = Math.max(0, Math.min(1, (yCoveEnd - y) / span));
-  return shoulder + inset * t;
+
+  /**
+   * ⭐ A 案（木頭仁 2026-08-25 選的）：
+   *   弧1 → 斜降(分一半) → **下接撐段維持不收**（橫撐坐這裡）→ 弧2 → 繼續斜降到腳底
+   */
+  const { bTop, bBot, cove2End, taper1 } = g.lower;
+  if (y >= bTop) {
+    const span = yCoveEnd - bTop;
+    if (span <= 0) return shoulder;
+    return shoulder + taper1 * Math.max(0, Math.min(1, (yCoveEnd - y) / span));
+  }
+  const base = shoulder + taper1;
+  if (y >= bBot) return base;                                   // 下接撐段：不收
+  if (y >= cove2End) return base + coveInset(y, cove2End, coveSpan, shoulder);
+  const span2 = cove2End + hy;
+  const rest = inset - taper1;
+  if (span2 <= 0) return base + shoulder + rest;
+  return base + shoulder + rest * Math.max(0, Math.min(1, (cove2End - y) / span2));
 }
 
 /**
@@ -914,6 +973,7 @@ export function buildTwoWayCurvedTaperGeometry(
   dirZ: -1 | 0 | 1,
   dx: number = 0,
   dz: number = 0,
+  lowerCove?: CurvedTaperLowerCove,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2, hy = ly / 2, hz = lz / 2;
@@ -930,21 +990,20 @@ export function buildTwoWayCurvedTaperGeometry(
    * 方肩段與斜降段都是直的(斜降含 splay 也是線性),各兩層就精確;
    * 省下來的層數全給弧段。層數反而比原本少,弧卻順很多。
    */
-  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
-  const yBlockBot = hy - blockH;
-  const coveSpanX = curvedTaperCoveSpan(lx, ly, blockHeightMm, shoulderMm);
-  const coveSpanZ = curvedTaperCoveSpan(lz, ly, blockHeightMm, shoulderMm);
-  const yCoveEnd = yBlockBot - Math.max(coveSpanX, coveSpanZ);
-  const ARC_SEG = 24;
-  const ys: number[] = [hy, yBlockBot];
-  for (let i = 1; i <= ARC_SEG; i++) ys.push(yBlockBot - ((yBlockBot - yCoveEnd) * i) / ARC_SEG);
-  ys.push(-hy);
+  /**
+   * 取樣點跟 3D 擠出與三視圖**共用同一支** `curvedTaperProfileYs()`。
+   * 腳可能不是正方斷面(lx ≠ lz) → 兩軸的弧跨距會被各自的寬度夾住,
+   * 取較窄那軸(轉折點較多、涵蓋另一軸)。
+   */
+  const ys: number[] = curvedTaperProfileYs(
+    Math.min(lx, lz), ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove,
+  );
   const rings: number[][] = [];
   for (const yRaw of ys) {
     const y = Math.max(-hy, Math.min(hy, yRaw));
-    const inX = curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y);
+    const inX = curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove);
     // Z 方向用同一條輪廓，但基準是 lz（腳可能不是正方斷面）
-    const inZ = curvedTaperInsetAtY(lz, ly, blockHeightMm, shoulderMm, insetMm, y);
+    const inZ = curvedTaperInsetAtY(lz, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove);
     // splay：頂固定、底外移（同 splayed 慣例）
     const t = (hy - y) / ly;
     const ox = dx * t, oz = dz * t;
@@ -1000,6 +1059,7 @@ export function buildCurvedTaperGeometry(
   /** 選配外斜（同 splayed 慣例）：腳底相對頂的外移量，與 size 同單位。頂（+hy）固定、底（-hy）外移。 */
   dx: number = 0,
   dz: number = 0,
+  lowerCove?: CurvedTaperLowerCove,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1019,27 +1079,20 @@ export function buildCurvedTaperGeometry(
   const yBot = -hy;
   // 建輪廓時 outer 在 +X（垂直）、inner 在 -X（接撐段+弧+斜線都在此面，朝家具中心接橫撐）。
   // 最後乘 s 鏡射到正確方向；CCW/CW 不管，末端用面積符號校正。
-  const pts: [number, number][] = [];
-  pts.push([hx, yTop]); // 外頂（全寬）
-  pts.push([hx, yBot]); // 外底（外側垂直 plumb，不收）
-  pts.push([-hx + shoulder + inset, yBot]); // 內底（斜線收到最內）
-  pts.push([-hx + shoulder, yCoveEnd]); // 內斜線頂＝弧尾（內底→此點為直斜線）
   /**
-   * 弧段取樣數。8 段在 8mm 的弧上等於每段 1mm —— 放大看就是「好幾個平面」
-   * (木頭仁 2026-08-25 回報)。24 段每段 0.33mm,視覺上才是順的。
-   * ⚠️ 這會改到**所有**單向弧肩腳的網格點數(輪廓點 13 → 29),是刻意的。
+   * ⭐ 形狀只由 `curvedTaperInsetAtY()` 決定、取樣點只由 `curvedTaperProfileYs()` 決定。
+   *    以前這裡自己寫一份分段邏輯（方肩→弧→斜降），跟三視圖那份是兩套 ——
+   *    改一邊忘另一邊就會「3D 跟圖紙不一樣」。（2026-08-25 統一）
    */
-  const ARC = 24;
-  for (let i = 1; i <= ARC; i++) {
-    // 內凹圓弧：弧尾（-hx+shoulder）→ 接撐段內緣底（-hx），圓心 (-hx, yCoveEnd)，凹向 +X＝內圓弧
-    const th = (Math.PI / 2) * (i / ARC); // 0 → π/2
-    pts.push([
-      -hx + shoulder * Math.cos(th),
-      yCoveEnd + coveSpan * Math.sin(th),
-    ]);
+  const pts: [number, number][] = [];
+  pts.push([hx, yTop]);  // 外頂（全寬）
+  pts.push([hx, yBot]);  // 外底（外側垂直 plumb，不收）
+  const ysDown = curvedTaperProfileYs(lx, ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove);
+  // 內面由下而上（讓多邊形連成一圈）
+  for (let i = ysDown.length - 1; i >= 0; i--) {
+    const y = ysDown[i];
+    pts.push([-hx + curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove), y]);
   }
-  // 上一迴圈末點 ≈ [-hx, yBlockBot]（接撐段內緣底）
-  pts.push([-hx, yTop]); // 內頂（接撐段全寬）
   // 套 dir（鏡射 X），再確保 CCW（負面積就反轉，讓 ExtrudeGeometry 側壁法線朝外）
   const P = pts.map(([x, y]) => [s * x, y] as [number, number]);
   let area = 0;
@@ -2377,10 +2430,10 @@ export function buildShapeGeometry(
       const dirZ = shape.dirZ ?? 1;
       return buildTwoWayCurvedTaperGeometry(
         size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm,
-        shape.dir, dirZ as -1 | 0 | 1, shape.dxMm ?? 0, shape.dzMm ?? 0,
+        shape.dir, dirZ as -1 | 0 | 1, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove,
       );
     }
-    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0);
+    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove);
   }
   if (shape.kind === "edge-profile") {
     return buildEdgeProfileGeometry(size, shape.style, shape.depthMm, shape.waveCount ?? 4, shape.topLengthScale ?? 1, shape.bottomLengthScale ?? 1);
@@ -2605,4 +2658,53 @@ export function curvedTaperCoveSpan(
   const blockH = Math.max(0, Math.min(blockHeightMm, legHeightMm * 0.9));
   const shoulder = Math.max(0, Math.min(shoulderMm, legSizeMm * 0.45));
   return Math.min(shoulder, Math.max(0, legHeightMm - blockH));
+}
+
+/**
+ * 弧肩腳側面輪廓的**取樣高度**（leg-local，中心為 0，由上而下）。
+ *
+ * ⭐ 這是唯一來源。3D 擠出（`buildCurvedTaperGeometry`）、3D 放樣
+ * （`buildTwoWayCurvedTaperGeometry`）、三視圖輪廓（`geometry.ts` 的
+ * `curvedTaperProfilePoints`）三個地方以前**各寫一份**同樣的分段邏輯 ——
+ * 2026-08-25 加密弧段時只改了其中兩份，165 組腳型指紋完全沒反應。
+ * 統一之後，形狀只由 `curvedTaperInsetAtY()` 一支決定，取樣點由這裡決定。
+ */
+export function curvedTaperProfileYs(
+  lx: number,
+  ly: number,
+  blockHeightMm: number,
+  shoulderMm: number,
+  arcSeg: number,
+  lowerCove?: CurvedTaperLowerCove,
+): number[] {
+  const hy = ly / 2;
+  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
+  const coveSpan = curvedTaperCoveSpan(lx, ly, blockHeightMm, shoulderMm);
+  const yBlockBot = hy - blockH;
+  const yCoveEnd = yBlockBot - coveSpan;
+  /**
+   * ⚠️ 弧段要沿**角度**均分,不是沿高度均分。
+   *    弧是 `y = yCoveEnd + coveSpan·sin(θ)`、`inset = shoulder·cos(θ)`(§A11.8)。
+   *    沿高度均分的話,弧的上端(水平切線)點會拉得很開、下端擠成一團 ——
+   *    而且跟改動前的輸出不一致(165 組腳型指紋會整批變動)。
+   */
+  const ys: number[] = [hy, yBlockBot];
+  for (let i = 1; i <= arcSeg; i++) {
+    const th = (Math.PI / 2) * (1 - i / arcSeg);   // π/2 → 0，由上而下
+    ys.push(yCoveEnd + coveSpan * Math.sin(th));
+  }
+  if (lowerCove) {
+    // 下接撐段的上下緣 + 第二道弧（一樣沿角度均分）
+    const bTop = Math.min(lowerCove.topMm - hy, yCoveEnd);
+    const bBot = Math.min(lowerCove.botMm - hy, bTop);
+    const cove2End = Math.max(-hy, bBot - coveSpan);
+    ys.push(bTop, bBot);
+    for (let i = 1; i <= arcSeg; i++) {
+      const th = (Math.PI / 2) * (1 - i / arcSeg);
+      ys.push(cove2End + coveSpan * Math.sin(th));
+    }
+  }
+  ys.push(-hy);
+  // 由上而下、去重
+  return ys.filter((y, i) => i === 0 || Math.abs(y - ys[i - 1]) > 1e-9);
 }

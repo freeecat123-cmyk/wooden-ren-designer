@@ -306,6 +306,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   );
   const stretcherStyle = getOption<string>(input, opt(o, "stretcherStyle"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
+  /** 「橫撐處也做弧肩」的高度區間（leg-local,從腳底量）。跟下面 lowerY 同一條公式。 */
+  const ctLowerCoveRange = getOption<boolean>(input, opt(o, "ctLowerCove")) && legShape === "curved-taper"
+    ? (() => {
+        const y0 = lowerStretcherHeightOpt > 0 ? lowerStretcherHeightOpt : Math.round(seatHeight * 0.25);
+        return { botMm: y0, topMm: y0 + getOption<number>(input, opt(o, "lowerStretcherWidth")) };
+      })()
+    : undefined;
   const lowerStretcherWidthOpt = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThicknessOpt = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherStaggerMmOpt = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
@@ -488,7 +495,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     if (legShape === "curved-taper") {
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay },
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
       });
     }
     return undefined;
@@ -783,7 +790,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // legSizeScaleAt === legScaleAt(y, legBaseHeight, bottomScale) → 兩者等價、無迴歸。
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockHeight, ctShoulder, ctInset)
+      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, legBaseHeight, bottomScale);
   const apronCenterY = apronY + apronWidth / 2;
   void backHeight;

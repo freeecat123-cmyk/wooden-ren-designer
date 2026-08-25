@@ -410,6 +410,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
     ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
     ctInset: getOption<number>(input, opt(o, "ctInset")),
+    ctLowerCove: getOption<boolean>(input, opt(o, "ctLowerCove")),
     ctTwoWay: getOption<boolean>(input, opt(o, "ctTwoWay")),
     ctSplay: getOption<number>(input, opt(o, "ctSplay")),
     seatEdge,

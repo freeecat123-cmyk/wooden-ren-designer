@@ -1,4 +1,5 @@
 import type { Part } from "@/lib/types";
+import { CURVED_TAPER_ARC_SEG, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 
 /**
  * World-frame extents of a part's bounding box, honoring its rotation.
@@ -287,6 +288,7 @@ export function curvedTaperProfilePoints(
   shoulderMm: number,
   insetMm: number,
   dir: -1 | 0 | 1,
+  lowerCove?: { botMm: number; topMm: number },
 ): Array<[number, number]> {
   const hx = lx / 2;
   const hy = ly / 2;
@@ -299,23 +301,22 @@ export function curvedTaperProfilePoints(
   const yBlockBot = hy - blockH;
   const yCoveEnd = yBlockBot - coveSpan;
   const yBot = -hy;
-  const pts: Array<[number, number]> = [];
-  pts.push([hx, yTop]); // 外頂（全寬）
-  pts.push([hx, yBot]); // 外底（外側垂直 plumb）
-  pts.push([-hx + shoulder + inset, yBot]); // 內底（斜線收到最內）
-  pts.push([-hx + shoulder, yCoveEnd]); // 內斜線頂＝弧尾
   /**
-   * ⚠️ 這個數字必須跟 `part-geometry.ts` 的 `ARC` 一樣 ——
-   * 一邊是 3D 網格、一邊是三視圖／零件圖的輪廓,不一致的話畫出來的弧會對不起來。
-   * (2026-08-25:3D 改成 24 段時差點只改一邊 —— 165 組腳型指紋當時「沒反應」,
-   *  正是因為它量的是這裡的輪廓、不是 3D 網格。)
+   * ⭐ 形狀只由 `curvedTaperInsetAtY()` 決定、取樣點只由 `curvedTaperProfileYs()` 決定
+   *    —— 跟 3D 網格**共用同一支**。（2026-08-25 統一）
+   *
+   * 🩸 統一前這裡自己寫一份分段邏輯,跟 part-geometry.ts 那份是兩套。
+   *    加密弧段時只改了 3D 那份,165 組腳型指紋「完全沒反應」——
+   *    因為它量的正是這裡。兩份各改各的就是這樣。
    */
-  const ARC = 24;
-  for (let i = 1; i <= ARC; i++) {
-    const th = (Math.PI / 2) * (i / ARC); // 0 → π/2
-    pts.push([-hx + shoulder * Math.cos(th), yCoveEnd + coveSpan * Math.sin(th)]);
+  const pts: Array<[number, number]> = [];
+  pts.push([hx, yTop]);  // 外頂（全寬）
+  pts.push([hx, yBot]);  // 外底（外側垂直 plumb）
+  const ysDown = curvedTaperProfileYs(lx, ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove);
+  for (let i = ysDown.length - 1; i >= 0; i--) {
+    const y = ysDown[i];
+    pts.push([-hx + curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove), y]);
   }
-  pts.push([-hx, yTop]); // 內頂（接撐段全寬）
   return pts.map(([x, y]) => [s * x, y] as [number, number]);
 }
 
@@ -477,7 +478,7 @@ export function projectPartSilhouette(
   //   橫躺零件卡的凹弧會被 hull 填平（僅外側斜降仍在），屬可接受的細節損失。
   if (part.shape?.kind === "curved-taper") {
     const prof = curvedTaperProfilePoints(
-      lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
+      lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir, part.shape.lowerCove,
     );
     // 選配外斜（splay）：頂固定、底外移 dxMm/dzMm。t=(hy−y)/ly ∈ [0 頂,1 底]。0 = 既有行為。
     const ctDx = part.shape.dxMm ?? 0;
@@ -521,7 +522,7 @@ export function projectPartSilhouette(
         // 同一條輪廓函式，但寬度基準換成 lz、方向用 dz 的正負決定內面在哪一側
         const dirZ = (part.shape.dirZ ?? 1) as -1 | 0 | 1;
         const profZ = curvedTaperProfilePoints(
-          lz, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZ,
+          lz, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZ, part.shape.lowerCove,
         );
         for (const [zp, yp] of profZ) {
           const t = shearT(yp);
@@ -1155,7 +1156,7 @@ export function projectPartPolygon(
       const dirZS = (part.shape.dirZ ?? 1) as -1 | 0 | 1;
       const profS = curvedTaperProfilePoints(
         part.visible.width, lyS,
-        part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZS,
+        part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZS, part.shape.lowerCove,
       );
       return profS.map(([lzp, lyp]) => {
         const t = (lyS / 2 - lyp) / lyS;
@@ -1168,7 +1169,7 @@ export function projectPartPolygon(
     // 正視 svg x = -wx（世界 +X → 螢幕左），故 screenX = cx - localX（與 box mirror 一致）。
     const prof = curvedTaperProfilePoints(
       part.visible.length, part.visible.thickness,
-      part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir,
+      part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir, part.shape.lowerCove,
     );
     const lyCT = part.visible.thickness;
     // 外斜 shear:local 頂(+ly/2)固定、底(-ly/2)外移 ctDx2(螢幕 X 鏡像 → 減號方向一致)

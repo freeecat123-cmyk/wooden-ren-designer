@@ -29,13 +29,19 @@ let checked = 0;
 for (const cat of CATS) {
   const e = (FURNITURE_CATALOG as any[]).find(x => x.category === cat)!;
   const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+  for (const lc of [false, true]) {
   for (const tw of [false, true]) {
     for (const [k, v] of VARIANTS) {
     const d = e.template({ length: e.defaults.length, width: e.defaults.width, height: e.defaults.height,
-      material: "maple", options: { ...base, legShape: "curved-taper", ctTwoWay: tw, ...(k ? { [k]: v } : {}) } });
+      material: "maple", options: { ...base, legShape: "curved-taper", ctTwoWay: tw, ctLowerCove: lc, ...(k ? { [k]: v } : {}) } });
     const legs = (d.parts as any[]).filter(p => p.shape?.kind === "curved-taper");
     if (!legs.length) continue;
-    const conns = (d.parts as any[]).filter(p => /apron|stretcher/.test(p.id) && p.shape?.kind !== "curved-taper");
+    /**
+     * ⚠️ 方凳/餐椅的下橫撐 id 是 `ls-front` —— 不含 "stretcher" 這個字,
+     *    舊的 `/apron|stretcher/` **整組漏掃**。2026-08-25 做變異測試時發現:
+     *    把補償改壞了稽核居然不吭聲。過濾條件寧可寬一點。
+     */
+    const conns = (d.parts as any[]).filter(p => /apron|stretcher|^ls-|^fr-/.test(p.id) && p.shape?.kind !== "curved-taper");
     for (const c of conns) {
       // 判斷這根是沿 X 還是沿 Z(取最長邊的方向)
       /**
@@ -59,15 +65,21 @@ for (const cat of CATS) {
         const localY = cy - (cand.origin.y + lh / 2);
         if (localY > lh/2 || localY < -lh/2) continue;
         // 這一面的內縮量:沿 X 的零件看腳的 X 面、沿 Z 的看 Z 面(只有兩向才有)
+        /**
+         * ⚠️ 參考值一定要帶 `sh.lowerCove` —— 腳有第二道弧時,單道弧的輪廓
+         *    在橫撐高度會少算,稽核就會誤報 0.7~1.1mm 的縫（2026-08-25 撞過）。
+         *    直接讀零件自己的 shape,不要自己假設。
+         */
         const inset = alongX
-          ? curvedTaperInsetAtY(lw, lh, sh.blockHeightMm, sh.shoulderMm, sh.insetMm, localY)
-          : (tw ? curvedTaperInsetAtY(ld, lh, sh.blockHeightMm, sh.shoulderMm, sh.insetMm, localY) : 0);
+          ? curvedTaperInsetAtY(lw, lh, sh.blockHeightMm, sh.shoulderMm, sh.insetMm, localY, sh.lowerCove)
+          : (tw ? curvedTaperInsetAtY(ld, lh, sh.blockHeightMm, sh.shoulderMm, sh.insetMm, localY, sh.lowerCove) : 0);
         const legCtr = alongX ? cand.origin.x : cand.origin.z;
         const legHalf = (alongX ? lw : ld) / 2;
         const faceActual = legCtr - sgn * legHalf + sgn * inset;   // 朝中心那面 + 內縮
         const gap = ((endPos - faceActual) * sgn) - (INJECT ? 50 : 0);   // 正=插進去 負=有縫
-        if (gap < -0.5) bad.push(`${cat}[${tw?"兩向":"單向"}${k?`/${k}=${v}`:""}] ${c.nameZh ?? c.id} 的${sgn>0?"右/後":"左/前"}端跟腳差 ${(-gap).toFixed(1)}mm 的縫`);
+        if (gap < -0.5) bad.push(`${cat}[${tw?"兩向":"單向"}${lc?"+橫撐弧肩":""}${k?`/${k}=${v}`:""}] ${c.nameZh ?? c.id} 的${sgn>0?"右/後":"左/前"}端跟腳差 ${(-gap).toFixed(1)}mm 的縫`);
       }
+    }
     }
     }
   }

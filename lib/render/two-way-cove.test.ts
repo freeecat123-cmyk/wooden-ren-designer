@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { projectPartSilhouette, projectPartPolygon, curvedTaperProfilePoints } from "./geometry";
 import * as fs from "node:fs";
-import { buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperCoveSpan, curvedTaperInsetAtY } from "./part-geometry";
+import { CURVED_TAPER_ARC_SEG, buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperCoveSpan, curvedTaperInsetAtY } from "./part-geometry";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
@@ -48,12 +48,7 @@ describe("內縮函式跟原本的輪廓點必須逐點一致", () => {
  * ⚠️ 不要寫死數字 —— 2026-08-25 把弧從 8 段加密到 24 段時,這裡三條全紅。
  *    改成跟實際取樣數連動,加密弧段不會誤傷,但「弧不見了」仍然會被抓到。
  */
-const PROFILE_PTS = (() => {
-  const src = fs.readFileSync("lib/render/geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
-  const arc = Number(src.match(/const ARC = (\d+);/)?.[1] ?? 0);
-  expect(arc, "geometry.ts 找不到 ARC").toBeGreaterThan(0);
-  return 5 + arc;
-})();
+const PROFILE_PTS = 5 + CURVED_TAPER_ARC_SEG;   // 5 個固定轉折點 + 弧段取樣數
 
 describe("⚠️ 關掉兩向時，三視圖輸出跟改動前完全一致", () => {
   for (const view of ["front", "side", "top"] as const) {
@@ -424,13 +419,37 @@ describe("弧肩的弧必須夠密（不可以是幾片平面）", () => {
     expect(facetsInCove(g), "弧段取樣太疏 → 3D 看起來是幾片平面").toBeGreaterThanOrEqual(16);
   });
 
-  it("⭐ 3D 網格與三視圖輪廓的弧段數必須一致（兩份 ARC 不可以各改各的）", () => {
+  /**
+   * ⭐ 2026-08-25 升級:原本是「兩份 ARC 的數字要一樣」。
+   *    統一之後只剩一份(`CURVED_TAPER_ARC_SEG`),所以改成釘更強的:
+   *    **不准再出現第二份定義**,兩個消費端都必須用共用常數。
+   */
+  it("⭐ 弧段數只能有一份定義,三視圖不可以自己再寫一個", () => {
     const mesh = fs.readFileSync("lib/render/part-geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
     const view = fs.readFileSync("lib/render/geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
-    const grab = (src: string) => src.match(/const ARC = (\d+);/)?.[1];
-    expect(grab(mesh), "part-geometry.ts 找不到 ARC").toBeTruthy();
-    expect(grab(view), "geometry.ts 找不到 ARC").toBeTruthy();
-    expect(grab(view), "兩邊的弧段數不一樣 → 3D 跟圖紙畫出來的弧對不起來").toBe(grab(mesh));
+    expect(
+      /export const CURVED_TAPER_ARC_SEG = \d+;/.test(mesh),
+      "part-geometry.ts 找不到共用的弧段數常數",
+    ).toBe(true);
+    expect(
+      /const ARC(_SEG)? = \d+/.test(view),
+      "geometry.ts 又自己定義了一份弧段數 —— 兩份各改各的就會 3D 跟圖紙不一樣",
+    ).toBe(false);
+    expect(view.includes("CURVED_TAPER_ARC_SEG"), "geometry.ts 沒有用共用常數").toBe(true);
+  });
+
+  it("⭐ 側面輪廓的形狀只能有一份來源（三個地方都要走 curvedTaperInsetAtY）", () => {
+    const mesh = fs.readFileSync("lib/render/part-geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const view = fs.readFileSync("lib/render/geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+    // 「自己算弧」的特徵:shoulder * Math.cos(...)
+    expect(
+      (mesh.match(/shoulder \* Math\.cos/g) ?? []).length,
+      "part-geometry.ts 出現第二份弧的算式（唯一一份應該在 curvedTaperInsetAtY 裡）",
+    ).toBeLessThanOrEqual(1);
+    expect(
+      (view.match(/shoulder \* Math\.cos/g) ?? []).length,
+      "geometry.ts 又自己算了一份弧",
+    ).toBe(0);
   });
 
   it("弧的取樣點要沿著圓弧走（相鄰段的轉角不可以有大跳變）", () => {

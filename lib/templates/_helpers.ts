@@ -5,6 +5,7 @@
 import type { Part, OptionSpec, OptionGroup, FurnitureTemplateInput } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { topOutlinePoints } from "@/lib/render/geometry";
+import { curvedTaperInsetAtY } from "@/lib/render/part-geometry";
 
 /**
  * Z 面 mortise origin / rotation for splayed-leg apron-to-leg joint.
@@ -246,6 +247,7 @@ export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] 
   return [
     { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。⚠️ 牙條可用高度 =「這個值 − 弧肩內收」——牙條底緣要讓開弧肩，不然會架在弧的起點上。例：接撐段 40、弧肩 8 → 牙條最高 32。", dependsOn },
     { group, type: "number", key: "ctShoulder", label: "弧肩內收", defaultValue: 8, min: 0, max: 40, step: 1, unit: "mm", help: "接橫撐那面的凹弧肩往內收的量（同時是弧的半徑）。0＝無弧肩。", dependsOn },
+    { group, type: "checkbox", key: "ctLowerCove", label: "橫撐處也做弧肩", defaultValue: false, wide: true, help: "下橫撐位置再做一節接撐段 + 第二道弧肩（明式雙段肩）。橫撐就有自己的肩，不會接在已經斜降變細的地方。用料不變，但每支腳多一道挖弧工序。", dependsOn },
     { group, type: "number", key: "ctInset", label: "外面斜降", defaultValue: 12, min: 0, max: 100, step: 1, unit: "mm", help: "外面整支直線斜降、腳底往內收的量；內面弧肩以下維持垂直。", dependsOn },
     // 外斜獨立一欄（不共用 splayAngle）：splayAngle 各模板預設多為 5°，若讓 curved-taper
     // 直接吃它，所有既有弧肩斜腳設計會突然外傾 → 破壞既有 URL。此欄預設 0 = 垂直（既有行為）。
@@ -354,6 +356,19 @@ export function legScaleAt(
  * `legSize × scale / 2` = 腳中心到內面的距離（= legSize/2 − 內面內縮量 recession）。
  * 幾何與 buildCurvedTaperGeometry 對齊（同 clamp、同弧參數）。Y：0=腳底、legHeight=腳頂。
  */
+/**
+ * 弧肩腳在高度 Y 的等效對稱 scale = `1 − 2×recession / legSize`（§A11.8）。
+ * 牙條 / 橫撐的長度與端面梯形都靠它對到腳的實際內面。
+ *
+ * 🩸 2026-08-25 改成**轉呼叫 `curvedTaperInsetAtY()`**。
+ *    在那之前這裡自己又寫了一份「方肩→弧→斜降」的分段邏輯 ——
+ *    連同 3D 擠出、3D 放樣、三視圖，同一個形狀總共有**四份**實作。
+ *    (doc §A11.8 本來就寫著「弧肩段 recession 必須與幾何逐點一致」,
+ *     那條規矩只能靠人記得 —— 改成同一支函式才是真的保證。)
+ *
+ * 下限 −0.9:內面可內縮到接近外面(腳底最窄剩 5% 寬,對齊幾何的 inset 夾限)。
+ * 不可夾在正值,否則 recession 超過半寬時橫撐長度/梯形斜切被壓平 → 接不上有縫。
+ */
 export function curvedTaperInnerScaleAt(
   Y: number,
   legHeight: number,
@@ -361,33 +376,12 @@ export function curvedTaperInnerScaleAt(
   blockHeightMm: number,
   shoulderMm: number,
   insetMm: number,
+  lowerCove?: { botMm: number; topMm: number },
 ): number {
   if (legHeight <= 0 || legSize <= 0) return 1;
-  const blockH = Math.max(0, Math.min(blockHeightMm, legHeight * 0.9));
-  const shoulder = Math.max(0, Math.min(shoulderMm, legSize * 0.45));
-  const coveSpan = Math.min(shoulder, Math.max(0, legHeight - blockH));
-  const inset = Math.max(0, Math.min(insetMm, legSize - shoulder - legSize * 0.05));
-  const depthFromTop = legHeight - Y; // 0＝腳頂
-  let recession: number;
-  if (depthFromTop <= blockH) {
-    recession = 0; // 接撐段全寬
-  } else if (depthFromTop <= blockH + coveSpan) {
-    // 內凹弧：block 底(recession 0) → 弧尾(recession shoulder)。
-    // buildCurvedTaperGeometry 的弧參數化為 x=-hx+shoulder·cos(th)、y=yCoveEnd+coveSpan·sin(th)，
-    // 即「高度」正比 sin(th)（非 th 線性）。所以在給定高度反解時 sin(th)=1-frac，
-    // recession = shoulder·cos(th) = shoulder·√(1-(1-frac)²)。舊版用 th 線性映射
-    // (th=(π/2)(1-frac)) 只在弧兩端吻合、弧中段最大偏離 ~29% shoulder，已修正逐點對齊幾何。
-    const frac = coveSpan > 0 ? (depthFromTop - blockH) / coveSpan : 1;
-    const sinTh = 1 - frac; // 幾何：sin(th)=1-frac
-    recession = shoulder * Math.sqrt(Math.max(0, 1 - sinTh * sinTh));
-  } else {
-    // 直線斜降：shoulder → shoulder+inset
-    const slantSpan = legHeight - blockH - coveSpan;
-    const f = slantSpan > 0 ? (depthFromTop - blockH - coveSpan) / slantSpan : 1;
-    recession = shoulder + inset * Math.min(1, Math.max(0, f));
-  }
-  // 下限 -0.9：內面可內縮到接近外面（腳底最窄剩 5% 寬，對齊幾何 inset 夾限）。
-  // 不可夾在正值（如 0.05），否則 recession 超過半寬時橫撐長度/梯形斜切被壓平 → 接不上有縫。
+  const recession = curvedTaperInsetAtY(
+    legSize, legHeight, blockHeightMm, shoulderMm, insetMm, Y - legHeight / 2, lowerCove,
+  );
   return Math.max(-0.9, 1 - (2 * recession) / legSize);
 }
 
@@ -440,7 +434,7 @@ export function rectLegShape(
      *  splayMm > 0 = 選配外斜：腳底沿 X/Z 對角外踢 splayMm（依 corner 正負號），頂固定。
      *  ⚠️ 刻意不用外層 opts.splayMm（那是 splayed 系列用、模板常帶預設 5° 值）——
      *  避免既有 curved-taper 呼叫者未 opt-in 就突然全部外斜。 */
-    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number; twoWay?: boolean };
+    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number; twoWay?: boolean; lowerCove?: { botMm: number; topMm: number } };
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
@@ -496,6 +490,7 @@ export function rectLegShape(
       shoulderMm: ct?.shoulderMm ?? 8,
       insetMm: ct?.insetMm ?? 12,
       dir,
+      ...(ct?.lowerCove ? { lowerCove: ct.lowerCove } : {}),
       ...(ct?.twoWay
         ? {
             twoWay: true as const,

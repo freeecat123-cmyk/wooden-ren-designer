@@ -247,6 +247,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backRailPostWidthOpt = getOption<number>(input, opt(o, "backRailPostWidth"));
   const backRailPostThicknessOpt = getOption<number>(input, opt(o, "backRailPostThickness"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
+  /** 「橫撐處也做弧肩」的高度區間（吧檯椅的下橫撐＝腳踏） */
+  const ctLowerCoveRange = getOption<boolean>(input, opt(o, "ctLowerCove")) && legShape === "curved-taper" && footrestHeight > 0
+    ? { botMm: footrestHeight, topMm: footrestHeight + footRestWidth }
+    : undefined;
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const withBack = backStyle !== "none";
@@ -269,7 +273,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const bottomScale = legBottomScale(legShape);
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, _legHeightForScale, legW, ctBlockHeight, ctShoulder, ctInset)
+      ? curvedTaperInnerScaleAt(y, _legHeightForScale, legW, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
       : legScaleAt(y, _legHeightForScale, bottomScale);
   // 盲榫深度留背牆 ≥ 8mm，避免薄腳（腳粗/寬/厚改小）榫眼快穿透＝破口。母厚 ≥33 時 clamp 無作用
   // （standardTenon 盲榫 = max(25, 母厚×2/3)），故預設方腳 legSize=50 輸出不變、byte 一致。通榫不夾。
@@ -457,7 +461,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "curved-taper")
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay },
+        curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
       });
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };

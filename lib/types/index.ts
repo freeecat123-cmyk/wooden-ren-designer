@@ -308,7 +308,12 @@ export interface Part {
          *    把弧做在同一側,結果兩支腳的弧朝外、跟牙條互相穿模。
          *    `hoof` 腳型本來就有 dirX/dirZ 兩個欄位,這裡是抄漏了。(2026-08-24)
          */
-        dirZ?: -1 | 0 | 1 }
+        dirZ?: -1 | 0 | 1;
+        /**
+         * 下接撐段(橫撐位置的第二道弧肩,A 案)。leg-local 從腳底量的高度區間。
+         * 沒給 = 只有一道弧(既有行為)。(2026-08-25,木頭仁選 A 案)
+         */
+        lowerCove?: { botMm: number; topMm: number } }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，

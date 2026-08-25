@@ -44,6 +44,8 @@ export interface SimpleTableOpts {
   centerStretcherDrop?: number;
   /** Add 4 lower stretchers connecting legs at ~1/4 height (traditional style). */
   withLowerStretchers?: boolean;
+  /** 下橫撐位置也做一節接撐段 + 第二道弧肩（A 案）。只對弧肩斜腳有意義。 */
+  ctLowerCove?: boolean;
   /** Overhang of top beyond leg outer face, mm. Default 0 (flush). */
   topOverhang?: number;
   /** Leg shape:
@@ -297,6 +299,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const legTopTenonT = legTopStd.thickness;   // 沿 part-Z，較薄（≈ legSize/3）
 
   const legHeight = height - topThickness;
+  /**
+   * 「橫撐處也做弧肩」的高度區間（leg-local,從腳底量）。
+   * ⚠️ 要跟下面 `stretcherY` / `stretcherWidth` 用**完全一樣**的式子,
+   *    不一致的話弧會跑到橫撐旁邊。沒有下橫撐或沒勾就給 undefined = 維持單道弧。
+   */
+  const ctLowerCoveRange = (opts.ctLowerCove ?? false) && (opts.withLowerStretchers ?? false) && isCurvedTaper
+    ? (() => {
+        const y0 = opts.lowerStretcherHeight ?? Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
+        return { botMm: y0, topMm: y0 + (opts.lowerStretcherWidth ?? 30) };
+      })()
+    : undefined;
   const apronY = legHeight - apronWidth - apronOffset;
   const legInset = opts.legInset ?? 0;
   const apronSetback = resolveApronSetbackForLeg(opts.apronSetback ?? 0, opts.legShape ?? "box", legSize, apronThickness);
@@ -427,7 +440,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       };
     }
     if (legShape === "curved-taper") {
-      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay } });
+      return rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockHeight, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange } });
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     if (legShape === "shaker") return { kind: "shaker" };
@@ -793,7 +806,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // 弧肩斜腳：下橫撐接在斜降窄區，把榫長 clamp 到「該高度實際腳寬 − 3mm」內才不戳出斜面
     // （legXDepthLS 公式照搬 square-stool：外面垂直、只內面收窄，材料 X 深 = legSize×(1+scale)/2）。
     const ctStretcherNarrow = isCurvedTaper
-      ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(stretcherY + stretcherWidth / 2, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset))) / 2)
+      ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(stretcherY + stretcherWidth / 2, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange))) / 2)
       : legSize;
     const tenonLen = isCurvedTaper
       ? Math.max(6, Math.min(tenonLenRaw, Math.floor(ctStretcherNarrow - 3)))
@@ -833,7 +846,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // 非 curved-taper 時兩式等價（走 legScaleAt）→ 既有輸出 byte 不變。
     const sScaleAtX = (y: number): number =>
       isCurvedTaper
-        ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset)
+        ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockHeight, ctShoulder, ctInset, ctLowerCoveRange)
         : legScaleAt(y, legHeight, bottomScale);
     const sLegSizeCenterX = isRoundLeg ? 0 : legSize * sScaleAtX(sCenterY);
     const sLegSizeTopX = isRoundLeg ? 0 : legSize * sScaleAtX(stretcherY + stretcherWidth);

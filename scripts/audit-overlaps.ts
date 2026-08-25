@@ -76,6 +76,11 @@ const SHAPE_AWARE_CASES = new Set<string>([
    * 不修的理由同茶几:兩條解法都會動到既有外觀。
    */
   "stool:curved-taper+ctTwoWay",
+  // 加了「橫撐處也做弧肩」之後同一批既有誤報換了變體名稱,理由同上兩條。
+  "tea-table:curved-taper+ctLowerCove",
+  "tea-table:curved-taper+ctTwoWay+ctLowerCove",
+  "stool:curved-taper+ctLowerCove",
+  "stool:curved-taper+ctTwoWay+ctLowerCove",
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
   // 才能視覺接合柱底 lathe 輪廓——audit 用 box 算 overlap 看不到柱「實際變細」。
   "round-table:pedestal",
@@ -148,8 +153,10 @@ function legShapeChoices(entry: FurnitureCatalogEntry): string[] {
   const base = choices.map((c: { value: string | number | boolean }) => String(c.value));
   // 弧肩斜腳額外掃一次「兩向弧肩」(勾選框原本完全沒被掃到)
   const hasTwoWay = (entry.optionSchema ?? []).some((o: OptionSpec) => o.key === "ctTwoWay");
+  /** ⭐ 新的 boolean 選項一定要加進變異清單,否則等於沒防護（§A11.8 的教訓,已犯過一次）*/
+  const hasLowerCove = (entry.optionSchema ?? []).some((o: OptionSpec) => o.key === "ctLowerCove");
   return hasTwoWay && base.includes("curved-taper")
-    ? [...base, "curved-taper+ctTwoWay"]
+    ? [...base, "curved-taper+ctTwoWay", ...(hasLowerCove ? ["curved-taper+ctLowerCove", "curved-taper+ctTwoWay+ctLowerCove"] : [])]
     : base;
 }
 
