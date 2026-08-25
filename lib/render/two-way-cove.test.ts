@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { projectPartSilhouette, projectPartPolygon, curvedTaperProfilePoints } from "./geometry";
-import { buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperInsetAtY } from "./part-geometry";
+import * as fs from "node:fs";
+import { buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperCoveSpan, curvedTaperInsetAtY } from "./part-geometry";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
@@ -42,12 +43,24 @@ describe("內縮函式跟原本的輪廓點必須逐點一致", () => {
   });
 });
 
+/**
+ * 輪廓點數 = 5 個固定轉折點 + 弧段取樣數。
+ * ⚠️ 不要寫死數字 —— 2026-08-25 把弧從 8 段加密到 24 段時,這裡三條全紅。
+ *    改成跟實際取樣數連動,加密弧段不會誤傷,但「弧不見了」仍然會被抓到。
+ */
+const PROFILE_PTS = (() => {
+  const src = fs.readFileSync("lib/render/geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const arc = Number(src.match(/const ARC = (\d+);/)?.[1] ?? 0);
+  expect(arc, "geometry.ts 找不到 ARC").toBeGreaterThan(0);
+  return 5 + arc;
+})();
+
 describe("⚠️ 關掉兩向時，三視圖輸出跟改動前完全一致", () => {
   for (const view of ["front", "side", "top"] as const) {
     it(`${view}：單向的 silhouette 不受影響`, () => {
       const off = projectPartSilhouette(leg(false), view);
-      // 單向側視本來就是方框(4 點)、正視是輪廓(13 點)
-      expect(off.length).toBe(view === "front" ? 13 : 4);
+      // 單向側視本來就是方框(4 點)、正視是弧肩輪廓
+      expect(off.length).toBe(view === "front" ? PROFILE_PTS : 4);
     });
   }
 
@@ -67,14 +80,14 @@ describe("開啟兩向後，只有側視改變", () => {
       .toBe(JSON.stringify(projectPartSilhouette(leg(false), "top")));
   });
 
-  it("⭐ 側視從 4 點方框變成 13 點輪廓", () => {
+  it("⭐ 側視從 4 點方框變成弧肩輪廓", () => {
     expect(projectPartSilhouette(leg(false), "side").length).toBe(4);
-    expect(projectPartSilhouette(leg(true), "side").length).toBe(13);
+    expect(projectPartSilhouette(leg(true), "side").length).toBe(PROFILE_PTS);
   });
 
   it("側視 polygon 也要跟著變（三視圖實際畫的是它）", () => {
     expect(projectPartPolygon(leg(false), "side").length).toBe(4);
-    expect(projectPartPolygon(leg(true), "side").length).toBe(13);
+    expect(projectPartPolygon(leg(true), "side").length).toBe(PROFILE_PTS);
   });
 
   it("側視輪廓確實是凹的（不是被 hull 填平成方框）", () => {
@@ -357,5 +370,79 @@ describe("兩向弧肩的 3D 網格必須是封閉、面朝外的實體", () => 
         expect(signedVolume(g as never), `dirX=${dx} dirZ=${dz} 體積是負的`).toBeGreaterThan(0);
         expect(openEdges(g as never), `dirX=${dx} dirZ=${dz} 有破口`).toBe(0);
       }
+  });
+});
+
+/**
+ * ⭐ 弧要是「順的」,不是幾片平面拼的。
+ *
+ * 木頭仁 2026-08-25:「這個弧肩的弧是好幾個平面組成,不是順順的弧」。
+ * 兩個原因,都在這組釘住:
+ *
+ * 1. **兩向弧肩的取樣高度平均分佈在整支腳上** —— 腳 425mm、40 層 → 間隔 10.6mm,
+ *    而弧只有 8mm 高 ⇒ **弧段裡一個取樣點都沒有**,被切成一刀斜面。
+ *    改成照輪廓轉折點取樣、弧段給 24 段。
+ * 2. **弧的取樣數有兩份**(3D 網格一份、三視圖輪廓一份),只改一邊會讓
+ *    畫面跟圖紙對不起來。當時 165 組腳型指紋「沒反應」就是因為它量的是輪廓那份。
+ */
+describe("弧肩的弧必須夠密（不可以是幾片平面）", () => {
+  const SIZE: [number, number, number] = [35, 425, 35];
+  const [BH, SH, INS] = [40, 8, 12];
+
+  /** 落在弧段高度範圍內的三角形有幾種不同法線 = 視覺上幾片平面 */
+  const facetsInCove = (g: any) => {
+    const cove = curvedTaperCoveSpan(SIZE[0], SIZE[1], BH, SH);
+    const hy = SIZE[1] / 2, yBlockBot = hy - BH, yCoveEnd = yBlockBot - cove;
+    const pos = g.getAttribute("position");
+    const idx = g.getIndex();
+    const n = idx ? idx.count : pos.count;
+    const at = (i: number) => {
+      const k = idx ? idx.getX(i) : i;
+      return [pos.getX(k), pos.getY(k), pos.getZ(k)] as [number, number, number];
+    };
+    const normals = new Set<string>();
+    for (let i = 0; i < n; i += 3) {
+      const a = at(i), b = at(i + 1), c = at(i + 2);
+      const ys = [a[1], b[1], c[1]];
+      if (Math.min(...ys) < yCoveEnd - 0.01 || Math.max(...ys) > yBlockBot + 0.01) continue;
+      const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      const nx = u[1] * v[2] - u[2] * v[1], ny = u[2] * v[0] - u[0] * v[2], nz = u[0] * v[1] - u[1] * v[0];
+      const len = Math.hypot(nx, ny, nz);
+      if (len > 1e-9) normals.add(`${(nx / len).toFixed(2)},${(ny / len).toFixed(2)},${(nz / len).toFixed(2)}`);
+    }
+    return normals.size;
+  };
+
+  it("兩向：弧段裡至少要有 16 種法線方向（0 = 整段被跳過）", () => {
+    const g = buildTwoWayCurvedTaperGeometry(SIZE, BH, SH, INS, -1, -1, 0, 0);
+    expect(facetsInCove(g), "弧段取樣太疏 → 3D 看起來是幾片平面").toBeGreaterThanOrEqual(16);
+  });
+
+  it("單向：弧段裡至少要有 16 種法線方向", () => {
+    const g = buildCurvedTaperGeometry(SIZE, BH, SH, INS, -1, 0, 0);
+    expect(facetsInCove(g), "弧段取樣太疏 → 3D 看起來是幾片平面").toBeGreaterThanOrEqual(16);
+  });
+
+  it("⭐ 3D 網格與三視圖輪廓的弧段數必須一致（兩份 ARC 不可以各改各的）", () => {
+    const mesh = fs.readFileSync("lib/render/part-geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const view = fs.readFileSync("lib/render/geometry.ts", "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const grab = (src: string) => src.match(/const ARC = (\d+);/)?.[1];
+    expect(grab(mesh), "part-geometry.ts 找不到 ARC").toBeTruthy();
+    expect(grab(view), "geometry.ts 找不到 ARC").toBeTruthy();
+    expect(grab(view), "兩邊的弧段數不一樣 → 3D 跟圖紙畫出來的弧對不起來").toBe(grab(mesh));
+  });
+
+  it("弧的取樣點要沿著圓弧走（相鄰段的轉角不可以有大跳變）", () => {
+    // 用輪廓函式逐點算內縮量,檢查二階差分沒有尖點
+    const cove = curvedTaperCoveSpan(SIZE[0], SIZE[1], BH, SH);
+    const hy = SIZE[1] / 2, yBlockBot = hy - BH;
+    const vals: number[] = [];
+    for (let i = 0; i <= 40; i++)
+      vals.push(curvedTaperInsetAtY(SIZE[0], SIZE[1], BH, SH, INS, yBlockBot - (cove * i) / 40));
+    let worst = 0;
+    for (let i = 1; i < vals.length - 1; i++)
+      worst = Math.max(worst, Math.abs(vals[i + 1] - 2 * vals[i] + vals[i - 1]));
+    expect(worst, "弧的曲率有尖點 = 不是順的圓弧").toBeLessThan(SH * 0.25);
   });
 });

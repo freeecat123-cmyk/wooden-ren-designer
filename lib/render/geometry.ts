@@ -304,7 +304,13 @@ export function curvedTaperProfilePoints(
   pts.push([hx, yBot]); // 外底（外側垂直 plumb）
   pts.push([-hx + shoulder + inset, yBot]); // 內底（斜線收到最內）
   pts.push([-hx + shoulder, yCoveEnd]); // 內斜線頂＝弧尾
-  const ARC = 8;
+  /**
+   * ⚠️ 這個數字必須跟 `part-geometry.ts` 的 `ARC` 一樣 ——
+   * 一邊是 3D 網格、一邊是三視圖／零件圖的輪廓,不一致的話畫出來的弧會對不起來。
+   * (2026-08-25:3D 改成 24 段時差點只改一邊 —— 165 組腳型指紋當時「沒反應」,
+   *  正是因為它量的是這裡的輪廓、不是 3D 網格。)
+   */
+  const ARC = 24;
   for (let i = 1; i <= ARC; i++) {
     const th = (Math.PI / 2) * (i / ARC); // 0 → π/2
     pts.push([-hx + shoulder * Math.cos(th), yCoveEnd + coveSpan * Math.sin(th)]);

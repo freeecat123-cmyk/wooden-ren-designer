@@ -920,11 +920,28 @@ export function buildTwoWayCurvedTaperGeometry(
   const sx = dirX < 0 ? -1 : 1;
   const sz = dirZ < 0 ? -1 : 1;
 
-  // 取樣層數：方肩段與斜降段是直的，弧段要密一點。40 層在視覺上已經看不出稜線。
-  const N = 40;
+  /**
+   * ⭐ 取樣高度要**照輪廓的轉折點**放,不能整支平均分。
+   *
+   * 🩸 原本寫 `y = hy − ly·i/40`(平均 40 層):腳 425mm 高 → 每層間隔 10.6mm,
+   *    而弧只有 8mm 高 → **整段弧一個取樣點都沒有**,被切成一刀斜面。
+   *    木頭仁 2026-08-25:「這個弧肩的弧是好幾個平面組成,不是順順的弧」。
+   *
+   * 方肩段與斜降段都是直的(斜降含 splay 也是線性),各兩層就精確;
+   * 省下來的層數全給弧段。層數反而比原本少,弧卻順很多。
+   */
+  const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
+  const yBlockBot = hy - blockH;
+  const coveSpanX = curvedTaperCoveSpan(lx, ly, blockHeightMm, shoulderMm);
+  const coveSpanZ = curvedTaperCoveSpan(lz, ly, blockHeightMm, shoulderMm);
+  const yCoveEnd = yBlockBot - Math.max(coveSpanX, coveSpanZ);
+  const ARC_SEG = 24;
+  const ys: number[] = [hy, yBlockBot];
+  for (let i = 1; i <= ARC_SEG; i++) ys.push(yBlockBot - ((yBlockBot - yCoveEnd) * i) / ARC_SEG);
+  ys.push(-hy);
   const rings: number[][] = [];
-  for (let i = 0; i <= N; i++) {
-    const y = hy - (ly * i) / N;
+  for (const yRaw of ys) {
+    const y = Math.max(-hy, Math.min(hy, yRaw));
     const inX = curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y);
     // Z 方向用同一條輪廓，但基準是 lz（腳可能不是正方斷面）
     const inZ = curvedTaperInsetAtY(lz, ly, blockHeightMm, shoulderMm, insetMm, y);
@@ -945,7 +962,7 @@ export function buildTwoWayCurvedTaperGeometry(
   };
   const corner = (r: number[], k: number): number[] => [r[k * 2], r[8], r[k * 2 + 1]];
 
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < rings.length - 1; i++) {
     const A = rings[i], B = rings[i + 1];
     for (let k = 0; k < 4; k++) {
       const k2 = (k + 1) % 4;
@@ -964,7 +981,7 @@ export function buildTwoWayCurvedTaperGeometry(
     }
   }
   // 上下封蓋
-  const capTop = rings[0], capBot = rings[N];
+  const capTop = rings[0], capBot = rings[rings.length - 1];
   quad(corner(capTop, 0), corner(capTop, 3), corner(capTop, 2), corner(capTop, 1));
   quad(corner(capBot, 0), corner(capBot, 1), corner(capBot, 2), corner(capBot, 3));
 
@@ -1007,7 +1024,12 @@ export function buildCurvedTaperGeometry(
   pts.push([hx, yBot]); // 外底（外側垂直 plumb，不收）
   pts.push([-hx + shoulder + inset, yBot]); // 內底（斜線收到最內）
   pts.push([-hx + shoulder, yCoveEnd]); // 內斜線頂＝弧尾（內底→此點為直斜線）
-  const ARC = 8;
+  /**
+   * 弧段取樣數。8 段在 8mm 的弧上等於每段 1mm —— 放大看就是「好幾個平面」
+   * (木頭仁 2026-08-25 回報)。24 段每段 0.33mm,視覺上才是順的。
+   * ⚠️ 這會改到**所有**單向弧肩腳的網格點數(輪廓點 13 → 29),是刻意的。
+   */
+  const ARC = 24;
   for (let i = 1; i <= ARC; i++) {
     // 內凹圓弧：弧尾（-hx+shoulder）→ 接撐段內緣底（-hx），圓心 (-hx, yCoveEnd)，凹向 +X＝內圓弧
     const th = (Math.PI / 2) * (i / ARC); // 0 → π/2
