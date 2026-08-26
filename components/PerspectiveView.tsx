@@ -1152,6 +1152,22 @@ export function PerspectiveView({
               ...(part.shape.dxMm ? { dxMm: part.shape.dxMm * SCALE } : {}),
               ...(part.shape.dzMm ? { dzMm: part.shape.dzMm * SCALE } : {}),
               ...(part.shape.twoWay ? { twoWay: true, dirZ: part.shape.dirZ ?? 1 } : {}),
+              /**
+               * 🩸 「橫撐處也做弧肩」勾了但 3D 完全沒反應 —— 就是這裡漏了。
+               *
+               * 這個分支是**逐欄位重組** shape 物件的,新增欄位不會自動跟過來。
+               * 幾何、三視圖、零件圖都有第二道弧,只有 3D 沒有 → 使用者說「根本沒有」。
+               * ⚠️ 而且 `lowerCove` 是 mm,跟 blockHeightMm 一樣要乘 SCALE。
+               * (2026-08-26;同一個地方 8/25 才因為漏 `dirZ` 出過一模一樣的包。)
+               */
+              ...(part.shape.lowerCove
+                ? {
+                    lowerCove: {
+                      botMm: part.shape.lowerCove.botMm * SCALE,
+                      topMm: part.shape.lowerCove.topMm * SCALE,
+                    },
+                  }
+                : {}),
             };
           } else if (part.shape?.kind === "edge-profile") {
             shape = {

@@ -505,3 +505,50 @@ describe("牙條縮進只對弧肩腳生效", () => {
     });
   }
 });
+
+/**
+ * ⭐⭐ 3D 預覽的 shape 是**逐欄位重組**的 —— 新增欄位不會自動跟過來。
+ *
+ * 🩸 這個地方已經漏過兩次:
+ *    2026-08-25 漏 `dirZ` → 兩向的弧挖到朝外那面（「外層不見了」）
+ *    2026-08-26 漏 `lowerCove` → 勾了「橫撐處也做弧肩」3D 完全沒反應（「根本沒有」）
+ *    兩次都是幾何/三視圖是對的、只有 3D 沒有,所有稽核都綠。
+ *
+ * ⇒ 釘住:`curved-taper` 的每一個欄位都必須出現在 PerspectiveView 的重組區塊裡。
+ */
+describe("3D 預覽不可以漏掉 curved-taper 的任何欄位", () => {
+  it("型別裡有的欄位，PerspectiveView 重組時都要帶", () => {
+    /**
+     * 用 `part-geometry.ts` 的 ShapeSpec union —— 它是**一行**列完所有欄位,
+     * 比 `lib/types/index.ts`（欄位之間夾大段註解）好剖析得多。
+     */
+    const spec = fs.readFileSync("lib/render/part-geometry.ts", "utf-8");
+    const line = spec.split("\n").find((l) => l.includes('kind: "curved-taper";'));
+    expect(line, "part-geometry.ts 找不到 curved-taper 的 ShapeSpec").toBeTruthy();
+    const fields = [...new Set(
+      (line!.match(/(\w+)\??:/g) ?? [])
+        .map((m) => m.replace(/\??:$/, ""))
+        .filter((f) => !["kind"].includes(f)),
+    )];
+    expect(fields.length, `只抓到 ${fields.length} 個欄位,剖析可能失敗`).toBeGreaterThanOrEqual(8);
+
+    const view = fs.readFileSync("components/PerspectiveView.tsx", "utf-8");
+    const i = view.indexOf('kind: "curved-taper",');
+    expect(i, "PerspectiveView 找不到 curved-taper 分支").toBeGreaterThan(0);
+    /**
+     * ⚠️ 一定要先剝掉註解 —— 我在那一段寫了「漏掉 lowerCove / dirZ」的說明,
+     *    註解裡就有欄位名,不剝的話 `includes` 永遠成立 = 橡皮圖章。
+     *    (第一版就是這樣,把欄位刪掉測試還是綠的。)
+     */
+    const branch = view
+      .slice(i, view.indexOf("} else if", i))
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    for (const f of fields) {
+      expect(
+        branch.includes(f),
+        `PerspectiveView 的 curved-taper 分支漏了「${f}」→ 3D 會跟三視圖／零件圖不一樣`,
+      ).toBe(true);
+    }
+  });
+});
