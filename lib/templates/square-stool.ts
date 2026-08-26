@@ -274,6 +274,17 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherStyle = getOption<string>(input, opt(o, "lowerStretcherStyle"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
+  /**
+   * ⭐ 下橫撐也齊腳外面（木頭仁 2026-08-26:「穿帶這還是有段差」）。
+   *    只對弧肩腳生效,其他腳型維持置中 —— 跟牙條同一條規則。
+   *    ⚠️ 用**橫撐自己的厚度**算,不是牙條厚度。
+   */
+  const lsSetbackZ = resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legD, lowerStretcherThickness);
+  const lsSetbackX = resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legW, lowerStretcherThickness);
+  const lsAxisZ = apronCenterOffset(width / 2, legInset, lowerStretcherThickness, lsSetbackZ);
+  const lsAxisX = apronCenterOffset(length / 2, legInset, lowerStretcherThickness, lsSetbackX);
+  const lsMortiseOffZ = apronMortiseOffset(legD, lowerStretcherThickness, lsSetbackZ);
+  const lsMortiseOffX = apronMortiseOffset(legW, lowerStretcherThickness, lsSetbackX);
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   /**
    * 「橫撐處也做弧肩」用的高度區間（leg-local,從腳底量）。
@@ -1015,11 +1026,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       // h-frame: 4 條繞 1 圈
       const sides = [
         // 前後（X 軸, 靜止）用原 lsSplay
-        { id: "ls-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplayZ) } },
-        { id: "ls-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplayZ } },
+        { id: "ls-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(lsAxisZ + lsSplayZ) } },
+        { id: "ls-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: lsAxisZ + lsSplayZ } },
         // 左右（Z 軸, 上移）用 lsZSplay（在上移後 Y 重算的腳位置）
-        { id: "ls-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsZSplayX + ctZShift), z: 0 } },
-        { id: "ls-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsZSplayX + ctZShift, z: 0 } },
+        { id: "ls-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(lsAxisX + lsZSplayX + ctZShift), z: 0 } },
+        { id: "ls-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: lsAxisX + lsZSplayX + ctZShift, z: 0 } },
       ];
       for (const s of sides) {
         // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
@@ -1149,7 +1160,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             // Z 面 mortise（接 Z 軸 = 左右下橫撐, 上移）— 上榫
             {
               // curved-taper 左右橫撐外挪 ctZShift → 榫眼跟著挪,肩才蓋得住榫眼口
-              origin: { x: Math.sign(cx || 1) * ctZShift, y: lsZCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
+              origin: { x: Math.sign(cx || 1) * (ctZShift + lsMortiseOffX), y: lsZCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
               depth: lowerTenonZ,
               length: lowerUpperTenonH,
               width: lowerTenonThick,
@@ -1159,7 +1170,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             },
             // X 面 mortise（接 X 軸 = 前後下橫撐, 靜止）— 下榫
             {
-              origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY + lowerLowerTenonOffset, z: 0 },
+              origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY + lowerLowerTenonOffset, z: Math.sign(cz || 1) * lsMortiseOffZ },
               depth: lowerTenonX,
               length: lowerLowerTenonH,
               width: lowerTenonThick,
@@ -1171,7 +1182,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         } else {
           leg.mortises.push(
             {
-              origin: { x: Math.sign(cx || 1) * ctZShift, y: lsZCenterY, z: cz > 0 ? -1 : 1 },
+              origin: { x: Math.sign(cx || 1) * (ctZShift + lsMortiseOffX), y: lsZCenterY, z: cz > 0 ? -1 : 1 },
               depth: lowerTenonZ,
               length: lowerTenonW,
               width: lowerTenonThick,
@@ -1180,7 +1191,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               ...(legMortiseNeedsAxis ? { axis: { x: 0, y: 0, z: cz > 0 ? -1 : 1 } } : {}),
             },
             {
-              origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: 0 },
+              origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: Math.sign(cz || 1) * lsMortiseOffZ },
               depth: lowerTenonX,
               length: lowerTenonW,
               width: lowerTenonThick,

@@ -324,6 +324,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronSetback = resolveApronSetbackForLeg(opts.apronSetback ?? 0, opts.legShape ?? "box", legSize, apronThickness);
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
   const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
+  /**
+   * ⭐ 下橫撐也齊腳外面（木頭仁 2026-08-26:「穿帶這還是有段差」）。
+   *    只對弧肩腳生效,其他腳型維持置中。用**橫撐自己的厚度**算。
+   */
+  const _lsThk = opts.lowerStretcherThickness ?? 18;
+  const lsSetback = resolveApronSetbackForLeg(opts.apronSetback ?? 0, opts.legShape ?? "box", legSize, _lsThk);
+  const lsAxisZ = apronCenterOffset(width / 2, legInset, _lsThk, lsSetback);
+  const lsAxisX = apronCenterOffset(length / 2, legInset, _lsThk, lsSetback);
+  const lsMortiseOff = apronMortiseOffset(legSize, _lsThk, lsSetback);
   // legInset=0 時 tenon 沿 X 軸朝家具中心偏，內側緣貼腳內緣 → 內側無肩、外側多留肩
   // 防止桌面端頭沿 X 木紋方向破裂。跟 square-stool / dining-chair 同規則。
   const legTopInsetX = legInset === 0
@@ -874,10 +883,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const sButtHalfZTop = (splay: number) => apronEdgeZ + splay - sLegSizeTop / 2;
     const sButtHalfZBot = (splay: number) => apronEdgeZ + splay - sLegSizeBot / 2;
     const lowerSides = [
-      { key: "ls-front", nameZh: "前下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplayZ) } },
-      { key: "ls-back", nameZh: "後下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplayZ } },
-      { key: "ls-left", nameZh: "左下橫撐", visibleLength: sInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + sSplayX), z: 0 } },
-      { key: "ls-right", nameZh: "右下橫撐", visibleLength: sInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + sSplayX, z: 0 } },
+      { key: "ls-front", nameZh: "前下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(lsAxisZ + sSplayZ) } },
+      { key: "ls-back", nameZh: "後下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: lsAxisZ + sSplayZ } },
+      { key: "ls-left", nameZh: "左下橫撐", visibleLength: sInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(lsAxisX + sSplayX), z: 0 } },
+      { key: "ls-right", nameZh: "右下橫撐", visibleLength: sInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: lsAxisX + sSplayX, z: 0 } },
     ];
     for (const s of lowerSides) {
       const bevelAngle = isSplayed
@@ -967,7 +976,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         : 0;
       leg.mortises.push(
         {
-          origin: { x: 0, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
+          origin: { x: Math.sign(cx || 1) * lsMortiseOff, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
           depth: tenonLen,
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,
@@ -976,7 +985,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           ...(isCurvedTaper ? { axis: { x: 0, y: 0, z: cz > 0 ? -1 : 1 } } : {}),
         },
         {
-          origin: { x: cx > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
+          origin: { x: cx > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: lsCenterY + lowerLowerTenonOffset, z: Math.sign(cz || 1) * lsMortiseOff },
           depth: tenonLen,
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,

@@ -270,6 +270,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
   const apronMortiseOffZ = apronMortiseOffset(legD, apronThickness, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legD, apronThickness));
   const apronMortiseOffX = apronMortiseOffset(legW, apronThickness, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legW, apronThickness));
+  /** ⭐ 下橫撐也齊腳外面（用橫撐自己的厚度算） */
+  const _lsThk = getOption<number>(input, opt(o, "lowerStretcherThickness"));
+  const lsAxisZ = apronCenterOffset(width / 2, legInset, _lsThk, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legD, _lsThk));
+  const lsAxisX = apronCenterOffset(length / 2, legInset, _lsThk, resolveApronSetbackForLeg(_apronSetbackRaw, legShape, legW, _lsThk));
   /**
    * ⚠️ 用**夾過**的值,不要再讀一次原始值。
    *    夾制算的是「扣掉錯開之後牙條還剩多高」,如果實際位移用的是沒夾過的值,
@@ -1228,10 +1232,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: number; z: number };
     };
     const sides: SideDef[] = [
-      { key: "front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + lsGeomX.splayZc) } },
-      { key: "back",  nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + lsGeomX.splayZc } },
-      { key: "left",  nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + lsGeomZ.splayXc + ctZShift), z: 0 } },
-      { key: "right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + lsGeomZ.splayXc + ctZShift, z: 0 } },
+      { key: "front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(lsAxisZ + lsGeomX.splayZc) } },
+      { key: "back",  nameZh: "後下橫撐", nameEn: "Back lower stretcher", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: lsAxisZ + lsGeomX.splayZc } },
+      { key: "left",  nameZh: "左下橫撐", nameEn: "Left lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(lsAxisX + lsGeomZ.splayXc + ctZShift), z: 0 } },
+      { key: "right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: lsAxisX + lsGeomZ.splayXc + ctZShift, z: 0 } },
     ];
 
     const buildLowerPart = (s: SideDef): Part => {

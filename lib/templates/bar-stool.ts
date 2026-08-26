@@ -766,13 +766,18 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / seatY) : 0;
 
   // 通用：給定該層橫撐的「橫撐料」中軸 Y 與料厚 W，產生四面 sides。
-  const buildSides = (centerY: number, beamWidth: number, namePrefix: string, namePrefixEn: string, setback?: number) => {
+  const buildSides = (
+    centerY: number, beamWidth: number, namePrefix: string, namePrefixEn: string,
+    setback?: number,
+    /** ⚠️ 這一環自己的厚度 —— 牙條與腳踏厚度不同,用錯會把非弧肩腳也位移掉 */
+    beamThickness: number = apronThickness,
+  ) => {
     /**
      * 這一環自己的中心線(受「牙條縮進」影響),只用在 origin;長度一律用 legEdge*。
      * setback 沒給 = 沿用舊的置中 —— 橫撐環不傳就不受影響。
      */
-    const axisZ = setback === undefined ? legEdgeZ : apronCenterOffset(width / 2, legInset, apronThickness, setback);
-    const axisX = setback === undefined ? legEdgeX : apronCenterOffset(length / 2, legInset, apronThickness, setback);
+    const axisZ = setback === undefined ? legEdgeZ : apronCenterOffset(width / 2, legInset, beamThickness, setback);
+    const axisX = setback === undefined ? legEdgeX : apronCenterOffset(length / 2, legInset, beamThickness, setback);
     const botY = centerY - beamWidth / 2;
     const topY = centerY + beamWidth / 2;
     const shiftAt = (yMm: number) => seatY > 0 ? 1 - yMm / seatY : 0;
@@ -931,7 +936,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   const frCenterY = footrestHeight + footRestWidth / 2;
-  const frB = buildSides(frCenterY, footRestWidth, "腳踏", "footrest");
+  const frB = buildSides(
+    frCenterY, footRestWidth, "腳踏", "footrest",
+    // ⭐ 腳踏（＝吧檯椅的下橫撐）也齊腳外面,用它自己的厚度算
+    resolveApronSetbackForLeg(getOption<number>(input, opt(o, "apronSetback")), legShape, Math.min(legW, legD), getOption<number>(input, opt(o, "footrestThickness"))),
+    getOption<number>(input, opt(o, "footrestThickness")),
+  );
   const footRests: Part[] = frB.sides.map((s) => {
     // axis-specific：單向斜也觸發 tenon axis（axis="x" 腳踏只受 splayDx、axis="z" 只受 splayDz）
     const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);

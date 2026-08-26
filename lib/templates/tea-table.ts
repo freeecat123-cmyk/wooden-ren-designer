@@ -171,6 +171,11 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
+  /** 下橫撐的榫眼位移（用橫撐自己的厚度） */
+  const lsSetback = resolveApronSetbackForLeg(
+    getOption<number>(input, opt(o, "apronSetback")), legShape, legSize, lowerStretcherThickness,
+  );
+  const lsMortiseOff = apronMortiseOffset(legSize, lowerStretcherThickness, lsSetback);
   const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
   const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
   // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
@@ -558,7 +563,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       },
       // 下橫撐 Z 面（接左右下橫撐, 物理上移 lowerStretcherStaggerMm）— 上半榫
       {
-        origin: { x: 0, y: lowerCenterY + lowerStretcherStaggerMm + lowerUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
+        origin: { x: Math.sign(c.x || 1) * lsMortiseOff, y: lowerCenterY + lowerStretcherStaggerMm + lowerUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
         depth: lowerTenonLength,
         length: lowerCanHalfStagger ? lowerHalfTenonH : lowerTenonW,
         width: lowerTenonThick,
@@ -567,7 +572,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       },
       // 下橫撐 X 面（接前後下橫撐, 靜止）— 下半榫
       {
-        origin: { x: c.x > 0 ? -1 : 1, y: lowerCenterY + lowerLowerTenonOffset, z: 0 },
+        origin: { x: c.x > 0 ? -1 : 1, y: lowerCenterY + lowerLowerTenonOffset, z: Math.sign(c.z || 1) * lsMortiseOff },
         depth: lowerTenonLength,
         length: lowerCanHalfStagger ? lowerHalfTenonH : lowerTenonW,
         width: lowerTenonThick,
@@ -684,6 +689,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     apronWidth: lowerStretcherWidth,
     apronThickness: lowerStretcherThickness,
+    // ⭐ 下橫撐也齊腳外面（用橫撐自己的厚度算）
+    setback: resolveApronSetbackForLeg(
+      getOption<number>(input, opt(o, "apronSetback")), legShape, legSize, lowerStretcherThickness,
+    ),
     tenonLength: lowerTenonLength,
     tenonThickness: lowerTenonThick,
     tenonWidth: lowerTenonW,
