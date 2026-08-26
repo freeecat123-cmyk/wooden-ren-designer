@@ -28,10 +28,14 @@ const geistMono = Geist_Mono({
 });
 
 // 中文標題用 serif — 對齊木匠學院的工坊質感
-// preload + display:swap 確保 LCP 不受影響
+// display:swap 確保 LCP 不受影響
+//
+// ⚠️ 只留 700。全站 121 處 .font-serif-tc / .font-serif 有 117 處直接寫 font-bold，
+// 其餘 4 處是 <strong>（瀏覽器本來就給 700）—— 400 與 600 一個字都沒用到，
+// 卻讓手機每次多下載約 366KB 的中文字檔。要加回別的字重前先確認畫面真的用得到。
 const notoSerifTC = Noto_Serif_TC({
   variable: "--font-serif-tc",
-  weight: ["400", "600", "700"],
+  weight: ["700"],
   subsets: ["latin"],
   display: "swap",
   preload: false, // 中文檔大，不 preload，等實際需要再載
