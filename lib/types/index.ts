@@ -313,7 +313,13 @@ export interface Part {
          * 下接撐段(橫撐位置的第二道弧肩,A 案)。leg-local 從腳底量的高度區間。
          * 沒給 = 只有一道弧(既有行為)。(2026-08-25,木頭仁選 A 案)
          */
-        lowerCove?: { botMm: number; topMm: number } }
+        lowerCove?: { botMm: number; topMm: number };
+        /**
+         * S 形肩:弧的**兩端都是垂直切線**（smoothstep），肩線順順化開。
+         * 預設（false / undefined）是圓弧,方肩那端是水平切線 = 利落的 90° 直角。
+         * 深度與跨距完全不變,只換曲線 —— 材料、榫位、報價都不動。(2026-08-26,§A9.9c)
+         */
+        sCurve?: boolean }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，

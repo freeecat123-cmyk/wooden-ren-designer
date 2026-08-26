@@ -625,3 +625,73 @@ describe("接撐段高 = 牙條高（不准偷偷加高）", () => {
     }
   });
 });
+
+/**
+ * S 形弧肩（2026-08-26，木頭仁從三件待辦裡挑的第 1 件）。
+ *
+ * 圓弧版在方肩那端是**水平**切線 → 肩根是利落的 90° 直角。
+ * S 形改用 smoothstep：兩端一階導數都是 0 ⇒ 輪廓上兩端都是**垂直**切線，肩線化開。
+ */
+describe("S 形弧肩", () => {
+  const LX = 35, LY = 425, BH = 40, SH = 8, INS = 12;
+  const hy = LY / 2;
+  const coveSpan = curvedTaperCoveSpan(LX, LY, BH, SH);
+  const yBlockBot = LY - BH;                       // 從腳底量
+  const at = (yFromBottom: number, s: boolean) =>
+    curvedTaperInsetAtY(LX, LY, BH, SH, INS, yFromBottom - hy, undefined, s);
+  /** 輪廓斜率 dx/dy（0 = 垂直切線、∞ = 水平切線） */
+  const slope = (y: number, s: boolean) => (at(y + 0.02, s) - at(y - 0.02, s)) / 0.04;
+
+  it("兩端都是垂直切線（圓弧在方肩那端是水平的）", () => {
+    const nearBlock = yBlockBot - coveSpan * 0.02;
+    expect(Math.abs(slope(nearBlock, true)), "S 形在方肩那端應該接近垂直").toBeLessThan(0.6);
+    expect(Math.abs(slope(nearBlock, false)), "圓弧在方肩那端本來就該是水平的（斜率很大）").toBeGreaterThan(3);
+    const nearEnd = yBlockBot - coveSpan * 0.98;
+    expect(Math.abs(slope(nearEnd, true)), "S 形在斜降那端也該接近垂直").toBeLessThan(0.6);
+  });
+
+  it("頭尾兩點與深度完全一樣（只換曲線,不動用料與榫位）", () => {
+    expect(at(yBlockBot, true)).toBeCloseTo(at(yBlockBot, false), 6);          // 方肩處都是 0
+    expect(at(yBlockBot - coveSpan, true)).toBeCloseTo(SH, 3);                 // 弧底都是 shoulder
+    expect(at(yBlockBot - coveSpan, false)).toBeCloseTo(SH, 3);
+    expect(at(0, true)).toBeCloseTo(at(0, false), 6);                          // 腳底一樣
+  });
+
+  it("中段跟圓弧差得夠明顯（看得出來才有意義）", () => {
+    const mid = yBlockBot - coveSpan / 2;
+    expect(Math.abs(at(mid, true) - at(mid, false))).toBeGreaterThan(SH * 0.15);
+  });
+
+  it("⭐ 不選 S 形時輸出必須跟改動前完全一致", () => {
+    for (let y = 0; y <= LY; y += 3.5) {
+      expect(at(y, false)).toBeCloseTo(curvedTaperInsetAtY(LX, LY, BH, SH, INS, y - hy), 9);
+    }
+  });
+
+  /**
+   * ⚠️ 不要只數取樣點的個數 —— 那擋不住「取樣分佈很爛但點數夠」。
+   *    量真正在意的:**取樣折線離真實曲線最遠多少**（弧段內）。
+   *    門檻 0.15mm 是照圓弧自己的實測值（0.131mm）校準的,不是隨手填的。
+   */
+  const chordErr = (sc: boolean) => {
+    const pts = curvedTaperProfileYs(LX, LY, BH, SH, CURVED_TAPER_ARC_SEG, undefined, sc)
+      .filter((y) => y <= yBlockBot - hy + 1e-9 && y >= yBlockBot - hy - coveSpan - 1e-9)
+      .sort((a, b) => b - a)
+      .map((y) => [y, at(y + hy, sc)] as [number, number]);
+    let m = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [y1, x1] = pts[i], [y2, x2] = pts[i + 1];
+      if (y2 === y1) continue;
+      for (let k = 1; k < 20; k++) {
+        const y = y1 + ((y2 - y1) * k) / 20;
+        m = Math.max(m, Math.abs(at(y + hy, sc) - (x1 + ((x2 - x1) * (y - y1)) / (y2 - y1))));
+      }
+    }
+    return m;
+  };
+
+  it("取樣要跟得上曲線（折線離真實曲線 < 0.15mm）", () => {
+    expect(chordErr(true), "S 形的弧被切成幾片平面").toBeLessThan(0.15);
+    expect(chordErr(false), "圓弧的弧被切成幾片平面").toBeLessThan(0.15);
+  });
+});

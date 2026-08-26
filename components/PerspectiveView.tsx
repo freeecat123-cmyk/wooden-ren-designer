@@ -1152,6 +1152,8 @@ export function PerspectiveView({
               ...(part.shape.dxMm ? { dxMm: part.shape.dxMm * SCALE } : {}),
               ...(part.shape.dzMm ? { dzMm: part.shape.dzMm * SCALE } : {}),
               ...(part.shape.twoWay ? { twoWay: true, dirZ: part.shape.dirZ ?? 1 } : {}),
+              // S 形肩：純旗標,不是長度,**不要乘 SCALE**。
+              ...(part.shape.sCurve ? { sCurve: true } : {}),
               /**
                * 🩸 「橫撐處也做弧肩」勾了但 3D 完全沒反應 —— 就是這裡漏了。
                *

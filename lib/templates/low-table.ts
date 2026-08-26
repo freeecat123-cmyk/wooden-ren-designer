@@ -150,6 +150,7 @@ export const lowTable: FurnitureTemplate = (input) => {
     ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
     ctInset: getOption<number>(input, opt(o, "ctInset")),
     ctLowerCove: getOption<boolean>(input, opt(o, "ctLowerCove")),
+    ctSCurve: getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve",
     ctTwoWay: getOption<boolean>(input, opt(o, "ctTwoWay")),
     ctSplay: getOption<number>(input, opt(o, "ctSplay")),
     seatEdge,

@@ -31,6 +31,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
 | 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
 | 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
+| 弧肩要圓弧還是 S 形 / 肩根太利 | `"sCurve\|smoothstep\|弧肩曲線"` | §A9.9c |
 | 牙條放不進接撐段 / 跟接撐段不等高 | `"牙條可用高度\|ctApronMaxH\|resolveCtBlockForApron"` | §A11.8 |
 | 弧肩看起來是幾片平面 | `"ARC = 24\|取樣高度要照輪廓轉折點"` | §A9.9, §A11.8 |
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
@@ -376,6 +377,32 @@ ys = [hy, yBlockBot, …弧段 24 等分…, −hy]
   兩次都是「幾何對、三視圖對、稽核全綠，只有 3D 錯」）。已加守衛測試逐欄位比對。
 
 稽核：`scripts/audit-lower-cove.ts`（9 款勾了都要真的多一道弧、沒勾的完全不受影響）。
+
+**⭐ A9.9c 弧肩曲線 `sCurve`：圓弧 vs S 形（2026-08-26）**
+
+木頭仁從三件待辦裡挑的第 1 件。**是選項,預設仍是圓弧**（既有設計 0 變動）。
+
+| | 圓弧（預設） | S 形 |
+|---|---|---|
+| 式子 | `inset = shoulder·cos θ`，`y = yCoveEnd + coveSpan·sin θ` | `inset = shoulder·t²(3−2t)`，t = 從方肩往斜降的比例 |
+| 方肩那端的切線 | **水平**（d inset/dy → ∞）→ 肩根是利落的 90° 直角 | **垂直**（一階導數 = 0）→ 順著腳面化開 |
+| 斜降那端的切線 | 垂直 | 垂直 |
+| 深度 / 跨距 / 用料 / 榫位 / 報價 | 完全一樣 | 完全一樣 |
+
+- 只換曲線,兩端點與 shoulder 深度都不動 ⇒ 橫撐長度補償（`curvedTaperInnerScaleAt`）
+  吃同一個旗標就好,不用另外算。
+- 弧的算式**全站只有一份**（`coveInset(y, yRef, span, shoulder, flip, sCurve)`）。
+  鏡射版（下接撐段上緣）加 `flip`、S 形加 `sCurve`，**都不准另抄一支**
+  —— 測試會數 `shoulder * Math.cos` 的出現次數。
+- 取樣：圓弧沿 θ 均分、S 形沿高度均分。實測折線離真實曲線的最大偏離
+  圓弧 0.131mm / S 形 0.010mm（θ 均分套在 S 形上是 0.024mm，也看不出來 ——
+  所以「取樣方式換了」不算缺陷，不要為它寫測試）。
+- 🩸 **測試不要只數取樣點個數**：那擋不住「點數夠但分佈很爛」。
+  第一版就是這樣寫的，刻意把取樣改爛它還是綠的。
+  正解是量**折線離真實曲線最遠多少**，門檻照圓弧自己的實測值校準（0.15mm）。
+
+稽核：`scripts/audit-shoulder-curve.ts`（9 款選 S 形都要真的換曲線、選圓弧要跟
+「沒有這個選項」時逐件一致）。
 
 **⭐ `dirZ` 一定要跟 `dir` 用完全一樣的式子（2026-08-24 上線後回報的 bug）**
 

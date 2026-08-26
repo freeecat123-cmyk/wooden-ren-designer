@@ -211,6 +211,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const ctShoulder = getOption<number>(input, opt(o, "ctShoulder"));
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
+  const ctSCurve = getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve";
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const isCurvedTaper = legShape === "curved-taper";
   /**
@@ -375,7 +376,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   // 弧肩斜腳：下橫撐接在斜降窄區，把榫長 clamp 到「該高度實際腳寬 − 3mm」內才不戳出斜面。
   // （公式照搬 square-stool / simple-table：外面垂直、只內面收窄，材料 X 深 = legSize×(1+scale)/2）。
   const ctStretcherNarrow = isCurvedTaper
-    ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(lowerCenterY, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange))) / 2)
+    ? Math.max(8, (legSize * (1 + curvedTaperInnerScaleAt(lowerCenterY, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve))) / 2)
     : legSize;
   const lowerTenonLength = isCurvedTaper
     ? Math.max(6, Math.min(_lowerTenonLenRaw, Math.floor(ctStretcherNarrow - 3)))
@@ -419,7 +420,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const lowerScaleAtZ = (y: number): number =>
     isCurvedTaper && ctTwoWay
-      ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
       : legScaleAt(y, legHeight, bottomScale);
   const lowerLegSizeCenter = legSize * lowerScaleAtZ(lowerCenterY);
   const lowerLegSizeTop = legSize * lowerScaleAtZ(stretcherFloorOffset + lowerStretcherWidth);
@@ -429,7 +430,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   // （榫長 clamp ctStretcherNarrow 早就按窄面算，這裡補漏掉的長度；同 simple-table 修法）。
   const lowerScaleAtX = (y: number): number =>
     isCurvedTaper
-      ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legHeight, legSize, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
       : legScaleAt(y, legHeight, bottomScale);
   const lowerLegSizeCenterX = legSize * lowerScaleAtX(lowerCenterY);
   const lowerLegSizeTopX = legSize * lowerScaleAtX(stretcherFloorOffset + lowerStretcherWidth);
@@ -515,7 +516,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: c.x, y: 0, z: c.z },
     // ctSplayMm > 0 → curvedTaper.splayMm 讓腳 3D/投影對角外踢（頂固定、底外移）
     shape: legShape === "curved-taper"
-      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange } })
+      ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange, sCurve: ctSCurve } })
       : legShape === "tapered"
         ? { kind: "tapered", bottomScale: 0.55 }
         : legEdgeShape(legEdge, legEdgeStyle),

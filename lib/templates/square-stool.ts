@@ -162,6 +162,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
+  const ctSCurve = getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve";
   const ctLowerCove = getOption<boolean>(input, opt(o, "ctLowerCove"));
   const apronProfile = getOption<string>(input, opt(o, "apronProfile"));
   const apronProfileDepth = getOption<number>(input, opt(o, "apronProfileDepth"));
@@ -551,7 +552,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       splayMm: Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight),
       chamferMm: parseLegChamferMm(legEdge),
       chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
-      curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
+      curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange, sCurve: ctSCurve },
     }) ?? legEdgeShape(legEdge, legEdgeStyle),
     // tenon X 軸朝家具中心偏，內側無肩（朝中心那邊貼腳邊 → 移除對應 shoulderOn）
     tenons: [
@@ -619,7 +620,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 其餘走既有線性 legScaleAt。牙板/橫撐長度都靠這個對到腳的實際內面。
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legHeight, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
       : legScaleAt(y, legHeight, bottomScale);
   /**
    * ⭐ Z 面的等效 scale —— **兩向弧肩專用**。
@@ -637,7 +638,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const legSizeScaleAtZ = (y: number): number =>
     legShape === "curved-taper" && ctTwoWay
-      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legHeight, legD, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
       : legScaleAt(y, legHeight, bottomScale);
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償

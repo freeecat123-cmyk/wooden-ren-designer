@@ -51,7 +51,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1; lowerCove?: CurvedTaperLowerCove }
+  | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1; lowerCove?: CurvedTaperLowerCove; sCurve?: boolean }
   | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
   | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number; sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
@@ -922,9 +922,18 @@ function ctGeom(
  * ⚠️ 弧的算式全站只能有這一份（測試會數 `shoulder * Math.cos` 的出現次數）。
  *    要做鏡射版就加旗標,不要另外抄一支 —— 以前抄成四份,改一個忘三個。
  */
-function coveInset(y: number, yRef: number, coveSpan: number, shoulder: number, flip = false): number {
+function coveInset(y: number, yRef: number, coveSpan: number, shoulder: number, flip = false, sCurve = false): number {
   if (coveSpan <= 0) return 0;
   const sinTh = Math.max(0, Math.min(1, (flip ? yRef - y : y - yRef) / coveSpan));
+  /**
+   * ⭐ S 形肩（`sCurve`，2026-08-26 木頭仁挑的）：兩端**都是垂直切線**。
+   *
+   * 圓弧版在方肩那端是**水平**切線 → 接撐段底緣是一個利落的 90° 直角。
+   * S 形改用 smoothstep `t²(3−2t)`（t = 從方肩往斜降的比例）：
+   * t=0 與 t=1 的一階導數都是 0 ⇒ 兩端在輪廓上都是垂直的，肩線是順順地「化開」。
+   * 深度（shoulder）與跨距（coveSpan）完全不變 —— 只換曲線,材料與榫位都不動。
+   */
+  if (sCurve) { const t = 1 - sinTh; return shoulder * t * t * (3 - 2 * t); }
   return shoulder * Math.cos(Math.asin(sinTh));
 }
 
@@ -936,12 +945,13 @@ export function curvedTaperInsetAtY(
   insetMm: number,
   y: number,
   lowerCove?: CurvedTaperLowerCove,
+  sCurve?: boolean,
 ): number {
   const g = ctGeom(lx, ly, blockHeightMm, shoulderMm, insetMm, lowerCove);
   const { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd } = g;
 
   if (y >= yBlockBot) return 0;
-  if (y >= yCoveEnd) return coveInset(y, yCoveEnd, coveSpan, shoulder);
+  if (y >= yCoveEnd) return coveInset(y, yCoveEnd, coveSpan, shoulder, false, sCurve);
 
   if (!g.lower) {
     // 單道弧（原本的行為）：直線斜降,yCoveEnd 處 = shoulder、腳底 = shoulder + inset
@@ -967,9 +977,9 @@ export function curvedTaperInsetAtY(
     if (span <= 0) return shoulder;
     return shoulder + taper1 * Math.max(0, Math.min(1, (yCoveEnd - y) / span));
   }
-  if (y >= bTop) return taper1 + coveInset(y, upStart, upSpan, shoulder, true);   // 接撐段上緣的弧
+  if (y >= bTop) return taper1 + coveInset(y, upStart, upSpan, shoulder, true, sCurve);   // 接撐段上緣的弧
   if (y >= bBot) return taper1;                                                 // 下接撐段：方的,橫撐坐這
-  if (y >= cove2End) return taper1 + coveInset(y, cove2End, coveSpan, shoulder);
+  if (y >= cove2End) return taper1 + coveInset(y, cove2End, coveSpan, shoulder, false, sCurve);
   const span2 = cove2End + hy;
   const rest = inset - taper1;
   const base = taper1 + shoulder;
@@ -996,6 +1006,7 @@ export function buildTwoWayCurvedTaperGeometry(
   dx: number = 0,
   dz: number = 0,
   lowerCove?: CurvedTaperLowerCove,
+  sCurve?: boolean,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2, hy = ly / 2, hz = lz / 2;
@@ -1018,14 +1029,14 @@ export function buildTwoWayCurvedTaperGeometry(
    * 取較窄那軸(轉折點較多、涵蓋另一軸)。
    */
   const ys: number[] = curvedTaperProfileYs(
-    Math.min(lx, lz), ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove,
+    Math.min(lx, lz), ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove, sCurve,
   );
   const rings: number[][] = [];
   for (const yRaw of ys) {
     const y = Math.max(-hy, Math.min(hy, yRaw));
-    const inX = curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove);
+    const inX = curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove, sCurve);
     // Z 方向用同一條輪廓，但基準是 lz（腳可能不是正方斷面）
-    const inZ = curvedTaperInsetAtY(lz, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove);
+    const inZ = curvedTaperInsetAtY(lz, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove, sCurve);
     // splay：頂固定、底外移（同 splayed 慣例）
     const t = (hy - y) / ly;
     const ox = dx * t, oz = dz * t;
@@ -1082,6 +1093,7 @@ export function buildCurvedTaperGeometry(
   dx: number = 0,
   dz: number = 0,
   lowerCove?: CurvedTaperLowerCove,
+  sCurve?: boolean,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1109,11 +1121,11 @@ export function buildCurvedTaperGeometry(
   const pts: [number, number][] = [];
   pts.push([hx, yTop]);  // 外頂（全寬）
   pts.push([hx, yBot]);  // 外底（外側垂直 plumb，不收）
-  const ysDown = curvedTaperProfileYs(lx, ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove);
+  const ysDown = curvedTaperProfileYs(lx, ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove, sCurve);
   // 內面由下而上（讓多邊形連成一圈）
   for (let i = ysDown.length - 1; i >= 0; i--) {
     const y = ysDown[i];
-    pts.push([-hx + curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove), y]);
+    pts.push([-hx + curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove, sCurve), y]);
   }
   // 套 dir（鏡射 X），再確保 CCW（負面積就反轉，讓 ExtrudeGeometry 側壁法線朝外）
   const P = pts.map(([x, y]) => [s * x, y] as [number, number]);
@@ -2452,10 +2464,10 @@ export function buildShapeGeometry(
       const dirZ = shape.dirZ ?? 1;
       return buildTwoWayCurvedTaperGeometry(
         size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm,
-        shape.dir, dirZ as -1 | 0 | 1, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove,
+        shape.dir, dirZ as -1 | 0 | 1, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove, shape.sCurve,
       );
     }
-    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove);
+    return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove, shape.sCurve);
   }
   if (shape.kind === "edge-profile") {
     return buildEdgeProfileGeometry(size, shape.style, shape.depthMm, shape.waveCount ?? 4, shape.topLengthScale ?? 1, shape.bottomLengthScale ?? 1);
@@ -2698,6 +2710,7 @@ export function curvedTaperProfileYs(
   shoulderMm: number,
   arcSeg: number,
   lowerCove?: CurvedTaperLowerCove,
+  sCurve?: boolean,
 ): number[] {
   const hy = ly / 2;
   const blockH = Math.max(0, Math.min(blockHeightMm, ly * 0.9));
@@ -2710,11 +2723,12 @@ export function curvedTaperProfileYs(
    *    沿高度均分的話,弧的上端(水平切線)點會拉得很開、下端擠成一團 ——
    *    而且跟改動前的輸出不一致(165 組腳型指紋會整批變動)。
    */
+  /** 圓弧沿 θ 均分；S 形（smoothstep）沿**高度**均分就夠密（曲率有界、兩端平） */
+  const coveY = (i: number) => sCurve
+    ? yCoveEnd + coveSpan * (1 - i / arcSeg)
+    : yCoveEnd + coveSpan * Math.sin((Math.PI / 2) * (1 - i / arcSeg));
   const ys: number[] = [hy, yBlockBot];
-  for (let i = 1; i <= arcSeg; i++) {
-    const th = (Math.PI / 2) * (1 - i / arcSeg);   // π/2 → 0，由上而下
-    ys.push(yCoveEnd + coveSpan * Math.sin(th));
-  }
+  for (let i = 1; i <= arcSeg; i++) ys.push(coveY(i));
   if (lowerCove) {
     // 下接撐段的上下緣 + 上下兩道弧（一樣沿角度均分）
     const bTop = Math.min(lowerCove.topMm - hy, yCoveEnd);
@@ -2725,13 +2739,15 @@ export function curvedTaperProfileYs(
     /** 接撐段**上緣**那道反向弧:由上而下 θ 從 0 → π/2,y 從 upStart 掉到 bTop */
     ys.push(upStart);
     for (let i = 1; i <= arcSeg; i++) {
-      const th = (Math.PI / 2) * (i / arcSeg);
-      ys.push(upStart - upSpan * Math.sin(th));
+      ys.push(sCurve
+        ? upStart - upSpan * (i / arcSeg)
+        : upStart - upSpan * Math.sin((Math.PI / 2) * (i / arcSeg)));
     }
     ys.push(bBot);
     for (let i = 1; i <= arcSeg; i++) {
-      const th = (Math.PI / 2) * (1 - i / arcSeg);
-      ys.push(cove2End + coveSpan * Math.sin(th));
+      ys.push(sCurve
+        ? cove2End + coveSpan * (1 - i / arcSeg)
+        : cove2End + coveSpan * Math.sin((Math.PI / 2) * (1 - i / arcSeg)));
     }
   }
   ys.push(-hy);

@@ -245,8 +245,12 @@ export const RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER = [
 export function curvedTaperLegOptions(group: OptionGroup = "leg"): OptionSpec[] {
   const dependsOn = { key: "legShape", oneOf: ["curved-taper"] };
   return [
-    { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。⚠️ 牙條可用高度 =「這個值 − 弧肩內收」——牙條底緣要讓開弧肩，不然會架在弧的起點上。例：接撐段 40、弧肩 8 → 牙條最高 32。", dependsOn },
+    { group, type: "number", key: "ctBlockHeight", label: "接撐段高", defaultValue: 40, min: 10, max: 250, step: 5, unit: "mm", help: "內面（接橫撐那面）頂部維持全寬的一節高度，留給橫桿／牙板接合。牙條會跟這一節**下緣切齊**；牙條設得比這裡高時，這一節會自動跟著長高（不會把牙條砍掉）。", dependsOn },
     { group, type: "number", key: "ctShoulder", label: "弧肩內收", defaultValue: 8, min: 0, max: 40, step: 1, unit: "mm", help: "接橫撐那面的凹弧肩往內收的量（同時是弧的半徑）。0＝無弧肩。", dependsOn },
+    { group, type: "select", key: "ctShoulderCurve", label: "弧肩曲線", defaultValue: "arc", choices: [
+      { value: "arc", label: "圓弧（方肩，預設）" },
+      { value: "s-curve", label: "S 形（順順化開）" },
+    ], wide: true, help: "圓弧：肩根是利落的 90° 直角，明式的硬朗做法。S 形：弧的兩端都順著腳面切出去，肩線化開、線條較軟（線鉋／砂磨才做得出來，手鑿較難）。內收深度與高度都不變，用料與榫位完全一樣。", dependsOn },
     { group, type: "checkbox", key: "ctLowerCove", label: "橫撐處也做弧肩", defaultValue: false, wide: true, help: "下橫撐位置再做一節接撐段 + 第二道弧肩（明式雙段肩）。橫撐就有自己的肩，不會接在已經斜降變細的地方。用料不變，但每支腳多一道挖弧工序。", dependsOn },
     { group, type: "number", key: "ctInset", label: "外面斜降", defaultValue: 12, min: 0, max: 100, step: 1, unit: "mm", help: "外面整支直線斜降、腳底往內收的量；內面弧肩以下維持垂直。", dependsOn },
     // 外斜獨立一欄（不共用 splayAngle）：splayAngle 各模板預設多為 5°，若讓 curved-taper
@@ -377,10 +381,11 @@ export function curvedTaperInnerScaleAt(
   shoulderMm: number,
   insetMm: number,
   lowerCove?: { botMm: number; topMm: number },
+  sCurve?: boolean,
 ): number {
   if (legHeight <= 0 || legSize <= 0) return 1;
   const recession = curvedTaperInsetAtY(
-    legSize, legHeight, blockHeightMm, shoulderMm, insetMm, Y - legHeight / 2, lowerCove,
+    legSize, legHeight, blockHeightMm, shoulderMm, insetMm, Y - legHeight / 2, lowerCove, sCurve,
   );
   return Math.max(-0.9, 1 - (2 * recession) / legSize);
 }
@@ -434,7 +439,7 @@ export function rectLegShape(
      *  splayMm > 0 = 選配外斜：腳底沿 X/Z 對角外踢 splayMm（依 corner 正負號），頂固定。
      *  ⚠️ 刻意不用外層 opts.splayMm（那是 splayed 系列用、模板常帶預設 5° 值）——
      *  避免既有 curved-taper 呼叫者未 opt-in 就突然全部外斜。 */
-    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number; twoWay?: boolean; lowerCove?: { botMm: number; topMm: number } };
+    curvedTaper?: { blockHeightMm: number; shoulderMm: number; insetMm: number; splayMm?: number; twoWay?: boolean; lowerCove?: { botMm: number; topMm: number }; sCurve?: boolean };
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
@@ -491,6 +496,7 @@ export function rectLegShape(
       insetMm: ct?.insetMm ?? 12,
       dir,
       ...(ct?.lowerCove ? { lowerCove: ct.lowerCove } : {}),
+      ...(ct?.sCurve ? { sCurve: true as const } : {}),
       ...(ct?.twoWay
         ? {
             twoWay: true as const,

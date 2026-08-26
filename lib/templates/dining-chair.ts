@@ -166,6 +166,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
+  const ctSCurve = getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve";
   // 一木連做（A 直料）強制 backRake=0；B/C 用使用者設的角度
   // continuous 模式 backInsetFromRear/End 強制歸零（背柱已跟後腳對齊）
 
@@ -505,7 +506,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     if (legShape === "curved-taper") {
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
+        curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange, sCurve: ctSCurve },
       });
     }
     return undefined;
@@ -800,7 +801,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // legSizeScaleAt === legScaleAt(y, legBaseHeight, bottomScale) → 兩者等價、無迴歸。
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, legBaseHeight, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
       : legScaleAt(y, legBaseHeight, bottomScale);
   const apronCenterY = apronY + apronWidth / 2;
   void backHeight;

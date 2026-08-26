@@ -146,6 +146,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const ctInset = getOption<number>(input, opt(o, "ctInset"));
   const ctSplayAngle = getOption<number>(input, opt(o, "ctSplay"));
   const ctTwoWay = getOption<boolean>(input, opt(o, "ctTwoWay"));
+  const ctSCurve = getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve";
   /**
    * ⚠️ 用**夾過**的值,不要再讀一次原始值。
    *    夾制算的是「扣掉錯開之後牙條還剩多高」,如果實際位移用的是沒夾過的值,
@@ -279,7 +280,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const bottomScale = legBottomScale(legShape);
   const legSizeScaleAt = (y: number): number =>
     legShape === "curved-taper"
-      ? curvedTaperInnerScaleAt(y, _legHeightForScale, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange)
+      ? curvedTaperInnerScaleAt(y, _legHeightForScale, legW, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
       : legScaleAt(y, _legHeightForScale, bottomScale);
   // 盲榫深度留背牆 ≥ 8mm，避免薄腳（腳粗/寬/厚改小）榫眼快穿透＝破口。母厚 ≥33 時 clamp 無作用
   // （standardTenon 盲榫 = max(25, 母厚×2/3)），故預設方腳 legSize=50 輸出不變、byte 一致。通榫不夾。
@@ -467,7 +468,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "curved-taper")
       return rectLegShape("curved-taper", c, {
-        curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange },
+        curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange, sCurve: ctSCurve },
       });
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };

@@ -289,6 +289,7 @@ export function curvedTaperProfilePoints(
   insetMm: number,
   dir: -1 | 0 | 1,
   lowerCove?: { botMm: number; topMm: number },
+  sCurve?: boolean,
 ): Array<[number, number]> {
   const hx = lx / 2;
   const hy = ly / 2;
@@ -312,10 +313,10 @@ export function curvedTaperProfilePoints(
   const pts: Array<[number, number]> = [];
   pts.push([hx, yTop]);  // 外頂（全寬）
   pts.push([hx, yBot]);  // 外底（外側垂直 plumb）
-  const ysDown = curvedTaperProfileYs(lx, ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove);
+  const ysDown = curvedTaperProfileYs(lx, ly, blockHeightMm, shoulderMm, CURVED_TAPER_ARC_SEG, lowerCove, sCurve);
   for (let i = ysDown.length - 1; i >= 0; i--) {
     const y = ysDown[i];
-    pts.push([-hx + curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove), y]);
+    pts.push([-hx + curvedTaperInsetAtY(lx, ly, blockHeightMm, shoulderMm, insetMm, y, lowerCove, sCurve), y]);
   }
   return pts.map(([x, y]) => [s * x, y] as [number, number]);
 }
@@ -478,7 +479,7 @@ export function projectPartSilhouette(
   //   橫躺零件卡的凹弧會被 hull 填平（僅外側斜降仍在），屬可接受的細節損失。
   if (part.shape?.kind === "curved-taper") {
     const prof = curvedTaperProfilePoints(
-      lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir, part.shape.lowerCove,
+      lx, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir, part.shape.lowerCove, part.shape.sCurve,
     );
     // 選配外斜（splay）：頂固定、底外移 dxMm/dzMm。t=(hy−y)/ly ∈ [0 頂,1 底]。0 = 既有行為。
     const ctDx = part.shape.dxMm ?? 0;
@@ -522,7 +523,7 @@ export function projectPartSilhouette(
         // 同一條輪廓函式，但寬度基準換成 lz、方向用 dz 的正負決定內面在哪一側
         const dirZ = (part.shape.dirZ ?? 1) as -1 | 0 | 1;
         const profZ = curvedTaperProfilePoints(
-          lz, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZ, part.shape.lowerCove,
+          lz, ly, part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZ, part.shape.lowerCove, part.shape.sCurve,
         );
         for (const [zp, yp] of profZ) {
           const t = shearT(yp);
@@ -1156,7 +1157,7 @@ export function projectPartPolygon(
       const dirZS = (part.shape.dirZ ?? 1) as -1 | 0 | 1;
       const profS = curvedTaperProfilePoints(
         part.visible.width, lyS,
-        part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZS, part.shape.lowerCove,
+        part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, dirZS, part.shape.lowerCove, part.shape.sCurve,
       );
       return profS.map(([lzp, lyp]) => {
         const t = (lyS / 2 - lyp) / lyS;
@@ -1169,7 +1170,7 @@ export function projectPartPolygon(
     // 正視 svg x = -wx（世界 +X → 螢幕左），故 screenX = cx - localX（與 box mirror 一致）。
     const prof = curvedTaperProfilePoints(
       part.visible.length, part.visible.thickness,
-      part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir, part.shape.lowerCove,
+      part.shape.blockHeightMm, part.shape.shoulderMm, part.shape.insetMm, part.shape.dir, part.shape.lowerCove, part.shape.sCurve,
     );
     const lyCT = part.visible.thickness;
     // 外斜 shear:local 頂(+ly/2)固定、底(-ly/2)外移 ctDx2(螢幕 X 鏡像 → 減號方向一致)
