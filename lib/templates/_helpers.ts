@@ -1659,15 +1659,21 @@ export function resolveApronSetbackForLeg(
  * 使用者自己把接撐段調更大時取大的那個（不會縮小他設的值）。
  *
  * 回傳實際要用的接撐段高;上限是腳高的 90%（跟幾何的 clamp 一致）。
+ *
+ * 🩸 2026-08-26 木頭仁:「牙條跟腳的接撐段還是不等高 有落差」。
+ *    原本 `need` 還多加一個 `coveSpanMm`(弧肩內收) —— 意思是「弧要在牙條**下面**才開始」,
+ *    結果接撐段永遠比牙條低 8mm,牙條下緣底下露出一條 8mm 的方料台階。
+ *    他設接撐段 40 / 牙條 40,看到的卻是 48 的接撐段。
+ *    ⇒ 拿掉。接撐段下緣 = 牙條下緣,弧就從牙條的下緣線流出去（這才是弧肩該有的樣子）。
+ *    要讓接撐段比牙條高是使用者自己把滑桿調大,不是程式偷加。
  */
 export function resolveCtBlockForApron(
   blockRaw: number,
   apronWanted: number,
   dropMm: number,
   staggerMm: number,
-  coveSpanMm: number,
   legHeightMm: number,
 ): number {
-  const need = dropMm + staggerMm + apronWanted + coveSpanMm;
+  const need = dropMm + staggerMm + apronWanted;
   return Math.max(0, Math.min(Math.max(blockRaw, need), legHeightMm * 0.9));
 }

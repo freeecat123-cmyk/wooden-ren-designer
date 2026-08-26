@@ -892,25 +892,39 @@ function ctGeom(
   const yBlockBot = hy - blockH;
   const yCoveEnd = yBlockBot - coveSpan;
   /**
-   * 有第二道弧時,腳底的總內縮 = 2×shoulder + inset ——
-   * 要留至少 5% 腳寬的肉,否則腳底細到不能用。
+   * 腳底的總內縮 = shoulder + inset —— 要留至少 5% 腳寬的肉。
+   *
+   * 🩸 第二道弧**不會**再多吃一個 shoulder:下接撐段上面有一道「反過來的弧」
+   *    把 shoulder 還回去（見 curvedTaperInsetAtY）。所以這裡跟單道弧同一條式子。
+   *    （舊版扣 2×shoulder → 35mm 的腳底只剩 7mm,木頭仁圖上腳尖細到不像話。）
    */
-  const nCove = lower ? 2 : 1;
-  const inset = Math.max(0, Math.min(insetMm, lx - nCove * shoulder - lx * 0.05));
+  const inset = Math.max(0, Math.min(insetMm, lx - shoulder - lx * 0.05));
   if (!lower) return { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd, lower: null as null };
   // 轉成中心原點座標
   const bTop = Math.min(lower.topMm - hy, yCoveEnd);
   const bBot = Math.min(lower.botMm - hy, bTop);
   const cove2End = Math.max(-hy, bBot - coveSpan);
+  /** 下接撐段**上緣**的弧起點（往上讓出一個弧的高度;不夠高就縮到弧1 結束處） */
+  const upStart = Math.min(yCoveEnd, bTop + coveSpan);
+  const upSpan = Math.max(0, upStart - bTop);
   /** 外面的斜降分成兩段:上段（弧1→下接撐段）拿一半,下段（弧2→腳底）拿另一半 */
   const taper1 = inset / 2;
-  return { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd, lower: { bTop, bBot, cove2End, taper1 } };
+  return { hy, shoulder, coveSpan, inset, yBlockBot, yCoveEnd, lower: { bTop, bBot, cove2End, taper1, upStart, upSpan } };
 }
 
-/** 弧的內縮量:`shoulder·cos(θ)`,θ 由高度反解（§A11.8） */
-function coveInset(y: number, yEnd: number, coveSpan: number, shoulder: number): number {
+/**
+ * 弧的內縮量:`shoulder·cos(θ)`,θ 由高度反解（§A11.8）。
+ *
+ * `flip = false`（預設,方肩在上）：`yRef` 處 = shoulder、`yRef + span` 處 = 0。
+ * `flip = true` （上下顛倒,方肩在下）：`yRef` 處 = shoulder、`yRef − span` 處 = 0。
+ *   ↳ 給「下接撐段的**上緣**」用。方肩那端切線水平、斜降那端切線垂直,只是鏡射。
+ *
+ * ⚠️ 弧的算式全站只能有這一份（測試會數 `shoulder * Math.cos` 的出現次數）。
+ *    要做鏡射版就加旗標,不要另外抄一支 —— 以前抄成四份,改一個忘三個。
+ */
+function coveInset(y: number, yRef: number, coveSpan: number, shoulder: number, flip = false): number {
   if (coveSpan <= 0) return 0;
-  const sinTh = Math.max(0, Math.min(1, (y - yEnd) / coveSpan));
+  const sinTh = Math.max(0, Math.min(1, (flip ? yRef - y : y - yRef) / coveSpan));
   return shoulder * Math.cos(Math.asin(sinTh));
 }
 
@@ -937,22 +951,30 @@ export function curvedTaperInsetAtY(
   }
 
   /**
-   * ⭐ A 案（木頭仁 2026-08-25 選的）：
-   *   弧1 → 斜降(分一半) → **下接撐段維持不收**（橫撐坐這裡）→ 弧2 → 繼續斜降到腳底
+   * ⭐ A 案（木頭仁 2026-08-25 選的），2026-08-26 補上緣的弧：
+   *   弧1 → 斜降(分一半) → **弧(上下顛倒)** → 下接撐段 → 弧2 → 繼續斜降到腳底
+   *
+   * 🩸 木頭仁:「腳接橫撐只有下面有弧 上面沒有」。
+   *    第一版只在接撐段**下面**做弧,上面是直接一條斜線切進去 —— 那不是「肩」,
+   *    看起來就只是腳中間忽然變寬。要成對才是接撐段（跟上面牙條那段一樣的作法）。
+   *
+   * 這道反向弧會把 shoulder **還回去**,所以腳底的總內縮跟單道弧一樣是
+   * shoulder + inset（見 ctGeom 的 clamp）。
    */
-  const { bTop, bBot, cove2End, taper1 } = g.lower;
-  if (y >= bTop) {
-    const span = yCoveEnd - bTop;
+  const { bTop, bBot, cove2End, taper1, upStart, upSpan } = g.lower;
+  if (y >= upStart) {
+    const span = yCoveEnd - upStart;
     if (span <= 0) return shoulder;
     return shoulder + taper1 * Math.max(0, Math.min(1, (yCoveEnd - y) / span));
   }
-  const base = shoulder + taper1;
-  if (y >= bBot) return base;                                   // 下接撐段：不收
-  if (y >= cove2End) return base + coveInset(y, cove2End, coveSpan, shoulder);
+  if (y >= bTop) return taper1 + coveInset(y, upStart, upSpan, shoulder, true);   // 接撐段上緣的弧
+  if (y >= bBot) return taper1;                                                 // 下接撐段：方的,橫撐坐這
+  if (y >= cove2End) return taper1 + coveInset(y, cove2End, coveSpan, shoulder);
   const span2 = cove2End + hy;
   const rest = inset - taper1;
-  if (span2 <= 0) return base + shoulder + rest;
-  return base + shoulder + rest * Math.max(0, Math.min(1, (cove2End - y) / span2));
+  const base = taper1 + shoulder;
+  if (span2 <= 0) return base + rest;
+  return base + rest * Math.max(0, Math.min(1, (cove2End - y) / span2));
 }
 
 /**
@@ -2694,11 +2716,19 @@ export function curvedTaperProfileYs(
     ys.push(yCoveEnd + coveSpan * Math.sin(th));
   }
   if (lowerCove) {
-    // 下接撐段的上下緣 + 第二道弧（一樣沿角度均分）
+    // 下接撐段的上下緣 + 上下兩道弧（一樣沿角度均分）
     const bTop = Math.min(lowerCove.topMm - hy, yCoveEnd);
     const bBot = Math.min(lowerCove.botMm - hy, bTop);
     const cove2End = Math.max(-hy, bBot - coveSpan);
-    ys.push(bTop, bBot);
+    const upStart = Math.min(yCoveEnd, bTop + coveSpan);
+    const upSpan = Math.max(0, upStart - bTop);
+    /** 接撐段**上緣**那道反向弧:由上而下 θ 從 0 → π/2,y 從 upStart 掉到 bTop */
+    ys.push(upStart);
+    for (let i = 1; i <= arcSeg; i++) {
+      const th = (Math.PI / 2) * (i / arcSeg);
+      ys.push(upStart - upSpan * Math.sin(th));
+    }
+    ys.push(bBot);
     for (let i = 1; i <= arcSeg; i++) {
       const th = (Math.PI / 2) * (1 - i / arcSeg);
       ys.push(cove2End + coveSpan * Math.sin(th));

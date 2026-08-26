@@ -1,7 +1,6 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
-import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { caseFurniture } from "./_builders/case-furniture";
 import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-row";
@@ -197,17 +196,11 @@ export const desk: FurnitureTemplate = (input) => {
    *    ⇒ 改成呼叫**同一支** `resolveCtBlockForApron()`,不要再抄邏輯。
    */
   const ctBlockHeightForApron = getOption<number>(input, opt(o, "ctBlockHeight"));
-  const _deskCoveSpan = curvedTaperCoveSpan(
-    getOption<number>(input, opt(o, "legSize")),
-    input.height,
-    ctBlockHeightForApron,
-    getOption<number>(input, opt(o, "ctShoulder")),
-  );
   const apronWidthClamped =
     legShape === "curved-taper"
       ? Math.min(
           apronWidthRaw,
-          resolveCtBlockForApron(ctBlockHeightForApron, apronWidthRaw, 0, 0, _deskCoveSpan, input.height) - _deskCoveSpan,
+          resolveCtBlockForApron(ctBlockHeightForApron, apronWidthRaw, 0, 0, input.height),
         )
       : apronWidthRaw;
   const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthClamped : 0);

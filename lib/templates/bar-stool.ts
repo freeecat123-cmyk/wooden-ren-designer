@@ -10,7 +10,6 @@ import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
-import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 // 吧台椅尺寸範圍很穩定，沒明顯需要建議切換的目標模板（dining-chair 是椅背較大的不同物件）。
 
 export const barStoolOptions: OptionSpec[] = [
@@ -201,22 +200,21 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
    *    左右牙條跟著短一點,總比前後那對露出缺口好。
    */
   /**
-   * ⭐ 牙條底緣還要**讓開弧肩那一段**,不能貼著接撐段底。
+   * ⭐ 牙條下緣 = 接撐段下緣,弧就從牙條的下緣線流出去。
    *
-   * 接撐段是全寬的沒錯,所以牙條做滿 40 幾何上撐得住 —— 但弧的上端是水平切線,
-   * 一離開接撐段底就立刻往內切(1mm 內縮 3.8mm),牙條底緣等於架在刀口上。
-   * 木頭仁 2026-08-25 實測:接撐段 40 / 弧肩內收 8 → 牙條要 **32** 才對,
-   * 差的正好就是弧肩那一段。
+   * 🩸 2026-08-26 木頭仁:「牙條跟腳的接撐段還是不等高 有落差」。
+   *    以前這裡還要**多讓開一個弧肩(coveSpan)**,接撐段永遠比牙條低 8mm,
+   *    牙條底下露出一條方料台階 —— 他設接撐段 40 / 牙條 40,實際卻是 48。
+   *    弧的上端切線是水平的,所以貼齊時牙條底緣仍然落在**全寬的方肩**上,撐得住。
    */
-  const _ctCoveSpan = curvedTaperCoveSpan((legW), input.height, ctBlockHeight, ctShoulder);
-  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp + _ctCoveSpan;
+  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp;
   /**
    * ⭐ 反過來:**接撐段長高去容納牙條**,不要把牙條砍掉。
    *    (2026-08-25 木頭仁「牙條高度又卡住了」—— 原本不管設多少都被砍成 32mm。)
    *    使用者自己把接撐段調更大時取大的那個。
    */
   const ctBlockEff = resolveCtBlockForApron(
-    ctBlockHeight, _apronWidthRaw, apronOffset, _ctApronStaggerForClamp, _ctCoveSpan, height - seatThickness,
+    ctBlockHeight, _apronWidthRaw, apronOffset, _ctApronStaggerForClamp, height - seatThickness,
   );
   const ctApronMaxH = Math.max(0, ctBlockEff - _ctApronDrop);
   const apronWidth = legShape === "curved-taper"
@@ -230,7 +228,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const ctApronWarnings: string[] =
     legShape === "curved-taper" && apronWidth < _apronWidthRaw
-      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm − 弧肩 ${_ctCoveSpan}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
+      ? [`牙板高 ${_apronWidthRaw}mm 放不進弧肩斜腳的接撐段（接撐段 ${ctBlockHeight}mm − 牙板下垂 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm = 可用 ${ctApronMaxH}mm），已收到 ${apronWidth}mm。` +
          `牙板下緣一旦蓋到弧肩，交界處會露出空隙。要更高的牙板，請把「接撐段高」一起調高。`]
       : [];
   // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；夾上限不破壞此語意

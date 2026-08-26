@@ -221,10 +221,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
    */
   const ctBlockEff = isCurvedTaper
     // ⚠️ 上限要用**腳高**(height − 面板厚),不是家具總高 —— 用總高會讓接撐段超過腳
-    ? resolveCtBlockForApron(ctBlockHeight, apronWidthWanted, 0, 0, ctCoveSpan, opts.height - topThickness)
+    ? resolveCtBlockForApron(ctBlockHeight, apronWidthWanted, 0, 0, opts.height - topThickness)
     : ctBlockHeight;
+  /** 🩸 這裡以前是 `ctBlockEff − ctCoveSpan`,接撐段不再自動加高後會**反過來砍牙條 8mm**。 */
   const apronWidth = isCurvedTaper
-    ? Math.max(0, Math.min(apronWidthWanted, ctBlockEff - ctCoveSpan))
+    ? Math.max(0, Math.min(apronWidthWanted, ctBlockEff))
     : apronWidthWanted;
   /**
    * 🧷 夾了要出聲（§A10.11 第 2 條）。

@@ -30,7 +30,8 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 |---|---|---|
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
 | 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
-| 牙條放不進接撐段 / 底緣懸空 | `"牙條可用高度\|ctApronMaxH\|curvedTaperCoveSpan"` | §A11.8 |
+| 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
+| 牙條放不進接撐段 / 跟接撐段不等高 | `"牙條可用高度\|ctApronMaxH\|resolveCtBlockForApron"` | §A11.8 |
 | 弧肩看起來是幾片平面 | `"ARC = 24\|取樣高度要照輪廓轉折點"` | §A9.9, §A11.8 |
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
 | 端面側單肩 / mortise 邊緣保護 | `"端面側單肩\|edge-protection\|10mm 留材"` | §A10.10 |
@@ -348,6 +349,33 @@ ys = [hy, yBlockBot, …弧段 24 等分…, −hy]
 
 驗證方式：數「落在弧段高度範圍內的三角形有幾種不同法線」——
 0 = 整段被跳過；修好後單向 24、兩向 50。
+
+**⭐ A9.9b 橫撐處的第二道弧肩 `lowerCove`（2026-08-26）**
+
+木頭仁：「在來想接橫撐的位置也增加弧肩」→ 選 A 案（保留斜降、橫撐處另做一節接撐段）。
+
+輪廓由上而下（`curvedTaperInsetAtY` 是全站**唯一**一份）：
+
+```
+方肩(接撐段1) → 弧1 → 斜降(拿 inset/2) → 弧1′(上下顛倒) → 方肩(接撐段2) → 弧2 → 斜降(剩下的一半) → 腳底
+```
+
+- `lowerCove: { botMm, topMm }` = **從腳底量**的高度區間，直接等於下橫撐佔的高度
+  （template 端 `ctLowerCoveRange`，要跟算橫撐位置用**同一條式子**，不然弧會跑到橫撐旁邊）。
+- ⭐ **上下要成對**。第一版只做了下緣那道弧，木頭仁：「腳接橫撐只有下面有弧 上面沒有」——
+  只有一邊的話腳中間只是忽然變寬，不成「肩」。
+  上緣那道是同一條式子的**鏡射**：`coveInset(y, yRef, span, shoulder, flip=true)`，
+  `yRef` 處 = shoulder、`yRef − span` 處 = 0。⚠️ 不可以另抄一支（測試會數
+  `shoulder * Math.cos` 的出現次數；歷史上抄成 4 份，改一個忘三份）。
+- ⭐ **腳底總內縮仍是 `shoulder + inset`**，跟單道弧一樣 —— 上緣那道鏡射弧把 shoulder
+  還回去了。第一版扣 `2×shoulder` → 35mm 的腳底只剩 7mm，腳尖細到不能用。
+- 取樣點：上緣弧沿 θ 均分 `y = upStart − upSpan·sin(θ)`（θ: 0 → π/2），
+  下緣弧 `y = cove2End + coveSpan·sin(θ)`（θ: π/2 → 0）。漏掉上緣那組 → 3D 切成一刀斜面。
+- 🩸 **3D 預覽會漏欄位**：`PerspectiveView.tsx` 逐欄位重組 shape 給 three.js，
+  新欄位沒加進去就完全收不到（`dirZ` 8/25 漏過一次、`lowerCove` 8/26 再漏一次，
+  兩次都是「幾何對、三視圖對、稽核全綠，只有 3D 錯」）。已加守衛測試逐欄位比對。
+
+稽核：`scripts/audit-lower-cove.ts`（9 款勾了都要真的多一道弧、沒勾的完全不受影響）。
 
 **⭐ `dirZ` 一定要跟 `dir` 用完全一樣的式子（2026-08-24 上線後回報的 bug）**
 
@@ -774,18 +802,28 @@ curved-taper 只有**內面（-dir 側，接橫撐那面）沿高度收窄**（�
   `legScaleAt(y, legHeight, legBottomScale)`（curved-taper 的 bottomScale=1＝不補償）。
   `apronGeomFor(yCenter, legDim, compensate)` 的 `compensate` 旗標即此拆分；Z 牙板傳 `false`
   （否則 `apronDropFromTop>0` 時左右牙板每端多伸插進腳）。對非 curved-taper 腳兩者等價＝無迴歸。
-- ⭐ **牙條可用高度（2026-08-25，木頭仁實測 3 輪才定出來）**：
+- ⭐ **接撐段高跟著牙條長，不要反過來砍牙條（2026-08-26 定案，前後推翻兩次）**：
 
   ```
-  牙條可用高度 = 接撐段高 − 牙條下垂 − 牙條錯開 − 弧肩跨距
+  接撐段高 = max(使用者設的接撐段高, 牙條下垂 + 牙條錯開 + 牙條高)
+  牙條可用高度 = 接撐段高 − 牙條下垂 − 牙條錯開          ← 不再扣弧肩跨距
   ```
 
-  四項都會把牙條底緣往下推，**四項都要扣**。歷史上漏過兩次：
+  演進（三個版本，每一版都是木頭仁打回來的）：
 
-  | 漏掉的 | 症狀 | 量級 |
+  | 版本 | 規則 | 症狀 |
   |---|---|---|
-  | 牙條錯開 `apronStaggerMm` | 底緣掉出接撐段、懸空在凹弧上方 | 錯開 2mm → 懸空 5.3mm |
-  | 弧肩跨距 `curvedTaperCoveSpan()` | 底緣架在弧的起點（水平切線）上，看起來像缺口 | 接撐段 40 → 牙條只能 32 |
+  | v1 | 牙條 ≤ 接撐段 − 下垂 | 錯開 2mm → 牙條底緣懸空 5.3mm |
+  | v2 | 再扣「錯開 + 弧肩跨距」 | 接撐段預設 40、弧肩 8 → **牙條一律被砍成 32**（餐桌 100→32、書桌 90→32） |
+  | v3 ✅ | **接撐段長高去容納牙條**，且**不再多讓弧肩** | 接撐段 40 / 牙條 40 → 下緣切齊，落差 0 |
+
+  ⚠️ **為什麼不用讓開弧肩**：弧的上端切線是**水平**的（`inset = shoulder·cos(θ)`，θ=π/2 時
+  d(inset)/dy = ∞），所以牙條底緣貼齊接撐段下緣時，它底下那一層仍是**全寬的方肩**，
+  不是「架在刀口上」。v2 的直覺（1mm 內縮 3.8mm）算的是弧**中段**的斜率，套錯位置。
+
+  🧷 三個地方要同步，改一個忘兩個就會反過來砍牙條 8mm：
+  `resolveCtBlockForApron()`、各 template 的 `ctApronMaxH`、
+  `_builders/simple-table.ts` 與 `desk.ts` 的 `min(apronWanted, ctBlockEff)`。
 
   🧷 **錯開本身也要夾**（`ctBlockHeight − 下垂 − 10mm`），否則
   「錯開 80 vs 接撐段 40」會把牙條夾成**高度 0 的零件**。

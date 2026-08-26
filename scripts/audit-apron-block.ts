@@ -12,7 +12,7 @@
  *    ⇒ 掃描要把**每一個會影響位置的選項**都推過一遍,不能只用預設值。
  */
 import { FURNITURE_CATALOG } from "@/lib/templates";
-import { curvedTaperCoveSpan, curvedTaperInsetAtY } from "@/lib/render/part-geometry";
+import { curvedTaperInsetAtY } from "@/lib/render/part-geometry";
 
 const CATS = ["stool", "bench", "side-table", "low-table", "dining-table", "desk", "dining-chair", "bar-stool", "tea-table"];
 const hits: string[] = [];
@@ -38,18 +38,18 @@ for (const cat of CATS) {
       // 只有「牙條」該落在接撐段內;橫撐本來就在弧下面,不算
       if (!/apron/.test(p.id)) continue;
       /**
-       * 兩條都要過:
-       *   1. 牙條底緣不可以掉到接撐段以下(掉下去就懸空在凹弧上方)
-       *   2. 還要**讓開弧肩那一段** —— 弧的上端是水平切線,貼著接撐段底
-       *      等於架在刀口上(1mm 內縮 3.8mm)。木頭仁 2026-08-25 實測:
-       *      接撐段 40 / 弧肩 8 → 牙條要 32 才對。
+       * 牙條底緣不可以掉到接撐段以下 —— 掉下去就懸空在凹弧上方,交界處會有缺口。
+       *
+       * 🩸 2026-08-26 更新:原本還多要求「再讓開一個弧肩」,結果接撐段永遠比牙條低 8mm,
+       *    木頭仁:「牙條跟腳的接撐段還是不等高 有落差」。
+       *    弧的上端切線是**水平**的 → 貼齊時牙條底緣仍落在全寬的方肩上,不是架在刀口。
+       *    ⇒ 標準改成「牙條底緣 ≥ 接撐段底緣」,可以剛好貼齊。
        */
       const legTop = leg.origin.y + lh;
       let blockBottom = leg.origin.y;
       for (let y = legTop; y >= leg.origin.y; y -= 0.05)
         if (curvedTaperInsetAtY(lw, lh, sh.blockHeightMm, sh.shoulderMm, sh.insetMm, y - leg.origin.y - lh / 2) > 0.01) { blockBottom = y; break; }
-      const coveSpan = curvedTaperCoveSpan(lw, lh, sh.blockHeightMm, sh.shoulderMm);
-      const shortBy = (blockBottom + coveSpan) - p.origin.y;   // >0 = 沒讓夠
+      const shortBy = blockBottom - p.origin.y;   // >0 = 牙條底緣掉出接撐段
       if (shortBy > w) { w = shortBy; who = p.nameZh ?? p.id; }
     }
     return { w, who };
@@ -67,19 +67,19 @@ for (const cat of CATS) {
       if (v === s.defaultValue) continue;
       try {
         const r = worst({ [key]: v });
-        if (r && r.w > 0.6) hits.push(`  ${cat.padEnd(13)} ${key}=${String(v).padEnd(5)} → ${r.who} 底緣少讓 ${r.w.toFixed(2)}mm（沒讓開弧肩）`);
+        if (r && r.w > 0.6) hits.push(`  ${cat.padEnd(13)} ${key}=${String(v).padEnd(5)} → ${r.who} 底緣掉出接撐段 ${r.w.toFixed(2)}mm`);
       } catch { /* 無效組合 */ }
     }
   }
   const base0 = worst({});
-  console.log(`${cat.padEnd(14)} 預設:牙條底緣比「接撐段底＋弧肩」還低 ${base0 ? base0.w.toFixed(2) : "—"}mm ${base0 && base0.w <= 0.6 ? "✅" : "❌"}`);
+  console.log(`${cat.padEnd(14)} 預設:牙條底緣比接撐段底還低 ${base0 ? base0.w.toFixed(2) : "—"}mm ${base0 && base0.w <= 0.6 ? "✅" : "❌"}`);
 }
 
-console.log(`\n牙條底緣沒讓開弧肩的設定:${hits.length ? "" : " (無)"}`);
+console.log(`\n牙條底緣掉出接撐段的設定:${hits.length ? "" : " (無)"}`);
 hits.slice(0, 40).forEach((h) => console.log(h));
 
 if (hits.length > 0) {
-  console.log("\n⛔ 牙條底緣沒讓開弧肩 = 3D 交界處會有缺口／底緣架在刀口上。修在「牙條高度的夾制」,把所有下移量與弧肩都扣掉。");
+  console.log("\n⛔ 牙條底緣掉出接撐段 = 底緣懸空在凹弧上方,3D 交界處會有缺口。修在「接撐段高度」,讓它長高去容納牙條(含所有下移量)。");
   process.exit(1);
 }
-console.log("\n✅ 每一款、每一種設定,牙條底緣都落在接撐段內、而且讓開了弧肩。");
+console.log("\n✅ 每一款、每一種設定,牙條底緣都落在接撐段內。");

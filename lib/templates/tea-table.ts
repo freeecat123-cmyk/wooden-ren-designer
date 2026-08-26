@@ -44,7 +44,6 @@ import { resolveCtBlockForApron,
 import { applyStandardChecks, appendSuggestion, appendWarnings } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 import { formatMm } from "@/lib/units/format";
-import { curvedTaperCoveSpan } from "@/lib/render/part-geometry";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -238,22 +237,21 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
    *    左右牙條跟著短一點,總比前後那對露出缺口好。
    */
   /**
-   * ⭐ 牙條底緣還要**讓開弧肩那一段**,不能貼著接撐段底。
+   * ⭐ 牙條下緣 = 接撐段下緣,弧就從牙條的下緣線流出去。
    *
-   * 接撐段是全寬的沒錯,所以牙條做滿 40 幾何上撐得住 —— 但弧的上端是水平切線,
-   * 一離開接撐段底就立刻往內切(1mm 內縮 3.8mm),牙條底緣等於架在刀口上。
-   * 木頭仁 2026-08-25 實測:接撐段 40 / 弧肩內收 8 → 牙條要 **32** 才對,
-   * 差的正好就是弧肩那一段。
+   * 🩸 2026-08-26 木頭仁:「牙條跟腳的接撐段還是不等高 有落差」。
+   *    以前這裡還要**多讓開一個弧肩(coveSpan)**,接撐段永遠比牙條低 8mm,
+   *    牙條底下露出一條方料台階 —— 他設接撐段 40 / 牙條 40,實際卻是 48。
+   *    弧的上端切線是水平的,所以貼齊時牙條底緣仍然落在**全寬的方肩**上,撐得住。
    */
-  const _ctCoveSpan = curvedTaperCoveSpan((legSize), input.height, ctBlockHeight, ctShoulder);
-  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp + _ctCoveSpan;
+  const _ctApronDrop = apronOffset + _ctApronStaggerForClamp;
   /**
    * ⭐ 反過來:**接撐段長高去容納牙條**,不要把牙條砍掉。
    *    (2026-08-25 木頭仁「牙條高度又卡住了」—— 原本不管設多少都被砍成 32mm。)
    *    使用者自己把接撐段調更大時取大的那個。
    */
   const ctBlockEff = resolveCtBlockForApron(
-    ctBlockHeight, _upperApronWidthRaw, apronOffset, _ctApronStaggerForClamp, _ctCoveSpan, height - topThickness,
+    ctBlockHeight, _upperApronWidthRaw, apronOffset, _ctApronStaggerForClamp, height - topThickness,
   );
   const ctApronMaxH = Math.max(0, ctBlockEff - _ctApronDrop);
   const upperApronWidth = isCurvedTaper
@@ -268,7 +266,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
    */
   const ctApronWarnings: string[] =
     isCurvedTaper && upperApronWidth < _upperApronWidthRaw
-      ? [`牙條高 ${_upperApronWidthRaw}mm 放不進弧肩斜腳的接撐段(接撐段 ${ctBlockHeight}mm − 牙條距桌面 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm − 弧肩 ${_ctCoveSpan}mm = 可用 ${ctApronMaxH}mm),已收到 ${upperApronWidth}mm。` +
+      ? [`牙條高 ${_upperApronWidthRaw}mm 放不進弧肩斜腳的接撐段(接撐段 ${ctBlockHeight}mm − 牙條距桌面 ${apronOffset}mm − 牙條錯開 ${_ctApronStaggerForClamp}mm = 可用 ${ctApronMaxH}mm),已收到 ${upperApronWidth}mm。` +
          `牙條下緣一旦蓋到弧肩,交界處會露出缺口。要更高的牙條,請把「接撐段高」一起調高、或把「牙條錯開」調小。`]
       : [];
   const legHeight = height - topThickness;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { projectPartSilhouette, projectPartPolygon, curvedTaperProfilePoints } from "./geometry";
 import * as fs from "node:fs";
-import { CURVED_TAPER_ARC_SEG, buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperCoveSpan, curvedTaperInsetAtY } from "./part-geometry";
+import { CURVED_TAPER_ARC_SEG, buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperCoveSpan, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
@@ -549,6 +549,79 @@ describe("3D 預覽不可以漏掉 curved-taper 的任何欄位", () => {
         branch.includes(f),
         `PerspectiveView 的 curved-taper 分支漏了「${f}」→ 3D 會跟三視圖／零件圖不一樣`,
       ).toBe(true);
+    }
+  });
+});
+
+/**
+ * 🩸 2026-08-26 木頭仁:「腳接橫撐只有下面有弧 上面沒有」。
+ *
+ * 下接撐段（橫撐坐的那一節）要跟上面牙條那節一樣是**成對的弧肩** ——
+ * 上緣一道（上下顛倒的弧）、下緣一道。只有下面那道的話,腳中間只是忽然變寬,
+ * 不成「肩」。
+ */
+describe("下接撐段（橫撐處）的弧肩必須上下成對", () => {
+  const LX = 35, LY = 425, BH = 40, SH = 8, INS = 12;
+  const LC = { botMm: 106, topMm: 146 };
+  const hy = LY / 2;
+  const at = (yFromBottom: number) =>
+    curvedTaperInsetAtY(LX, LY, BH, SH, INS, yFromBottom - hy, LC);
+  const coveSpan = curvedTaperCoveSpan(LX, LY, BH, SH);
+
+  it("接撐段上緣往上那一段是弧,不是直線", () => {
+    /** 弧要「鼓」出直線弦外面。四分之一圓在中點的偏離 = 0.366×shoulder。 */
+    const N = 12;
+    const ys = Array.from({ length: N + 1 }, (_, i) => LC.topMm + (coveSpan * i) / N);
+    const v = ys.map(at);
+    const chord = (i: number) => v[0] + ((v[N] - v[0]) * i) / N;
+    const dev = Math.max(...v.map((x, i) => Math.abs(x - chord(i))));
+    expect(dev, `輪廓跟直線只差 ${dev.toFixed(2)}mm → 接撐段上緣是一條直線,沒有弧`)
+      .toBeGreaterThan(SH * 0.25);
+  });
+
+  it("上緣的弧要把腳收回到接撐段的寬度（跟下緣的弧對稱）", () => {
+    const atBlockTop = at(LC.topMm);
+    const atBlockBot = at(LC.botMm);
+    const above = at(LC.topMm + coveSpan);
+    const below = at(LC.botMm - coveSpan);
+    // 接撐段本身是方的
+    expect(Math.abs(atBlockTop - atBlockBot)).toBeLessThan(0.01);
+    // 上下兩側各讓出一個 shoulder,而且量要一樣（對稱）
+    expect(above - atBlockTop).toBeCloseTo(SH, 1);
+    expect(below - atBlockBot).toBeCloseTo(SH, 1);
+  });
+
+  it("多一道弧不可以害腳底變細（上緣的弧會把 shoulder 還回去）", () => {
+    const withLC = at(0);
+    const withoutLC = curvedTaperInsetAtY(LX, LY, BH, SH, INS, 0 - hy);
+    expect(withLC, `腳底內縮 ${withLC} vs 單道弧 ${withoutLC} —— 勾了橫撐弧肩腳尖就變細`)
+      .toBeCloseTo(withoutLC, 1);
+  });
+
+  it("取樣點要落在上緣的弧上（不然 3D 會切成一刀斜面）", () => {
+    const ys = curvedTaperProfileYs(LX, LY, BH, SH, CURVED_TAPER_ARC_SEG, LC);
+    const inBand = ys.filter((y) => y > LC.topMm - hy + 1e-6 && y < LC.topMm - hy + coveSpan - 1e-6);
+    expect(inBand.length, "接撐段上緣那道弧一個取樣點都沒有").toBeGreaterThanOrEqual(8);
+  });
+});
+
+/**
+ * 🩸 2026-08-26 木頭仁:「牙條跟腳的接撐段還是不等高 有落差」。
+ * 接撐段不可以自己偷偷比牙條高（以前多加一個弧肩 → 底下露出 8mm 方料台階）。
+ */
+describe("接撐段高 = 牙條高（不准偷偷加高）", () => {
+  it("接撐段高與牙條高設成一樣時,兩者的下緣要對齊", () => {
+    const e = (FURNITURE_CATALOG as any[]).find((x) => x.category === "stool")!;
+    const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+    for (const h of [32, 40, 50]) {
+      const d = e.template({
+        length: 350, width: 350, height: 450, material: "pine",
+        options: { ...base, legShape: "curved-taper", ctBlockHeight: h, apronWidth: h },
+      });
+      const leg = (d.parts as any[]).find((p) => p.shape?.kind === "curved-taper")!;
+      const ap = (d.parts as any[]).find((p) => p.id === "apron-front")!;
+      const blockBot = leg.origin.y + leg.visible.thickness - leg.shape.blockHeightMm;
+      expect(ap.origin.y - blockBot, `接撐段 ${h} / 牙條 ${h} 卻差了`).toBeCloseTo(0, 5);
     }
   });
 });
