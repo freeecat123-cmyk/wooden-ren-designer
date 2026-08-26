@@ -122,7 +122,8 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
     title: (d) => {
       const legs = d.parts.filter((p) => p.shape?.kind === "curved-taper");
       const two = legs.some((p) => (p.shape as { twoWay?: boolean } | undefined)?.twoWay);
-      return `Cut the cove shoulders (${legs.length} legs × ${two ? 2 : 1} face${two ? "s" : ""})`;
+      const lower = legs.some((p) => (p.shape as { lowerCove?: unknown } | undefined)?.lowerCove);
+      return `Cut the cove shoulders (${legs.length} legs × ${two ? 2 : 1} face${two ? "s" : ""}${lower ? " × 2 coves" : ""})`;
     },
     description: (d) => {
       const two = d.parts.some(
@@ -138,13 +139,16 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
       );
     },
     bullets: (d) => {
-      const two = d.parts.some(
-        (p) => p.shape?.kind === "curved-taper" && (p.shape as { twoWay?: boolean }).twoWay,
-      );
+      const ct = d.parts.filter((p) => p.shape?.kind === "curved-taper");
+      const two = ct.some((p) => (p.shape as { twoWay?: boolean }).twoWay);
+      const lower = ct.some((p) => (p.shape as { lowerCove?: unknown }).lowerCove);
+      const sc = ct.some((p) => (p.shape as { sCurve?: boolean }).sCurve);
       return [
         "A router template beats hand-chopping — that's how all four legs come out identical",
         "Do not rout the block section — the apron joins onto it",
         ...(two ? ["Keep the inner arris between the two coves crisp — that line is the whole point of this leg"] : []),
+        ...(lower ? ["The stretcher block is coved on BOTH edges — cut the whole run (upper cove + block + lower cove) from one template; routing it in two passes will not line up"] : []),
+        ...(sc ? ["An S-curve shoulder has no fixed radius, so a compass or radius gauge is useless — rout it fully to the template, then fair the line with a spokeshave or sandpaper, not a chisel"] : []),
       ];
     },
   },

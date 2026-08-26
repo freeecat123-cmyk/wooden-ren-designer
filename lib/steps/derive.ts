@@ -140,10 +140,24 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
    *    兩向弧肩(§A9.9)每支腳要挖兩道,工時當然是兩倍。(2026-08-24)
    */
   const coveLegs = design.parts.filter((p) => p.shape?.kind === "curved-taper");
+  type CtShape = { twoWay?: boolean; lowerCove?: unknown; sCurve?: boolean } | undefined;
   const coveFaces = coveLegs.reduce(
-    (n, p) => n + ((p.shape as { twoWay?: boolean } | undefined)?.twoWay ? 2 : 1),
+    (n, p) => n + ((p.shape as CtShape)?.twoWay ? 2 : 1),
     0,
   );
+  /**
+   * 🩸 「橫撐處也做弧肩」(§A9.9b) 每一面要挖**兩道**弧,不是一道 ——
+   *    但工時原本只數「面數」,勾了之後總工時**一分鐘都沒變**。(2026-08-26)
+   *
+   * 同一面上的第二道弧省掉「重新夾持對位」那一段(料還在夾具上、換模板位置就好),
+   * 鋸廢料 / 靠模銑 / 修弧照做 ⇒ 算 18 分,不是 25 分。
+   * (兩向的第二**面**不打折,因為要把料翻面重新對位 —— 那是不同的事。)
+   */
+  const lowerCoveFaces = coveLegs.reduce(
+    (n, p) => n + ((p.shape as CtShape)?.lowerCove ? ((p.shape as CtShape)?.twoWay ? 2 : 1) : 0),
+    0,
+  );
+  const anySCurve = coveLegs.some((p) => (p.shape as CtShape)?.sCurve);
   const isRoundTop = design.parts.some((p) => p.shape?.kind === "round" && /top|seat/.test(p.id));
   const wideTop = isRoundTop && design.overall.length >= 600;
 
@@ -658,10 +672,11 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   // ---------------------------------------------------------------------------
   if (coveFaces > 0) {
     const facesPerLeg = coveFaces / coveLegs.length;
+    const covesPerFace = lowerCoveFaces > 0 ? 2 : 1;
     steps.push({
       id: "step-06b-cove-legs",
       phase: "cut-joinery",
-      title: `挖弧肩（${coveLegs.length} 支腳 × ${facesPerLeg} 面）`,
+      title: `挖弧肩（${coveLegs.length} 支腳 × ${facesPerLeg} 面${covesPerFace > 1 ? ` × ${covesPerFace} 道` : ""}）`,
       description:
         `弧肩斜腳的側面輪廓：頂端保留一段全寬「接撐段」給牙板接合，往下一道內凹圓弧收肩，` +
         `再直線斜降到腳底。先用帶鋸鋸掉大部分廢料，再靠模板 + 修邊機一次成形，最後手工修弧。` +
@@ -669,14 +684,21 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
           ? `兩向弧肩：每支腳的**兩個相鄰內面**都要做，第二面要重新夾持與對位。`
           : `單向弧肩：只做朝家具中心的那一面。`),
       toolIds: ["japanese-saw", "chisel-set-3-6-12", "sandpaper-set", "f-clamp-x4"],
-      // 每一面 25 分：鋸廢料 + 靠模銑 + 修弧。兩向不打折 —— 第二面要重新夾持對位，
-      // 省不下多少。
-      estimatedMinutes: 25 * coveFaces,
+      // 每一面第一道 25 分：鋸廢料 + 夾持對位 + 靠模銑 + 修弧。
+      // 兩向的第二**面**不打折 —— 要翻面重新夾持對位，省不下多少。
+      // 同一面的第二**道**（橫撐處的弧肩）18 分 —— 只省掉夾持對位那一段。
+      estimatedMinutes: 25 * coveFaces + 18 * lowerCoveFaces,
       bullets: [
         "靠模板銑弧比手工鑿準得多，四支腳才會一致",
         "接撐段那一節不能銑到——牙板要靠它接合",
         ...(facesPerLeg > 1
           ? ["兩面交界的內側立稜要留利，那條稜線是這個腳型的重點"]
+          : []),
+        ...(lowerCoveFaces > 0
+          ? ["橫撐處那節接撐段的**上下兩緣都有弧**，模板要一次做出整段（上弧＋方肩＋下弧），分兩次銑對不準"]
+          : []),
+        ...(anySCurve
+          ? ["S 形肩沒有固定半徑，**不能用圓規或 R 規對**——照模板銑到底，最後順線用線鉋／砂磨，不要用鑿刀修"]
           : []),
       ],
     });

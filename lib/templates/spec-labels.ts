@@ -31,6 +31,9 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   ctShoulder: "Cove shoulder inset",
   ctInset: "Foot taper inset",
   ctTwoWay: "Two-way cove (both inner faces)",
+  apronSetback: "Apron setback from leg face",
+  ctLowerCove: "Cove at the stretcher too",
+  ctShoulderCurve: "Cove profile",
   legDepthOverride: "Leg depth override",
   legPenetratingTenon: "Through tenons (decorative)",
   splayAngle: "Splay angle (°)",
@@ -467,6 +470,16 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  * Missing → falls back to spec.help (zh).
  */
 export const SPEC_HELP_EN: Record<string, string> = {
+  ctBlockHeight:
+    "Height of the full-width block kept at the top of the inner face, where the apron / rail joins. The apron sits flush with the BOTTOM of this block; if you set the apron taller, the block grows to match (it never crops the apron).",
+  ctShoulder:
+    "How far the concave cove cuts into the inner face (also the radius of the arc). 0 = no cove.",
+  ctLowerCove:
+    "Adds a second block + cove pair where the lower stretcher lands (Ming-style two-stage shoulder), so the stretcher gets its own shoulder instead of landing on an already-tapered section. Uses the same stock, but adds one more coving pass per face.",
+  apronSetback:
+    "How far the apron sits back from the outer face of the leg. 0 = flush with the leg face (the usual Ming look). Curved-taper legs only; every other leg shape keeps the apron centred on the leg as before.",
+  ctShoulderCurve:
+    "Arc: the cove leaves the block on a horizontal tangent, so the root is a crisp 90° corner — the hard-edged Ming look. S-curve: both ends leave tangent to the leg face, so the shoulder line fades in and out. Same depth and same height either way — stock, joinery and pricing are identical.",
   ctTwoWay:
     "The leg stands at a corner — aprons come in from two directions, so both inner faces should be coved. Uses the same stock (the cove is carved out of it), but adds one more shaping operation per leg.",
   legInset: "Distance from leg center to seat edge. > 0 makes the top overhang the legs — crisper visual.",
@@ -811,6 +824,9 @@ export function specHelp(spec: OptionSpec, locale: string): string | undefined {
  * stretcherStyle / withLowerStretcher 等高頻 dropdown。
  */
 export const CHOICE_LABEL_EN: Record<string, string> = {
+  // === ctShoulderCurve ===
+  "ctShoulderCurve:arc": "Arc (crisp shoulder, default)",
+  "ctShoulderCurve:s-curve": "S-curve (faded shoulder)",
   // === legShape ===
   "legShape:box": "Square (straight)",
   "legShape:tapered": "Tapered",

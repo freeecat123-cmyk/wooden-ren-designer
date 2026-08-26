@@ -3,6 +3,7 @@ import { projectPartSilhouette, projectPartPolygon, curvedTaperProfilePoints } f
 import * as fs from "node:fs";
 import { CURVED_TAPER_ARC_SEG, buildCurvedTaperGeometry, buildTwoWayCurvedTaperGeometry, curvedTaperCoveSpan, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 import { FURNITURE_CATALOG } from "@/lib/templates";
+import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
 /**
@@ -693,5 +694,47 @@ describe("S 形弧肩", () => {
   it("取樣要跟得上曲線（折線離真實曲線 < 0.15mm）", () => {
     expect(chordErr(true), "S 形的弧被切成幾片平面").toBeLessThan(0.15);
     expect(chordErr(false), "圓弧的弧被切成幾片平面").toBeLessThan(0.15);
+  });
+});
+
+/**
+ * 🩸 2026-08-26:勾「橫撐處也做弧肩」,總工時**一分鐘都沒變** ——
+ *    工序推導只數「面數」,不知道一面上可能有兩道弧。
+ *    quote.ts 直接吃 totalEstimatedHours() 算工資 ⇒ 這道工白做、報價少報。
+ *    （AGENTS.md §4:新工序沒進 derive.ts = 白做。）
+ */
+describe("挖弧肩的工時要跟著弧的道數走", () => {
+  const e = (FURNITURE_CATALOG as any[]).find((x) => x.category === "stool")!;
+  const base: any = (e.optionSchema ?? []).reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+  const build = (o: any) => e.template({ length: 350, width: 350, height: 450, material: "pine",
+    options: { ...base, legShape: "curved-taper", withLowerStretcher: true, ...o } });
+  const coveStep = (o: any) =>
+    deriveBuildSteps(build(o) as any).find((s: any) => s.id === "step-06b-cove-legs")!;
+
+  /**
+   * ⚠️ 用**工序自己的分鐘數**斷言,不要用 totalEstimatedHours() ——
+   *    總時數會四捨五入到 0.1 小時（6 分鐘），把 2 分鐘的差吃掉。
+   *    期望值是手算的:每面第一道 25 分、同一面的第二道 18 分。
+   */
+  it("方凳 4 支腳:單向 4 面 = 100 分、兩向 8 面 = 200 分", () => {
+    expect(coveStep({}).estimatedMinutes).toBe(25 * 4);
+    expect(coveStep({ ctTwoWay: true }).estimatedMinutes).toBe(25 * 8);
+  });
+
+  it("勾「橫撐處也做弧肩」→ 每一面再加 18 分", () => {
+    expect(coveStep({ ctLowerCove: true }).estimatedMinutes).toBe(25 * 4 + 18 * 4);
+    expect(coveStep({ ctTwoWay: true, ctLowerCove: true }).estimatedMinutes).toBe(25 * 8 + 18 * 8);
+  });
+
+  it("總工時真的有跟著變（quote.ts 吃的是這個）", () => {
+    const h = (o: any) => totalEstimatedHours(deriveBuildSteps(build(o) as any));
+    expect(h({ ctTwoWay: true, ctLowerCove: true }) - h({ ctTwoWay: true })).toBeGreaterThan(2);
+  });
+
+  it("工序標題要講出幾支腳、幾面、幾道（使用者看得到的那行）", () => {
+    const t = coveStep({ ctTwoWay: true, ctLowerCove: true }).title;
+    expect(t).toContain("4 支腳");
+    expect(t).toContain("2 面");
+    expect(t).toContain("2 道");
   });
 });
