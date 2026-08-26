@@ -4,6 +4,7 @@ import { memo, Component, useEffect, useMemo, useRef, useState, type ReactNode }
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
+import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
@@ -893,6 +894,28 @@ export function PerspectiveView({
     isDragRelease(pointerDownRef.current, { x: e.clientX, y: e.clientY });
 
   /**
+   * 靜置時停止重繪（見 components/viewer/useSmartFrameloop.ts 的抬頭警告）。
+   * 場景全靜態：沒有任何 useFrame、OrbitControls 也沒開 damping，
+   * 所以「沒人碰就不用畫」是安全的。
+   */
+  const canvasHostRef = useRef<HTMLDivElement | null>(null);
+  const frameloop = useSmartFrameloop(canvasHostRef, [
+    design,
+    sceneTheme,
+    joineryMode,
+    auditMode,
+    explodeMm,
+    lidLiftMm,
+    xrayMode,
+    selectedPartId,
+    compactMode,
+    wireframeMode,
+    hidePartIds.join(","),
+    hoveredPartIds,
+    viewPreset,
+  ]);
+
+  /**
    * 🧷 選取的 id 在目前設計裡找不到時,一律當成「沒選」。
    *
    * 不這樣做的話會出現最難解釋的死局:**全部零件都半透明,卻沒有任何一根亮起來**
@@ -915,6 +938,7 @@ export function PerspectiveView({
     }>
       <ViewPresetBar onSelect={setViewPreset} hasLid={design.parts.some((p) => p.id === "lid")} />
       <div
+        ref={canvasHostRef}
         data-thumb="3d"
         className="flex-1 min-h-0 relative"
         onPointerDownCapture={(e) => {
@@ -931,11 +955,10 @@ export function PerspectiveView({
         // 不接 onClick 因為 OrbitControls 拖動結束會 fire click。
         // onPointerMissed 是 R3F 提供：pointer up 沒打到任何 mesh 才 fire。
         onPointerMissed={onPartSelect ? (e: MouseEvent) => { if (draggedAway(e)) return; onPartSelect(null); } : undefined}
-        // frameloop="always" 確保 selectedPartId / dim opacity 變化即時反映
-        // （之前 demand 模式有 race condition：material prop 變更但 invalidate
-        //  時 GPU 還沒收到 → 透明效果失效）。代價：scroll 時 3D 持續渲染
-        //  約 30-60fps，比 demand 多吃一些 GPU 但保證視覺正確
-        frameloop="always"
+        // 有變動 / 有人在操作 / 看得到 → "always"（連續重繪 1.5 秒，蓋過當年
+        // demand 模式那個「material prop 改了但 GPU 還沒收到」的競態）；
+        // 完全靜置或捲出畫面 → "demand"（幾乎不吃 GPU）。見 useSmartFrameloop。
+        frameloop={frameloop}
         // dpr 上限 1.5 防止 Retina 螢幕 4× 像素做 shadow map。
         dpr={[1, 1.5]}
         // ACES Filmic tone mapping — 電影業界標準，給 PBR 材質正確的高光衰減
