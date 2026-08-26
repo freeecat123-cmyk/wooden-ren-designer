@@ -14,6 +14,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { parse as parseIcu } from "@formatjs/icu-messageformat-parser";
 import { FURNITURE_CATALOG } from "../lib/templates";
 import { SPEC_LABEL_EN, SPEC_HELP_EN, CHOICE_LABEL_EN } from "../lib/templates/spec-labels";
 
@@ -60,9 +61,47 @@ for (const [k, name] of kinds) {
     (fixed.length ? `  ✅ 補了 ${fixed.length} 個` : "") + (added.length ? `  ❌ 新漏 ${added.length} 個` : ""));
   added.forEach((x) => { bad++; console.log(`     ❌ ${x}`); });
 }
-if (bad) {
-  console.log("\n⛔ 有新選項沒補英文。英文站會 fallback 回中文,畫面不會壞 —— 所以只有這支會抓到。");
-  console.log("   補在 lib/templates/spec-labels.ts;工序文字補在 lib/steps/translations.ts。");
+/**
+ * ⭐ 順便驗 `messages/*.json` 每一條都是合法的 ICU 訊息。
+ *
+ * 🩸 2026-08-26 build log 裡有兩行 `Error: INVALID_MESSAGE`,build 卻是成功的 ——
+ *    所以沒人看到。真相是英文版把「<registered email>」這種佔位寫法直接寫進文案,
+ *    ICU 會把 `<...>` 當成 rich-text 標籤 → 整段解析失敗。
+ *    `{t(...)}` 那種用法看不出來（照樣印出字面），但 `/en/help` 用的是 `t.rich(...)`,
+ *    那一段字**直接消失**:「subject "Refund Request - "」後面空的。
+ *    ⇒ 這種錯只會出現在 build log,基線硬 0。
+ */
+const MSG_DIR = path.join(__dirname, "..", "messages");
+let icuBad = 0;
+for (const file of fs.readdirSync(MSG_DIR).filter((f) => f.endsWith(".json"))) {
+  const obj = JSON.parse(fs.readFileSync(path.join(MSG_DIR, file), "utf-8"));
+  const walk = (x: any, prefix: string) => {
+    for (const k of Object.keys(x)) {
+      const v = x[k];
+      const q = prefix ? `${prefix}.${k}` : k;
+      if (typeof v === "string") {
+        try { parseIcu(v); } catch (e) {
+          icuBad++;
+          console.log(`     ❌ ${file} ${q}: ${(e as Error).message.split("\n")[0]}`);
+          console.log(`        「${v.slice(0, 90)}」`);
+        }
+      } else if (v && typeof v === "object") walk(v, q);
+    }
+  };
+  walk(obj, "");
+}
+console.log(`ICU 訊息解析                  失敗 ${String(icuBad).padStart(3)}（基線   0）`);
+
+if (bad || icuBad) {
+  if (bad) {
+    console.log("\n⛔ 有新選項沒補英文。英文站會 fallback 回中文,畫面不會壞 —— 所以只有這支會抓到。");
+    console.log("   補在 lib/templates/spec-labels.ts;工序文字補在 lib/steps/translations.ts。");
+  }
+  if (icuBad) {
+    console.log("\n⛔ messages/*.json 有解析不了的 ICU 訊息。");
+    console.log("   最常見:文案裡寫了 <佔位符> —— ICU 會當成標籤。改成不用尖括號。");
+    console.log("   用 `t.rich()` 的頁面那一段字會**整段消失**,用 `t()` 的看不出來。");
+  }
   process.exit(1);
 }
-console.log("\n✅ 沒有比基線更多的漏翻。");
+console.log("\n✅ 沒有比基線更多的漏翻,ICU 訊息也都解析得過。");
