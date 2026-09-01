@@ -741,7 +741,8 @@ export const SPEC_HELP_EN: Record<string, string> = {
   withLegs: "Checked: adds a plinth with legs, so you can then set leg height / thickness / style / inset. Unchecked: the cabinet sits straight on the floor (the built-in-cabinetry look).",
   doorFrameRailWidth: "Section width of the muntins in a lattice or glazed door. 15–22mm is traditional Ming and Qing; modern designs go to 30mm and up.",
   doorFrameThickness: "How far the muntins stand proud of the door face. 8mm is a shallow traditional relief; 12mm and up reads far more three-dimensional.",
-  liveEdge: "Keeps the natural bark edge along the long sides of the top (the live-edge look — needs one wide slab).",};
+  liveEdge: "Keeps the natural bark edge along the long sides of the top (the live-edge look — needs one wide slab).",
+};
 
 /**
  * spec.label 繁中字典 — 用 spec.key 當主鍵，跨 26 個 template 共享。
