@@ -1,18 +1,22 @@
 "use client";
 
-import { memo, Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, Component, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
 import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
+import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld, type WorldMortise } from "@/lib/assembly/joint-world";
+import { offsetsAt, planAssembly, stepIndexAt, type AssemblyPlan } from "@/lib/assembly/plan";
+import { downloadBlob, extensionForMime, pickRecorderMime, startCanvasRecording, type CanvasRecording } from "@/lib/assembly/record";
+import { partName } from "@/lib/templates/part-names";
 import {
   type ShapeSpec,
   buildShapeGeometry,
@@ -33,25 +37,6 @@ import { useHoveredParts } from "@/components/HoveredPartsContext";
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
 // Three.js consumes from `new Euler(rx, ry, rz, "ZYX")`.
-function rotateXYZ(
-  rx: number, ry: number, rz: number,
-  lx: number, ly: number, lz: number,
-) {
-  const cosX = Math.cos(rx), sinX = Math.sin(rx);
-  const cosY = Math.cos(ry), sinY = Math.sin(ry);
-  const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
-  let x = lx, y = ly, z = lz;
-  const y1 = y * cosX - z * sinX;
-  const z1 = y * sinX + z * cosX;
-  y = y1; z = z1;
-  const x2 = x * cosY + z * sinY;
-  const z2 = -x * sinY + z * cosY;
-  x = x2; z = z2;
-  const x3 = x * cosZ - y * sinZ;
-  const y3 = x * sinZ + y * cosZ;
-  x = x3; y = y3;
-  return { x, y, z };
-}
 
 /**
  * 包住 <Environment> HDR 載入 — drei CDN 抖動時 (Could not load lebombo_1k.hdr)
@@ -72,19 +57,6 @@ class HDRBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
-type WorldMortise = {
-  partId: string;
-  entryX: number; entryY: number; entryZ: number;
-  axis: "x" | "y" | "z";
-  sign: 1 | -1;
-  depth: number;
-  through: boolean;
-  // World-space unit vector pointing OUT of the leg (opening direction).
-  // Negated copy of the rotated m.axis (since m.axis points INTO leg).
-  // Only set when the source Mortise carried an explicit axis override
-  // (compound splay). When null, fall back to dominant-axis legacy path.
-  axisUnit?: { x: number; y: number; z: number } | null;
-};
 
 /**
  * Blend a hex color toward a tint. amount=0 → original, 1 → tint.
@@ -656,6 +628,45 @@ export function PerspectiveView({
   // Hover 高亮（Bot B：context 進來的 part id 集合，emissive 預覽用）
   // 沒 provider 也 fallback 空集合，hook 不會 throw
   const { hoveredPartIds } = useHoveredParts();
+
+  /**
+   * 組裝動畫（docs/drafting-math.md §H8）。
+   * 順序 / 方向由 lib/assembly/plan.ts 從榫接關係推出來；這裡只負責
+   * 「每幀把每個零件的 <group> 位移設成 offsetsAt(t)」——幾何、材質一律不重建，
+   * 所以不會踩到 useMemo 重做 CSG 的坑，也不動任何家具定義。
+   * 時鐘放 ref 不放 state：播放中每幀改 state 會讓整棵零件樹重 render。
+   */
+  const [assemblyOn, setAssemblyOn] = useState(false);
+  const [assemblyPlaying, setAssemblyPlaying] = useState(false);
+  const [assemblyUiT, setAssemblyUiT] = useState(0);       // 給滑桿 / 步驟文字用，100ms 更新一次
+  const [assemblyScrubNonce, setAssemblyScrubNonce] = useState(0);
+  const assemblyClockRef = useRef(0);
+  const partGroupRefs = useRef(new Map<string, Group>());
+  const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const assemblyPlan = useMemo<AssemblyPlan | null>(
+    () => (assemblyOn ? planAssembly(design) : null),
+    [assemblyOn, design],
+  );
+  const toggleAssembly = useCallback(() => {
+    setAssemblyOn((on) => {
+      if (on) { setAssemblyPlaying(false); return false; }
+      assemblyClockRef.current = 0;
+      setAssemblyUiT(0);
+      setAssemblyPlaying(true);
+      return true;
+    });
+  }, []);
+  const seekAssembly = useCallback((tMs: number) => {
+    assemblyClockRef.current = tMs;
+    setAssemblyUiT(tMs);
+    setAssemblyScrubNonce((n) => n + 1);
+  }, []);
+  // 影片輸出：錄 WebGL canvas，播完自動停、下載
+  const recordingRef = useRef<CanvasRecording | null>(null);
+  const exportRestoreRef = useRef<(() => void) | null>(null);
+  const [exporting, setExporting] = useState<{ pct: number } | null>(null);
+  const [exportAspect, setExportAspect] = useState<"current" | "portrait" | "square">("current");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
   // xrayMode 完全用 URL 當 source of truth:
   //   ViewPresetBar 按鈕走 router.replace 改 URL,App Router 在手機 + Vercel cache
   //   下 server 不一定立刻 re-render,server prop 會 stale。改在 client 直接讀
@@ -686,106 +697,11 @@ export function PerspectiveView({
   // joineryMode：把所有 mortise 攤成 world 座標索引，給 tenon mesh 配對用。
   // 配對後 tenon mesh 長度 clamp 到 mortise.depth，確保 mesh 永遠住在母件
   // 預挖的洞裡，不會因為母件 shape（圓腳/倒角）讓 CSG 失效而從外面戳出來。
-  const worldMortiseIndex = useMemo<WorldMortise[]>(() => {
-    if (!joineryMode) return [];
-    const idx: WorldMortise[] = [];
-    for (const part of design.parts) {
-      if (!part.mortises || part.mortises.length === 0) continue;
-      const rx = part.rotation?.x ?? 0;
-      const ry = part.rotation?.y ?? 0;
-      const rz = part.rotation?.z ?? 0;
-      const lx = part.visible.length;
-      const ly = part.visible.thickness;
-      const lz = part.visible.width;
-      const yExt = worldExtents(part).yExt;
-      const pcx = part.origin.x;
-      const pcy = part.origin.y + yExt / 2;
-      const pcz = part.origin.z;
-      for (const m of part.mortises) {
-        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）。
-        // 重要：origin.y=0 或 origin.y=ly 是 from-bottom 慣例的「便利預設值」
-        // （側板/牙條 mortise template 常寫 y:0 表示「不指定 Y 入榫」），不該被
-        // 當作真的 Y face 入榫。當 origin.y 在 canonical 值 + X 或 Z 軸有
-        // origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—跟
-        // svg-views.tsx 的 mortiseLocalBox 邏輯保持一致，否則 tenon outAxis
-        // 配對全錯，drawer-bottom tenon 抓不到 side-panel mortise → 紅塊。
-        const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
-        const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
-        const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
-        const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
-        let lex = 0, ley = 0, lez = 0;
-        let localAxis: "x" | "y" | "z";
-        let localSign: 1 | -1;
-        if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
-          // canonical Y 不是真深度軸 → 改選 X 或 Z（最靠近 face 的那個）
-          if (xToFace <= zToFace) {
-            localAxis = "x";
-            localSign = m.origin.x >= 0 ? 1 : -1;
-            lex = localSign === 1 ? lx / 2 : -lx / 2;
-            ley = m.origin.y - ly / 2;
-            lez = m.origin.z;
-          } else {
-            localAxis = "z";
-            localSign = m.origin.z >= 0 ? 1 : -1;
-            lex = m.origin.x;
-            ley = m.origin.y - ly / 2;
-            lez = localSign === 1 ? lz / 2 : -lz / 2;
-          }
-        } else if (yToFace <= xToFace && yToFace <= zToFace) {
-          localAxis = "y";
-          localSign = m.origin.y >= ly - 1 ? 1 : -1;
-          lex = m.origin.x;
-          ley = localSign === 1 ? ly / 2 : -ly / 2;
-          lez = m.origin.z;
-        } else if (xToFace <= zToFace) {
-          localAxis = "x";
-          localSign = m.origin.x >= 0 ? 1 : -1;
-          lex = localSign === 1 ? lx / 2 : -lx / 2;
-          ley = m.origin.y - ly / 2;
-          lez = m.origin.z;
-        } else {
-          localAxis = "z";
-          localSign = m.origin.z >= 0 ? 1 : -1;
-          lex = m.origin.x;
-          ley = m.origin.y - ly / 2;
-          lez = localSign === 1 ? lz / 2 : -lz / 2;
-        }
-        const e = rotateXYZ(rx, ry, rz, lex, ley, lez);
-        const ax = localAxis === "x" ? localSign : 0;
-        const ay = localAxis === "y" ? localSign : 0;
-        const az = localAxis === "z" ? localSign : 0;
-        const a = rotateXYZ(rx, ry, rz, ax, ay, az);
-        const aX = Math.abs(a.x), aY = Math.abs(a.y), aZ = Math.abs(a.z);
-        let worldAxis: "x" | "y" | "z";
-        let worldSign: 1 | -1;
-        if (aX >= aY && aX >= aZ) { worldAxis = "x"; worldSign = a.x >= 0 ? 1 : -1; }
-        else if (aY >= aZ) { worldAxis = "y"; worldSign = a.y >= 0 ? 1 : -1; }
-        else { worldAxis = "z"; worldSign = a.z >= 0 ? 1 : -1; }
-        // Compound splay: Mortise.axis is now WORLD-frame opening direction
-        // (out of leg, toward apron). Consume directly — no part-rotation
-        // composition, no negation. The matching Tenon.axis (out of apron,
-        // into leg) is anti-parallel; dot-product check below uses < -0.85.
-        const axisUnit = m.axis
-          ? (() => {
-              const mag = Math.hypot(m.axis!.x, m.axis!.y, m.axis!.z) || 1;
-              return { x: m.axis!.x / mag, y: m.axis!.y / mag, z: m.axis!.z / mag };
-            })()
-          : null;
-        idx.push({
-          partId: part.id,
-          entryX: pcx + e.x,
-          entryY: pcy + e.y,
-          entryZ: pcz + e.z,
-          axis: worldAxis,
-          sign: worldSign,
-          depth: m.depth,
-          through: m.through ?? false,
-          axisUnit,
-        });
-      }
-    }
-    return idx;
-  }, [design.parts, joineryMode]);
+  // 榫眼世界索引：抽到 lib/assembly/joint-world.ts（組裝動畫共用同一份）。
+  const worldMortiseIndex = useMemo<WorldMortise[]>(
+    () => (joineryMode ? buildWorldMortiseIndex(design.parts) : []),
+    [design.parts, joineryMode],
+  );
 
   // Audit mode：抓 overlap 對，把出現在裡面的 part id 拉成 set。標紅色高亮。
   const overlapIds = useMemo(() => {
@@ -913,7 +829,79 @@ export function PerspectiveView({
     hidePartIds.join(","),
     hoveredPartIds,
     viewPreset,
+    assemblyOn,
+    assemblyPlaying,
+    assemblyScrubNonce,
   ]);
+
+  const finishExport = useCallback(async () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    exportRestoreRef.current?.();
+    exportRestoreRef.current = null;
+    if (!rec) return;
+    const blob = await rec.stop();
+    const ext = extensionForMime(rec.mime);
+    const base = pvLocale === "en" ? `${design.id}-assembly` : `${design.nameZh}-組裝動畫`;
+    const file = `${base}.${ext}`;
+    downloadBlob(blob, file);
+    setExporting(null);
+    setExportMsg(tPV("assemblyDoneTpl", { file }));
+  }, [design.id, design.nameZh, pvLocale, tPV]);
+
+  const onAssemblyTick = useCallback((tMs: number, done: boolean) => {
+    setAssemblyUiT(tMs);
+    if (recordingRef.current && assemblyPlan) {
+      setExporting({ pct: Math.min(100, Math.round((100 * tMs) / assemblyPlan.totalMs)) });
+    }
+    if (done) {
+      setAssemblyPlaying(false);
+      if (recordingRef.current) void finishExport();
+    }
+  }, [assemblyPlan, finishExport]);
+
+  const startExport = useCallback(async () => {
+    if (!assemblyPlan || exporting) return;
+    const canvas = glCanvasRef.current;
+    const host = canvasHostRef.current;
+    if (!canvas || !host) return;
+    if (!pickRecorderMime()) { setExportMsg(tPV("assemblyExportUnsupported")); return; }
+    setExportMsg(null);
+    // 直式 / 方形：暫時把 canvas 容器改成該比例（R3F 會跟著 resize），錄完還原
+    if (exportAspect !== "current") {
+      const prev = host.style.cssText;
+      const h = host.clientHeight;
+      const w = exportAspect === "portrait" ? Math.round((h * 9) / 16) : h;
+      host.style.width = `${w}px`;
+      host.style.height = `${h}px`;
+      host.style.flex = "none";
+      host.style.alignSelf = "center";
+      exportRestoreRef.current = () => { host.style.cssText = prev; };
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+    assemblyClockRef.current = 0;
+    setAssemblyUiT(0);
+    setAssemblyScrubNonce((n) => n + 1);
+    try {
+      recordingRef.current = startCanvasRecording(canvas);
+    } catch {
+      exportRestoreRef.current?.();
+      exportRestoreRef.current = null;
+      setExportMsg(tPV("assemblyExportUnsupported"));
+      return;
+    }
+    setExporting({ pct: 0 });
+    setAssemblyPlaying(true);
+  }, [assemblyPlan, exporting, exportAspect, tPV]);
+
+  // 元件卸載時若還在錄，收掉（不下載）
+  useEffect(() => () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    exportRestoreRef.current?.();
+    exportRestoreRef.current = null;
+    if (rec) void rec.stop();
+  }, []);
 
   /**
    * 🧷 選取的 id 在目前設計裡找不到時,一律當成「沒選」。
@@ -936,7 +924,35 @@ export function PerspectiveView({
         ? "w-full h-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
         : "w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
     }>
-      <ViewPresetBar onSelect={setViewPreset} hasLid={design.parts.some((p) => p.id === "lid")} />
+      <ViewPresetBar
+        onSelect={setViewPreset}
+        hasLid={design.parts.some((p) => p.id === "lid")}
+        assemblyOn={assemblyOn}
+        onToggleAssembly={toggleAssembly}
+      />
+      {assemblyOn && assemblyPlan ? (
+        <AssemblyControls
+          plan={assemblyPlan}
+          design={design}
+          locale={pvLocale}
+          playing={assemblyPlaying}
+          tMs={assemblyUiT}
+          compact={compactMode}
+          exporting={exporting}
+          exportAspect={exportAspect}
+          exportMsg={exportMsg}
+          onPlayPause={() => {
+            if (exporting) return;
+            if (!assemblyPlaying && assemblyClockRef.current >= assemblyPlan.totalMs) seekAssembly(0);
+            setAssemblyPlaying((p) => !p);
+          }}
+          onReplay={() => { if (exporting) return; seekAssembly(0); setAssemblyPlaying(true); }}
+          onSeek={(t) => { if (exporting) return; setAssemblyPlaying(false); seekAssembly(t); }}
+          onClose={() => { if (exporting) return; toggleAssembly(); }}
+          onExport={() => { void startExport(); }}
+          onAspect={setExportAspect}
+        />
+      ) : null}
       <div
         ref={canvasHostRef}
         data-thumb="3d"
@@ -1367,82 +1383,11 @@ export function PerspectiveView({
                 const oW = t.offsetWidth ?? 0;
                 const oT = t.offsetThickness ?? 0;
 
-                // 算 tenon 根面世界座標 + outward 世界軸，給 mortise 配對用
-                const rxP = part.rotation?.x ?? 0;
-                const ryP = part.rotation?.y ?? 0;
-                const rzP = part.rotation?.z ?? 0;
-                let lrx = 0, lry = 0, lrz = 0;
-                let lox = 0, loy = 0, loz = 0;
-                switch (t.position) {
-                  case "start":  lrx = -lx / 2; lry = oT; lrz = oW; lox = -1; break;
-                  case "end":    lrx = +lx / 2; lry = oT; lrz = oW; lox = +1; break;
-                  case "top":    lrx = oW; lry = +ly / 2; lrz = oT; loy = +1; break;
-                  case "bottom": lrx = oW; lry = -ly / 2; lrz = oT; loy = -1; break;
-                  case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
-                  case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
-                }
-                // Compute root position in world (always via part rotation).
-                const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
-                const wRootX = part.origin.x + rRoot.x;
-                const wRootY = part.origin.y + worldExtents(part).yExt / 2 + rRoot.y;
-                const wRootZ = part.origin.z + rRoot.z;
-                // outUnit / outAxis: tenon outward direction in WORLD frame.
-                // - With t.axis present (compound splay): t.axis IS world; use directly.
-                // - Without t.axis: rotate position-default local outward through partQ.
-                let outUnit: { x: number; y: number; z: number };
-                if (t.axis) {
-                  const m = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
-                  outUnit = { x: t.axis.x / m, y: t.axis.y / m, z: t.axis.z / m };
-                } else {
-                  const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
-                  const mag = Math.hypot(rOut.x, rOut.y, rOut.z) || 1;
-                  outUnit = { x: rOut.x / mag, y: rOut.y / mag, z: rOut.z / mag };
-                }
-                const aX = Math.abs(outUnit.x), aY = Math.abs(outUnit.y), aZ = Math.abs(outUnit.z);
-                let outAxis: "x" | "y" | "z";
-                let outSign: 1 | -1;
-                if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = outUnit.x >= 0 ? 1 : -1; }
-                else if (aY >= aZ) { outAxis = "y"; outSign = outUnit.y >= 0 ? 1 : -1; }
-                else { outAxis = "z"; outSign = outUnit.z >= 0 ? 1 : -1; }
-
-                // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
-                //
-                // Owner-family filter（避免抽屜 part 配到櫃體 part）：
-                //   抽屜 part id 慣例 `{prefix}drawer-{i+1}-{role}`，例：
-                //     `drawer-1-back`（單區）
-                //     `col1-drawer-1-back`（columns）
-                //     `z2-drawer-1-back`（zones）
-                //   如果 tenon owner id 含 `drawer-N-`，只跟同 `…drawer-N-`
-                //   前綴的 mortise 配對；不准跨抽屜也不准爬到櫃體 side panel。
-                //   其它（leg/apron/top/case-side）維持原 1-NN 行為。
-                const drawerMatch = part.id.match(/^(.*?drawer-\d+)-/);
-                const drawerFamily = drawerMatch ? drawerMatch[1] + "-" : null;
-                let bestMort: WorldMortise | null = null;
-                let bestDist = Infinity;
-                for (const mw of worldMortiseIndex) {
-                  if (mw.partId === part.id) continue;
-                  if (drawerFamily && !mw.partId.startsWith(drawerFamily)) continue;
-                  // Compound splay: both sides are WORLD-frame unit vectors.
-                  // mw.axisUnit = mortise OPENING direction (out of leg toward apron).
-                  // outUnit    = tenon outward direction (out of apron into leg).
-                  // They point opposite each other → anti-parallel (dot ≈ -1).
-                  if (mw.axisUnit && t.axis) {
-                    const dot =
-                      mw.axisUnit.x * outUnit.x +
-                      mw.axisUnit.y * outUnit.y +
-                      mw.axisUnit.z * outUnit.z;
-                    if (dot > -0.85) continue;
-                  } else {
-                    if (mw.axis !== outAxis) continue;
-                    if (mw.sign === outSign) continue;
-                  }
-                  const dx = mw.entryX - wRootX;
-                  const dy = mw.entryY - wRootY;
-                  const dz = mw.entryZ - wRootZ;
-                  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                  // 60mm 容忍（compound splay 允許多一點偏差，原 50mm）
-                  if (d < bestDist && d < 60) { bestDist = d; bestMort = mw; }
-                }
+                // 算 tenon 根面世界座標 + outward 世界軸，配對母件榫眼
+                // （邏輯在 lib/assembly/joint-world.ts，組裝動畫共用同一份）
+                const tw = tenonWorld(part, t);
+                const outUnit = tw.outUnit;
+                const bestMort: WorldMortise | null = matchMortiseForTenon(part, t, tw, worldMortiseIndex);
 
                 // 通榫不 clamp（要凸出母件背面）；其它都 clamp 到母件 mortise 深
                 const effLen = bestMort && !bestMort.through
@@ -1944,6 +1889,10 @@ export function PerspectiveView({
           return (
             <group
               key={part.id}
+              ref={(g: Group | null) => {
+                if (g) partGroupRefs.current.set(part.id, g);
+                else partGroupRefs.current.delete(part.id);
+              }}
               /**
                * ⚠️ 再點同一個零件 = **取消選取**,不要一律 set。
                *
@@ -2022,6 +1971,16 @@ export function PerspectiveView({
           onApplied={() => setViewPreset(null)}
         />
         <InvalidateOnDep dep={activeSelectedId} />
+        <AssemblyDriver
+          plan={assemblyPlan}
+          playing={assemblyPlaying}
+          clockRef={assemblyClockRef}
+          groups={partGroupRefs}
+          scale={SCALE}
+          scrubNonce={assemblyScrubNonce}
+          canvasRef={glCanvasRef}
+          onTick={onAssemblyTick}
+        />
       </Canvas>
       {/**
         * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
@@ -2051,9 +2010,176 @@ export function PerspectiveView({
   );
 }
 
+/**
+ * 組裝動畫驅動器（掛在 <Canvas> 裡）。
+ * 每幀：推進時鐘 → offsetsAt(t) → 直接改每個零件 <group> 的 position。
+ * 不碰 React state（時鐘在 ref），零件樹不會重 render；UI 文字每 100ms 回報一次。
+ * 播放中每幀 invalidate()，所以 frameloop 在 demand 模式也會一直畫；播完就停，
+ * 不會回到「靜置時空燒」（見 useSmartFrameloop）。
+ */
+function AssemblyDriver({
+  plan,
+  playing,
+  clockRef,
+  groups,
+  scale,
+  scrubNonce,
+  canvasRef,
+  onTick,
+}: {
+  plan: AssemblyPlan | null;
+  playing: boolean;
+  clockRef: MutableRefObject<number>;
+  groups: MutableRefObject<Map<string, Group>>;
+  scale: number;
+  scrubNonce: number;
+  canvasRef: MutableRefObject<HTMLCanvasElement | null>;
+  onTick: (tMs: number, done: boolean) => void;
+}) {
+  const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
+  useEffect(() => { canvasRef.current = gl.domElement; }, [gl, canvasRef]);
+  const lastUi = useRef(0);
+  const apply = useCallback((t: number) => {
+    const offs = plan ? offsetsAt(plan, t) : null;
+    for (const [id, g] of groups.current) {
+      const o = offs?.get(id);
+      if (o) g.position.set(o.x * scale, o.y * scale, o.z * scale);
+      else g.position.set(0, 0, 0);
+    }
+  }, [plan, groups, scale]);
+  // 關掉 / 拖滑桿 / 換設計 → 套一次、重繪一幀
+  useEffect(() => { apply(clockRef.current); invalidate(); }, [apply, scrubNonce, clockRef, invalidate]);
+  useFrame((_, delta) => {
+    if (!plan || !playing) return;
+    const t = Math.min(plan.totalMs, clockRef.current + Math.min(delta, 0.1) * 1000);
+    clockRef.current = t;
+    apply(t);
+    invalidate();
+    const now = performance.now();
+    if (t >= plan.totalMs) onTick(t, true);
+    else if (now - lastUi.current > 100) { lastUi.current = now; onTick(t, false); }
+  });
+  return null;
+}
+
+function AssemblyControls({
+  plan,
+  design,
+  locale,
+  playing,
+  tMs,
+  compact,
+  exporting,
+  exportAspect,
+  exportMsg,
+  onPlayPause,
+  onReplay,
+  onSeek,
+  onClose,
+  onExport,
+  onAspect,
+}: {
+  plan: AssemblyPlan;
+  design: FurnitureDesign;
+  locale: string;
+  playing: boolean;
+  tMs: number;
+  compact: boolean;
+  exporting: { pct: number } | null;
+  exportAspect: "current" | "portrait" | "square";
+  exportMsg: string | null;
+  onPlayPause: () => void;
+  onReplay: () => void;
+  onSeek: (tMs: number) => void;
+  onClose: () => void;
+  onExport: () => void;
+  onAspect: (a: "current" | "portrait" | "square") => void;
+}) {
+  const t = useTranslations("perspectiveView");
+  const step = plan.steps[stepIndexAt(plan, tMs)];
+  const names = Array.from(new Set(step.partIds.map((id) => {
+    const p = design.parts.find((pp) => pp.id === id);
+    return p ? partName(p, locale) : id;
+  })));
+  const sep = locale === "en" ? ", " : "、";
+  const shown =
+    names.slice(0, 3).join(sep) +
+    (names.length > 3 ? (locale === "en" ? " " : "") + t("assemblyMoreTpl", { n: names.length - 3 }) : "");
+  const label = t("assemblyStepTpl", { n: step.index + 1, total: plan.steps.length, names: shown });
+  const btn = "shrink-0 px-2 py-0.5 text-xs font-medium rounded ring-1 ring-zinc-200 bg-white text-zinc-700 hover:ring-amber-400 hover:bg-amber-50 disabled:opacity-40 transition";
+  return (
+    <div data-testid="assembly-controls" className="shrink-0 border-b border-amber-200/70 bg-amber-50/80 px-2 py-1 text-xs">
+      <div className="flex items-center gap-1.5 overflow-x-auto">
+        <button type="button" className={btn} onClick={onPlayPause} disabled={!!exporting} data-testid="assembly-play">
+          {playing ? t("assemblyPause") : t("assemblyPlay")}
+        </button>
+        <button type="button" className={btn} onClick={onReplay} disabled={!!exporting} title={t("assemblyReplay")}>
+          ↺
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={plan.totalMs}
+          step={10}
+          value={Math.min(tMs, plan.totalMs)}
+          onChange={(e) => onSeek(Number(e.target.value))}
+          disabled={!!exporting}
+          className="flex-1 min-w-[72px] accent-amber-600"
+          aria-label={label}
+          data-testid="assembly-scrub"
+        />
+        {!compact && (
+          <span className="shrink-0 max-w-[40%] truncate text-zinc-700" data-testid="assembly-step">{label}</span>
+        )}
+        {!compact && (
+          <select
+            value={exportAspect}
+            onChange={(e) => onAspect(e.target.value as "current" | "portrait" | "square")}
+            disabled={!!exporting}
+            className="shrink-0 rounded ring-1 ring-zinc-200 bg-white px-1 py-0.5 text-xs text-zinc-700"
+            title={t("assemblyAspectLbl")}
+          >
+            <option value="current">{t("assemblyAspectCurrent")}</option>
+            <option value="portrait">{t("assemblyAspectPortrait")}</option>
+            <option value="square">{t("assemblyAspectSquare")}</option>
+          </select>
+        )}
+        <button
+          type="button"
+          className={`${btn} ${exporting ? "" : "text-amber-900 ring-amber-300"}`}
+          onClick={onExport}
+          disabled={!!exporting}
+          title={t("assemblyExportTitle")}
+          data-testid="assembly-export"
+        >
+          {exporting ? t("assemblyExportingTpl", { pct: exporting.pct }) : t("assemblyExport")}
+        </button>
+        <button type="button" className={btn} onClick={onClose} disabled={!!exporting} title={t("assemblyClose")}>
+          ✕
+        </button>
+      </div>
+      {compact && (
+        <div className="mt-0.5 truncate text-[11px] text-zinc-600" data-testid="assembly-step">{label}</div>
+      )}
+      {exportMsg && <div className="mt-0.5 text-[11px] text-zinc-600" data-testid="assembly-export-msg">{exportMsg}</div>}
+    </div>
+  );
+}
+
 type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero" | "fit";
 
-function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset) => void; hasLid?: boolean }) {
+function ViewPresetBar({
+  onSelect,
+  hasLid = false,
+  assemblyOn = false,
+  onToggleAssembly,
+}: {
+  onSelect: (p: ViewPreset) => void;
+  hasLid?: boolean;
+  assemblyOn?: boolean;
+  onToggleAssembly?: () => void;
+}) {
   const t = useTranslations("perspectiveView");
   const router = useRouter();
   const pathname = usePathname();
@@ -2129,6 +2255,21 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
         >
           {t("wireframeLabel")}
         </button>
+        {onToggleAssembly && (
+          <button
+            type="button"
+            title={t("assemblyTitle")}
+            onClick={onToggleAssembly}
+            data-testid="assembly-toggle"
+            className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+              assemblyOn
+                ? "bg-amber-600 text-white ring-amber-700"
+                : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+            }`}
+          >
+            {t("assemblyBtn")}
+          </button>
+        )}
         <button
           type="button"
           title={

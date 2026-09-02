@@ -50,6 +50,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 局部放大圖（detail view） | `"局部放大\|detail view"` | §A8 |
 | 榫卯細節圖 / 公榫位置 / 強度 | `"榫\|joinery\|tenon\|mortise"` | §B §G |
 | 爆炸圖 / 立體拆解 | `"爆炸\|exploded"` | §H |
+| 組裝動畫 / 組裝順序 / 影片輸出 | `"組裝動畫\|assembly\|planAssembly\|captureStream"` | §H8 |
 | 自動標註生成 | `"自動標註\|auto-dim"` | §I |
 | 主三視圖標註槽位 / 覆蓋矩陣 / 補標 id 慣例 | `"槽位\|覆蓋矩陣"` | §I8 |
 | 板材展開 / 攤平 / 折線 | `"展開\|unfolding"` | §J |
@@ -1403,6 +1404,51 @@ type='drawer' → +z (front)
 - akella/ExplodingObjects（程式可參考）
 - react-three-fiber + GSAP 自己組（DevDojo 範例 30 行 demo 完）
 - 結論：**自己寫 ~150 行**比找 lib 快，wrd 的 part metadata 是優勢
+
+### H8. 組裝動畫（Assembly Animation，2026-09-02 上線）
+
+木頭仁：「木作藍圖有辦法增加組合動畫嗎？」→「2 還要能輸出」。
+程式：`lib/assembly/joint-world.ts`（榫接世界座標，從 3D 抽出的唯一一份）、
+`lib/assembly/plan.ts`（排程）、`lib/assembly/record.ts`（錄影）、
+`components/PerspectiveView.tsx`（AssemblyDriver / AssemblyControls）。
+
+#### H8.1 順序與方向（不用模板手填）
+1. **先後 = 零件類別優先序**：腳(含椅背立柱 back-post) → 牙條/橫撐 → 箱體板 → 層板/隔板
+   → 座板/靠背 → 抽屜 → 門 → 其他。同類別再依高度（低的先）、id。
+2. **分步**：同類別一步；抽屜 / 門再依「同一個抽屜 / 同一扇門」拆開。步內逐件錯開。
+3. **插入方向**（單位向量 `dir`，零件從 `−dir × travel` 滑到定位）：
+   - 跟**已放好**零件間有榫接：公榫沿榫頭 `out` 插入；母件沿 `−out` 套上。多支榫頭合力
+     `|Σ| > 0.5 × n` 才算同向。
+   - 榫頭方向互相打架（牙條兩端各插一支腳）：取「離中心往外」投影到垂直於榫軸的平面；
+     榫軸水平時把 y 分量歸零（牙條要水平滑進，不斜飛）；投影 < 0.25 → 從上方落下。
+   - 完全沒榫接（面板、五金、玻璃、第一步的腳）：離中心往外；|y| < 0.7（約 44° 內）視為
+     水平、歸零 y；長度 < 0.25 → 從上方落下。
+   - 「中心」= 所有零件中心的平均；抽屜 / 門用**自己家族**的中心（五塊板合攏成箱，
+     不從整座櫃子四散）。
+4. **位移量** `travel = clamp(0.4 × max(overall), 80, 450)` mm。只改 3D 的 group.position，
+   幾何 / 材質 / 家具定義完全不碰（165 組腳型指紋不受影響）。
+
+#### H8.2 時間軸
+每件 900ms、步內錯開 120ms、步間停 250ms、尾端多 500ms；ease = easeInOutCubic。
+方凳手算：4 腳 0..1260 → 停 → 8 牙條/橫撐 1510..3250 → 停 → 座板 3500..4400 → 4900 結束。
+五斗櫃 56 件 9 步 16.2s；全目錄最長 < 20s（vitest 有卡）。
+
+#### H8.3 3D 接法（不重建幾何）
+- 每個零件的 `<group>` 掛 ref 進 Map；`AssemblyDriver` 在 `useFrame` 裡把
+  `offsetsAt(t)` 寫進 `group.position`（mm × SCALE）。時鐘放 ref，零件樹不重 render。
+- 播放中每幀 `invalidate()`，所以 `useSmartFrameloop` 在 demand 模式也會一直畫；播完停。
+- 滑桿 / 關閉走 `scrubNonce` 觸發一次 apply + invalidate；plan 為 null 時全部歸零。
+
+#### H8.4 影片輸出
+`canvas.captureStream(30)` + `MediaRecorder`：Chrome/Edge/Firefox → WebM(VP9)，
+Safari 14.1+ → MP4。錄影期間播放從 0 開始、播完自動 stop + 下載
+`<家具名>-組裝動畫.<ext>`。直式 9:16 / 方形 1:1 = 錄影期間暫時把 canvas 容器改成該比例
+（R3F 跟著 resize），錄完還原。不支援的瀏覽器顯示提示，不會壞畫面。
+
+#### H8.5 已知取捨
+- 順序是「看起來合理」的組裝順序，不是工序書；真實組裝（先組兩側框架再合攏）沒有表達。
+- 榫接版 / 組裝版共用同一套規則（組裝版沒榫頭 → 全走「離中心往外」）。
+- 沒有相機運鏡；使用者播放中可自己拖曳旋轉，錄影照錄。
 
 ---
 
