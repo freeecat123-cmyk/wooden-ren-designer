@@ -18,9 +18,10 @@
  *
  * 姿勢全部由組裝時鐘 clockRef（ms）算出來，不累積：拖滑桿倒回去會重新跑，錄影也錄得到。
  */
-import { useRef, type MutableRefObject } from "react";
+import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { BackSide, type Group } from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 const INK = "#2b2b2b";
 const WHITE = "#fffdf8";
@@ -100,6 +101,7 @@ export function CoffeeDuck({
   const legR = useRef<Group>(null);
   const saw = useRef<Group>(null);
   const heading = useRef(0);
+  const bodyGeo = useMemo(() => new RoundedBoxGeometry(0.4, 0.36, 0.3, 4, 0.09), []);
 
   /** 來回一趟的時間（秒）：路線越長跑越久，但最少 2 秒 */
   const lapSec = Math.max(2, (path.zMax - path.zMin) / (0.9 * scale));
@@ -132,7 +134,7 @@ export function CoffeeDuck({
       if (legR.current) legR.current.rotation.x = -Math.sin(stride) * 0.7;
       if (armL.current) armL.current.rotation.x = -Math.sin(stride) * 0.5;
       if (armR.current) armR.current.rotation.x = -0.6 + Math.sin(stride) * 0.35;
-      if (saw.current) saw.current.rotation.z = Math.sin(stride) * 0.12;
+      if (saw.current) saw.current.rotation.set(Math.PI / 2, 0.3, Math.sin(stride) * 0.12);
     } else {
       // ---- 跳上去 → 坐 / 站著喝咖啡 ----
       const start = runAt(jumpAtMs / 1000);
@@ -161,7 +163,7 @@ export function CoffeeDuck({
       const le = inAir ? 0 : lift * lift * (3 - 2 * lift);
       const wave = cycle >= 0.5 && cycle < 1.5 ? Math.sin((cycle - 0.5) * Math.PI * 4) * 0.35 : 0;
       if (armR.current) armR.current.rotation.x = inAir ? -1.6 : -0.35 - le * 1.9;
-      if (saw.current) saw.current.rotation.z = wave;
+      if (saw.current) saw.current.rotation.set(Math.PI / 2, 0.3, wave);
     }
     // 蒸氣：往上飄、淡出、左右搖
   };
@@ -181,9 +183,9 @@ export function CoffeeDuck({
       <group ref={legR} position={[0.08, 0.11, 0]}>
         <Stick position={[0, -0.055, 0]} length={0.11} />
       </group>
-      {/* 身體：方方的，微微上窄下寬 */}
+      {/* 身體：圓角方塊（純方塊看起來怪；2026-09-02 他：「身體方形的怪怪的」） */}
       <Outlined position={[0, 0.28, 0]} outline={1.05}>
-        <boxGeometry args={[0.4, 0.36, 0.3]} />
+        <primitive object={bodyGeo} attach="geometry" />
       </Outlined>
       {/* 左手：細棒往外下，跑步時前後擺 */}
       <group ref={armL} position={[-0.2, 0.4, 0]}>
@@ -192,7 +194,8 @@ export function CoffeeDuck({
       {/* 右手 + 鋸子（跑步時跟著擺，坐好後每 5 秒舉起來揮兩下） */}
       <group ref={armR} position={[0.2, 0.36, 0]} rotation={[-0.35, 0, 0]}>
         <Stick position={[0.06, 0.02, -0.07]} rotation={[1.2, 0, -0.6]} length={0.17} />
-        <group ref={saw} position={[0.1, 0.06, -0.15]} rotation={[0, 0.3, 0]}>
+        {/* 鋸子朝上（刀片沿手的 +y）、放大 1.7 倍（他：「鋸子可以大一點 而且要朝上」） */}
+        <group ref={saw} position={[0.12, 0.08, -0.13]} rotation={[Math.PI / 2, 0.3, 0]} scale={1.7}>
           {/* 木柄 */}
           <Outlined position={[0, 0, 0.06]} rotation={[Math.PI / 2, 0, 0]} color={HANDLE} outline={1.1}>
             <cylinderGeometry args={[0.016, 0.02, 0.12, 12]} />
