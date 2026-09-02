@@ -2022,7 +2022,7 @@ export function PerspectiveView({
           orbit={cameraOrbit}
         />
         {exportTarget && <RecorderTap target={exportTarget} />}
-        {assemblyOn && duckOn && (
+        {assemblyOn && duckOn && assemblyPlan && (
           <CoffeeDuck
             // 在 +x 側、爆炸零件（travel）再外面一點的走道上沿 z 來回跑；
             // 路線只到家具前後緣再多一點，太外面會被預設鏡頭切掉
@@ -2031,8 +2031,17 @@ export function PerspectiveView({
               zMin: -(design.overall.width / 2 + 60) * SCALE,
               zMax: (design.overall.width / 2 + 60) * SCALE,
             }}
+            perch={(() => {
+              // 有座板（凳 / 椅）→ 坐在座面中央；否則站在家具頂面中央
+              const seat = design.parts.find((p) => p.id === "seat");
+              return seat
+                ? { x: seat.origin.x * SCALE, y: (seat.origin.y + worldExtents(seat).yExt) * SCALE, z: seat.origin.z * SCALE, sit: true }
+                : { x: 0, y: design.overall.thickness * SCALE, z: 0, sit: false };
+            })()}
             scale={Math.min(480, Math.max(240, design.overall.thickness * 0.5)) * SCALE}
             playing={assemblyPlaying}
+            clockRef={assemblyClockRef}
+            jumpAtMs={assemblyPlan.steps.length ? assemblyPlan.steps[assemblyPlan.steps.length - 1].endMs : 0}
           />
         )}
       </Canvas>

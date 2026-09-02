@@ -136,17 +136,17 @@ describe("方凳：木工的組法（一面框 → 前後牙條 → 另一面框
   });
 
   it("時間軸手算（外層 800/100/200；子組件內 480/120）", () => {
-    expect(MOVE_MS).toBe(800); expect(STAGGER_MS).toBe(100); expect(STEP_GAP_MS).toBe(200); expect(TAIL_MS).toBe(500);
+    expect(MOVE_MS).toBe(800); expect(STAGGER_MS).toBe(100); expect(STEP_GAP_MS).toBe(200); expect(TAIL_MS).toBe(1600);
     // 0 leg-1 0..800 | 1 左牙條×2 1000..1900 | 2 leg-3 2100..2900 | 3 前後×4 3100..4200
     // 右框內部（depth 1，480ms/120ms 間隔）：4 leg-2 4400..4880 | 5 右牙條×2 5000..5580 | 6 leg-4 5700..6180
-    // 7 右框 6300..7100 | 8 座板 7300..8100 | 尾 500 → 8600
+    // 7 右框 6300..7100 | 8 座板 7300..8100 | 尾 1600 → 9700
     const se = plan.steps.map((s) => [s.startMs, s.endMs]);
     expect(se).toEqual([
       [0, 800], [1000, 1900], [2100, 2900], [3100, 4200],
       [4400, 4880], [5000, 5580], [5700, 6180],
       [6300, 7100], [7300, 8100],
     ]);
-    expect(plan.totalMs).toBe(8600);
+    expect(plan.totalMs).toBe(9700);
   });
 
   it("offsetsAt：t=0 全部在起點、結束全到位、中途按 ease 收斂；stepIndexAt", () => {

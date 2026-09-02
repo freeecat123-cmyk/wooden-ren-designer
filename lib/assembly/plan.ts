@@ -102,8 +102,8 @@ export const SCREW_MS = 350;
 export const SCREW_STAGGER_MS = 70;
 /** 螺絲鎖入前懸在外面多遠（mm） */
 export const SCREW_HOVER_MM = 40;
-/** 最後一件到位後多停一下再算結束（錄影收尾用） */
-export const TAIL_MS = 500;
+/** 最後一件到位後多停一下再算結束：留給鴨子跳上家具（900ms）+ 收尾，錄影也錄得到 */
+export const TAIL_MS = 1600;
 
 const CATEGORY_RANK: Record<PartCategory, number> = {
   leg: 0,
