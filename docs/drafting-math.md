@@ -1454,9 +1454,15 @@ ease = easeInOutCubic。方凳 9 步 8.6s（榫接版）；五斗櫃 56 件 45 �
 
 #### H8.3 組裝版的螺絲
 `planAssembly(raw, { screws: true })`：每個**榫頭型**接合合上的那一步之後，從母件外側鎖入
-（頭在母件外表面，長 = 母件沿軸厚度(≤60) + 30，榫寬 ≥ 40 排兩支，鎖入 350ms、支間 70ms、
-鎖入前隱藏）。鳩尾／指接／滑蓋不鎖。3D：`ScrewMesh` 掛在母件 group 底下，外層 group 吃位移、
-`visible` 由 AssemblyDriver 依 `appearMs` 控。
+（頭在母件外表面、埋頭只露 0.3mm，長 = 母件沿軸厚度(≤60) + 30，榫寬 ≥ 40 排兩支，鎖入 350ms、
+支間 70ms、鎖入前隱藏）。鳩尾／指接／滑蓋不鎖。
+**椅面 / 桌面例外**：腳頂榫頭 → 面板這種接合不從面板上方鎖進腳，改成找所有「頂面貼著面板底面」
+的牙條，每支牙條在 1/4、3/4 處各一支從底下往上鎖，長 = 牙條高 + 進面板 ≤20mm（留 6mm 不穿出）
+（「固定椅面跟桌面的 應該是從牙條底下往上鎖到椅面 一個牙條２隻螺絲」）。
+3D：`ScrewMesh` 掛在母件 group 底下，外層 group 吃位移、`visible` 由 AssemblyDriver 依 `appearMs`
+控；mesh 標 `userData.isScrew`，虛影邏輯跳過（一被改成 transparent 就進透明排序、從木頭裡透出來）。
+**組裝版工具清單**（`lib/tools/derive.ts`）：榫頭被拔掉後 seenJoinery 空 → 退用 `defaultJoinery`
+（pocket-hole），TENZ 螺絲 / 電鑽 / 斜孔治具 / 白橡膠槌才會列進去。
 
 #### H8.4 3D 接法（不重建幾何）
 - 每個零件 / 螺絲的 `<group>` 掛 ref 進 Map；`AssemblyDriver` 在 `useFrame` 裡寫
