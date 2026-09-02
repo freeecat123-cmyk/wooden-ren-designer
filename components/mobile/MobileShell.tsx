@@ -233,10 +233,12 @@ export function MobileShell(props: MobileShellProps) {
         {Object.entries(optionValues).map(([k, v]) => (
           <input key={`main-hidden-${k}`} type="hidden" name={k} value={String(v)} />
         ))}
-        {/* 3D viewer：sticky 釘在 TopBar (56px) 下；3D + TopBar 合計約 1/3 viewport */}
+        {/* 3D viewer：sticky 釘在 TopBar (56px) 下。
+            原本固定 220px（3D + TopBar 約 1/3 viewport），2026-09-02 木頭仁：「手機版圖面太小了 再拉高一些」
+            → 跟螢幕高走：52vh，夾在 320~460px（iPhone 13 Safari 視窗約 664px → 345px，扣掉視角列後畫布約 290px，原本 167px；組裝動畫控制列還會吃掉約 46px） */}
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
           <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
-            <div style={{ height: 220 }}>
+            <div style={{ height: "clamp(320px, 52vh, 460px)" }}>
               <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} assemblyPlan={props.assemblyPlan} />
             </div>
           </div>
