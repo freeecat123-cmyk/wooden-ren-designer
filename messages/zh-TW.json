@@ -4618,7 +4618,9 @@
     "assemblyAspectCurrent": "目前畫面",
     "assemblyAspectPortrait": "直式 9:16",
     "assemblyAspectSquare": "方形 1:1",
-    "assemblyDoneTpl": "影片已下載：{file}"
+    "assemblyDoneTpl": "影片已下載：{file}",
+    "assemblyOrbit": "🎥 運鏡",
+    "assemblyOrbitTitle": "播放時相機繞著家具慢慢轉（整段約 120°），關掉就固定視角；拖曳照樣可以自己轉"
   },
   "photoToParams": {
     "errReadFail": "讀檔失敗",

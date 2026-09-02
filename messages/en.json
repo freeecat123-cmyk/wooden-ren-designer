@@ -4618,7 +4618,9 @@
     "assemblyAspectCurrent": "Current view",
     "assemblyAspectPortrait": "Portrait 9:16",
     "assemblyAspectSquare": "Square 1:1",
-    "assemblyDoneTpl": "Video saved: {file}"
+    "assemblyDoneTpl": "Video saved: {file}",
+    "assemblyOrbit": "🎥 Orbit",
+    "assemblyOrbitTitle": "Slowly orbit the camera while playing (about 120° total). Turn off for a fixed view; dragging still works."
   },
   "photoToParams": {
     "errReadFail": "File read failed",

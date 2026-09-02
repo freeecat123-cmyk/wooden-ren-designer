@@ -7,7 +7,7 @@ import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
 import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, Mesh, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group, type Material } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
@@ -685,6 +685,8 @@ export function PerspectiveView({
   const [exporting, setExporting] = useState<{ pct: number } | null>(null);
   const [exportAspect, setExportAspect] = useState<"current" | "portrait" | "square">("current");
   const [exportMsg, setExportMsg] = useState<string | null>(null);
+  // 運鏡：播放（含錄影）期間相機繞著家具慢慢轉，整段約 120°；使用者拖曳照樣有效
+  const [cameraOrbit, setCameraOrbit] = useState(true);
   // xrayMode 完全用 URL 當 source of truth:
   //   ViewPresetBar 按鈕走 router.replace 改 URL,App Router 在手機 + Vercel cache
   //   下 server 不一定立刻 re-render,server prop 會 stale。改在 client 直接讀
@@ -980,6 +982,8 @@ export function PerspectiveView({
           onClose={() => { if (exporting) return; toggleAssembly(); }}
           onExport={() => { void startExport(); }}
           onAspect={setExportAspect}
+          orbit={cameraOrbit}
+          onOrbit={setCameraOrbit}
         />
       ) : null}
       <div
@@ -2009,6 +2013,7 @@ export function PerspectiveView({
           scrubNonce={assemblyScrubNonce}
           canvasRef={glCanvasRef}
           onTick={onAssemblyTick}
+          orbit={cameraOrbit}
         />
         {exportTarget && <RecorderTap target={exportTarget} />}
       </Canvas>
@@ -2040,6 +2045,10 @@ export function PerspectiveView({
   );
 }
 
+/** 整段組裝動畫相機水平轉的總角度 */
+const ORBIT_TOTAL_DEG = 120;
+const ORBIT_UP = new Vector3(0, 1, 0);
+
 /**
  * 組裝動畫驅動器（掛在 <Canvas> 裡）。
  * 每幀：推進時鐘 → offsetsAt(t) → 直接改每個零件 <group> 的 position。
@@ -2056,6 +2065,7 @@ function AssemblyDriver({
   scrubNonce,
   canvasRef,
   onTick,
+  orbit = true,
 }: {
   plan: AssemblyPlan | null;
   playing: boolean;
@@ -2065,31 +2075,85 @@ function AssemblyDriver({
   scrubNonce: number;
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
   onTick: (tMs: number, done: boolean) => void;
+  /** 播放期間相機繞 Y 軸慢轉（整段動畫約 ORBIT_TOTAL_DEG 度） */
+  orbit?: boolean;
 }) {
   const invalidate = useThree((s) => s.invalidate);
   const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as { target: Vector3; update: () => void } | null;
   useEffect(() => { canvasRef.current = gl.domElement; }, [gl, canvasRef]);
   const lastUi = useRef(0);
+  /**
+   * 還沒輪到的零件先當「虛影」（15% 透明、不投影），輪到時在前 30% 的時間淡入成實體，
+   * 不然堆在爆炸位置的零件會擋住正在組的地方（2026-09-02 木頭仁：「還沒進入組裝程序的
+   * 材料是不是要透明 不然會擋住」）。材質是每個 mesh 自己的（JSX 各建一份），直接改
+   * opacity；React 那邊 opacity prop 沒變就不會蓋回來。關掉動畫時全部還原。
+   */
+  const ghostRef = useRef(new Map<string, number>());
+  const setGhost = useCallback((g: Group, id: string, alpha: number) => {
+    const prev = ghostRef.current.get(id);
+    if (prev !== undefined && Math.abs(prev - alpha) < 0.01) return;
+    ghostRef.current.set(id, alpha);
+    g.traverse((obj) => {
+      if (!(obj instanceof Mesh)) return;
+      const mats: Material[] = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of mats) {
+        if (!m) continue;
+        if (m.userData.baseOpacity === undefined) m.userData.baseOpacity = m.opacity;
+        m.transparent = true;
+        m.opacity = alpha >= 0.999 ? (m.userData.baseOpacity as number) : (m.userData.baseOpacity as number) * alpha;
+        m.depthWrite = alpha >= 0.999;
+        m.needsUpdate = true;
+      }
+      if (obj.userData.baseCastShadow === undefined) obj.userData.baseCastShadow = obj.castShadow;
+      obj.castShadow = alpha >= 0.999 ? (obj.userData.baseCastShadow as boolean) : false;
+    });
+  }, []);
   const apply = useCallback((t: number) => {
     const offs = plan ? offsetsAt(plan, t) : null;
+    const screwIds = new Set((plan?.screws ?? []).map((sc) => sc.id));
     for (const [id, g] of groups.current) {
       const o = offs?.get(id);
       if (o) g.position.set(o.x * scale, o.y * scale, o.z * scale);
       else g.position.set(0, 0, 0);
+      if (screwIds.has(id)) continue;
+      // 虛影：第一筆 move 開始前 0.15，開始後前 30% 淡入
+      let alpha = 1;
+      if (plan) {
+        const idx = plan.partMoves[id];
+        if (idx && idx.length > 0) {
+          const first = plan.moves[idx[0]];
+          const span = Math.max(1, (first.endMs - first.startMs) * 0.3);
+          const p = (t - first.startMs) / span;
+          alpha = p <= 0 ? 0.15 : p >= 1 ? 1 : 0.15 + 0.85 * p;
+        }
+      }
+      setGhost(g, id, alpha);
     }
     // 螺絲：鎖入前不顯示
     for (const sc of plan?.screws ?? []) {
       const g = groups.current.get(sc.id);
       if (g) g.visible = t >= sc.appearMs;
     }
-  }, [plan, groups, scale]);
+  }, [plan, groups, scale, setGhost]);
   // 關掉 / 拖滑桿 / 換設計 → 套一次、重繪一幀
   useEffect(() => { apply(clockRef.current); invalidate(); }, [apply, scrubNonce, clockRef, invalidate]);
   useFrame((_, delta) => {
     if (!plan || !playing) return;
-    const t = Math.min(plan.totalMs, clockRef.current + Math.min(delta, 0.1) * 1000);
+    const dt = Math.min(delta, 0.1) * 1000;
+    const t = Math.min(plan.totalMs, clockRef.current + dt);
     clockRef.current = t;
     apply(t);
+    // 運鏡：繞著 OrbitControls 的 target 水平轉，角速度 = 總角度 / 總時長
+    if (orbit && controls && plan.totalMs > 0) {
+      const ang = (ORBIT_TOTAL_DEG * Math.PI / 180) * (dt / plan.totalMs);
+      const off = camera.position.clone().sub(controls.target);
+      off.applyAxisAngle(ORBIT_UP, ang);
+      camera.position.copy(controls.target).add(off);
+      camera.lookAt(controls.target);
+      controls.update();
+    }
     invalidate();
     const now = performance.now();
     if (t >= plan.totalMs) onTick(t, true);
@@ -2179,6 +2243,8 @@ function AssemblyControls({
   onClose,
   onExport,
   onAspect,
+  orbit,
+  onOrbit,
 }: {
   plan: AssemblyPlan;
   design: FurnitureDesign;
@@ -2195,6 +2261,8 @@ function AssemblyControls({
   onClose: () => void;
   onExport: () => void;
   onAspect: (a: "current" | "portrait" | "square") => void;
+  orbit: boolean;
+  onOrbit: (v: boolean) => void;
 }) {
   const t = useTranslations("perspectiveView");
   const step = plan.steps[stepIndexAt(plan, tMs)];
@@ -2233,6 +2301,17 @@ function AssemblyControls({
           aria-label={label}
           data-testid="assembly-scrub"
         />
+        <button
+          type="button"
+          className={`${btn} ${orbit ? "bg-amber-100 ring-amber-300" : ""}`}
+          onClick={() => onOrbit(!orbit)}
+          disabled={!!exporting}
+          title={t("assemblyOrbitTitle")}
+          aria-pressed={orbit}
+          data-testid="assembly-orbit"
+        >
+          {t("assemblyOrbit")}
+        </button>
         {!compact && (
           <select
             value={exportAspect}

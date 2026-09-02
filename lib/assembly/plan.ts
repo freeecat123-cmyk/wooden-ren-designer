@@ -119,11 +119,19 @@ const CATEGORY_RANK: Record<PartCategory, number> = {
 /** 椅背立柱分類上是 misc，結構上跟腳同級（靠背橫料 / 背板都插在它身上）。 */
 function rankOf(id: string, cat: PartCategory): number {
   if (/^back-post/.test(id)) return CATEGORY_RANK.leg;
+  // 把手 id 長得像抽屜件（…-face-pull）會被分成 drawer；它是五金，最後裝
+  if (isPull(id)) return CATEGORY_RANK.misc;
   return CATEGORY_RANK[cat];
+}
+function isPull(id: string): boolean {
+  return /-pull$/.test(id) || /-knob$/.test(id);
 }
 
 /** 抽屜 / 門的家族前綴：同一個抽屜的五塊板 + 把手是一個單位 */
 export function familyKey(id: string): string {
+  // 把手最後才裝（抽屜 / 門先整組進櫃體），不跟家族綁在一起
+  // （2026-09-02 木頭仁：「把手應該是最後」）
+  if (isPull(id)) return "";
   const cat = categorizePart(id);
   if (cat === "drawer" || /-drawer-\d+-/.test(id)) {
     const m = id.match(/^(.*?drawer-\d+)-/);
@@ -302,9 +310,16 @@ export function sweepHits(g: Box, d: Vec3, travel: number, others: Box[]): boole
   const swept = unionBox([g, moved]);
   return others.some((o) => !boxesOverlap(g, o) && boxesOverlap(swept, o));
 }
-/** 靜止時就跟 G 交疊的零件數（滑蓋在槽裡 → ≥ 2） */
-function engagedCount(g: Box, others: Box[]): number {
-  return others.filter((o) => boxesOverlap(g, o)).length;
+/**
+ * G 裡每一件各自掃（不用 G 的聯集盒）：抽屜面板比箱體寬、聯集盒在靜止時就跟側板交疊，
+ * 會把側板誤當「本來就咬合」而忽略，結果抽屜可以往側邊穿出去。
+ */
+function sweepHitsAny(gBoxes: Box[], d: Vec3, travel: number, others: Box[]): boolean {
+  return gBoxes.some((g) => sweepHits(g, d, travel, others));
+}
+/** 靜止時就跟 G 任一件交疊的零件數（滑蓋在槽裡 → ≥ 2） */
+function engagedCount(gBoxes: Box[], others: Box[]): number {
+  return others.filter((o) => gBoxes.some((g) => boxesOverlap(g, o))).length;
 }
 
 // ---------- 拆解樹 ----------
@@ -434,9 +449,9 @@ function jointCandidates(S: string[], ctx: Ctx, glue: boolean): Candidate[] {
       const k = ids.join("|") + "@" + d.x.toFixed(2) + d.y.toFixed(2) + d.z.toFixed(2);
       if (seen.has(k)) continue;
       seen.add(k);
-      const gBox = unionBox(ids.map((id) => ctx.box.get(id)!));
+      const gBoxes = ids.map((id) => ctx.box.get(id)!);
       const others = S.filter((id) => !G.has(id)).map((id) => ctx.box.get(id)!);
-      const collides = sweepHits(gBox, d, ctx.travel, others);
+      const collides = sweepHitsAny(gBoxes, d, ctx.travel, others);
       out.push({ ids, d, key: scoreCandidate(ids, d, S, ctx, collides), collides });
     }
   }
@@ -448,24 +463,28 @@ function freeCandidates(comps: string[][], S: string[], ctx: Ctx): Candidate[] {
   const center = centroidOf(S, ctx);
   const out: Candidate[] = [];
   for (const ids of comps) {
-    const gBox = unionBox(ids.map((id) => ctx.box.get(id)!));
+    const gBoxes = ids.map((id) => ctx.box.get(id)!);
     const others = S.filter((id) => !ids.includes(id)).map((id) => ctx.box.get(id)!);
-    const radial = flattenIfMostlyHorizontal(norm(sub(centroidOf(ids, ctx), center)));
+    const rawRadial = norm(sub(centroidOf(ids, ctx), center));
+    const radial = flattenIfMostlyHorizontal(rawRadial);
     // 候選方向：六個軸向，依「跟往外方向最像」排序；都會撞就取往外那個。
     // 滑蓋（lid 卡在 ≥2 片壁的槽裡）：只能水平滑，從沒被壁擋住的那一側（缺口）出去。
-    const isSlidingLid = ids.length === 1 && ids[0] === "lid" && engagedCount(gBox, others) >= 2;
-    // 抽屜 / 門整組：水平滑進櫃體（AABB 聯集會把面板的高度算進去、誤判跟頂板咬合，
-    // 垂直方向的掃掠因此失準；抽屜本來也只會從正面推進去）
+    const isSlidingLid = ids.length === 1 && ids[0] === "lid" && engagedCount(gBoxes, others) >= 2;
+    // 抽屜 / 門整組、把手：水平進出（抽屜從正面推進去、把手貼在面板上鎖）
     const fam = ctx.family.get(ids[0]) ?? "";
     const isFamilyUnit = ids.length > 1 && fam !== "" && fam !== "lid-group" && ids.every((id) => ctx.family.get(id) === fam);
-    const preferHorizontal = isSlidingLid || isFamilyUnit;
-    const horizontal = AXIS_DIRS.filter((a) => a.y === 0).sort((a, b) => dot(b, radial) - dot(a, radial));
+    const preferHorizontal = isSlidingLid || isFamilyUnit || (ids.length === 1 && isPull(ids[0]));
+    // 水平排序用「純水平的往外」；正好在中心（高櫃裡的抽屜）就當正面 −z
+    const radialH = Math.hypot(rawRadial.x, rawRadial.z) > 0.05
+      ? norm({ x: rawRadial.x, y: 0, z: rawRadial.z })
+      : { x: 0, y: 0, z: -1 };
+    const horizontal = AXIS_DIRS.filter((a) => a.y === 0).sort((a, b) => dot(b, radialH) - dot(a, radialH));
     const vertical = AXIS_DIRS.filter((a) => a.y !== 0).sort((a, b) => dot(b, radial) - dot(a, radial));
     const ranked = preferHorizontal
       ? [...horizontal, ...vertical]
       : [...AXIS_DIRS].sort((a, b) => dot(b, radial) - dot(a, radial));
     let pick: Vec3 | null = null;
-    for (const d of ranked) if (!sweepHits(gBox, d, ctx.travel, others)) { pick = d; break; }
+    for (const d of ranked) if (!sweepHitsAny(gBoxes, d, ctx.travel, others)) { pick = d; break; }
     const collides = pick === null;
     const d = pick ?? (len(radial) > 0.25 ? radial : { x: 0, y: 1, z: 0 });
     out.push({ ids: [...ids].sort(), d, key: scoreCandidate(ids, d, S, ctx, collides, true), collides });

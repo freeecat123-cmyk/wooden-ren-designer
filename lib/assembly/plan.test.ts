@@ -60,9 +60,9 @@ describe("easeInOutCubic", () => {
 });
 
 describe("familyKey：抽屜 / 門 / 掀蓋一個單位", () => {
-  it("抽屜五塊板 + 把手同家族", () => {
+  it("抽屜五塊板同家族；把手不算（最後才裝）", () => {
     expect(familyKey("z1-drawer-2-side-left")).toBe("z1-drawer-2");
-    expect(familyKey("z1-drawer-2-face-pull")).toBe("z1-drawer-2");
+    expect(familyKey("z1-drawer-2-face-pull")).toBe("");
     expect(familyKey("z1-drawer-1-face")).toBe("z1-drawer-1");
   });
   it("掀蓋式木盒的 lid + wall-*-lid + lid-hinge", () => {
@@ -259,6 +259,16 @@ describe("五斗櫃：抽屜在外面組好整組從正面滑入；層板不從�
       }
     }
   });
+  it("把手在所有抽屜都進櫃體之後才裝、從正面裝上", () => {
+    const pulls = design.parts.filter((p) => /-pull$/.test(p.id)).map((p) => p.id);
+    expect(pulls.length).toBeGreaterThan(0);
+    const lastNonPull = Math.max(...design.parts.filter((p) => !/-pull$/.test(p.id)).map((p) => stepOf(plan, p.id)));
+    for (const id of pulls) {
+      expect(stepOf(plan, id), id).toBeGreaterThan(lastNonPull);
+      expect(ownMove(plan, id)[0].from.z, id).toBeLessThan(0);
+    }
+  });
+
   it("層板 / 隔板不會從 +z（背板那側）進來", () => {
     for (const p of design.parts) {
       if (!/divider|boundary|shelf/.test(p.id)) continue;
