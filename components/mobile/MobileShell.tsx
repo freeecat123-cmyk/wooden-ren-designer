@@ -238,11 +238,11 @@ export function MobileShell(props: MobileShellProps) {
             → 跟螢幕高走：52vh，夾在 320~460px（iPhone 13 Safari 視窗約 664px → 345px，扣掉視角列後畫布約 290px，原本 167px；組裝動畫控制列還會吃掉約 46px） */}
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
           <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
-            {/* 進階設定面板（AdvancedSheet，fixed top = min(288px, 40dvh)）打開時縮到剛好塞在面板上方：
-                面板頂 − 76（TopBar 56 + padding 8 + 圓角外框與量測誤差 12；iPhone 13 視窗 664 → 40dvh=266 → 190px，實測畫布底貼齊面板頂）。
-                原本固定 220 在短螢幕本來就會被蓋到 27px；拉高後更明顯
-                （2026-09-02 木頭仁：「進階設定點出來會蓋住圖」）。 */}
-            <div style={{ height: advancedOpen ? "calc(min(288px, 40dvh) - 76px)" : "clamp(320px, 52vh, 460px)", transition: "height 200ms ease" }}>
+            {/* 進階設定面板（AdvancedSheet）打開時 3D 縮成 clamp(220px, 36dvh, 320px)，
+                面板頂端 = 這個高度 + 76（TopBar 56 + padding 8 + 外框 12），兩邊同一條式子、要一起改。
+                （2026-09-02 木頭仁先說「進階設定點出來會蓋住圖」，縮到面板上方後又說「圖就變得太小了」
+                → 改成 3D 保留 36dvh、面板往下讓；iPhone 13：3D 239 / 畫布約 186 / 面板高 349） */}
+            <div style={{ height: advancedOpen ? "clamp(220px, 36dvh, 320px)" : "clamp(320px, 52vh, 460px)", transition: "height 200ms ease" }}>
               <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} assemblyPlan={props.assemblyPlan} />
             </div>
           </div>
