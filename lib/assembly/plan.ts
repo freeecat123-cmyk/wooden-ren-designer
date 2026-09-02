@@ -551,12 +551,67 @@ interface Emitter {
   wantScrews: boolean;
 }
 
-function emitScrews(em: Emitter, closing: Joint[], afterMs: number, stepIndex: number): number {
+/** 面板（椅面 / 桌面）：腳頂榫頭往上插的母件 */
+function isTopPanel(id: string, cat: PartCategory): boolean {
+  return id === "seat" || id === "top" || cat === "seat";
+}
+
+function pushScrew(em: Emitter, id: string, motherId: string, head: Vec3, axis: Vec3, lengthMm: number, stepIndex: number, t: number): void {
+  em.screws.push({ id, motherId, head, axis, lengthMm, appearMs: t });
+  em.moves.push({
+    kind: "screw",
+    partIds: [id],
+    from: scale(axis, -SCREW_HOVER_MM),
+    stepIndex,
+    startMs: t,
+    endMs: t + SCREW_MS,
+  });
+}
+
+function emitScrews(em: Emitter, closing: Joint[], afterMs: number, stepIndex: number, placed: Set<string>): number {
   if (!em.wantScrews || closing.length === 0) return afterMs;
   let t = afterMs;
   let end = afterMs;
+  /**
+   * 椅面 / 桌面：不是從面板上方鎖進腳，是**從牙條底下往上鎖進面板，一支牙條兩支**
+   * （2026-09-02 木頭仁：「固定椅面跟桌面的 應該是從牙條底下往上鎖到椅面 一個牙條２隻螺絲」）。
+   * 腳頂榫頭 → 面板這種接合，改成找所有「頂面貼著面板底面」的牙條，每支牙條在長度 1/4、3/4
+   * 處各一支，從牙條底面往上，長度 = 牙條高 + 進面板 ≤20mm（留 6mm 不穿出）。
+   */
+  const panelsDone = new Set<string>();
   for (const j of closing) {
     if (j.kind !== "tenon") continue;
+    const motherCat = categorizePart(j.mother);
+    if (!isTopPanel(j.mother, motherCat) || j.out.y < 0.9) continue;
+    if (panelsDone.has(j.mother)) continue;
+    panelsDone.add(j.mother);
+    const panelBox = em.ctx.box.get(j.mother)!;
+    const panelThick = panelBox.max.y - panelBox.min.y;
+    const aprons = [...placed].filter((id) => {
+      if (id === j.mother || categorizePart(id) !== "apron") return false;
+      const b = em.ctx.box.get(id)!;
+      const touching = Math.abs(b.max.y - panelBox.min.y) <= 3;
+      const under = b.min.x >= panelBox.min.x - 1 && b.max.x <= panelBox.max.x + 1 && b.min.z >= panelBox.min.z - 1 && b.max.z <= panelBox.max.z + 1;
+      return touching && under;
+    });
+    for (const apronId of aprons) {
+      const apron = em.ctx.parts.get(apronId)!;
+      const b = em.ctx.box.get(apronId)!;
+      const c = em.ctx.center.get(apronId)!;
+      const { lengthUnit } = partAxes(apron);
+      const L = apron.visible.length;
+      const lengthMm = (b.max.y - b.min.y) + Math.min(20, Math.max(8, panelThick - 6));
+      for (const k of [-0.25, 0.25]) {
+        const head = { x: c.x + lengthUnit.x * L * k, y: b.min.y, z: c.z + lengthUnit.z * L * k };
+        pushScrew(em, `screw:${apronId}^${j.mother}:${em.screws.length}`, apronId, head, { x: 0, y: 1, z: 0 }, lengthMm, stepIndex, t);
+        end = Math.max(end, t + SCREW_MS);
+        t += SCREW_STAGGER_MS;
+      }
+    }
+  }
+  for (const j of closing) {
+    if (j.kind !== "tenon") continue;
+    if (panelsDone.has(j.mother)) continue;   // 面板已改成牙條底下往上鎖
     const mother = em.ctx.parts.get(j.mother)!;
     const ext = worldExtents(mother);
     const ax = Math.abs(j.out.x), ay = Math.abs(j.out.y), az = Math.abs(j.out.z);
@@ -566,15 +621,7 @@ function emitScrews(em: Emitter, closing: Joint[], afterMs: number, stepIndex: n
     for (const o of offsets) {
       const id = `screw:${j.child}>${j.mother}:${em.screws.length}`;
       const head = add(add(j.root, scale(j.out, motherThick)), scale(j.widthUnit, o));
-      em.screws.push({ id, motherId: j.mother, head, axis: scale(j.out, -1), lengthMm, appearMs: t });
-      em.moves.push({
-        kind: "screw",
-        partIds: [id],
-        from: scale(j.out, SCREW_HOVER_MM),
-        stepIndex,
-        startMs: t,
-        endMs: t + SCREW_MS,
-      });
+      pushScrew(em, id, j.mother, head, scale(j.out, -1), lengthMm, stepIndex, t);
       end = Math.max(end, t + SCREW_MS);
       t += SCREW_STAGGER_MS;
     }
@@ -622,7 +669,8 @@ function emit(node: TreeNode, em: Emitter, parentIds: string[], depth = 0): void
       if ((g.has(j.child) && restSet.has(j.mother)) || (g.has(j.mother) && restSet.has(j.child))) closing.push(j);
     }
   });
-  end = emitScrews(em, closing, end, stepIndex);
+  const placedNow = new Set([...node.rest.ids, ...movedIds]);
+  end = emitScrews(em, closing, end, stepIndex, placedNow);
   em.steps.push({ index: stepIndex, partIds: movedIds, startMs, endMs: end });
   em.clock = end + gapMs;
 }

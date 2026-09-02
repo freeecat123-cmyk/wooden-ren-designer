@@ -18,6 +18,7 @@ import {
   type AssemblyPlan,
 } from "./plan";
 import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld } from "./joint-world";
+import { categorizePart } from "@/lib/render/categorize-part";
 
 function buildDefault(entry: FurnitureCatalogEntry, over: Record<string, string | number | boolean> = {}): FurnitureDesign {
   const opts = (entry.optionSchema ?? []).reduce<Record<string, string | number | boolean>>(
@@ -176,6 +177,30 @@ describe("方凳：木工的組法（一面框 → 前後牙條 → 另一面框
     const sc = withScrews.screws.find((x) => x.id.startsWith("screw:apron-left>"))!;
     expect(sc.lengthMm).toBeGreaterThan(30);
     expect(sc.appearMs).toBe(withScrews.moves.find((m) => m.partIds[0] === sc.id)!.startMs);
+  });
+
+  it("椅面：從四支牙條底下往上鎖，一支牙條兩支，不從椅面上方鎖進腳", () => {
+    const withScrews = planAssembly(design, { screws: true });
+    const seatScrews = withScrews.screws.filter((x) => x.id.includes("^seat"));
+    expect(seatScrews).toHaveLength(8);
+    const seat = design.parts.find((p) => p.id === "seat")!;
+    const seatBottomY = seat.origin.y;
+    for (const sc of seatScrews) {
+      expect(sc.axis).toEqual({ x: 0, y: 1, z: 0 });
+      // 頭在牙條底面（牙條高 = seat 底 − 牙條底）
+      const apron = design.parts.find((p) => p.id === sc.motherId)!;
+      expect(categorizePart(apron.id)).toBe("apron");
+      expect(sc.head.y).toBeCloseTo(apron.origin.y, 6);
+      // 進面板 ≤ 20mm、不穿出：頭 + 長度 < 椅面頂
+      expect(sc.head.y + sc.lengthMm).toBeLessThan(seatBottomY + seat.visible.thickness);
+      expect(sc.head.y + sc.lengthMm).toBeGreaterThan(seatBottomY + 8);
+    }
+    // 每支牙條剛好兩支
+    const perApron = new Map<string, number>();
+    for (const sc of seatScrews) perApron.set(sc.motherId, (perApron.get(sc.motherId) ?? 0) + 1);
+    expect([...perApron.values()]).toEqual([2, 2, 2, 2]);
+    // 沒有任何螺絲從上往下鎖進腳
+    expect(withScrews.screws.filter((x) => x.axis.y < -0.5)).toEqual([]);
   });
 
   it("joint-world：前牙條兩端榫頭各配到一支腳", () => {

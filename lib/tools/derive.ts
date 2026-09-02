@@ -121,6 +121,7 @@ const JOINERY_TOOLS: Record<JoineryType, JoinerySpec[]> = {
     { id: "drill-bits", priority: "required", reason: { zh: "斜孔專用階梯鑽頭", en: "Pocket-hole step-drill bits" } },
     { id: "tenz-screw-set", priority: "recommended", reason: { zh: "TENZ 星型螺絲省力不咬合,斜孔鎖固專用", en: "TENZ star-drive screws — low cam-out, great for pocket holes" } },
     { id: "countersink-bit", priority: "recommended", reason: { zh: "螺絲頭埋進木面不外露,正面更光潔", en: "Countersink the head flush — cleaner show face" } },
+    { id: "mallet", priority: "recommended", reason: { zh: "組裝敲合對位,白橡膠不留痕", en: "Tap parts flush during assembly — white rubber leaves no marks" } },
   ],
   screw: [
     { id: "drill", priority: "required", reason: { zh: "鑽先導孔與鎖螺絲", en: "Pilot-drill and drive screws" } },
@@ -128,6 +129,7 @@ const JOINERY_TOOLS: Record<JoineryType, JoinerySpec[]> = {
     { id: "tenz-screw-set", priority: "recommended", reason: { zh: "TENZ 星型螺絲省力不咬合", en: "TENZ star-drive screws — low cam-out" } },
     { id: "countersink-bit", priority: "recommended", reason: { zh: "螺絲頭埋進木面不外露", en: "Countersink the head flush" } },
     { id: "hand-drill-brace", priority: "optional", reason: { zh: "手搖鑽手動鎖固,無電源也能裝", en: "Hand brace — drive screws without power" } },
+    { id: "mallet", priority: "recommended", reason: { zh: "組裝敲合對位,白橡膠不留痕", en: "Tap parts flush during assembly — white rubber leaves no marks" } },
   ],
 };
 
@@ -186,6 +188,15 @@ export function deriveRequiredTools(
     for (const tenon of part.tenons) {
       seenJoinery.add(tenon.type);
     }
+  }
+  /**
+   * 🩸 組裝版（toBeginnerMode）把榫頭全拔掉、defaultJoinery 設成 pocket-hole，
+   * 但這裡只從榫頭推工具 → 組裝版的工具清單沒有電鑽、斜孔治具、TENZ 螺絲，
+   * 偏偏那一版就是靠螺絲鎖起來的（2026-09-02 木頭仁：「工具清單 增加官網的 tenz 螺絲」）。
+   * 沒有任何榫頭時，退而用設計宣告的預設接合法。
+   */
+  if (seenJoinery.size === 0 && design.defaultJoinery && JOINERY_TOOLS[design.defaultJoinery]) {
+    seenJoinery.add(design.defaultJoinery);
   }
   for (const joinery of seenJoinery) {
     for (const t of JOINERY_TOOLS[joinery]) {

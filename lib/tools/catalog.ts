@@ -391,7 +391,15 @@ export const TOOL_CATALOG: Record<string, Tool> = {
   "biscuit-joiner": { id: "biscuit-joiner", nameZh: "餅乾榫機", nameEn: "Biscuit Joiner", category: "power" },
   "nail-gun": { id: "nail-gun", nameZh: "釘槍（背板釘合用）", nameEn: "Nail Gun", category: "power" },
   "forstner-bit-35": { id: "forstner-bit-35", nameZh: "35mm 平翼鑽頭（西德鉸鏈杯孔專用）", nameEn: "35mm Forstner Bit", category: "power" },
-  "rubber-mallet": { id: "rubber-mallet", nameZh: "橡膠槌（敲合不留痕）", nameEn: "Rubber Mallet", category: "chisel" },
+  // 工序步驟用的是這個 id；跟上面 mallet 是同一支商品，補上商店連結才會有「去買」鈕
+  // （2026-09-02 木頭仁：「橡膠錘 官方站有 但你沒有放」）
+  "rubber-mallet": {
+    id: "rubber-mallet",
+    nameZh: "白橡膠槌（敲合不留痕）",
+    nameEn: "White Rubber Mallet (Non-Marring)",
+    category: "chisel",
+    shopUrl: "https://woodenren.easy.co/products/white-rubber-mallet-wood-handle",
+  },
   screwdriver: { id: "screwdriver", nameZh: "螺絲起子組", nameEn: "Screwdriver Set", category: "hardware" },
   level: { id: "level", nameZh: "水平尺", nameEn: "Spirit Level", category: "measure" },
   "shelf-pin": { id: "shelf-pin", nameZh: "層板粒（含鑽孔模板）", nameEn: "Shelf Pins", category: "hardware" },

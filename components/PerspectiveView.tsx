@@ -2097,13 +2097,21 @@ function AssemblyDriver({
     ghostRef.current.set(id, alpha);
     g.traverse((obj) => {
       if (!(obj instanceof Mesh)) return;
+      // 螺絲掛在母件 group 底下，但它們自己管顯示（appearMs），不跟著變虛影；
+      // 而且一旦被改成 transparent 就會進透明排序、從木頭裡透出來
+      if (obj.userData.isScrew) return;
       const mats: Material[] = Array.isArray(obj.material) ? obj.material : [obj.material];
       for (const m of mats) {
         if (!m) continue;
-        if (m.userData.baseOpacity === undefined) m.userData.baseOpacity = m.opacity;
-        m.transparent = true;
-        m.opacity = alpha >= 0.999 ? (m.userData.baseOpacity as number) : (m.userData.baseOpacity as number) * alpha;
-        m.depthWrite = alpha >= 0.999;
+        if (m.userData.baseOpacity === undefined) {
+          m.userData.baseOpacity = m.opacity;
+          m.userData.baseTransparent = m.transparent;
+          m.userData.baseDepthWrite = m.depthWrite;
+        }
+        const solid = alpha >= 0.999;
+        m.transparent = solid ? (m.userData.baseTransparent as boolean) : true;
+        m.opacity = solid ? (m.userData.baseOpacity as number) : (m.userData.baseOpacity as number) * alpha;
+        m.depthWrite = solid ? (m.userData.baseDepthWrite as boolean) : false;
         m.needsUpdate = true;
       }
       if (obj.userData.baseCastShadow === undefined) obj.userData.baseCastShadow = obj.castShadow;
@@ -2176,11 +2184,13 @@ function ScrewMesh({ spec, scale, register }: { spec: ScrewSpec; scale: number; 
   return (
     <group ref={(g: Group | null) => register(spec.id, g)} visible={false}>
       <group position={[spec.head.x * scale, spec.head.y * scale, spec.head.z * scale]} quaternion={quat}>
-        <mesh position={[0, -1.25 * scale, 0]} castShadow>
-          <cylinderGeometry args={[4 * scale, 4 * scale, 2.5 * scale, 18]} />
+        {/* 頭沉進木頭（埋頭）：只露 0.3mm，從側面看不會像一條黑槓突出來；
+            用 userData.isScrew 讓虛影邏輯跳過（2026-09-02 木頭仁：「會看到螺絲 透視進去了」） */}
+        <mesh position={[0, 0.95 * scale, 0]} userData={{ isScrew: true }}>
+          <cylinderGeometry args={[4 * scale, 3.2 * scale, 2.5 * scale, 18]} />
           <meshStandardMaterial color="#2f2f2f" metalness={0.85} roughness={0.35} />
         </mesh>
-        <mesh position={[0, L / 2, 0]}>
+        <mesh position={[0, L / 2, 0]} userData={{ isScrew: true }}>
           <cylinderGeometry args={[1.7 * scale, 1.7 * scale, L, 10]} />
           <meshStandardMaterial color="#565656" metalness={0.85} roughness={0.4} />
         </mesh>
