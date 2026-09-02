@@ -2098,14 +2098,18 @@ function AssemblyControls({
 }) {
   const t = useTranslations("perspectiveView");
   const step = plan.steps[stepIndexAt(plan, tMs)];
-  const names = Array.from(new Set(step.partIds.map((id) => {
+  // 同名零件合併計數：「凳腳 1、凳腳 2、凳腳 3、凳腳 4」→「凳腳 ×4」
+  const counts = new Map<string, number>();
+  for (const id of step.partIds) {
     const p = design.parts.find((pp) => pp.id === id);
-    return p ? partName(p, locale) : id;
-  })));
+    const base = (p ? partName(p, locale) : id).replace(/\s*\d+$/, "");
+    counts.set(base, (counts.get(base) ?? 0) + 1);
+  }
+  const names = Array.from(counts, ([n, c]) => (c > 1 ? `${n} ×${c}` : n));
   const sep = locale === "en" ? ", " : "、";
   const shown =
     names.slice(0, 3).join(sep) +
-    (names.length > 3 ? (locale === "en" ? " " : "") + t("assemblyMoreTpl", { n: names.length - 3 }) : "");
+    (names.length > 3 ? " " + t("assemblyMoreTpl", { n: names.length - 3 }) : "");
   const label = t("assemblyStepTpl", { n: step.index + 1, total: plan.steps.length, names: shown });
   const btn = "shrink-0 px-2 py-0.5 text-xs font-medium rounded ring-1 ring-zinc-200 bg-white text-zinc-700 hover:ring-amber-400 hover:bg-amber-50 disabled:opacity-40 transition";
   return (
