@@ -123,29 +123,40 @@ export function buildWorldMortiseIndex(parts: Part[]): WorldMortise[] {
         ley = m.origin.y - ly / 2;
         lez = localSign === 1 ? lz / 2 : -lz / 2;
       }
-      const e = rotateXYZ(rx, ry, rz, lex, ley, lez);
-      const ax = localAxis === "x" ? localSign : 0;
-      const ay = localAxis === "y" ? localSign : 0;
-      const az = localAxis === "z" ? localSign : 0;
-      const a = rotateXYZ(rx, ry, rz, ax, ay, az);
-      const { axis: worldAxis, sign: worldSign } = dominantAxis(a);
       const axisUnit = m.axis
         ? (() => {
             const mag = Math.hypot(m.axis!.x, m.axis!.y, m.axis!.z) || 1;
             return { x: m.axis!.x / mag, y: m.axis!.y / mag, z: m.axis!.z / mag };
           })()
         : null;
-      idx.push({
-        partId: part.id,
-        entryX: pc.x + e.x,
-        entryY: pc.y + e.y,
-        entryZ: pc.z + e.z,
-        axis: worldAxis,
-        sign: worldSign,
-        depth: m.depth,
-        through: m.through ?? false,
-        axisUnit,
-      });
+      const pushEntry = (la: Axis, ls: Sign, ex: number, ey: number, ez: number) => {
+        const e = rotateXYZ(rx, ry, rz, ex, ey, ez);
+        const a = rotateXYZ(rx, ry, rz, la === "x" ? ls : 0, la === "y" ? ls : 0, la === "z" ? ls : 0);
+        const { axis: worldAxis, sign: worldSign } = dominantAxis(a);
+        idx.push({
+          partId: part.id,
+          entryX: pc.x + e.x,
+          entryY: pc.y + e.y,
+          entryZ: pc.z + e.z,
+          axis: worldAxis,
+          sign: worldSign,
+          depth: m.depth,
+          through: m.through ?? false,
+          axisUnit,
+        });
+      };
+      pushEntry(localAxis, localSign, lex, ley, lez);
+      /**
+       * 🩸 第一次判斷只靠「離哪個面最近」——餐桌側牙條的榫眼在腳頂下 31mm、離側面
+       * 35mm，被當成「頂面榫眼」，側牙條的榫頭永遠配不到（2026-09-02 做組裝動畫
+       * 時抓到）。補救：另外兩個面也各給一筆候選入口；配對本來就取「開口方向相反
+       * 且離榫頭根面最近（< 60mm）」的那筆，多給的入口只有在真的對得上時才會被選到。
+       */
+      const alts: Array<[Axis, Sign, number, number, number]> = [];
+      if (localAxis !== "x") alts.push(["x", m.origin.x >= 0 ? 1 : -1, m.origin.x >= 0 ? lx / 2 : -lx / 2, m.origin.y - ly / 2, m.origin.z]);
+      if (localAxis !== "z") alts.push(["z", m.origin.z >= 0 ? 1 : -1, m.origin.x, m.origin.y - ly / 2, m.origin.z >= 0 ? lz / 2 : -lz / 2]);
+      if (localAxis !== "y") alts.push(["y", m.origin.y >= ly / 2 ? 1 : -1, m.origin.x, m.origin.y >= ly / 2 ? ly / 2 : -ly / 2, m.origin.z]);
+      for (const [la, ls, ex, ey, ez] of alts) pushEntry(la, ls, ex, ey, ez);
     }
   }
   return idx;
@@ -157,6 +168,10 @@ export type TenonWorld = {
   outUnit: Vec3;
   outAxis: Axis;
   outSign: Sign;
+  /** 榫頭斷面「寬」方向的世界單位向量（螺絲排位用） */
+  widthUnit: Vec3;
+  /** 榫頭斷面「厚」方向的世界單位向量 */
+  thickUnit: Vec3;
 };
 
 export function tenonWorld(part: Part, t: Tenon): TenonWorld {
@@ -195,7 +210,23 @@ export function tenonWorld(part: Part, t: Tenon): TenonWorld {
     outUnit = { x: rOut.x / mag, y: rOut.y / mag, z: rOut.z / mag };
   }
   const { axis: outAxis, sign: outSign } = dominantAxis(outUnit);
-  return { root, outUnit, outAxis, outSign };
+  // 斷面軸：start/end → 寬=local z、厚=local y；top/bottom → 寬=local x、厚=local z；
+  // left/right → 寬=local x、厚=local y（跟上面 lrx/lry/lrz 的 oW/oT 擺法一致）
+  const [wl, tl]: [Vec3, Vec3] =
+    t.position === "start" || t.position === "end"
+      ? [{ x: 0, y: 0, z: 1 }, { x: 0, y: 1, z: 0 }]
+      : t.position === "top" || t.position === "bottom"
+        ? [{ x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }]
+        : [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }];
+  const wr = rotateXYZ(rxP, ryP, rzP, wl.x, wl.y, wl.z);
+  const tr = rotateXYZ(rxP, ryP, rzP, tl.x, tl.y, tl.z);
+  const wm = Math.hypot(wr.x, wr.y, wr.z) || 1;
+  const tm = Math.hypot(tr.x, tr.y, tr.z) || 1;
+  return {
+    root, outUnit, outAxis, outSign,
+    widthUnit: { x: wr.x / wm, y: wr.y / wm, z: wr.z / wm },
+    thickUnit: { x: tr.x / tm, y: tr.y / tm, z: tr.z / tm },
+  };
 }
 
 /** 榫頭根面到榫眼入口的最大配對距離（mm）。 */

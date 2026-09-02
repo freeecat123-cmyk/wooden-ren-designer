@@ -72,6 +72,8 @@ interface MobileShellProps {
   explodeMm?: number;
   /** X-ray 透視模式 */
   xrayMode?: "off" | "face" | "full";
+  /** 組裝動畫排程（server 用原始設計算好） */
+  assemblyPlan?: import("@/lib/assembly/plan").AssemblyPlan | null;
 }
 
 export function MobileShell(props: MobileShellProps) {
@@ -235,7 +237,7 @@ export function MobileShell(props: MobileShellProps) {
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
           <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
             <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} />
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} assemblyPlan={props.assemblyPlan} />
             </div>
           </div>
         </div>

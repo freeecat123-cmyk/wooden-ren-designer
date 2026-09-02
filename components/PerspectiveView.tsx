@@ -14,7 +14,7 @@ import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
 import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld, type WorldMortise } from "@/lib/assembly/joint-world";
-import { offsetsAt, planAssembly, stepIndexAt, type AssemblyPlan } from "@/lib/assembly/plan";
+import { offsetsAt, planAssembly, stepIndexAt, type AssemblyPlan, type ScrewSpec } from "@/lib/assembly/plan";
 import { downloadBlob, extensionForMime, pickRecorderMime, startCanvasRecording, type CanvasRecording } from "@/lib/assembly/record";
 import { partName } from "@/lib/templates/part-names";
 import {
@@ -595,8 +595,15 @@ export function PerspectiveView({
   compactMode = false,
   wireframeMode = false,
   hidePartIds = [],
+  assemblyPlan: assemblyPlanProp = null,
 }: {
   design: FurnitureDesign;
+  /**
+   * 組裝動畫排程（server 端用「還帶榫頭榫眼的原始設計」算好傳進來，見 §H8）。
+   * 組裝版的 design 已被 toBeginnerMode 拔掉榫接資料，PerspectiveView 自己算會
+   * 排不出榫的方向；沒傳才退而用 design 自己算（榫接版可用）。
+   */
+  assemblyPlan?: AssemblyPlan | null;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
   /** 榫接模式：3D 多畫一層紅色 tenon 凸出 */
@@ -644,9 +651,20 @@ export function PerspectiveView({
   const partGroupRefs = useRef(new Map<string, Group>());
   const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const assemblyPlan = useMemo<AssemblyPlan | null>(
-    () => (assemblyOn ? planAssembly(design) : null),
-    [assemblyOn, design],
+    () => (assemblyOn ? (assemblyPlanProp ?? planAssembly(design)) : null),
+    [assemblyOn, assemblyPlanProp, design],
   );
+  const screwsByMother = useMemo(() => {
+    const m = new Map<string, ScrewSpec[]>();
+    for (const sc of assemblyPlan?.screws ?? []) (m.get(sc.motherId) ?? m.set(sc.motherId, []).get(sc.motherId)!).push(sc);
+    return m;
+  }, [assemblyPlan]);
+  const registerGroup = useCallback((id: string, g: Group | null) => {
+    if (g) partGroupRefs.current.set(id, g);
+    else partGroupRefs.current.delete(id);
+  }, []);
+  // 錄影：把 WebGL 每一幀複製到這張 2D 畫布（含背景色），錄的是它
+  const [exportTarget, setExportTarget] = useState<HTMLCanvasElement | null>(null);
   const toggleAssembly = useCallback(() => {
     setAssemblyOn((on) => {
       if (on) { setAssemblyPlaying(false); return false; }
@@ -832,6 +850,7 @@ export function PerspectiveView({
     assemblyOn,
     assemblyPlaying,
     assemblyScrubNonce,
+    assemblyPlanProp,
   ]);
 
   const finishExport = useCallback(async () => {
@@ -839,6 +858,7 @@ export function PerspectiveView({
     recordingRef.current = null;
     exportRestoreRef.current?.();
     exportRestoreRef.current = null;
+    setExportTarget((c) => { c?.remove(); return null; });
     if (!rec) return;
     const blob = await rec.stop();
     const ext = extensionForMime(rec.mime);
@@ -867,6 +887,13 @@ export function PerspectiveView({
     if (!canvas || !host) return;
     if (!pickRecorderMime()) { setExportMsg(tPV("assemblyExportUnsupported")); return; }
     setExportMsg(null);
+    // 2D 目標畫布：接在 body 下（Safari 對脫離 DOM 的 canvas 不吐幀），尺寸由 RecorderTap 每幀對齊
+    const target = document.createElement("canvas");
+    target.width = canvas.width;
+    target.height = canvas.height;
+    target.style.cssText = "position:fixed;left:-20000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(target);
+    setExportTarget(target);
     // 直式 / 方形：暫時把 canvas 容器改成該比例（R3F 會跟著 resize），錄完還原
     if (exportAspect !== "current") {
       const prev = host.style.cssText;
@@ -883,10 +910,11 @@ export function PerspectiveView({
     setAssemblyUiT(0);
     setAssemblyScrubNonce((n) => n + 1);
     try {
-      recordingRef.current = startCanvasRecording(canvas);
+      recordingRef.current = startCanvasRecording(target);
     } catch {
       exportRestoreRef.current?.();
       exportRestoreRef.current = null;
+      setExportTarget((c) => { c?.remove(); return null; });
       setExportMsg(tPV("assemblyExportUnsupported"));
       return;
     }
@@ -901,6 +929,7 @@ export function PerspectiveView({
     exportRestoreRef.current?.();
     exportRestoreRef.current = null;
     if (rec) void rec.stop();
+    document.querySelectorAll<HTMLCanvasElement>("canvas[data-assembly-export]").forEach((c) => c.remove());
   }, []);
 
   /**
@@ -1889,10 +1918,7 @@ export function PerspectiveView({
           return (
             <group
               key={part.id}
-              ref={(g: Group | null) => {
-                if (g) partGroupRefs.current.set(part.id, g);
-                else partGroupRefs.current.delete(part.id);
-              }}
+              ref={(g: Group | null) => registerGroup(part.id, g)}
               /**
                * ⚠️ 再點同一個零件 = **取消選取**,不要一律 set。
                *
@@ -1941,6 +1967,9 @@ export function PerspectiveView({
               />
               {tenonMeshes}
               {auditOverlay}
+              {assemblyOn && screwsByMother.get(part.id)?.map((sc) => (
+                <ScrewMesh key={sc.id} spec={sc} scale={SCALE} register={registerGroup} />
+              ))}
             </group>
           );
         })}
@@ -1981,6 +2010,7 @@ export function PerspectiveView({
           canvasRef={glCanvasRef}
           onTick={onAssemblyTick}
         />
+        {exportTarget && <RecorderTap target={exportTarget} />}
       </Canvas>
       {/**
         * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
@@ -2047,6 +2077,11 @@ function AssemblyDriver({
       if (o) g.position.set(o.x * scale, o.y * scale, o.z * scale);
       else g.position.set(0, 0, 0);
     }
+    // 螺絲：鎖入前不顯示
+    for (const sc of plan?.screws ?? []) {
+      const g = groups.current.get(sc.id);
+      if (g) g.visible = t >= sc.appearMs;
+    }
   }, [plan, groups, scale]);
   // 關掉 / 拖滑桿 / 換設計 → 套一次、重繪一幀
   useEffect(() => { apply(clockRef.current); invalidate(); }, [apply, scrubNonce, clockRef, invalidate]);
@@ -2060,6 +2095,71 @@ function AssemblyDriver({
     if (t >= plan.totalMs) onTick(t, true);
     else if (now - lastUi.current > 100) { lastUi.current = now; onTick(t, false); }
   });
+  return null;
+}
+
+/**
+ * 組裝版的螺絲：外層 group 給動畫位移（跟零件一樣走 offsetsAt），內層擺頭 + 桿。
+ * 圓柱幾何預設沿 local +y，用四元數轉到「鎖入方向」；頭在木頭外面（−y 側）。
+ * `visible={false}` 是常數 prop，React 重繪不會再套回去；顯示與否由 AssemblyDriver 控制。
+ */
+function ScrewMesh({ spec, scale, register }: { spec: ScrewSpec; scale: number; register: (id: string, g: Group | null) => void }) {
+  const quat = useMemo(
+    () => new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(spec.axis.x, spec.axis.y, spec.axis.z).normalize()),
+    [spec.axis.x, spec.axis.y, spec.axis.z],
+  );
+  const L = spec.lengthMm * scale;
+  return (
+    <group ref={(g: Group | null) => register(spec.id, g)} visible={false}>
+      <group position={[spec.head.x * scale, spec.head.y * scale, spec.head.z * scale]} quaternion={quat}>
+        <mesh position={[0, -1.25 * scale, 0]} castShadow>
+          <cylinderGeometry args={[4 * scale, 4 * scale, 2.5 * scale, 18]} />
+          <meshStandardMaterial color="#2f2f2f" metalness={0.85} roughness={0.35} />
+        </mesh>
+        <mesh position={[0, L / 2, 0]}>
+          <cylinderGeometry args={[1.7 * scale, 1.7 * scale, L, 10]} />
+          <meshStandardMaterial color="#565656" metalness={0.85} roughness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * 錄影分接頭：掛著的時候接管渲染（useFrame priority 1 會關掉 R3F 自動 render），
+ * 自己 render 完馬上把 WebGL 畫布複製到 2D 目標畫布——先鋪跟頁面一樣的淺灰漸層底，
+ * 再疊 WebGL 幀。錄的是 2D 畫布：
+ * - WebGL canvas 沒開 preserveDrawingBuffer 時 captureStream 在 Safari 會拿到定格
+ *   （2026-09-02 木頭仁：「輸出的組裝動畫是不會動的」）；同一個 task 內 drawImage 拿得到。
+ * - WebGL 透明背景直接錄出來是黑的（同日：「影片空間是黑色的」）。
+ * 掛載期間把 dpr 拉到 2（畫質），卸載還原。
+ */
+function RecorderTap({ target }: { target: HTMLCanvasElement }) {
+  const gl = useThree((s) => s.gl);
+  const setDpr = useThree((s) => s.setDpr);
+  const prevDpr = useRef<number | null>(null);
+  useEffect(() => {
+    prevDpr.current = gl.getPixelRatio();
+    setDpr(Math.min(2, (typeof window !== "undefined" ? window.devicePixelRatio : 1) * 1.5 || 2));
+    target.dataset.assemblyExport = "1";
+    return () => { if (prevDpr.current !== null) setDpr(prevDpr.current); };
+  }, [gl, setDpr, target]);
+  useFrame(({ gl: r, scene, camera }) => {
+    r.render(scene, camera);
+    const src = r.domElement;
+    if (target.width !== src.width || target.height !== src.height) {
+      target.width = src.width;
+      target.height = src.height;
+    }
+    const ctx = target.getContext("2d");
+    if (!ctx) return;
+    const grad = ctx.createLinearGradient(0, 0, 0, target.height);
+    grad.addColorStop(0, "#fafafa");
+    grad.addColorStop(1, "#e4e4e7");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, target.width, target.height);
+    ctx.drawImage(src, 0, 0, target.width, target.height);
+  }, 1);
   return null;
 }
 
@@ -2134,9 +2234,6 @@ function AssemblyControls({
           data-testid="assembly-scrub"
         />
         {!compact && (
-          <span className="shrink-0 max-w-[40%] truncate text-zinc-700" data-testid="assembly-step">{label}</span>
-        )}
-        {!compact && (
           <select
             value={exportAspect}
             onChange={(e) => onAspect(e.target.value as "current" | "portrait" | "square")}
@@ -2163,9 +2260,8 @@ function AssemblyControls({
           ✕
         </button>
       </div>
-      {compact && (
-        <div className="mt-0.5 truncate text-[11px] text-zinc-600" data-testid="assembly-step">{label}</div>
-      )}
+      {/* 步驟文字獨立一行：塞在滑桿旁邊時文字長度一變滑桿就跟著伸縮（2026-09-02 木頭仁回報「晃動」） */}
+      <div className="mt-0.5 truncate text-[11px] text-zinc-700" data-testid="assembly-step">{label}</div>
       {exportMsg && <div className="mt-0.5 text-[11px] text-zinc-600" data-testid="assembly-export-msg">{exportMsg}</div>}
     </div>
   );

@@ -9,6 +9,7 @@ import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permis
 import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { planAssembly } from "@/lib/assembly/plan";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
@@ -293,6 +294,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const design = joineryMode
     ? applyEdgeProtection(rawDesign)
     : toBeginnerMode(rawDesign);
+  // 組裝動畫排程（§H8）：用還帶榫頭榫眼的 rawDesign 算，組裝版的 design 已被拔掉榫接
+  // 資料、排不出插入方向。組裝版多鎖螺絲。
+  const assemblyPlan = planAssembly(rawDesign, { screws: !joineryMode });
 
   // 場景主題：URL `?scene=nordic|japandi|industrial|chinese`，預設 natural
   const sceneIdRaw = (typeof sp.scene === "string" ? sp.scene : "natural") as SceneThemeId;
@@ -583,7 +587,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <span className="text-[10px] font-normal text-zinc-400">{t("section.perspectiveHint")}</span>
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} noSync />
             {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) && (
               <ThreeDExportButton design={design} />
             )}
@@ -691,14 +695,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                     {t("section.preview3d")}
                   </div>
                   <SceneThemeToggle current={sceneId} />
-                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
+                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />
                 </div>
               </div>
             </div>
           </div>
           {/* mobile only：scroll 進材料區出現頂端 banner */}
           <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} compactMode />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} compactMode />
           </Material3dPip>
         </div>
       </details>
@@ -819,6 +823,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lidLiftMm={lidLiftMm}
         explodeMm={explodeMm}
         xrayMode={xrayMode}
+        assemblyPlan={assemblyPlan}
       />
     )}
     </>

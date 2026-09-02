@@ -2,7 +2,7 @@
  * 把 3D canvas 錄成影片（組裝動畫輸出用）。
  *
  * 走瀏覽器內建的 `canvas.captureStream()` + `MediaRecorder`，不用伺服器：
- * - Chrome / Edge / Firefox → WebM（VP9 優先）
+ * - Chrome / Edge / Firefox → WebM（VP9 優先；Pinterest 不收 WebM 的話用 Safari 錄或轉檔）
  * - Safari 14.1+ → MP4（H.264）
  * 拿到的 Blob 直接觸發下載。
  *
@@ -11,12 +11,18 @@
  *    靜止畫面錄出來會是定格。
  */
 
+/**
+ * 順序：WebM 優先、MP4 墊後。
+ * Chrome 的 MediaRecorder 雖然也能出 MP4(avc1)，但 2026-09-02 實測（headless 真 Chrome）
+ * 出來的 H.264 串流 ffmpeg 解碼滿滿錯誤；VP9 WebM 乾淨。Safari 不會錄 WebM → 自然落到 MP4，
+ * 而 Safari 的 MP4 解碼零錯誤。
+ */
 const CANDIDATES = [
-  "video/mp4;codecs=avc1",
-  "video/mp4",
   "video/webm;codecs=vp9",
   "video/webm;codecs=vp8",
   "video/webm",
+  "video/mp4;codecs=avc1",
+  "video/mp4",
 ];
 
 /** 這個瀏覽器能錄的第一個格式；都不行回 null（例如舊版 iOS Safari）。 */

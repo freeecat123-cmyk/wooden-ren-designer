@@ -6,19 +6,25 @@ import {
   STAGGER_MS,
   STEP_GAP_MS,
   TAIL_MS,
+  SCREW_MS,
+  debugJoints,
   easeInOutCubic,
+  familyKey,
   offsetsAt,
   planAssembly,
   stepIndexAt,
+  sweepHits,
   travelMm,
+  type AssemblyPlan,
 } from "./plan";
-import { buildWorldMortiseIndex, matchMortiseForTenon, partWorldCenter, tenonWorld } from "./joint-world";
+import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld } from "./joint-world";
 
-function buildDefault(entry: FurnitureCatalogEntry): FurnitureDesign {
+function buildDefault(entry: FurnitureCatalogEntry, over: Record<string, string | number | boolean> = {}): FurnitureDesign {
   const opts = (entry.optionSchema ?? []).reduce<Record<string, string | number | boolean>>(
     (acc, spec: OptionSpec) => { acc[spec.key] = spec.defaultValue; return acc; },
     {},
   );
+  Object.assign(opts, over);
   return entry.template!({
     length: entry.defaults.length,
     width: entry.defaults.width,
@@ -27,8 +33,11 @@ function buildDefault(entry: FurnitureCatalogEntry): FurnitureDesign {
     options: opts,
   });
 }
-
-const stoolEntry = FURNITURE_CATALOG.find((e) => e.category === "stool")!;
+const entry = (c: string) => FURNITURE_CATALOG.find((e) => e.category === c)!;
+/** 某零件「自己那一筆」非螺絲 move（子組件整組滑入的那筆另外算） */
+const ownMove = (plan: AssemblyPlan, id: string) =>
+  plan.moves.filter((m) => m.kind !== "screw" && m.partIds.includes(id));
+const stepOf = (plan: AssemblyPlan, id: string) => Math.min(...ownMove(plan, id).map((m) => m.stepIndex));
 
 describe("travelMm（位移量 = clamp(0.4 × 最大外形, 80, 450)）", () => {
   const mk = (l: number, w: number, t: number) =>
@@ -50,148 +59,272 @@ describe("easeInOutCubic", () => {
   });
 });
 
-describe("方凳（stool）的組裝順序", () => {
-  const design = buildDefault(stoolEntry);
+describe("familyKey：抽屜 / 門 / 掀蓋一個單位", () => {
+  it("抽屜五塊板 + 把手同家族", () => {
+    expect(familyKey("z1-drawer-2-side-left")).toBe("z1-drawer-2");
+    expect(familyKey("z1-drawer-2-face-pull")).toBe("z1-drawer-2");
+    expect(familyKey("z1-drawer-1-face")).toBe("z1-drawer-1");
+  });
+  it("掀蓋式木盒的 lid + wall-*-lid + lid-hinge", () => {
+    expect(familyKey("lid")).toBe("lid-group");
+    expect(familyKey("wall-front-lid")).toBe("lid-group");
+    expect(familyKey("lid-hinge-1")).toBe("lid-group");
+  });
+  it("腳 / 牙條沒有家族", () => {
+    expect(familyKey("leg-1")).toBe("");
+    expect(familyKey("apron-front")).toBe("");
+  });
+});
+
+describe("方凳：木工的組法（一面框 → 前後牙條 → 另一面框整組滑上 → 座板）", () => {
+  const design = buildDefault(entry("stool"));
   const plan = planAssembly(design);
-  const center = (id: string) => partWorldCenter(design.parts.find((p) => p.id === id)!);
+  const travel = travelMm(design);
 
-  it("三步：四支腳 → 牙條 + 下橫撐 → 座板", () => {
-    expect(plan.steps).toHaveLength(3);
-    expect([...plan.steps[0].partIds].sort()).toEqual(["leg-1", "leg-2", "leg-3", "leg-4"]);
-    expect([...plan.steps[1].partIds].sort()).toEqual(
-      ["apron-back", "apron-front", "apron-left", "apron-right", "ls-back", "ls-front", "ls-left", "ls-right"],
-    );
-    expect(plan.steps[2].partIds).toEqual(["seat"]);
+  it("9 步、順序正確", () => {
+    expect(plan.steps).toHaveLength(9);
+    const seq = plan.steps.map((s) => [...s.partIds].sort().join(","));
+    expect(seq).toEqual([
+      "leg-1",
+      "apron-left,ls-left",
+      "leg-3",
+      "apron-back,apron-front,ls-back,ls-front",
+      "leg-2",
+      "apron-right,ls-right",
+      "leg-4",
+      "apron-right,leg-2,leg-4,ls-right",
+      "seat",
+    ]);
   });
 
-  it("腳從自己那一側的外面水平合攏（from 的 x/z 跟腳的位置同號、y = 0）", () => {
-    for (const id of ["leg-1", "leg-2", "leg-3", "leg-4"]) {
-      const m = plan.moves[id];
-      const c = center(id);
-      expect(m.kind).toBe("radial");
-      expect(Math.sign(m.from.x)).toBe(Math.sign(c.x));
-      expect(Math.sign(m.from.z)).toBe(Math.sign(c.z));
-      expect(m.from.y).toBe(0);
-    }
+  it("牙條只沿榫的軸向插入（左牙條沿 z 滑進 leg-1、前後牙條沿 x），位移 = travelMm", () => {
+    const left = ownMove(plan, "apron-left")[0];
+    expect(left.kind).toBe("join");
+    expect(left.from.x).toBeCloseTo(0, 6);
+    expect(left.from.y).toBeCloseTo(0, 6);
+    expect(Math.abs(left.from.z)).toBeCloseTo(travel, 6);
+    const front = ownMove(plan, "apron-front")[0];
+    expect(front.from.y).toBeCloseTo(0, 6);
+    expect(front.from.z).toBeCloseTo(0, 6);
+    expect(Math.abs(front.from.x)).toBeCloseTo(travel, 6);
   });
 
-  it("牙條兩端榫頭方向打架 → 垂直於榫軸、從自己那側水平滑進，位移 = travelMm", () => {
-    const travel = travelMm(design);
-    const front = plan.moves["apron-front"];
-    expect(front.kind).toBe("radial");
-    expect(front.from.x).toBeCloseTo(0, 6);
-    expect(front.from.y).toBe(0);
-    // 前面是 −z（code 軸慣例 y 上 z 後）
-    expect(front.from.z).toBeCloseTo(-travel, 6);
-    const left = plan.moves["apron-left"];
-    expect(left.from.x).toBeCloseTo(-travel, 6);
-    expect(left.from.y).toBe(0);
-    expect(left.from.z).toBeCloseTo(0, 6);
+  it("右框整組（2 腳 + 2 牙條）沿 x 一起滑入，框裡的牙條先在爆炸位置沿 z 插好", () => {
+    const frame = plan.moves.find((m) => m.kind === "join" && m.partIds.length === 4)!;
+    expect([...frame.partIds].sort()).toEqual(["apron-right", "leg-2", "leg-4", "ls-right"]);
+    expect(Math.abs(frame.from.x)).toBeCloseTo(travel, 6);
+    // 右牙條有兩筆 move：自己插進 leg-2（z 向）＋ 跟著框滑入（x 向）
+    const mine = ownMove(plan, "apron-right");
+    expect(mine).toHaveLength(2);
+    const own = mine.find((m) => m.partIds.length === 1)!;
+    expect(Math.abs(own.from.z)).toBeCloseTo(travel, 6);
+    expect(own.endMs).toBeLessThanOrEqual(frame.startMs);
+    // 框滑入前，右牙條的總位移 = 框的位移（自己那筆已到位）
+    const t = frame.startMs;
+    const off = offsetsAt(plan, t).get("apron-right")!;
+    expect(off.x).toBeCloseTo(frame.from.x, 6);
+    expect(off.z).toBeCloseTo(0, 6);
   });
 
-  it("座板是母件（腳頂榫頭插進來）→ 沿榫軸反向從上方套下", () => {
-    const seat = plan.moves["seat"];
-    expect(seat.kind).toBe("tenon");
+  it("座板最後從上方壓下（腳頂榫頭是 y 向）", () => {
+    const seat = ownMove(plan, "seat")[0];
+    expect(seat.stepIndex).toBe(8);
+    expect(seat.from.y).toBeCloseTo(travel, 6);
     expect(seat.from.x).toBeCloseTo(0, 6);
     expect(seat.from.z).toBeCloseTo(0, 6);
-    expect(seat.from.y).toBeCloseTo(travelMm(design), 6);
   });
 
-  it("時間軸手算：4 件 → 0..1260；停 250；8 件 → 1510..3250；停 250；1 件 → 3500..4400；尾 500 → 4900", () => {
-    expect(MOVE_MS).toBe(900); expect(STAGGER_MS).toBe(120); expect(STEP_GAP_MS).toBe(250); expect(TAIL_MS).toBe(500);
-    expect(plan.steps[0].startMs).toBe(0);
-    expect(plan.steps[0].endMs).toBe(1260);
-    expect(plan.steps[1].startMs).toBe(1510);
-    expect(plan.steps[1].endMs).toBe(3250);
-    expect(plan.steps[2].startMs).toBe(3500);
-    expect(plan.steps[2].endMs).toBe(4400);
-    expect(plan.totalMs).toBe(4900);
-    // 步內第 i 件晚 i × 120ms 起跑
-    const ids = plan.steps[1].partIds;
-    expect(plan.moves[ids[3]].startMs).toBe(1510 + 3 * 120);
-    expect(plan.moves[ids[3]].endMs).toBe(1510 + 3 * 120 + 900);
+  it("時間軸手算（外層 800/100/200；子組件內 480/120）", () => {
+    expect(MOVE_MS).toBe(800); expect(STAGGER_MS).toBe(100); expect(STEP_GAP_MS).toBe(200); expect(TAIL_MS).toBe(500);
+    // 0 leg-1 0..800 | 1 左牙條×2 1000..1900 | 2 leg-3 2100..2900 | 3 前後×4 3100..4200
+    // 右框內部（depth 1，480ms/120ms 間隔）：4 leg-2 4400..4880 | 5 右牙條×2 5000..5580 | 6 leg-4 5700..6180
+    // 7 右框 6300..7100 | 8 座板 7300..8100 | 尾 500 → 8600
+    const se = plan.steps.map((s) => [s.startMs, s.endMs]);
+    expect(se).toEqual([
+      [0, 800], [1000, 1900], [2100, 2900], [3100, 4200],
+      [4400, 4880], [5000, 5580], [5700, 6180],
+      [6300, 7100], [7300, 8100],
+    ]);
+    expect(plan.totalMs).toBe(8600);
   });
 
-  it("offsetsAt：t=0 全部在起點、t=結束全部到位、中途按 ease 收斂", () => {
-    const at0 = offsetsAt(plan, 0);
-    expect(at0.size).toBe(13);
-    expect(at0.get("leg-1")).toEqual(plan.moves["leg-1"].from);
+  it("offsetsAt：t=0 全部在起點、結束全到位、中途按 ease 收斂；stepIndexAt", () => {
+    expect(offsetsAt(plan, 0).size).toBe(13);
     expect(offsetsAt(plan, plan.totalMs).size).toBe(0);
-    // leg-1 起跑 0ms，t=630 → p=0.7 → 剩 1 − 0.892 = 0.108
-    const mid = offsetsAt(plan, 630).get("leg-1")!;
-    expect(mid.x / plan.moves["leg-1"].from.x).toBeCloseTo(0.108, 9);
-    expect(mid.z / plan.moves["leg-1"].from.z).toBeCloseTo(0.108, 9);
-    // 座板還沒起跑（3500 才開始）→ 仍在起點
-    expect(offsetsAt(plan, 3000).get("seat")).toEqual(plan.moves["seat"].from);
-  });
-
-  it("stepIndexAt", () => {
+    const leg1 = ownMove(plan, "leg-1")[0];
+    const mid = offsetsAt(plan, 560).get("leg-1")!;   // p=0.7 → 剩 0.108
+    expect(mid.z / leg1.from.z).toBeCloseTo(0.108, 9);
     expect(stepIndexAt(plan, 0)).toBe(0);
-    expect(stepIndexAt(plan, 2000)).toBe(1);
-    expect(stepIndexAt(plan, 4000)).toBe(2);
-    expect(stepIndexAt(plan, 99999)).toBe(2);
+    expect(stepIndexAt(plan, 3500)).toBe(3);
+    expect(stepIndexAt(plan, 99999)).toBe(8);
   });
 
-  it("joint-world：前牙條兩端榫頭各配到一支腳、榫頭朝 ±x", () => {
+  it("組裝版：每個榫接合上後鎖螺絲，螺絲在合上之後才出現；榫接版沒有螺絲", () => {
+    expect(plan.screws).toHaveLength(0);
+    const withScrews = planAssembly(design, { screws: true });
+    expect(withScrews.screws.length).toBeGreaterThan(0);
+    const screwMoves = withScrews.moves.filter((m) => m.kind === "screw");
+    expect(screwMoves).toHaveLength(withScrews.screws.length);
+    for (const sm of screwMoves) {
+      const step = withScrews.steps[sm.stepIndex];
+      const joinEnd = Math.max(...withScrews.moves.filter((m) => m.stepIndex === sm.stepIndex && m.kind !== "screw").map((m) => m.endMs));
+      expect(sm.startMs).toBeGreaterThanOrEqual(joinEnd);
+      expect(sm.endMs - sm.startMs).toBe(SCREW_MS);
+      expect(step.endMs).toBeGreaterThanOrEqual(sm.endMs);
+    }
+    // 螺絲頭在母件外面：頭到榫頭根面的距離 = 母件沿軸厚度（腳 35mm 見方 → 35）
+    const sc = withScrews.screws.find((x) => x.id.startsWith("screw:apron-left>"))!;
+    expect(sc.lengthMm).toBeGreaterThan(30);
+    expect(sc.appearMs).toBe(withScrews.moves.find((m) => m.partIds[0] === sc.id)!.startMs);
+  });
+
+  it("joint-world：前牙條兩端榫頭各配到一支腳", () => {
     const index = buildWorldMortiseIndex(design.parts);
     const apron = design.parts.find((p) => p.id === "apron-front")!;
-    expect(apron.tenons.length).toBeGreaterThanOrEqual(2);
     const mothers = new Set<string>();
     for (const t of apron.tenons) {
       const tw = tenonWorld(apron, t);
-      expect(Math.abs(tw.outUnit.x)).toBeCloseTo(1, 6);
       const mw = matchMortiseForTenon(apron, t, tw, index);
       expect(mw).not.toBeNull();
-      expect(mw!.partId.startsWith("leg-")).toBe(true);
       mothers.add(mw!.partId);
     }
     expect(mothers.size).toBe(2);
   });
 });
 
-describe("餐椅：椅背立柱跟腳同一步、先於靠背橫料", () => {
-  const entry = FURNITURE_CATALOG.find((e) => e.category === "dining-chair")!;
-  const plan = planAssembly(buildDefault(entry));
-  it("back-post 在第 0 步", () => {
-    const posts = Object.values(plan.moves).filter((m) => m.partId.startsWith("back-post"));
-    expect(posts.length).toBeGreaterThan(0);
-    for (const m of posts) expect(m.stepIndex).toBe(0);
+describe("餐桌：側牙條的榫眼在腳頂下 31mm，以前被判成頂面榫眼配不到（2026-09-02 修）", () => {
+  const design = buildDefault(entry("dining-table"));
+  it("所有榫頭都配得到母件", () => {
+    const js = debugJoints(design);
+    expect(js.filter((j) => j.kind === "tenon-UNMATCHED")).toEqual([]);
   });
-  it("back-top-rail 在 back-post 之後", () => {
-    const rail = plan.moves["back-top-rail"];
-    expect(rail).toBeDefined();
-    expect(rail.stepIndex).toBeGreaterThan(0);
+  it("順序：一面側框 → 前後牙條 → 另一側框整組 → 桌面", () => {
+    const plan = planAssembly(design);
+    const seq = plan.steps.map((s) => [...s.partIds].sort().join(","));
+    expect(seq[0]).toBe("leg-1");
+    expect(seq[1]).toBe("apron-left");
+    expect(seq[2]).toBe("leg-3");
+    expect(seq[3]).toBe("apron-back,apron-front");
+    expect(seq[seq.length - 2]).toBe("apron-right,leg-2,leg-4");
+    expect(seq[seq.length - 1]).toBe("top");
+  });
+});
+
+describe("鳩尾木盒：公榫板只能從母板端面套上；滑蓋從缺口那側滑入；底板是底座", () => {
+  const design = buildDefault(entry("dovetail-box"));
+  const plan = planAssembly(design, { screws: true });
+  const travel = travelMm(design);
+  it("鳩尾接合推得出來（前後壁是公榫板，插入方向 = 板面法線）", () => {
+    const js = debugJoints(design).filter((j) => j.kind === "dovetail");
+    expect(js.map((j) => `${j.child}>${j.mother}`).sort()).toEqual(
+      ["wall-back>wall-left", "wall-back>wall-right", "wall-front>wall-left", "wall-front>wall-right"],
+    );
+    for (const j of js) {
+      expect(j.axes).toHaveLength(1);
+      expect(Math.abs(j.axes[0].z)).toBeCloseTo(1, 6);
+    }
+  });
+  it("前壁沿 z（板面法線）從正面套上，不是沿板長方向", () => {
+    const front = ownMove(plan, "wall-front")[0];
+    expect(front.from.x).toBeCloseTo(0, 6);
+    expect(front.from.z).toBeCloseTo(-travel, 6);
+  });
+  it("滑蓋水平滑入（從左邊缺口，−x），不是從上面放", () => {
+    const lid = ownMove(plan, "lid")[0];
+    expect(lid.from.y).toBeCloseTo(0, 6);
+    expect(lid.from.x).toBeCloseTo(-travel, 6);
+    expect(stepOf(plan, "lid")).toBe(plan.steps.length - 1);
+  });
+  it("底板第一步（壁立其上）；鳩尾 / 滑蓋不鎖螺絲", () => {
+    expect(plan.steps[0].partIds).toEqual(["bottom"]);
+    expect(plan.screws).toHaveLength(0);
+  });
+});
+
+describe("五斗櫃：抽屜在外面組好整組從正面滑入；層板不從背板穿過來", () => {
+  const design = buildDefault(entry("chest-of-drawers"));
+  const plan = planAssembly(design);
+  it("每個抽屜家族有一筆整組滑入的 move，方向 −z（正面），且在自己零件之後", () => {
+    const fams = new Set(design.parts.map((p) => familyKey(p.id)).filter((f) => f.startsWith("z")));
+    expect(fams.size).toBeGreaterThan(0);
+    for (const f of fams) {
+      const ids = design.parts.filter((p) => familyKey(p.id) === f).map((p) => p.id).sort();
+      const unit = plan.moves.find((m) => m.kind === "join" && [...m.partIds].sort().join() === ids.join());
+      expect(unit, f).toBeDefined();
+      expect(unit!.from.z, f).toBeLessThan(0);
+      expect(Math.abs(unit!.from.z), f).toBeCloseTo(travelMm(design), 6);
+      for (const id of ids) {
+        const own = plan.moves.filter((m) => m.kind !== "screw" && m.partIds.includes(id) && m !== unit);
+        for (const m of own) expect(m.endMs, id).toBeLessThanOrEqual(unit!.startMs);
+      }
+    }
+  });
+  it("層板 / 隔板不會從 +z（背板那側）進來", () => {
+    for (const p of design.parts) {
+      if (!/divider|boundary|shelf/.test(p.id)) continue;
+      for (const m of ownMove(plan, p.id)) expect(m.from.z, p.id).toBeLessThanOrEqual(1e-6);
+    }
+  });
+});
+
+describe("sweepHits：AABB 掃掠（手算）", () => {
+  const box = (x0: number, x1: number, y0 = 0, y1 = 10, z0 = 0, z1 = 10) => ({ min: { x: x0, y: y0, z: z0 }, max: { x: x1, y: y1, z: z1 } });
+  const g = box(0, 10);
+  it("往 +x 掃 20 → 掃過的區間 [0,30]，撞到 [15,25] 的板", () => {
+    expect(sweepHits(g, { x: 1, y: 0, z: 0 }, 20, [box(15, 25)])).toBe(true);
+  });
+  it("往 −x 掃 → 掃過 [−20,10]，碰不到 [15,25]", () => {
+    expect(sweepHits(g, { x: -1, y: 0, z: 0 }, 20, [box(15, 25)])).toBe(false);
+  });
+  it("貼面（[10,20] 剛好貼著）不算撞；縮 0.5mm 容差", () => {
+    expect(sweepHits(g, { x: 0, y: 1, z: 0 }, 20, [box(10, 20)])).toBe(false);
+  });
+  it("靜止時就交疊的（滑蓋卡在槽裡的壁）不算撞", () => {
+    expect(sweepHits(g, { x: 1, y: 0, z: 0 }, 20, [box(8, 30)])).toBe(false);
+  });
+});
+
+describe("錨件規則：id 最小的腳永遠當底座（把 leg-1 / leg-2 對調後第一步還是 leg-1）", () => {
+  it("stool", () => {
+    const design = buildDefault(entry("stool"));
+    const swapped: FurnitureDesign = {
+      ...design,
+      parts: design.parts.map((p) => (p.id === "leg-1" ? { ...p, id: "leg-2" } : p.id === "leg-2" ? { ...p, id: "leg-1" } : p)),
+    };
+    const plan = planAssembly(swapped);
+    expect(plan.steps[0].partIds).toEqual(["leg-1"]);
   });
 });
 
 describe("全目錄預設值掃描（每一款都要排得出來）", () => {
-  for (const entry of FURNITURE_CATALOG) {
-    if (!entry.template) continue;
-    it(`${entry.category}`, () => {
-      const design = buildDefault(entry);
-      const plan = planAssembly(design);
-      // 每個零件恰好一筆 move
+  for (const e of FURNITURE_CATALOG) {
+    if (!e.template) continue;
+    it(`${e.category}`, () => {
+      const design = buildDefault(e);
+      const plan = planAssembly(design, { screws: true });
       const ids = design.parts.map((p) => p.id);
-      expect(Object.keys(plan.moves).sort()).toEqual([...ids].sort());
+      // 每個零件至少一筆 move、且都被某一步涵蓋；螺絲只在 moves 裡
+      for (const id of ids) expect(plan.partMoves[id]?.length ?? 0, id).toBeGreaterThan(0);
+      const stepped = new Set(plan.steps.flatMap((s) => s.partIds));
+      expect([...stepped].sort()).toEqual([...ids].sort());
       // 步驟不空、不重疊、單調遞增
-      expect(plan.steps.length).toBeGreaterThan(0);
       let prevEnd = -Infinity;
       for (const s of plan.steps) {
         expect(s.partIds.length).toBeGreaterThan(0);
         expect(s.startMs).toBeGreaterThanOrEqual(prevEnd);
         expect(s.endMs).toBeGreaterThan(s.startMs);
         prevEnd = s.endMs;
-        for (const id of s.partIds) expect(plan.moves[id].stepIndex).toBe(s.index);
       }
-      // 位移有限、長度 = travelMm（方向是單位向量）
+      // 位移有限、每筆非螺絲 move 長度 = travelMm；螺絲 40mm
       const travel = travelMm(design);
-      for (const m of Object.values(plan.moves)) {
+      for (const m of plan.moves) {
         expect(Number.isFinite(m.from.x + m.from.y + m.from.z)).toBe(true);
-        expect(Math.hypot(m.from.x, m.from.y, m.from.z)).toBeCloseTo(travel, 6);
+        expect(Math.hypot(m.from.x, m.from.y, m.from.z)).toBeCloseTo(m.kind === "screw" ? 40 : travel, 6);
       }
-      // 動畫總長合理（最長的五斗櫃 56 件也要在 20 秒內）
-      expect(plan.totalMs).toBeLessThanOrEqual(20000);
-      expect(offsetsAt(plan, 0).size).toBe(ids.length);
+      // 沒有互鎖硬拆
+      expect(plan.moves.filter((m) => m.kind === "forced")).toEqual([]);
+      expect(plan.totalMs).toBeLessThanOrEqual(60000);
+      expect(offsetsAt(plan, 0).size).toBe(ids.length + plan.screws.length);
       expect(offsetsAt(plan, plan.totalMs).size).toBe(0);
     });
   }
