@@ -10,6 +10,9 @@
  *
  * 動畫只在 `playing` 時跑（跟組裝動畫同步），停下來就是靜態姿勢，不會讓 3D 靜置空燒。
  * 每幀只改 transform / opacity，不重建幾何。
+ *
+ * 2026-09-02 他改口「改成在旁邊跑來跑去好了」：鴨子在家具側邊（爆炸零件外側）沿 z 來回跑，
+ * 腳手擺動、身體上下顛、跑到底轉身；咖啡杯還拿在手上、蒸氣照飄。
  */
 import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -61,49 +64,65 @@ function Stick({ position, rotation, length, radius = 0.014 }: { position: [numb
 }
 
 export function CoffeeDuck({
-  position,
+  path,
   scale,
   playing,
-  facing = 0.55,
 }: {
-  /** 腳底站的位置（場景單位） */
-  position: [number, number, number];
+  /** 跑步路線：固定 x，在 zMin ~ zMax 之間來回（場景單位，y = 地面） */
+  path: { x: number; zMin: number; zMax: number };
   /** 鴨子總高（場景單位）；模型本身高約 1.08 */
   scale: number;
   playing: boolean;
-  /** 繞 y 轉的角度：正值＝轉向 −x 那側（家具在那邊） */
-  facing?: number;
 }) {
   const invalidate = useThree((s) => s.invalidate);
   const root = useRef<Group>(null);
   const head = useRef<Group>(null);
   const armR = useRef<Group>(null);
+  const armL = useRef<Group>(null);
+  const legL = useRef<Group>(null);
+  const legR = useRef<Group>(null);
   const mug = useRef<Group>(null);
   const steam = useRef<Mesh[]>([]);
   const t = useRef(Math.random() * 10);
-  const steamPhase = useMemo(() => [0, 0.33, 0.66], []);
+  const heading = useRef(0);
+  // 蒸氣：5 團、大一點、淡灰藍（純白在淺灰背景上看不到；2026-09-02 他：「蒸氣要明顯一點」）
+  const steamPhase = useMemo(() => [0, 0.2, 0.4, 0.6, 0.8], []);
+
+  /** 來回一趟的時間（秒）：路線越長跑越久，但最少 2 秒 */
+  const lapSec = Math.max(2, (path.zMax - path.zMin) / (0.9 * scale));
 
   const pose = (time: number) => {
-    // 呼吸 / 輕晃
-    if (root.current) root.current.position.y = position[1] + Math.sin(time * 2.1) * 0.012 * scale;
-    if (head.current) head.current.rotation.z = Math.sin(time * 1.3) * 0.05;
-    // 每 5 秒喝一口：0.6s 舉杯到嘴、停 0.5s、0.6s 放下
-    const cycle = time % 5;
-    let sip = 0;
-    if (cycle < 0.6) sip = cycle / 0.6;
-    else if (cycle < 1.1) sip = 1;
-    else if (cycle < 1.7) sip = 1 - (cycle - 1.1) / 0.6;
-    const e = sip * sip * (3 - 2 * sip);
-    if (armR.current) armR.current.rotation.x = -0.35 - e * 0.9;
-    if (mug.current) mug.current.rotation.x = -e * 0.6;
+    // 位置：三角波在 zMin ~ zMax 來回
+    const u = (time / lapSec) % 2;
+    const f = u < 1 ? u : 2 - u;          // 0→1→0
+    const z = path.zMin + (path.zMax - path.zMin) * f;
+    const dir = u < 1 ? 1 : -1;            // +z 或 −z
+    // 轉身：朝行進方向（模型預設面向 −z）
+    const target = dir > 0 ? Math.PI : 0;
+    let d = target - heading.current;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    heading.current += d * 0.15;
+    // 步伐
+    const stride = time * 11;
+    const bounce = Math.abs(Math.sin(stride)) * 0.03;
+    if (root.current) {
+      root.current.position.set(path.x, bounce * scale, z);
+      root.current.rotation.set(0, heading.current, 0);
+    }
+    if (head.current) head.current.rotation.z = Math.sin(stride * 0.5) * 0.08;
+    if (legL.current) legL.current.rotation.x = Math.sin(stride) * 0.7;
+    if (legR.current) legR.current.rotation.x = -Math.sin(stride) * 0.7;
+    if (armL.current) armL.current.rotation.x = -Math.sin(stride) * 0.5;
+    if (armR.current) armR.current.rotation.x = -0.6 + Math.sin(stride) * 0.35;
+    if (mug.current) mug.current.rotation.x = Math.sin(stride) * 0.15;
     // 蒸氣：往上飄、淡出、左右搖
     steam.current.forEach((m, i) => {
       if (!m) return;
-      const p = (time * 0.35 + steamPhase[i]) % 1;
-      m.position.set(Math.sin((time + i) * 2.5) * 0.015, 0.05 + p * 0.16, 0);
-      const s = 0.6 + p * 0.8;
+      const p = (time * 0.4 + steamPhase[i]) % 1;
+      m.position.set(Math.sin((time + i) * 2.5) * 0.03 * p, 0.06 + p * 0.34, Math.cos((time + i) * 1.7) * 0.02 * p);
+      const s = 0.7 + p * 1.3;
       m.scale.set(s, s, s);
-      (m.material as MeshStandardMaterial).opacity = 0.55 * (1 - p);
+      (m.material as MeshStandardMaterial).opacity = 0.95 * (1 - p * p);
     });
   };
 
@@ -115,16 +134,22 @@ export function CoffeeDuck({
   });
 
   return (
-    <group ref={root} position={position} rotation={[0, facing, 0]} scale={scale}>
-      {/* 腳 */}
-      <Stick position={[-0.08, 0.05, 0]} length={0.11} />
-      <Stick position={[0.08, 0.05, 0]} length={0.11} />
+    <group ref={root} position={[path.x, 0, path.zMin]} scale={scale}>
+      {/* 腳：以髖為軸前後擺 */}
+      <group ref={legL} position={[-0.08, 0.11, 0]}>
+        <Stick position={[0, -0.055, 0]} length={0.11} />
+      </group>
+      <group ref={legR} position={[0.08, 0.11, 0]}>
+        <Stick position={[0, -0.055, 0]} length={0.11} />
+      </group>
       {/* 身體：方方的，微微上窄下寬 */}
       <Outlined position={[0, 0.28, 0]} outline={1.05}>
         <boxGeometry args={[0.4, 0.36, 0.3]} />
       </Outlined>
-      {/* 左手：細棒往外下 */}
-      <Stick position={[-0.26, 0.36, 0]} rotation={[0, 0, 1.1]} length={0.16} />
+      {/* 左手：細棒往外下，跑步時前後擺 */}
+      <group ref={armL} position={[-0.2, 0.4, 0]}>
+        <Stick position={[-0.06, -0.05, 0]} rotation={[0, 0, 1.1]} length={0.16} />
+      </group>
       {/* 右手 + 馬克杯（會舉起來喝） */}
       <group ref={armR} position={[0.2, 0.36, 0]} rotation={[-0.35, 0, 0]}>
         <Stick position={[0.06, 0.02, -0.07]} rotation={[1.2, 0, -0.6]} length={0.17} />
@@ -149,16 +174,16 @@ export function CoffeeDuck({
           {/* 蒸氣 */}
           {steamPhase.map((_, i) => (
             <mesh key={i} ref={(m) => { if (m) steam.current[i] = m; }} position={[0, 0.08 + i * 0.05, 0]}>
-              <sphereGeometry args={[0.014, 8, 8]} />
-              <meshStandardMaterial color="#ffffff" transparent opacity={0.4} depthWrite={false} />
+              <sphereGeometry args={[0.03, 10, 10]} />
+              <meshStandardMaterial color="#c9d6e2" emissive="#dfe8f0" emissiveIntensity={0.35} transparent opacity={0.8} depthWrite={false} />
             </mesh>
           ))}
         </group>
       </group>
       {/* 頭 */}
       <group ref={head} position={[0, 0.46, 0]}>
-        {/* 兩側鼓起的大腮幫（頭的下半部又寬又扁） */}
-        <Outlined position={[0, 0.14, 0]} scale={[1.75, 0.55, 0.9]}>
+        {/* 兩側鼓起的腮幫（頭的下半部較寬較扁；2026-09-02 他：「腮幫子太寬了」→ 1.75 縮到 1.35） */}
+        <Outlined position={[0, 0.14, 0]} scale={[1.35, 0.55, 0.9]}>
           <sphereGeometry args={[0.28, 32, 24]} />
         </Outlined>
         {/* 圓頭 */}
@@ -184,8 +209,8 @@ export function CoffeeDuck({
           </mesh>
         ))}
         {/* 腮紅 */}
-        {[-0.36, 0.36].map((x) => (
-          <Outlined key={x} position={[x, 0.12, -0.19]} scale={[1.4, 0.9, 0.5]} color={CHEEK} outline={1.12}>
+        {[-0.27, 0.27].map((x) => (
+          <Outlined key={x} position={[x, 0.12, -0.19]} scale={[1.2, 0.85, 0.5]} color={CHEEK} outline={1.12}>
             <sphereGeometry args={[0.07, 20, 14]} />
           </Outlined>
         ))}

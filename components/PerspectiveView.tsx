@@ -2024,10 +2024,13 @@ export function PerspectiveView({
         {exportTarget && <RecorderTap target={exportTarget} />}
         {assemblyOn && duckOn && (
           <CoffeeDuck
-            // 站在 +x/+z 的斜後方角落：零件只沿單一軸向爆開，對角線區域不會被佔到；
-            // 太外面會被預設鏡頭切掉（實測 +260 就出框）
-            position={[(design.overall.length / 2 + travelMm(design) + 80) * SCALE, 0, (design.overall.width / 2 + 80) * SCALE]}
-            facing={0.4}
+            // 在 +x 側、爆炸零件（travel）再外面一點的走道上沿 z 來回跑；
+            // 路線只到家具前後緣再多一點，太外面會被預設鏡頭切掉
+            path={{
+              x: (design.overall.length / 2 + travelMm(design) + 90) * SCALE,
+              zMin: -(design.overall.width / 2 + 60) * SCALE,
+              zMax: (design.overall.width / 2 + 60) * SCALE,
+            }}
             scale={Math.min(480, Math.max(240, design.overall.thickness * 0.5)) * SCALE}
             playing={assemblyPlaying}
           />
