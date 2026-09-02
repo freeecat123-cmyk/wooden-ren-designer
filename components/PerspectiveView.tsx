@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
 import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
+import { CoffeeDuck } from "@/components/viewer/CoffeeDuck";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, Mesh, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group, type Material } from "three";
@@ -14,7 +15,7 @@ import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
 import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld, type WorldMortise } from "@/lib/assembly/joint-world";
-import { offsetsAt, planAssembly, stepIndexAt, type AssemblyPlan, type ScrewSpec } from "@/lib/assembly/plan";
+import { offsetsAt, planAssembly, stepIndexAt, travelMm, type AssemblyPlan, type ScrewSpec } from "@/lib/assembly/plan";
 import { downloadBlob, extensionForMime, pickRecorderMime, startCanvasRecording, type CanvasRecording } from "@/lib/assembly/record";
 import { partName } from "@/lib/templates/part-names";
 import {
@@ -687,6 +688,8 @@ export function PerspectiveView({
   const [exportMsg, setExportMsg] = useState<string | null>(null);
   // 運鏡：播放（含錄影）期間相機繞著家具慢慢轉，整段約 120°；使用者拖曳照樣有效
   const [cameraOrbit, setCameraOrbit] = useState(true);
+  // 🦆 喝咖啡的鴨子（木頭仁女兒畫的），站在家具旁邊陪組裝；控制列可關
+  const [duckOn, setDuckOn] = useState(true);
   // xrayMode 完全用 URL 當 source of truth:
   //   ViewPresetBar 按鈕走 router.replace 改 URL,App Router 在手機 + Vercel cache
   //   下 server 不一定立刻 re-render,server prop 會 stale。改在 client 直接讀
@@ -853,6 +856,7 @@ export function PerspectiveView({
     assemblyPlaying,
     assemblyScrubNonce,
     assemblyPlanProp,
+    duckOn,
   ]);
 
   const finishExport = useCallback(async () => {
@@ -984,6 +988,8 @@ export function PerspectiveView({
           onAspect={setExportAspect}
           orbit={cameraOrbit}
           onOrbit={setCameraOrbit}
+          duck={duckOn}
+          onDuck={setDuckOn}
         />
       ) : null}
       <div
@@ -2016,6 +2022,16 @@ export function PerspectiveView({
           orbit={cameraOrbit}
         />
         {exportTarget && <RecorderTap target={exportTarget} />}
+        {assemblyOn && duckOn && (
+          <CoffeeDuck
+            // 站在 +x/+z 的斜後方角落：零件只沿單一軸向爆開，對角線區域不會被佔到；
+            // 太外面會被預設鏡頭切掉（實測 +260 就出框）
+            position={[(design.overall.length / 2 + travelMm(design) + 80) * SCALE, 0, (design.overall.width / 2 + 80) * SCALE]}
+            facing={0.4}
+            scale={Math.min(480, Math.max(240, design.overall.thickness * 0.5)) * SCALE}
+            playing={assemblyPlaying}
+          />
+        )}
       </Canvas>
       {/**
         * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
@@ -2255,6 +2271,8 @@ function AssemblyControls({
   onAspect,
   orbit,
   onOrbit,
+  duck,
+  onDuck,
 }: {
   plan: AssemblyPlan;
   design: FurnitureDesign;
@@ -2273,6 +2291,8 @@ function AssemblyControls({
   onAspect: (a: "current" | "portrait" | "square") => void;
   orbit: boolean;
   onOrbit: (v: boolean) => void;
+  duck: boolean;
+  onDuck: (v: boolean) => void;
 }) {
   const t = useTranslations("perspectiveView");
   const step = plan.steps[stepIndexAt(plan, tMs)];
@@ -2321,6 +2341,17 @@ function AssemblyControls({
           data-testid="assembly-orbit"
         >
           {t("assemblyOrbit")}
+        </button>
+        <button
+          type="button"
+          className={`${btn} ${duck ? "bg-amber-100 ring-amber-300" : ""}`}
+          onClick={() => onDuck(!duck)}
+          disabled={!!exporting}
+          title={t("assemblyDuckTitle")}
+          aria-pressed={duck}
+          data-testid="assembly-duck"
+        >
+          🦆
         </button>
         {!compact && (
           <select

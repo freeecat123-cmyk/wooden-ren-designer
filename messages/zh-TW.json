@@ -4620,7 +4620,8 @@
     "assemblyAspectSquare": "方形 1:1",
     "assemblyDoneTpl": "影片已下載：{file}",
     "assemblyOrbit": "🎥 運鏡",
-    "assemblyOrbitTitle": "播放時相機繞著家具慢慢轉（整段約 120°），關掉就固定視角；拖曳照樣可以自己轉"
+    "assemblyOrbitTitle": "播放時相機繞著家具慢慢轉（整段約 120°），關掉就固定視角；拖曳照樣可以自己轉",
+    "assemblyDuckTitle": "喝咖啡的鴨子（木頭仁女兒畫的）在旁邊陪你組裝；點一下收起來"
   },
   "photoToParams": {
     "errReadFail": "讀檔失敗",

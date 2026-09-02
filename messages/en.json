@@ -4620,7 +4620,8 @@
     "assemblyAspectSquare": "Square 1:1",
     "assemblyDoneTpl": "Video saved: {file}",
     "assemblyOrbit": "🎥 Orbit",
-    "assemblyOrbitTitle": "Slowly orbit the camera while playing (about 120° total). Turn off for a fixed view; dragging still works."
+    "assemblyOrbitTitle": "Slowly orbit the camera while playing (about 120° total). Turn off for a fixed view; dragging still works.",
+    "assemblyDuckTitle": "A coffee-drinking duck (drawn by Wooden Ren's daughter) keeps you company. Click to hide."
   },
   "photoToParams": {
     "errReadFail": "File read failed",
