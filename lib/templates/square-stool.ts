@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { resolveCtBlockForApron, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
+import { ctStretcherOutwardShift, resolveCtBlockForApron, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -941,10 +941,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // X 靜止用 lsCenterY；Z 上移用 lsZCenterY = lsCenterY + stagger
     const lsCenterY = lowerY + lowerW / 2;
     const lsZShiftedY = lsCenterY + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0);
-    // 弧肩斜腳：左右(Z)橫撐坐在腳中線會踩空（內面收過中線）。往外挪 recession/2，
-    // 坐到「腳收窄後實際 X 料」的中點上（recession = legW×(1−scale)/2）。
+    // 弧肩斜腳：左右(Z)橫撐的內側會懸在腳收窄後的凹弧裡 → 往外挪到貼齊收窄後的內面，
+    // 但不能超出腳的外面（§A11.9；2026-09-02 之前固定挪 recession/2 會凸出腳外 7.9mm）。
     const ctZShift = legShape === "curved-taper"
-      ? (legW * (1 - legSizeScaleAt(lsZShiftedY))) / 4
+      ? ctStretcherOutwardShift({
+          legW,
+          scaleAtY: legSizeScaleAt(lsZShiftedY),
+          stretcherThickness: lowerStretcherThickness,
+          stretcherAxis: lsAxisX,
+          legCenter: _halfLx,
+        })
       : 0;
     const lsBotShift = legHeight > 0 ? 1 - lowerY / legHeight : 0;
     const lsTopShift = legHeight > 0 ? 1 - (lowerY + lowerW) / legHeight : 0;

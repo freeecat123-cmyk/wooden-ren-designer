@@ -406,6 +406,8 @@ export function legProfileScaleAt(
   legShape: string,
   Y: number,
   legHeight: number,
+  /** 模板自己的腳 shape 用的 bottomScale（有些模板的錐腳是 0.55 不是 legBottomScale 的 0.6）；給了就以它為準。 */
+  bottomScaleOverride?: number,
 ): number {
   if (legHeight <= 0) return 1;
   if (legShape === "shaker") {
@@ -414,7 +416,7 @@ export function legProfileScaleAt(
     const taperT = t / (1 - SHAKER_SQUARE_FRAC);  // 圓錐區歸一化
     return SHAKER_BOTTOM_SCALE + (1 - SHAKER_BOTTOM_SCALE) * taperT;
   }
-  return legScaleAt(Y, legHeight, legBottomScale(legShape));
+  return legScaleAt(Y, legHeight, bottomScaleOverride ?? legBottomScale(legShape));
 }
 
 /**
@@ -1643,6 +1645,37 @@ export function apronMortiseOffset(
  * 代進 `apronCenterOffset()` 會化簡成舊公式 `半跨距 − 腳內縮 − 腳寬/2`,
  * 代進 `apronMortiseOffset()` 會得到 0（榫眼回腳中心軸）。逐字等價 = 0 迴歸。
  */
+/**
+ * §A11.9 弧肩斜腳「左右下橫撐」的外挪量（mm，正 = 往腳的外面挪）。
+ *
+ * 腳在橫撐高度的 X 內面已經收進去（recession = legW × (1 − scale) / 2），橫撐若停在名目位置，
+ * 內側那一截會懸在凹弧裡；所以往外挪到剛好貼到「收窄後的內面」，**但不能超出腳的外面**。
+ *
+ * 🩸 舊版固定挪 recession / 2，前提是「橫撐坐在腳中線」。後來牙條 / 橫撐改成貼齊腳外面
+ *    （resolveApronSetbackForLeg），這個前提沒了，再挪 recession / 2 就是純粹多挪
+ *    → 端頭凸出腳外 7.9mm（2026-09-02 木頭仁：「弧肩斜腳打開 左右下橫撐會比腳還凸出」）。
+ *    改成「需要多少挪多少、挪到腳外面為止」：貼齊外面的配置挪 0，坐中線的配置挪 7.5（原 7.9）。
+ */
+export function ctStretcherOutwardShift(o: {
+  legW: number;
+  /** 腳在橫撐中心高度的 X 向 scale（legSizeScaleAt） */
+  scaleAtY: number;
+  stretcherThickness: number;
+  /** 橫撐中軸離家具中心的距離（lsAxisX） */
+  stretcherAxis: number;
+  /** 腳中心離家具中心的距離（length/2 − legW/2 − legInset） */
+  legCenter: number;
+}): number {
+  const recession = (o.legW * (1 - o.scaleAtY)) / 2;
+  const legOuter = o.legCenter + o.legW / 2;
+  const legInnerAtY = o.legCenter - o.legW / 2 + recession;
+  const lsOuter = o.stretcherAxis + o.stretcherThickness / 2;
+  const lsInner = o.stretcherAxis - o.stretcherThickness / 2;
+  const need = Math.max(0, legInnerAtY - lsInner);
+  const room = Math.max(0, legOuter - lsOuter);
+  return Math.min(need, room);
+}
+
 export function resolveApronSetbackForLeg(
   raw: number,
   legShape: string,

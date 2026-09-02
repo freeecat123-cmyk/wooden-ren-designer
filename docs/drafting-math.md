@@ -41,6 +41,14 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 零件算成負尺寸 / 滑桿拉到底就爆 | `"負尺寸\|clampLegInset\|MIN_ZONE_H"` | §A10.11 |
 | 板材算錯板厚 / 報價爆掉 / 排不下 | `"幾何三軸\|panelPieces\|先排序再取"` | §A10.12 |
 | 錐形腳 / 倒錐腳 → 牙條/橫撐補償 | `"tapered 補償\|legScaleAt\|legBottomScale"` | §A11 |
+| 俯視圖腳只畫頂面 / 外斜弧肩腳、倒錐腳的腳底投影 | `"腳底投影\|ctFoot\|invFoot"` | §A9.9e |
+| 兩向弧肩時沿 Z 的零件短一截（吧檯椅腳踏） | `"legSizeScaleAtZ\|footrest"` | §A11.8 |
+| 錐腳橫撐差 1mm 的縫 / 0.55 vs 0.6 | `"bottomScale 必須跟\|rtBottomScale\|TAPERED_BOTTOM_SCALE"` | §A11.10 |
+| 床頭板貼錐腳 / 梯形只到腳高 / 膝點 | `"taperSpanMm\|膝點\|headPanelSpan"` | §A11.11 |
+| 椅背條穿座板 / 通孔再入母件 / 榫頭 = 板厚 + 15 | `"backBottomTenonLen\|seatBackSlots\|consumeFor"` | §A10.13 |
+| 掛鉤浮在柱頂 / 圓料 origin.y 是底面 | `"hookCenterY\|HOOK_TOP_INSET"` | §A10.14 |
+| 三視圖實畫稽核（量畫出來的 SVG 不是量 3D） | `"audit-2d-joints\|data-part-id"` | §A12 |
+| 弧肩斜腳左右下橫撐凸出腳外 / 外挪量 | `"ctZShift\|ctStretcherOutwardShift\|外挪"` | §A11.9 |
 | 腿與牙條交界的「肩」/ 夾頭榫 / 插肩榫 | `"夾頭榫\|插肩榫\|I_剩"` | §JT1–JT3 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
 | hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
@@ -464,6 +472,18 @@ Z 朝中心面 ─         Z 朝外面 退 14.7 ← 錯（符號反了）
 在 `scripts/audit-overlaps.ts` 的白名單裡，有完整理由。
 
 
+**A9.9e 俯視圖的「腳底投影」（2026-09-02）**：
+
+俯視只畫腳頂面的小方塊，對兩種腳是錯的：腳底不在頂面正下方，接在下半段的橫撐／腳踏
+在圖上會懸空 3~27mm（三視圖實畫稽核 §A12 抓到，3D 本來就對）。
+
+| 腳 | 腳底相對頂面 | 畫法 |
+|---|---|---|
+| `curved-taper` 帶 `dxMm/dzMm`（ctSplay 外斜） | 整個外移 (−dx, −dz)（俯視鏡像慣例同 splayed-tapered），且內面在腳底縮進 `insetMm + shoulderMm`（`dir` 那側；兩向時 `dirZ` 側也縮） | 頂面實線 + 腳底虛線 + 4 條角對角線（`svg-views` `ctFoot` 分支） |
+| `tapered` 且 `bottomScale > 1`（倒錐腳） | 以中心放大 bottomScale 倍 | 同上（`invFoot` 分支）。bottomScale < 1 的腳底在頂面裡面，本來就看不到，不畫、byte 不變 |
+
+不走這條的：零件圖（`isolatePartId`，腳橫躺）、帶 rotation 的件、帶 `chamferMm` 的倒錐腳（走八邊形 polygon 路徑，暫不補腳底）。
+
 ### A10. Part visible 慣例（butt-joint vs joinery）
 
 ⭐ **核心設計決策**：所有家具模板的 `Part.visible.length / width / thickness` 一律
@@ -705,6 +725,26 @@ const [thin, mid, long] = [cut.length, cut.width, cut.thickness].sort((a, b) => 
 `lib/cutplan/buyable-stock.test.ts`（全模板材料單逐件檢查台灣買不買得到）。
 
 
+**A10.13 椅背直立件穿座板（餐椅 slat / splat / curved-splat / windsor 圓棒，2026-09-02）**：
+
+分離模式（`rearPostMode = split`）下這些件站在座板**上面**、後牙板在座板**下面**，
+榫頭一律 15mm 時連 25mm 座板都穿不過——後牙板上那排榫眼從來是空的、座板也沒開孔。規則：
+
+- 下端榫頭長 `backBottomTenonLen = slatTenonLen + seatThickness`（一木連做維持 15，因為直接坐在後牙板上緣）。
+- 座板開**通槽** `seatBackSlots`：`origin.y = seatThickness`（＝從頂面進，joint-world 才會判成頂面開口）、`through: true`、
+  位置跟後牙板榫眼同一組 X（`backVerticalXs()`，兩邊共用同一支，不准各算各的）、同一個 `backZ`。
+- 後牙板的終點榫眼維持 15；曲面中板與 windsor 圓棒以前沒有終點榫眼，補上。
+- `resolveTopOutlineShape` 只吃腳的榫眼（`seatMortisesLegs`）：椅背通槽貼後緣是本來的設計，不該把橢圓座板退成方形。
+- `lib/joinery/audit-joints.ts` 認得「穿越」：榫長 = 通孔深 + 終點母榫深 → 三顆都算對到（`consumeFor`）。
+- 背柱下端榫頭 `axis` 的 y 要是 **−cos**（朝下）——舊值 +cos 是朝上的，以前沒人跟它比方向；
+  椅背條也插座板後，排程器看到同一片板被一上一下鎖住就會硬拆。
+
+**A10.14 衣帽架掛鉤高度（2026-09-02）**：圓料 `origin.y` 是**底面**、柱上榫眼 `origin.y` 是**中心**，
+兩者不能共用同一個數。先定中心線 `hookCenterY = min(height − HOOK_TOP_INSET, columnHeight − HOOK_TOP_INSET)`，
+本體 `origin.y = hookCenterY − HOOK_SIZE/2`，榫眼 y = 中心。舊寫法讓掛鉤本體 1663~1681 浮在 1664 的柱頂上方。
+另：非 90° 倍數旋轉的圓料（掛鉤繞 Y 轉 60°）正／側視要走 `projectPartSilhouette`（縮短的圓棒），
+不能用 `|sin| > 0.5` 當成「端面朝你」畫成圓圈（`isTiltedRound`）。
+
 ### A11. Tapered 腳跟橫撐／牙條對齊
 
 ⭐ **核心問題**：tapered 腳（錐形腳 / 方錐漸縮 / 倒錐腳）的 cross-section
@@ -911,6 +951,58 @@ choice 各跑一次（不只 default），把 26 case 擴成約 120 case。
 ---
 
 ## B. 榫卯細節圖（Joinery Detail）
+
+
+#### A11.9 弧肩斜腳「左右下橫撐」的外挪量（2026-09-02）
+
+腳在橫撐高度的 X 內面已收進 `recession = legW × (1 − scale) / 2`；左右（Z 向）橫撐若停在名目位置，
+內側那一截會懸在凹弧裡。舊規則固定往外挪 `recession / 2`，**前提是橫撐坐在腳中線**——後來牙條／橫撐
+改成貼齊腳外面（`resolveApronSetbackForLeg`）這個前提就沒了，再挪就純粹多挪，端頭凸出腳外 7.9mm
+（木頭仁：「弧肩斜腳打開 左右下橫撐會比腳還凸出」）。
+
+現行（`ctStretcherOutwardShift`，square-stool 與 dining-chair 共用）：
+```
+legOuter     = legCenter + legW/2
+legInnerAtY  = legCenter − legW/2 + recession
+need = max(0, legInnerAtY − (lsAxis − t/2))   # 要挪多少才不懸空
+room = max(0, legOuter − (lsAxis + t/2))      # 最多能挪多少才不出腳
+shift = min(need, room)
+```
+方凳預設（legW 35、t 20、lsAxis 165、legCenter 157.5、scale 0.10 → recession 15.76）：need 0.76、room 0
+→ shift 0（剩 0.76mm 懸在弧裡，肉眼看不到）。坐中線的舊配置（lsAxis 157.5）：need 8.26、room 7.5 → 7.5（舊 7.88）。
+榫眼跟著同一個 `ctZShift` 挪，肩才蓋得住榫眼口。
+
+**A11.10 補償用的 bottomScale 必須跟腳自己的 shape 同一個值（2026-09-02）**：
+
+`legBottomScale("tapered")` 是 0.6，但 simple-table / tea-table / round-table 的錐腳幾何寫 0.55
+（simple-table 的 inverted 是 1.3 vs 1.25）。兩邊各算各的 → 下橫撐兩端短 0.7~1.2mm 的縫。
+規則：**從 shape 讀**（simple-table 讀 `legShapeFor().bottomScale`；tea-table `TAPERED_BOTTOM_SCALE`；
+round-table `rtBottomScale` 傳給 `legProfileScaleAt(…, override)`）。腳的幾何不動（`audit:legs` 指紋才不會變）。
+
+**A11.11 床側板／床頭板貼錐腳（`apron-trapezoid.taperSpanMm`，2026-09-02）**：
+
+- 側板：跟桌類牙條一樣，長度對到 rail 中心高度的腳面、端面 `apron-trapezoid`（top/bottom = rail 上/下緣的腳面）。
+  舊寫法取「rail 高度區間內腳最寬處」直切 → 倒錐腳上緣 7.2mm、錐腳下緣 13mm 楔形縫。ledger 取自己高度區間的最寬處直切（楔形 ≤ 30 × 斜率）。
+- 床頭板／床尾板從地板立到腳頂以上，只有 0~腳高 這段要貼斜面 → `taperSpanMm = legHeight`：
+  梯形從 local −Z 邊（地板）線性到 span 處＝`bottomLengthScale`（=1，腳頂寬），再往上端面垂直。
+  `visible.length = headPanelSpan = 2·apronEdgeZ − 腳頂寬`，`topLengthScale = (2·apronEdgeZ − 腳底寬)/headPanelSpan`。
+- 幾何：3D 三圈 12 頂點（`buildApronTrapezoidGeometry`）；2D 面對板面是**六邊形**，錐腳時膝點是凹角，
+  convex hull 會填平（實測 y=250 差 11mm）→ `projectPartSilhouette` 直接輸出有序輪廓，看側邊（面積≈0）才退回 hull。
+- 3D 榫頭根位置（PerspectiveView）用「該 Z 的端面 scale」而不是 avg；無 span 時代數等價、走舊式。
+- 其他 head 樣式（橫檔／柵欄／框）仍用 `headLegInnerSpan`（最寬處），未補。
+
+### A12. 三視圖實畫稽核（`npm run audit:2d-joints`，2026-09-02）
+
+13 支稽核全量 3D 座標，沒一支量「畫出來的圖」。這支把每款 × 每個腳型 × 新設定的三視圖用
+`renderToString(<OrthoView>)` 真的渲染成 SVG，切出 `<g data-part-id>`（svg-views 每個零件的 group 都掛了）
+的線段，對「榫頭↔榫眼配對」的零件對量最短距離，> 0.5mm ＝圖上接不上。434 個設計／16,483 個接合×視圖，約 8~10 分鐘，
+所以不進 `npm run audit` 預設鏈，改三視圖或模板長度後手動跑。
+
+- 負向對照：`NEG_CTL=1`（方凳 apron-front 推 30mm 要紅）。`ONLY=stool,bed`、`DEBUG=1`。
+- 會誤判的兩個坑：①橫撐端面藏在腳後面＝整個被包住 → 用 hull 包含判定（否則 7.5mm 假縫）；
+  ②楔形縫（一角碰到、另一角開口）正／側視最短距離＝0 抓不到，只有俯視抓得到 → 楔形要另外量兩個角。
+- 首跑 314 條 → 修完剩 7 條：衣帽架底爪 vs 車旋柱收腰 1.7mm（`LATHE_SEG` 底段 0.8，共用資料不能動；底爪榫進柱心，3D 上是縫在造型裡）。
+- 零件圖：`npm run audit:iso-ct-legs`（弧肩腳在新設定下的榫眼標記不出輪廓）。
 
 ### B1. 渲染慣例
 - 主視圖：榫頭水平向右，公榫從左件伸出，母榫在右件

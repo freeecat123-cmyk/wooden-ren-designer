@@ -3,9 +3,10 @@ import type {
   FurnitureTemplate,
   OptionSpec,
   Part,
+  Mortise,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { resolveCtBlockForApron, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
+import { ctStretcherOutwardShift, resolveCtBlockForApron, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, curvedTaperInnerScaleAt, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronProfileOptions, stretcherProfileOptions, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -431,14 +432,24 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 椅背元件位置：slat / splat 用 X，rung 用 Y
   const ladderRungWidth = 55;
   const ladderRungThickness = 18;
-  const slatXs: number[] = [];
-  if (backStyle === "slats" && slatCount > 0) {
-    const availableWidth = length - legW - 40;
-    const slotPitch = availableWidth / (slatCount + 1);
-    for (let i = 0; i < slatCount; i++) {
-      slatXs.push(-availableWidth / 2 + slotPitch * (i + 1));
-    }
-  }
+  // 椅背直立件的 Z（＝後牙板 z，slat/splat/spindle 跟背柱同軸；原本定義在椅背段，
+  // 2026-09-02 提前到這裡，因為座板榫眼也要用同一個值——同一個判斷只能有一套）
+  const backUsableLengthOffset = 2 * backInsetFromEndMm;
+  const backZ = isContinuous
+    ? width / 2 - legD / 2 - legInset - backInsetFromRearMm
+    : width / 2 - legD / 2 - backInsetFromRearMm;
+  /** 椅背直立件的 X 位置（均分）。⚠️ 以前這裡的 slatXs 沒扣 backUsableLengthOffset、椅背段有扣 →
+   *  「椅背距座面端面」> 0 時後牙板榫眼跟板條對不上；現在兩邊共用同一支。 */
+  const backVerticalXs = (count: number, marginMm: number): number[] => {
+    const availableWidth = length - legW - marginMm - backUsableLengthOffset;
+    const slotPitch = availableWidth / (count + 1);
+    return Array.from({ length: count }, (_, i) => -availableWidth / 2 + slotPitch * (i + 1));
+  };
+  const slatXs: number[] = backStyle === "slats" && slatCount > 0 ? backVerticalXs(slatCount, 40) : [];
+  const SPINDLE_COUNT = 6;
+  const SPINDLE_DIA = 18;
+  const spindleTenonSq = Math.round(SPINDLE_DIA * 0.6);
+  const spindleXs: number[] = backStyle === "windsor" ? backVerticalXs(SPINDLE_COUNT, 60) : [];
   const rungYs: number[] = [];
   if (backStyle === "ladder") {
     for (let i = 0; i < ladderRungs; i++) {
@@ -455,6 +466,16 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const splatThicknessConst = 18;
   const splatTenonW = Math.max(12, splatWidth - 20);
   const splatTenonT = Math.max(5, Math.round(splatThicknessConst / 3));
+  const CURVED_SPLAT_THICKNESS = 25;
+  const cSplatTenonW = Math.max(12, curvedSplatWidth - 20);
+  const cSplatTenonT = Math.max(5, Math.round(CURVED_SPLAT_THICKNESS / 3));
+  /**
+   * 🩸 椅背直立件（板條/中板/曲板/圓棒）下端榫頭原本一律 15mm，但分離模式下它們站在座板**上面**、
+   *    後牙板在座板**下面**：15mm 榫頭連 25mm 座板都穿不過，後牙板上那排榫眼是空的，
+   *    座板也沒開孔（2026-09-02 三視圖實畫稽核）。改成：座板開通槽（下面 seat 的 mortises）、
+   *    榫頭 = 座板厚 + 15 穿過座板進後牙板。一木連做（直立件直接坐在後牙板上緣）維持 15。
+   */
+  const backBottomTenonLen = isContinuous ? slatTenonLen : slatTenonLen + seatThickness;
   // ladder rung tenon（給後腳的母榫眼用）
   const rungTenonW = Math.max(12, ladderRungWidth - 2 * MIN_SHOULDER);
   const rungTenonT = Math.max(5, Math.round(ladderRungThickness / 3));
@@ -671,10 +692,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         ((): NonNullable<Part["tenons"]>[number] => {
           const reclineRad = (backRake * Math.PI) / 180;
           const hasRake = Math.abs(reclineRad) > 1e-4;
+          // 🩸 舊值 y=+cos 是「朝上」——背柱下端榫頭卻是往下插進座板的（跟 windsor 圓棒的 _axisBotThk 同向）。
+          //    以前沒事是因為椅背條的榫頭接在後牙板上、沒人跟它比方向；2026-09-02 椅背條改成也插座板後，
+          //    排程器看到同一片座板被「一上一下」兩組榫頭鎖住 → 判互鎖硬拆。
           const axis = hasRake
             ? {
                 x: 0,
-                y: Math.cos(reclineRad),
+                y: -Math.cos(reclineRad),
                 z: -Math.sin(reclineRad),
               }
             : undefined;
@@ -729,7 +753,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatPanelZOffset = -seatBackShrink / 2;
   // 座板（前腳通榫進來）
   // 座板全部榫眼先算出來（腳頂榫＋背柱榫），輪廓造型防露榫 clamp 要用（座標為 seat local）
-  const seatMortises = [
+  const seatMortisesLegs = [
     // continuous 模式：只給前 2 腳座板榫眼（後腳已過座板，背柱也不再進座板）
     // origin.z 是 part-local，需扣掉 seat 自己的 z origin 偏移
     ...cornerPts
@@ -753,9 +777,24 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         }))
       : []),
   ];
+  // 椅背直立件穿座板的通槽（分離模式）：從座板頂面進（origin.y = 座板厚 → 上面那面）、穿透、
+  // 位置跟後牙板榫眼同一組 X / 同一個 backZ。一木連做沒有座板隔在中間 → 不開。
+  const backSlotZ = backZ - seatPanelZOffset;
+  const seatBackSlots: Mortise[] = isContinuous
+    ? []
+    : backStyle === "slats"
+      ? slatXs.map((sx) => ({ origin: { x: sx, y: seatThickness, z: backSlotZ }, depth: seatThickness, length: slatTenonW(slatWidth), width: slatTenonT, through: true }))
+      : backStyle === "splat"
+        ? [{ origin: { x: 0, y: seatThickness, z: backSlotZ }, depth: seatThickness, length: splatTenonW, width: splatTenonT, through: true }]
+        : backStyle === "curved-splat"
+          ? [{ origin: { x: 0, y: seatThickness, z: backSlotZ }, depth: seatThickness, length: cSplatTenonW, width: cSplatTenonT, through: true }]
+          : backStyle === "windsor"
+            ? spindleXs.map((sx) => ({ origin: { x: sx, y: seatThickness, z: backSlotZ }, depth: seatThickness, length: spindleTenonSq, width: spindleTenonSq, through: true, shape: "round" as const }))
+            : [];
+  const seatMortises: Mortise[] = [...seatMortisesLegs, ...seatBackSlots];
   // 輪廓造型防露榫：point-in-polygon 驗證＋二分縮小；oval/petal 塞不下
-  // （如背柱貼後緣）→ 退方形＋警告
-  const seatOutlineResolved = resolveTopOutlineShape(seatOutline, seatOutlineParams, length, seatPanelWidth, seatMortises);
+  // （如背柱貼後緣）→ 退方形＋警告。⚠️ 只拿腳的榫眼驗（椅背通槽貼後緣是本來的設計，不該把輪廓退成方形）
+  const seatOutlineResolved = resolveTopOutlineShape(seatOutline, seatOutlineParams, length, seatPanelWidth, seatMortisesLegs);
   const seatOutlineBlocked =
     (seatOutline === "oval" || seatOutline === "petal") && seatOutlineResolved === null;
 
@@ -988,7 +1027,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
                   through: false,
                 },
               ]
-            : [],
+            // 曲面中板 / Windsor 圓棒以前沒有母榫眼（榫頭插在空氣裡），2026-09-02 補上
+            : s.key === "back" && backStyle === "curved-splat"
+              ? [{ origin: { x: 0, y: 0, z: -1 }, depth: slatTenonLen, length: cSplatTenonW, width: cSplatTenonT, through: false }]
+              : s.key === "back" && backStyle === "windsor"
+                ? spindleXs.map((sx) => ({ origin: { x: sx, y: 0, z: -1 }, depth: slatTenonLen, length: spindleTenonSq, width: spindleTenonSq, through: false, shape: "round" as const }))
+                : [],
     };
   });
 
@@ -1175,10 +1219,16 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         ? Math.max(6, Math.min(lowerRawLenX, Math.floor(legXDepthLS - 3)))
         : lowerTenonLenFor(legXDepthLS, lowerThroughX);
     const lowerTenonZ = lowerTenonLenFor(legD, lowerThroughZ);
-    // 弧肩斜腳：左右(Z)橫撐坐在腳中線會踩空（內面收過中線）。往外挪 recession/2，坐到「腳收窄後
-    // 實際 X 料」的中點上（recession = legW×(1−scale)/2）。
+    // 弧肩斜腳：左右(Z)橫撐往外挪到貼齊腳收窄後的內面，但不能超出腳的外面（§A11.9，
+    // 跟 square-stool 同一支 helper；舊版固定挪 recession/2 會凸出腳外）。
     const ctZShift = legShape === "curved-taper"
-      ? (legW * (1 - legSizeScaleAt(lsZShiftedY))) / 4
+      ? ctStretcherOutwardShift({
+          legW,
+          scaleAtY: legSizeScaleAt(lsZShiftedY),
+          stretcherThickness: lowerT,
+          stretcherAxis: lsAxisX,
+          legCenter: length / 2 - legW / 2 - legInset,
+        })
       : 0;
 
     // ---- 參考 bar-stool buildSides 算法 ----
@@ -1444,10 +1494,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // apron z = width/2 - legD/2 - legInset，所以 backZ 也要扣 legInset
   // 軸心對齊背柱：連做模式背柱 = 後腳位置（z 受 legInset 影響）；分離模式背柱
   // 用 backPostBaseZ（不受 legInset 影響）。slat / splat / spindle 必須跟背柱同 z。
-  const backZ = isContinuous
-    ? width / 2 - legD / 2 - legInset - backInsetFromRearMm
-    : width / 2 - legD / 2 - backInsetFromRearMm;
-  const backUsableLengthOffset = 2 * backInsetFromEndMm;
+  // backZ / backUsableLengthOffset 已提前到 slatXs 旁定義（座板榫眼共用）
   // 一木連做：座板已縮回（不會跟背直立件穿模），slat/splat/spindle 可以
   // 延伸到後牙板頂緣 = apronY + apronWidth；split 模式維持原 seatHeight 起算
   const backStartY = isContinuous ? (apronY + apronWidth) : seatHeight;
@@ -1487,10 +1534,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const _axisBotThk = _hasRakeBack ? { x: 0, y: -_cosRBack, z: -_sinRBack } : undefined;
 
   if (backStyle === "slats" && slatCount > 0) {
-    const availableWidth = length - legW - 40 - backUsableLengthOffset;
-    const slotPitch = availableWidth / (slatCount + 1);
     for (let i = 0; i < slatCount; i++) {
-      const xCenter = -availableWidth / 2 + slotPitch * (i + 1);
+      const xCenter = slatXs[i];
       const dip = seatBendDipAt(xCenter);
       backParts.push({
         id: `back-slat-${i + 1}`,
@@ -1504,7 +1549,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         // 左右深度——這樣 slat 中心 z 跟牙板中心 z 對齊（牙板厚 20 也是窄面）
         rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
+          { position: "start", type: "blind-tenon", length: backBottomTenonLen, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
           { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisEndSlatY ? { axis: _axisEndSlatY } : {}) },
         ],
         mortises: [],
@@ -1552,19 +1597,17 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: 0, y: backStartY - splatDip, z: backZ },
       rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
       tenons: [
-        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
+        { position: "start", type: "blind-tenon", length: backBottomTenonLen, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
         { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisEndSlatY ? { axis: _axisEndSlatY } : {}) },
       ],
       mortises: [],
     });
   } else if (backStyle === "windsor") {
     // Windsor spindle：6 支圓棒（直徑 18mm）由座板上方插入頂橫木
-    const spindleCount = 6;
-    const spindleDia = 18;
-    const availableWidth = length - legW - 60 - backUsableLengthOffset;
-    const slotPitch = availableWidth / (spindleCount + 1);
+    const spindleCount = SPINDLE_COUNT;
+    const spindleDia = SPINDLE_DIA;
     for (let i = 0; i < spindleCount; i++) {
-      const xCenter = -availableWidth / 2 + slotPitch * (i + 1);
+      const xCenter = spindleXs[i];
       const dip = seatBendDipAt(xCenter);
       backParts.push({
         id: `back-spindle-${i + 1}`,
@@ -1577,14 +1620,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         shape: { kind: "round" },
         tenons: [
           { position: "top", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6), ...(_axisTopThk ? { axis: _axisTopThk } : {}) },
-          { position: "bottom", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6), ...(_axisBotThk ? { axis: _axisBotThk } : {}) },
+          { position: "bottom", type: "blind-tenon", length: backBottomTenonLen, width: spindleTenonSq, thickness: spindleTenonSq, ...(_axisBotThk ? { axis: _axisBotThk } : {}) },
         ],
         mortises: [],
       });
     }
   } else if (backStyle === "curved-splat") {
     // 曲面中板：較厚（25mm），寬度由 curvedSplatWidth 設定，bendMm 控制凹陷深度
-    const cThickness = 25;
+    const cThickness = CURVED_SPLAT_THICKNESS;
     const cWidth = curvedSplatWidth;
     const cDip = seatBendDipAt(0);
     backParts.push({
@@ -1599,7 +1642,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 大面凹陷：thickness 才是薄軸，所以 bendAxis="y"；正值往背面凹、負值往前凸
       shape: { kind: "face-rounded", cornerR: 0, bendMm: curvedSplatBendMm, bendAxis: "y" },
       tenons: [
-        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
+        { position: "start", type: "blind-tenon", length: backBottomTenonLen, width: cSplatTenonW, thickness: cSplatTenonT, ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
         { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisEndSlatY ? { axis: _axisEndSlatY } : {}) },
       ],
       mortises: [],
