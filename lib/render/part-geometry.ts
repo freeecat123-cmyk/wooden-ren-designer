@@ -60,7 +60,7 @@ export type ShapeSpec =
   | { kind: "lathe-turned" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number; bevelMode?: "full" | "half" }
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; taperSpanMm?: number; bevelAngle?: number; bevelMode?: "full" | "half" }
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "apron-half-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
@@ -184,6 +184,8 @@ export function buildApronTrapezoidGeometry(
   bottomScale: number,
   bevelAngle: number = 0,
   bevelMode: "full" | "half" = "full",
+  /** 梯形只作用在 −Z 邊起這段（mm），之後端面垂直（床頭板貼錐腳用）。見 types 註解。 */
+  taperSpanMm?: number,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -196,6 +198,30 @@ export function buildApronTrapezoidGeometry(
   const shear = Math.tan(bevelAngle);
   const topShear = shear;
   const botShear = bevelMode === "half" ? 0 : shear;
+  if (taperSpanMm !== undefined && taperSpanMm > 0 && taperSpanMm < lz) {
+    // 三圈：A(−hz, topX) → B(−hz+span, botX) → C(+hz, botX)；B–C 段端面垂直
+    const zB = -hz + taperSpanMm;
+    const ring = (x: number, z: number, sh: number) => [
+      -x, -hy, z - (-hy) * sh,
+      x, -hy, z - (-hy) * sh,
+      x, hy, z - (+hy) * sh,
+      -x, hy, z - (+hy) * sh,
+    ];
+    const v3 = [...ring(topX, -hz, topShear), ...ring(botX, zB, botShear), ...ring(botX, hz, botShear)];
+    const f3 = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+    const side = (o: number) => [
+      ...f3(o + 0, o + 1, o + 5, o + 4), // -y
+      ...f3(o + 2, o + 3, o + 7, o + 6), // +y
+      ...f3(o + 1, o + 2, o + 6, o + 5), // +x
+      ...f3(o + 3, o + 0, o + 4, o + 7), // -x
+    ];
+    const idx3 = [...f3(0, 3, 2, 1), ...f3(8, 9, 10, 11), ...side(0), ...side(4)];
+    const g3 = new BufferGeometry();
+    g3.setAttribute("position", new Float32BufferAttribute(v3, 3));
+    g3.setIndex(idx3);
+    g3.computeVertexNormals();
+    return g3;
+  }
   const v: number[] = [
     -topX, -hy, -hz - (-hy) * topShear,
     topX, -hy, -hz - (-hy) * topShear,
@@ -2607,7 +2633,7 @@ export function buildShapeGeometry(
     return merged ?? new BoxGeometry(size[0], size[1], size[2]);
   }
   if (shape.kind === "apron-trapezoid") {
-    return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full");
+    return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full", shape.taperSpanMm);
   }
   if (shape.kind === "apron-beveled") {
     return buildBeveledApronGeometry(size, shape.bevelAngle);

@@ -157,6 +157,18 @@ export function buildWorldMortiseIndex(parts: Part[]): WorldMortise[] {
       if (localAxis !== "z") alts.push(["z", m.origin.z >= 0 ? 1 : -1, m.origin.x, m.origin.y - ly / 2, m.origin.z >= 0 ? lz / 2 : -lz / 2]);
       if (localAxis !== "y") alts.push(["y", m.origin.y >= ly / 2 ? 1 : -1, m.origin.x, m.origin.y >= ly / 2 ? ly / 2 : -ly / 2, m.origin.z]);
       for (const [la, ls, ex, ey, ez] of alts) pushEntry(la, ls, ex, ey, ez);
+      /**
+       * 通孔兩面都是入口（2026-09-02）：餐椅座板的腳榫眼是通孔，腳從下面進、背柱從上面進
+       * 「共用同一個榫眼」。只給主面入口時，背柱下端榫頭（朝下）配不到座板、反而配到 25mm 下面的
+       * 後腳榫眼——三視圖實畫稽核把它報成「背柱跟腳差 25mm」。配對本來就要求方向相反且距離 < 60mm，
+       * 多給的對面入口只有真的從那面進來的榫頭會選到。
+       */
+      if (m.through) {
+        const opp: Sign = localSign === 1 ? -1 : 1;
+        if (localAxis === "y") pushEntry("y", opp, lex, opp === 1 ? ly / 2 : -ly / 2, lez);
+        else if (localAxis === "x") pushEntry("x", opp, opp === 1 ? lx / 2 : -lx / 2, ley, lez);
+        else pushEntry("z", opp, lex, ley, opp === 1 ? lz / 2 : -lz / 2);
+      }
     }
   }
   return idx;

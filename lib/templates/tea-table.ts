@@ -406,7 +406,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const cornerPts = corners(length, width, legSize, legInset);
 
   // tapered 補償（apron 三條 Y 位置各自的腳寬）
-  const bottomScale = legBottomScale(legShape);
+  /** 錐腳幾何用的收縮比（腳 shape 跟長度補償**必須同值**，見 simple-table 同名註解；共用的 legBottomScale 是 0.6，跟這裡的腳對不上 → 下橫撐短 0.7mm）。 */
+  const TAPERED_BOTTOM_SCALE = 0.55;
+  const bottomScale = legShape === "tapered" ? TAPERED_BOTTOM_SCALE : legBottomScale(legShape);
   const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
   const apronLegSizeTop = legSize * legScaleAt(upperApronY + upperApronWidth, legHeight, bottomScale);
   const apronLegSizeBot = legSize * legScaleAt(upperApronY, legHeight, bottomScale);
@@ -518,7 +520,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     shape: legShape === "curved-taper"
       ? rectLegShape("curved-taper", c, { curvedTaper: { blockHeightMm: ctBlockEff, shoulderMm: ctShoulder, insetMm: ctInset, splayMm: ctSplayMm, twoWay: ctTwoWay, lowerCove: ctLowerCoveRange, sCurve: ctSCurve } })
       : legShape === "tapered"
-        ? { kind: "tapered", bottomScale: 0.55 }
+        ? { kind: "tapered", bottomScale: TAPERED_BOTTOM_SCALE }
         : legEdgeShape(legEdge, legEdgeStyle),
     tenons: [
       {

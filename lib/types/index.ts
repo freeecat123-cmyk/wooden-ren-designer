@@ -356,6 +356,12 @@ export interface Part {
         kind: "apron-trapezoid";
         topLengthScale: number;
         bottomLengthScale: number;
+        /**
+         * 梯形只作用在離 local −Z 邊這段距離內（mm），再過去端面垂直、維持 bottomLengthScale。
+         * 用途：床頭板／床尾板——板從地板立到腳頂以上，只有 0~腳高 這段要貼錐腳的斜面，
+         * 上面那段是自由邊（2026-09-02）。不給＝整個寬度線性（既有行為）。
+         */
+        taperSpanMm?: number;
         bevelAngle?: number;
         /** "full"（預設, top+bot 都水平）或 "half"（只有 top 水平、bot 跟腳斜） */
         bevelMode?: "full" | "half";

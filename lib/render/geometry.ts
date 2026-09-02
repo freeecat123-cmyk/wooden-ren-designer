@@ -441,6 +441,23 @@ export function projectPartSilhouette(
     return convexHull2D(projected);
   }
 
+  // apron-trapezoid 帶 taperSpanMm（床頭板貼錐腳）：−Z 邊起 span 內是梯形、之後垂直 →
+  // 面對板面看是**六邊形**，錐腳（地板那端較寬）時膝點是凹角，convex hull 會把它填平、
+  // 板緣就變成從地板斜到板頂的一條直線（2026-09-02 實測 y=70 差 3mm、y=250 差 11mm）。
+  // 所以直接輸出有序輪廓：兩個 Y 面各一圈 6 點；面對面看用有序圈，看側邊（面積≈0）退回 hull。
+  if (trap?.taperSpanMm !== undefined && trap.taperSpanMm > 0 && trap.taperSpanMm < lz) {
+    const hx = lx / 2, hy = ly / 2, hz = lz / 2;
+    const topX = hx * trap.topLengthScale, botX = hx * trap.bottomLengthScale;
+    const zB = -hz + trap.taperSpanMm;
+    const ring: Array<[number, number]> = [[-topX, -hz], [topX, -hz], [botX, zB], [botX, hz], [-botX, hz], [-botX, zB]];
+    for (const [xL, zL] of ring) pushPoint(xL, hy, zL);
+    const ordered = projected.slice();
+    for (const [xL, zL] of ring) pushPoint(xL, -hy, zL);
+    const area = (poly: Array<{ x: number; y: number }>) => Math.abs(poly.reduce((a, p, i) => { const q = poly[(i + 1) % poly.length]; return a + p.x * q.y - q.x * p.y; }, 0)) / 2;
+    const hull = convexHull2D(projected);
+    return area(ordered) > 0.5 * area(hull) ? ordered : hull;
+  }
+
   // pointed-ends：local 長×厚（X-Y）截面是六邊形（兩個 X 端塌成尖點），
   // 沿 width 軸（Z）擠出。直接給 12 個 part-local 頂點（6 × 兩個 Z 端），
   // 不走 bbox 角採樣（矩形 bbox 會把尖端補成方角）。
@@ -761,6 +778,10 @@ export function projectPartSilhouette(
           })
         : [[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([yS, zS]) => [yS, zS] as [number, number])
           .filter(([yS]) => yS === ey);
+      // apron-trapezoid 帶 taperSpanMm：梯形在 −Z 邊起 span 處轉成垂直邊 → 多採一個「膝點」
+      if (trap?.taperSpanMm !== undefined && trap.taperSpanMm > 0 && trap.taperSpanMm < lz && !isRound) {
+        samples.push([ey, -1 + (2 * trap.taperSpanMm) / lz]);
+      }
       for (const [eySamp, ezSamp] of samples) {
         // Right-triangle: 跳過缺角 (exNorm sign === triMissExSign && ezSamp sign === triMissEzSign)。
         // 剩下 3 個 X-Z 角 → convex hull 給直角三角形 silhouette。
@@ -795,7 +816,10 @@ export function projectPartSilhouette(
         const xScaleTaper = tapered + (1 - tapered) * taperT;
         const zScaleTaper = tapered + (1 - tapered) * taperT;
         const xScaleTrap = trap
-          ? ezSamp < 0 ? trap.topLengthScale : trap.bottomLengthScale
+          ? (trap.taperSpanMm !== undefined && trap.taperSpanMm > 0 && trap.taperSpanMm < lz
+              // 從 −Z 邊起線性到 span 處＝bottomLengthScale，之後維持（床頭板貼錐腳：上段自由邊）
+              ? trap.topLengthScale + (trap.bottomLengthScale - trap.topLengthScale) * Math.min(1, ((ezSamp + 1) / 2) * lz / trap.taperSpanMm)
+              : ezSamp < 0 ? trap.topLengthScale : trap.bottomLengthScale)
           : 1;
         // splay 在頂端不偏、底端偏 dx/dz，沿 Y 線性內插（非 round 4-corner 一樣
         // 拿到 isBottom?dx:0 的端點值，convex hull 給線性中間值；round 16-sample

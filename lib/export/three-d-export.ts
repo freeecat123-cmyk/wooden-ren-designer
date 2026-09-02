@@ -95,6 +95,7 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
       bevelAngle: shape.bevelAngle,
       topLengthScale: shape.topLengthScale,
       bottomLengthScale: shape.bottomLengthScale,
+      taperSpanMm: shape.taperSpanMm,
       bevelMode: shape.bevelMode,
     };
   }

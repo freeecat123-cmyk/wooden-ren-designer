@@ -31,7 +31,9 @@
     "audit:legs": "tsx scripts/audit-leg-shapes.ts",
     "audit:legs:update": "tsx scripts/audit-leg-shapes.ts --update",
     "audit:leg-joints": "tsx scripts/audit-leg-joints.ts",
-    "audit:template-pack": "tsx scripts/audit-template-pack.ts"
+    "audit:template-pack": "tsx scripts/audit-template-pack.ts",
+    "audit:2d-joints": "tsx scripts/audit-2d-joints.ts",
+    "audit:iso-ct-legs": "tsx scripts/audit-iso-ct-legs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

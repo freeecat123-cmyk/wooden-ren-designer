@@ -556,7 +556,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // 面，組裝版渲染就是 final 幾何（不重疊、不留縫）。joinery 模式靠 tenon[]
   // 加切料長度，3D 不視覺延伸。
   // 內側面距離 = length - 2*legSize - 2*legInset，再依 tapered 腳補償（drafting-math.md §A11）。
-  const bottomScale = legBottomScale(legShape);
+  /**
+   * ⛔ 補償用的 bottomScale 必須跟**腳自己的 shape** 同一個值。
+   *    這個 builder 的 tapered 腳幾何是 0.55、inverted 是 1.3（見上面 legShapeFor），
+   *    但共用的 legBottomScale() 是 0.6 / 1.25 —— 兩邊各算各的，下橫撐兩端就短 0.7~1.2mm
+   *    （2026-09-02 三視圖實畫稽核抓到：茶几/圓桌/餐桌錐腳下橫撐都差不到 1mm 的縫）。
+   *    直接從 shape 讀，腳的幾何不動（audit-leg-shapes 指紋才不會變）。
+   */
+  const bottomScale = (() => {
+    const sh = legShapeFor({ x: 1, z: 1 });
+    return sh && "bottomScale" in sh && typeof sh.bottomScale === "number" ? sh.bottomScale : legBottomScale(legShape);
+  })();
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
   /**

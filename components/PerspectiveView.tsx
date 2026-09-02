@@ -1305,6 +1305,7 @@ export function PerspectiveView({
               bevelAngle: part.shape.bevelAngle,
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
+              ...(part.shape.taperSpanMm !== undefined ? { taperSpanMm: part.shape.taperSpanMm * SCALE } : {}),
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
@@ -1710,6 +1711,13 @@ export function PerspectiveView({
                     // 端面有 Z 傾斜 → 不同 Z 位置 (lcz) 的 miter X 位置不同
                     const zCompensation = hzPart > 0 ? lxPart * (botS - topS) / (4 * hzPart) * lcz : 0;
                     halfLenLocal = lxPart * (1 - avgScale) / 2 + Math.abs(effLen) / 2 - zCompensation + ROOT_BURY;
+                    // taperSpanMm：端面斜度只在 −Z 邊起 span 內 → 直接用「這個 Z 的端面 scale」（無 span 時跟上式代數相等）
+                    const spanMm = part.shape.taperSpanMm;
+                    if (spanMm !== undefined && spanMm > 0 && hzPart > 0) {
+                      const t = Math.min(1, Math.max(0, (lcz + hzPart) / spanMm));
+                      const scaleAtZ = topS + (botS - topS) * t;
+                      halfLenLocal = lxPart * (1 - scaleAtZ) / 2 + Math.abs(effLen) / 2 + ROOT_BURY;
+                    }
                   }
                   const halfLenWorld = halfLenLocal * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);

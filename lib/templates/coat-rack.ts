@@ -319,7 +319,14 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 必須在 [0, columnHeight] 內。原本用 height-HOOK_TOP_INSET 會在
   // footThickness < HOOK_TOP_INSET 時超出 columnHeight。clamp 到 column 頂端
   // 以下保證落在範圍內。
-  const hookY = Math.min(height - HOOK_TOP_INSET, columnHeight - 1);
+  /**
+   * 🩸 舊寫法 `hookY = min(height − 30, columnHeight − 1)` 同時當「圓料底面」和「柱上榫眼中心」用：
+   *    掛鉤本體 1663~1681 而柱頂只到 1664 → 六支掛鉤整個浮在柱頂上方，榫眼也從柱頂打穿
+   *    （2026-09-02 三視圖實畫稽核抓到）。改成先定**中心線**，本體底面＝中心 − 半徑、榫眼＝中心，
+   *    中心離柱頂至少 HOOK_TOP_INSET（榫眼上方留 21mm 壁）。
+   */
+  const hookCenterY = Math.min(height - HOOK_TOP_INSET, columnHeight - HOOK_TOP_INSET);
+  const hookY = hookCenterY - HOOK_SIZE / 2;   // 圓料 origin.y = 底面
   const hooks: Part[] = [];
   // 靠牆模式：保留前 240°（4/6 圈）的掛鉤，跳過後方 120°
   const wallModeKept = (i: number, count: number): boolean => {
@@ -363,7 +370,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     columnMortises.push({
       origin: {
         x: Math.cos(angle) * (columnSize / 2),
-        y: hookY,
+        y: hookCenterY,
         z: Math.sin(angle) * (columnSize / 2),
       },
       depth: hookTenonDepth,
@@ -410,7 +417,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       columnMortises.push({
         origin: {
           x: Math.cos(angle) * (columnSize / 2),
-          y: row2Y,
+          y: row2Y + HOOK_SIZE / 2,   // 榫眼＝中心線
           z: Math.sin(angle) * (columnSize / 2),
         },
         depth: hookTenonDepth,
