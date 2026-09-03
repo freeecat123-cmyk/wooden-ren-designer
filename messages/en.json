@@ -405,7 +405,7 @@
         "name": "Free",
         "price": "$0",
         "unit": "",
-        "f1": "2 templates, unlimited use",
+        "f1": "3 templates, unlimited use",
         "f2": "3D preview + three-view",
         "f3": "Cut list + build order",
         "cta": "Try free"
@@ -567,7 +567,7 @@
     "faq": {
       "h2": "FAQ",
       "freeQ": "What does the free tier actually include?",
-      "freeA": "The square stool and pencil holder are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
+      "freeA": "The square stool, pencil holder and workbench are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
       "cadQ": "How does this compare to SketchUp / Fusion 360?",
       "cadA": "Designer is for woodworkers who want to build, not learn CAD. Five-minute learning curve, automatic joinery / three-view / cut list / cutting plan. Not trying to replace professional CAD.",
       "tierQ": "Personal vs Pro — what's the difference?",
@@ -649,7 +649,7 @@
     },
     "bottomCta": {
       "h2": "Pick one to start",
-      "subtitle": "Square stool and pencil holder are free forever. Every other template is free to preview in full — subscribe to resize it to your own dimensions.",
+      "subtitle": "Square stool, pencil holder and workbench are free forever. Every other template is free to preview in full — subscribe to resize it to your own dimensions.",
       "ctaPrimary": "Start designing →",
       "ctaSecondary": "View plans"
     }
@@ -3497,7 +3497,7 @@
     "sec3Li2": "Account passwords / sign-in tokens are the user's responsibility to safeguard; losses arising from leakage are borne by the user.",
     "sec3Li3": "The Generator reserves the right to suspend or terminate accounts that violate these terms or engage in malicious behavior.",
     "sec4H": "4. Plans and billing",
-    "sec4Li1": "The Free plan offers full use of the square stool and pencil holder templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing, quotes, and the printable engineering pack require a paid plan.",
+    "sec4Li1": "The Free plan offers full use of the square stool, pencil holder and workbench templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing, quotes, and the printable engineering pack require a paid plan.",
     "sec4Li2": "Personal / Pro plans are billed monthly or annually; the Student plan is a complimentary plan for Wooden Ren Academy students, subject to the then-current plan description.",
     "sec4Li3Pre": "Activation is typically immediate after payment. If activation fails, please email ",
     "sec4Li3Suffix": ".",

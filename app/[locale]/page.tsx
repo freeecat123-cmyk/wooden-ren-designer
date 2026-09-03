@@ -53,6 +53,7 @@ export async function generateMetadata({
 const FEATURED_TYPES = [
   "stool",
   "pencil-holder",
+  "workbench",
   "side-table",
   "dining-chair",
   "desk",
