@@ -72,10 +72,11 @@ describe("夾制要出聲", () => {
     expect(d.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(64);
     expect((d.warnings ?? []).join("\n")).toMatch(/64/);
   });
-  it("狗孔太多會拉大孔距並出聲（3000 長、孔距 60 → 上限 40 孔）", () => {
-    const d = build({ dogHolePitch: 60 }, { length: 3000, width: 600, height: 850 });
-    expect(roundHoles(d, "top").filter((m) => m.origin.z < 0).length).toBeLessThanOrEqual(40);
-    expect((d.warnings ?? []).join("\n")).toMatch(/孔距/);
+  it("格陣孔太多只畫前幾排並出聲（3000×1000 格陣：欄 floor(2880/96)+1=31、排 floor(880/96)+1=10 → 上限 200 → 6 排 186 孔）", () => {
+    const d = build({ dogHoles: "grid", frontVise: "none" }, { length: 3000, width: 1000, height: 850 });
+    const holes = roundHoles(d, "top");
+    expect(holes.length).toBe(186);
+    expect((d.warnings ?? []).join("\n")).toMatch(/只畫前 6 排/);
   });
   it("桌高偏離身高建議會出聲（170cm 手刨建議 833，設 700）", () => {
     const d = build({}, { length: 1800, width: 600, height: 700 });

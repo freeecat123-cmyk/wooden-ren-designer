@@ -229,6 +229,9 @@ type PartProps = {
   grainDirection?: "length" | "width";
   mortiseBoxes?: LocalBox[];
   mortiseShapes?: Array<"rect" | "round">;
+  /** 圓形貫穿裝飾孔（工作桌狗孔 / holdfast 孔 / MFT 格陣）不走 CSG，改畫深色圓柱「塞」在孔位：
+   *  20 個孔 sequential subtraction 一次 4.7 秒（M4），手機直接像當機（木頭仁 2026-09-03「參數都沒辦法點」）。 */
+  holeDecals?: LocalBox[];
   dovetailCuts?: Brush[];
   isSelected?: boolean;
   isHovered?: boolean;
@@ -270,6 +273,9 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   const msa = a.mortiseShapes, msb = b.mortiseShapes;
   if ((msa?.length ?? 0) !== (msb?.length ?? 0)) return false;
   if (msa && msb) for (let i = 0; i < msa.length; i++) if (msa[i] !== msb[i]) return false;
+  const ha = a.holeDecals, hb = b.holeDecals;
+  if ((ha?.length ?? 0) !== (hb?.length ?? 0)) return false;
+  if (ha && hb) for (let i = 0; i < ha.length; i++) if (ha[i] !== hb[i]) return false;
   const da = a.dovetailCuts, db = b.dovetailCuts;
   if ((da?.length ?? 0) !== (db?.length ?? 0)) return false;
   if (da && db) for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return false;
@@ -287,6 +293,7 @@ const Part = memo(function PartInner({
   grainDirection,
   mortiseBoxes,
   mortiseShapes,
+  holeDecals,
   dovetailCuts,
   isSelected,
   isHovered,
@@ -551,8 +558,23 @@ const Part = memo(function PartInner({
   // dovetailCutGeometry 已在 world，mesh 必須 identity transform 否則雙重套位置錯
   const meshPosition: [number, number, number] = hasDovetailCut ? [0, 0, 0] : position;
   const meshRotation = hasDovetailCut ? new Euler(0, 0, 0) : rotation;
+  // 圓孔「塞」：深色圓柱沿孔的深度軸（half-extent 最大那軸）擺，兩端各露出 0.3mm 蓋過木面
+  const holePlugs = holeDecals && holeDecals.length > 0 && !hasDovetailCut ? holeDecals.map((h, i) => {
+    const axis: "x" | "y" | "z" = h.hx >= h.hy && h.hx >= h.hz ? "x" : h.hz > h.hy ? "z" : "y";
+    const half = axis === "x" ? h.hx : axis === "z" ? h.hz : h.hy;
+    const r = axis === "y" ? Math.min(h.hx, h.hz) : axis === "x" ? Math.min(h.hy, h.hz) : Math.min(h.hx, h.hy);
+    const rot: [number, number, number] = axis === "x" ? [0, 0, Math.PI / 2] : axis === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
+    return (
+      <mesh key={`plug-${i}`} position={[h.cx, h.cy, h.cz]} rotation={rot}>
+        <cylinderGeometry args={[r, r, 2 * half + 0.006, 20]} />
+        <meshStandardMaterial color="#241a10" roughness={1} metalness={0} transparent opacity={isDimmed ? DIM_OPACITY : 1} depthWrite={!isDimmed} />
+      </mesh>
+    );
+  }) : null;
   return (
-    <mesh position={meshPosition} rotation={meshRotation} castShadow receiveShadow>
+    <group position={meshPosition} rotation={meshRotation}>
+    {holePlugs}
+    <mesh castShadow receiveShadow>
       {dovetailCutGeometry ? (
         <primitive attach="geometry" object={dovetailCutGeometry} />
       ) : csgGeometry ? (
@@ -579,6 +601,7 @@ const Part = memo(function PartInner({
         polygonOffsetUnits={pushBack ? 24 : polygonOffset ? 1 : 0}
       />
     </mesh>
+    </group>
   );
 }, arePartPropsEqual);
 
@@ -1889,7 +1912,7 @@ export function PerspectiveView({
           // 不挖時葉片端藏在豎梃實料內、視覺乾淨；joineryMode 仍挖（接合視圖要看槽）。
           const isLouverGroove = (m: { label?: string }) =>
             (m.label ?? "").startsWith("百葉槽");
-          const mortisesToCsg = joineryMode
+          let mortisesToCsg = joineryMode
             ? part.mortises.filter((m) => {
                 if (m.cosmetic) return true;
                 if (isSplayedLeg) return false;
@@ -1897,6 +1920,19 @@ export function PerspectiveView({
                 return true;
               })
             : part.mortises.filter((m) => m.cosmetic && !isLouverGroove(m));
+          // 圓形貫穿裝飾孔一多（狗孔 / holdfast / MFT 格陣 ≥ 6 個）就不 CSG，改畫「塞」——
+          // 每個孔一次 sequential subtraction，20 孔 4.7 秒、手機像當機。托盤手把 pill（3 孔）等少量仍走 CSG。
+          const isPlugHole = (m: { cosmetic?: boolean; shape?: string; through?: boolean; rotX?: number }) =>
+            !!m.cosmetic && m.shape === "round" && !!m.through && !m.rotX;
+          const plugCount = mortisesToCsg.filter(isPlugHole).length;
+          const usePlugs = plugCount >= 6;
+          const mortisesToPlug = usePlugs ? mortisesToCsg.filter(isPlugHole) : [];
+          if (usePlugs) mortisesToCsg = mortisesToCsg.filter((m) => !isPlugHole(m));
+          const toScaled = (m: (typeof part.mortises)[number]): LocalBox => {
+            const lb = mortiseLocalBox(part, m);
+            return { cx: lb.cx * SCALE, cy: lb.cy * SCALE, cz: lb.cz * SCALE, hx: lb.hx * SCALE, hy: lb.hy * SCALE, hz: lb.hz * SCALE, rotX: lb.rotX, rotY: lb.rotY, rotZ: lb.rotZ };
+          };
+          const holeDecalsScaled: LocalBox[] | undefined = mortisesToPlug.length > 0 ? mortisesToPlug.map(toScaled) : undefined;
           const mortiseBoxesScaled: LocalBox[] | undefined =
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => {
@@ -1975,6 +2011,7 @@ export function PerspectiveView({
                 grainDirection={part.grainDirection}
                 mortiseBoxes={mortiseBoxesScaled}
                 mortiseShapes={mortiseShapesArr}
+                holeDecals={holeDecalsScaled}
                 dovetailCuts={partDovetailCuts}
                 isSelected={isSelected}
                 isHovered={isHovered}

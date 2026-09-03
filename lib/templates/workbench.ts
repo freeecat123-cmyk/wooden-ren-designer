@@ -40,9 +40,9 @@ const HOLDFAST_MAX_T = 89;
 /** 刨擋木方柱斷面（AWB 2½" 方） */
 const PLANING_STOP_MM = 64;
 const PLANING_STOP_PROUD_MM = 20;
-/** 狗孔數量上限（3D CSG 每孔一次布林；超過就自動拉大孔距） */
-const MAX_DOG_HOLES = 40;
-const MAX_GRID_HOLES = 72;
+/** 狗孔數量上限（3D 用深色圓柱「塞」畫孔不再 CSG；上限是為了零件圖標註與 mesh 數量） */
+const MAX_DOG_HOLES = 60;
+const MAX_GRID_HOLES = 200;
 /** 平拼單片實木上限（同 round-table / 工具牆的 280 慣例） */
 const PLANK_MAX_W = 280;
 /** 桌高係數（§O7 + Schwarz 小指根法；170cm → 833 / 935 / 1020） */
