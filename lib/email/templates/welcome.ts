@@ -44,7 +44,7 @@ export function welcomeEmail(input: { name?: string | null; locale?: string }): 
       `- Quotes, cut lists, and stock layouts`,
       `- Share design links with clients`,
       ``,
-      `Free plan: 3 practice templates (square stool, pencil holder, side table).`,
+      `Free plan: 2 practice templates (square stool, pencil holder).`,
       `Paid plans: all 28 furniture templates + advanced features.`,
       ``,
       `Get started: ${SITE_URL}/en`,
@@ -71,7 +71,7 @@ export function welcomeEmail(input: { name?: string | null; locale?: string }): 
 <li>Share design links with clients</li>
 </ul>
 <p style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;color:#166534;font-size:14px">
-Free plan: 3 practice templates (square stool, pencil holder, side table). Paid plans: all furniture templates + advanced features.
+Free plan: 2 practice templates (square stool, pencil holder). Paid plans: all furniture templates + advanced features.
 </p>
 <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px;color:#92400e;font-size:14px;margin-top:12px">
 <p style="margin:0 0 8px;font-weight:600">📌 Subscription notes</p>
@@ -106,7 +106,7 @@ Free plan: 3 practice templates (square stool, pencil holder, side table). Paid 
     `- 報價、材料單、裁切圖`,
     `- 跟客戶分享設計連結`,
     ``,
-    `免費版可以用 3 種練習小物（方凳、筆筒、書擋）。`,
+    `免費版可以用 2 種練習小物（方凳、筆筒）。`,
     `付費方案開放全部 28 種家具 + 進階功能。`,
     ``,
     `馬上開始：${SITE_URL}`,
@@ -133,7 +133,7 @@ Free plan: 3 practice templates (square stool, pencil holder, side table). Paid 
 <li>跟客戶分享設計連結</li>
 </ul>
 <p style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;color:#166534;font-size:14px">
-免費版可以用 3 種練習小物（方凳、筆筒、書擋）。付費方案開放全部家具 + 進階功能。
+免費版可以用 2 種練習小物（方凳、筆筒）。付費方案開放全部家具 + 進階功能。
 </p>
 <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px;color:#92400e;font-size:14px;margin-top:12px">
 <p style="margin:0 0 8px;font-weight:600">📌 訂閱小提醒</p>

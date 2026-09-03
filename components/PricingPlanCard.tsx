@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { InvoicePreflightModal } from "./InvoicePreflightModal";
 import { useCurrency } from "@/hooks/useCurrency";
+import { track } from "@vercel/analytics";
 import { formatPrice } from "@/lib/units/fx";
 
 export type BillingPeriod = "monthly" | "yearly";
@@ -97,6 +98,7 @@ export function PlanCardView({
   async function handleCheckoutSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (checkingPref) return;
+    track("checkout_start", { kind: "plan", plan: plan.id, period });
     // 已知有設過 → 直接送
     if (hasInvoicePref === true) {
       formRef.current?.submit();

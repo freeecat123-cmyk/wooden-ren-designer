@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/ecpay-reconciliation",
       "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/lifecycle-emails",
+      "schedule": "0 2 * * *"
     }
   ]
 }

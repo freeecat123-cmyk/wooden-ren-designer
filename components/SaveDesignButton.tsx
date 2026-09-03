@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { createClient } from "@/lib/supabase/client";
+import { track } from "@vercel/analytics";
 
 interface Props {
   /** 家具分類 id（pencil-holder, dovetail-box, ...） */
@@ -96,6 +97,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       }
       throw new Error(json.message ?? json.error ?? `HTTP ${res.status}`);
     }
+    if (json.id) track("design_saved", { furnitureType });
     return json.id ?? null;
   };
 
