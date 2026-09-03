@@ -976,8 +976,64 @@ export function T2Annotations({
     labelText?: string;
     /** 基準距：對稱件用「距中 X/Z」、其他用「距底 Y」（依當前 view 軸取捨）。 */
     baseline: string;
+    /** 等距孔列的成員（非首孔）：只畫圓、不標字——首孔已標「Ø19 穿 ×15 @100」。 */
+    seriesMember?: boolean;
   };
   const items: Item[] = [];
+
+  /**
+   * 等距圓孔列合併標註（工作桌狗孔 / holdfast 孔 / MFT 20mm 格陣）。
+   * 20 個 Ø19 孔各標一次「Ø19 穿」會把圖面下緣糊成一條（2026-09-03 工作桌零件圖實畫）。
+   * 規則：同零件、cosmetic + round + through、同孔徑、同一列（origin.z 相同）且孔距固定（±0.5）
+   * 且 ≥3 孔 → 只在首孔標「Ø19 穿 ×N @pitch」；多列同 x 集合、同列距 → 再合併成
+   * 「Ø20 穿 18×6 @96」只標一次。孔本身每顆照畫，尺寸鏈另有。
+   */
+  const holeSeries = new Map<number, string>(); // idx → 合併後的 dims（首孔）
+  const holeSeriesMember = new Set<number>();
+  {
+    type H = { idx: number; x: number; z: number; w: number };
+    const hs: H[] = [];
+    part.mortises.forEach((m, idx) => {
+      if (m.shape === "round" && m.cosmetic && m.through && !m.rotX && !m.rotZ && !m.label)
+        hs.push({ idx, x: m.origin?.x ?? 0, z: m.origin?.z ?? 0, w: round1(m.width ?? 0) });
+    });
+    const rows = new Map<string, H[]>();
+    for (const h of hs) {
+      const k = `${h.w}|${h.z.toFixed(1)}`;
+      if (!rows.has(k)) rows.set(k, []);
+      rows.get(k)!.push(h);
+    }
+    type Row = { w: number; z: number; pitch: number; xs: number[]; members: H[] };
+    const series: Row[] = [];
+    for (const list of rows.values()) {
+      if (list.length < 3) continue;
+      list.sort((a, b) => a.x - b.x);
+      const pitch = list[1].x - list[0].x;
+      if (pitch <= 0) continue;
+      if (!list.every((h, i) => i === 0 || Math.abs(h.x - list[i - 1].x - pitch) <= 0.5)) continue;
+      series.push({ w: list[0].w, z: list[0].z, pitch: round1(pitch), xs: list.map((h) => h.x), members: list });
+    }
+    // 多列合併成格陣：同孔徑、同 x 集合、列距固定
+    series.sort((a, b) => a.z - b.z);
+    const used = new Set<Row>();
+    for (const r of series) {
+      if (used.has(r)) continue;
+      const grid = [r];
+      const sameXs = (o: Row) => o.w === r.w && o.pitch === r.pitch && o.xs.length === r.xs.length && o.xs.every((x, i) => Math.abs(x - r.xs[i]) <= 0.5);
+      for (const o of series) if (o !== r && !used.has(o) && sameXs(o)) grid.push(o);
+      grid.sort((a, b) => a.z - b.z);
+      const rowPitch = grid.length >= 2 ? grid[1].z - grid[0].z : 0;
+      const isGrid = grid.length >= 2 && grid.every((g, i) => i === 0 || Math.abs(g.z - grid[i - 1].z - rowPitch) <= 0.5);
+      const group = isGrid ? grid : [r];
+      for (const g of group) used.add(g);
+      const first = group[0].members[0];
+      const label = isGrid
+        ? `Ø${r.w} 穿 ${r.xs.length}×${group.length} @${r.pitch}${Math.abs(round1(rowPitch) - r.pitch) > 0.5 ? `/${round1(rowPitch)}` : ""}`
+        : `Ø${r.w} 穿 ×${r.xs.length} @${r.pitch}`;
+      holeSeries.set(first.idx, label);
+      for (const g of group) for (const h of g.members) if (h.idx !== first.idx) holeSeriesMember.add(h.idx);
+    }
+  }
 
   /**
    * Mortise entry-aligned box：偵測 entry face、box 從 entry face 往 part 內部
@@ -1204,8 +1260,9 @@ export function T2Annotations({
       name: nameLabel,
       // 只有明確給了 m.label（如「底板槽」/「滑蓋槽」）才畫名稱，避免每個榫眼都標字干擾
       labelText: m.label,
-      dims,
+      dims: holeSeries.get(idx) ?? dims,
       baseline: baselineFor(lb),
+      ...(holeSeriesMember.has(idx) ? { seriesMember: true } : {}),
     });
   });
 
@@ -1958,6 +2015,11 @@ export function T2Annotations({
 
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
     // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）
+    if (isRoundFeature && it.seriesMember) {
+      // 等距孔列成員：只畫圓（partEls 已含輪廓 + 十字線），字由首孔一次標完
+      elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
+      return;
+    }
     if (isRoundFeature) {
       // 同位 label 防撞：兩端圓榫端面同心時 leader/字會疊 → 第二顆往下推。
       // 基準再 +8：端面視圖（小截面）lblY=partBottom+16 會壓到圓輪廓下緣
