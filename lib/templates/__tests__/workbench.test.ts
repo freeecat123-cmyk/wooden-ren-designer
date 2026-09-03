@@ -7,7 +7,7 @@ import { workbench } from "../workbench";
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
 
 type OptVal = string | number | boolean;
-function build(options: Record<string, OptVal> = {}, size = { length: 1800, width: 600, height: 850 }): FurnitureDesign {
+function build(options: Record<string, OptVal> = {}, size = { length: 1800, width: 600, height: 830 }): FurnitureDesign {
   return workbench({ ...size, material: "beech" as MaterialId, options });
 }
 const roundHoles = (d: FurnitureDesign, id: string) =>
@@ -47,7 +47,7 @@ describe("木工工作桌：預設（厚板桌）", () => {
   it("7 吋鉗：木顎 180 寬、跟桌面齊平、本體是金屬不算材", () => {
     const chop = d.parts.find((p) => p.id === "vise-chop")!;
     expect(chop.visible.length).toBe(180);
-    expect(chop.origin.y + chop.visible.thickness).toBe(850);
+    expect(chop.origin.y + chop.visible.thickness).toBe(830);
     expect(d.parts.find((p) => p.id === "vise-body")!.visual).toBe("metal");
     expect(d.parts.find((p) => p.id === "vise-spacer")).toBeUndefined(); // 75 ≥ 60 不用墊塊
   });
@@ -78,9 +78,10 @@ describe("夾制要出聲", () => {
     expect(holes.length).toBe(186);
     expect((d.warnings ?? []).join("\n")).toMatch(/只畫前 6 排/);
   });
-  it("桌高偏離身高建議會出聲（170cm 手刨建議 833，設 700）", () => {
+  it("桌高偏離身高建議會出聲（170cm 手刨建議 833，設 700），文案帶「先做高 25mm」", () => {
     const d = build({}, { length: 1800, width: 600, height: 700 });
     expect((d.warnings ?? []).join("\n")).toMatch(/833/);
+    expect((d.warnings ?? []).join("\n")).toMatch(/先做高 25mm/);
   });
 });
 
@@ -141,9 +142,116 @@ describe("桌面中縫 + 刨擋", () => {
   it("刨擋：64 方、露出 20、榫從柱底貫穿桌面、桌面有 64×64 通孔", () => {
     const stop = d.parts.find((p) => p.id === "planing-stop")!;
     expect(stop.visible).toEqual({ length: 64, width: 64, thickness: 20 });
-    expect(stop.origin.y).toBe(850);
+    expect(stop.origin.y).toBe(830);
     expect(stop.tenons[0]).toMatchObject({ position: "bottom", type: "through-tenon", length: 75 });
     const f = d.parts.find((p) => p.id === "top-front")!;
     expect(f.mortises.some((m) => m.length === 64 && m.width === 64 && m.through && !m.cosmetic)).toBe(true);
+  });
+});
+
+describe("v2：尾鉗（wagon）", () => {
+  const d = build({ endVise: "wagon" });
+  it("尾鉗在前鉗另一端（−X）：那端懸出 470、另一端 360 → 腳架長 970、腳中心 −380 / +490", () => {
+    const xs = d.parts.filter((p) => /^leg-\d$/.test(p.id)).map((p) => p.origin.x).sort((a, b) => a - b);
+    expect(xs).toEqual([-380, -380, 490, 490]);
+  });
+  it("桌面讓 100 給端蓋：長 1700、中心 +50；端蓋 100×600×75 在 −850；腳頂榫眼跟著腳（−425 / +435）", () => {
+    const top = d.parts.find((p) => p.id === "top")!;
+    expect(top.visible.length).toBe(1700);
+    expect(top.origin.x).toBe(50);
+    const cap = d.parts.find((p) => p.id === "end-cap")!;
+    expect(cap.visible).toEqual({ length: 100, width: 600, thickness: 75 });
+    expect(cap.origin.x).toBe(-850);
+    const legM = top.mortises.filter((m) => !m.cosmetic).map((m) => m.origin.x).sort((a, b) => a - b);
+    expect(legM).toEqual([-425, -425, 435, 435]);
+  });
+  it("槽 365×52 中心 = −900 + 100 + 30 + 182.5 = −587.5（桌面 local −637.5），狗孔停在槽前", () => {
+    const top = d.parts.find((p) => p.id === "top")!;
+    const slot = top.mortises.find((m) => m.length === 365)!;
+    expect(slot.width).toBe(52);
+    expect(slot.origin.x + top.origin.x).toBe(-587.5);
+    expect(slot.through && slot.cosmetic).toBe(true);
+    const front = top.mortises.filter((m) => m.shape === "round" && m.origin.z < 0).map((m) => m.origin.x + top.origin.x);
+    expect(Math.min(...front)).toBeGreaterThanOrEqual(-587.5 + 182.5 + 60 - 0.5);
+  });
+  it("桌長 1500 不做尾鉗並出聲", () => {
+    const s = build({ endVise: "wagon" }, { length: 1500, width: 600, height: 830 });
+    expect(s.parts.find((p) => p.id === "end-cap")).toBeUndefined();
+    expect((s.warnings ?? []).join("\n")).toMatch(/1800/);
+  });
+});
+
+describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
+  it("靠板：脊條在前橫撐頂（y=200）、軌在桌底 −25、滑板高 = (755−25) − (225) − 2 = 503", () => {
+    const d = build({ deadman: true, lowerStretcherArrangement: "box-frame" });
+    const ridge = d.parts.find((p) => p.id === "deadman-ridge")!;
+    const rail = d.parts.find((p) => p.id === "deadman-rail")!;
+    const board = d.parts.find((p) => p.id === "deadman-board")!;
+    expect(ridge.origin.y).toBe(200);
+    expect(rail.origin.y).toBe(730);
+    expect(board.visible.thickness).toBe(503);
+    expect(board.origin.y).toBe(226);
+    expect(board.mortises.length).toBe(4); // 60,160,260,360 ≤ 443
+  });
+  it("靠板前提不符（H 形沒有前橫撐）→ 不生、出聲", () => {
+    const d = build({ deadman: true });
+    expect(d.parts.find((p) => p.id === "deadman-board")).toBeUndefined();
+    expect((d.warnings ?? []).join("\n")).toMatch(/長板靠板已略過/);
+  });
+  it("抽屜櫃：坐在橫撐頂 y=200、櫃頂 755−210=545 → 高 345；寬 = 腳架 1080 − 2×100 − 6 = 874、深 = 600−100+50−4 = 546", () => {
+    const d = build({ drawerCount: 2 });
+    const cabTop = d.parts.find((p) => p.id === "drawer-cab-top")!;
+    const bottom = d.parts.find((p) => p.id === "drawer-cab-bottom")!;
+    expect(bottom.origin.y).toBe(200);
+    expect(bottom.visible.length).toBe(874);
+    expect(bottom.visible.width).toBe(546);
+    expect(cabTop.origin.y + cabTop.visible.thickness).toBe(545);
+    expect(d.parts.filter((p) => /drawer-cab-z1-drawer-\d-front$/.test(p.id)).length).toBe(2);
+    expect(d.parts.find((p) => p.id === "under-shelf")).toBeUndefined();
+  });
+  it("裙板桌 + 抽屜：櫃頂躲到裙板底下（755−290−5 = 460）並出聲", () => {
+    const d = build({ benchStyle: "apron", drawerCount: 2 });
+    const cabTop = d.parts.find((p) => p.id === "drawer-cab-top")!;
+    expect(cabTop.origin.y + cabTop.visible.thickness).toBe(470); // 桌面 65 → 腳高 765，裙板底 765−290−5
+    expect((d.warnings ?? []).join("\n")).toMatch(/裙板/);
+  });
+  it("封邊板：桌面 1680、兩片 60 在 ±870；有尾鉗就略過", () => {
+    const d = build({ breadboardEnds: true });
+    expect(d.parts.find((p) => p.id === "top")!.visible.length).toBe(1680);
+    expect(d.parts.find((p) => p.id === "breadboard-l")!.origin.x).toBe(870);
+    const w = build({ breadboardEnds: true, endVise: "wagon" });
+    expect(w.parts.find((p) => p.id === "breadboard-l")).toBeUndefined();
+  });
+  it("教室雙面桌：對側鉗在另一端後緣（x −750、chop z +315）、狗孔兩列、holdfast 在中央", () => {
+    const d = build({ benchStyle: "classroom" });
+    const chop2 = d.parts.find((p) => p.id === "vise2-chop")!;
+    expect(chop2.origin.x).toBe(-750);
+    expect(chop2.origin.z).toBe(315);
+    const top = d.parts.find((p) => p.id === "top")!;
+    const zs = new Set(top.mortises.filter((m) => m.shape === "round").map((m) => m.origin.z));
+    expect(zs.has(-240) && zs.has(240) && zs.has(0)).toBe(true);
+  });
+  it("裙板桌前緣凸出 50：桌面 650 寬、中心 z −25、前緣 −350；狗孔離新前緣 60 → 世界 z −290 = local −265", () => {
+    const d = build({ benchStyle: "apron" });
+    const top = d.parts.find((p) => p.id === "top")!;
+    expect(top.visible.width).toBe(650);
+    expect(top.origin.z).toBe(-25);
+    const front = top.mortises.filter((m) => m.shape === "round" && m.origin.z + top.origin.z < 0);
+    expect(front.length).toBeGreaterThan(5);
+    expect(front.every((m) => m.origin.z === -265)).toBe(true);
+  });
+});
+
+describe("v2：純提示欄位", () => {
+  it("出料台高於台面 → 危險警告；房間放不下 → 警告", () => {
+    const a = build({ heightMode: "outfeed", sawTableHeightMm: 820 });
+    expect((a.warnings ?? []).join("\n")).toMatch(/危險/);
+    const r = build({ roomLengthCm: 200 });
+    expect((r.warnings ?? []).join("\n")).toMatch(/放不下/);
+  });
+  it("桌面脹縮：櫸木 600 寬 → 600×0.119×0.2 = 14.3mm，選封邊板才警告長孔；預設不噴", () => {
+    const b = build({ breadboardEnds: true });
+    expect((b.warnings ?? []).join("\n")).toMatch(/14\.3mm/);
+    expect((build().warnings ?? []).join("\n")).not.toMatch(/長孔/);
   });
 });

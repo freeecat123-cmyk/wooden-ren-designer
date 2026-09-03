@@ -18,6 +18,18 @@
 import type { OptionSpec } from "@/lib/types";
 
 export const SPEC_LABEL_EN: Record<string, string> = {
+  // === workbench v2 ===
+  shoeAllowanceMm: "Shoe / mat allowance",
+  sawTableHeightMm: "Table-saw top height",
+  roomLengthCm: "Room length available",
+  roomWidthCm: "Room width available",
+  frontOverhang: "Front overhang (past legs / apron)",
+  breadboardEnds: "Breadboard ends (anti-cup)",
+  endVise: "End vise (tail)",
+  deadman: "Sliding deadman (board support)",
+  doubleSided: "Double-sided (second vise on the far side)",
+  moxon: "Add a Moxon vise (bench-on-bench)",
+  accessories: "Accessories: doe's foot + bench hook",
   // === workbench（木工工作桌） ===
   benchStyle: "Workbench style",
   heightMode: "Height purpose (suggestion only)",
@@ -580,6 +592,19 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  * Missing → falls back to spec.help (zh).
  */
 export const SPEC_HELP_EN: Record<string, string> = {
+  // === workbench v2 ===
+  shoeAllowanceMm: "If you work in boots or on an anti-fatigue mat, the suggested height is raised by this. Only affects suggestions and warnings.",
+  sawTableHeightMm: "An outfeed table must be level with or 1–2mm below the saw table; higher lifts the board tail and kicks back. Only affects suggestions and warnings.",
+  roomLengthCm: "Wall to wall. 0 = ignore; warns when bench length plus a 90cm aisle will not fit. Warnings only.",
+  roomWidthCm: "0 = ignore; warns when bench depth plus a 90cm aisle will not fit. Warnings only.",
+  frontOverhang: "Apron benches need ~50mm past the apron so clamps can reach (regret #1); thick-top benches stay flush — leg vise and deadman need a flush front.",
+  breadboardEnds: "60mm wide, grain across the top; glue only the middle 150mm and slot the outer pins so the top can move.",
+  endVise: "Mounted on the end opposite the front vise: that end's overhang goes to 470, a 100mm end cap and a 365×52 slot are added; skipped under 1800 long.",
+  deadman: "Supports the far end of long boards: a 45° ridge strip on the front stretcher, a rail under the top and a board with a hole row. Needs a flush front edge and a front lower stretcher.",
+  doubleSided: "Classroom use: two people face each other, each with a vise (diagonal) and a dog-hole row; holdfast holes move to the centre. Depth ≥ 800 recommended.",
+  moxon: "Does not touch the bench: two 600×140 jaw boards + two screws sit at the back of the top; hardware ~NT$1,300 in Taiwan.",
+  accessories: "Doe's foot (600×60 V-notched batten for holdfasts) and bench hook (300×180). Cut list and part drawings only.",
+  drawerCount: "Cabinet sits on the lower stretchers; its top stays 210mm below the bench top so holdfasts still reach. Drawers plus a deep apron leave nowhere to clamp.",
   // === workbench ===
   benchStyle: "Applies a whole set of defaults once; fields you already changed are kept. Set length / depth / height above yourself (thick-top style: 1800×600×850 suggested).",
   heightMode: "Computes a suggested bench height from your height and writes it into the notes / warnings. It never changes the height you set.",
@@ -1141,6 +1166,14 @@ export function specHelp(spec: OptionSpec, locale: string): string | undefined {
  * stretcherStyle / withLowerStretcher 等高頻 dropdown。
  */
 export const CHOICE_LABEL_EN: Record<string, string> = {
+  // === workbench v2 ===
+  "benchStyle:classroom": "Classroom double-sided — a vise and a dog row on each long side (depth 900 suggested)",
+  "heightMode:assembly": "Assembly / finishing (low, height × 0.44; dining ≈ 730)",
+  "heightMode:outfeed": "Table-saw outfeed (saw top − 2; never higher)",
+  "viseSide:left": "Right-handed: front vise at the left end",
+  "viseSide:right": "Left-handed: front vise at the right end",
+  "endVise:none": "None",
+  "endVise:wagon": "Wagon vise (slot in the top; imported hardware)",
   // === workbench ===
   "benchStyle:roubo": "Thick-top (French Roubo) — thick slab, stout through-tenoned legs, vise + dog holes",
   "benchStyle:apron": "Apron bench (English Nicholson / Sellers) — thin top stiffened by a deep apron, bolt-together",
@@ -1162,8 +1195,6 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "frontVise:none": "None",
   "frontViseSize:7in": "7\" (180mm jaw)",
   "frontViseSize:9in": "9\" (225mm jaw)",
-  "viseSide:left": "Left end (right-handed)",
-  "viseSide:right": "Right end (left-handed)",
   "dogHoles:row": "One row along the front edge (works with the vise and stop)",
   "dogHoles:grid": "20mm grid (one hole every 96mm, fits MFT accessories)",
   "dogHoles:none": "None",

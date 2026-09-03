@@ -223,7 +223,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     descriptionEn: "Roubo / English apron / tool-well / MFT-grid styles with vise, dog holes, holdfasts, planing stop, knockdown",
     difficulty: "advanced",
     template: workbench,
-    defaults: { length: 1800, width: 600, height: 850 },
+    defaults: { length: 1800, width: 600, height: 830 },
     limits: { length: 3000, width: 1000, height: 1100 },
     optionSchema: workbenchOptions,
   },

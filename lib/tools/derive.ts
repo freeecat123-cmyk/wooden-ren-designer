@@ -145,6 +145,10 @@ const POWER_TOOL_IDS = [
 const SHARPENABLE_IDS = ["chisel-set-3-6-12", "chisel-hardwood", "groove-plane"];
 
 const EXTRA_REASONS = {
+  dogHoles: { zh: "工作桌狗孔 / holdfast 孔要 Ø19 平翼鑽頭垂直鑽", en: "Dog and holdfast holes need a 3/4\" Forstner bit drilled dead square" },
+  benchDogs: { zh: "配狗孔用，夾長料兩端", en: "Pair with the dog holes to clamp long stock between dogs" },
+  holdfast: { zh: "壓桿一敲就固定，桌面 44~89mm 才咬得住；台灣木樹林有小號", en: "One tap holds the work; needs a 44–89mm top" },
+  wagonVise: { zh: "尾鉗滑塊五金要另購，開槽前先量實物", en: "Wagon vise hardware is bought separately — measure it before cutting the slot" },
   hardwoodChisel: { zh: "白橡等硬木需高硬度鑿刀,普通鑿刀易崩刃", en: "Hardwoods like white oak need hardened chisels — standard ones chip" },
   hardwoodCoarseSand: { zh: "硬木刨後需 60 番去除刨痕", en: "Hardwood after planing needs 60-grit to remove plane marks" },
   longClamp: { zh: "長型家具膠合需大尺寸夾具", en: "Long furniture glue-ups need large clamps" },
@@ -233,6 +237,15 @@ export function deriveRequiredTools(
   add("marking-knife", "recommended", EXTRA_REASONS.markingKnife);
   add("masking-tape-low-tack", "recommended", EXTRA_REASONS.maskingTape);
   add("quick-bench-vise", "recommended", EXTRA_REASONS.benchVise);
+  if (design.category === "workbench") {
+    const hasHoles = design.parts.some((p) => p.mortises.some((m) => m.cosmetic && m.shape === "round" && m.through));
+    if (hasHoles) {
+      add("forstner-bit-19", "required", EXTRA_REASONS.dogHoles);
+      add("bench-dog-pair", "recommended", EXTRA_REASONS.benchDogs);
+      add("holdfast", "recommended", EXTRA_REASONS.holdfast);
+    }
+    if (design.parts.some((p) => p.id === "end-cap")) add("wagon-vise-kit", "required", EXTRA_REASONS.wagonVise);
+  }
   add("glue-tray-set", "recommended", EXTRA_REASONS.glueTray);
   add("silicone-glue-box", "recommended", EXTRA_REASONS.glueBox);
 

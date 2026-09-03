@@ -785,6 +785,61 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 10b. 工作桌：狗孔 / holdfast 孔列、尾鉗槽與端蓋、長板靠板（工時隨孔數線性）
+  // ---------------------------------------------------------------------------
+  if (design.category === "workbench") {
+    const holeCount = design.parts.reduce(
+      (n, p) => n + p.mortises.filter((m) => m.cosmetic && m.shape === "round" && m.through && !m.label).length,
+      0,
+    );
+    const dia = design.parts.flatMap((p) => p.mortises).find((m) => m.cosmetic && m.shape === "round" && m.through)?.length ?? 19;
+    if (holeCount > 0) {
+      steps.push({
+        id: "step-10b-dog-holes",
+        phase: "fit",
+        title: `鑽桌狗孔 / holdfast 孔（Ø${dia} × ${holeCount}）`,
+        description:
+          `桌面組好、刨平之後再鑽（先鑽再拼板會對不齊）。用 Ø${dia} 平翼鑽頭或木工長鑽，鑽台或鑽孔導套保證垂直——`
+          + `孔歪 2° 桌狗就卡、holdfast 就咬不住。從前鉗那端第一孔開始，用同一把尺沿桌面前緣量孔距，別一孔一孔接力量。`,
+        toolIds: ["drill", "forstner-bit-19", "try-square", "tape-measure-5m"],
+        estimatedMinutes: 10 + 2 * holeCount,
+        bullets: [
+          "桌面下方墊廢料再鑽穿，出口才不會撕裂",
+          "鑽完用桌狗試插每一孔：太緊拿砂紙捲一下，太鬆那孔就留給 holdfast",
+          "holdfast 孔如果桌面超過 90mm，從底面反鑽 Ø30 讓有效厚度回到 70 左右",
+        ],
+        warnings: ["狗孔位置現在就決定，事後在裝好的桌上鑽會打到節、也很難垂直"],
+      });
+    }
+    if (design.parts.some((p) => p.id === "end-cap")) {
+      steps.push({
+        id: "step-10c-wagon-slot",
+        phase: "fit",
+        title: "尾鉗：桌面開滑塊槽、裝端蓋",
+        description:
+          "先量五金滑塊實際尺寸再開槽（圖上 365×52 是 Benchcrafted 規格）。槽用修邊機沿直尺分多刀切穿，四角用鑿刀修方；"
+          + "槽底兩側要留平整給導軌。端蓋前側用鳩尾或兩支螺栓固定，後側螺栓走長孔讓桌面伸縮，再把螺桿穿過端蓋鎖上手輪。",
+        toolIds: ["router-table", "chisel-set-3-6-12", "drill", "drill-bits", "try-square"],
+        estimatedMinutes: 90,
+        bullets: ["槽跟前緣狗孔列同一條軸線，滑塊上的狗才對得到桌面狗孔", "端蓋跟桌面齊平後再一起刨平桌面"],
+      });
+    }
+    if (design.parts.some((p) => p.id === "deadman-board")) {
+      steps.push({
+        id: "step-10d-deadman",
+        phase: "fit",
+        title: "長板靠板：脊條、桌底軌、滑板",
+        description:
+          "脊條上緣刨成 45°，膠合並螺絲鎖在前下橫撐頂面靠前緣；桌底軌條鎖在桌面底面同一條垂直線上。"
+          + "滑板下緣鋸出 V 槽卡脊條、上緣留 25 舌頭進軌槽，兩端各留 1mm 才滑得動；最後鑽 Ø19 孔列。",
+        toolIds: ["japanese-saw", "chisel-set-3-6-12", "drill", "forstner-bit-19", "screwdriver"],
+        estimatedMinutes: 45,
+        bullets: ["滑板要能整片抽出來：軌條兩端別頂到腳，留 25mm 缺口"],
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // 11. 五金 / 配件
   // ---------------------------------------------------------------------------
   if (hasDoor) {

@@ -391,6 +391,10 @@ export const TOOL_CATALOG: Record<string, Tool> = {
   "biscuit-joiner": { id: "biscuit-joiner", nameZh: "餅乾榫機", nameEn: "Biscuit Joiner", category: "power" },
   "nail-gun": { id: "nail-gun", nameZh: "釘槍（背板釘合用）", nameEn: "Nail Gun", category: "power" },
   "forstner-bit-35": { id: "forstner-bit-35", nameZh: "35mm 平翼鑽頭（西德鉸鏈杯孔專用）", nameEn: "35mm Forstner Bit", category: "power" },
+  "forstner-bit-19": { id: "forstner-bit-19", nameZh: "19mm 平翼鑽頭（工作桌狗孔 / holdfast 孔）", nameEn: "19mm Forstner Bit (dog holes)", category: "power" },
+  holdfast: { id: "holdfast", nameZh: "Holdfast 壓桿（Ø19 孔，一支抵三支 F 夾）", nameEn: "Holdfast (3/4\")", category: "clamp" },
+  "bench-dog-pair": { id: "bench-dog-pair", nameZh: "桌狗一對（Ø19）", nameEn: "Bench dogs (pair, 3/4\")", category: "clamp" },
+  "wagon-vise-kit": { id: "wagon-vise-kit", nameZh: "滑塊尾鉗五金（進口；台灣木樹林尾鉗同型）", nameEn: "Wagon vise hardware kit", category: "hardware" },
   // 工序步驟用的是這個 id；跟上面 mallet 是同一支商品，補上商店連結才會有「去買」鈕
   // （2026-09-02 木頭仁：「橡膠錘 官方站有 但你沒有放」）
   "rubber-mallet": {

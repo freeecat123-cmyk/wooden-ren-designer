@@ -119,6 +119,12 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "wine-rack:bracket",
   "wine-rack:plinth",
   "wine-rack:panel-side",
+  // 工作桌下層板：notched-corners 缺角讓腳，silhouette 看不到缺角 → 腳 × 層板誤報（同 tea-table）。
+  // 這幾個變體裡只有這 4 對；其他新零件（尾鉗 / 靠板 / 抽屜櫃）都在別的變體裡另外驗到 0。
+  "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
+  "workbench:default+benchStyle=apron",
+  "workbench:default+benchStyle=mft",
+  "workbench:default+topSplit=gap+planingStop+frontVise=leg+withUnderShelf+knockdown=bolt",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
@@ -143,12 +149,37 @@ interface Row {
   examples: string[];
 }
 
+/**
+ * 沒有 legShape 的模板也要掃它的「會長出新零件」的選項（工作桌 2026-09-04 v2：尾鉗 / 長板靠板 /
+ * 抽屜櫃 / 雙面桌 / 封邊板 / 小鉗附件 / 裙板桌前緣凸出）。語法同 legShape 的 "+flag"，
+ * 另外支援 "+key=value"（select / number）。
+ */
+const EXTRA_VARIANTS: Record<string, string[]> = {
+  workbench: [
+    "default+endVise=wagon",
+    "default+deadman+lowerStretcherArrangement=box-frame",
+    "default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
+    "default+drawerCount=2",
+    "default+drawerCount=3+lowerStretcherArrangement=box-frame",
+    "default+benchStyle=apron",
+    "default+benchStyle=apron+drawerCount=2",
+    "default+benchStyle=well",
+    "default+benchStyle=mft",
+    "default+benchStyle=classroom",
+    "default+breadboardEnds",
+    "default+moxon+accessories",
+    "default+topSplit=gap+planingStop+frontVise=leg+withUnderShelf+knockdown=bolt",
+    "default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
+    "default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
+  ],
+};
+
 /** 抓 template 的 legShape select 選項所有 choice value（包含 default） */
 function legShapeChoices(entry: FurnitureCatalogEntry): string[] {
   const spec: OptionSpec | undefined = (entry.optionSchema ?? []).find(
     (o: OptionSpec) => o.key === "legShape",
   );
-  if (!spec || spec.type !== "select") return ["default"];
+  if (!spec || spec.type !== "select") return ["default", ...(EXTRA_VARIANTS[entry.category] ?? [])];
   const choices = spec.choices ?? [];
   const base = choices.map((c: { value: string | number | boolean }) => String(c.value));
   // 弧肩斜腳額外掃一次「兩向弧肩」(勾選框原本完全沒被掃到)
@@ -181,8 +212,14 @@ function buildDesign(
      *    (2026-08-24 木頭仁截圖回報「透視穿了」才發現。)
      */
     const [shape, ...flags] = legShapeOverride.split("+");
-    opts.legShape = shape;
-    for (const f of flags) if (f) opts[f] = true;
+    if (shape !== "default") opts.legShape = shape;
+    for (const f of flags) {
+      if (!f) continue;
+      const eq = f.indexOf("=");
+      if (eq < 0) { opts[f] = true; continue; }
+      const k = f.slice(0, eq), v = f.slice(eq + 1);
+      opts[k] = /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
+    }
   }
   return entry.template({
     length: entry.defaults.length,

@@ -154,10 +154,10 @@ export const TEMPLATE_HIGHLIGHTS: Partial<Record<FurnitureCategory, Highlight[]>
     { icon: "💰", title: "市集 ROI 高", desc: "成本 80、賣 280" },
   ],
   workbench: [
-    { icon: "🪵", title: "四種流派一鍵套", desc: "厚板/裙板/工具槽/20mm 孔陣" },
-    { icon: "📏", title: "身高算桌高", desc: "手刨 ×0.49、機具 ×0.55" },
-    { icon: "🗜️", title: "前鉗 + 狗孔自動排位", desc: "7/9 吋鉗、Ø19 每 100mm" },
-    { icon: "🔩", title: "螺栓可拆", desc: "M10 床螺栓穿腳，搬家拆得開" },
+    { icon: "🪵", title: "四流派＋教室雙面桌", desc: "厚板/裙板/工具槽/20mm 孔陣/雙鉗" },
+    { icon: "🗜️", title: "前鉗、尾鉗、長板靠板", desc: "狗孔自動排位、尾鉗端懸出拉到 470" },
+    { icon: "🗄️", title: "桌下抽屜留 holdfast 淨空", desc: "櫃頂自動離桌底 21cm" },
+    { icon: "📏", title: "桌高用途五種", desc: "手刨/機具/精細/出料台/組裝矮桌" },
   ],
   "wine-rack": [
     { icon: "🍷", title: "瓶徑 7~8cm 標準", desc: "香檳預留 9cm" },
@@ -312,10 +312,10 @@ export const TEMPLATE_HIGHLIGHTS_EN: Partial<Record<FurnitureCategory, Highlight
     { icon: "💰", title: "High craft-market ROI", desc: "Cost $3, sell $10" },
   ],
   workbench: [
-    { icon: "🪵", title: "Four styles, one click", desc: "Thick-top / apron / tool-well / 20 mm grid" },
-    { icon: "📏", title: "Height from your body", desc: "Planing ×0.49, machines ×0.55" },
-    { icon: "🗜️", title: "Vise + dog holes auto-placed", desc: "7\"/9\" vise, Ø19 every 100 mm" },
-    { icon: "🔩", title: "Bolt-together knockdown", desc: "M10 bed bolts through the legs" },
+    { icon: "🪵", title: "Four styles + classroom bench", desc: "Thick-top / apron / tool-well / 20 mm grid / two vises" },
+    { icon: "🗜️", title: "Front vise, wagon vise, deadman", desc: "Dog holes auto-placed, vise-end overhang set to 470" },
+    { icon: "🗄️", title: "Drawers keep holdfast clearance", desc: "Cabinet top 210 mm below the bench top" },
+    { icon: "📏", title: "Five height purposes", desc: "Planing / machines / fine / outfeed / assembly" },
   ],
   "wine-rack": [
     { icon: "🍷", title: "Bottle ⌀ 7–8 cm standard", desc: "Champagne reserves 9 cm" },

@@ -18,6 +18,7 @@
 import type { FurnitureTemplate, FurnitureDesign, OptionSpec, Part, Mortise } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
+import { caseFurniture } from "./_builders/case-furniture";
 import { applyLowerStretcherArrangement } from "./dining-table";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO, DEFAULT_SHELF_THICKNESS_MM } from "./_constants";
@@ -46,7 +47,20 @@ const MAX_GRID_HOLES = 200;
 /** 平拼單片實木上限（同 round-table / 工具牆的 280 慣例） */
 const PLANK_MAX_W = 280;
 /** 桌高係數（§O7 + Schwarz 小指根法；170cm → 833 / 935 / 1020） */
-const HEIGHT_COEF: Record<string, number> = { plane: 0.49, machine: 0.55, fine: 0.60 };
+const HEIGHT_COEF: Record<string, number> = { plane: 0.49, machine: 0.55, fine: 0.60, assembly: 0.44 };
+/** 尾鉗（wagon）：Benchcrafted 懸出 ≥ 18½"、槽 = 行程 310 + dog 45 + 10、端蓋 4" */
+const WAGON_MIN_OVERHANG = 470;
+const WAGON_SLOT_L = 365;
+const WAGON_SLOT_W = 52;
+const WAGON_END_CAP_T = 100;
+/** 抽屜櫃頂到桌底最少淨空（holdfast 桿露出約 8" + 餘裕） */
+const DRAWER_CLEARANCE = 210;
+/** 弦向全收縮率 %（USDA Wood Handbook）；ΔW = W × S/100 × ΔMC/30，台灣室內 ΔMC 取 6% */
+const TANGENTIAL_SHRINK: Record<string, number> = {
+  beech: 11.9, maple: 9.9, "white-oak": 10.5, walnut: 7.8, ash: 7.8, teak: 5.8,
+  "douglas-fir": 7.6, "taiwan-cypress": 6.5, pine: 6.1, "southern-pine": 7.4,
+};
+const DELTA_MC = 6;
 /** 腳鉗木顎厚（Benchcrafted：chop ≥ 2½"） */
 const LEG_VISE_CHOP_T = 64;
 
@@ -69,7 +83,7 @@ const BENCH_PRESETS: Record<string, PresetValues> = {
     withApron: true, apronWidth: 290, apronThickness: 40,
     lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 90, lowerStretcherThickness: 40,
     withUnderShelf: true, legPenetratingTenon: false,
-    knockdown: "bolt",
+    knockdown: "bolt", frontOverhang: 50,
   },
   /** 工具槽桌（北歐式）：中等厚度桌面 + 後側工具槽 + 9" 鉗 */
   well: {
@@ -77,6 +91,8 @@ const BENCH_PRESETS: Record<string, PresetValues> = {
     topSplit: "well", wellWidth: 150, wellDepth: 45,
     frontViseSize: "9in",
   },
+  /** 教室雙面桌：厚板桌骨架，兩人面對面各一支前鉗、各一列狗孔（木頭仁教室 1800×900） */
+  classroom: { doubleSided: true },
   /** 20mm 孔陣桌（現代 MFT）：夾板疊層 + 淺裙板 + 20mm 格陣（96 間距）、不裝鉗 */
   mft: {
     topThickness: 40, topBuild: "stack", topLayers: 2,
@@ -95,15 +111,22 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "apron", label: "裙板桌（英式 Nicholson / Sellers 平價）— 薄桌面靠高裙板撐，螺栓可拆" },
     { value: "well", label: "工具槽桌（北歐式）— 桌面後側一道放工具的槽" },
     { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 夾板桌面、20mm 孔每 96mm 一格" },
-  ], help: "選了一次帶入整組預設值；你改過的欄位不會被蓋掉。長／深／高請自己在上面調（厚板桌建議 1800×600×850）" },
+    { value: "classroom", label: "教室雙面桌 — 兩人面對面各一支鉗、各一列狗孔（深度建議 900）" },
+  ], help: "選了一次帶入整組預設值；你改過的欄位不會被蓋掉。長／深／高請自己在上面調（厚板桌建議 1800×600×830、教室雙面桌 1800×900）" },
 
   // ───────────── 桌高怎麼定（只給建議，不動滑桿） ─────────────
   { group: "structure", type: "select", key: "heightMode", label: "桌高用途（給建議值）", defaultValue: "plane", choices: [
     { value: "plane", label: "手刨為主（桌面 ≈ 掌根高，身高 × 0.49）" },
     { value: "machine", label: "機具 / 組裝為主（肘下約 10cm，身高 × 0.55）" },
-    { value: "fine", label: "精細作業（鑿榫、鳩尾；身高 × 0.60）" },
+    { value: "fine", label: "精細作業（鑿榫、鳩尾；身高 × 0.60，或加一座桌上加高小鉗）" },
+    { value: "assembly", label: "組裝／上漆矮桌（身高 × 0.44；兼餐桌約 730）" },
+    { value: "outfeed", label: "當桌鋸出料台（桌高 ＝ 桌鋸台面 − 2，只能低不能高）" },
   ], help: "依身高算出建議桌高，寫在下方說明與警告裡；不會自動改你設的「高」" },
   { group: "structure", type: "number", key: "userHeightCm", label: "你的身高", defaultValue: 170, unit: "cm", min: 145, max: 195, step: 1, help: "台灣男性中位約 170、女性約 160。只用來算建議桌高" },
+  { group: "structure", type: "number", key: "shoeAllowanceMm", label: "鞋底／腳墊加厚", defaultValue: 0, unit: "mm", min: 0, max: 60, step: 5, help: "穿工作鞋或站在防疲勞墊上做，建議桌高會加上這個數。只影響建議值與警告" },
+  { group: "structure", type: "number", key: "sawTableHeightMm", label: "桌鋸台面高", defaultValue: 870, unit: "mm", min: 700, max: 1000, step: 5, dependsOn: { key: "heightMode", equals: "outfeed" }, help: "出料台只能跟台面同高或低 1~2mm，高於台面木料尾端會被抬起反彈。只影響建議值與警告" },
+  { group: "structure", type: "number", key: "roomLengthCm", label: "房間能放的長", defaultValue: 0, unit: "cm", min: 0, max: 1000, step: 10, help: "量牆到牆。0 ＝ 不管；桌長加 90cm 走道放不下會提醒。只影響警告" },
+  { group: "structure", type: "number", key: "roomWidthCm", label: "房間能放的深", defaultValue: 0, unit: "cm", min: 0, max: 1000, step: 10, help: "0 ＝ 不管；桌深加 90cm 走道放不下會提醒。只影響警告" },
 
   // ───────────── 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 75, unit: "mm", min: 40, max: 150, step: 5, help: "手工具桌建議 ≥75；holdfast 要咬得住桌面 44~89mm；≥90 會提醒孔底反鑽" },
@@ -121,7 +144,9 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "gapWidth", label: "中縫寬", defaultValue: 45, unit: "mm", min: 25, max: 80, step: 5, dependsOn: { key: "topSplit", equals: "gap" }, help: "F 夾的夾頭要塞得進去；擋條做成跟桌面齊平，翻面可當刨擋" },
   { group: "top", type: "number", key: "wellWidth", label: "工具槽寬", defaultValue: 150, unit: "mm", min: 80, max: 320, step: 10, dependsOn: { key: "topSplit", equals: "well" }, help: "從桌深扣掉；桌腳只在工作面下面" },
   { group: "top", type: "number", key: "wellDepth", label: "工具槽深", defaultValue: 45, unit: "mm", min: 20, max: 80, step: 5, dependsOn: { key: "topSplit", equals: "well" }, help: "槽底板厚 18；槽深不能超過桌面厚 −10（槽底要能鎖在桌面後緣）" },
-  { group: "top", type: "number", key: "endOverhang", label: "桌面兩端懸出（腳距桌端）", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 ＝ 自動 ＝ 桌長 ÷ 5（Roubo 原版比例）。懸出夠長，鉗才裝得進腳外側" },
+  { group: "top", type: "number", key: "endOverhang", label: "桌端懸出（腳距桌端）", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 ＝ 自動 ＝ 桌長 ÷ 5（Roubo 原版比例）。懸出夠長，鉗才裝得進腳外側；裝尾鉗那端會自動拉到 470" },
+  { group: "top", type: "number", key: "frontOverhang", label: "桌面前緣凸出腳／裙板", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 5, dependsOn: { key: "topSplit", notIn: ["well"] }, help: "裙板桌要凸出 50 才夾得到桌面（後悔榜第一名）；厚板桌保持 0 齊平，腳鉗和長板靠板都要齊平" },
+  { group: "top", type: "checkbox", key: "breadboardEnds", label: "兩端封邊板（防桌面翹）", defaultValue: false, dependsOn: { all: [{ key: "topBuild", notIn: ["stack"] }, { key: "topSplit", equals: "none" }, { key: "endVise", equals: "none" }] }, help: "60mm 寬、木紋跟桌面垂直；只在中央 15cm 上膠，外側銷孔做長孔讓桌面伸縮" },
 
   // ───────────── 腳 ─────────────
   { group: "leg", type: "number", key: "legSize", label: "腳粗（方料）", defaultValue: 100, unit: "mm", min: 60, max: 150, step: 5, help: "厚板桌 100~125；裙板桌 75~90。腳鉗那支腳至少 64" },
@@ -147,6 +172,7 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 50, unit: "mm", min: 25, max: 80, step: 5, dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 10, dependsOn: { key: "withLowerStretchers", equals: true }, help: "0 ＝ 自動 100（Schwarz 3 吋、Sellers 約 150）" },
   { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "下層置物板", defaultValue: false, dependsOn: { key: "withLowerStretchers", equals: true }, help: "架在下橫撐上；增重又能放工具箱，但別塞滿桌底（夾具要伸得進去）" },
+  { group: "stretcher", type: "number", key: "drawerCount", label: "桌下抽屜（0 ＝ 無）", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "withLowerStretchers", equals: true }, { key: "deadman", notIn: [true] }] }, help: "抽屜櫃坐在下橫撐上，櫃頂離桌底自動留 210mm 給 holdfast 桿；跟裙板同時用夾具會沒地方夾" },
   { group: "stretcher", type: "checkbox", key: "legPenetratingTenon", label: "橫撐 / 裙板通榫露出腳外", defaultValue: true, dependsOn: { any: [{ key: "withLowerStretchers", equals: true }, { key: "withApron", equals: true }] }, help: "Roubo 標配；未勾依母件厚度自動決定盲榫或通榫" },
 
   // ───────────── 工件固定 ─────────────
@@ -159,10 +185,18 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "7in", label: "7 吋（鉗口 180mm）" },
     { value: "9in", label: "9 吋（鉗口 225mm）" },
   ], dependsOn: { key: "frontVise", equals: "quick" }, help: "前緣木料要 ≥60mm 厚，不夠會自動加墊塊" },
-  { group: "workholding", type: "select", key: "viseSide", label: "鉗在哪一端", defaultValue: "left", choices: [
-    { value: "left", label: "左端（右撇子）" },
-    { value: "right", label: "右端（左撇子）" },
-  ], dependsOn: { key: "frontVise", notIn: ["none"] } },
+  { group: "workholding", type: "select", key: "viseSide", label: "慣用手（鉗在哪一端）", defaultValue: "left", choices: [
+    { value: "left", label: "右撇子：前鉗在左端" },
+    { value: "right", label: "左撇子：前鉗在右端" },
+  ], dependsOn: { key: "frontVise", notIn: ["none"] }, help: "一起鏡像：前鉗、尾鉗、狗孔起算端、刨擋、長板靠板" },
+  { group: "workholding", type: "select", key: "endVise", label: "尾鉗（桌尾）", defaultValue: "none", choices: [
+    { value: "none", label: "不裝" },
+    { value: "wagon", label: "滑塊尾鉗（桌面開槽，需進口五金；台灣木樹林尾鉗 NT$2,900~4,500 同型）" },
+  ], dependsOn: { key: "topSplit", equals: "none" }, help: "裝在前鉗的另一端：那端懸出自動拉到 470、桌面末端 100 厚端蓋、開 365×52 槽；桌長不到 1800 會略過" },
+  { group: "workholding", type: "checkbox", key: "deadman", label: "長板靠板（桌前滑動的支撐板）", defaultValue: false, dependsOn: { all: [{ key: "frontVise", notIn: ["none"] }, { key: "lowerStretcherArrangement", oneOf: ["box-frame", "pair-x"] }, { key: "withLowerStretchers", equals: true }, { key: "frontOverhang", equals: 0 }, { key: "drawerCount", equals: 0 }] }, help: "夾長板、門板時撐住另一端：前下橫撐上加一條 45° 脊條、桌底一條軌、一片帶孔滑板。要前緣齊平、有前下橫撐" },
+  { group: "workholding", type: "checkbox", key: "doubleSided", label: "雙面桌（對側再一支前鉗＋一列狗孔）", defaultValue: false, dependsOn: { all: [{ key: "frontVise", equals: "quick" }, { key: "topSplit", equals: "none" }] }, help: "教室用：兩人面對面各一支鉗（對角）、各一列狗孔，holdfast 孔改中央一列；桌深建議 ≥ 800" },
+  { group: "workholding", type: "checkbox", key: "moxon", label: "附加桌上加高小鉗（雙螺桿，做鳩尾用）", defaultValue: false, dependsOn: { key: "doubleSided", notIn: [true] }, help: "不動桌體：兩片 600×140 顎板＋兩支螺桿放桌面後側；五金台灣木樹林約 NT$1,300" },
+  { group: "workholding", type: "checkbox", key: "accessories", label: "附件：V 口壓板＋鋸切靠板", defaultValue: false, dependsOn: { key: "doubleSided", notIn: [true] }, help: "doe's foot（600×60 V 口壓板，配 holdfast 壓住長料）與 bench hook（300×180 鋸切靠板）。只進材料單與零件圖" },
   { group: "workholding", type: "select", key: "dogHoles", label: "桌狗孔", defaultValue: "row", choices: [
     { value: "row", label: "前緣一列（配鉗與刨擋）" },
     { value: "grid", label: "20mm 格陣（每 96mm 一孔，MFT 配件通用）" },
@@ -240,6 +274,18 @@ export const workbench: FurnitureTemplate = (input) => {
   const holdfastHolesRaw = pick<boolean>("holdfastHoles");
   const planingStop = pick<boolean>("planingStop");
   const knockdown = pick<string>("knockdown");
+  const shoeAllowanceMm = pick<number>("shoeAllowanceMm");
+  const sawTableHeightMm = pick<number>("sawTableHeightMm");
+  const roomLengthCm = pick<number>("roomLengthCm");
+  const roomWidthCm = pick<number>("roomWidthCm");
+  const frontOverhangRaw = pick<number>("frontOverhang");
+  const breadboardEndsRaw = pick<boolean>("breadboardEnds");
+  const drawerCountRaw = pick<number>("drawerCount");
+  const endViseRaw = pick<string>("endVise");
+  const deadmanRaw = pick<boolean>("deadman");
+  const doubleSidedRaw = pick<boolean>("doubleSided");
+  const moxonRaw = pick<boolean>("moxon");
+  const accessoriesRaw = pick<boolean>("accessories");
 
   // ── 夾制（§A10.11：夾在讀選項這一層、夾了要出聲） ──
   const topT = Math.max(40, Math.min(150, topTRaw));
@@ -256,12 +302,35 @@ export const workbench: FurnitureTemplate = (input) => {
   // 中縫：兩片各要放得下腳頂榫（腳 + 餘裕）
   const gap = topSplit === "gap" ? Math.min(gapWidth, Math.max(25, workW - 2 * legSize - 100)) : 0;
   if (topSplit === "gap" && gap !== gapWidth) warnings.push(isEn ? `Split gap clamped ${gapWidth} → ${gap} so each half still covers the leg tenons.` : `中縫 ${gapWidth} 會讓兩片桌面蓋不住腳頂榫，已收到 ${gap}。`);
+  // 前緣凸出腳／裙板：腳鉗與長板靠板要齊平；工具槽桌不給
+  let frontOverhang = topSplit === "well" ? 0 : Math.max(0, Math.min(100, frontOverhangRaw));
+  if (frontVise === "leg" && frontOverhang > 0) {
+    warnings.push(isEn ? "A leg vise needs the top flush with the leg; front overhang reset to 0." : "腳鉗的木顎要貼著腳，桌面前緣必須跟腳齊平，前緣凸出已改回 0。");
+    frontOverhang = 0;
+  }
   // 腳距桌端：0 = 桌長/5（§AT4.5）；上限讓兩腳之間至少留 300
   const maxOverhang = Math.max(0, Math.floor((L - 2 * legSize - 300) / 2));
   const endOverhangWanted = endOverhangRaw > 0 ? endOverhangRaw : Math.round(L / 5);
   const endOverhang = Math.min(endOverhangWanted, maxOverhang);
   if (endOverhang !== endOverhangWanted && endOverhangRaw > 0) warnings.push(isEn ? `End overhang ${endOverhangRaw} leaves too little between the legs; clamped to ${endOverhang}.` : `兩端懸出 ${endOverhangRaw} 會讓兩腳之間不到 300mm，已收到 ${endOverhang}。`);
-  const frameL = L - 2 * endOverhang;
+  const sideSign = viseSide === "left" ? 1 : -1; // 「左」= 世界 +X（鏡頭在 −Z 看進去）
+  // 雙面桌：對側再一支前鉗（在前鉗的另一端、桌子後緣）
+  const doubleSided = doubleSidedRaw && frontVise === "quick" && topSplit === "none";
+  if (doubleSidedRaw && !doubleSided) warnings.push(isEn ? "Double-sided bench needs a quick-release front vise and a one-piece top; skipped." : "雙面桌要用快速前鉗、桌面整片，已略過對側那支鉗。");
+  // 尾鉗：裝在前鉗的另一端，那端懸出拉到 470（Benchcrafted ≥ 18½"）；桌長不到 1800、分片桌面、雙面桌都略過
+  const wagonSign = -sideSign;
+  const wagonWanted = endViseRaw === "wagon";
+  const wagon = wagonWanted && topSplit === "none" && L >= 1800 && !doubleSided;
+  if (wagonWanted && !wagon) warnings.push(isEn
+    ? (L < 1800 ? `Wagon vise skipped: bench must be ≥ 1800 long (yours ${L}) or the legs end up too close.` : "Wagon vise skipped: needs a one-piece top and no second vise on that end.")
+    : (L < 1800 ? `尾鉗已略過：桌長要 ≥ 1800（目前 ${L}），否則兩端懸出後腳距太短會晃。` : "尾鉗已略過：要整片桌面，而且那一端不能再有雙面桌的第二支鉗。"));
+  const ovWagon = wagon ? Math.max(endOverhang, WAGON_MIN_OVERHANG) : endOverhang;
+  if (wagon && ovWagon !== endOverhang) warnings.push(isEn ? `Wagon-vise end overhang raised to ${ovWagon} (slot + end cap need ≥ 470).` : `尾鉗那端懸出已拉到 ${ovWagon}（槽 + 端蓋要 ≥ 470）；另一端維持 ${endOverhang}。`);
+  // 世界 +X 端 / −X 端各自的懸出；腳架中心相對桌面中心平移
+  const ovPlus = wagon && wagonSign > 0 ? ovWagon : endOverhang;
+  const ovMinus = wagon && wagonSign < 0 ? ovWagon : endOverhang;
+  const frameL = L - ovPlus - ovMinus;
+  const frameDx = (ovMinus - ovPlus) / 2;
   const lowerStretcherHeight = lowerStretcherHeightRaw > 0 ? lowerStretcherHeightRaw : 100;
   // 下層板需要橫撐當支撐；H 形 / 雙條也能放（架在有的那幾根上）
   const withUnderShelf = withUnderShelfRaw && withLowerStretchers;
@@ -270,8 +339,9 @@ export const workbench: FurnitureTemplate = (input) => {
   if (holdfastHolesRaw && dogHoles !== "none" && topT < HOLDFAST_MIN_T) warnings.push(isEn ? `Top is ${topT}mm — a holdfast needs ≥ ${HOLDFAST_MIN_T}mm to bite; holdfast holes skipped.` : `桌面 ${topT}mm 太薄，holdfast 要 ≥ ${HOLDFAST_MIN_T}mm 才咬得住，後排壓桿孔已取消。`);
   if (holdfastHoles && topT > HOLDFAST_MAX_T) warnings.push(isEn ? `Top is ${topT}mm: counterbore the holdfast holes from below (Ø30, ${topT - 70}mm deep) so the effective thickness is ~70mm.` : `桌面 ${topT}mm 比 holdfast 咬合上限 ${HOLDFAST_MAX_T} 厚：holdfast 孔請從桌底反鑽 Ø30、深 ${topT - 70}mm，讓有效厚度回到約 70。`);
   // 桌面片數：平拼 ≤280/片；側立拼 條寬＝厚；疊層＝層數
+  const softStave = topBuild === "stave" && (input.material === "southern-pine" || input.material === "pine");
   const topPanelPieces = topBuild === "stave"
-    ? Math.max(1, Math.ceil(workW / Math.max(38, topT)))
+    ? Math.max(1, Math.ceil((workW + frontOverhang) / Math.max(38, topT) * (softStave ? 1.15 : 1)))
     : topBuild === "stack"
       ? Math.max(1, topLayers)
       : Math.max(1, Math.ceil(workW / PLANK_MAX_W));
@@ -326,28 +396,46 @@ export const workbench: FurnitureTemplate = (input) => {
     }
   }
 
-  // ── 桌面拉長到全長（腳架比桌面短 2×endOverhang，桌面兩端懸出） ──
+  // ── 桌面拉長到全長（腳架比桌面短，桌面兩端懸出）；腳架依尾鉗懸出平移 ──
   const top = design.parts.find((p) => p.id === "top")!;
-  top.visible.length = L;
+  if (frameDx !== 0) for (const p of design.parts) if (p !== top) p.origin.x += frameDx;
+  const breadboardEnds = breadboardEndsRaw && !wagon && topSplit === "none" && topBuild !== "stack";
+  if (breadboardEndsRaw && !breadboardEnds) warnings.push(isEn ? "Breadboard ends skipped (needs a one-piece solid top without a wagon vise)." : "兩端封邊板已略過：要整片實木桌面、且沒有尾鉗端蓋。");
+  const topLen = L - (wagon ? WAGON_END_CAP_T : 0) - (breadboardEnds ? 120 : 0);
+  const topOriginX = wagon ? -wagonSign * (WAGON_END_CAP_T / 2) : 0;
+  top.visible.length = topLen;
+  top.origin.x = topOriginX;
   top.grainDirection = "length";
+  // 桌面前緣凸出：往 −Z 加寬；前緣 = −workW/2 − frontOverhang
+  if (frontOverhang > 0) {
+    top.visible.width = workW + frontOverhang;
+    top.origin.z = -frontOverhang / 2;
+  }
+  const topFrontZ = -workW / 2 - frontOverhang;
+  // 腳頂榫眼：跟著腳架平移，再換回桌面 mesh-local（§M1）
+  for (const m of top.mortises) {
+    m.origin.x += frameDx - topOriginX;
+    m.origin.z -= top.origin.z;
+  }
 
   // ── 桌面中縫 + 擋條 ──
   const topPieces: Part[] = [];
   if (gap > 0) {
-    const halfW = (workW - gap) / 2;
     const idx = design.parts.indexOf(top);
     const mk = (sz: -1 | 1): Part => {
-      const centerZ = sz * (gap / 2 + halfW / 2);
+      const zMin = sz < 0 ? topFrontZ : gap / 2;
+      const zMax = sz < 0 ? -gap / 2 : workW / 2;
+      const centerZ = (zMin + zMax) / 2;
       return {
         ...top,
         id: sz < 0 ? "top-front" : "top-back",
         nameZh: sz < 0 ? "桌面（前片）" : "桌面（後片）",
         nameEn: sz < 0 ? "Bench top (front half)" : "Bench top (back half)",
-        visible: { length: L, width: halfW, thickness: topT },
-        origin: { x: 0, y: top.origin.y, z: centerZ },
+        visible: { length: topLen, width: zMax - zMin, thickness: topT },
+        origin: { x: topOriginX, y: top.origin.y, z: centerZ },
         mortises: top.mortises
-          .filter((m) => Math.sign(m.origin.z) === sz)
-          .map((m) => ({ ...m, origin: { ...m.origin, z: m.origin.z - centerZ } })),
+          .filter((m) => Math.sign(m.origin.z + top.origin.z) === sz)
+          .map((m) => ({ ...m, origin: { ...m.origin, z: m.origin.z + top.origin.z - centerZ } })),
         tenons: [],
       };
     };
@@ -359,8 +447,8 @@ export const workbench: FurnitureTemplate = (input) => {
       nameEn: "Gap stop",
       material: input.material,
       grainDirection: "length",
-      visible: { length: L, width: gap, thickness: topT },
-      origin: { x: 0, y: top.origin.y, z: 0 },
+      visible: { length: topLen, width: gap, thickness: topT },
+      origin: { x: topOriginX, y: top.origin.y, z: 0 },
       tenons: [],
       mortises: [],
     };
@@ -421,17 +509,17 @@ export const workbench: FurnitureTemplate = (input) => {
   }
 
   // ── 前鉗位置（先算，狗孔要避開它） ──
-  const sideSign = viseSide === "left" ? 1 : -1; // 「左」= 世界 +X
   const jaw = VISE_JAW_MM[frontViseSize] ?? 180;
-  const legOuterX = frameL / 2;                  // 鉗那側的腳外面
-  const legInnerX = frameL / 2 - legSize;
+  const viseLegCenterX = frameDx + sideSign * (frameL / 2 - legSize / 2);   // 鉗那側的腳中心
+  const viseLegInnerEdge = viseLegCenterX - sideSign * (legSize / 2);       // 那支腳朝桌中心的面
+  const ovVise = sideSign > 0 ? ovPlus : ovMinus;
+  // 懸出夠長 → 鉗裝在腳外側（靠桌端）；不夠 → 裝在腳內側
+  const fitsOutside = frontVise === "quick" && ovVise >= jaw + 80;
   let viseX: number | null = null;
   if (frontVise === "quick") {
-    // 懸出夠長 → 鉗裝在腳外側（靠桌端）；不夠 → 裝在腳內側
-    const fitsOutside = endOverhang >= jaw + 80;
-    viseX = sideSign * (fitsOutside ? L / 2 - 60 - jaw / 2 : legInnerX - 20 - jaw / 2);
+    viseX = fitsOutside ? sideSign * (L / 2 - 60 - jaw / 2) : viseLegInnerEdge - sideSign * (20 + jaw / 2);
   } else if (frontVise === "leg") {
-    viseX = sideSign * (legOuterX - legSize / 2); // 腳鉗就在前腳上
+    viseX = viseLegCenterX; // 腳鉗就在前腳上
   }
   const viseHalfSpan = frontVise === "leg" ? Math.max(150, legSize + 40) / 2 : jaw / 2;
 
@@ -439,33 +527,48 @@ export const workbench: FurnitureTemplate = (input) => {
   let dogCount = 0;
   let holdfastCount = 0;
   let planingStopX: number | null = null;
-  const rowZ = -workW / 2 + Math.max(dogHoleFrontOffsetRaw, 2 * dogHoleDiaRow + 10);
+  const rowZ = topFrontZ + Math.max(dogHoleFrontOffsetRaw, 2 * dogHoleDiaRow + 10);
+  const rearRowZ = workW / 2 - Math.max(dogHoleFrontOffsetRaw, 2 * dogHoleDiaRow + 10);
+  const viseX2 = doubleSided && viseX !== null ? -viseX : null; // 對側那支：另一端、桌後緣
   if (dogHoles === "row") {
     const dia = dogHoleDiaRow;
-    // 從鉗（或桌端）起算，往另一端走；端頭留 100
+    // 從鉗（或桌端）起算，往另一端走；端頭留 100；尾鉗那端要在槽前停下
     const startX = viseX !== null
       ? viseX - sideSign * (viseHalfSpan + 50)
       : sideSign * (L / 2 - 100);
-    const span = Math.abs(-sideSign * (L / 2 - 100) - startX);
+    const farLimit = wagon ? L / 2 - (WAGON_END_CAP_T + 30 + WAGON_SLOT_L + 60) : L / 2 - 100;
+    const endX = -sideSign * farLimit;
+    const span = Math.abs(endX - startX);
     let pitch = dogHolePitchRaw;
     const nWanted = Math.floor(span / pitch) + 1;
     if (nWanted > MAX_DOG_HOLES) {
       pitch = Math.ceil(span / (MAX_DOG_HOLES - 1) / 10) * 10;
-      warnings.push(isEn ? `${nWanted} dog holes is too many to render; pitch widened ${dogHolePitchRaw} → ${pitch}.` : `狗孔 ${nWanted} 個太多（3D 每孔都要布林運算），孔距已從 ${dogHolePitchRaw} 拉大到 ${pitch}。`);
+      warnings.push(isEn ? `${nWanted} dog holes is too many; pitch widened ${dogHolePitchRaw} → ${pitch}.` : `狗孔 ${nWanted} 個太多，孔距已從 ${dogHolePitchRaw} 拉大到 ${pitch}。`);
     }
     let x = startX;
     // 刨擋佔掉第一格
     if (planingStop) { planingStopX = x; x -= sideSign * pitch; }
-    for (; Math.abs(x) <= L / 2 - 100 + 0.5 && dogCount < MAX_DOG_HOLES; x -= sideSign * pitch) {
+    for (; sideSign * (x - endX) >= -0.5 && dogCount < MAX_DOG_HOLES; x -= sideSign * pitch) {
       const piece = topPieceAt(rowZ, dia / 2 + 5);
       if (piece) {
         piece.mortises.push(roundHole(x - piece.origin.x, topT, rowZ - piece.origin.z, dia, topT));
         dogCount++;
       }
     }
+    // 雙面桌：後緣一列，從對側那支鉗往另一端走
+    if (viseX2 !== null) {
+      let x2 = viseX2 + sideSign * (viseHalfSpan + 50);
+      for (let n = 0; -sideSign * (x2 + sideSign * (L / 2 - 100)) <= 0.5 && Math.abs(x2) <= L / 2 - 100 + 0.5 && n < MAX_DOG_HOLES; n++, x2 += sideSign * pitch) {
+        const piece = topPieceAt(rearRowZ, dia / 2 + 5);
+        if (piece) {
+          piece.mortises.push(roundHole(x2 - piece.origin.x, topT, rearRowZ - piece.origin.z, dia, topT));
+          dogCount++;
+        }
+      }
+    }
     if (holdfastHoles) {
-      // 後排：距後緣 100、孔距 ≥ 300、跟前排錯開半格（Schwarz：16" apart, staggered）
-      const hz = workW / 2 - 100;
+      // 後排：距後緣 100、孔距 ≥ 300、跟前排錯開半格（Schwarz：16" apart, staggered）；雙面桌改中央一列
+      const hz = doubleSided ? 0 : workW / 2 - 100;
       const hp = Math.max(2 * pitch, 300);
       let hx = startX - sideSign * pitch / 2;
       while (Math.abs(hx) <= L / 2 - 120 && holdfastCount < 12) {
@@ -486,7 +589,7 @@ export const workbench: FurnitureTemplate = (input) => {
     const rows = Math.max(1, Math.min(rowsWanted, Math.floor(MAX_GRID_HOLES / cols)));
     if (rows < rowsWanted) warnings.push(isEn ? `20mm grid: only the front ${rows} of ${rowsWanted} rows are drawn (render limit ${MAX_GRID_HOLES} holes); drill the rest at the same 96mm pitch.` : `20mm 格陣 ${cols}×${rowsWanted} 太多孔，圖上只畫前 ${rows} 排（上限 ${MAX_GRID_HOLES} 孔）；其餘照 96mm 間距鑽完。`);
     const x0 = -((cols - 1) * pitch) / 2;
-    const zStart = -workW / 2 + margin;
+    const zStart = topFrontZ + margin;
     for (let r = 0; r < rows; r++) {
       const z = zStart + r * pitch;
       for (let c = 0; c < cols; c++) {
@@ -507,7 +610,7 @@ export const workbench: FurnitureTemplate = (input) => {
   // ── 刨擋：木方柱 + 桌面方形貫穿榫孔（榫在柱底、從桌面上方插入） ──
   if (planingStop && planingStopX !== null) {
     const s = PLANING_STOP_MM;
-    const z = Math.max(rowZ, -workW / 2 + s / 2 + 40);
+    const z = Math.max(rowZ, topFrontZ + s / 2 + 40);
     const piece = topPieceAt(z, s / 2 + 5);
     if (!piece) {
       warnings.push(isEn ? "Planing stop skipped: no solid top where it would sit." : "刨擋位置落在中縫裡，已略過。");
@@ -534,92 +637,99 @@ export const workbench: FurnitureTemplate = (input) => {
     }
   }
 
-  // ── 前鉗 ──
+  // ── 前鉗（快速鉗）：可放前緣（zSign −1）或雙面桌的後緣（zSign +1） ──
   let viseHardwareNote = "";
-  if (frontVise === "quick" && viseX !== null) {
+  const addQuickVise = (vx: number, zSign: -1 | 1, idPrefix: string, labelZh: string, labelEn: string) => {
     const spacerH = Math.max(0, VISE_MIN_EDGE_MM - topT);
     const bodyTopY = legHeight - spacerH;
     const screwY = bodyTopY - VISE_BODY_HEIGHT_MM / 2;
     const chopH = H - (bodyTopY - VISE_BODY_HEIGHT_MM);
-    const chopZ = -workW / 2 - VISE_CHOP_T_MM / 2;
-    // 鉗本體要躲在前裙板後面（builder 把裙板置中在腳裡，不是齊腳前面 → 用實際零件算後面在哪）。
-    // 鉗裝在腳外側的懸出段時，那裡沒有裙板，本體直接貼桌面前緣。
-    const apronFrontPart = withApron ? design.parts.find((p) => p.id === "apron-front") : undefined;
-    const apronCoversVise = !!apronFrontPart && Math.abs(viseX) + jaw / 2 <= apronFrontPart.visible.length / 2;
-    const bodyFrontZ = apronCoversVise && apronFrontPart ? apronFrontPart.origin.z + apronThickness / 2 : -workW / 2;
+    const edgeZ = zSign < 0 ? topFrontZ : workW / 2;
+    const chopZ = edgeZ + zSign * (VISE_CHOP_T_MM / 2);
+    // 鉗本體要躲在裙板後面（builder 把裙板置中在腳裡，不是齊腳面 → 用實際零件算後面在哪）。
+    // 鉗裝在腳外側的懸出段時，那裡沒有裙板，本體直接貼桌面邊緣下方。
+    const apronPart = withApron ? design.parts.find((p) => p.id === (zSign < 0 ? "apron-front" : "apron-back")) : undefined;
+    const apronCoversVise = !!apronPart && Math.abs(vx - apronPart.origin.x) + jaw / 2 <= apronPart.visible.length / 2;
+    const bodyEdgeZ = apronCoversVise && apronPart ? apronPart.origin.z - zSign * (apronThickness / 2) : zSign * (workW / 2);
+    const bodyCenterZ = bodyEdgeZ - zSign * (VISE_BODY_DEPTH_MM / 2);
     const screwLocalY = screwY - (bodyTopY - VISE_BODY_HEIGHT_MM);
-    // 木顎：跟桌面齊平、往下包住鉗本體；螺桿 + 兩根導桿的孔
+    const faceZ = zSign * (VISE_CHOP_T_MM / 2);
     design.parts.push({
-      id: "vise-chop",
-      nameZh: "前鉗木顎",
-      nameEn: "Front vise chop",
+      id: `${idPrefix}chop`,
+      nameZh: `${labelZh}木顎`,
+      nameEn: `${labelEn} chop`,
       material: input.material,
       grainDirection: "length",
       visible: { length: jaw, width: VISE_CHOP_T_MM, thickness: chopH },
-      origin: { x: viseX, y: H - chopH, z: chopZ },
+      origin: { x: vx, y: H - chopH, z: chopZ },
       tenons: [],
       mortises: [
-        roundHole(0, screwLocalY, -VISE_CHOP_T_MM / 2, 30, VISE_CHOP_T_MM),
-        roundHole(-(jaw / 2 - 35), screwLocalY, -VISE_CHOP_T_MM / 2, 20, VISE_CHOP_T_MM),
-        roundHole(jaw / 2 - 35, screwLocalY, -VISE_CHOP_T_MM / 2, 20, VISE_CHOP_T_MM),
+        roundHole(0, screwLocalY, faceZ, 30, VISE_CHOP_T_MM),
+        roundHole(-(jaw / 2 - 35), screwLocalY, faceZ, 20, VISE_CHOP_T_MM),
+        roundHole(jaw / 2 - 35, screwLocalY, faceZ, 20, VISE_CHOP_T_MM),
       ],
     });
     if (spacerH > 0) {
-      warnings.push(isEn ? `Top is ${topT}mm; a quick-release vise wants ${VISE_MIN_EDGE_MM}mm at the front edge — a ${spacerH}mm spacer block was added under the top.` : `桌面 ${topT}mm 不到快速鉗要的 ${VISE_MIN_EDGE_MM}mm，已在桌底加 ${spacerH}mm 鉗座墊塊。`);
       design.parts.push({
-        id: "vise-spacer",
-        nameZh: "鉗座墊塊",
-        nameEn: "Vise spacer block",
+        id: `${idPrefix}spacer`,
+        nameZh: `${labelZh}鉗座墊塊`,
+        nameEn: `${labelEn} spacer block`,
         material: input.material,
         grainDirection: "length",
         visible: { length: jaw, width: VISE_BODY_DEPTH_MM, thickness: spacerH },
-        origin: { x: viseX, y: bodyTopY, z: bodyFrontZ + VISE_BODY_DEPTH_MM / 2 },
+        origin: { x: vx, y: bodyTopY, z: bodyCenterZ },
         tenons: [],
         mortises: [],
       });
     }
     design.parts.push({
-      id: "vise-body",
+      id: `${idPrefix}body`,
       nameZh: `鑄鐵快速鉗本體（${frontViseSize === "9in" ? "9" : "7"} 吋）`,
       nameEn: `Quick-release vise body (${frontViseSize === "9in" ? "9" : "7"}")`,
       material: input.material,
       grainDirection: "length",
       visible: { length: jaw, width: VISE_BODY_DEPTH_MM, thickness: VISE_BODY_HEIGHT_MM },
-      origin: { x: viseX, y: bodyTopY - VISE_BODY_HEIGHT_MM, z: bodyFrontZ + VISE_BODY_DEPTH_MM / 2 },
+      origin: { x: vx, y: bodyTopY - VISE_BODY_HEIGHT_MM, z: bodyCenterZ },
       visual: "metal",
       tenons: [],
       mortises: [],
     });
     design.parts.push({
-      id: "vise-handle",
-      nameZh: "前鉗手把",
-      nameEn: "Front vise handle",
+      id: `${idPrefix}handle`,
+      nameZh: `${labelZh}手把`,
+      nameEn: `${labelEn} handle`,
       material: input.material,
       grainDirection: "length",
       visible: { length: 220, width: 20, thickness: 20 },
-      origin: { x: viseX, y: screwY - 10, z: chopZ - VISE_CHOP_T_MM / 2 - 45 },
+      origin: { x: vx, y: screwY - 10, z: chopZ + zSign * (VISE_CHOP_T_MM / 2 + 45) },
       shape: { kind: "round", axis: "x" },
       visual: "metal",
       tenons: [],
       mortises: [],
     });
-    // 前裙板讓螺桿 + 導桿穿過。裙板零件帶 rotation.x=π/2：mesh-local y 是板厚軸（0~厚）、
+    // 裙板讓螺桿 + 導桿穿過。裙板零件帶 rotation.x=π/2：mesh-local y 是板厚軸（0~厚）、
     // z 是板高軸（±裙板高/2，旋轉後變成世界的上下），§M1。
-    if (apronCoversVise && apronFrontPart) {
-      const apronCenterY = apronFrontPart.origin.y + apronWidth / 2;
+    if (apronCoversVise && apronPart) {
+      const apronCenterY = apronPart.origin.y + apronWidth / 2;
       const localZ = screwY - apronCenterY;
       if (Math.abs(localZ) < apronWidth / 2 - 20) {
-        const lx = viseX - apronFrontPart.origin.x;
-        apronFrontPart.mortises.push(
+        const lx = vx - apronPart.origin.x;
+        apronPart.mortises.push(
           roundHole(lx, 0, localZ, 30, apronThickness),
           roundHole(lx - (jaw / 2 - 35), 0, localZ, 20, apronThickness),
           roundHole(lx + (jaw / 2 - 35), 0, localZ, 20, apronThickness),
         );
       }
     }
+    return spacerH;
+  };
+  if (frontVise === "quick" && viseX !== null) {
+    const spacerH = addQuickVise(viseX, -1, "vise-", "前鉗", "Front vise");
+    if (spacerH > 0) warnings.push(isEn ? `Top is ${topT}mm; a quick-release vise wants ${VISE_MIN_EDGE_MM}mm at the front edge — a ${spacerH}mm spacer block was added under the top.` : `桌面 ${topT}mm 不到快速鉗要的 ${VISE_MIN_EDGE_MM}mm，已在桌底加 ${spacerH}mm 鉗座墊塊。`);
+    if (viseX2 !== null) addQuickVise(viseX2, 1, "vise2-", "對側鉗", "Second vise");
     viseHardwareNote = isEn
-      ? `Hardware: ${frontViseSize === "9in" ? "9" : "7"}" quick-release bench vise (jaw ${jaw}mm) + 4 lag bolts.`
-      : `五金：${frontViseSize === "9in" ? "9" : "7"} 吋鑄鐵快速鉗（鉗口 ${jaw}mm）＋ 4 支鎖桌底的木牙螺栓。`;
+      ? `Hardware: ${viseX2 !== null ? "2 × " : ""}${frontViseSize === "9in" ? "9" : "7"}" quick-release bench vise (jaw ${jaw}mm) + 4 lag bolts each.`
+      : `五金：${viseX2 !== null ? "2 支" : ""}${frontViseSize === "9in" ? "9" : "7"} 吋鑄鐵快速鉗（鉗口 ${jaw}mm）＋ 各 4 支鎖桌底的木牙螺栓。`;
   } else if (frontVise === "leg" && viseX !== null) {
     const chopW = Math.max(150, legSize + 40);
     const chopBottomY = 100;
@@ -668,14 +778,267 @@ export const workbench: FurnitureTemplate = (input) => {
       : "五金：腳鉗螺桿（自製 Ø70 木螺桿或進口套件）＋ 平行導件木條（鑽一排銷孔）。";
   }
 
-  // ── 下層板（架在下橫撐上；缺角讓腳） ──
-  if (withUnderShelf) {
+  // ── 尾鉗（wagon）：桌尾 100 端蓋 + 桌面 365×52 貫穿槽 + 露頭滑塊狗 + 螺桿手輪（滑塊五金列清單） ──
+  if (wagon) {
+    const xE = wagonSign * (L / 2);
+    const capX = xE - wagonSign * (WAGON_END_CAP_T / 2);
+    const slotCx = xE - wagonSign * (WAGON_END_CAP_T + 30 + WAGON_SLOT_L / 2);
+    const capZ = top.origin.z;
+    design.parts.push({
+      id: "end-cap",
+      nameZh: "尾鉗端蓋",
+      nameEn: "Tail vise end cap",
+      material: input.material,
+      grainDirection: "width",
+      visible: { length: WAGON_END_CAP_T, width: workW + frontOverhang, thickness: topT },
+      origin: { x: capX, y: legHeight, z: capZ },
+      tenons: [],
+      mortises: [roundHole(wagonSign * (WAGON_END_CAP_T / 2), topT / 2, rowZ - capZ, 25, WAGON_END_CAP_T)],
+    });
+    const piece = topPieceAt(rowZ, WAGON_SLOT_W / 2 + 5) ?? top;
+    piece.mortises.push({
+      origin: { x: slotCx - piece.origin.x, y: topT, z: rowZ - piece.origin.z },
+      depth: topT,
+      length: WAGON_SLOT_L,
+      width: WAGON_SLOT_W,
+      through: true,
+      cosmetic: true,
+      label: isEn ? "wagon vise slot" : "尾鉗滑塊槽",
+    });
+    design.parts.push({
+      id: "dog-block",
+      nameZh: "尾鉗滑塊狗頭（露出段）",
+      nameEn: "Wagon vise dog (proud part)",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 45, width: 45, thickness: 20 },
+      origin: { x: slotCx + wagonSign * (WAGON_SLOT_L / 2 - 22.5 - 5), y: H, z: rowZ },
+      tenons: [],
+      mortises: [],
+    });
+    design.parts.push({
+      id: "wagon-screw",
+      nameZh: "尾鉗螺桿（露出段）",
+      nameEn: "Wagon vise screw",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 40, width: 25, thickness: 25 },
+      origin: { x: xE + wagonSign * 20, y: H - topT / 2 - 12.5, z: rowZ },
+      shape: { kind: "round", axis: "x" },
+      visual: "metal",
+      tenons: [],
+      mortises: [],
+    });
+    design.parts.push({
+      id: "wagon-wheel",
+      nameZh: "尾鉗手輪",
+      nameEn: "Wagon vise hand wheel",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 20, width: 120, thickness: 120 },
+      origin: { x: xE + wagonSign * 50, y: H - topT / 2 - 60, z: rowZ },
+      shape: { kind: "round", axis: "x" },
+      visual: "metal",
+      tenons: [],
+      mortises: [],
+    });
+    if (topT < 95) warnings.push(isEn ? `Wagon vise hardware is designed for a ≥95mm top; yours is ${topT} — shim the guide rails from below.` : `尾鉗五金是給 ≥95mm 桌面設計的，目前 ${topT}：導軌要從桌底墊高到 95。`);
+  }
+
+  // ── 兩端封邊板（breadboard end）：60 寬、木紋跟桌面垂直；長孔鬆配寫在說明 ──
+  if (breadboardEnds) {
+    for (const sx of [-1, 1] as const) {
+      design.parts.push({
+        id: `breadboard-${sx < 0 ? "r" : "l"}`,
+        nameZh: sx < 0 ? "右端封邊板" : "左端封邊板",
+        nameEn: sx < 0 ? "Right breadboard end" : "Left breadboard end",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: workW + frontOverhang, width: 60, thickness: topT },
+        origin: { x: sx * (L / 2 - 30), y: legHeight, z: top.origin.z },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // ── 長板靠板（sliding deadman）：前下橫撐上一條 45° 脊條 + 桌底軌條 + 帶孔滑板 ──
+  const lsFront = design.parts.find((p) => p.id === "ls-front");
+  const deadman = deadmanRaw && frontVise !== "none" && !!lsFront && frontOverhang === 0 && drawerCountRaw === 0 && (frontVise === "leg" || fitsOutside);
+  if (deadmanRaw && !deadman) warnings.push(isEn
+    ? "Sliding deadman skipped: it needs a front vise mounted outboard of the leg (enough end overhang), a front lower stretcher, a flush front edge and no drawers."
+    : "長板靠板已略過：要有前下橫撐、前緣齊平、沒有抽屜，而且前鉗要裝在腳外側（桌端懸出要夠）。");
+  let deadmanRidgeZ = 0;
+  if (deadman && lsFront) {
+    const lsT = lowerStretcherThickness;
+    const lsTop = lowerStretcherHeight + lowerStretcherWidth;
+    deadmanRidgeZ = lsFront.origin.z - lsT / 2 + 12.5;
+    design.parts.push({
+      id: "deadman-ridge",
+      nameZh: "靠板脊條（前橫撐上，刨成 45°）",
+      nameEn: "Deadman ridge strip (bevelled 45°)",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: lsFront.visible.length, width: 25, thickness: 25 },
+      origin: { x: lsFront.origin.x, y: lsTop, z: deadmanRidgeZ },
+      shape: { kind: "chamfered-top", chamferMm: 11, style: "chamfered" },
+      tenons: [],
+      mortises: [],
+    });
+    design.parts.push({
+      id: "deadman-rail",
+      nameZh: "靠板上軌（桌底）",
+      nameEn: "Deadman top rail",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: Math.max(100, frameL - 2 * legSize - 50), width: 25, thickness: 25 },
+      origin: { x: frameDx, y: legHeight - 25, z: deadmanRidgeZ },
+      tenons: [],
+      mortises: [],
+    });
+    const boardH = (legHeight - 25) - (lsTop + 25) - 2;
+    const boardX = viseLegInnerEdge - sideSign * (30 + 90);
+    const holes: Mortise[] = [];
+    for (let hy = 60; hy <= boardH - 60; hy += 100) holes.push(roundHole(0, hy, -20, dogHoleDiaRow, 40));
+    design.parts.push({
+      id: "deadman-board",
+      nameZh: "長板靠板（滑板）",
+      nameEn: "Sliding deadman board",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 180, width: 40, thickness: boardH },
+      origin: { x: boardX, y: lsTop + 26, z: deadmanRidgeZ },
+      tenons: [],
+      mortises: holes,
+    });
+  }
+
+  // ── 桌下抽屜櫃：坐在下橫撐上，櫃頂離桌底 ≥ 210 給 holdfast 桿（硬夾制） ──
+  let drawerCount = withLowerStretchers && !deadman ? drawerCountRaw : 0;
+  if (drawerCountRaw > 0 && !withLowerStretchers) warnings.push(isEn ? "Drawers need lower stretchers to sit on; skipped." : "抽屜櫃要坐在下橫撐上，請先打開下橫撐；已略過。");
+  if (drawerCount > 0) {
+    const lsT = lowerStretcherThickness;
+    const caseY = lowerStretcherHeight + lowerStretcherWidth;
+    // 有裙板時櫃頂還要躲到裙板底下（裙板佔掉桌底那一段）
+    const apronBottomY = withApron ? legHeight - apronWidth - 5 : Infinity;
+    const caseTop = Math.min(legHeight - DRAWER_CLEARANCE, apronBottomY);
+    const caseH = caseTop - caseY;
+    if (caseH < 120) {
+      warnings.push(isEn ? `Drawer cabinet skipped: only ${caseH}mm left between the stretchers and the ${DRAWER_CLEARANCE}mm holdfast clearance under the top.` : `抽屜櫃已略過：橫撐頂到桌底扣掉 holdfast 淨空 ${DRAWER_CLEARANCE} 只剩 ${caseH}mm，放不下抽屜。桌高加高或下橫撐放低再試。`);
+      drawerCount = 0;
+    } else {
+      const caseW = frameL - 2 * legSize - 6;
+      const caseD = workW - legSize + lsT - 4;
+      const cab = caseFurniture({
+        category: "nightstand",
+        nameZh: "桌下抽屜櫃",
+        length: caseW,
+        width: caseD,
+        height: caseH,
+        material: input.material,
+        shelfCount: 0,
+        zones: [{ type: "drawer", heightMm: caseH - 36, count: drawerCount, cols: 1 }],
+        legHeight: 0,
+        // inset + 無滑軌時 caseFurniture 的抽屜箱會比櫃深 3mm（穿背板）；半蓋 + 釘底 0 穿模（2026-09-04 實測）
+        drawerMount: "overlay-3",
+        drawerBottomMode: "surface",
+        drawerSlideGap: 0,
+        drawerBoxJoinery: "lap",
+        pullStyle: "wood-knob",
+        backMode: "surface",
+        panelThickness: 15,
+      });
+      for (const p of cab.parts) {
+        design.parts.push({ ...p, id: `drawer-cab-${p.id}`, origin: { x: p.origin.x + frameDx, y: p.origin.y + caseY, z: p.origin.z } });
+      }
+      if (withApron) warnings.push(isEn ? "Drawers AND a deep apron leave nowhere for clamps to reach the top — pick one, or put drawers only in the end overhang." : "抽屜櫃加上裙板，夾具會沒地方夾桌面：二選一，或只在桌端懸出段做抽屜。");
+    }
+  }
+
+  // ── 桌上加高小鉗（Moxon）：兩片顎板 + 兩支螺桿放桌面後側靠前鉗那端 ──
+  const moxon = moxonRaw && !doubleSided;
+  if (moxon) {
+    const mx = sideSign * (L / 2 - 450);
+    const jzFront = workW / 2 - 150;
+    const jzBack = workW / 2 - 90;
+    for (const [id, nameZh, nameEn, jz] of [["moxon-front", "加高小鉗前顎板", "Moxon front jaw", jzFront], ["moxon-back", "加高小鉗後顎板", "Moxon back jaw", jzBack]] as const) {
+      design.parts.push({
+        id, nameZh, nameEn,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: 600, width: 40, thickness: 140 },
+        origin: { x: mx, y: H, z: jz },
+        tenons: [],
+        mortises: [roundHole(-220, 70, -20, 20, 40), roundHole(220, 70, -20, 20, 40)],
+      });
+    }
+    for (const sx of [-1, 1] as const) {
+      design.parts.push({
+        id: `moxon-screw-${sx < 0 ? "r" : "l"}`,
+        nameZh: "加高小鉗螺桿（露出段）",
+        nameEn: "Moxon screw",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: 60, width: 20, thickness: 20 },
+        origin: { x: mx + sx * 220, y: H + 60, z: jzFront - 20 - 30 },
+        shape: { kind: "round", axis: "z" },
+        visual: "metal",
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // ── 附件：V 口壓板（doe's foot）+ 鋸切靠板（bench hook），放桌面後側另一端 ──
+  const accessories = accessoriesRaw && !doubleSided;
+  if (accessories) {
+    const ax = -sideSign * (L / 2 - 350);
+    design.parts.push({
+      id: "doe-foot",
+      nameZh: "V 口壓板（doe's foot，端頭鋸 90° V 口）",
+      nameEn: "Doe's foot (90° V notch at one end)",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 600, width: 60, thickness: 12 },
+      origin: { x: ax, y: H, z: workW / 2 - 230 },
+      tenons: [],
+      mortises: [],
+    });
+    design.parts.push({
+      id: "bench-hook-base",
+      nameZh: "鋸切靠板底板",
+      nameEn: "Bench hook base",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 300, width: 180, thickness: 18 },
+      origin: { x: ax, y: H, z: workW / 2 - 100 },
+      tenons: [],
+      mortises: [],
+    });
+    design.parts.push({
+      id: "bench-hook-stop",
+      nameZh: "鋸切靠板擋條",
+      nameEn: "Bench hook fence",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 180, width: 40, thickness: 20 },
+      origin: { x: ax, y: H + 18, z: workW / 2 - 30 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
+  // ── 下層板（架在下橫撐上；缺角讓腳）；有抽屜櫃時櫃底板就是層板 ──
+  if (withUnderShelf && drawerCount > 0) warnings.push(isEn ? "Under-shelf skipped: the drawer cabinet bottom already covers the stretchers." : "下層板已略過：抽屜櫃的底板已經蓋住下橫撐。");
+  if (withUnderShelf && drawerCount === 0) {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
     const stretcherY = lowerStretcherHeight;
     const shelfY = stretcherY + lowerStretcherWidth;
     const lsT = lowerStretcherThickness;
     const shelfLen = Math.max(50, frameL - legSize + lsT);
-    const shelfWid = Math.max(50, workW - legSize + lsT);
+    // 長板靠板的脊條佔掉前緣 25
+    const shelfWid = Math.max(50, workW - legSize + lsT - (deadman ? 25 : 0));
     const notch = (legSize + lsT) / 2;
     if (shelfY < 150) warnings.push(isEn ? `Under-shelf sits ${shelfY}mm off the floor; ≥150 keeps it sweepable.` : `下層板離地 ${shelfY}mm，建議 ≥150 才掃得到地。`);
     design.parts.push({
@@ -685,7 +1048,7 @@ export const workbench: FurnitureTemplate = (input) => {
       material: input.material,
       grainDirection: "length",
       visible: { length: shelfLen, width: shelfWid, thickness: shelfT },
-      origin: { x: 0, y: shelfY, z: 0 },
+      origin: { x: frameDx, y: shelfY, z: deadman ? 12.5 : 0 },
       shape: { kind: "notched-corners", notchLengthMm: notch, notchWidthMm: notch },
       panelPieces: Math.max(1, Math.ceil(shelfWid / PLANK_MAX_W)),
       tenons: [],
@@ -712,15 +1075,45 @@ export const workbench: FurnitureTemplate = (input) => {
   if (wellWidth > 0) {
     for (const p of design.parts) p.origin.z -= wellWidth / 2;
   }
-  design.overall = { length: L, width: W, thickness: H };
+  design.overall = { length: L, width: W, thickness: H + (moxon ? 140 : accessories ? 38 : 0) };
 
-  // ── 警告：桌高 vs 身高、抗晃、重量、房門 ──
+  // ── 警告：桌高 vs 身高（含鞋墊、出料台）、抗晃、重量、房門、房間、伸縮、搬運 ──
   const coef = HEIGHT_COEF[heightMode] ?? HEIGHT_COEF.plane;
-  const suggested = Math.round(userHeightCm * 10 * coef);
-  const modeZh = heightMode === "machine" ? "機具／組裝" : heightMode === "fine" ? "精細作業" : "手刨";
-  const modeEn = heightMode === "machine" ? "machine/assembly" : heightMode === "fine" ? "fine work" : "hand-planing";
-  if (H < suggested - 60) warnings.push(isEn ? `Bench height ${H} is >60mm below the ${modeEn} suggestion for ${userHeightCm}cm (${suggested}mm) — you will stoop.` : `桌高 ${H} 比 ${userHeightCm}cm 身高的${modeZh}建議值 ${suggested}mm 低超過 6cm，長時間會彎腰。`);
-  if (H > suggested + 80) warnings.push(isEn ? `Bench height ${H} is >80mm above the ${modeEn} suggestion for ${userHeightCm}cm (${suggested}mm) — you cannot lean body weight into the plane.` : `桌高 ${H} 比 ${userHeightCm}cm 身高的${modeZh}建議值 ${suggested}mm 高超過 8cm，刨削時用不上體重。`);
+  const suggested = heightMode === "outfeed" ? sawTableHeightMm - 2 : Math.round(userHeightCm * 10 * coef) + shoeAllowanceMm;
+  const modeZh = ({ machine: "機具／組裝", fine: "精細作業", assembly: "組裝／上漆矮桌", outfeed: "桌鋸出料台" } as Record<string, string>)[heightMode] ?? "手刨";
+  const modeEn = ({ machine: "machine/assembly", fine: "fine work", assembly: "assembly / finishing", outfeed: "table-saw outfeed" } as Record<string, string>)[heightMode] ?? "hand-planing";
+  if (heightMode === "outfeed") {
+    if (H > sawTableHeightMm) warnings.push(isEn ? `DANGER: bench (${H}) is ${H - sawTableHeightMm}mm ABOVE the saw table (${sawTableHeightMm}) — the board tail gets lifted and kicks back. Outfeed must be level or 1–2mm lower.` : `危險：桌高 ${H} 比桌鋸台面 ${sawTableHeightMm} 高 ${H - sawTableHeightMm}mm，木料尾端會被抬起反彈。出料台只能同高或低 1~2mm。`);
+    else if (H < sawTableHeightMm - 15) warnings.push(isEn ? `Bench is ${sawTableHeightMm - H}mm below the saw table; long boards will droop and catch. Aim for 1–2mm below.` : `桌高比桌鋸台面低 ${sawTableHeightMm - H}mm，長板尾端會下垂卡住；建議只低 1~2mm。`);
+    if (frontVise !== "none" || planingStop || wagon) warnings.push(isEn ? "Outfeed use: keep the 30cm nearest the saw free of vise chops, planing stop and dog blocks — face them away from the saw." : "當出料台用時，靠桌鋸那 30cm 前緣不能有鉗木顎、刨擋、露頭狗塊擋木料；把鉗那一端朝離桌鋸的方向擺。");
+  } else {
+    if (H < suggested - 60) warnings.push(isEn ? `Bench height ${H} is >60mm below the ${modeEn} suggestion for ${userHeightCm}cm (${suggested}mm) — you will stoop.` : `桌高 ${H} 比 ${userHeightCm}cm 身高的${modeZh}建議值 ${suggested}mm 低超過 6cm，長時間會彎腰。鋸短容易加高難：不確定就先做高 25mm，用兩週再鋸腳。`);
+    if (H > suggested + 80) warnings.push(isEn ? `Bench height ${H} is >80mm above the ${modeEn} suggestion for ${userHeightCm}cm (${suggested}mm) — you cannot lean body weight into the plane.` : `桌高 ${H} 比 ${userHeightCm}cm 身高的${modeZh}建議值 ${suggested}mm 高超過 8cm，刨削時用不上體重。不確定就先做高 25mm 用兩週，再決定鋸多少。`);
+  }
+  if (heightMode === "assembly" && dogHoles !== "none") warnings.push(isEn ? "Low assembly / dining-height bench: plug the dog holes with dowels if it doubles as a dining table." : "矮桌兼餐桌用的話，狗孔記得塞木塞，不然卡飯粒。");
+  // 房間放不放得下（走道 90cm）
+  if (roomLengthCm > 0 && L + 900 > roomLengthCm * 10) warnings.push(isEn ? `Room length ${roomLengthCm}cm minus a 90cm aisle leaves ${Math.max(0, roomLengthCm * 10 - 900)}mm — the bench (${L}) will not fit.` : `房間長 ${roomLengthCm}cm 扣 90cm 走道只剩 ${Math.max(0, roomLengthCm * 10 - 900)}mm，桌長 ${L} 放不下；桌長縮到 ${Math.max(0, roomLengthCm * 10 - 900)} 以下。`);
+  if (roomWidthCm > 0 && W + 900 > roomWidthCm * 10) warnings.push(isEn ? `Room width ${roomWidthCm}cm minus a 90cm aisle leaves ${Math.max(0, roomWidthCm * 10 - 900)}mm — the bench depth (${W}) will not fit.` : `房間深 ${roomWidthCm}cm 扣 90cm 走道只剩 ${Math.max(0, roomWidthCm * 10 - 900)}mm，桌深 ${W} 放不下。`);
+  // 腳距 ÷ 桌高：Schwarz 6 呎桌兩端各留 19" 剩 34" 腳距（比 1.01）就會晃
+  const legSpan = frameL - legSize;
+  const spanRatio = legSpan / H;
+  if (spanRatio < 0.95) warnings.push(isEn ? `Leg span ${legSpan} is shorter than the bench height ${H}: it will tip when you plane. Reduce end overhang or lengthen the bench.` : `腳距 ${legSpan} 比桌高 ${H} 還短，刨的時候桌子會被推倒；請縮短桌端懸出或把桌子做長。`);
+  else if (spanRatio < 1.05) warnings.push(isEn ? `Leg span ${legSpan} vs height ${H} (ratio ${spanRatio.toFixed(2)}): Schwarz's 6ft bench at 1.01 rocks fore-and-aft when planing; shorten the end overhang.` : `腳距 ${legSpan} 對桌高 ${H}（比 ${spanRatio.toFixed(2)}）偏短：Schwarz 的 6 呎桌腳距比 1.01 刨起來會前後晃；請縮短桌端懸出。`);
+  // 深度
+  if (W > 700 && !doubleSided) warnings.push(isEn ? `Depth ${W}mm: you cannot reach the back edge from the front; 600–650 is plenty for one person.` : `桌深 ${W}mm 站前面搆不到後緣、牆上工具也拿不到；一個人 600~650 就夠。`);
+  if (W < 450) warnings.push(isEn ? `Depth ${W}mm is narrow: wide boards will not lie flat for prep.` : `桌深 ${W}mm 偏窄，寬板放不平、備料不方便。`);
+  if (doubleSided && W < 800) warnings.push(isEn ? `Double-sided bench should be ≥800 deep (yours ${W}) so two people do not collide.` : `雙面桌兩人面對面，桌深建議 ≥ 800（目前 ${W}）才不會撞手。`);
+  // 裙板擋夾具
+  if (withApron && apronWidth >= 150 && frontOverhang < 50) warnings.push(isEn ? `Apron ${apronWidth}mm with only ${frontOverhang}mm front overhang: a 4" C-clamp cannot reach the top. Give the top ≥50mm overhang past the apron, or rely on holdfasts.` : `裙板 ${apronWidth}mm 高、桌面前緣只凸出 ${frontOverhang}：4 吋 C 夾夾不到桌面，前緣至少凸出裙板 50mm，或改用 holdfast。`);
+  if (withApron && apronWidth > 250) warnings.push(isEn ? "A deep apron is itself a clamping face: mount the front vise flush with it and you can drill dog holes in the apron." : "裙板超過 250 本身就是夾持面：前鉗跟裙板齊平，狗孔可以直接打在裙板上。");
+  if (holdfastHoles && topT < 75) warnings.push(isEn ? `Top ${topT}mm: holdfasts bite but pop loose easily; 75–90 is the sweet spot.` : `桌面 ${topT}mm：holdfast 咬得住但容易彈出，最穩是 75~90。`);
+  if (dogHoles === "row" && !doubleSided && dogCount > 20) warnings.push(isEn ? `${dogCount} dog holes: Schwarz's rule is one row plus ~8 holdfast holes; more holes weaken the top and you will use few of them.` : `狗孔 ${dogCount} 個偏多：Schwarz 的規矩是前緣一排加約 8 個 holdfast 孔就夠，孔多桌面反而變弱、大多用不到。`);
+  // 桌面伸縮（USDA Wood Handbook 弦向收縮率；台灣室內 ΔMC 約 6%）
+  const shrinkT = topBuild === "stack" ? 0 : (TANGENTIAL_SHRINK[input.material as string] ?? 0) * (topBuild === "stave" ? 0.55 : 1);
+  const deltaW = Math.round(((workW + frontOverhang) * (shrinkT / 100) * (DELTA_MC / 30)) * 10) / 10;
+  if (deltaW > 6 && (breadboardEnds || wagon)) warnings.push(isEn ? `This top moves about ${deltaW}mm across its width between seasons: glue the end board / end cap only in the middle 150mm and make the outer holes ${Math.ceil(deltaW)}mm slots.` : `這片桌面一年會脹縮約 ${deltaW}mm：封邊板／尾鉗端蓋只在中央 15cm 上膠，外側銷孔、螺栓孔做 ${Math.ceil(deltaW)}mm 長孔，不然桌面會裂。`);
+  const rearMortiseNoteZh = deltaW > 10 && legTopJoint === "through" ? `後排兩支腳的桌面榫眼沿深度放寬 ${Math.ceil(deltaW / 2)}mm 讓桌面能動。` : "";
+  const rearMortiseNoteEn = deltaW > 10 && legTopJoint === "through" ? `Make the rear legs' top mortises ${Math.ceil(deltaW / 2)}mm wider across the depth so the top can move. ` : "";
   const apronEff = withApron ? apronWidth : 0;
   if (apronEff < 150 && !withLowerStretchers && topT < 60) warnings.push(isEn ? "No deep apron, no lower stretchers and a thin top: nothing resists racking. Add stretchers or an apron ≥ 200mm." : "沒有高裙板、沒有下橫撐、桌面又不到 60mm：沒有任何抗晃構件，刨兩下桌子就走路。請加下橫撐或 ≥200mm 裙板。");
   if (legSize < 80 && !withApron) warnings.push(isEn ? `Legs ${legSize}mm without an apron are light for a bench; ≥80 (thick-top style ≥100) recommended.` : `腳 ${legSize}mm 又沒裙板，對工作桌偏細；建議 ≥80（厚板桌 ≥100）。`);
@@ -729,8 +1122,15 @@ export const workbench: FurnitureTemplate = (input) => {
     .filter((p) => p.visual !== "metal")
     .reduce((s, p) => s + (p.visible.length * p.visible.width * p.visible.thickness) / 1e9 * density, 0);
   if (massKg < 40) warnings.push(isEn ? `Estimated weight ${Math.round(massKg)}kg — a bench this light slides when you plane. Thicker top / bigger legs / under-shelf add mass.` : `估算重量約 ${Math.round(massKg)}kg，這麼輕的桌子一刨就滑；桌面加厚、腳加粗或加下層板都能增重（建議 ≥70kg）。`);
-  else if (massKg < 70) warnings.push(isEn ? `Estimated weight ${Math.round(massKg)}kg; ≥70kg feels planted (Schwarz 250 lb, 木頭仁 ≥80kg).` : `估算重量約 ${Math.round(massKg)}kg，≥70kg 才不會被推著走（木頭仁教室規格整台 ≥80kg）。`);
-  if (input.material === "southern-pine") warnings.push(isEn ? "Southern pine: buy UNTREATED stock — pressure-treated wood must not be a planing / working surface. Stave the top on edge (2×4s stood up) for a 89mm-thick top." : "南方松請買「無防腐」的：架上防腐材的藥劑不能當刨削面。桌面用 2×4 側立拼（立起來就是 89mm 厚），腳用兩支 2×4 對紋膠合。");
+  else if (massKg < 70) warnings.push(isEn ? `Estimated weight ${Math.round(massKg)}kg; ≥70kg feels planted (Schwarz 250 lb, 木頭仁 ≥80kg). An under-shelf loaded with toolboxes is the quickest way to add mass.` : `估算重量約 ${Math.round(massKg)}kg，≥70kg 才不會被推著走（木頭仁教室規格整台 ≥80kg）；加下層板放工具箱是最快的增重法。`);
+  // 可拆桌才會自己搬：單件重量（勞動部 / ISO 11228-1：一人 25kg）
+  if (knockdown !== "none") {
+    // 疊層桌面是幾片分開的板，單件重量要除以層數
+    const heaviest = design.parts.filter((p) => p.visual !== "metal").reduce((m, p) => Math.max(m, (p.visible.length * p.visible.width * p.visible.thickness) / 1e9 * density / (topBuild === "stack" && (p.panelPieces ?? 1) > 1 ? (p.panelPieces ?? 1) : 1)), 0);
+    if (heaviest > 40) warnings.push(isEn ? `Heaviest single piece ≈ ${Math.round(heaviest)}kg — it will not go up a staircase; split the top (centre gap) or thin it.` : `拆開後最重的一件約 ${Math.round(heaviest)}kg，樓梯搬不上去，可拆就沒意義了：桌面改中縫兩片，或減厚。`);
+    else if (heaviest > 25) warnings.push(isEn ? `Heaviest single piece ≈ ${Math.round(heaviest)}kg: two people to carry (one-person limit 25kg).` : `拆開後最重的一件約 ${Math.round(heaviest)}kg，一個人搬不動（勞動部單人上限 25kg），要兩人搬或桌面分兩片。`);
+  }
+  if (input.material === "southern-pine" || (input.material === "pine" && topBuild === "stave")) warnings.push(isEn ? "Softwood: buy UNTREATED stock (pressure-treated wood must not be a working surface), sticker it indoors 2–4 weeks before milling, do not bolt the top down hard. For a stave top buy ~15% extra and pick knot-free pieces for the dog-hole row." : "南方松／松木：買「無防腐」的（防腐藥劑不能當刨削面）、先在室內陰乾 2~4 週再加工、桌面別用螺栓鎖死。側立拼的料已多算 15%，狗孔那一列挑無節、無髓心的料。");
   if (W >= 800) warnings.push(isEn ? `Depth ${W}mm will not fit through a standard door — consider the bolt-together option.` : `桌深 ${W}mm 一般房門推不出去（門寬 −7cm 才過得了），建議選螺栓可拆。`);
   if (L >= 2000 && !withApron && lowerStretcherArrangement !== "h-frame") warnings.push(isEn ? "Over 2m long without an apron: use the H-frame stretcher layout (long center rail) so the base cannot rack lengthwise." : "桌長超過 2m 又沒裙板：下橫撐請用 H 形（中央長撐）擋住長向扭動。");
 
@@ -743,11 +1143,15 @@ export const workbench: FurnitureTemplate = (input) => {
     ? `${styleEn} workbench: top ${formatMm(topT, "inch")} (${buildEn}), legs ${formatMm(legSize, "inch")} square${legTopJoint === "through" ? " with through tenons into the top" : ""}${withApron ? `, apron ${formatMm(apronWidth, "inch")}` : ""}${withLowerStretchers ? `, ${lowerStretcherArrangement} stretchers` : ""}. ` +
       `${frontVise === "quick" ? `${frontViseSize === "9in" ? "9" : "7"}" quick-release vise on the ${viseSide}` : frontVise === "leg" ? `leg vise on the ${viseSide}` : "no vise"}; ` +
       `${dogCount > 0 ? `${dogCount} dog holes${dogHoles === "grid" ? " (20mm grid @96)" : ` Ø${dogHoleDiaRow} @${dogHolePitchRaw}`}` : "no dog holes"}${holdfastCount > 0 ? `, ${holdfastCount} holdfast holes` : ""}${planingStop ? ", planing stop" : ""}${knockdown === "bolt" ? `, knockdown with ${boltCount} M10 bed bolts` : ""}. ` +
-      `Suggested height for ${userHeightCm}cm / ${modeEn}: ${suggested}mm (set: ${H}). Est. weight ≈ ${Math.round(massKg)}kg. ${viseHardwareNote}`
+      `Suggested height for ${userHeightCm}cm / ${modeEn}: ${suggested}mm (set: ${H}). Est. weight ≈ ${Math.round(massKg)}kg${deltaW > 0 ? `, seasonal movement ≈ ${deltaW}mm` : ""}. ${rearMortiseNoteEn}` +
+      `${wagon ? `Wagon vise at the ${wagonSign > 0 ? "left" : "right"} end (overhang ${ovWagon}, slot ${WAGON_SLOT_L}×${WAGON_SLOT_W}, end cap ${WAGON_END_CAP_T}; hardware separate). ` : ""}${deadman ? "Sliding deadman: ridge on the front stretcher, rail under the top, 180mm board with a hole row. " : ""}${drawerCount > 0 ? `${drawerCount} drawers under the top (${DRAWER_CLEARANCE}mm holdfast clearance). ` : ""}${breadboardEnds ? "60mm breadboard ends (glue centre only, slotted outer pins). " : ""}${doubleSided ? "Double-sided: second vise on the far end / back edge, rear dog row, holdfast holes down the centre. " : ""}${moxon ? "Moxon vise jaws 600×140×40 ×2 included (hardware separate). " : ""}${accessories ? "Accessories: doe's foot 600×60×12, bench hook 300×180. " : ""}` +
+      `${viseHardwareNote}`
     : `${styleZh}：桌面 ${topT}mm（${buildZh}）、腳 ${legSize} 方${legTopJoint === "through" ? "、腳頂貫穿榫露出桌面" : ""}${withApron ? `、裙板 ${apronWidth}×${apronThickness}` : ""}${withLowerStretchers ? `、下橫撐 ${({ "h-frame": "H 形", "box-frame": "4 邊框", "pair-x": "前後 2 根", "pair-z": "左右 2 根" } as Record<string, string>)[lowerStretcherArrangement] ?? ""}` : ""}。` +
       `${frontVise === "quick" ? `${viseSide === "left" ? "左" : "右"}端 ${frontViseSize === "9in" ? "9" : "7"} 吋快速鉗` : frontVise === "leg" ? `${viseSide === "left" ? "左" : "右"}前腳腳鉗` : "不裝鉗"}；` +
       `${dogCount > 0 ? `狗孔 ${dogCount} 個${dogHoles === "grid" ? "（20mm 格陣 @96）" : `（Ø${dogHoleDiaRow} @${dogHolePitchRaw}）`}` : "不打狗孔"}${holdfastCount > 0 ? `、holdfast 孔 ${holdfastCount} 個` : ""}${planingStop ? "、刨擋方柱" : ""}${knockdown === "bolt" ? `、螺栓可拆（M10 床螺栓 ${boltCount} 支）` : ""}。` +
-      `身高 ${userHeightCm}cm 的${modeZh}建議桌高 ${suggested}mm（目前 ${H}）。估算重量約 ${Math.round(massKg)}kg。${viseHardwareNote}`;
+      `身高 ${userHeightCm}cm 的${modeZh}建議桌高 ${suggested}mm（目前 ${H}）。估算重量約 ${Math.round(massKg)}kg${deltaW > 0 ? `，桌面季節脹縮約 ${deltaW}mm` : ""}。${rearMortiseNoteZh}` +
+      `${wagon ? `尾鉗在${wagonSign > 0 ? "左" : "右"}端（懸出 ${ovWagon}、槽 ${WAGON_SLOT_L}×${WAGON_SLOT_W}、端蓋 ${WAGON_END_CAP_T}，滑塊五金另購）。` : ""}${deadman ? "長板靠板：前橫撐脊條 + 桌底軌 + 180 寬帶孔滑板。" : ""}${drawerCount > 0 ? `桌下 ${drawerCount} 抽（櫃頂離桌底 ${DRAWER_CLEARANCE}）。` : ""}${breadboardEnds ? "兩端 60 封邊板（只膠中央、外側長孔）。" : ""}${doubleSided ? "雙面桌：對側另一支鉗＋後緣一列狗孔，holdfast 孔在中央。" : ""}${moxon ? "附桌上加高小鉗（顎板 600×140×40 ×2，五金另購）。" : ""}${accessories ? "附件：V 口壓板 600×60×12、鋸切靠板 300×180。" : ""}` +
+      `${viseHardwareNote} 市售對照：全榫接 120×54×80 工作桌約 NT$9,990。`;
 
   appendWarnings(design, warnings);
   applyStandardChecks(design, { minLength: 1000, maxLength: 3000, minWidth: 400, maxWidth: 1000, minHeight: 600, maxHeight: 1100 }, locale);

@@ -89,6 +89,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
 | 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
 | 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
+| 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
 
 ---
 
@@ -5019,12 +5020,119 @@ origin 沿用該榫眼的 origin → depthAxis 跟榫同軸 = 床螺栓（bed bo
 重量 = Σ(非 `visual:"metal"` 零件 visible 體積 × `MATERIALS[material].density`)（`lib/materials/index.ts`；
 南方松 / 橡膠木 / 樺木夾板不在表裡，用 pine 420 會低估 25%，是已知缺口）。
 
-### AU12. v2 待辦（沒有幾何表示法，別硬塞 v1）
+### AU12. v3 待辦（沒有幾何表示法，別硬塞）
 
-尾鉗（桌面末端 U 形槽 + 端蓋，懸出 ≥ 470）、Moravian 16° 斜腳 + 楔形通榫（`splayed-length` 的 40mm 寫死、
-tusk 無 shape）、滑入鳩尾（Roubo 原版腿榫另一半）、deadman（前橫撐 V 脊 + 滑板）、下方抽屜櫃、日式低台（另一種家具）、
-腳輪（跟 ≥80kg 矛盾）、**裙板齊腳前面**（`resolveApronSetbackForLeg` 對非弧肩腳一律置中在腳裡）、
-南方松 / 橡膠木 / 樺木夾板密度與價格進 `lib/materials`。
+Moravian 16° 斜腳 + 楔形通榫（`splayed-length` 的 40mm 寫死、tusk 無 shape）、滑入鳩尾（Roubo 原版腿榫另一半）、
+trestle 端框、日式低台（另一種家具）、腳輪（跟 ≥80kg 矛盾，木匠 / 玩家兩票反對）、犧牲面板、Veritas 滑軌尾鉗（台灣無通路）、
+**裙板齊腳前面**（`resolveApronSetbackForLeg` 對非弧肩腳一律置中在腳裡）、橡膠木 / 樺木夾板進 `lib/materials`。
+（尾鉗、deadman、抽屜櫃、封邊板、雙面桌、出料台模式 2026-09-04 v2 已做，見 AU13~AU21。）
+
+### AU13. 桌端懸出不對稱（v2）
+
+`endOverhang` 仍是同一個值（0 = L/5，§AT4.5），但**尾鉗那一端**要拉到 `WAGON_MIN_OVERHANG = 470`
+（Benchcrafted：懸出 ≥ 18½"），另一端維持原值——兩端都留 470 的話 1800 桌腳距只剩 860（Schwarz：會晃）。
+
+```
+ovPlus  = 尾鉗在 +X 端 ? max(endOverhang, 470) : endOverhang
+ovMinus = 尾鉗在 −X 端 ? max(endOverhang, 470) : endOverhang
+frameL  = L − ovPlus − ovMinus
+frameDx = (ovMinus − ovPlus) / 2          ← 腳架中心相對桌面中心（桌面留在 x = 0）
+```
+
+builder 產完後：**除桌面外**所有零件 `origin.x += frameDx`；桌面拉到 `topLen`（見 AU14 / AU18）、
+`origin.x = topOriginX`；腳頂榫眼要先跟腳走再換回桌面 mesh-local（§M1）：
+`m.origin.x += frameDx − topOriginX`；`m.origin.z −= top.origin.z`（AU15 前緣加寬時 origin.z ≠ 0）。
+尾鉗端 = 前鉗的另一端（`wagonSign = −sideSign`）。
+
+### AU14. 尾鉗 wagon（endVise = wagon）
+
+來源：Benchcrafted Tail Vise 說明書——懸出 ≥ 18½"、端蓋 ≥ 4" 厚、行程 12¼"、桌面設計給 4"。
+
+| 項目 | 值 |
+|---|---|
+| 端蓋 `end-cap` | 100 厚 × 桌深（含前緣凸出）× 桌面厚，**從桌面長度扣掉**（`topLen = L − 100`），`origin.x = 桌端 − sign·50`；螺桿孔 Ø25 從外端面進 |
+| 槽 `wagon vise slot` | 桌面上 cosmetic rect through mortise **365 × 52**（行程 310 + dog 45 + 端隙 10；滑塊 44.5 + 兩側 3.5），中心 `x = 桌端 − sign·(100 + 30 + 182.5)`、`z = rowZ`（跟狗孔同軸） |
+| 狗孔列 | 尾鉗那端在 `L/2 − (100 + 30 + 365 + 60)` 停（`farLimit`），另一端照舊 100 |
+| 滑塊狗 `dog-block` | 45×45×20 露頭在桌面上、在槽靠端蓋那一頭（滑塊本身是五金，不畫） |
+| 螺桿 / 手輪 | 只畫端蓋外露段：`wagon-screw` Ø25×40（axis x，`visual:metal`）、`wagon-wheel` Ø120×20 |
+| 出聲 | 桌面 < 95 →「導軌要從桌底墊高到 95」；腳距/桌高看 AU20 |
+| 略過 | 桌長 < 1800、分片桌面（gap / well）、雙面桌（對側鉗跟端蓋撞）→ 不生、出聲 |
+
+### AU15. 桌面前緣凸出腳／裙板（frontOverhang）
+
+後悔榜第一名「沒留 overhang 夾具夾不到」。`frontOverhang` 0~100，**預設 0**（厚板桌齊平是腳鉗與 deadman 的前提），
+裙板桌 preset 帶 **50**。幾何：桌面 `width = workW + fo`、`origin.z = −fo/2`，前緣 `topFrontZ = −workW/2 − fo`；
+狗孔列 / 刨擋 / 前鉗木顎全部**從新前緣量**（`rowZ = topFrontZ + max(離前緣設定, 2Ø+10)`）。
+腳鉗 → 強制 0 出聲；工具槽桌不給（隱藏）。
+
+### AU16. 長板靠板 sliding deadman
+
+前提（缺一就略過並出聲）：前鉗裝在**腳外側**（`fitsOutside`）或腳鉗、有前下橫撐（box-frame / pair-x）、
+`frontOverhang = 0`、沒有抽屜櫃。三件零件：
+
+| 零件 | 尺寸 / 位置 |
+|---|---|
+| `deadman-ridge` 脊條 | 25×25 × 前橫撐長，`chamfered-top` chamferMm 11（圖上兩側 45°，說明寫「刨成 V 脊」），放前橫撐頂 `y = lsTop`、`z = 橫撐前緣 + 12.5` |
+| `deadman-rail` 上軌 | 25×25 × (frameL − 2·leg − 50)，`y = legHeight − 25`、同 z |
+| `deadman-board` 滑板 | 180 寬 × 40 厚 × `boardH = (legHeight − 25) − (lsTop + 25) − 2`，底 `y = lsTop + 26`，`x = 鉗那支腳內面 − sign·120`；Ø19 @100 從 60 到 boardH − 60，孔軸 z |
+
+下層板同時存在時前緣讓 25（`shelfWid −= 25`、`origin.z += 12.5`）給脊條。
+
+### AU17. 桌下抽屜櫃（drawerCount 0~3）
+
+借 `caseFurniture()`（同 desk pedestal），**只有 `drawerMount: "overlay-3"` + `drawerBottomMode: "surface"` + 無滑軌才 0 穿模**——
+inset 無滑軌時抽屜箱比櫃深 3mm、會穿背板（`_probe-cab-m.ts` 實測：inset+gap0 = 14 對；overlay-3 / overlay-6 = 0）。
+
+```
+caseY   = lsTop                                    ← 坐在下橫撐上
+caseTop = min(legHeight − 210, 裙板底 − 5)          ← 210 = holdfast 桿露出 ~8" + 餘裕
+caseH   = caseTop − caseY；< 120 → 不生櫃、出聲
+caseW   = frameL − 2·legSize − 6；caseD = workW − legSize + lsT − 4
+零件 id 前綴 drawer-cab-、x += frameDx、y += caseY
+```
+有抽屜櫃就**不做下層板**（櫃底板已蓋住橫撐，出聲）；抽屜 + 裙板同勾 → 出聲「夾具沒地方夾」。
+
+### AU18. 兩端封邊板 breadboard ends
+
+`breadboardEnds`：桌面長度扣 120，兩片 60 × (workW + fo) × topT 在 `x = ±(L/2 − 30)`、`rotation.y = π/2`（同 simpleTable 端板慣例）。
+只准整片實木桌面（stack / gap / well 不給），**與尾鉗端蓋互斥**（尾鉗優先）。說明寫：只在中央 15cm 上膠、外側銷孔做 ΔW 長孔（AU20）。
+
+### AU19. 雙面教室桌（doubleSided / benchStyle = classroom）
+
+前提：快速前鉗 + 整片桌面。對側那支鉗 `x2 = −viseX`、放**後緣** `z = +workW/2`（`addQuickVise(x, zSign=+1, "vise2-")`，
+木顎 / 本體 / 手把 / 裙板穿孔全部鏡像 z）；後緣一列狗孔從對側鉗往另一端走（`rearRowZ = workW/2 − 離前緣設定`）；
+holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙面桌不放（後緣被佔）。木頭仁教室 1800×900。
+
+### AU20. v2 警告表（全部只出聲，不改使用者的值）
+
+| 條件 | 等級 | 依據 |
+|---|---|---|
+| heightMode = outfeed 且 H > 桌鋸台面 | ERROR 語氣 | 木料尾端被抬起反彈；只能同高或低 1~2 |
+| outfeed 且 H < 台面 − 15 | WARN | 長板下垂卡住 |
+| outfeed 且有前鉗 / 刨擋 / 尾鉗 | WARN | 靠桌鋸那 30cm 前緣不能有凸出物 |
+| heightMode = assembly | 建議 = 身高 × **0.44**（170 → 750），兼餐桌 730；有狗孔提醒塞木塞 | FWW 20–24"、人因專家 |
+| 建議桌高 | 加 `shoeAllowanceMm`；偏離 −60 / +80 出聲，文案「先做高 25mm 用兩週再鋸腳」 | Sellers |
+| 房間 | `L + 900 > roomLengthCm×10` 或 `W + 900 > roomWidthCm×10` → 放不下（走道 90cm） | 玩家 |
+| 腳距 ÷ 桌高（`legSpan = frameL − legSize`） | < 0.95 ERROR「會被推倒」；< 1.05 WARN | Schwarz 6 呎桌 860/850 = 1.01 會晃；預設 980/830 = 1.18 不響 |
+| 深 > 700（非雙面） / < 450 | WARN / 提示 | 搆不到後緣 / 寬板放不平 |
+| 裙板 ≥ 150 且 frontOverhang < 50 | WARN | 4 吋 C 夾夾不到 |
+| 裙板 > 250 | 提示 | 裙板本身是夾持面 |
+| holdfast 且桌面 44~74 | 提示 | 咬得住但易彈出，甜蜜點 75~90 |
+| 非雙面、一列狗孔 > 20 | WARN | Schwarz「孔太多」 |
+| 伸縮 `ΔW = W × S_T/100 × ΔMC/30` | 弦向 S_T（USDA Wood Handbook：櫸 11.9 / 楓 9.9 / 白橡 10.5 / 南方松 7.4 / 松 6.1…）、側立拼 ×0.55（近徑向）、疊層 0；ΔMC 取 6% | 600 寬櫸木 ≈ 14.3 |
+| ΔW > 6 且（封邊板或尾鉗） | WARN | 只膠中央 15cm、外側孔做 ⌈ΔW⌉ 長孔 |
+| ΔW > 10 且腳頂貫穿榫 | **只寫進 notes**（後排榫眼沿深度放寬 ⌈ΔW/2⌉），預設櫸木桌就會中，不當警告 | 反向測試：合理輸入不亂噴 |
+| 可拆桌（knockdown ≠ none）單件 > 25 / > 40 kg | 提示兩人搬 / WARN 樓梯搬不上去；疊層桌面除以層數 | 勞動部 25kg |
+| 南方松 / 松木 | 無防腐、陰乾 2~4 週、別鎖死；側立拼料單 **×1.15**，狗孔列挑無節 | 木匠 |
+| 抽屜 + 裙板、抽屜放不下、尾鉗桌面 < 95、deadman 前提不足、封邊板前提不足 | 各自出聲 | — |
+
+### AU21. 3D 與稽核（v2）
+
+- `scripts/audit-overlaps.ts` 新增 `EXTRA_VARIANTS[category]`：沒有 legShape 的模板也能掃「會長出零件」的選項；
+  變體字串語法 `default+flag` 或 `default+key=value`（數字自動轉型）。工作桌列了 15 個變體（尾鉗 / 靠板 / 抽屜 / 四流派 / 雙面 / 封邊 / 小鉗附件 / 左撇子組合…）。
+- 下層板 `notched-corners` 缺角 silhouette 看不到 → 腳 × 層板 4 對是假警報（同 tea-table），那 4 個變體進 `SHAPE_AWARE_CASES`。
+- Moxon 顎板 140、附件 38 放在桌面上 → `overall.thickness` 要加上去，否則 `audit-floating-parts` 會報。
+- 圓孔一律圓柱塞不 CSG（AU5）；尾鉗槽是矩形 cosmetic through，數量 1，走 CSG 無妨。
 
 ---
 
