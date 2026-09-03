@@ -60,7 +60,6 @@ const FEATURED_TYPES = [
   "open-bookshelf",
   "bed",
   "chest-of-drawers",
-  "media-console",
   "wardrobe",
 ] as const;
 
