@@ -157,7 +157,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             <p className="text-xs text-zinc-500 tracking-widest">
               {isEn ? "WOODEN REN · CARPENTER ACADEMY" : "WOODEN REN · 木頭仁木匠學院"}
             </p>
-            <p className="text-sm text-zinc-700">{isEn ? "Furniture shop drawings" : "家具設計圖紙"}</p>
+            <p className="text-sm text-zinc-700">{isEn ? "Furniture shop drawings" : "家具設計設計圖"}</p>
           </div>
         </header>
 

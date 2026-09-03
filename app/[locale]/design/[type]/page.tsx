@@ -206,7 +206,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     !isThumbShoot &&
     isPaidCategory(type as FurnitureCategory) &&
     !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories);
-  // 記「登入用戶開過哪個付費範本」（給自動信「你上週看的〈款名〉圖紙」用）。
+  // 記「登入用戶開過哪個付費範本」（給自動信「你上週看的〈款名〉設計圖」用）。
   // after()：回應送出後才跑，不佔首屏；失敗吞掉。同人同款 24h 內只記一筆。
   if (previewLocked && user) {
     const viewerId = user.id;

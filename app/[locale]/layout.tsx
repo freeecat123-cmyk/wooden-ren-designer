@@ -51,9 +51,9 @@ const META: Record<
   { title: string; description: string; ogLocale: string; htmlLang: string }
 > = {
   "zh-TW": {
-    title: "木頭仁 木作藍圖 · 自動產出工程圖紙",
+    title: "木頭仁 木作藍圖 · 自動產出工程圖",
     description:
-      "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖紙。木頭仁木匠學院出品。",
+      "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖。木頭仁木匠學院出品。",
     ogLocale: "zh_TW",
     htmlLang: "zh-Hant",
   },
