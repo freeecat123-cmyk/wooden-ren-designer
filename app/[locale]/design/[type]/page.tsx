@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
 import { getTemplate, getEntryName, getEntryDescription , isDevCategory } from "@/lib/templates";
@@ -205,6 +206,29 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     !isThumbShoot &&
     isPaidCategory(type as FurnitureCategory) &&
     !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories);
+  // 記「登入用戶開過哪個付費範本」（給自動信「你上週看的〈款名〉圖紙」用）。
+  // after()：回應送出後才跑，不佔首屏；失敗吞掉。同人同款 24h 內只記一筆。
+  if (previewLocked && user) {
+    const viewerId = user.id;
+    const viewedCategory = type;
+    after(async () => {
+      try {
+        const db = createAdminClient();
+        const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+        const { data: recent } = await db
+          .from("template_views")
+          .select("id")
+          .eq("user_id", viewerId)
+          .eq("category", viewedCategory)
+          .gte("viewed_at", dayAgo)
+          .limit(1);
+        if (recent && recent.length) return;
+        await db.from("template_views").insert({ user_id: viewerId, category: viewedCategory });
+      } catch (e) {
+        console.warn("[template_views] record failed (ignored)", e instanceof Error ? e.message : e);
+      }
+    });
+  }
   // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
   // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
   // 不小心讓非付費 user 繞過尺寸上限。

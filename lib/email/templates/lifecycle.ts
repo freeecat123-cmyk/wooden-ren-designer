@@ -9,6 +9,12 @@
  *   reengage_1 舊免費用戶回訪第 1 封
  *   reengage_2 舊免費用戶回訪第 2 封（第 1 封後 7 天）
  *   winback   訂閱到期 / 取消超過 14 天的回流信
+ *
+ * 2026-09-03 晚加三封（規則見 lifecycle-rules.ts）：
+ *   post_purchase_photo 買（付款成功 / 單範本買斷 / 工具買斷）滿 7 天要照片
+ *   checkout_abandoned  走到結帳沒付款 24～72h 追一封（vars.link）
+ *   viewed_template     看過付費範本 3～10 天沒買（vars.category / label / hint / price；
+ *                       dedup key 存成 viewed_template_<category>，每人只寄一款）
  */
 import { escapeHtml } from "../escape";
 
@@ -18,7 +24,23 @@ export type LifecycleEmailKey =
   | "new_d7"
   | "reengage_1"
   | "reengage_2"
-  | "winback";
+  | "winback"
+  | "post_purchase_photo"
+  | "checkout_abandoned"
+  | "viewed_template";
+
+/** 寫進 lifecycle_emails.email_key 的字串：viewed_template 帶款名後綴。 */
+export type LifecycleSendKey = LifecycleEmailKey | `viewed_template_${string}`;
+
+export const VIEWED_TEMPLATE_PREFIX = "viewed_template_";
+
+/** "viewed_template_wardrobe" → { key:"viewed_template", category:"wardrobe" }；其他原樣回。 */
+export function parseSendKey(sendKey: LifecycleSendKey): { key: LifecycleEmailKey; category?: string } {
+  if (sendKey.startsWith(VIEWED_TEMPLATE_PREFIX) && sendKey !== "viewed_template") {
+    return { key: "viewed_template", category: sendKey.slice(VIEWED_TEMPLATE_PREFIX.length) };
+  }
+  return { key: sendKey as LifecycleEmailKey };
+}
 
 export const LIFECYCLE_EMAIL_KEYS: LifecycleEmailKey[] = [
   "new_d1",
@@ -27,7 +49,21 @@ export const LIFECYCLE_EMAIL_KEYS: LifecycleEmailKey[] = [
   "reengage_1",
   "reengage_2",
   "winback",
+  "post_purchase_photo",
+  "checkout_abandoned",
+  "viewed_template",
 ];
+
+/** 動態內容（依 key 需要不同欄位；沒給就用保守預設） */
+export interface LifecycleVars {
+  /** checkout_abandoned：帶他要買的那頁（範本頁 / 工具頁 / pricing） */
+  link?: string;
+  /** viewed_template */
+  category?: string;
+  label?: string;
+  hint?: string;
+  price?: number | null;
+}
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
@@ -80,7 +116,7 @@ https://designer.woodenren.com/design/stool
     subject: "把你家的尺寸放進去看看",
     body: `大部分人來這裡是有一個具體的東西想做：鞋櫃、衣櫃、書桌、餐桌。
 
-全部 26 個範本不用付費就能點進去看：3D、三視圖、榫卯、材料單都會顯示，
+其他所有範本不用付費就能點進去看：3D、三視圖、榫卯、材料單都會顯示，
 但尺寸是鎖在範例值的，改不了。要改成你家的尺寸、列印出來，才要付費或買斷。
 
 先挑一個最接近你要做的：
@@ -120,7 +156,7 @@ https://designer.woodenren.com/design/stool
 1. 3D 組裝動畫。每一件家具現在可以一步一步看它怎麼組起來，
    哪支榫先進、抽屜什麼時候裝，還可以輸出成影片。
    （組完會有一隻鴨子跳上去，那是我女兒畫的。）
-2. 三視圖和零件圖重新校過一遍，26 款全部實際畫出來對過。
+2. 三視圖和零件圖重新校過一遍，每一款都實際畫出來對過。
 3. 手機也能看 3D 了。
 4. 不想訂閱的，每個範本可以單獨買斷，299 或 499 元永久用。
 
@@ -153,7 +189,7 @@ https://designer.woodenren.com/templates/round-table
 沒關係，我想讓你知道這段時間改了什麼，再決定要不要回來：
 
 - 3D 組裝動畫 + 影片輸出，每件家具的組裝順序都能看
-- 26 款三視圖、零件圖全部重新對過
+- 每一款的三視圖、零件圖全部重新對過
 - 手機可以看 3D
 - 天花板骨架、地板、和室架高平台三個工具
 
@@ -168,14 +204,63 @@ https://designer.woodenren.com/pricing
 
 木頭仁`,
   },
+  post_purchase_photo: {
+    subject: "做出來了嗎？",
+    body: `你一週前在木作藍圖拿了圖紙，我想問一下：那件做出來了嗎？
+
+做好的話拍一張回這封信給我，正面一張就好，不用修圖。
+我想把它放在那款範本頁，給後面想做同一件的人看真的做出來長什麼樣子。
+放之前我會先問過你，你不想露出就只我自己看。
+
+做到一半卡住也回信，卡在哪一步、哪個零件，我看圖回你。
+
+木頭仁`,
+  },
+  checkout_abandoned: {
+    subject: "付款那一頁沒走完",
+    body: `我看到你前兩天走到木作藍圖的付款頁，沒有完成。
+
+如果是付款卡住（刷不過、頁面跳掉、看不懂要填什麼），回這封信告訴我卡在哪一步，我來處理。
+
+如果只是還在想，不急。你那時看的那頁在這裡：
+{{LINK}}
+
+木頭仁`,
+  },
+  viewed_template: {
+    subject: "你上週看的{{LABEL}}圖紙",
+    body: `你上週在木作藍圖開過{{LABEL}}的圖紙，我猜你有在想要不要做。
+{{HINT}}
+那一頁在這：
+{{LINK}}
+
+尺寸鎖在範例值改不了，是免費版的限制。
+只想做這一件的話，這款可以單獨買斷{{PRICE}}，永久是你的，尺寸隨便改、隨便印。
+
+做之前有哪個尺寸拿不定主意，回信問我。
+
+木頭仁`,
+  },
 };
 
 export function lifecycleEmail(
   key: LifecycleEmailKey,
-  input: { name?: string | null },
+  input: { name?: string | null; vars?: LifecycleVars },
 ): { subject: string; text: string; html: string } {
   const greeting = input.name?.trim() ? input.name.trim() : "你好";
-  const { subject, body } = BODIES[key];
+  const v = input.vars ?? {};
+  const label = v.label?.trim() || "那款";
+  const link =
+    v.link?.trim() ||
+    (v.category ? `${SITE_URL}/design/${v.category}` : `${SITE_URL}/pricing`);
+  const hint = v.hint?.trim() ? `\n${v.hint.trim().replace(/[。.]?$/, "")}。\n` : "";
+  const price = typeof v.price === "number" && v.price > 0 ? `，${v.price} 元` : "";
+  const subject = BODIES[key].subject.replace("{{LABEL}}", label);
+  const body = BODIES[key].body
+    .replace(/\{\{LABEL\}\}/g, label)
+    .replace("{{LINK}}", link)
+    .replace("{{HINT}}", hint)
+    .replace("{{PRICE}}", price);
   const text = `${greeting}，\n\n${body}`;
   const html = htmlShell(subject, textToHtml(text));
   return { subject, text, html };

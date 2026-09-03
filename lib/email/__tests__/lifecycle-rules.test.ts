@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { pickLifecycleEmail, type LifecycleContext, type LifecycleUser } from "../lifecycle-rules";
-import { lifecycleEmail, LIFECYCLE_EMAIL_KEYS } from "../templates/lifecycle";
+import { lifecycleEmail, LIFECYCLE_EMAIL_KEYS, parseSendKey } from "../templates/lifecycle";
 
 const DAY = 86_400_000;
 const LAUNCH = "2026-09-03T00:00:00+08:00";
@@ -150,5 +150,139 @@ describe("lifecycleEmail 模板", () => {
     const m = lifecycleEmail("new_d1", { name: "  " });
     expect(m.text.startsWith("你好，")).toBe(true);
     expect(m.html).toContain('href="https://designer.woodenren.com/design/stool"');
+  });
+});
+
+// ── 2026-09-03 晚加的三類 ─────────────────────────────────────────────────────
+describe("post_purchase_photo — 買後 7 天要照片", () => {
+  const now = launchMs + 30 * DAY;
+  it("買滿 7 天 → 寄，且不看 plan（pro 也寄）", () => {
+    expect(
+      pickLifecycleEmail(user({ plan: "pro", subscription_status: "active" }), ctx({ now, lastPurchaseAt: iso(now - 7 * DAY) })),
+    ).toBe("post_purchase_photo");
+    expect(pickLifecycleEmail(user(), ctx({ now, lastPurchaseAt: iso(now - 6 * DAY) }))).toBe("post_purchase_photo");
+    expect(pickLifecycleEmail(user(), ctx({ now, lastPurchaseAt: iso(now - 8 * DAY) }))).toBe("post_purchase_photo");
+  });
+  it("窗外不寄（5 天 / 9 天）", () => {
+    expect(pickLifecycleEmail(user({ plan: "pro" }), ctx({ now, lastPurchaseAt: iso(now - 5 * DAY) }))).toBeNull();
+    expect(pickLifecycleEmail(user({ plan: "pro" }), ctx({ now, lastPurchaseAt: iso(now - 9 * DAY) }))).toBeNull();
+  });
+  it("寄過不再寄；沒買過不寄", () => {
+    expect(
+      pickLifecycleEmail(user({ plan: "pro" }), ctx({ now, lastPurchaseAt: iso(now - 7 * DAY), sent: { post_purchase_photo: "x" } })),
+    ).toBeNull();
+    expect(pickLifecycleEmail(user({ plan: "pro" }), ctx({ now, lastPurchaseAt: null }))).toBeNull();
+  });
+  it("優先於其他信（同時符合 reengage_1 也先寄照片信）", () => {
+    expect(
+      pickLifecycleEmail(user({ created_at: iso(launchMs - 30 * DAY) }), ctx({ now, lastPurchaseAt: iso(now - 7 * DAY) })),
+    ).toBe("post_purchase_photo");
+  });
+});
+
+describe("checkout_abandoned — 結帳沒付", () => {
+  const now = launchMs + 30 * DAY;
+  const HOUR = 3_600_000;
+  // 用 LAUNCH 後註冊但還不到 24h 的人，避免撞 new_d1；或直接 sent 掉舊信
+  const base = () => user({ created_at: iso(launchMs + 1 * DAY) });
+  const sentOld = { new_d1: "x", new_d3: "x", new_d7: "x" } as const;
+  it("pending 24～72h 前、之後沒買 → 寄", () => {
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: sentOld, lastPendingCheckoutAt: iso(now - 30 * HOUR) }))).toBe("checkout_abandoned");
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: sentOld, lastPendingCheckoutAt: iso(now - 71 * HOUR) }))).toBe("checkout_abandoned");
+  });
+  it("太新（12h）或太舊（80h）不寄", () => {
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: sentOld, lastPendingCheckoutAt: iso(now - 12 * HOUR) }))).toBeNull();
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: sentOld, lastPendingCheckoutAt: iso(now - 80 * HOUR) }))).toBeNull();
+  });
+  it("pending 之後有買（成功付款 / 買斷）→ 不寄；買在 pending 之前 → 照寄", () => {
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: { ...sentOld, post_purchase_photo: "x" }, lastPendingCheckoutAt: iso(now - 30 * HOUR), lastPurchaseAt: iso(now - 20 * HOUR) })),
+    ).toBeNull();
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: sentOld, lastPendingCheckoutAt: iso(now - 30 * HOUR), lastPurchaseAt: iso(now - 20 * DAY) })),
+    ).toBe("checkout_abandoned");
+  });
+  it("非 free / active / 寄過 → 不寄", () => {
+    expect(pickLifecycleEmail(user({ plan: "personal" }), ctx({ now, lastPendingCheckoutAt: iso(now - 30 * HOUR) }))).toBeNull();
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: { ...sentOld, checkout_abandoned: "x" }, lastPendingCheckoutAt: iso(now - 30 * HOUR) }))).toBeNull();
+  });
+  it("排在新註冊三封之前", () => {
+    expect(pickLifecycleEmail(base(), ctx({ now, lastPendingCheckoutAt: iso(now - 30 * HOUR) }))).toBe("checkout_abandoned");
+  });
+});
+
+describe("viewed_template_<c> — 看過付費範本沒買", () => {
+  const now = launchMs + 30 * DAY;
+  const sentOld = { new_d1: iso(now - 20 * DAY), new_d3: iso(now - 20 * DAY), new_d7: iso(now - 20 * DAY) } as const;
+  const base = () => user({ created_at: iso(launchMs + 1 * DAY) });
+  it("3～10 天前看過、沒買 → viewed_template_<category>，挑最近的那款", () => {
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: sentOld, templateViews: [
+        { category: "wardrobe", viewedAt: iso(now - 8 * DAY) },
+        { category: "shoe-cabinet", viewedAt: iso(now - 4 * DAY) },
+      ] })),
+    ).toBe("viewed_template_shoe-cabinet");
+  });
+  it("窗外（2 天 / 11 天）不寄", () => {
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: sentOld, templateViews: [{ category: "wardrobe", viewedAt: iso(now - 2 * DAY) }] }))).toBeNull();
+    expect(pickLifecycleEmail(base(), ctx({ now, sent: sentOld, templateViews: [{ category: "wardrobe", viewedAt: iso(now - 11 * DAY) }] }))).toBeNull();
+  });
+  it("那款已買斷 → 跳過它挑別款；全買斷 → 不寄", () => {
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: sentOld, unlockedCategories: ["shoe-cabinet"], templateViews: [
+        { category: "wardrobe", viewedAt: iso(now - 8 * DAY) },
+        { category: "shoe-cabinet", viewedAt: iso(now - 4 * DAY) },
+      ] })),
+    ).toBe("viewed_template_wardrobe");
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: sentOld, unlockedCategories: ["wardrobe"], templateViews: [{ category: "wardrobe", viewedAt: iso(now - 5 * DAY) }] })),
+    ).toBeNull();
+  });
+  it("每人只寄一款：收過任何 viewed_template_* 就不再寄", () => {
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: { ...sentOld, ["viewed_template_desk"]: iso(now - 15 * DAY) }, templateViews: [{ category: "wardrobe", viewedAt: iso(now - 5 * DAY) }] })),
+    ).toBeNull();
+  });
+  it("3 天內剛收過別封 → 這輪不寄（補位不轟炸）", () => {
+    expect(
+      pickLifecycleEmail(base(), ctx({ now, sent: { ...sentOld, new_d7: iso(now - 1 * DAY) }, templateViews: [{ category: "wardrobe", viewedAt: iso(now - 5 * DAY) }] })),
+    ).toBeNull();
+  });
+  it("排在舊六封之後（同時符合 new_d3 先寄 new_d3）", () => {
+    expect(
+      pickLifecycleEmail(user({ created_at: iso(now - 4 * DAY) }), ctx({ now, sent: { new_d1: iso(now - 3 * DAY) }, templateViews: [{ category: "wardrobe", viewedAt: iso(now - 3.5 * DAY) }] })),
+    ).toBe("new_d3");
+  });
+  it("非 free 不寄", () => {
+    expect(pickLifecycleEmail(user({ plan: "personal" }), ctx({ now, templateViews: [{ category: "wardrobe", viewedAt: iso(now - 5 * DAY) }] }))).toBeNull();
+  });
+});
+
+describe("新三封的模板", () => {
+  it("parseSendKey 拆得出款名", () => {
+    expect(parseSendKey("viewed_template_shoe-cabinet")).toEqual({ key: "viewed_template", category: "shoe-cabinet" });
+    expect(parseSendKey("winback")).toEqual({ key: "winback" });
+  });
+  it("viewed_template 帶款名 / 連結 / 提示 / 價格", () => {
+    const m = lifecycleEmail("viewed_template", { name: "阿仁", vars: { category: "wardrobe", label: "衣櫃", hint: "吊衣桿深度 55 公分起", price: 499, link: "https://designer.woodenren.com/design/wardrobe" } });
+    expect(m.subject).toBe("你上週看的衣櫃圖紙");
+    expect(m.text).toContain("開過衣櫃的圖紙");
+    expect(m.text).toContain("吊衣桿深度 55 公分起。");
+    expect(m.text).toContain("買斷，499 元");
+    expect(m.html).toContain('href="https://designer.woodenren.com/design/wardrobe"');
+    expect(m.text).not.toMatch(/\{\{/);
+  });
+  it("viewed_template 沒 hint / 沒價格也不留佔位符", () => {
+    const m = lifecycleEmail("viewed_template", { name: null, vars: { category: "bed", label: "床架" } });
+    expect(m.text).not.toMatch(/\{\{/);
+    expect(m.text).toContain("可以單獨買斷，永久是你的");
+    expect(m.text).toContain("https://designer.woodenren.com/design/bed");
+  });
+  it("checkout_abandoned 帶 link；沒 link 退 pricing", () => {
+    expect(lifecycleEmail("checkout_abandoned", { vars: { link: "https://designer.woodenren.com/design/desk" } }).text).toContain("https://designer.woodenren.com/design/desk");
+    expect(lifecycleEmail("checkout_abandoned", {}).text).toContain("https://designer.woodenren.com/pricing");
+  });
+  it("post_purchase_photo 主旨固定", () => {
+    expect(lifecycleEmail("post_purchase_photo", {}).subject).toBe("做出來了嗎？");
   });
 });

@@ -2589,6 +2589,13 @@
     "fitForNotFor": "Not for",
     "paramsH2": "Parameters you can adjust",
     "paramsSubtitle": "The algorithm auto-computes dimensions, joinery, and material usage.",
+    "sizingH2": "{name} common dimensions",
+    "sizingSubtitle": "These numbers come straight from this template's adjustable ranges and defaults, so they update whenever the template does.",
+    "sizingColDimension": "Dimension",
+    "sizingColRange": "Adjustable range",
+    "sizingColDefault": "Template default",
+    "sizingNotesH3": "How to pick your sizes",
+    "sizingFootnote": "Main dimensions list only the upper bound: the template has no meaningful lower limit. Values in mm with cm in brackets.",
     "outputsH2": "Enter sizes, get everything",
     "outputsSubtitle": "Six deliverables in one pass — print A4 and walk into the shop.",
     "outputs": [

@@ -15,6 +15,7 @@ import {
 import { getHighlights } from "@/lib/templates/highlights";
 import { getGallery } from "@/lib/templates/gallery";
 import { ShareButtons } from "@/components/ShareButtons";
+import { TemplateSizingSection } from "@/components/TemplateSizingSection";
 import { getUnlockPrice } from "@/lib/pricing/template-unlock";
 import type { FurnitureCategory } from "@/lib/types";
 import { routing } from "@/i18n/routing";
@@ -425,6 +426,21 @@ export default async function TemplateDetail({ params }: PageProps) {
           ))}
         </div>
       </section>
+
+      {/* ============ 常見尺寸（數字來自範本程式常數，2026-09-04） ============ */}
+      <TemplateSizingSection
+        entry={entry}
+        locale={locale}
+        labels={{
+          h2: t("sizingH2", { name: entryName }),
+          subtitle: t("sizingSubtitle"),
+          colDimension: t("sizingColDimension"),
+          colRange: t("sizingColRange"),
+          colDefault: t("sizingColDefault"),
+          notesH3: t("sizingNotesH3"),
+          footnote: t("sizingFootnote"),
+        }}
+      />
 
       {/* ============ 自動產出 ============ */}
       <section className="bg-gradient-to-b from-white to-amber-50/30 border-y border-amber-100">
