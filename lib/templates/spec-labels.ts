@@ -830,6 +830,43 @@ export const SPEC_HELP_EN: Record<string, string> = {
   rightDoorCols: "Only applies to the door type; splits the column into N separate compartments.",
   centerShelvesCols: "Only applies to open shelving; splits the column into N sub-columns side by side.",
   rightShelvesCols: "Only applies to open shelving; splits the column into N sub-columns side by side.",
+
+  // 椅背：Windsor 車旋圓料系列
+  endSplat: "Adds backrest stock along the back of the long edge, so there is something to lean against.",
+  windsorSpindleCount: "Number of turned spindles in the middle (the two side posts are not counted).",
+  windsorPostD: "Diameter of the two thicker turned side posts.",
+  windsorSpindleD: "Diameter of the slimmer spindles in the middle.",
+  windsorRakeDeg: "How far the whole backrest (spindles + posts + bow) leans back at the top. 0° = upright; 5–10° gives the gentle recline of a classic armchair.",
+  windsorBowBendMm: "Maximum backward curve at the centre of the top rail (bow); 0 = straight.",
+  windsorTopRailH: "Height of the top rail (bow) — the width you see from the front.",
+  windsorTopRailT: "Thickness of the top rail (bow) — the depth you see from the side.",
+  windsorBackInset: "How far the whole backrest (spindles + posts + top rail) sits forward of the seat’s back edge; 0 = flush.",
+  windsorEndInset: "How far the backrest is pulled in at each end (outer face of the posts and both ends of the bow); 0 = flush with the seat ends.",
+  windsorHeight: "Total height from the top of the seat to the top of the bow. 350 is a standard back, 450–500 an armchair back, 600+ a high back.",
+
+  // 椅背：直料 / 橫格條系列
+  slatSize: "Square stock section — both width and thickness use this value.",
+  topRailSize: "Height of the top rail; thickness is set to 25mm automatically.",
+  slatBackInset: "Distance from the back of the slats to the seat’s back edge; 0 = flush.",
+  slatEndInset: "How far the slats are pulled in at each end (the top rail still spans the full long edge); 0 = flush with the seat ends.",
+  topRailBendMm: "Maximum backward curve at the centre of the top rail, so it follows the curve of the lower back. 0 = straight.",
+  ladderRailH: "Height of each ladder rail — the width you see from the front.",
+  ladderRailT: "Thickness of each ladder rail — the depth you see from the side.",
+  ladderRailGap: "Gap between neighbouring rails; rails stack downwards from the top rail.",
+  ladderRailBendMm: "Maximum backward curve at the centre of each ladder rail, following the curve of the lower back. 0 = straight.",
+
+  // 桌子：摺板 / 棚條 / 抽屜
+  dropLeaf: "Adds a folding leaf on the long edge of the top using butterfly hinges. Takes 1.5\" steel butterfly hinges.",
+  hasLowerShelf: "Turn off to keep only the lower stretchers.",
+  shelfOrientation: "Changes which way the shelf slats run. Default is along the length; switching to width rotates the whole shelf 90°.",
+  shelfSlatWidth: "Width of each shelf slat. The wider they are, the fewer you need.",
+  shelfSlatEdge: "Chamfer on all 4 long edges of the slats; 0 = none; 3–5 is a fine break; 8 and up gives a clearly octagonal section.",
+  withDrawer: "A drawer at the front, hung under the front apron.",
+  drawerHeight: "Height of the drawer front (not counting the 20mm rail below it); apron height = drawer height + 20.",
+  drawerDepth: "0 = automatic (table width − 80).",
+  drawerFaceOffset: "0 = flush with the front; positive = the front proud; negative = the front set back.",
+  drawerSlideType: "Ball-bearing slides: 12.5mm clearance each side of the drawer. No slides: 1mm loose fit each side.",
+  withSlatRack: "Adds slats between the front and back lower stretchers to make a storage shelf.",
 };
 
 /**
