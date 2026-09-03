@@ -206,7 +206,7 @@ https://designer.woodenren.com/pricing
   },
   post_purchase_photo: {
     subject: "做出來了嗎？",
-    body: `你一週前在木作藍圖拿了圖紙，我想問一下：那件做出來了嗎？
+    body: `你一週前在木作藍圖拿了設計圖，我想問一下：那件做出來了嗎？
 
 做好的話拍一張回這封信給我，正面一張就好，不用修圖。
 我想把它放在那款範本頁，給後面想做同一件的人看真的做出來長什麼樣子。
@@ -228,8 +228,8 @@ https://designer.woodenren.com/pricing
 木頭仁`,
   },
   viewed_template: {
-    subject: "你上週看的{{LABEL}}圖紙",
-    body: `你上週在木作藍圖開過{{LABEL}}的圖紙，我猜你有在想要不要做。
+    subject: "你上週看的{{LABEL}}設計圖",
+    body: `你上週在木作藍圖開過{{LABEL}}的設計圖，我猜你有在想要不要做。
 {{HINT}}
 那一頁在這：
 {{LINK}}

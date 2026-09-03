@@ -265,8 +265,8 @@ describe("新三封的模板", () => {
   });
   it("viewed_template 帶款名 / 連結 / 提示 / 價格", () => {
     const m = lifecycleEmail("viewed_template", { name: "阿仁", vars: { category: "wardrobe", label: "衣櫃", hint: "吊衣桿深度 55 公分起", price: 499, link: "https://designer.woodenren.com/design/wardrobe" } });
-    expect(m.subject).toBe("你上週看的衣櫃圖紙");
-    expect(m.text).toContain("開過衣櫃的圖紙");
+    expect(m.subject).toBe("你上週看的衣櫃設計圖");
+    expect(m.text).toContain("開過衣櫃的設計圖");
     expect(m.text).toContain("吊衣桿深度 55 公分起。");
     expect(m.text).toContain("買斷，499 元");
     expect(m.html).toContain('href="https://designer.woodenren.com/design/wardrobe"');
