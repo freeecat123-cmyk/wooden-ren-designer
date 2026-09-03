@@ -129,7 +129,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     nameEn: "Industrial",
     labelEn: "Industrial",
     visualHint: "厚實粗料 60mm、松木/道格拉斯杉、直角無倒邊、無牙條（鐵腳模擬）、極簡椅背",
-    materials: ["pine", "douglas-fir", "white-oak"],
+    materials: ["pine", "southern-pine", "douglas-fir", "white-oak"],
     legShape: "box",
     legSizeMm: 60, // 粗腳
     legEdgeMm: 0,
@@ -169,7 +169,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     nameEn: "American Craft (Farmhouse / Mission / Windsor)",
     labelEn: "American Craft",
     visualHint: "厚粗料 55mm 直方腳、松木 / 橡木深色、X 形下橫撐、寬牙條 85mm、座面平",
-    materials: ["pine", "white-oak", "douglas-fir"],
+    materials: ["pine", "southern-pine", "white-oak", "douglas-fir"],
     legShape: "box",
     legSizeMm: 55,
     legEdgeMm: 0,

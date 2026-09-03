@@ -730,6 +730,7 @@ export const workbench: FurnitureTemplate = (input) => {
     .reduce((s, p) => s + (p.visible.length * p.visible.width * p.visible.thickness) / 1e9 * density, 0);
   if (massKg < 40) warnings.push(isEn ? `Estimated weight ${Math.round(massKg)}kg — a bench this light slides when you plane. Thicker top / bigger legs / under-shelf add mass.` : `估算重量約 ${Math.round(massKg)}kg，這麼輕的桌子一刨就滑；桌面加厚、腳加粗或加下層板都能增重（建議 ≥70kg）。`);
   else if (massKg < 70) warnings.push(isEn ? `Estimated weight ${Math.round(massKg)}kg; ≥70kg feels planted (Schwarz 250 lb, 木頭仁 ≥80kg).` : `估算重量約 ${Math.round(massKg)}kg，≥70kg 才不會被推著走（木頭仁教室規格整台 ≥80kg）。`);
+  if (input.material === "southern-pine") warnings.push(isEn ? "Southern pine: buy UNTREATED stock — pressure-treated wood must not be a planing / working surface. Stave the top on edge (2×4s stood up) for a 89mm-thick top." : "南方松請買「無防腐」的：架上防腐材的藥劑不能當刨削面。桌面用 2×4 側立拼（立起來就是 89mm 厚），腳用兩支 2×4 對紋膠合。");
   if (W >= 800) warnings.push(isEn ? `Depth ${W}mm will not fit through a standard door — consider the bolt-together option.` : `桌深 ${W}mm 一般房門推不出去（門寬 −7cm 才過得了），建議選螺栓可拆。`);
   if (L >= 2000 && !withApron && lowerStretcherArrangement !== "h-frame") warnings.push(isEn ? "Over 2m long without an apron: use the H-frame stretcher layout (long center rail) so the base cannot rack lengthwise." : "桌長超過 2m 又沒裙板：下橫撐請用 H 形（中央長撐）擋住長向扭動。");
 

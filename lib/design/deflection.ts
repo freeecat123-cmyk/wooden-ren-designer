@@ -21,6 +21,7 @@ const ELASTIC_MODULUS_MPA: Record<string, number> = {
   ash: 12000,
   beech: 14000,
   pine: 9500,
+  "southern-pine": 12000, // Wood Database loblolly ≈ 12.3 GPa
   "blockboard-primary": 6500,
   "plywood-primary": 8000,
   "mdf-primary": 3700,

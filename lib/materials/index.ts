@@ -196,6 +196,22 @@ export const MATERIALS: Record<MaterialId, MaterialSpec> = {
       styles: ["industrial", "nordic"],
     },
   },
+  "southern-pine": {
+    id: "southern-pine",
+    nameZh: "南方松",
+    nameEn: "Southern yellow pine",
+    // Wood Database：loblolly/shortleaf 平均乾密度 ~570 kg/m³、Janka 690~870 lbf ≈ 3,100~3,900 N
+    density: 570,
+    hardness: 3400,
+    color: "#e2c48c",
+    notes: "台灣最容易買的結構材（2×4 約 3.8×8.9cm、12 呎約 NT$300~420）。架上多是防腐材，防腐藥劑不能當刨削面 / 餐桌面，做工作桌、家具要買無防腐款；比一般松木硬、油脂多",
+    notesEn: "Taiwan's cheapest structural stock (2×4 ≈ 38×89mm, ~NT$300–420 per 12ft). Most shelf stock is pressure-treated — never use treated wood for a planing or dining surface; buy untreated for benches and furniture. Harder and more resinous than white pine",
+    attrs: {
+      hardness5: 2, workability: 4, durability: 3, aroma: 2, ecoScore: 4, affordability: 5,
+      outdoor: true, cites: null, oilyHardToGlue: false,
+      styles: ["industrial", "american-craft", "nordic"],
+    },
+  },
   // —— 板材類（裝潢用）—— hardness 設低，不觸發硬木工具/粗砂紙建議
   "blockboard-primary": {
     id: "blockboard-primary",

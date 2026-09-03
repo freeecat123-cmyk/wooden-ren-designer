@@ -85,7 +85,7 @@ const COLOR_HIDDEN = COLOR.HIDDEN;
 function pickDovetailAngle(materialId?: import("@/lib/types").MaterialId): string {
   if (!materialId) return "1:8 硬木標準";
   // 跟 lib/materials/index.ts 同步維護的軟木清單（density < 600）
-  const SOFTWOODS = new Set(["taiwan-cypress", "douglas-fir", "pine", "spruce", "cedar"]);
+  const SOFTWOODS = new Set(["taiwan-cypress", "douglas-fir", "pine", "southern-pine", "spruce", "cedar"]);
   if (SOFTWOODS.has(materialId)) return "1:6 軟木標準";
   return "1:8 硬木標準";
 }
@@ -9843,7 +9843,7 @@ function pickPilotHoleRule(materialId?: import("@/lib/types").MaterialId): {
   ratioLabel: string;
   hardness: "軟木" | "硬木";
 } {
-  const SOFTWOODS = new Set(["taiwan-cypress", "douglas-fir", "pine", "spruce", "cedar"]);
+  const SOFTWOODS = new Set(["taiwan-cypress", "douglas-fir", "pine", "southern-pine", "spruce", "cedar"]);
   if (materialId && SOFTWOODS.has(materialId)) {
     return { ratio: 0.7, ratioLabel: "70%", hardness: "軟木" };
   }

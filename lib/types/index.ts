@@ -182,6 +182,7 @@ export type MaterialId =
   | "ash"
   | "beech"
   | "pine"
+  | "southern-pine"
   // 板材（裝潢常用）— 跟 SheetGood 重疊但這裡作為「主材質」用
   | "blockboard-primary"
   | "plywood-primary"
