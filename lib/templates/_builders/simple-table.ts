@@ -151,6 +151,9 @@ export interface SimpleTableOpts {
   /** 腳頂榫頭兩側肩額外加厚（mm）。餐桌等承重大、桌面端頭沿 X 順紋方向有開裂風險，
    *  傳 5+ 讓榫寬縮成 legSize - 2*(SHOULDER + extra)，外側肩變厚。預設 0（沿用標準 5mm 肩）。 */
   legTopShoulderExtraMm?: number;
+  /** 腳頂榫頭改**貫穿**桌面（Roubo 工作桌：榫頭端面露在桌面上）。
+   *  undefined/false = 既有行為（autoTenonType：桌面 >25mm 一律盲榫）。 */
+  legTopThroughTenon?: boolean;
   notes?: string;
 }
 
@@ -297,7 +300,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     : (apronBottomShoulder > 0 ? apronBottomShoulder / 2 : 0);
   // 腳頂榫：用 standardTenon 出 thickness=legSize/3、width=legSize-10（4 邊各 5mm 肩）
   // 比舊版 legSize * 2/3 細，避免側視圖看到 1/2 寬度的厚榫。跟 square-stool 同規則。
-  const legTopTenonType = autoTenonType(topThickness);
+  const legTopTenonType = opts.legTopThroughTenon ? "through-tenon" : autoTenonType(topThickness);
   const legTopShoulderExtra = Math.max(0, opts.legTopShoulderExtraMm ?? 0);
   const legTopStd = standardTenon({
     type: legTopTenonType,

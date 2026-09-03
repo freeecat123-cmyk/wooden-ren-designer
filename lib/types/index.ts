@@ -29,6 +29,7 @@ export type FurnitureCategory =
   | "round-tea-table"
   | "round-table"
   | "bed"
+  | "workbench"
   // 小物件 (accessories)
   | "pencil-holder"
   | "bookend"
@@ -609,7 +610,9 @@ export type OptionGroup =
   // 三欄櫃體：左中右
   | "col-left"
   | "col-mid"
-  | "col-right";
+  | "col-right"
+  // 木工工作桌：工件固定（前鉗 / 狗孔 / holdfast / 刨擋）
+  | "workholding";
 
 /** Only show this option when the referenced option has a matching value. */
 export interface OptionDependency {

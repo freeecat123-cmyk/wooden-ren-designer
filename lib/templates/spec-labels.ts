@@ -18,6 +18,28 @@
 import type { OptionSpec } from "@/lib/types";
 
 export const SPEC_LABEL_EN: Record<string, string> = {
+  // === workbench（木工工作桌） ===
+  benchStyle: "Workbench style",
+  heightMode: "Height purpose (suggestion only)",
+  userHeightCm: "Your height",
+  topBuild: "Top construction",
+  topLayers: "Layers",
+  topSplit: "Top split",
+  gapWidth: "Gap width",
+  wellWidth: "Tool well width",
+  wellDepth: "Tool well depth",
+  endOverhang: "End overhang (leg-to-end)",
+  legTopJoint: "Leg-to-top joint",
+  frontVise: "Front vise",
+  frontViseSize: "Vise width",
+  viseSide: "Vise end",
+  dogHoles: "Dog holes",
+  dogHoleDia: "Hole diameter",
+  dogHolePitch: "Hole pitch",
+  dogHoleFrontOffset: "Distance from front edge",
+  holdfastHoles: "Holdfast holes (rear row, staggered)",
+  planingStop: "Planing stop (64mm post through the top)",
+  knockdown: "Knockdown",
   // === Legs ===
   legShape: "Leg shape",
   legSize: "Leg size",
@@ -558,6 +580,24 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  * Missing → falls back to spec.help (zh).
  */
 export const SPEC_HELP_EN: Record<string, string> = {
+  // === workbench ===
+  benchStyle: "Applies a whole set of defaults once; fields you already changed are kept. Set length / depth / height above yourself (thick-top style: 1800×600×850 suggested).",
+  heightMode: "Computes a suggested bench height from your height and writes it into the notes / warnings. It never changes the height you set.",
+  userHeightCm: "Taiwan median: men ~170cm, women ~160cm. Only used for the height suggestion.",
+  topThickness: "Hand-tool benches want ≥75mm; holdfasts bite in tops 44–89mm; ≥90 triggers a counterbore reminder.",
+  topBuild: "Only changes how the material list and cut plan split the top; the 3D looks the same.",
+  topLayers: "Layer thickness = top thickness ÷ layers (18mm birch ply × 3 ≈ 54).",
+  gapWidth: "Wide enough for an F-clamp head; the stop strip sits flush and can be flipped to act as a planing stop.",
+  wellWidth: "Taken out of the depth; the legs sit only under the working surface.",
+  wellDepth: "Well floor is 18mm; depth cannot exceed top thickness − 10 (the floor screws to the back edge of the top).",
+  endOverhang: "0 = automatic = length ÷ 5 (Roubo's proportion). Enough overhang lets the vise mount outboard of the leg.",
+  frontVise: "A cast-iron quick-release vise is easy to buy; a leg vise grips wide boards best but the screw must be made or imported.",
+  frontViseSize: "The front edge needs ≥60mm of wood; a spacer block is added automatically if not.",
+  dogHolePitch: "Must be less than the vise travel (any quick-release vise opening 260mm+ is fine).",
+  dogHoleFrontOffset: "Schwarz 2–4\"; too close to the edge splits along the grain.",
+  holdfastHoles: "Same bit as the dog holes, zero extra cost; one holdfast replaces three F-clamps. Cancelled automatically if the top is under 44mm.",
+  planingStop: "A square post through the top at the front-left; tap it up and it is a planing stop. Needs a top ≥75mm to hold by friction.",
+  knockdown: "Knockdown joints are not glued; the legs get through-holes for the bolts and the bolts appear in the hardware list.",
   ctBlockHeight:
     "Height of the full-width block kept at the top of the inner face, where the apron / rail joins. The apron sits flush with the BOTTOM of this block; if you set the apron taller, the block grows to match (it never crops the apron).",
   ctShoulder:
@@ -1101,6 +1141,36 @@ export function specHelp(spec: OptionSpec, locale: string): string | undefined {
  * stretcherStyle / withLowerStretcher 等高頻 dropdown。
  */
 export const CHOICE_LABEL_EN: Record<string, string> = {
+  // === workbench ===
+  "benchStyle:roubo": "Thick-top (French Roubo) — thick slab, stout through-tenoned legs, vise + dog holes",
+  "benchStyle:apron": "Apron bench (English Nicholson / Sellers) — thin top stiffened by a deep apron, bolt-together",
+  "benchStyle:well": "Tool-well bench (Scandinavian) — a trough along the back of the top",
+  "benchStyle:mft": "20mm grid bench (modern MFT) — plywood top, 20mm holes on a 96mm grid",
+  "heightMode:plane": "Hand planing (top ≈ knuckle height, height × 0.49)",
+  "heightMode:machine": "Machines / assembly (about 10cm below the elbow, height × 0.55)",
+  "heightMode:fine": "Fine work (chopping, dovetails; height × 0.60)",
+  "topBuild:plank": "Wide planks edge-glued (≤280mm each, count computed)",
+  "topBuild:stave": "Narrow staves on edge (stave width = top thickness; the 2×4 method)",
+  "topBuild:stack": "Plywood or thin boards laminated (set the layer count below)",
+  "topSplit:none": "One piece",
+  "topSplit:gap": "Centre gap + stop strip (split-top; clamps reach through the gap)",
+  "topSplit:well": "Tool well at the back (chisels and planes stop rolling off)",
+  "legTopJoint:through": "Through tenon (end grain shows on the top, Roubo style)",
+  "legTopJoint:blind": "Blind tenon (nothing shows on the top)",
+  "frontVise:quick": "Cast-iron quick-release vise (7\" ≈ NT$2,200, 9\" ≈ NT$2,900 in Taiwan)",
+  "frontVise:leg": "Leg vise (wooden chop on the front leg; screw home-made or imported)",
+  "frontVise:none": "None",
+  "frontViseSize:7in": "7\" (180mm jaw)",
+  "frontViseSize:9in": "9\" (225mm jaw)",
+  "viseSide:left": "Left end (right-handed)",
+  "viseSide:right": "Right end (left-handed)",
+  "dogHoles:row": "One row along the front edge (works with the vise and stop)",
+  "dogHoles:grid": "20mm grid (one hole every 96mm, fits MFT accessories)",
+  "dogHoles:none": "None",
+  "dogHoleDia:19": "Ø19 (3/4\", the Taiwan standard for dogs and holdfasts)",
+  "dogHoleDia:20": "Ø20 (MFT accessories; 3/4\" dogs fit too)",
+  "knockdown:none": "Glued (stiffest)",
+  "knockdown:bolt": "Bolt-together (M10 bed bolts through the legs into stretchers / aprons; comes apart for moving)",
   // === ctShoulderCurve ===
   "ctShoulderCurve:arc": "Arc (crisp shoulder, default)",
   "ctShoulderCurve:s-curve": "S-curve (faded shoulder)",

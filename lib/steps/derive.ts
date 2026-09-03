@@ -75,7 +75,7 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
   if (
     c === "tea-table" || c === "side-table" || c === "low-table" ||
     c === "dining-table" || c === "desk" || c === "round-tea-table" ||
-    c === "round-table"
+    c === "round-table" || c === "workbench"
   ) return "table";
   if (
     c === "stool" || c === "bench" || c === "dining-chair" ||

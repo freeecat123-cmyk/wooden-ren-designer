@@ -42,6 +42,7 @@ export const GROUP_META: Record<string, GroupMeta> = {
   lining:     { labelZh: "內襯 / 軟料",   labelEn: "Lining",            icon: "🧵", bar: "bg-fuchsia-400" },
   balustrade: { labelZh: "敞格圍欄",     labelEn: "Balustrade",        icon: "┃",  bar: "bg-pink-400"    },
   stretcher:  { labelZh: "橫撐 / 連腳料",  labelEn: "Stretchers",        icon: "║",  bar: "bg-emerald-400" },
+  workholding:{ labelZh: "工件固定（鉗 / 狗孔）", labelEn: "Workholding",  icon: "🗜️", bar: "bg-orange-500"  },
   back:       { labelZh: "椅背",         labelEn: "Backrest",          icon: "◧",  bar: "bg-teal-400"    },
   misc:       { labelZh: "其他",         labelEn: "Other",             icon: "⚙",  bar: "bg-zinc-400"    },
 };
@@ -77,6 +78,7 @@ export const GROUP_ORDER = [
   "drawer",
   "apron",
   "stretcher",
+  "workholding",
   "back",
   "misc",
 ];

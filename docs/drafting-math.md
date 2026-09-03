@@ -88,6 +88,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 木工數位行銷 / SEO | `"SEO\|行銷\|關鍵字"` | §AH |
 | 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
 | 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
+| 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
 
 ---
 
@@ -2074,6 +2075,7 @@ function generateHolePattern(board, hardware): Hole[] {
 | 餐桌 | 720-760 | 750-1100 | 椅桌差 270-310 |
 | 書桌（坐） | 730-760 | 600-800 | |
 | 站姿工作桌 | 950-1100 | — | 立姿肘高 −50~100 |
+| 手刨工作桌 | 760-880 | — | 掌根高 ≈ H×0.49（§AU2；站姿那列是機具/精細模式） |
 | 吧台 | 900-1100 | — | 配吧椅 600-800 |
 | 茶几 | 380-460 | — | 沙發座面 −50~+25 |
 | 邊桌 | 550-650 | 400-500 | 沙發扶手齊 |
@@ -4895,6 +4897,128 @@ Windsor resultant + sightline (rake/splay 為角度):
 
 
 
+
+---
+
+## AU. 木工工作桌（workbench）
+
+> 2026-09-03 五位專家（手工具木匠 / 台灣公寓玩家 / 人因安全 / 產品經理 / 實作工程師）兩輪詰問定案的 v1 規則。
+> 實作在 `lib/templates/workbench.ts`；骨架走 `simpleTable()`（方料直腳），工作桌獨有零件全部 post-process。
+> ⚠️ 本節數字直接對應 code：`y = 高、z = 深（前 = −z）`；使用者說的「左」= 世界 +x。
+
+### AU1. 剛性只有兩條路（不能各取一半）
+
+| 路線 | 桌面厚 | 抗晃構件 | 代表 |
+|---|---|---|---|
+| 質量式 | **≥ 75**（Roubo 原版 5–6"；Sellers 最少 63、常規 75） | 粗腳 ≥ 100 + 腳頂通榫 + 下橫撐 | Roubo（Schwarz《Workbenches》2007） |
+| 箱體式 | 38–65（兩層 2×12 或夾板疊） | **裙板 ≥ 250**（Sellers cutting list 40×290；Nicholson 前板 1½–2" × 寬板） | Nicholson / Sellers |
+
+60mm 桌面配 90mm 牙條 = 台灣網友抱怨「短邊晃、桌面彎」（Mobile01 4230771）的那種桌。
+code：`withApron=false` 時 `topThickness` 預設 75、`legSize` 預設 100；`withApron=true` 時裙板高預設 250。
+撓度（§M1 公式，南方松 E=9000、跨 1800、中央 300N）：兩層 38 膠合 δ≈0.18mm、單層 38 也只有 1.5mm →
+**撓度不是薄桌面的限制，holdfast 咬合與 racking 才是**。
+
+### AU2. 桌高三模式（只給建議，不覆寫 `height`）
+
+| 模式 | 係數 | 170cm → | 依據 |
+|---|---|---|---|
+| 手刨 `plane` | **H × 0.49** | 833 | Schwarz 小指根法；`lib/knowledge/ergonomics.ts:workbenchByHeight` 同係數 |
+| 機具 / 組裝 `machine` | **H × 0.55** | 935 | 勞研所 2016 站姿肘高（男 50th 1050）− 100~150 |
+| 精細 `fine` | **H × 0.60** | 1020 | 勞研所精密作業肘上 +50~100；English Woodworker 38–39" |
+
+規則：`height < 建議 − 60` → warning「會彎腰」；`height > 建議 + 80` → warning「用不上體重」。
+不填身高用 170（台灣男中位；國健署 2013–16 男 172.8 / 女 159.7）。預設桌高 850 = 手刨上緣、機具下緣的交點，
+也是台灣自製桌實測帶（DaviDIY 800、教室桌 810）。§O2 的「站姿工作桌 950–1100」是機具 / 精細那兩檔。
+
+### AU3. 腳距桌端 = 桌長 / 5（§AT4.5）
+
+`endOverhang = 0` → 自動 `round(L/5)`（Roubo Plate 11；Schwarz 250cm 台 → 腳距端 50cm）。
+上限 `floor((L − 2·legSize − 300)/2)`（兩腳之間至少留 300）。實作：`simpleTable` 用 `length = L − 2·overhang`
+蓋腳架，再把 `top.visible.length` 拉回 L（腳頂榫眼座標相對桌面中心不變）。前腳一律齊桌面前緣（`legInset=0`），
+這是鉗 / deadman / 夾長板的前提（Benchcrafted 說明書）。
+
+### AU4. 桌面拼法與片數
+
+| `topBuild` | 片數公式 | 用途 |
+|---|---|---|
+| `plank` 寬板平拼 | `ceil(工作面深 / 280)` | 硬木拼板（280 = 單片實木上限，同 round-table / 工具牆慣例） |
+| `stave` 窄條側立拼 | `ceil(工作面深 / max(38, 厚))` | 台灣 2×4 / 角料立起來膠合（Schwarz 2×12 對剖、Sellers 38×63 側立） |
+| `stack` 疊層 | `= topLayers` | 18mm 樺木夾板 × 3 ≈ 54、25mm 橡膠木指接板 × 3 = 75 |
+
+只寫進 `Part.panelPieces`，3D 不變。
+
+### AU5. 狗孔與 holdfast 孔
+
+- 表示法：桌面 `Mortise{shape:"round", cosmetic:true, through:true, length=width=Ø}`，origin 用 §M1 mesh-local
+  （`y = topT` 從上面鑽入）。三視圖 / 零件圖（自動標 Ø）/ CNC 加工面 / 3D CSG 全部免費支援。
+- 孔徑：**Ø19**（3/4"，台灣桌狗 / holdfast 主流，木頭仁自家規範）；**Ø20** 給 MFT 配件（3/4" 桌狗插得進 20 孔，反之不行）。
+- 前列：`z = −工作面深/2 + max(離前緣設定, 2·Ø + 10)`（Schwarz 2–4"；太靠邊沿木紋裂）。端頭留 100。
+  從鉗那端起算：第一孔 `x = viseX − sign·(jaw/2 + 50)`（鉗座 250 區段不打孔，木匠裁定），往另一端每 `pitch`（預設 100）一孔。
+  刨擋佔掉第一格。上限 **40 孔**，超過自動 `pitch = ceil(span/39/10)·10` 並出聲（3D 每孔一次布林）。
+- holdfast 後排：只在桌面 **44 ≤ t ≤ 89** 才打（Gramercy 1¾"~3½"、Lee Valley 1½"~4"）；`t < 44` 自動取消並出聲；
+  `t > 89` 出聲「孔底反鑽 Ø30、深 t−70」。位置 `z = +工作面深/2 − 100`，孔距 `max(2·pitch, 300)`，跟前排錯開半格
+  （Schwarz：16" apart, staggered），上限 12 孔。
+- MFT 格陣：Ø20、96 間距、離邊 60；`cols = floor((L−120)/96)+1`、`rows` 以 **72 孔**為上限從前排往後保留，砍掉的排數出聲。
+  鉗那一塊（`|x − viseX| < jaw/2 + 30` 且 z 在前 200）跳過。
+
+### AU6. 鑄鐵快速鉗（前鉗）
+
+| 項目 | 值 | 來源 |
+|---|---|---|
+| 鉗口寬 | 7" = 180、9" = 225 | 台灣建成 / SKC 規格（NT$2,200 / 2,990） |
+| 前緣木料厚 | **≥ 60**，不足加 `vise-spacer` 墊塊（jaw × 160 × (60−t)）並出聲 | 廠商標「桌板厚度約 60mm、4 孔」 |
+| 位置 | `endOverhang ≥ jaw + 80` → 裝腳外側 `x = ±(L/2 − 60 − jaw/2)`；否則腳內側 `x = ±(legInner − 20 − jaw/2)` | 木匠裁定「鉗中心距端 ≥ 350 避腳」 |
+| 本體 | `visual:"metal"` 箱 jaw × 160 × 70，頂貼桌底（或墊塊底）；有裙板且裙板蓋到鉗 → 躲在裙板**後面**（builder 把裙板置中在腳裡，用實際零件算後面在哪） | — |
+| 木顎 | jaw × 30 × (t + spacer + 70)，頂齊桌面、往下包住本體；螺桿 Ø30 + 兩導桿 Ø20 圓孔（mesh-local 從前面進） | — |
+| 手把 | Ø20 × 220 圓棒 `axis:"x"`、`visual:"metal"`，在木顎前 45 | — |
+| 裙板穿孔 | 裙板蓋到鉗時，`apron-front`（rotation.x=π/2）用 mesh-local `y=0`、`z = screwY − 裙板中心 y` 打同三孔 | §M1 |
+
+螺桿中心 `y = 本體頂 − 35`。五金列進 notes：鉗 + 4 支木牙螺栓。
+
+### AU7. 腳鉗簡版（v1 不做 criss-cross / 銷孔列）
+
+木顎 `max(150, legSize + 40)` × **64** × (H − 100)，貼前腳前面；螺桿孔 Ø32 在 `y = H − 200`（Benchcrafted：螺桿約 8" 在桌面下）；
+那支腳同高打 Ø32 貫穿孔，另在 `y = 下橫撐頂 + 40` 打 25 × 40 平行導件槽（避開橫撐榫）。`legSize < 64` 夾到 64 出聲。
+手把 Ø24 × 300。五金 notes：自製 Ø70 木螺桿或進口套件 + 平行導件木條。
+
+### AU8. 刨擋
+
+64 方木柱（AWB 2½"），`visible = 64×64×20` 站在桌面上，**榫在柱底**（`position:"bottom"`, through, 長 = t）插進桌面
+64×64 貫穿榫孔（非 cosmetic，是真接合 → 組裝動畫從上方插入）。位置 = 狗孔第一格；`z = max(狗孔列, −深/2 + 72)`。
+桌面 < 75 出聲「靠摩擦卡住，建議 ≥75」。落在中縫裡就略過並出聲。
+
+### AU9. 工具槽（Sellers well board）
+
+`workW = W − wellWidth`（腳只在工作面下）；槽深 `≤ t − 10`（槽底要能鎖桌面後緣）出聲夾制；槽寬上限 `W − 2·legSize − 200`。
+零件：槽底 18（L−36 × wellWidth−18）、後擋板 18 × (wellDepth+18)（L−36 長，在兩端板之間）、兩端板 18 × wellWidth。
+全部 push 完把**所有零件 z −= wellWidth/2**，讓桌子在自己的 `overall` 裡置中。
+
+### AU10. 螺栓可拆（knockdown = bolt）
+
+腳上每個「橫撐 / 裙板」榫眼（非 cosmetic、非圓孔）中心再穿一個 **Ø11 貫穿圓孔**（`label: M10 床螺栓孔`），
+origin 沿用該榫眼的 origin → depthAxis 跟榫同軸 = 床螺栓（bed bolt）從腳外面鎖進橫撐端。榫頭不上膠。
+沒有橫撐也沒裙板卻選了可拆 → 出聲。Moravian 楔形通榫沒有表示法（榫頭伸出母件外違反 §A10），v2。
+
+### AU11. 警告閾值（全部只出聲，不改使用者的值）
+
+| 條件 | 訊息 | 來源 |
+|---|---|---|
+| `height` 偏離 AU2 建議 −60 / +80 | 會彎腰 / 用不上體重 | 勞研所 2016、Schwarz |
+| 無裙板（<150）且無下橫撐且桌面 < 60 | 沒有任何抗晃構件 | AU1 |
+| 腳 < 80 且無裙板 | 腳偏細，建議 ≥80（厚板桌 ≥100） | Schwarz 5×5" |
+| 估算重量 < 40 kg / < 70 kg | 一刨就滑 / ≥70 才不會被推著走 | Schwarz 250 lb；木頭仁教室規格整台 ≥80kg、桌板 ≥40 |
+| 深 ≥ 800 | 房門推不出（門寬 −7cm），建議可拆 | 山小日子實測 |
+| 長 ≥ 2000 且無裙板且非 H 形 | 用 H 形擋長向扭動 | — |
+
+重量 = Σ(非 `visual:"metal"` 零件 visible 體積 × `MATERIALS[material].density`)（`lib/materials/index.ts`；
+南方松 / 橡膠木 / 樺木夾板不在表裡，用 pine 420 會低估 25%，是已知缺口）。
+
+### AU12. v2 待辦（沒有幾何表示法，別硬塞 v1）
+
+尾鉗（桌面末端 U 形槽 + 端蓋，懸出 ≥ 470）、Moravian 16° 斜腳 + 楔形通榫（`splayed-length` 的 40mm 寫死、
+tusk 無 shape）、滑入鳩尾（Roubo 原版腿榫另一半）、deadman（前橫撐 V 脊 + 滑板）、下方抽屜櫃、日式低台（另一種家具）、
+腳輪（跟 ≥80kg 矛盾）、**裙板齊腳前面**（`resolveApronSetbackForLeg` 對非弧肩腳一律置中在腳裡）、
+南方松 / 橡膠木 / 樺木夾板密度與價格進 `lib/materials`。
 
 ---
 

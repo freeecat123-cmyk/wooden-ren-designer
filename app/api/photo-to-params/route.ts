@@ -21,7 +21,7 @@ const VALID_CATEGORIES = [
   "chest-of-drawers", "shoe-cabinet", "display-cabinet", "dining-table", "desk",
   "dining-chair", "wardrobe", "bar-stool", "media-console", "nightstand",
   "round-stool", "round-tea-table", "round-table", "pencil-holder", "bookend",
-  "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack",
+  "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack", "workbench",
 ] as const;
 
 const VALID_STYLES = [

@@ -29,6 +29,7 @@ import { tray, trayOptions } from "./tray";
 import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
 import { wineRack, wineRackOptions } from "./wine-rack";
 import { coatRack, coatRackOptions } from "./coat-rack";
+import { workbench, workbenchOptions } from "./workbench";
 import { bed, bedOptions } from "./bed";
 import { wallMountedToolStorage, wallMountedToolStorageOptions } from "./wall-mounted-tool-storage";
 
@@ -213,6 +214,18 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 1200, width: 600, height: 750 },
     limits: { length: 2000, width: 900, height: 800 },
     optionSchema: deskOptions,
+  },
+  {
+    category: "workbench",
+    nameZh: "木工工作桌",
+    nameEn: "Woodworking workbench",
+    description: "厚板 / 裙板 / 工具槽 / 20mm 孔陣四種流派，前鉗、狗孔、holdfast、刨擋、可拆",
+    descriptionEn: "Roubo / English apron / tool-well / MFT-grid styles with vise, dog holes, holdfasts, planing stop, knockdown",
+    difficulty: "advanced",
+    template: workbench,
+    defaults: { length: 1800, width: 600, height: 850 },
+    limits: { length: 3000, width: 1000, height: 1100 },
+    optionSchema: workbenchOptions,
   },
   {
     category: "dining-chair",

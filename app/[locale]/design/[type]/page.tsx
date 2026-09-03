@@ -403,7 +403,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 相關範本：同 family 中挑 3 個非自己的，給設計頁互連、SEO link juice +
   // UX「也想做這些嗎」入口。family 分組維持跟 lib/steps/derive.ts 同一套邏輯。
   const FAMILY_MAP: Record<string, FurnitureCategory[]> = {
-    table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table"],
+    table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table", "workbench"],
     seating: ["stool", "bench", "dining-chair", "bar-stool", "round-stool"],
     cabinet: ["open-bookshelf", "chest-of-drawers", "chinese-cabinet", "shoe-cabinet", "display-cabinet", "media-console", "nightstand", "wardrobe"],
     accessory: ["pencil-holder", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],

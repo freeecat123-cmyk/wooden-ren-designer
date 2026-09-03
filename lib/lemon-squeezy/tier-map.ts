@@ -47,6 +47,7 @@ const STUDIO_FURNITURE: ReadonlySet<string> = new Set<string>([
   // 大型家具
   "dining-table",
   "desk",
+  "workbench",
   "bed",
   "chest-of-drawers",
   "chinese-cabinet",
