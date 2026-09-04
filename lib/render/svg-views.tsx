@@ -21,6 +21,7 @@ import {
   projectPart,
   projectPartPolygon,
   projectPartSilhouette,
+  panelSplitWorld,
   projectTiltedBoxSilhouette,
   sortPartsByDepth,
   worldExtents,
@@ -3753,6 +3754,57 @@ function OrthoViewImpl({
         </g>
         );
       })()}
+
+      {/* 拼板 / 疊層分件線：桌面做法（寬板平拼 / 窄條側立拼 / 疊層）要從圖上看得出來
+          （🩸2026-09-04 木頭仁：「桌面做法從圖上都要看得出來」）。分件方向跟 3D 木紋、
+          料單同一支 panelSplitWorld()，不要各判一套。 */}
+      <g pointerEvents="none">
+        {renderDesign.parts.map((part) => {
+          if (part.visual === "glass" || part.visual === "metal") return null;
+          const sp = panelSplitWorld(part);
+          if (!sp) return null;
+          // 這個視圖看不看得到分件線：分件方向跟視線同軸 = 看不到
+          const hidden =
+            (view === "front" && sp.axis === "z") ||
+            (view === "side" && sp.axis === "x") ||
+            (view === "top" && sp.axis === "y");
+          if (hidden) return null;
+          const { xExt, yExt, zExt } = worldExtents(part);
+          const ox = part.origin?.x ?? 0, oy = part.origin?.y ?? 0, oz = part.origin?.z ?? 0;
+          // 世界 → svg（跟 makeProjector 同慣例：front/top 用 -wx、側視 -wz；y 再取負）
+          const sx = (wx: number, wz: number) => (view === "side" ? -wz : -wx);
+          const sy = (wy: number, wz: number) => (view === "top" ? -wz : -wy);
+          const lines: React.ReactNode[] = [];
+          const step = (sp.hi - sp.lo) / sp.pieces;
+          for (let i = 1; i < sp.pieces; i++) {
+            const at = sp.lo + step * i;
+            let x1: number, y1: number, x2: number, y2: number;
+            if (sp.axis === "x") {
+              x1 = x2 = sx(at, oz);
+              if (view === "top") { y1 = sy(0, oz - zExt / 2); y2 = sy(0, oz + zExt / 2); }
+              else { y1 = sy(oy, oz); y2 = sy(oy + yExt, oz); }
+            } else if (sp.axis === "y") {
+              y1 = y2 = sy(at, oz);
+              if (view === "side") { x1 = sx(ox, oz - zExt / 2); x2 = sx(ox, oz + zExt / 2); }
+              else { x1 = sx(ox - xExt / 2, oz); x2 = sx(ox + xExt / 2, oz); }
+            } else {
+              if (view === "top") {
+                y1 = y2 = sy(0, at);
+                x1 = sx(ox - xExt / 2, oz); x2 = sx(ox + xExt / 2, oz);
+              } else {
+                // 側視：分件方向沿世界 Z = 畫面水平
+                x1 = x2 = sx(ox, at);
+                y1 = sy(oy, oz); y2 = sy(oy + yExt, oz);
+              }
+            }
+            lines.push(
+              <line key={`${part.id}-panel-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="#666" strokeWidth={0.6} />,
+            );
+          }
+          return lines.length > 0 ? <g key={`panel-${part.id}`}>{lines}</g> : null;
+        })}
+      </g>
 
       {/* Cosmetic mortise（無線充電凹槽、後板穿線孔等產品功能）—正常三視圖也要可見 */}
       <g pointerEvents="none">

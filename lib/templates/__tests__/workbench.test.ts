@@ -747,3 +747,32 @@ describe("桌腳寬度／厚度分開設定（2026-09-04）", () => {
     expect(leg.visible.width).toBe(72);
   });
 });
+
+describe("09-04 深夜第三輪：選了要有反應（靠板／穿帶／鉗位置／圖上分件線）", () => {
+  it("長板靠板：桌端懸出不夠時自動拉到鉗裝得進腳外側，靠板一定做得出來", () => {
+    for (const ov of [10, 100, 170, 200]) {
+      const d = build({ deadman: true, endOverhang: ov });
+      expect(d.parts.filter((p) => p.id.startsWith("deadman")).length).toBe(3);
+      expect((d.warnings ?? []).some((w) => w.includes("桌端懸出已從"))).toBe(true);
+    }
+    // 本來就夠就不要亂動
+    const ok = build({ deadman: true, endOverhang: 300 });
+    expect((ok.warnings ?? []).some((w) => w.includes("桌端懸出已從"))).toBe(false);
+  });
+  it("前鉗位置可調：兩段可行區間（腳外側／腳內側），越界吸到最近的並出聲", () => {
+    const chopX = (o: Record<string, OptVal>) => build(o).parts.find((p) => p.id === "vise-chop")!.origin.x;
+    const auto = chopX({});
+    expect(chopX({ viseInset: 150 })).toBe(auto);          // 自動值就是 150
+    expect(chopX({ viseInset: 110 })).toBe(900 - 110);      // 腳外側最靠桌端
+    expect(chopX({ viseInset: 600 })).toBe(900 - 600);      // 腳內側
+    const bad = build({ viseInset: 400 });                  // 落在腳身上
+    expect(bad.parts.find((p) => p.id === "vise-chop")!.origin.x).toBe(900 - 260);
+    expect((bad.warnings ?? []).some((w) => w.includes("會壓到腳"))).toBe(true);
+  });
+  it("有裙板／長板靠板時穿帶選項不該出現（勾了也做不出來）", () => {
+    const spec = workbenchOptions.find((o) => o.key === "topBattens")!;
+    const conds = JSON.stringify(spec.dependsOn);
+    expect(conds).toContain("withApron");
+    expect(conds).toContain("deadman");
+  });
+});

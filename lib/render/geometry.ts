@@ -2248,3 +2248,44 @@ export function sortPartsByDepth(parts: Part[], view: OrthoView): Part[] {
     .sort((a, b) => (a.near === b.near ? a.i - b.i : a.near - b.near))
     .map((e) => e.p);
 }
+
+/**
+ * 拼板 / 疊層的「分件方向」換算到世界軸。
+ *
+ * 料單說一個零件是 N 片（`panelPieces`）：`panelSplit === "thickness"` 是沿**最小那一維**
+ * 疊層（夾板、薄板疊合），否則是沿跨紋方向拼板（寬板平拼 / 窄條側立拼）。
+ * 3D（wood-shader）與三視圖共用這一支，兩邊才不會各判一套。
+ *
+ * 回傳 null = 這件不用畫分件線。
+ */
+export function panelSplitWorld(part: Part): {
+  axis: "x" | "y" | "z";
+  lo: number;
+  hi: number;
+  pieces: number;
+} | null {
+  const pieces = Math.max(1, Math.round(part.panelPieces ?? 1));
+  if (pieces < 2) return null;
+  const L = part.visible.length, T = part.visible.thickness, W = part.visible.width;
+  // part-local：x = 長、y = 厚、z = 寬
+  let local: "x" | "y" | "z";
+  if (part.panelSplit === "thickness") {
+    local = T <= L && T <= W ? "y" : L <= W ? "x" : "z";
+  } else {
+    local = part.grainDirection === "width" ? "x" : "z";
+  }
+  // quarter 旋轉把 local 軸換到世界軸（跟 worldExtents 同一套交換）
+  const quarter = (a: number) => Math.abs(Math.sin(a)) > 0.5;
+  const swap = (a: "x" | "y" | "z", b: "x" | "y" | "z") => {
+    if (local === a) local = b;
+    else if (local === b) local = a;
+  };
+  if (quarter(part.rotation?.x ?? 0)) swap("y", "z");
+  if (quarter(part.rotation?.y ?? 0)) swap("x", "z");
+  if (quarter(part.rotation?.z ?? 0)) swap("x", "y");
+  const { xExt, yExt, zExt } = worldExtents(part);
+  const ox = part.origin?.x ?? 0, oy = part.origin?.y ?? 0, oz = part.origin?.z ?? 0;
+  if (local === "x") return { axis: "x", lo: ox - xExt / 2, hi: ox + xExt / 2, pieces };
+  if (local === "y") return { axis: "y", lo: oy, hi: oy + yExt, pieces };
+  return { axis: "z", lo: oz - zExt / 2, hi: oz + zExt / 2, pieces };
+}

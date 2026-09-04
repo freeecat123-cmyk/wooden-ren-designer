@@ -140,9 +140,9 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "wellDepth", label: "工具槽深", defaultValue: 45, unit: "mm", min: 20, max: 80, step: 5, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "槽底板厚 24；後側槽深 ≤ 桌面厚 −10，中央槽深 ≤ 桌面厚 −24（底板嵌在兩片桌面內側的溝裡，桌底維持平的）" },
   { group: "top", type: "number", key: "endOverhang", label: "桌端懸出（腳距桌端）", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 ＝ 自動 ＝ 桌長 ÷ 5（Roubo 原版比例）。懸出夠長，鉗才裝得進腳外側；裝尾鉗那端會自動拉到 470" },
   { group: "top", type: "number", key: "frontOverhang", label: "桌面前緣凸出腳／裙板", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 5, dependsOn: { key: "topSplit", notIn: ["well"] }, help: "裙板桌要凸出 50 才夾得到桌面（後悔榜第一名）；厚板桌保持 0 齊平，腳鉗和長板靠板都要齊平" },
-  { group: "top", type: "checkbox", key: "topBattens", label: "桌面底穿帶（騎在腳頂，防翹）", defaultValue: false, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }] }, help: "兩端各一條穿帶，夾在腳頂與桌面之間、被腳頂榫貫穿：既防桌面翹，又把同一端兩支腳的頂端拉在一起。腳會自動照穿帶厚度變短、腳頂榫等量變長，總高不變；長度自動跟腳前後切齊。有裙板或長板靠板時不需要（會出聲略過）" },
-  { group: "top", type: "number", key: "battenWidth", label: "穿帶寬（0 ＝ 跟腳同寬）", defaultValue: 0, unit: "mm", min: 0, max: 240, step: 5, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "topBattens", equals: true }] }, help: "沿桌長方向的寬度。腳一定落在穿帶寬度的正中間，所以不會比腳窄（填得比腳窄會自動加寬並出聲）" },
-  { group: "top", type: "number", key: "battenThickness", label: "穿帶厚", defaultValue: 30, unit: "mm", min: 20, max: 60, step: 5, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "topBattens", equals: true }] }, help: "厚多少，腳就短多少、腳頂榫就長多少（總高不變）。太厚會吃掉桌下淨高" },
+  { group: "top", type: "checkbox", key: "topBattens", label: "桌面底穿帶（騎在腳頂，防翹）", defaultValue: false, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }] }, help: "兩端各一條穿帶，夾在腳頂與桌面之間、被腳頂榫貫穿：既防桌面翹，又把同一端兩支腳的頂端拉在一起。腳會自動照穿帶厚度變短、腳頂榫等量變長，總高不變；長度自動跟腳前後切齊。（有裙板或長板靠板時穿帶會撞到它們、也沒必要，所以這個選項只在沒有它們時出現）" },
+  { group: "top", type: "number", key: "battenWidth", label: "穿帶寬（0 ＝ 跟腳同寬）", defaultValue: 0, unit: "mm", min: 0, max: 240, step: 5, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }, { key: "topBattens", equals: true }] }, help: "沿桌長方向的寬度。腳一定落在穿帶寬度的正中間，所以不會比腳窄（填得比腳窄會自動加寬並出聲）" },
+  { group: "top", type: "number", key: "battenThickness", label: "穿帶厚", defaultValue: 30, unit: "mm", min: 20, max: 60, step: 5, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }, { key: "topBattens", equals: true }] }, help: "厚多少，腳就短多少、腳頂榫就長多少（總高不變）。太厚會吃掉桌下淨高" },
   { group: "top", type: "checkbox", key: "breadboardEnds", label: "兩端封邊板（防桌面翹）", defaultValue: false, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "topSplit", equals: "none" }, { key: "endVise", equals: "none" }] }, help: "60mm 寬、木紋跟桌面垂直；只在中央 15cm 上膠，外側銷孔做長孔讓桌面伸縮" },
 
   // ───────────── 腳 ─────────────
@@ -184,6 +184,7 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "7in", label: "7 吋（鉗口 180mm）" },
     { value: "9in", label: "9 吋（鉗口 225mm）" },
   ], dependsOn: { key: "frontVise", equals: "quick" }, help: "前緣木料要 ≥60mm 厚，不夠會自動加墊塊" },
+  { group: "workholding", type: "number", key: "viseInset", label: "前鉗中心離桌端（0 ＝ 自動）", defaultValue: 0, unit: "mm", min: 0, max: 900, step: 10, dependsOn: { key: "frontVise", equals: "quick" }, help: "0 ＝ 自動放在腳外側靠桌端。想把鉗移到順手的位置就自己填：太靠桌端鉗顎會懸空、太往中間會撞腳，超出範圍會自動收回並出聲" },
   { group: "workholding", type: "select", key: "viseSide", label: "慣用手（鉗在哪一端）", defaultValue: "left", choices: [
     { value: "left", label: "右撇子：前鉗在左端" },
     { value: "right", label: "左撇子：前鉗在右端" },
@@ -287,6 +288,7 @@ export const workbench: FurnitureTemplate = (input) => {
   const frontVise = pick<string>("frontVise");
   const frontViseSize = pick<string>("frontViseSize");
   const viseSide = pick<string>("viseSide");
+  const viseInsetRaw = pick<number>("viseInset");
   const dogHoles = pick<string>("dogHoles");
   const dogHoleDiaRow = Number(pick<string>("dogHoleDia")) === 20 ? 20 : 19;
   const dogHolePitchRaw = pick<number>("dogHolePitch");
@@ -379,10 +381,20 @@ export const workbench: FurnitureTemplate = (input) => {
   if (wagonWanted && !wagon) warnings.push(isEn
     ? (L < 1800 ? `Wagon vise skipped: bench must be ≥ 1800 long (yours ${L}) or the legs end up too close.` : "Wagon vise skipped: needs a one-piece top and no second vise on that end.")
     : (L < 1800 ? `尾鉗已略過：桌長要 ≥ 1800（目前 ${L}），否則兩端懸出後腳距太短會晃。` : "尾鉗已略過：要整片桌面，而且那一端不能再有雙面桌的第二支鉗。"));
-  const ovWagon = wagon ? Math.max(endOverhang, WAGON_MIN_OVERHANG) : endOverhang;
+  // 勾了長板靠板但鉗那端懸出不夠 → 鉗只能裝在腳內側，靠板就整組做不出來，勾了等於沒反應
+  // （🩸2026-09-04 木頭仁：「長版靠版也沒作用」，他那台桌端懸出 170）。
+  // 這裡直接把那一端的懸出拉到鉗裝得進去的最小值並出聲，選項就真的有作用。
+  const deadmanNeedsOverhang = deadmanRaw && frontVise === "quick" ? jaw0 + 80 : 0;
+  const endOverhangForVise = Math.max(endOverhang, deadmanNeedsOverhang);
+  if (deadmanNeedsOverhang > 0 && endOverhangForVise !== endOverhang) {
+    warnings.push(isEn
+      ? `Sliding deadman needs the front vise outboard of the leg: end overhang raised ${endOverhang} → ${endOverhangForVise}.`
+      : `長板靠板要前鉗裝在腳外側，桌端懸出已從 ${endOverhang} 拉到 ${endOverhangForVise}（鉗顎 ${jaw0} + 餘裕 80）。`);
+  }
+  const ovWagon = wagon ? Math.max(endOverhangForVise, WAGON_MIN_OVERHANG) : endOverhangForVise;
   // 尾鉗那端拉長後，另一端（自動模式）縮到 300 把腳距補回來（木匠：別一選尾鉗就跳腳距警告；快速鉗 7" 要 260 才裝得進腳外側）
-  const ovNear = wagon && endOverhangRaw === 0 ? Math.min(endOverhang, Math.max(300, jaw0 + 80)) : endOverhang;
-  if (wagon && ovWagon !== endOverhang) warnings.push(isEn ? `Wagon-vise end overhang raised to ${ovWagon} (slot + end cap need ≥ 470); the other end set to ${ovNear}.` : `尾鉗那端懸出已拉到 ${ovWagon}（槽 + 端蓋要 ≥ 470）；另一端${ovNear !== endOverhang ? `縮到 ${ovNear} 補回腳距` : `維持 ${endOverhang}`}。`);
+  const ovNear = wagon && endOverhangRaw === 0 ? Math.min(endOverhangForVise, Math.max(300, jaw0 + 80)) : endOverhangForVise;
+  if (wagon && ovWagon !== endOverhangForVise) warnings.push(isEn ? `Wagon-vise end overhang raised to ${ovWagon} (slot + end cap need ≥ 470); the other end set to ${ovNear}.` : `尾鉗那端懸出已拉到 ${ovWagon}（槽 + 端蓋要 ≥ 470）；另一端${ovNear !== endOverhang ? `縮到 ${ovNear} 補回腳距` : `維持 ${endOverhang}`}。`);
   // 世界 +X 端 / −X 端各自的懸出；腳架中心相對桌面中心平移
   const ovPlus = wagon && wagonSign > 0 ? ovWagon : ovNear;
   const ovMinus = wagon && wagonSign < 0 ? ovWagon : ovNear;
@@ -699,7 +711,42 @@ export const workbench: FurnitureTemplate = (input) => {
   const fitsOutside = frontVise === "quick" && ovVise >= jaw + 80;
   let viseX: number | null = null;
   if (frontVise === "quick") {
-    viseX = fitsOutside ? sideSign * (L / 2 - 60 - jaw / 2) : viseLegInnerEdge - sideSign * (20 + jaw / 2);
+    const autoX = fitsOutside ? sideSign * (L / 2 - 60 - jaw / 2) : viseLegInnerEdge - sideSign * (20 + jaw / 2);
+    if (viseInsetRaw > 0) {
+      // 使用者指定「鉗中心離桌端多少」。鉗顎佔 jaw 寬，那支腳擋在中間 →
+      // 可行位置是兩段：腳外側（靠桌端）與腳內側（桌子中間那側）。
+      // 落在腳身上就吸到最近的那一段邊界並出聲。
+      const legOuterX = Math.abs(viseLegCenterX) + legSize / 2;
+      const legInnerX = Math.abs(viseLegCenterX) - legSize / 2;
+      const half = jaw / 2 + 10;
+      const zones: Array<[number, number]> = [];
+      const outLo = Math.round(jaw / 2 + 20);                 // 鉗顎不懸出桌端
+      const outHi = Math.round(L / 2 - legOuterX - half);     // 還沒碰到腳
+      if (outHi >= outLo) zones.push([outLo, outHi]);
+      const inLo = Math.round(L / 2 - legInnerX + half);      // 越過腳、進到桌子中間側
+      const inHi = Math.round(L / 2 - half);                  // 不越過桌中心
+      if (inHi >= inLo) zones.push([inLo, inHi]);
+      const snap = (v: number) => {
+        if (!zones.length) return outLo;
+        for (const [lo, hi] of zones) if (v >= lo && v <= hi) return v;
+        let best = zones[0][0], bd = Infinity;
+        for (const [lo, hi] of zones) for (const c of [lo, hi]) {
+          const dist = Math.abs(c - v);
+          if (dist < bd) { bd = dist; best = c; }
+        }
+        return best;
+      };
+      const inset = snap(viseInsetRaw);
+      if (inset !== viseInsetRaw) {
+        const zoneZh = zones.map(([lo, hi]) => `${lo}~${hi}`).join(" 或 ");
+        warnings.push(isEn
+          ? `Vise inset ${viseInsetRaw}mm lands on the leg or off the end (jaw ${jaw}); usable ranges are ${zones.map(([lo, hi]) => `${lo}-${hi}`).join(" or ")}, using ${inset}.`
+          : `前鉗離桌端 ${viseInsetRaw} 會壓到腳或伸出桌端（鉗顎 ${jaw}）：可放的範圍是 ${zoneZh}，已改用 ${inset}。`);
+      }
+      viseX = sideSign * (L / 2 - inset);
+    } else {
+      viseX = autoX;
+    }
   } else if (frontVise === "leg") {
     viseX = viseLegCenterX; // 腳鉗就在前腳上
   }

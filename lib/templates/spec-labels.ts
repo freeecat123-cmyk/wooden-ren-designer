@@ -47,6 +47,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   frontVise: "Front vise",
   frontViseSize: "Vise width",
   viseSide: "Vise end",
+  viseInset: "Vise centre from the end (0 = auto)",
   dogHoles: "Dog holes",
   dogHoleDia: "Hole diameter (dogs / grid / holdfast / leg / deadman)",
   dogHolePitch: "Hole pitch",
@@ -999,6 +1000,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   apronDrawerFrontInset: "How far the drawer face is set back from the face of the apron. 0 = flush; 3–6mm gives a subtle recess. Capped at 15 because the face is 18mm thick.",
   apronDrawerWidth: "Width of a single drawer. The 400mm default takes A4 landscape (about 297mm) with room to spare; the 800 ceiling suits most desk widths.",
   withModestyPanel: "Adds a full-height 350mm panel across the back of the desk, screening the sitter's legs from behind. Usual on an office desk against a wall or standing free in a room. Hidden on splayed and Shaker legs, where it does not apply.",
+  viseInset: "0 = automatic (just outboard of the leg). Set it yourself to put the vise where your hand wants it: too close to the end and the jaw overhangs the top, too far in and it hits the leg. Out-of-range values snap to the nearest usable spot with a warning.",
   viseSide: "Mirrors together: face vise, tail vise, the end the dog holes count from, the planing stop and the long-board fence.",
 
   // === 2026-09-04 補譯：椅子扶手 / 曲面中板 ===
