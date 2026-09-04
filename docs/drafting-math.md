@@ -94,6 +94,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞"` | §AU24 |
 | 穿帶騎腳頂 / 抽屜橫向分格 | `"穿帶\|batten\|drawerCols"` | §AU25 |
 | 穿帶尺寸可調 / 腳頂破口 / 疊層分層方向 | `"battenWidth\|apronTopShoulderMm\|BoardSplit\|疊層軸"` | §AU26 |
+| 長方腳（腳寬≠腳厚）/ 桌高用途自動套用 | `"legDepthMm\|depthRatio\|workbenchHeightFor"` | §AU27 |
 
 ---
 
@@ -5329,6 +5330,28 @@ holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙�
    `BoardSplit.axis` 改成明確的零件 local 軸 `"x"|"y"|"z"`。
    夾板桌面本來就只沿厚度分層、寬度整片，這條確認過沒問題。
 5. **`shoeAllowanceMm` 整個刪掉**（見 §AU25 尾）。
+
+
+
+### AU27. 桌腳長方形（腳寬 ≠ 腳厚）＋ 桌高用途直接套用（2026-09-04 深夜）
+
+**長方腳**（他：「桌腳可以控制寬度跟厚度」「只有夾板拼的不能控制厚度 因為是夾板的倍數」）
+- `simple-table` 新增 `legDepthMm`（**只支援 `legShape: "box"`**，造型腳的補償公式都假設方腳）。
+  省略 / 等於 legSize = 方腳 → 28 款舊模板輸出一格不變（165 腳型指紋驗過）。
+- 沿 X 跑的件（前後裙板 / 前後撐）吃 `legSize`；沿 Z 跑的件（左右裙板 / 左右撐）吃 `legDepth`：
+  `apronEdgeZ`、`apronInnerSpan.z`、`buttHalfZ*`、`sInnerSpan.z`、`sButtHalfZ*` 全部乘 `depthRatio`。
+  `corners()` 多一個 `legDepth` 參數（預設 = legSize）。
+- 榫進腳的可用深度取 `min(legSize, legDepth)`（兩向都合法的保守值）；腳頂榫厚（Z）吃 legDepth。
+- 工作桌選項 `legDepth`（0 = 方腳），夾回 `[60, legSize]` 並出聲；**夾板疊層強制忽略**（腳厚是 18 的倍數）。
+- 下層板缺角：X 向用 `(legSize + lsT)/2`、Z 向用 `(legDepth + lsT)/2`，不然層板會插進腳裡。
+  ⚠️ notched-corners 的缺角 silhouette 看不到 → overlap 稽核誤報，變體要進允許清單（同既有那組）。
+
+**桌高用途直接套用**（他：「選桌高用途 高度也沒變」）
+- 公式抽到 `lib/knowledge/ergonomics.ts` 的 `workbenchHeightFor(mode, cm, sawTop)`，模板與表單共用。
+- `DesignFormShell`：改 `heightMode` / `userHeightCm` / `sawTableHeightMm` 就把算出來的高度寫進
+  `height` 欄位並帶進網址（套用後仍可自己再調）。標籤改成「會直接套用桌高」。
+- ⭐同一輪學到的：**「只影響建議文字」的選項使用者一律當成壞掉**。要嘛真的動幾何，要嘛刪掉
+  （`shoeAllowanceMm` 就是被他裁示刪掉的）。
 
 
 ### M1. 座標系統

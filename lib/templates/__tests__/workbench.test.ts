@@ -714,3 +714,36 @@ describe("裙板榫眼不准在腳頂破口（2026-09-04）", () => {
     expect(leg.visible.thickness - highest).toBeGreaterThanOrEqual(25);
   });
 });
+
+describe("桌腳寬度／厚度分開設定（2026-09-04）", () => {
+  it("腳厚 75：腳變 100×75、腳往外移、左右向的撐與裙板變長，前後向不動", () => {
+    const sq = build({ withApron: true });
+    const rect = build({ withApron: true, legDepth: 75 });
+    const leg = rect.parts.find((p) => p.id === "leg-1")!;
+    expect(leg.visible.length).toBe(100);
+    expect(leg.visible.width).toBe(75);
+    // 腳外緣還是貼齊桌深邊（600/2 = 300）
+    expect(Math.abs(leg.origin.z) + 75 / 2).toBe(300);
+    const len = (d: FurnitureDesign, id: string) => d.parts.find((p) => p.id === id)!.visible.length;
+    // 左右向（沿桌深）淨距變大 50：兩支腳各往外移 12.5，腳本身又各薄 12.5
+    expect(len(rect, "ls-left")).toBe(len(sq, "ls-left") + 50);
+    expect(len(rect, "apron-left")).toBe(len(sq, "apron-left") + 50);
+    // 前後向（沿桌長）不受影響
+    expect(len(rect, "ls-front")).toBe(len(sq, "ls-front"));
+    expect(len(rect, "apron-front")).toBe(len(sq, "apron-front"));
+  });
+  it("0 ＝ 方腳（跟不填一樣）；超出範圍會夾回並出聲", () => {
+    const a = build({ legDepth: 0 });
+    const b = build();
+    expect(a.parts.map((p) => `${p.id}:${p.visible.width}`)).toEqual(b.parts.map((p) => `${p.id}:${p.visible.width}`));
+    expect(build({ legDepth: 40 }).parts.find((p) => p.id === "leg-1")!.visible.width).toBe(60);
+    expect((build({ legDepth: 40 }).warnings ?? []).some((w) => w.includes("腳厚 40 不合用"))).toBe(true);
+    expect(build({ legDepth: 200 }).parts.find((p) => p.id === "leg-1")!.visible.width).toBe(100);
+  });
+  it("夾板疊層不給調腳厚（厚度一定是 18 的倍數）", () => {
+    const d = build({ materialStyle: "plywood", legDepth: 75 });
+    const leg = d.parts.find((p) => p.id === "leg-1")!;
+    expect(leg.visible.length).toBe(72);
+    expect(leg.visible.width).toBe(72);
+  });
+});

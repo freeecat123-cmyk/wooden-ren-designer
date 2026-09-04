@@ -24,6 +24,10 @@ export interface SimpleTableOpts {
   material: MaterialId;
   /** Auto-scaled by height if omitted */
   legSize?: number;
+  /** 腳沿深度（Z）方向的尺寸（mm）。省略 / 等於 legSize = 方腳（既有行為，所有舊模板都走這條）。
+   *  ⛔ 只支援 legShape = "box"：造型腳（tapered / splayed / 弧肩…）的幾何與補償
+   *     公式都假設方腳，傳了也會被忽略。 */
+  legDepthMm?: number;
   topThickness?: number;
   apronWidth?: number;
   /** 牙條外面離腳外面多遠。0 = 齊腳外面（預設）。 */
@@ -186,6 +190,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const topThickness = opts.topThickness ?? 25;
   const legSize =
     opts.legSize ?? Math.max(35, Math.min(70, Math.round(height / 12)));
+  /** 腳的 Z 向尺寸。只有方腳（box）才能跟 legSize 不同；造型腳一律維持方腳。 */
+  const legDepth =
+    (opts.legShape ?? "box") === "box" && (opts.legDepthMm ?? 0) > 0
+      ? (opts.legDepthMm as number)
+      : legSize;
+  /** 榫進腳的可用深度：兩向取小的那個，長方腳兩個方向都合法 */
+  const legMinSize = Math.min(legSize, legDepth);
   // 弧肩斜腳（curved-taper）：接撐段全寬高度 / 弧肩內收 / 外面斜降內縮
   const isCurvedTaper = (opts.legShape ?? "box") === "curved-taper";
   const ctBlockHeight = opts.ctBlockHeight ?? 55;
@@ -268,12 +279,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ? "through-tenon"
     : isCurvedTaper
       ? "blind-tenon"
-      : autoTenonType(legSize);
+      : autoTenonType(legMinSize);
   const apronTenonStd = standardTenon({
     type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: apronThickness,
     childWidth: apronWidth,
-    motherThickness: legSize,
+    motherThickness: legMinSize,
   });
   const apronTenonLen = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
   const apronTenonThick = apronTenonStd.thickness;
@@ -308,7 +319,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const legTopShoulderExtra = Math.max(0, opts.legTopShoulderExtraMm ?? 0);
   const legTopStd = standardTenon({
     type: legTopTenonType,
-    childThickness: legSize,
+    childThickness: legDepth,
     // 餐桌等承重大時 caller 傳 legTopShoulderExtraMm，把虛擬 childWidth 縮小，
     // standardTenon 算出來的 width 跟著變窄 → 兩側肩各多 legTopShoulderExtra mm。
     childWidth: legSize - 2 * legTopShoulderExtra,
@@ -350,7 +361,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ? Math.max(0, Math.round((legSize - legTopTenonW) / 2))
     : 0;
 
-  const cornerPts = corners(length, width, legSize, legInset);
+  const cornerPts = corners(length, width, legSize, legInset, legDepth);
   const topLen = length + 2 * topOverhang;
   const topWid = width + 2 * topOverhang;
 
@@ -506,7 +517,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     nameZh: `${legNameZh} ${i + 1}`,
     material,
     grainDirection: "length",
-    visible: { length: legSize, width: legSize, thickness: legHeight },
+    visible: { length: legSize, width: legDepth, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
     // legShape (tapered/splayed/...) 與 legEdge (chamfered-edges) 互斥；
     // 造型腳優先，box 腳才能套倒角。
@@ -574,7 +585,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const sh = legShapeFor({ x: 1, z: 1 });
     return sh && "bottomScale" in sh && typeof sh.bottomScale === "number" ? sh.bottomScale : legBottomScale(legShape);
   })();
-  const apronEdgeZ = width / 2 - legSize / 2 - legInset;
+  const apronEdgeZ = width / 2 - legDepth / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
   /**
    * 牙條自己的中心線(受「牙條縮進」影響),**只用在 origin**。
@@ -615,17 +626,23 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
   const apronLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(apronY + apronWidth, legHeight, bottomScale);
   const apronLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(apronY, legHeight, bottomScale);
+  // 長方腳（legDepth ≠ legSize，只有 box 腳）：沿 Z 跑的牙條 / 橫撐要用腳的 Z 尺寸，
+  // 不然長度會少算 (legSize − legDepth)。方腳時 depthRatio = 1，跟以前一模一樣。
+  const depthRatio = legSize > 0 ? legDepth / legSize : 1;
+  const apronLegDepthCenter = apronLegSizeCenter * depthRatio;
+  const apronLegDepthTop = apronLegSizeTop * depthRatio;
+  const apronLegDepthBot = apronLegSizeBot * depthRatio;
   const apronInnerSpan = {
     x: 2 * apronEdgeX - apronLegSizeCenter,
-    z: 2 * apronEdgeZ - apronLegSizeCenter,
+    z: 2 * apronEdgeZ - apronLegDepthCenter,
   };
   // butt-joint 半長：腳中心 + splay 偏移 - apronLegSize/2 = 腳內面（在 apron Y 處）位置
   const buttHalfX = (splay: number) => apronEdgeX + splay - apronLegSizeCenter / 2;
-  const buttHalfZ = (splay: number) => apronEdgeZ + splay - apronLegSizeCenter / 2;
+  const buttHalfZ = (splay: number) => apronEdgeZ + splay - apronLegDepthCenter / 2;
   const buttHalfXTop = (splay: number) => apronEdgeX + splay - apronLegSizeTop / 2;
   const buttHalfXBot = (splay: number) => apronEdgeX + splay - apronLegSizeBot / 2;
-  const buttHalfZTop = (splay: number) => apronEdgeZ + splay - apronLegSizeTop / 2;
-  const buttHalfZBot = (splay: number) => apronEdgeZ + splay - apronLegSizeBot / 2;
+  const buttHalfZTop = (splay: number) => apronEdgeZ + splay - apronLegDepthTop / 2;
+  const buttHalfZBot = (splay: number) => apronEdgeZ + splay - apronLegDepthBot / 2;
   const apronSides = [
     {
       key: "front",
@@ -893,16 +910,20 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const sLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(sCenterY, legHeight, bottomScale);
     const sLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale);
     const sLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY, legHeight, bottomScale);
+    // 長方腳：Z 向用腳的 Z 尺寸（方腳時 depthRatio = 1，輸出不變）
+    const sLegDepthCenter = sLegSizeCenter * depthRatio;
+    const sLegDepthTop = sLegSizeTop * depthRatio;
+    const sLegDepthBot = sLegSizeBot * depthRatio;
     const sInnerSpan = {
       x: 2 * apronEdgeX - sLegSizeCenterX,
-      z: 2 * apronEdgeZ - sLegSizeCenter,
+      z: 2 * apronEdgeZ - sLegDepthCenter,
     };
     const sButtHalfX = (splay: number) => apronEdgeX + splay - sLegSizeCenterX / 2;
-    const sButtHalfZ = (splay: number) => apronEdgeZ + splay - sLegSizeCenter / 2;
+    const sButtHalfZ = (splay: number) => apronEdgeZ + splay - sLegDepthCenter / 2;
     const sButtHalfXTop = (splay: number) => apronEdgeX + splay - sLegSizeTopX / 2;
     const sButtHalfXBot = (splay: number) => apronEdgeX + splay - sLegSizeBotX / 2;
-    const sButtHalfZTop = (splay: number) => apronEdgeZ + splay - sLegSizeTop / 2;
-    const sButtHalfZBot = (splay: number) => apronEdgeZ + splay - sLegSizeBot / 2;
+    const sButtHalfZTop = (splay: number) => apronEdgeZ + splay - sLegDepthTop / 2;
+    const sButtHalfZBot = (splay: number) => apronEdgeZ + splay - sLegDepthBot / 2;
     const lowerSides = [
       { key: "ls-front", nameZh: "前下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(lsAxisZ + sSplayZ) } },
       { key: "ls-back", nameZh: "後下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: lsAxisZ + sSplayZ } },

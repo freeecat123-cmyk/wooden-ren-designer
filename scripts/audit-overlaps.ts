@@ -129,6 +129,10 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "workbench:default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
   "workbench:default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
   "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
+  // 長方腳 + 長板靠板：靠板滑板咬住脊條／上軌（同上面那組 deadman 變體）
+  "workbench:default+legDepth=75+deadman",
+  // 長方腳 + 下層板：notched-corners 缺角讓腳，silhouette 看不到缺角 → 誤報（同上面那組 withUnderShelf）
+  "workbench:default+legDepth=75+withApron+withUnderShelf",
   // 夾板疊層（§AU23）：橫撐／裙板的端頭伸進「疊層時預留的搭接槽」裡（半搭接，同紅酒架
   // box 那組）。槽是 cosmetic mortise，OBB 不扣 → 腳 × 橫撐 / 腳 × 裙板 在槽裡結構性重疊，
   // 重疊厚度恰等於槽深（腳 72 兩向 → 18；腳 54 兩向 → (54−36)/2 = 9），不是穿模。
@@ -205,6 +209,11 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
     "default+topBattens+endVise=wagon",
     "default+drawerCount=2+drawerCols=2",
     "default+drawerCount=3+drawerCols=3",
+    // 長方腳（腳厚 ≠ 腳寬）
+    "default+legDepth=75",
+    "default+legDepth=75+withApron+withUnderShelf",
+    "default+legDepth=60+frontVise=leg+topBattens",
+    "default+legDepth=75+deadman",
   ],
 };
 

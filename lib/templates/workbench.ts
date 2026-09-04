@@ -146,7 +146,8 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "top", type: "checkbox", key: "breadboardEnds", label: "兩端封邊板（防桌面翹）", defaultValue: false, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "topSplit", equals: "none" }, { key: "endVise", equals: "none" }] }, help: "60mm 寬、木紋跟桌面垂直；只在中央 15cm 上膠，外側銷孔做長孔讓桌面伸縮" },
 
   // ───────────── 腳 ─────────────
-  { group: "leg", type: "number", key: "legSize", label: "腳粗（方料）", defaultValue: 100, unit: "mm", min: 60, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "厚板桌 100~125；裙板桌 75~90。腳鉗那支腳至少 64" },
+  { group: "leg", type: "number", key: "legSize", label: "腳寬（沿桌長方向）", defaultValue: 100, unit: "mm", min: 60, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "厚板桌 100~125；裙板桌 75~90。腳鉗那支腳至少 64" },
+  { group: "leg", type: "number", key: "legDepth", label: "腳厚（沿桌深方向，0 ＝ 方腳）", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "0 ＝ 跟腳寬一樣（方料）。長方腳可以省料又不減抗晃：抗晃靠的是沿桌長那一面，所以腳寬留厚、腳厚可以薄一點（別低於 60）。夾板疊層版不能調，厚度一定是 18 的倍數（由層數決定）" },
   { group: "leg", type: "select", key: "legTopJoint", label: "腳接桌面", defaultValue: "blind", choices: [
     { value: "blind", label: "暗榫（桌面看不到榫，預設）" },
     { value: "through", label: "貫穿榫（榫頭端面露在桌面上，Roubo 原版作法）" },
@@ -268,6 +269,9 @@ export const workbench: FurnitureTemplate = (input) => {
   const wellDepthRaw = pick<number>("wellDepth");
   const endOverhangRaw = pick<number>("endOverhang");
   const legSizeRaw = ply ? PLY_T * legLayers : pick<number>("legSize");
+  // 腳厚（Z 向）：0 = 方腳。夾板疊層一定是 18 的倍數（層數決定），不給調。
+  const legDepthPicked = pick<number>("legDepth");
+  const legDepthRaw = ply || legDepthPicked <= 0 ? 0 : legDepthPicked;
   const legTopJoint = pick<string>("legTopJoint");
   const withApron = pick<boolean>("withApron");
   const apronWidth = pick<number>("apronWidth");
@@ -316,7 +320,14 @@ export const workbench: FurnitureTemplate = (input) => {
   if (topSplit !== topSplitRaw) warnings.push(isEn ? `Centre well needs a top ≥ 60mm (yours ${topT}); drawn as a one-piece top.` : `中央槽的槽底板要嵌在桌面厚度裡，桌面至少 60（目前 ${topT}），已改成整片桌面。`);
   // 腳鉗木顎 64 厚，那支腳至少也要 64（Benchcrafted：leg ≥ 2½"）
   const legSize = frontVise === "leg" ? Math.max(legSizeRaw, LEG_VISE_CHOP_T) : legSizeRaw;
-  if (legSize !== legSizeRaw) warnings.push(isEn ? `Leg vise needs a leg ≥ ${LEG_VISE_CHOP_T}mm thick; leg size raised ${legSizeRaw} → ${legSize}.` : `腳鉗那支腳至少 ${LEG_VISE_CHOP_T}mm 厚，腳粗已從 ${legSizeRaw} 提到 ${legSize}。`);
+  if (legSize !== legSizeRaw) warnings.push(isEn ? `Leg vise needs a leg ≥ ${LEG_VISE_CHOP_T}mm thick; leg size raised ${legSizeRaw} → ${legSize}.` : `腳鉗那支腳至少 ${LEG_VISE_CHOP_T}mm 厚，腳寬已從 ${legSizeRaw} 提到 ${legSize}。`);
+  // 腳厚（Z）：0 = 方腳；低於 60 太細（工作桌抗晃不夠），高於腳寬就沒意義（收回方腳）
+  const legDepth = legDepthRaw > 0 ? Math.max(60, Math.min(legSize, legDepthRaw)) : legSize;
+  if (legDepthRaw > 0 && legDepth !== legDepthRaw) {
+    warnings.push(isEn
+      ? `Leg depth ${legDepthRaw}mm is out of range for a ${legSize}mm-wide leg; using ${legDepth}.`
+      : `腳厚 ${legDepthRaw} 不合用（要 ≥60、且不超過腳寬 ${legSize}），已改用 ${legDepth}。`);
+  }
   const legHeight = H - topT;
   // 裙板 / 下橫撐不能比腳粗：榫眼兩側各要留 ≥10 的頰壁（隨機測試抓到 80 厚橫撐配 60 腳時前後撐在腳角互穿）
   // 夾板疊層沒有榫眼頰壁的問題（料嵌在搭接槽裡，槽深另外夾制），36 的橫撐配 54 的腳是合法的
@@ -418,6 +429,7 @@ export const workbench: FurnitureTemplate = (input) => {
     height: H,
     material: input.material,
     legSize,
+    legDepthMm: legDepth,
     topThickness: topT,
     apronWidth: withApron ? apronWidth : 0,
     apronThickness,
@@ -1368,9 +1380,10 @@ export const workbench: FurnitureTemplate = (input) => {
     const shelfY = stretcherY + lowerStretcherWidth;
     const lsT = lowerStretcherThickness;
     const shelfLen = Math.max(50, frameL - legSize + lsT);
-    // 長板靠板的脊條佔掉前緣 25
-    const shelfWid = Math.max(50, workW - legSize + lsT - (deadman ? 25 : 0));
-    const notch = (legSize + lsT) / 2;
+    // 長板靠板的脊條佔掉前緣 25。長方腳時深度方向要用腳厚，不然缺角挖不夠、層板會插進腳裡
+    const shelfWid = Math.max(50, workW - legDepth + lsT - (deadman ? 25 : 0));
+    const notchX = (legSize + lsT) / 2;
+    const notchZ = (legDepth + lsT) / 2;
     if (shelfY < 150) warnings.push(isEn ? `Under-shelf sits ${shelfY}mm off the floor; ≥150 keeps it sweepable.` : `下層板離地 ${shelfY}mm，建議 ≥150 才掃得到地。`);
     design.parts.push({
       id: "under-shelf",
@@ -1380,7 +1393,7 @@ export const workbench: FurnitureTemplate = (input) => {
       grainDirection: "length",
       visible: { length: shelfLen, width: shelfWid, thickness: shelfT },
       origin: { x: frameDx, y: shelfY, z: deadman ? 12.5 : 0 },
-      shape: { kind: "notched-corners", notchLengthMm: notch, notchWidthMm: notch },
+      shape: { kind: "notched-corners", notchLengthMm: notchX, notchWidthMm: notchZ },
       panelPieces: ply ? 1 : Math.max(1, Math.ceil(shelfWid / PLANK_MAX_W)),
       tenons: [],
       mortises: [],

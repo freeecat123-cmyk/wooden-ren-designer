@@ -95,9 +95,11 @@ export function corners(
   width: number,
   legSize: number,
   inset = 0,
+  /** 腳沿深度（Z）方向的尺寸；省略 = 方腳（跟 legSize 同） */
+  legDepth = legSize,
 ) {
   const halfL = length / 2 - legSize / 2 - inset;
-  const halfW = width / 2 - legSize / 2 - inset;
+  const halfW = width / 2 - legDepth / 2 - inset;
   return [
     { x: -halfL, z: -halfW },
     { x: halfL, z: -halfW },

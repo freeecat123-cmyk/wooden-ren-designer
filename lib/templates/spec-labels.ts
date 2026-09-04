@@ -57,7 +57,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   legShape: "Leg shape",
   legSize: "Leg size",
   legWidth: "Leg width X",
-  legDepth: "Leg depth Z",
+  legDepth: "Leg depth (across the bench; 0 = square)",
   legHeight: "Leg height",
   legInset: "Leg inset",
   legEdge: "Leg edge size",
@@ -703,6 +703,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
 
   // === Leg sizing / shapes ===
   legSize: "Default for square legs. If width/depth overrides are filled, those win.",
+  legDepth: "0 = same as the leg width (square stock). A rectangular leg saves timber without losing rack resistance: what resists racking is the face along the bench length, so keep the width and thin the depth (not below 60). Not adjustable on the laminated-plywood build, where the leg is always a multiple of 18.",
   legWidthOverride: "0 = use “Leg size”. Non-zero = dimension along the seat's long edge X (lets you make flat legs).",
   legDepthOverride: "0 = use “Leg size”. Non-zero = dimension along the seat's short edge Z.",
 
@@ -1043,7 +1044,7 @@ export const SPEC_LABEL_ZH: Record<string, string> = {
   legShape: "腳樣式",
   legSize: "腳粗",
   legWidth: "腳寬 X",
-  legDepth: "腳深 Z",
+  legDepth: "腳厚（沿桌深方向，0 ＝ 方腳）",
   legHeight: "腳高",
   legInset: "腳內縮",
   legEdge: "腳邊緣處理",
