@@ -161,8 +161,6 @@ export const workbenchOptions: OptionSpec[] = [
   ], dependsOn: { key: "topSplit", equals: "none" }, help: "裝在前鉗的另一端：那端懸出自動拉到 470、桌面末端 100 厚端蓋、開 365×52 槽；桌長不到 1800 會略過" },
   { group: "workholding", type: "checkbox", key: "deadman", label: "長板靠板（桌前滑動的支撐板）", defaultValue: false, dependsOn: { all: [{ key: "frontVise", notIn: ["none"] }, { key: "lowerStretcherArrangement", oneOf: ["box-frame", "pair-x"] }, { key: "withLowerStretchers", equals: true }, { key: "frontOverhang", equals: 0 }, { key: "drawerCount", equals: 0 }] }, help: "夾長板、門板時撐住另一端：前下橫撐上加一條 45° 脊條、桌底一條軌、一片帶孔滑板。要前緣齊平、有前下橫撐" },
   { group: "workholding", type: "checkbox", key: "doubleSided", label: "雙面桌（對側再一支前鉗＋一列狗孔）", defaultValue: false, dependsOn: { all: [{ key: "frontVise", equals: "quick" }, { key: "topSplit", equals: "none" }] }, help: "教室用：兩人面對面各一支鉗（對角）、各一列狗孔，holdfast 孔改中央一列；桌深建議 ≥ 800" },
-  { group: "workholding", type: "checkbox", key: "moxon", label: "附加桌上加高小鉗（雙螺桿，做鳩尾用）", defaultValue: false, dependsOn: { key: "doubleSided", notIn: [true] }, help: "不動桌體：兩片 600×140 顎板＋兩支螺桿放桌面後側；五金台灣木樹林約 NT$1,300" },
-  { group: "workholding", type: "checkbox", key: "accessories", label: "附件：V 口壓板＋鋸切靠板", defaultValue: false, dependsOn: { key: "doubleSided", notIn: [true] }, help: "doe's foot（600×60 V 口壓板，配 holdfast 壓住長料）與 bench hook（300×180 鋸切靠板）。只進材料單與零件圖" },
   { group: "workholding", type: "select", key: "dogHoles", label: "桌狗孔", defaultValue: "row", choices: [
     { value: "row", label: "前緣一列（配鉗與刨擋）" },
     { value: "grid", label: "20mm 格陣（每 96mm 一孔，MFT 配件通用）" },
@@ -175,7 +173,6 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "workholding", type: "number", key: "dogHolePitch", label: "孔距", defaultValue: 100, unit: "mm", min: 60, max: 200, step: 10, dependsOn: { key: "dogHoles", equals: "row" }, help: "要小於鉗的行程（快速鉗開口 260 以上都夠）" },
   { group: "workholding", type: "number", key: "dogHoleFrontOffset", label: "離前緣", defaultValue: 60, unit: "mm", min: 40, max: 150, step: 5, dependsOn: { key: "dogHoles", equals: "row" }, help: "Schwarz 2~4\"；太靠邊會沿木紋裂" },
   { group: "workholding", type: "checkbox", key: "holdfastHoles", label: "holdfast 壓桿孔（後排，錯開）", defaultValue: true, dependsOn: { key: "dogHoles", notIn: ["none"] }, help: "跟狗孔同孔徑零成本；一支 holdfast 抵三支 F 夾。桌面 <44mm 咬不住會自動取消" },
-  { group: "workholding", type: "checkbox", key: "planingStop", label: "刨擋（64mm 木方柱穿桌面）", defaultValue: false, help: "左前方一根方柱穿過桌面，敲高一點就是刨削擋；桌面 ≥75 才夾得住" },
 
   // ───────────── 可拆 ─────────────
   { group: "misc", type: "select", key: "knockdown", label: "可拆式", defaultValue: "none", choices: [
@@ -239,7 +236,7 @@ export const workbench: FurnitureTemplate = (input) => {
   const dogHolePitchRaw = pick<number>("dogHolePitch");
   const dogHoleFrontOffsetRaw = pick<number>("dogHoleFrontOffset");
   const holdfastHolesRaw = pick<boolean>("holdfastHoles");
-  const planingStop = pick<boolean>("planingStop");
+  const planingStop = false; // 09-04 木頭仁：刨擋是買現成的，不畫
   const knockdown = pick<string>("knockdown");
   const shoeAllowanceMm = pick<number>("shoeAllowanceMm");
   const sawTableHeightMm = pick<number>("sawTableHeightMm");
@@ -251,8 +248,8 @@ export const workbench: FurnitureTemplate = (input) => {
   const endViseRaw = pick<string>("endVise");
   const deadmanRaw = pick<boolean>("deadman");
   const doubleSidedRaw = pick<boolean>("doubleSided");
-  const moxonRaw = pick<boolean>("moxon");
-  const accessoriesRaw = pick<boolean>("accessories");
+  const moxonRaw = false; // 09-04 木頭仁：桌上鉗、附件都是買現成的，不畫進料單
+  const accessoriesRaw = false;
 
   // ── 夾制（§A10.11：夾在讀選項這一層、夾了要出聲） ──
   const topT = Math.max(40, Math.min(150, topTRaw));
@@ -831,17 +828,7 @@ export const workbench: FurnitureTemplate = (input) => {
       cosmetic: true,
       label: isEn ? "wagon vise slot" : "尾鉗滑塊槽",
     });
-    design.parts.push({
-      id: "dog-block",
-      nameZh: "尾鉗滑塊狗頭（露出段）",
-      nameEn: "Wagon vise dog (proud part)",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: 45, width: 45, thickness: 25 },
-      origin: { x: slotCx + wagonSign * (WAGON_SLOT_L / 2 - 22.5 - 5), y: H, z: rowZ },
-      tenons: [],
-      mortises: [],
-    });
+    // 滑塊狗頭是五金的一部分（買現成），不畫；槽跟狗孔列同線即可
     design.parts.push({
       id: "wagon-screw",
       nameZh: "尾鉗螺桿（露出段）",

@@ -333,7 +333,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
           <section className="mt-6 rounded-lg border border-zinc-200 bg-white overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-200 text-sm font-medium text-zinc-800">
-              Bill of materials ({design.parts.length} parts)
+              Bill of materials ({design.parts.filter((p) => p.visual === undefined).length} parts)
             </div>
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 border-b border-zinc-200 text-xs text-zinc-600">
@@ -344,7 +344,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {design.parts.map((part, i) => (
+                {design.parts.filter((p) => p.visual === undefined).map((part, i) => (
                   <tr key={part.id ?? i} className="border-b border-zinc-100">
                     <td className="p-2.5">{part.nameEn ?? part.nameZh}</td>
                     <td className="p-2.5 text-zinc-600 text-xs">{materialName(part.material ?? material, locale)}</td>
@@ -357,6 +357,12 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             </table>
           </section>
 
+          {design.parts.some((p) => p.visual !== undefined) && (
+            <section className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+              <div className="font-medium text-zinc-800 mb-1">Hardware — bought, not in the cut list</div>
+              <div>{[...new Set(design.parts.filter((p) => p.visual !== undefined).map((p) => p.nameEn ?? p.nameZh))].join(" · ")}</div>
+            </section>
+          )}
           <div className="mt-4 text-[11px] text-zinc-500">
             Tip: click <strong>Print / PDF</strong> above to save this estimate as a PDF, or share via Email / Copy link.
           </div>

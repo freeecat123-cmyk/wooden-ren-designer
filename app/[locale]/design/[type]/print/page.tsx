@@ -176,7 +176,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
               label={isEn ? "Estimated time" : "預估工時"}
               value={isEn ? `~${totalHours} hours` : `約 ${totalHours} 小時`}
             />
-            <CoverField label={isEn ? "Parts" : "零件數"} value={isEn ? `${design.parts.length} parts` : `${design.parts.length} 件`} />
+            <CoverField label={isEn ? "Parts" : "零件數"} value={isEn ? `${design.parts.filter((p) => p.visual === undefined).length} parts` : `${design.parts.filter((p) => p.visual === undefined).length} 件`} />
             <CoverField
               label={isEn ? "Est. volume" : "預估材積"}
               value={`${totalVolumeM3.toFixed(3)} m³`}
@@ -400,6 +400,7 @@ function CoverField({ label, value }: { label: string; value: string }) {
 function estimateTotalVolume(design: FurnitureDesign): number {
   let mm3 = 0;
   for (const part of design.parts) {
+    if (part.visual !== undefined) continue; // 五金／玻璃是買的，不算材積
     const cut = calculateCutDimensions(part);
     mm3 += cut.length * cut.width * cut.thickness;
   }

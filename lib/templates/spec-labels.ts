@@ -28,8 +28,6 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   endVise: "End vise (tail)",
   deadman: "Sliding deadman (board support)",
   doubleSided: "Double-sided (second vise on the far side)",
-  moxon: "Add a Moxon vise (bench-on-bench)",
-  accessories: "Accessories: doe's foot + bench hook",
   // === workbench（木工工作桌） ===
   benchStyle: "Workbench style",
   heightMode: "Height purpose (suggestion only)",
@@ -50,7 +48,6 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   dogHolePitch: "Hole pitch",
   dogHoleFrontOffset: "Distance from front edge",
   holdfastHoles: "Holdfast holes (rear row, staggered)",
-  planingStop: "Planing stop (64mm post through the top)",
   knockdown: "Knockdown",
   // === Legs ===
   legShape: "Leg shape",
@@ -602,8 +599,6 @@ export const SPEC_HELP_EN: Record<string, string> = {
   endVise: "Mounted on the end opposite the front vise: that end's overhang goes to 470, a 100mm end cap and a 365×52 slot are added; skipped under 1800 long.",
   deadman: "Supports the far end of long boards: a 45° ridge strip on the front stretcher, a rail under the top and a board with a hole row. Needs a flush front edge and a front lower stretcher.",
   doubleSided: "Classroom use: two people face each other, each with a vise (diagonal) and a dog-hole row; holdfast holes move to the centre. Depth ≥ 800 recommended.",
-  moxon: "Does not touch the bench: two 600×140 jaw boards + two screws sit at the back of the top; hardware ~NT$1,300 in Taiwan.",
-  accessories: "Doe's foot (600×60 V-notched batten for holdfasts) and bench hook (300×180). Cut list and part drawings only.",
   drawerCount: "Cabinet sits on the lower stretchers; its top stays 210mm below the bench top so holdfasts still reach. Drawers plus a deep apron leave nowhere to clamp.",
   // === workbench ===
   benchStyle: "Applies a whole set of defaults once; fields you already changed are kept. Set length / depth / height above yourself (thick-top style: 1800×600×850 suggested).",
@@ -621,7 +616,6 @@ export const SPEC_HELP_EN: Record<string, string> = {
   dogHolePitch: "Must be less than the vise travel (any quick-release vise opening 260mm+ is fine).",
   dogHoleFrontOffset: "Schwarz 2–4\"; too close to the edge splits along the grain.",
   holdfastHoles: "Same bit as the dog holes, zero extra cost; one holdfast replaces three F-clamps. Cancelled automatically if the top is under 44mm.",
-  planingStop: "A square post through the top at the front-left; tap it up and it is a planing stop. Needs a top ≥75mm to hold by friction.",
   knockdown: "Knockdown joints are not glued; the legs get through-holes for the bolts and the bolts appear in the hardware list.",
   ctBlockHeight:
     "Height of the full-width block kept at the top of the inner face, where the apron / rail joins. The apron sits flush with the BOTTOM of this block; if you set the apron taller, the block grows to match (it never crops the apron).",

@@ -124,7 +124,7 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
   "workbench:default+benchStyle=apron",
   "workbench:default+benchStyle=mft",
-  "workbench:default+topSplit=gap+planingStop+frontVise=leg+withUnderShelf+knockdown=bolt",
+  "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
@@ -167,8 +167,7 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
     "default+benchStyle=mft",
     "default+benchStyle=classroom",
     "default+breadboardEnds",
-    "default+moxon+accessories",
-    "default+topSplit=gap+planingStop+frontVise=leg+withUnderShelf+knockdown=bolt",
+    "default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
     "default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
     "default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
   ],

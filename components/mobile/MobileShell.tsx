@@ -409,7 +409,7 @@ export function MobileShell(props: MobileShellProps) {
             補進 MobileShell。面板自身已響應式(grid-cols-2)、含 modal 全圖。 */}
         <PartDrawingsPanel design={design} />
 
-        <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.length })}>
+        <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.filter((p) => p.visual === undefined).length })}>
           <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
             <span className="leading-snug">{t("section.cutListNotice")}</span>
             <a

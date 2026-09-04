@@ -63,15 +63,14 @@ describe("木工工作桌：預設（厚板桌）", () => {
 });
 
 describe("夾制要出聲", () => {
-  it("桌面 40：holdfast 取消、鉗加 20 墊塊、刨擋偏薄，三條警告都在", () => {
-    const d = build({ topThickness: 40, planingStop: true });
+  it("桌面 40：holdfast 取消、鉗加 20 墊塊，警告都在", () => {
+    const d = build({ topThickness: 40 });
     expect(roundHoles(d, "top").filter((m) => m.origin.z > 0)).toHaveLength(0);
     const spacer = d.parts.find((p) => p.id === "vise-spacer")!;
     expect(spacer.visible.thickness).toBe(20);
     const w = (d.warnings ?? []).join("\n");
     expect(w).toMatch(/holdfast/);
     expect(w).toMatch(/墊塊/);
-    expect(w).toMatch(/刨擋/);
   });
   it("腳鉗會把 60 的腳提到 64 並出聲", () => {
     const d = build({ frontVise: "leg", legSize: 60 });
@@ -146,8 +145,8 @@ describe("流派 preset 只蓋使用者沒動過的 key", () => {
   });
 });
 
-describe("桌面中縫 + 刨擋", () => {
-  const d = build({ topSplit: "gap", planingStop: true });
+describe("桌面中縫", () => {
+  const d = build({ topSplit: "gap" });
   it("兩片各 (600−45)/2 = 277.5，擋條 45，腳頂榫眼各分到自己那片", () => {
     const f = d.parts.find((p) => p.id === "top-front")!;
     const b = d.parts.find((p) => p.id === "top-back")!;
@@ -158,13 +157,9 @@ describe("桌面中縫 + 刨擋", () => {
     expect(b.mortises.filter((m) => !m.cosmetic)).toHaveLength(2);
     expect(d.parts.find((p) => p.id === "top")).toBeUndefined();
   });
-  it("刨擋：64 方、露出 20、榫從柱底貫穿桌面、桌面有 64×64 通孔", () => {
-    const stop = d.parts.find((p) => p.id === "planing-stop")!;
-    expect(stop.visible).toEqual({ length: 64, width: 64, thickness: 20 });
-    expect(stop.origin.y).toBe(830);
-    expect(stop.tenons[0]).toMatchObject({ position: "bottom", type: "through-tenon", length: 75 });
-    const f = d.parts.find((p) => p.id === "top-front")!;
-    expect(f.mortises.some((m) => m.length === 64 && m.width === 64 && m.through && !m.cosmetic)).toBe(true);
+  it("買現成的東西不畫：沒有刨擋、桌上鉗、附件、滑塊狗頭零件", () => {
+    const w = build({ topSplit: "gap", endVise: "wagon" });
+    expect(w.parts.some((p) => /planing-stop|moxon|doe-foot|bench-hook|dog-block/.test(p.id))).toBe(false);
   });
 });
 

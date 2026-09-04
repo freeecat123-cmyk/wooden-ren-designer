@@ -480,7 +480,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <span>{entryDesc}</span>
             <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{formatDimensions(length, width, height, unit)}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{materialName(material, locale)}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.length })}</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.filter((p) => p.visual === undefined).length })}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title={t("header.weightTitle")}>{t("header.weightApprox", { kg: estimateWeight(design) })}</span>
           </p>
         </div>
@@ -690,7 +690,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
             {t("section.cutList")}
-            <span className="text-[10px] font-normal text-zinc-400">{t("section.cutListHint", { count: design.parts.length })}</span>
+            <span className="text-[10px] font-normal text-zinc-400">{t("section.cutListHint", { count: design.parts.filter((p) => p.visual === undefined).length })}</span>
           </span>
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>

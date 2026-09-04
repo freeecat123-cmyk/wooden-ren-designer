@@ -5409,7 +5409,10 @@ export function MaterialList({
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
     const isGlass = part.visual === "glass";
-    const isBrass = part.visual === "brass-antique";
+    // metal（鉗身、手把、螺桿、手輪…）跟仿古銅一樣是外購五金：歸五金區、不計件數、不計材積
+    //（2026-09-04 木頭仁：「虎鉗不該算進料單裡面，通常都是買金屬的」）
+    const isMetal = part.visual === "metal";
+    const isBrass = part.visual === "brass-antique" || isMetal;
     const isHardware = isGlass || isBrass;
     // bdft 體積：bbox × thickness 是預設；對非方形截面（regular-polygon / round）改用實際面積。
     // 注意：cut 尺寸仍維持 bbox（下料需要方板），只是 bdft 計算用實際截面積避免高估。
@@ -5432,7 +5435,9 @@ export function MaterialList({
     const matName = isEn ? (MATERIALS[part.material].nameEn ?? MATERIALS[part.material].nameZh) : MATERIALS[part.material].nameZh;
     const materialLabel = isGlass
       ? (isEn ? `${formatMm(cut.thickness, effectiveUnit)} tempered glass` : `${formatMm(cut.thickness, effectiveUnit)} 強化玻璃`)
-      : isBrass
+      : isMetal
+        ? (isEn ? "Hardware (purchased, not in cut list)" : "五金（外購，不入料單）")
+        : isBrass
         ? (isEn ? "Antiqued-brass hardware (purchased)" : "仿古銅五金（外購）")
         : billable === "plywood" || billable === "mdf"
           ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
