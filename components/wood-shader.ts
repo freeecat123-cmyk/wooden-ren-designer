@@ -51,6 +51,9 @@ float wd_fbm(vec2 p) {
 
 type GrainMode = "narrow" | "wide";
 
+/** 拼板 / 疊層：零件在料單上是 pieces 片，沿 split 軸切、總跨距 spanMm */
+export type BoardSplit = { pieces: number; spanMm: number; split: "cross" | "thin" };
+
 /**
  * grainAxis = 沿木紋方向的 local 座標（如 lp.x）
  * crossAxis = 主要 cross-grain 方向（顯眼的那一邊）
@@ -62,13 +65,32 @@ function makeGrainFragment(
   crossAxis: string,
   thinAxis: string,
   mode: GrainMode,
+  board?: BoardSplit,
 ): string {
+  // 拼板 / 疊層：同一個零件在料單上是 N 片（panelPieces）。3D 以前畫成一整塊，
+  // 看不出是拼的（木頭仁 2026-09-04：「桌面做法 可以顯示出層數 拼木的木紋嗎」）。
+  // 做法：不動幾何，在著色器裡按「第幾片」把木紋起點錯開，交界畫一條膠合線。
+  //   split = "cross"（寬板平拼 / 窄條側立拼）沿跨紋方向切，"thin"（疊層）沿厚度切。
+  const boardHeader = board
+    ? `
+float bAxis = ${board.split === "thin" ? thinAxis : crossAxis};
+float bT = clamp((bAxis + ${board.spanMm.toFixed(2)} * 0.5) / ${(board.spanMm / board.pieces).toFixed(4)}, 0.0, ${board.pieces.toFixed(1)} - 0.0001);
+float bIdx = floor(bT);
+float bHash = wd_hash(vec2(bIdx * 1.7 + 0.3, 3.7));
+// 每片各自的木紋起點與樹心偏移 → 相鄰兩片紋路不會連成一片
+gx += bHash * 900.0;
+wz += (bHash - 0.5) * 90.0;
+// 膠合線：離交界 1.6mm 內壓暗（真實膠縫更細，但 3D 預覽 0.7mm 不到一個像素＝等於沒畫）
+float bEdgeMm = min(fract(bT), 1.0 - fract(bT)) * ${(board.spanMm / board.pieces).toFixed(4)};
+float bGlue = 1.0 - smoothstep(0.0, 1.6, bEdgeMm);
+`
+    : "\nfloat bGlue = 0.0;\n";
   const header = `#include <map_fragment>
 vec3 lp = vWoodLocalPos;
 float gx = ${grainAxis};
 float wz = ${crossAxis};
 float wy = ${thinAxis};
-`;
+${boardHeader}`;
   if (mode === "wide") {
     return `${header}
 // 廣面 vs 薄邊偵測：cathedral 拱分布在 (gx, wz) 平面（板的廣面）。
@@ -112,6 +134,7 @@ dimming -= smoothstep(0.40, 0.62, streak) * 0.10;
 // 端面/薄邊（faceY 低）grain dimming 很弱→比廣面亮、會在交界露成白點
 // （百葉葉片端嵌豎梃露白，user 回報「斜的白塊」）。補 baseline dim 貼齊廣面亮度。
 dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
+dimming -= bGlue * 0.38;
 dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
   }
@@ -133,6 +156,7 @@ dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.14;
 dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07;
 // 端面/薄邊 baseline dim（同 wide：避免端面比廣面亮成白點）
 dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
+dimming -= bGlue * 0.38;
 dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
 }
@@ -147,8 +171,9 @@ function makeCompile(
   crossAxis: string,
   thinAxis: string,
   mode: GrainMode,
+  board?: BoardSplit,
 ): WoodCompile {
-  const fragmentInjection = makeGrainFragment(grainAxis, crossAxis, thinAxis, mode);
+  const fragmentInjection = makeGrainFragment(grainAxis, crossAxis, thinAxis, mode, board);
   const compile = ((shader: WebGLProgramParametersWithUniforms) => {
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -172,8 +197,39 @@ function makeCompile(
   // three.js 程式快取用 toString() 當鍵 → 4 變體被當成同一支 shader，grain
   // 方向會跟著「第一個編譯的零件」跑（豎梃拿到橫檔的 X-grain）。附唯一
   // cacheKey 給 material.customProgramCacheKey，three.js 才會分開編譯。
-  compile.cacheKey = `wood:${grainAxis}:${mode}`;
+  compile.cacheKey = board
+    ? `wood:${grainAxis}:${mode}:${board.split}:${board.pieces}:${board.spanMm.toFixed(1)}`
+    : `wood:${grainAxis}:${mode}`;
   return compile;
+}
+
+// 拼板變體的 compile 依參數快取：同一份設計裡片數/跨距相同的零件共用同一個
+// closure（React memo 才不會每次 render 都以為 material 換了）。
+const boardCompileCache = new Map<string, WoodCompile>();
+
+/**
+ * 取木紋 compile。board 給了就畫成 N 片拼板 / 疊層（每片紋路不同 + 膠合線），
+ * 沒給就是整塊（跟以前一模一樣）。
+ */
+export function getWoodCompile(
+  grainDirection: "length" | "width",
+  mode: GrainMode,
+  board?: BoardSplit,
+): WoodCompile {
+  const axes: [string, string, string] =
+    grainDirection === "width" ? ["lp.z", "lp.x", "lp.y"] : ["lp.x", "lp.z", "lp.y"];
+  if (!board || board.pieces < 2 || !(board.spanMm > 0)) {
+    return grainDirection === "width"
+      ? (mode === "wide" ? woodCompileZWide : woodCompileZNarrow)
+      : (mode === "wide" ? woodCompileXWide : woodCompileXNarrow);
+  }
+  const key = `${grainDirection}:${mode}:${board.split}:${board.pieces}:${board.spanMm.toFixed(1)}`;
+  let c = boardCompileCache.get(key);
+  if (!c) {
+    c = makeCompile(axes[0], axes[1], axes[2], mode, board);
+    boardCompileCache.set(key, c);
+  }
+  return c;
 }
 
 /** Cross-grain 尺寸（mm）≥ 此閾值用 wide（山形紋），否則用 narrow（直紋） */

@@ -2780,3 +2780,24 @@ export function curvedTaperProfileYs(
   // 由上而下、去重
   return ys.filter((y, i) => i === 0 || Math.abs(y - ys[i - 1]) > 1e-9);
 }
+
+/**
+ * 圓孔的「孔軸」＝ 三個半徑裡最大的那一軸（另外兩軸是孔的半徑，兩者相等）。
+ *
+ * 🩸 2026-09-04：3D 挖孔以前寫死用 local Y 當孔軸。桌面狗孔剛好是往下鑽（深度在
+ * local Y）所以看起來對，但前腳的 holdfast 孔、長板靠板的孔是往側面鑽（深度在
+ * local Z）→ 拿「半個孔深」當半徑、「孔半徑」當長度，挖出來是一塊餅不是孔，
+ * 結果就是木頭仁回報的「前腳 holdfast、長板靠板 都沒顯示孔」。
+ *
+ * CSG（subtractMortisesFromGeometry）與孔太多時改畫的「塞」都吃這一支，
+ * 避免同一個判斷有兩套。
+ */
+export function holeAxisOf(hx: number, hy: number, hz: number): "x" | "y" | "z" {
+  return hx >= hy && hx >= hz ? "x" : hz > hy ? "z" : "y";
+}
+
+/** 圓孔半徑 ＝ 非孔軸那兩軸的較小者 */
+export function holeRadiusOf(hx: number, hy: number, hz: number): number {
+  const axis = holeAxisOf(hx, hy, hz);
+  return axis === "y" ? Math.min(hx, hz) : axis === "x" ? Math.min(hy, hz) : Math.min(hx, hy);
+}

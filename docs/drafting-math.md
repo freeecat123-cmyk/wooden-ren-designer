@@ -91,6 +91,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
 | 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
 | 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers"` | §AU23 |
+| 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞"` | §AU24 |
 
 ---
 
@@ -5258,6 +5259,29 @@ holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙�
 - ⛔ MFT 流派**不預選** plywood：那會把使用者自己填的腳粗 / 橫撐厚吃掉（舊指紋與兩條測試都會變）。想整台夾板自己切材料樣式。
 
 **工序**：`step-10f-ply-laminate`（`lib/steps/derive.ts`），工時 = 20 + 12 × 膠合面數 + 6 × 搭接槽數，英文在 `STEP_OVERRIDE_EN`。
+
+
+
+### AU24. 09-04 木頭仁看 3D 回報的四條（孔軸、拼板顯示、中縫、中央槽端）
+
+1. **前腳 holdfast／長板靠板的孔在 3D 沒顯示**（幾何一直都在，是畫不出來）。
+   `subtractMortisesFromGeometry` 的圓孔一律拿 local Y 當孔軸：`CylinderGeometry(m.hz, m.hz, 2*m.hy)`。
+   桌面狗孔往下鑽（深度落在 local Y）剛好對；腳／靠板的孔往側面鑽，深度落在 local Z
+   → 半徑拿到「半個孔深」（50）、長度拿到「孔半徑」（19），挖出來是一塊餅不是孔。
+   → 孔軸改成「half-extent 最大那軸」，抽成 `lib/render/part-geometry.ts` 的
+   `holeAxisOf` / `holeRadiusOf`，CSG 與「塞」（孔 ≥ 6 個時走的畫法）共用同一支。
+   rotX≠0（外撇牆斜孔）維持原本的 Y 軸 slice 數學。
+2. **拼板／疊層在 3D 看不出片數**（`panelPieces` 以前只影響料單與裁切）。
+   不動幾何，改在木紋著色器裡按「第幾片」錯開紋路起點與樹心位置，交界壓一條膠合線。
+   `components/wood-shader.ts` 的 `getWoodCompile(grainDirection, mode, board)`，
+   `board = { pieces, spanMm, split }`；`split = "thin"` 是疊層（沿厚度）、`"cross"` 是拼板（沿跨紋）。
+   ⭐膠合線寬度 1.6mm 不是寫實值：0.7mm 在預覽縮放下不到一個像素＝等於沒畫。
+3. **中縫擋條**以前做成整條桌長又跟桌面齊平 → 看起來就是一整片，縫也失去意義。
+   改成 Benchcrafted 作法：一小塊（桌長/5，夾在 200~360）擺在鉗那一端，其餘留空給夾具穿過。
+4. **中央凹槽兩端要補實木端塞**：以前槽通到兩個端面，兩片桌面只剩底下腳架連著（木頭仁：「這樣很弱」）。
+   端塞跟桌面同厚、頂面齊平、長 = 桌長/12（夾在 100~200），把凹槽做成「不通到端面的口袋」；
+   槽底板長度縮成 `topLen − 2 × endLen` 卡在兩端塞之間（不然會疊在端塞上，overlap 稽核會紅）。
+   後側工具槽（`wellWidth > 0`）本來就有兩端板，這條是把中央槽補齊到同一個水準。
 
 
 ### M1. 座標系統

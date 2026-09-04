@@ -22,15 +22,14 @@ import {
   type ShapeSpec,
   buildShapeGeometry,
   buildDovetailEndsGeometry,
+  holeAxisOf,
+  holeRadiusOf,
 } from "@/lib/render/part-geometry";
 import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
 import {
-  woodCompileXNarrow,
-  woodCompileXWide,
-  woodCompileZNarrow,
-  woodCompileZWide,
+  getWoodCompile,
   WIDE_BOARD_THRESHOLD_MM,
 } from "@/components/wood-shader";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
@@ -182,11 +181,22 @@ function subtractMortisesFromGeometry(
     const hyExt = absRot ? (m.hy / c + m.hz * s) : m.hy;
     const hzScaled = absRot ? m.hz * c : m.hz;
     let cutGeo: BufferGeometry;
+    // 圓孔的「孔軸」＝ half-extent 最大那軸（跟下面「塞」那條同一套判斷）。
+    // 🩸2026-09-04 木頭仁回報「前腳 holdfast、長板靠板都沒顯示孔」：桌面狗孔的深度落在
+    // local Y，但腳 / 靠板的孔是往側面鑽、深度落在 local Z。以前一律當 Y 軸做圓柱
+    // → 半徑拿到的是「半個孔深」（50）、長度拿到的是孔半徑（19），等於拿一塊餅去挖，
+    // 挖出來根本不是孔。rotX≠0（外撇牆斜孔）維持原本的 Y 軸 slice 數學不動。
+    const holeAxis: "x" | "y" | "z" = absRot ? "y" : holeAxisOf(m.hx, m.hy, m.hz);
     if (isRound) {
-      // 圓孔 cross-section 預壓 ellipse：x-radius m.hz、z-radius m.hz·c
-      // rotation 後 slice = 半徑 m.hz 正圓
-      cutGeo = new CylinderGeometry(m.hz, m.hz, 2 * hyExt, 24);
+      const halfLen = holeAxis === "x" ? m.hx : holeAxis === "z" ? m.hz : hyExt;
+      const radius = absRot ? m.hz : holeRadiusOf(m.hx, m.hy, m.hz);
+      // 圓孔 cross-section 預壓 ellipse：x-radius radius、z-radius radius·c
+      // rotation 後 slice = 半徑 radius 正圓
+      cutGeo = new CylinderGeometry(radius, radius, 2 * halfLen, 24);
       if (absRot) cutGeo.scale(1, 1, c);
+      // CylinderGeometry 預設軸是 Y；孔軸在 X / Z 要先轉過去
+      if (holeAxis === "z") cutGeo.rotateX(Math.PI / 2);
+      else if (holeAxis === "x") cutGeo.rotateZ(Math.PI / 2);
     } else {
       cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
     }
@@ -227,6 +237,10 @@ type PartProps = {
   isGlass?: boolean;
   isBrass?: boolean;
   grainDirection?: "length" | "width";
+  /** 料單上這個零件是幾片拼的 / 幾層疊的（panelPieces）；> 1 時 3D 畫出片與片的膠合線 */
+  boardPieces?: number;
+  /** true = 沿厚度疊層（panelSplit="thickness"），false = 沿跨紋方向拼板 */
+  boardThin?: boolean;
   mortiseBoxes?: LocalBox[];
   mortiseShapes?: Array<"rect" | "round">;
   /** 圓形貫穿裝飾孔（工作桌狗孔 / holdfast 孔 / MFT 格陣）不走 CSG，改畫深色圓柱「塞」在孔位：
@@ -255,6 +269,8 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   if (a.color !== b.color) return false;
   if (a.isGlass !== b.isGlass || a.isBrass !== b.isBrass) return false;
   if (a.grainDirection !== b.grainDirection) return false;
+  if (a.boardPieces !== b.boardPieces) return false;
+  if (a.boardThin !== b.boardThin) return false;
   if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
   if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
   if (a.polygonOffset !== b.polygonOffset) return false;
@@ -291,6 +307,8 @@ const Part = memo(function PartInner({
   isGlass,
   isBrass,
   grainDirection,
+  boardPieces,
+  boardThin,
   mortiseBoxes,
   mortiseShapes,
   holeDecals,
@@ -316,10 +334,15 @@ const Part = memo(function PartInner({
   const crossGrainMm =
     (grainDirection === "width" ? size[0] : size[2]) * 100;
   const isWide = crossGrainMm >= WIDE_BOARD_THRESHOLD_MM;
-  const woodCompile =
-    grainDirection === "width"
-      ? (isWide ? woodCompileZWide : woodCompileZNarrow)
-      : (isWide ? woodCompileXWide : woodCompileXNarrow);
+  // 拼板 / 疊層：料單說這件是 N 片，3D 就把每片的木紋錯開並畫膠合線（不動幾何）
+  const boardSpanMm = boardThin ? size[1] * 100 : crossGrainMm;
+  const woodCompile = getWoodCompile(
+    grainDirection === "width" ? "width" : "length",
+    isWide ? "wide" : "narrow",
+    boardPieces && boardPieces > 1
+      ? { pieces: boardPieces, spanMm: boardSpanMm, split: boardThin ? "thin" : "cross" }
+      : undefined,
+  );
   // useMemo deps：size 是 [a,b,c] array、shape 是 object——父元件每 render
   // 都建新 reference 害 useMemo 永遠 invalidate。改 primitive + shape JSON
   // 後 box 件 fast-path 不變，異形件每次拖滑桿省一次 geometry 重建（50-200ms）。
@@ -560,9 +583,9 @@ const Part = memo(function PartInner({
   const meshRotation = hasDovetailCut ? new Euler(0, 0, 0) : rotation;
   // 圓孔「塞」：深色圓柱沿孔的深度軸（half-extent 最大那軸）擺，兩端各露出 0.3mm 蓋過木面
   const holePlugs = holeDecals && holeDecals.length > 0 && !hasDovetailCut ? holeDecals.map((h, i) => {
-    const axis: "x" | "y" | "z" = h.hx >= h.hy && h.hx >= h.hz ? "x" : h.hz > h.hy ? "z" : "y";
+    const axis = holeAxisOf(h.hx, h.hy, h.hz);
     const half = axis === "x" ? h.hx : axis === "z" ? h.hz : h.hy;
-    const r = axis === "y" ? Math.min(h.hx, h.hz) : axis === "x" ? Math.min(h.hy, h.hz) : Math.min(h.hx, h.hy);
+    const r = holeRadiusOf(h.hx, h.hy, h.hz);
     const rot: [number, number, number] = axis === "x" ? [0, 0, Math.PI / 2] : axis === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
     return (
       <mesh key={`plug-${i}`} position={[h.cx, h.cy, h.cz]} rotation={rot}>
@@ -2010,6 +2033,8 @@ export function PerspectiveView({
                 isGlass={part.visual === "glass"}
                 isBrass={part.visual === "brass-antique"}
                 grainDirection={part.grainDirection}
+                boardPieces={part.panelPieces}
+                boardThin={part.panelSplit === "thickness"}
                 mortiseBoxes={mortiseBoxesScaled}
                 mortiseShapes={mortiseShapesArr}
                 holeDecals={holeDecalsScaled}

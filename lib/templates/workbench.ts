@@ -555,14 +555,20 @@ export const workbench: FurnitureTemplate = (input) => {
     const front = mk(-1);
     const back = mk(1);
     if (gap > 0) {
+      // 中縫擋條不是把整條縫塞滿的長條：Benchcrafted split-top 的擋條是一小塊，
+      // 可沿縫移動、翻起來當刨擋，其餘的縫要留空夾具才伸得進去（這個選項的賣點）。
+      // 🩸2026-09-04 木頭仁回報「桌面分割中間留縫 但畫面看不出來」＝擋條做成
+      // 1800 長又跟桌面齊平，看起來就是一整片、縫也沒用了。
+      const stopLen = Math.max(200, Math.min(360, Math.round(topLen / 5 / 10) * 10));
       const stop: Part = {
         id: "gap-stop",
         nameZh: "中縫擋條",
         nameEn: "Gap stop",
         material: input.material,
         grainDirection: "length",
-        visible: { length: topLen, width: gap, thickness: topT },
-        origin: { x: topOriginX, y: top.origin.y, z: 0 },
+        visible: { length: stopLen, width: gap, thickness: topT },
+        // 擺在前鉗那一端（刨料時抵著它），離桌端 200；桌短就往中間收
+        origin: { x: topOriginX + sideSign * Math.max(0, topLen / 2 - stopLen / 2 - 200), y: top.origin.y, z: 0 },
         tenons: [],
         mortises: [],
       };
@@ -571,18 +577,34 @@ export const workbench: FurnitureTemplate = (input) => {
       // 中央凹槽：槽底板 24 厚，頂面比桌面低 wellDepth，嵌在兩片桌面內側各 10 深的溝裡（整片都在桌面厚度內，桌底維持平的，不擋裙板／穿帶）
       const trayT = 24;
       const trayTopY = H - wellDepth;
+      // 兩端塞的長度（下面建），槽底板要縮到兩端塞之間、不能疊上去
+      const endLen = Math.max(100, Math.min(200, Math.round(topLen / 12 / 10) * 10));
       const tray: Part = {
         id: "center-well-bottom",
         nameZh: "中央工具槽底板",
         nameEn: "Centre tool-well bottom",
         material: input.material,
         grainDirection: "length",
-        visible: { length: topLen, width: centerWell, thickness: trayT },
+        visible: { length: topLen - 2 * endLen, width: centerWell, thickness: trayT },
         origin: { x: topOriginX, y: trayTopY - trayT, z: 0 },
         tenons: [],
         mortises: [],
       };
-      design.parts.splice(idx, 1, front, back, tray);
+      // 兩端補實木端塞：沒有它，兩片桌面只剩底下腳架連著，長向一扭就開
+      // （🩸2026-09-04 木頭仁看 3D 回報「短邊兩側不用補木頭嗎 這樣很弱」）。
+      // 端塞跟桌面同厚、頂面齊平，等於把凹槽做成「不通到端面的口袋」＝實際做法。
+      const ends: Part[] = ([-1, 1] as const).map((sx) => ({
+        id: `center-well-end-${sx < 0 ? "r" : "l"}`,
+        nameZh: sx < 0 ? "中央槽右端塞" : "中央槽左端塞",
+        nameEn: sx < 0 ? "Centre well right end" : "Centre well left end",
+        material: input.material,
+        grainDirection: "width" as const,
+        visible: { length: endLen, width: centerWell, thickness: topT },
+        origin: { x: topOriginX + sx * (topLen / 2 - endLen / 2), y: top.origin.y, z: 0 },
+        tenons: [],
+        mortises: [],
+      }));
+      design.parts.splice(idx, 1, front, back, tray, ...ends);
     }
     topPieces.push(front, back);
   } else {

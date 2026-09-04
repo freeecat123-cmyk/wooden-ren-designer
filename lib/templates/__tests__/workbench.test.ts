@@ -5,6 +5,8 @@
 import { describe, it, expect } from "vitest";
 import { workbench, workbenchOptions } from "../workbench";
 import { auditJoints } from "@/lib/joinery/audit-joints";
+import { mortiseLocalBox } from "@/lib/render/svg-views";
+import { holeAxisOf, holeRadiusOf } from "@/lib/render/part-geometry";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { WORKBENCH_PRESETS, WORKBENCH_PRESET_DEFAULTS, workbenchPresetValues } from "../workbench-presets";
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
@@ -278,7 +280,8 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
     const tray = d.parts.find((p) => p.id === "center-well-bottom")!;
     expect(f.visible.width).toBe(225);
     expect(b.visible.width).toBe(225);
-    expect(tray.visible).toEqual({ length: 1800, width: 150, thickness: 24 });
+    // 2026-09-04 起兩端補 150 長的實木端塞（見下面那組測試），底板縮在兩端塞之間
+    expect(tray.visible).toEqual({ length: 1800 - 2 * 150, width: 150, thickness: 24 });
     expect(tray.origin.y + 24).toBe(830 - 45);
     expect(tray.origin.y).toBeGreaterThanOrEqual(830 - 75); // 底板底面不低於桌面底面 → 不會撞裙板 / 穿帶
     expect(d.parts.some((p) => p.id.startsWith("center-well-cleat"))).toBe(false);
@@ -543,5 +546,60 @@ describe("夾板疊層（materialStyle = plywood，§AU23）", () => {
   it("⛔ 回歸：MFT 流派不准預選夾板（會把使用者填的腳粗／橫撐厚吃掉）", () => {
     expect(WORKBENCH_PRESETS.mft.materialStyle).toBeUndefined();
     expect(WORKBENCH_PRESET_DEFAULTS.materialStyle).toBe("solid");
+  });
+});
+
+describe("09-04 木頭仁看 3D 回報的三條（孔軸、中縫、中央槽端）", () => {
+  it("圓孔的孔軸＝半徑最大那軸：桌面狗孔在 Y、前腳 holdfast 與靠板孔在 Z", () => {
+    const d = build({ deadman: true });
+    const boxOf = (id: string) => {
+      const p = d.parts.find((x) => x.id === id)!;
+      const m = p.mortises.find((mm) => mm.shape === "round")!;
+      return mortiseLocalBox(p, m);
+    };
+    const top = boxOf("top");
+    expect(holeAxisOf(top.hx, top.hy, top.hz)).toBe("y");
+    expect(holeRadiusOf(top.hx, top.hy, top.hz)).toBe(9.5); // Ø19
+    const leg = boxOf("leg-1");
+    expect(holeAxisOf(leg.hx, leg.hy, leg.hz)).toBe("z");
+    expect(holeRadiusOf(leg.hx, leg.hy, leg.hz)).toBe(9.5);
+    const dm = boxOf("deadman-board");
+    expect(holeAxisOf(dm.hx, dm.hy, dm.hz)).toBe("z");
+    expect(holeRadiusOf(dm.hx, dm.hy, dm.hz)).toBe(9.5);
+  });
+  it("前腳有 holdfast 孔列、後腳沒有（legHoles 預設開）", () => {
+    const d = build();
+    const rounds = (id: string) => d.parts.find((p) => p.id === id)!.mortises.filter((m) => m.shape === "round").length;
+    expect(rounds("leg-1")).toBeGreaterThan(0);
+    expect(rounds("leg-2")).toBeGreaterThan(0);
+    expect(rounds("leg-3")).toBe(0);
+    expect(rounds("leg-4")).toBe(0);
+    expect(build({ legHoles: false }).parts.find((p) => p.id === "leg-1")!.mortises.filter((m) => m.shape === "round").length).toBe(0);
+  });
+  it("中縫擋條是一小塊、不把縫塞滿（夾具要伸得進去），且擺在鉗那一端", () => {
+    const d = build({ topSplit: "gap" });
+    const stop = d.parts.find((p) => p.id === "gap-stop")!;
+    const top = d.parts.find((p) => p.id === "top-front")!;
+    expect(stop.visible.length).toBeLessThan(top.visible.length / 2);
+    expect(stop.visible.length).toBeGreaterThanOrEqual(200);
+    expect(stop.visible.width).toBe(45); // 中縫寬預設
+    // 鉗預設在左（世界 +X）
+    expect(stop.origin.x).toBeGreaterThan(0);
+    // 擋條兩端都還在桌面長度內
+    expect(Math.abs(stop.origin.x) + stop.visible.length / 2).toBeLessThanOrEqual(top.visible.length / 2);
+  });
+  it("中央凹槽兩端要補實木端塞（跟桌面同厚齊平），槽底板縮在兩端塞之間", () => {
+    const d = build({ topSplit: "center-well" });
+    const top = d.parts.find((p) => p.id === "top-front")!;
+    const ends = d.parts.filter((p) => p.id.startsWith("center-well-end-"));
+    expect(ends.length).toBe(2);
+    for (const e of ends) {
+      expect(e.visible.thickness).toBe(top.visible.thickness); // 同厚
+      expect(e.origin.y).toBe(top.origin.y);                   // 齊平
+      expect(e.visible.width).toBe(600 - 2 * top.visible.width); // 塞滿槽寬
+      expect(Math.abs(e.origin.x) + e.visible.length / 2).toBeCloseTo(top.visible.length / 2, 6);
+    }
+    const tray = d.parts.find((p) => p.id === "center-well-bottom")!;
+    expect(tray.visible.length).toBe(top.visible.length - ends[0].visible.length - ends[1].visible.length);
   });
 });
