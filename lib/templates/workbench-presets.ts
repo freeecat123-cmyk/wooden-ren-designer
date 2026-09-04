@@ -48,7 +48,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
 export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
   materialStyle: "solid", plyTopLayers: "3", legLayers: "4",
   topThickness: 75, topBuild: "plank", topLayers: 2,
-  legSize: 100, legTopJoint: "through",
+  legSize: 100, legTopJoint: "blind",
   withApron: false, apronWidth: 250, apronThickness: 40,
   lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 100, lowerStretcherThickness: 50,
   withUnderShelf: false, legPenetratingTenon: true,

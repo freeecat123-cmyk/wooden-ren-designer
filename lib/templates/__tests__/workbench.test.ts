@@ -32,7 +32,7 @@ describe("木工工作桌：預設（厚板桌）", () => {
     const leg = d.parts.find((p) => p.id === "leg-1")!;
     expect(leg.origin.z - leg.visible.width / 2).toBe(-300);
   });
-  it("腳頂是貫穿榫、桌面榫眼 through；鉗座 4 個 Ø8 螺栓孔在桌底", () => {
+  it("腳頂預設是暗榫（榫頭不露在工作面上）；鉗座 4 個 Ø8 螺栓孔在桌底", () => {
     const top = d.parts.find((p) => p.id === "top")!;
     const legMortises = top.mortises.filter((m) => !m.cosmetic);
     expect(legMortises).toHaveLength(4);
@@ -40,8 +40,13 @@ describe("木工工作桌：預設（厚板桌）", () => {
     const inner = d.parts.find((p) => p.id === "vise-inner-jaw")!;
     expect(inner.mortises).toHaveLength(3);
     expect(d.parts.find((p) => p.id === "vise-chop")!.mortises.some((m) => m.label === "鉗口桌狗孔")).toBe(true);
-    expect(legMortises.every((m) => m.through)).toBe(true);
-    expect(d.parts.find((p) => p.id === "leg-1")!.tenons[0].type).toBe("through-tenon");
+    // 2026-09-04 木頭仁裁示「接桌面預設不貫穿」：預設暗榫，榫眼不穿透桌面
+    expect(legMortises.every((m) => m.through)).toBe(false);
+    expect(d.parts.find((p) => p.id === "leg-1")!.tenons[0].type).not.toBe("through-tenon");
+    // 明選貫穿還是要照做
+    const th = build({ legTopJoint: "through" });
+    expect(th.parts.find((p) => p.id === "top")!.mortises.filter((m) => !m.cosmetic).every((m) => m.through)).toBe(true);
+    expect(th.parts.find((p) => p.id === "leg-1")!.tenons[0].type).toBe("through-tenon");
   });
   it("狗孔：從鉗口桌狗（木顎中心 750）起算整數孔距、跳過鉗本體上方 → 第一孔 750 − 200 = 550，每 100 到 −790 → 14 個；holdfast 後排 5 個", () => {
     const holes = roundHoles(d, "top");
@@ -669,7 +674,11 @@ describe("穿帶寬度／厚度可調（2026-09-04）", () => {
     const leg = d.parts.find((p) => p.id === "leg-1")!;
     const tenon = leg.tenons.find((t) => t.position === "top")!;
     expect(leg.visible.thickness).toBe(830 - 75 - 45);
-    expect(leg.visible.thickness + tenon.length).toBe(830);
+    // 腳 + 穿帶 + 桌面 = 總高（榫長不入帳，預設是暗榫不穿透桌面）
+    expect(leg.visible.thickness + 45 + 75).toBe(830);
+    // 榫要比沒穿帶時長 45（才穿得過穿帶）
+    const noBatten = build();
+    expect(tenon.length).toBe(noBatten.parts.find((p) => p.id === "leg-1")!.tenons.find((t) => t.position === "top")!.length + 45);
     // 腳落在穿帶寬度正中間
     expect(Math.abs(b.origin.x)).toBe(Math.abs(leg.origin.x));
   });

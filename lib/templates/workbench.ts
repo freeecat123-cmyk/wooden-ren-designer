@@ -145,10 +145,10 @@ export const workbenchOptions: OptionSpec[] = [
 
   // ───────────── 腳 ─────────────
   { group: "leg", type: "number", key: "legSize", label: "腳粗（方料）", defaultValue: 100, unit: "mm", min: 60, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "厚板桌 100~125；裙板桌 75~90。腳鉗那支腳至少 64" },
-  { group: "leg", type: "select", key: "legTopJoint", label: "腳接桌面", defaultValue: "through", choices: [
-    { value: "through", label: "貫穿榫（榫頭端面露在桌面上，Roubo 作法）" },
-    { value: "blind", label: "暗榫（桌面看不到榫）" },
-  ], dependsOn: { key: "materialStyle", equals: "solid" } },
+  { group: "leg", type: "select", key: "legTopJoint", label: "腳接桌面", defaultValue: "blind", choices: [
+    { value: "blind", label: "暗榫（桌面看不到榫，預設）" },
+    { value: "through", label: "貫穿榫（榫頭端面露在桌面上，Roubo 原版作法）" },
+  ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "貫穿榫最強，但榫頭端面會露在工作面上、也比較難做得準；預設走暗榫" },
 
   // ───────────── 裙板 ─────────────
   { group: "apron", type: "checkbox", key: "withApron", label: "裙板（薄桌面的剛性來源）", defaultValue: false, wide: true, help: "桌面 <60mm 就靠 ≥250mm 高的裙板抗晃（Nicholson / Sellers 作法）；厚板桌不用" },
