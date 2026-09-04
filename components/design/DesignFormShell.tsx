@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { workbenchPresetValues } from "@/lib/templates/workbench-presets";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
  *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset。
@@ -128,6 +129,26 @@ export function DesignFormShell({
           // 觸發 input event 讓 React controlled-component listener（若有）跟上
           targetInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
+      }
+    }
+    // 工作桌流派 preset：切 benchStyle（桌機 select / 手機 radio 晶片）就把整組值寫進表單，
+    // 網址跟著帶齊、模板不再暗中覆寫 → 表單顯示 = 3D 用的值（2026-09-04 工程師抓蟲：
+    // 原本「值等於預設才吃 preset」讓 preset 帶到的 key 永遠選不回預設，表單跟 3D 也對不上）。
+    const isBenchStyle =
+      (target instanceof HTMLSelectElement || (target instanceof HTMLInputElement && target.type === "radio")) &&
+      target.name === "benchStyle";
+    if (isBenchStyle && formRef.current) {
+      const vals = workbenchPresetValues(target.value);
+      for (const [k, v] of Object.entries(vals)) {
+        const form = formRef.current;
+        const sel = form.querySelector<HTMLSelectElement>(`select[name="${k}"]`);
+        if (sel) { sel.value = String(v); continue; }
+        const radios = form.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${k}"]`);
+        if (radios.length) { radios.forEach((r) => { r.checked = r.value === String(v); }); continue; }
+        const cb = form.querySelector<HTMLInputElement>(`input[type="checkbox"][name="${k}"]`);
+        if (cb) { cb.checked = v === true; continue; }
+        const inp = form.querySelector<HTMLInputElement>(`input[name="${k}"]`);
+        if (inp) { inp.value = String(v); inp.dispatchEvent(new Event("input", { bubbles: true })); }
       }
     }
     // Reverse sync：input 改變時、若值脫離 master select 的 preset 對應、

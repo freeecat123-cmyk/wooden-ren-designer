@@ -1922,8 +1922,9 @@ export function PerspectiveView({
             : part.mortises.filter((m) => m.cosmetic && !isLouverGroove(m));
           // 圓形貫穿裝飾孔一多（狗孔 / holdfast / MFT 格陣 ≥ 6 個）就不 CSG，改畫「塞」——
           // 每個孔一次 sequential subtraction，20 孔 4.7 秒、手機像當機。托盤手把 pill（3 孔）等少量仍走 CSG。
+          // 盲孔也用塞（塞的長度 = 孔深，外露面看起來一樣是深色圓；工作桌桌底鉗座螺栓孔 ×4）
           const isPlugHole = (m: { cosmetic?: boolean; shape?: string; through?: boolean; rotX?: number }) =>
-            !!m.cosmetic && m.shape === "round" && !!m.through && !m.rotX;
+            !!m.cosmetic && m.shape === "round" && !m.rotX;
           const plugCount = mortisesToCsg.filter(isPlugHole).length;
           const usePlugs = plugCount >= 6;
           const mortisesToPlug = usePlugs ? mortisesToCsg.filter(isPlugHole) : [];

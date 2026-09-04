@@ -3,15 +3,17 @@
  * 跑法：npx vitest run lib/templates/__tests__/workbench.test.ts
  */
 import { describe, it, expect } from "vitest";
-import { workbench } from "../workbench";
+import { workbench, workbenchOptions } from "../workbench";
+import { WORKBENCH_PRESETS, WORKBENCH_PRESET_DEFAULTS, workbenchPresetValues } from "../workbench-presets";
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
 
 type OptVal = string | number | boolean;
 function build(options: Record<string, OptVal> = {}, size = { length: 1800, width: 600, height: 830 }): FurnitureDesign {
   return workbench({ ...size, material: "beech" as MaterialId, options });
 }
+/** 桌狗 / holdfast 孔（貫穿的）；桌底 Ø8 鉗座螺栓孔是盲孔，不算 */
 const roundHoles = (d: FurnitureDesign, id: string) =>
-  d.parts.find((p) => p.id === id)!.mortises.filter((m) => m.shape === "round" && m.cosmetic);
+  d.parts.find((p) => p.id === id)!.mortises.filter((m) => m.shape === "round" && m.cosmetic && m.through);
 
 describe("木工工作桌：預設（厚板桌）", () => {
   const d = build();
@@ -26,21 +28,25 @@ describe("木工工作桌：預設（厚板桌）", () => {
     const leg = d.parts.find((p) => p.id === "leg-1")!;
     expect(leg.origin.z - leg.visible.width / 2).toBe(-300);
   });
-  it("腳頂是貫穿榫、桌面榫眼 through", () => {
+  it("腳頂是貫穿榫、桌面榫眼 through；鉗座 4 個 Ø8 螺栓孔在桌底", () => {
     const top = d.parts.find((p) => p.id === "top")!;
     const legMortises = top.mortises.filter((m) => !m.cosmetic);
     expect(legMortises).toHaveLength(4);
+    expect(top.mortises.filter((m) => m.label === "鉗座螺栓孔")).toHaveLength(4);
+    const inner = d.parts.find((p) => p.id === "vise-inner-jaw")!;
+    expect(inner.mortises).toHaveLength(3);
+    expect(d.parts.find((p) => p.id === "vise-chop")!.mortises.some((m) => m.label === "鉗口桌狗孔")).toBe(true);
     expect(legMortises.every((m) => m.through)).toBe(true);
     expect(d.parts.find((p) => p.id === "leg-1")!.tenons[0].type).toBe("through-tenon");
   });
-  it("狗孔：鉗在左（+X）中心 750、第一孔 750 − (90+50) = 610，每 100 一個到 −800 → 15 個；holdfast 後排 5 個", () => {
+  it("狗孔：從鉗口桌狗（木顎中心 750）起算整數孔距、跳過鉗本體上方 → 第一孔 750 − 200 = 550，每 100 到 −790 → 14 個；holdfast 後排 5 個", () => {
     const holes = roundHoles(d, "top");
     const front = holes.filter((m) => m.origin.z < 0);
     const rear = holes.filter((m) => m.origin.z > 0);
-    expect(front).toHaveLength(15);
+    expect(front).toHaveLength(14);
     expect(rear).toHaveLength(5);
-    expect(Math.max(...front.map((m) => m.origin.x))).toBe(610);
-    expect(Math.min(...front.map((m) => m.origin.x))).toBe(-790);
+    expect(Math.max(...front.map((m) => m.origin.x))).toBe(550);
+    expect(Math.min(...front.map((m) => m.origin.x))).toBe(-750); // 750 − 15×100；−850 超過端頭留 100
     expect(front.every((m) => m.origin.z === -300 + 60 && m.length === 19 && m.through)).toBe(true);
     expect(rear.every((m) => m.origin.z === 300 - 100)).toBe(true);
   });
@@ -99,13 +105,26 @@ describe("流派 preset 只蓋使用者沒動過的 key", () => {
     const leg = d.parts.find((p) => p.id === "leg-1")!;
     expect(leg.mortises.filter((m) => m.shape === "round").length).toBe(4);
   });
-  it("裙板桌但使用者自己把腳粗設 110 → 保留 110（值等於預設 100 時才吃 preset 的 75）", () => {
-    const d = build({ benchStyle: "apron", legSize: 110 });
-    expect(d.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(110);
-    // 模擬設計頁把所有 key 都寫進網址（全是預設值）→ preset 仍要套得上
-    const all = build({ benchStyle: "apron", legSize: 100, withApron: false, topThickness: 75 });
-    expect(all.parts.find((p) => p.id === "apron-front")).toBeDefined();
-    expect(all.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(75);
+  it("所見即所得：網址帶了 preset 管的 key 就照網址做（表單切流派時由 DesignFormShell 整組寫進網址）", () => {
+    // 舊連結只有 benchStyle → 套一次 preset
+    const legacy = build({ benchStyle: "apron" });
+    expect(legacy.parts.find((p) => p.id === "apron-front")).toBeDefined();
+    expect(legacy.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(75);
+    // 表單寫過的網址：使用者把腳粗設 110、其他照 preset → 110 要留住
+    const custom = build({ ...workbenchPresetValues("apron"), benchStyle: "apron", legSize: 110 });
+    expect(custom.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(110);
+    expect(custom.parts.find((p) => p.id === "apron-front")).toBeDefined();
+    // 使用者在裙板桌底下把「前鉗」選回預設 quick、腳粗選回 100 → 就是 quick / 100，不會被 preset 吃掉
+    const back = build({ ...workbenchPresetValues("mft"), benchStyle: "mft", frontVise: "quick", legSize: 100 });
+    expect(back.parts.find((p) => p.id === "vise-chop")).toBeDefined();
+    expect(back.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(100);
+  });
+  it("preset 表跟選項一致：每個 key 都存在、WORKBENCH_PRESET_DEFAULTS 等於 spec 預設", () => {
+    const specByKey = new Map(workbenchOptions.map((s) => [s.key, s]));
+    for (const [style, vals] of Object.entries(WORKBENCH_PRESETS)) for (const k of Object.keys(vals)) expect(specByKey.has(k), `${style}.${k}`).toBe(true);
+    for (const [k, v] of Object.entries(WORKBENCH_PRESET_DEFAULTS)) expect(specByKey.get(k)?.defaultValue, k).toBe(v);
+    // 每個 preset 帶的 key 都要在 DEFAULTS 裡（切回別的流派才回得去）
+    for (const vals of Object.values(WORKBENCH_PRESETS)) for (const k of Object.keys(vals)) expect(k in WORKBENCH_PRESET_DEFAULTS, k).toBe(true);
   });
   it("工具槽桌：工作面 450、槽 150、整體置中在 600 深裡", () => {
     const d = build({ benchStyle: "well" });
@@ -151,11 +170,12 @@ describe("桌面中縫 + 刨擋", () => {
 
 describe("v2：尾鉗（wagon）", () => {
   const d = build({ endVise: "wagon" });
-  it("尾鉗在前鉗另一端（−X）：那端懸出 470、另一端 360 → 腳架長 970、腳中心 −380 / +490", () => {
+  it("尾鉗在前鉗另一端（−X）：那端懸出 470、另一端自動縮到 300 補腳距 → 腳架長 1030、腳中心 −380 / +550", () => {
     const xs = d.parts.filter((p) => /^leg-\d$/.test(p.id)).map((p) => p.origin.x).sort((a, b) => a - b);
-    expect(xs).toEqual([-380, -380, 490, 490]);
+    expect(xs).toEqual([-380, -380, 550, 550]);
+    expect((d.warnings ?? []).join("\n")).not.toMatch(/腳距 \d+ 對桌高/);
   });
-  it("桌面讓 100 給端蓋：長 1700、中心 +50；端蓋 100×600×75 在 −850；腳頂榫眼跟著腳（−425 / +435）", () => {
+  it("桌面讓 100 給端蓋：長 1700、中心 +50；端蓋 100×600×75 在 −850；腳頂榫眼跟著腳（−425 / +495）", () => {
     const top = d.parts.find((p) => p.id === "top")!;
     expect(top.visible.length).toBe(1700);
     expect(top.origin.x).toBe(50);
@@ -163,7 +183,7 @@ describe("v2：尾鉗（wagon）", () => {
     expect(cap.visible).toEqual({ length: 100, width: 600, thickness: 75 });
     expect(cap.origin.x).toBe(-850);
     const legM = top.mortises.filter((m) => !m.cosmetic).map((m) => m.origin.x).sort((a, b) => a - b);
-    expect(legM).toEqual([-425, -425, 435, 435]);
+    expect(legM).toEqual([-425, -425, 495, 495]);
   });
   it("槽 365×52 中心 = −900 + 100 + 30 + 182.5 = −587.5（桌面 local −637.5），狗孔停在槽前", () => {
     const top = d.parts.find((p) => p.id === "top")!;
@@ -198,13 +218,13 @@ describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
     expect(d.parts.find((p) => p.id === "deadman-board")).toBeUndefined();
     expect((d.warnings ?? []).join("\n")).toMatch(/長板靠板已略過/);
   });
-  it("抽屜櫃：坐在橫撐頂 y=200、櫃頂 755−210=545 → 高 345；寬 = 腳架 1080 − 2×100 − 6 = 874、深 = 600−100+50−4 = 546", () => {
+  it("抽屜櫃：坐在橫撐頂 y=200、櫃頂 755−210=545 → 高 345；寬 = 腳架 1080 − 2×100 − 6 = 874、深 = 600−100+50−34 = 516（面板留在腳前面後方）", () => {
     const d = build({ drawerCount: 2 });
     const cabTop = d.parts.find((p) => p.id === "drawer-cab-top")!;
     const bottom = d.parts.find((p) => p.id === "drawer-cab-bottom")!;
     expect(bottom.origin.y).toBe(200);
     expect(bottom.visible.length).toBe(874);
-    expect(bottom.visible.width).toBe(546);
+    expect(bottom.visible.width).toBe(516);
     expect(cabTop.origin.y + cabTop.visible.thickness).toBe(545);
     expect(d.parts.filter((p) => /drawer-cab-z1-drawer-\d-front$/.test(p.id)).length).toBe(2);
     expect(d.parts.find((p) => p.id === "under-shelf")).toBeUndefined();
@@ -226,7 +246,7 @@ describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
     const d = build({ benchStyle: "classroom" });
     const chop2 = d.parts.find((p) => p.id === "vise2-chop")!;
     expect(chop2.origin.x).toBe(-750);
-    expect(chop2.origin.z).toBe(315);
+    expect(chop2.origin.z).toBe(300 + 20 + 22.5); // 後緣 + 內顎板 20 + 木顎 45/2
     const top = d.parts.find((p) => p.id === "top")!;
     const zs = new Set(top.mortises.filter((m) => m.shape === "round").map((m) => m.origin.z));
     expect(zs.has(-240) && zs.has(240) && zs.has(0)).toBe(true);
@@ -236,7 +256,7 @@ describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
     const top = d.parts.find((p) => p.id === "top")!;
     expect(top.visible.width).toBe(650);
     expect(top.origin.z).toBe(-25);
-    const front = top.mortises.filter((m) => m.shape === "round" && m.origin.z + top.origin.z < 0);
+    const front = top.mortises.filter((m) => m.shape === "round" && m.through && m.origin.z + top.origin.z < 0);
     expect(front.length).toBeGreaterThan(5);
     expect(front.every((m) => m.origin.z === -265)).toBe(true);
   });

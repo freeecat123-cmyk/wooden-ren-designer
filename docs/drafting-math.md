@@ -4956,6 +4956,7 @@ code：`withApron=false` 時 `topThickness` 預設 75、`legSize` 預設 100；`
 - 前列：`z = −工作面深/2 + max(離前緣設定, 2·Ø + 10)`（Schwarz 2–4"；太靠邊沿木紋裂）。端頭留 100。
   從鉗那端起算：第一孔 `x = viseX − sign·(jaw/2 + 50)`（鉗座 250 區段不打孔，木匠裁定），往另一端每 `pitch`（預設 100）一孔。
   刨擋佔掉第一格。上限 **60 孔**，超過自動 `pitch = ceil(span/59/10)·10` 並出聲。
+  **09-04**：起算點改成木顎中心 x 減整數個孔距（跟鉗口桌狗同一條 x 格線）。
 - **3D 不 CSG**：同零件 ≥6 個 cosmetic round through 孔時 `PerspectiveView` 改畫深色圓柱塞（`holeDecals`），
   不做 sequential subtraction（20 孔一次 4.7 秒、手機像當機；2026-09-03 木頭仁「參數都沒辦法點」）。
   ⭐ 以後任何模板的「一排孔」都別走 CSG。
@@ -4967,6 +4968,13 @@ code：`withApron=false` 時 `topThickness` 預設 75、`legSize` 預設 100；`
   （Schwarz：16" apart, staggered），上限 12 孔。
 - MFT 格陣：Ø20、96 間距、離邊 60（Ø20 / 96 = Festool MFT/3 規格；邊距是自定）；`cols = floor((L−120)/96)+1`、`rows` 以 **200 孔**為上限從前排往後保留，砍掉的排數出聲。
   鉗那一塊（`|x − viseX| < jaw/2 + 30` 且 z 在前 200）跳過。
+
+### AU5b. 流派 preset 的語意（09-04 改）
+
+`benchStyle` 切換時由 `components/design/DesignFormShell.tsx` 把 `lib/templates/workbench-presets.ts` 的整組值
+寫進表單／網址（select / radio 晶片 / checkbox / hidden 都處理），模板**不再**用「值等於預設就吃 preset」覆寫。
+唯一例外：網址只有 `benchStyle`、preset 管的 key 一個都沒出現（舊分享連結）→ 模板套一次。
+⛔ 原本的寫法會讓 preset 帶到的 key 永遠選不回 spec 預設、表單顯示跟 3D 對不上（bedPreset / chinese-cabinet 仍是舊寫法，同雷）。
 
 ### AU6. 鑄鐵快速鉗（前鉗）
 
@@ -4981,6 +4989,15 @@ code：`withApron=false` 時 `topThickness` 預設 75、`legSize` 預設 100；`
 | 裙板穿孔 | 裙板蓋到鉗時，`apron-front`（rotation.x=π/2）用 mesh-local `y=0`、`z = screwY − 裙板中心 y` 打同三孔 | §M1 |
 
 螺桿中心 `y = 本體頂 − 35`。五金列進 notes：鉗 + 4 支木牙螺栓。
+
+
+**2026-09-04 補（木頭仁：「孔位怎麼沒跟虎鉗有相應的孔」）**
+- 內顎板 `vise-inner-jaw`：jaw × 20 × chopH 貼桌面前緣（`z = edge ± 10`），跟木顎同樣三孔（Ø30 螺桿 + 兩 Ø20 導桿）一對一對應；木顎再往外 20。
+- 木顎加厚 30 → **45**，頂面一個 Ø19「鉗口桌狗孔」（盲孔深 60，label `鉗口桌狗孔`）。
+- 桌面底面 4 個 Ø8 深 40「鉗座螺栓孔」（本體四角內縮 20；cosmetic + round 盲孔 → 3D 走圓柱塞、零件圖標 Ø8）。
+- 前排狗孔列改**從鉗口桌狗（木顎中心 x）起算整數個孔距**，跳過落在鉗本體上方（jaw/2 + 20）的格：7" 鉗 → 第一孔在木顎中心 −200。
+- 腳鉗補**平行導件** `leg-vise-guide`：25 × 40 木條，visible 120（露出腳後）+ `end` 通榫 legSize 穿腳（腳上 25×40 通榫眼改非 cosmetic），Ø10 銷孔 @25；rotation.y = π/2。
+- 尾鉗看得見：手輪 Ø150 × 30、螺桿露出 60、滑塊狗露頭 25；**選尾鉗時另一端（自動模式）縮到 max(300, jaw+80)** 把腳距補回來（1800 桌：470 + 300 → 腳距 930 / 830 = 1.12，不再觸發腳距警告）。
 
 ### AU7. 腳鉗簡版（v1 不做 criss-cross / 銷孔列）
 
