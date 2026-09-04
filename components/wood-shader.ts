@@ -87,9 +87,14 @@ gx += bHash * 900.0;
 wz += (bHash - 0.5) * 90.0;
 // 膠合線：離交界 1.6mm 內壓暗（真實膠縫更細，但 3D 預覽 0.7mm 不到一個像素＝等於沒畫）
 float bEdgeMm = min(fract(bT), 1.0 - fract(bT)) * ${(board.spanMm / board.pieces).toFixed(4)};
-float bGlue = 1.0 - smoothstep(0.0, 1.6, bEdgeMm);
+float bGlue = 1.0 - smoothstep(0.0, 2.2, bEdgeMm);
+// 每片再帶一點色差（真實拼板／疊層每片本來就深淺不同）。線太細時（薄板疊層一層才 18mm、
+// 側立拼一條 60mm）光靠膠合線在縮圖上看不出來，色差在任何縮放都讀得到。
+// 亂數色差 + 奇偶交替：純亂數會有相鄰兩片剛好同深淺而糊在一起（側立拼 10 條時很明顯），
+// 交替那一項保證隔壁一定不同色。
+float bTone = (bHash - 0.5) * 0.10 + (mod(bIdx, 2.0) - 0.5) * 0.10;
 `
-    : "\nfloat bGlue = 0.0;\n";
+    : "\nfloat bGlue = 0.0;\nfloat bTone = 0.0;\n";
   const header = `#include <map_fragment>
 vec3 lp = vWoodLocalPos;
 float gx = ${grainAxis};
@@ -139,7 +144,8 @@ dimming -= smoothstep(0.40, 0.62, streak) * 0.10;
 // 端面/薄邊（faceY 低）grain dimming 很弱→比廣面亮、會在交界露成白點
 // （百葉葉片端嵌豎梃露白，user 回報「斜的白塊」）。補 baseline dim 貼齊廣面亮度。
 dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
-dimming -= bGlue * 0.38;
+dimming -= bGlue * 0.42;
+dimming -= bTone;
 dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
   }
@@ -161,7 +167,8 @@ dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.14;
 dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07;
 // 端面/薄邊 baseline dim（同 wide：避免端面比廣面亮成白點）
 dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
-dimming -= bGlue * 0.38;
+dimming -= bGlue * 0.42;
+dimming -= bTone;
 dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
 }

@@ -333,7 +333,14 @@ const Part = memo(function PartInner({
   // size 是 three-units（1 unit = 100mm），×100 換回 mm。
   const crossGrainMm =
     (grainDirection === "width" ? size[0] : size[2]) * 100;
-  const isWide = crossGrainMm >= WIDE_BOARD_THRESHOLD_MM;
+  // 山形紋 vs 直紋要看「每一片自己的跨紋寬」，不是整個零件的寬。
+  // 🩸2026-09-04 木頭仁：「窄條側立拼要能看出來」——側立拼每條只有 75mm（＝桌面厚），
+  // 真實長相是直紋；用整片 600 去判就變成整面山形紋，跟寬板平拼看起來一樣。
+  // 疊層（thin）不分：每一層都是整片寬，維持用零件寬判。
+  const perPieceCrossMm = !boardThin && (boardPieces ?? 1) > 1
+    ? crossGrainMm / (boardPieces as number)
+    : crossGrainMm;
+  const isWide = perPieceCrossMm >= WIDE_BOARD_THRESHOLD_MM;
   // 拼板 / 疊層：料單說這件是 N 片，3D 就把每片的木紋錯開並畫膠合線（不動幾何）。
   // ⭐疊層切「最小的那一維」（跟料單 / cutplan 同一套）：腳的 visible.thickness 是腳高，
   //   照它切會把腳沿高度切成好幾段（木頭仁 09-04 回報）。拼板則切跨紋方向那一維。
