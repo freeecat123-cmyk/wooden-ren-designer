@@ -316,19 +316,38 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
   });
 });
 
-describe("桌面底穿帶（可選）", () => {
-  it("開：兩端各一條 60×30、長 600−40=560、緊鄰腳外側 40（x = ±(540+40)）、貼桌底；疊層桌面略過出聲；預設關", () => {
+describe("桌面底穿帶（騎在腳頂，2026-09-04 改）", () => {
+  it("開：兩端各一條，寬＝腳粗、長 600−40=560、坐在腳頂；腳短 30、腳頂榫長 30，總高不變", () => {
+    const base = build();
     const d = build({ topBattens: true });
     const l = d.parts.find((p) => p.id === "top-batten-l")!;
-    expect(l.visible).toEqual({ length: 560, width: 60, thickness: 30 });
-    expect(l.origin.x).toBe(540 + 40);
+    expect(l.visible).toEqual({ length: 560, width: 100, thickness: 30 }); // 寬 = legSize 100（腳頂榫 90 寬要穿過去）
+    // 擺在腳的正上方（腳中心 x = ±490），不是以前的腳外側 ±580
+    expect(l.origin.x).toBe(490);
+    expect(d.parts.find((p) => p.id === "top-batten-r")!.origin.x).toBe(-490);
+    // 頂面貼桌底（830 − 75 = 755）
     expect(l.origin.y + 30).toBe(755);
-    expect(d.parts.find((p) => p.id === "top-batten-r")!.origin.x).toBe(-580);
-    expect(d.notes).toMatch(/穿帶 60×30/);
-    const st = build({ topBattens: true, topBuild: "stack" });
-    expect(st.parts.find((p) => p.id === "top-batten-l")).toBeUndefined();
-    expect((st.warnings ?? []).join("\n")).toMatch(/穿帶已略過/);
+    // 腳短 30、腳頂榫長 30 → 總高不變
+    const legBase = base.parts.find((p) => p.id === "leg-1")!;
+    const leg = d.parts.find((p) => p.id === "leg-1")!;
+    expect(leg.visible.thickness).toBe(legBase.visible.thickness - 30);
+    const tenon = leg.tenons.find((t) => t.position === "top")!;
+    const tenonBase = legBase.tenons.find((t) => t.position === "top")!;
+    expect(tenon.length).toBe(tenonBase.length + 30);
+    expect(leg.visible.thickness + tenon.length).toBe(legBase.visible.thickness + tenonBase.length);
+    // 穿帶上有兩顆貫穿榫眼給那一端的兩支腳
+    expect(l.mortises.length).toBe(2);
+    expect(l.mortises.every((m) => m.through && !m.cosmetic)).toBe(true);
+    expect(d.notes).toMatch(/穿帶 100×30/);
     expect(build().parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
+  });
+  it("疊層桌面／有裙板／長板靠板都不做穿帶，而且要出聲說為什麼", () => {
+    const cases: Record<string, OptVal>[] = [{ topBuild: "stack" }, { withApron: true }, { deadman: true, frontVise: "leg" }];
+    for (const opt of cases) {
+      const d = build({ topBattens: true, ...opt });
+      expect(d.parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
+      expect((d.warnings ?? []).join("\n")).toMatch(/穿帶已略過/);
+    }
   });
 });
 
@@ -439,26 +458,31 @@ describe("09-04 視覺審查修掉的（尾鉗槽切進腳榫眼、疊層料單�
     expect(ja.unmatchedTenons).toEqual([]);
     expect(ja.unmatchedMortises).toEqual([]);
   });
-  it("穿帶：懸出只有 10 時腳外面放不下 → 鉗那端（鉗裝在腳內側）只做另一端、另一端改放腳內側，都不跑到桌面外", () => {
+  it("穿帶：懸出只有 10 也放得下（騎在腳頂就不必跟鉗本體搶桌底那一段），兩端都做、都在桌面內", () => {
     const d = build({ topBattens: true, endOverhang: 10 });
-    expect(d.parts.find((p) => p.id === "top-batten-l")).toBeUndefined(); // 左端：7" 鉗裝在腳內側佔掉桌底
-    const r = d.parts.find((p) => p.id === "top-batten-r")!;
-    expect(Math.abs(r.origin.x) + 15).toBeLessThanOrEqual(900);
-    expect(Math.abs(r.origin.x)).toBeLessThan(900 - 10 - 100); // 在腳內側
-    expect(d.warnings?.filter((w) => w.includes("改放腳內側")).length).toBe(1);
-    expect(d.warnings?.filter((w) => w.includes("只做另一端")).length).toBe(1);
+    const bs = d.parts.filter((p) => p.id.startsWith("top-batten"));
+    expect(bs.length).toBe(2);
+    // 腳中心 x = ±(1800/2 − 10 − 100/2) = ±840，穿帶就在腳正上方且沒跑到桌面外
+    for (const b of bs) {
+      expect(Math.abs(b.origin.x)).toBe(840);
+      expect(Math.abs(b.origin.x) + b.visible.width / 2).toBeLessThanOrEqual(900);
+    }
+    // 沒做穿帶的設計不准偷改腳長
+    const noBatten = build({ endOverhang: 10 });
+    expect(noBatten.parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
+    expect(d.parts.find((p) => p.id === "leg-1")!.visible.thickness)
+      .toBe(noBatten.parts.find((p) => p.id === "leg-1")!.visible.thickness - 30);
   });
   it("腳鉗導件行程受桌深限制：500 深 + 150 腳 → 導件不撞後腳", () => {
     const d = build({ frontVise: "leg", legSize: 150 }, { length: 1800, width: 500, height: 830 });
     const guide = d.parts.find((p) => p.id === "leg-vise-guide")!;
     expect(guide.visible.length).toBe(120 + Math.max(40, 500 - 300 - 20 - 120));
   });
-  it("穿帶：每片桌面底面有 40 寬 15 深的燕尾槽（cosmetic）；封邊板朝桌面那面有 12×30 舌槽", () => {
+  it("穿帶改騎腳頂後桌底不再開燕尾槽；封邊板朝桌面那面仍有 12×30 舌槽", () => {
     const d = build({ topBattens: true, breadboardEnds: true });
     const top = d.parts.find((p) => p.id === "top")!;
-    const housings = top.mortises.filter((m) => m.shape !== "round" && m.depth === 15 && m.length === 40);
-    expect(housings.length).toBe(2);
-    expect(housings.every((m) => m.origin.y === 0 && m.cosmetic)).toBe(true);
+    // 舊做法在桌底批 40 寬 15 深的燕尾槽；現在穿帶被腳頂榫貫穿，不需要也不該再開槽
+    expect(top.mortises.filter((m) => m.shape !== "round" && m.depth === 15 && m.length === 40).length).toBe(0);
     const bb = d.parts.find((p) => p.id === "breadboard-l")!;
     expect(bb.mortises[0]).toMatchObject({ origin: { x: 0, y: 37.5, z: -30 }, depth: 30, width: 12 });
   });
@@ -601,5 +625,26 @@ describe("09-04 木頭仁看 3D 回報的三條（孔軸、中縫、中央槽端
     }
     const tray = d.parts.find((p) => p.id === "center-well-bottom")!;
     expect(tray.visible.length).toBe(top.visible.length - ends[0].visible.length - ends[1].visible.length);
+  });
+});
+
+describe("桌下抽屜：橫向分格（2026-09-04 加）", () => {
+  it("2 層 × 2 格 ＝ 4 個抽屜面板，而且會多出分隔板", () => {
+    const one = build({ drawerCount: 2, drawerCols: 1 });
+    const two = build({ drawerCount: 2, drawerCols: 2 });
+    const faces = (d: FurnitureDesign) => d.parts.filter((p) => /^drawer-cab-.*(front|face)/.test(p.id)).length;
+    expect(faces(two)).toBe(2 * faces(one));
+    expect(two.parts.length).toBeGreaterThan(one.parts.length);
+  });
+  it("預設 1 格（不動舊設計）；沒有抽屜時分格數不生效", () => {
+    const d = build({ drawerCount: 2 });
+    const one = build({ drawerCount: 2, drawerCols: 1 });
+    expect(d.parts.map((p) => p.id)).toEqual(one.parts.map((p) => p.id));
+    expect(build({ drawerCount: 0, drawerCols: 3 }).parts.some((p) => p.id.startsWith("drawer-cab"))).toBe(false);
+  });
+  it("櫃子太窄時每格會不到 180mm（手伸不進去）→ 自動收格數並出聲", () => {
+    // 短桌：抽屜櫃夾在兩支腳之間，寬度不夠切 3 格
+    const d = build({ drawerCount: 1, drawerCols: 3 }, { length: 900, width: 600, height: 830 });
+    expect((d.warnings ?? []).some((w) => w.includes("手伸不進去"))).toBe(true);
   });
 });

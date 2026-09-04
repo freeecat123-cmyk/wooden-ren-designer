@@ -197,6 +197,14 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
     "default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf",
     "default+materialStyle=plywood+benchStyle=apron",
     "default+materialStyle=plywood+topSplit=center-well+drawerCount=2",
+    // 穿帶改成騎在腳頂（腳頂榫貫穿穿帶）、抽屜橫向分格：09-04 新做的兩條都要掃
+    "default+topBattens",
+    "default+topBattens+frontVise=leg",
+    "default+topBattens+breadboardEnds",
+    "default+topBattens+endOverhang=10",
+    "default+topBattens+endVise=wagon",
+    "default+drawerCount=2+drawerCols=2",
+    "default+drawerCount=3+drawerCols=3",
   ],
 };
 

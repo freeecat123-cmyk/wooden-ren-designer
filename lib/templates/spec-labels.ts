@@ -19,7 +19,7 @@ import type { OptionSpec } from "@/lib/types";
 
 export const SPEC_LABEL_EN: Record<string, string> = {
   // === workbench v2 ===
-  shoeAllowanceMm: "Shoe / mat allowance",
+  shoeAllowanceMm: "How much you stand on (boot soles + anti-fatigue mat)",
   sawTableHeightMm: "Table-saw top height",
   roomLengthCm: "Room length available",
   roomWidthCm: "Room width available",
@@ -192,7 +192,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   // === Drawers ===
   withDrawer: "With drawer",
   withPullOutDrawer: "With pull-out drawer",
-  drawerCount: "Drawer count",
+  drawerCount: "Drawer rows under the bench (0 = none)",
   drawerRows: "Drawer rows",
   drawerStyle: "Drawer style",
   drawerSide: "Drawer side",
@@ -595,7 +595,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  */
 export const SPEC_HELP_EN: Record<string, string> = {
   // === workbench v2 ===
-  shoeAllowanceMm: "If you work in boots or on an anti-fatigue mat, the suggested height is raised by this. Only affects suggestions and warnings.",
+  shoeAllowanceMm: "⚠️ Only feeds the SUGGESTED bench height — nothing is drawn for it. Boots and an anti-fatigue mat make you taller, so the suggested height goes up by the same amount.",
   sawTableHeightMm: "An outfeed table must be level with or 1–2mm below the saw table; higher lifts the board tail and kicks back. Only affects suggestions and warnings.",
   roomLengthCm: "Wall to wall. 0 = ignore; warns when bench length plus a 90cm aisle will not fit. Warnings only.",
   roomWidthCm: "0 = ignore; warns when bench depth plus a 90cm aisle will not fit. Warnings only.",
@@ -606,6 +606,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   legHoles: "A column of Ø19 holes in the face of each front leg: clamp one end of a long board in the vise and hold the other end against the leg with a holdfast or peg (Roubo).",
   deadman: "Supports the far end of long boards: a 45° ridge strip on the front stretcher, a rail under the top and a board with a hole row. Needs a flush front edge and a front lower stretcher.",
   doubleSided: "Classroom use: two people face each other, each with a vise (diagonal) and a dog-hole row; holdfast holes move to the centre. Depth ≥ 800 recommended.",
+  drawerCols: "Splits each drawer row into that many side-by-side drawers, with a partition between them. 2 rows x 2 columns = 4 drawers.",
   drawerCount: "Cabinet sits on the lower stretchers; its top stays 210mm below the bench top so holdfasts still reach. Drawers plus a deep apron leave nowhere to clamp.",
   // === workbench ===
   materialStyle: "Laminated plywood: top, legs and stretchers are stacked from 18mm plywood; stretchers / aprons sit in notches left in the leg lamination and are screwed — no tenons at all. Top thickness and leg size then come from the layer counts below.",
@@ -1155,6 +1156,7 @@ export const SPEC_LABEL_ZH: Record<string, string> = {
   withDrawer: "加抽屜",
   withPullOutDrawer: "加抽拉屜",
   drawerCount: "抽屜數",
+  drawerCols: "每層橫向幾格",
   drawerRows: "抽屜列數",
   drawerStyle: "抽屜樣式",
   drawerSide: "抽屜方向",
