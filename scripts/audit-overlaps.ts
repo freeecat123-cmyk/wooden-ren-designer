@@ -157,6 +157,9 @@ interface Row {
 const EXTRA_VARIANTS: Record<string, string[]> = {
   workbench: [
     "default+endVise=wagon",
+    "default+topSplit=center-well",
+    "default+topSplit=center-well+deadman",
+    "default+lowerStretcherArrangement=h-frame",
     "default+deadman+lowerStretcherArrangement=box-frame",
     "default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
     "default+drawerCount=2",

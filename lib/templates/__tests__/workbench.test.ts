@@ -100,9 +100,9 @@ describe("流派 preset 只蓋使用者沒動過的 key", () => {
     expect(d.parts.find((p) => p.id === "leg-1")!.tenons[0].type).toBe("blind-tenon");
     expect(d.parts.find((p) => p.id === "ls-front")).toBeDefined();
     expect(d.parts.find((p) => p.id === "under-shelf")).toBeDefined();
-    // 每支腳 2 裙板 + 2 下橫撐 = 4 個榫眼 → 4 個螺栓孔
+    // 每支腳 2 裙板 + 2 下橫撐 = 4 個榫眼 → 4 個螺栓孔（前腳另有 holdfast 孔列，不算）
     const leg = d.parts.find((p) => p.id === "leg-1")!;
-    expect(leg.mortises.filter((m) => m.shape === "round").length).toBe(4);
+    expect(leg.mortises.filter((m) => m.label === "M10 床螺栓孔").length).toBe(4);
   });
   it("所見即所得：網址帶了 preset 管的 key 就照網址做（表單切流派時由 DesignFormShell 整組寫進網址）", () => {
     // 舊連結只有 benchStyle → 套一次 preset
@@ -209,7 +209,7 @@ describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
     expect(board.mortises.length).toBe(4); // 60,160,260,360 ≤ 443
   });
   it("靠板前提不符（H 形沒有前橫撐）→ 不生、出聲", () => {
-    const d = build({ deadman: true });
+    const d = build({ deadman: true, lowerStretcherArrangement: "h-frame" });
     expect(d.parts.find((p) => p.id === "deadman-board")).toBeUndefined();
     expect((d.warnings ?? []).join("\n")).toMatch(/長板靠板已略過/);
   });
@@ -254,6 +254,37 @@ describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
     const front = top.mortises.filter((m) => m.shape === "round" && m.through && m.origin.z + top.origin.z < 0);
     expect(front.length).toBeGreaterThan(5);
     expect(front.every((m) => m.origin.z === -265)).toBe(true);
+  });
+});
+
+describe("專業做法：中央凹槽、前腳孔列", () => {
+  it("中央凹槽 150：兩片各 225 寬、槽底板 24 厚頂面低 45、兩條墊條在槽底板下", () => {
+    const d = build({ topSplit: "center-well" });
+    const f = d.parts.find((p) => p.id === "top-front")!;
+    const b = d.parts.find((p) => p.id === "top-back")!;
+    const tray = d.parts.find((p) => p.id === "center-well-bottom")!;
+    expect(f.visible.width).toBe(225);
+    expect(b.visible.width).toBe(225);
+    expect(tray.visible).toEqual({ length: 1800, width: 150, thickness: 24 });
+    expect(tray.origin.y + 24).toBe(830 - 45);
+    const cleat = d.parts.find((p) => p.id === "center-well-cleat-f")!;
+    expect(cleat.origin.y + 20).toBe(tray.origin.y);
+    expect(d.parts.find((p) => p.id === "gap-stop")).toBeUndefined();
+  });
+  it("前腳 holdfast 孔列預設開：兩支前腳各 3 個 Ø19，從腳頂下 120 到橫撐上 120 均分；後腳沒有", () => {
+    const d = build();
+    const front = d.parts.filter((p) => /^leg-\d$/.test(p.id) && p.origin.z < 0);
+    const back = d.parts.filter((p) => /^leg-\d$/.test(p.id) && p.origin.z > 0);
+    expect(front).toHaveLength(2);
+    for (const leg of front) {
+      const holes = leg.mortises.filter((m) => m.label === "前腳 holdfast 孔");
+      expect(holes).toHaveLength(3);
+      expect(Math.max(...holes.map((m) => m.origin.y))).toBe(755 - 120);
+      expect(Math.min(...holes.map((m) => m.origin.y))).toBe(100 + 100 + 120);
+      expect(holes.every((m) => m.length === 19 && m.through)).toBe(true);
+    }
+    expect(back.every((leg) => !leg.mortises.some((m) => m.label === "前腳 holdfast 孔"))).toBe(true);
+    expect(build({ legHoles: false }).parts.find((p) => p.id === "leg-1")!.mortises.some((m) => m.label === "前腳 holdfast 孔")).toBe(false);
   });
 });
 

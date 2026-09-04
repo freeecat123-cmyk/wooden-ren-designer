@@ -47,7 +47,7 @@ export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
   topThickness: 75, topBuild: "plank", topLayers: 2,
   legSize: 100, legTopJoint: "through",
   withApron: false, apronWidth: 250, apronThickness: 40,
-  lowerStretcherArrangement: "h-frame", lowerStretcherWidth: 100, lowerStretcherThickness: 50,
+  lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 100, lowerStretcherThickness: 50,
   withUnderShelf: false, legPenetratingTenon: true,
   knockdown: "none", frontOverhang: 0,
   topSplit: "none", wellWidth: 150, wellDepth: 45,

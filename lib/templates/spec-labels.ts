@@ -27,6 +27,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   breadboardEnds: "Breadboard ends (anti-cup)",
   endVise: "End vise (tail)",
   deadman: "Sliding deadman (board support)",
+  legHoles: "Holdfast / peg holes in the front legs",
   doubleSided: "Double-sided (second vise on the far side)",
   // === workbench（木工工作桌） ===
   benchStyle: "Workbench style",
@@ -597,6 +598,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   frontOverhang: "Apron benches need ~50mm past the apron so clamps can reach (regret #1); thick-top benches stay flush — leg vise and deadman need a flush front.",
   breadboardEnds: "60mm wide, grain across the top; glue only the middle 150mm and slot the outer pins so the top can move.",
   endVise: "Mounted on the end opposite the front vise: that end's overhang goes to 470, a 100mm end cap and a 365×52 slot are added; skipped under 1800 long.",
+  legHoles: "A column of Ø19 holes in the face of each front leg: clamp one end of a long board in the vise and hold the other end against the leg with a holdfast or peg (Roubo).",
   deadman: "Supports the far end of long boards: a 45° ridge strip on the front stretcher, a rail under the top and a board with a hole row. Needs a flush front edge and a front lower stretcher.",
   doubleSided: "Classroom use: two people face each other, each with a vise (diagonal) and a dog-hole row; holdfast holes move to the centre. Depth ≥ 800 recommended.",
   drawerCount: "Cabinet sits on the lower stretchers; its top stays 210mm below the bench top so holdfasts still reach. Drawers plus a deep apron leave nowhere to clamp.",
@@ -1274,6 +1276,7 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "topSplit:none": "One piece",
   "topSplit:gap": "Centre gap + stop strip (split-top; clamps reach through the gap)",
   "topSplit:well": "Tool well at the back (chisels and planes stop rolling off)",
+  "topSplit:center-well": "Centre tool well (recessed tray between two slabs, European / classroom style)",
   "legTopJoint:through": "Through tenon (end grain shows on the top, Roubo style)",
   "legTopJoint:blind": "Blind tenon (nothing shows on the top)",
   "frontVise:quick": "Cast-iron quick-release vise (7\" ≈ NT$2,200, 9\" ≈ NT$2,900 in Taiwan)",
