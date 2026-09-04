@@ -288,6 +288,22 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
   });
 });
 
+describe("桌面底穿帶（可選）", () => {
+  it("開：兩端各一條 60×30、長 600−40=560、緊鄰腳外側 40（x = ±(540+40)）、貼桌底；疊層桌面略過出聲；預設關", () => {
+    const d = build({ topBattens: true });
+    const l = d.parts.find((p) => p.id === "top-batten-l")!;
+    expect(l.visible).toEqual({ length: 560, width: 60, thickness: 30 });
+    expect(l.origin.x).toBe(540 + 40);
+    expect(l.origin.y + 30).toBe(755);
+    expect(d.parts.find((p) => p.id === "top-batten-r")!.origin.x).toBe(-580);
+    expect(d.notes).toMatch(/穿帶 60×30/);
+    const st = build({ topBattens: true, topBuild: "stack" });
+    expect(st.parts.find((p) => p.id === "top-batten-l")).toBeUndefined();
+    expect((st.warnings ?? []).join("\n")).toMatch(/穿帶已略過/);
+    expect(build().parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
+  });
+});
+
 describe("孔徑一個總開關", () => {
   it("選 20 → 狗孔、holdfast、前腳孔、靠板孔全是 Ø20；格陣桌用 19 也照設定", () => {
     const d = build({ dogHoleDia: "20", deadman: true });

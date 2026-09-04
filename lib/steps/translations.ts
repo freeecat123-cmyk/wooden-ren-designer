@@ -129,6 +129,10 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
     title: () => "Wagon vise: cut the slot and fit the end cap",
     description: () => "Measure the actual hardware first (365×52 on the drawing is the Benchcrafted size). Rout the through slot against a straightedge in several passes and square the corners with a chisel. Fix the end cap with a dovetail or two bolts at the front and a slotted bolt hole at the back so the top can move, then fit the screw and hand wheel.",
   },
+  "step-10e-top-battens": {
+    title: () => "Top battens: rout the sliding dovetails and slide them in",
+    description: () => "Flip the top and rout a stopped sliding dovetail 20mm in from each end: 15 deep, 40 at the mouth, 50 at the bottom (≈1:6) — straight bit first, then the dovetail bit for the walls. Cut the matching dovetail on the 60×30 battens on the router table, fit snug, and glue only the middle 100mm so the top can move.",
+  },
   "step-10d-deadman": {
     title: () => "Sliding deadman: ridge, rail and board",
     description: () => "Bevel the ridge strip to 45° and screw it to the top front edge of the lower stretcher; fix the rail under the top on the same vertical line. Saw a V in the bottom of the board, leave a 25mm tongue on top, 1mm play each end, then drill the hole row.",

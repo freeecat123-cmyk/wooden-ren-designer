@@ -158,6 +158,8 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
   workbench: [
     "default+endVise=wagon",
     "default+topSplit=center-well",
+    "default+topBattens",
+    "default+topBattens+endVise=wagon+frontViseSize=9in",
     "default+topSplit=center-well+deadman",
     "default+lowerStretcherArrangement=h-frame",
     "default+deadman+lowerStretcherArrangement=box-frame",

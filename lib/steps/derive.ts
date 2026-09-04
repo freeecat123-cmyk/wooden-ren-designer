@@ -824,6 +824,19 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         bullets: ["槽跟前緣狗孔列同一條軸線，滑塊上的狗才對得到桌面狗孔", "端蓋跟桌面齊平後再一起刨平桌面"],
       });
     }
+    if (design.parts.some((p) => p.id.startsWith("top-batten-"))) {
+      steps.push({
+        id: "step-10e-top-battens",
+        phase: "fit",
+        title: "桌面底穿帶：批燕尾槽、滑入穿帶",
+        description:
+          "桌面翻面，在兩端離邊 20 處各批一道止燕尾槽：深 15、槽口 40、槽底 50（約 1:6），用修邊機燕尾刀分兩刀（先直刀清中間再燕尾刀修兩壁）。"
+          + "穿帶 60×30 的燕尾邊用同一支刀在路達台上修，試滑到緊而不卡；只在中央 10cm 上膠，兩端不膠，桌面才能隨季節脹縮。",
+        toolIds: ["router-table", "chisel-set-3-6-12", "try-square", "tape-measure-5m"],
+        estimatedMinutes: 60,
+        bullets: ["槽從桌面後緣進刀、止在離前緣 20 處，前緣看不到槽口", "穿帶比槽長 10 留修整，滑進去再鋸齊"],
+      });
+    }
     if (design.parts.some((p) => p.id === "deadman-board")) {
       steps.push({
         id: "step-10d-deadman",

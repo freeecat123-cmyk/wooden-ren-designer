@@ -53,6 +53,7 @@ export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
   topSplit: "none", wellWidth: 150, wellDepth: 45,
   frontViseSize: "7in", frontVise: "quick", dogHoles: "row", dogHoleDia: "19", holdfastHoles: true,
   doubleSided: false,
+  topBattens: false,
 };
 
 /** 切到某流派時要寫進表單／網址的完整值（preset 沒帶的 key 回預設） */
