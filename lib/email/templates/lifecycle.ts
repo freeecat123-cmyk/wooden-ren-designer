@@ -97,14 +97,15 @@ function textToHtml(text: string): string {
 
 const BODIES: Record<LifecycleEmailKey, { subject: string; body: string }> = {
   new_d1: {
-    subject: "先做一張方凳，3 分鐘",
+    subject: "先把你的工作桌畫出來，3 分鐘",
     body: `你昨天註冊了木作藍圖，我猜你還沒真的動手。
 
-先不用想要做什麼大家具，開這一頁：
-https://designer.woodenren.com/design/stool
+先不用想要做什麼大家具，先把你的工作桌畫出來——每個木工的第一件作品都該是它，之後每件家具都在它上面做。
+這個模板我免費送，開這一頁：
+https://designer.woodenren.com/workbench
 
-把凳子高度改成你家餐桌配的高度（一般 43～45 公分），
-右邊的 3D 會跟著變，下面三視圖、材料單、榫卯尺寸也會一起重算。
+填你的身高、選一種流派（不知道選哪個就選厚板桌），
+右邊的 3D 會跟著變，下面三視圖、材料單、零件圖、孔位也會一起重算。
 免費版只有方凳、筆筒和木工工作桌這三個可以改到底（列印 PDF 要付費）。
 
 改完你會看到我平常做木工前自己在看的那張圖。

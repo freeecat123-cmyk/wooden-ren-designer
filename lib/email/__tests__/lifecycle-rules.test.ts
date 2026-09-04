@@ -149,7 +149,8 @@ describe("lifecycleEmail 模板", () => {
   it("沒名字用「你好」；網址變連結", () => {
     const m = lifecycleEmail("new_d1", { name: "  " });
     expect(m.text.startsWith("你好，")).toBe(true);
-    expect(m.html).toContain('href="https://designer.woodenren.com/design/stool"');
+    expect(m.html).toContain('href="https://designer.woodenren.com/workbench"');
+    expect(m.text).toContain("先把你的工作桌畫出來");
   });
 });
 

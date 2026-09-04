@@ -129,6 +129,16 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "workbench:default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
   "workbench:default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
   "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
+  // 夾板疊層（§AU23）：橫撐／裙板的端頭伸進「疊層時預留的搭接槽」裡（半搭接，同紅酒架
+  // box 那組）。槽是 cosmetic mortise，OBB 不扣 → 腳 × 橫撐 / 腳 × 裙板 在槽裡結構性重疊，
+  // 重疊厚度恰等於槽深（腳 72 兩向 → 18；腳 54 兩向 → (54−36)/2 = 9），不是穿模。
+  "workbench:default+materialStyle=plywood",
+  "workbench:default+materialStyle=plywood+plyTopLayers=2+legLayers=3",
+  "workbench:default+materialStyle=plywood+plyTopLayers=4+legLayers=5",
+  "workbench:default+materialStyle=plywood+withApron+lowerStretcherArrangement=h-frame+knockdown=bolt",
+  "workbench:default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf",
+  "workbench:default+materialStyle=plywood+benchStyle=apron",
+  "workbench:default+materialStyle=plywood+topSplit=center-well+drawerCount=2",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
@@ -179,6 +189,14 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
     "default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
     "default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
     "default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
+    // 夾板疊層（§AU23）：料伸進腳的搭接槽 → 結構性重疊列 SHAPE_AWARE_CASES；每種層數 / 流派各掃一次
+    "default+materialStyle=plywood",
+    "default+materialStyle=plywood+plyTopLayers=2+legLayers=3",
+    "default+materialStyle=plywood+plyTopLayers=4+legLayers=5",
+    "default+materialStyle=plywood+withApron+lowerStretcherArrangement=h-frame+knockdown=bolt",
+    "default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf",
+    "default+materialStyle=plywood+benchStyle=apron",
+    "default+materialStyle=plywood+topSplit=center-well+drawerCount=2",
   ],
 };
 

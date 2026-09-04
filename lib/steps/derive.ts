@@ -811,6 +811,28 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         warnings: ["狗孔位置現在就決定，事後在裝好的桌上鑽會打到節、也很難垂直"],
       });
     }
+    // 夾板疊層版（§AU23）：疊層膠合 + 搭接槽預留；工時隨膠合面數 / 槽數線性
+    const plyNotches = design.parts.reduce((n, p) => n + p.mortises.filter((m) => m.cosmetic && (m.label ?? "").startsWith("搭接槽")).length, 0);
+    if (plyNotches > 0) {
+      const glueLines = design.parts.reduce((n, p) => n + (p.panelSplit === "thickness" ? Math.max(0, (p.panelPieces ?? 1) - 1) : 0), 0);
+      steps.push({
+        id: "step-10f-ply-laminate",
+        phase: "glue",
+        title: `夾板疊層：膠合桌面／腳／橫撐（${glueLines} 道膠合面）、預留 ${plyNotches} 個搭接槽`,
+        description:
+          "每一層先用軌道鋸裁到比成品大 5mm，腳跟橫撐的缺口在疊層前就從那一層裁掉（缺口位置量好、每層一樣）。"
+          + "整面塗木工膠（滾筒最快）、對齊一角，從中央往外每 250mm 一支 4×40 皿頭螺絲鎖住（或用夾具夾到膠乾），疊完再用修邊機齊邊刀把四邊修齊。"
+          + "橫撐嵌進腳的缺口後上膠、每處 3 支 6×80 螺絲；桌面靠腳內側的口袋孔螺絲鎖住。",
+        toolIds: ["track-saw", "drill", "screwdriver", "router-table", "clamps", "tape-measure-5m"],
+        estimatedMinutes: 20 + 12 * glueLines + 6 * plyNotches,
+        bullets: [
+          "夾板裁切邊會撕裂：好面朝下用軌道鋸，或先劃線再鋸",
+          "螺絲頭一定要沉進去（皿頭＋沉頭鑽），不然下一層貼不平",
+          "桌面最上層挑好面朝上、鑽狗孔前先整面刨平或用砂機磨平",
+        ],
+        warnings: ["缺口深度、位置每一層都要一樣，疊起來才是一個平整的槽；錯 2mm 橫撐就進不去"],
+      });
+    }
     if (design.parts.some((p) => p.id === "end-cap")) {
       steps.push({
         id: "step-10c-wagon-slot",

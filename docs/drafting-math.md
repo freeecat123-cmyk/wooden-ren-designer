@@ -90,6 +90,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
 | 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
 | 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
+| 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers"` | §AU23 |
 
 ---
 
@@ -5213,6 +5214,51 @@ holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙�
 ---
 
 ## §M. Mortise spec 慣例（mesh local，不是 post-rotation world）
+
+
+### AU23. 夾板疊層版（materialStyle = plywood，2026-09-04）
+
+木頭仁拍板：工作桌是最重要的免費鉤子，所以要有一款「不會鑿榫也做得出來」的。18mm 夾板一層層疊，全部螺絲加膠，整台零榫頭。
+
+**選項**（`lib/templates/workbench.ts`）
+| key | 值 | 意義 |
+|---|---|---|
+| `materialStyle` | `solid`（預設）/ `plywood` | 預設一定是 solid：舊設計、舊網址、165 組腳型指紋一格都不能動 |
+| `plyTopLayers` | 2 / 3 / 4 | 桌面厚 = 層數 × 18 = 36 / 54 / 72 |
+| `legLayers` | 3 / 4 / 5 | 腳粗 = 層數 × 18 = 54 / 72 / 90 方 |
+
+`plyTopLayers` / `legLayers` 只在 `materialStyle=plywood` 時出現（`dependsOn`）；反過來，
+`topThickness` / `topBuild` / `topLayers` / `legSize` / `legTopJoint` / `apronThickness` /
+`lowerStretcherThickness` / `legPenetratingTenon` / `topBattens` / `breadboardEnds`
+在 plywood 時全部藏起來——它們的值改由層數推導，留著會變成「滑桿動了沒反應」。
+
+**層數建議（寫在選項標籤裡給使用者看）**
+- 桌面 2 層 36：輕量 / MFT 夾具台，holdfast 咬不住（§AU9 的 44~89 咬合區間），要用 F 夾。
+- 桌面 3 層 54：建議值，手刨、holdfast 都夠。
+- 桌面 4 層 72：重刨、重敲。
+- 腳 3 層 54 輕量／4 層 72 建議／5 層 90 重型。腳鉗要 ≥ `LEG_VISE_CHOP_T`(64)，選 3 層會自動提到 4 層並出聲。
+
+**接合＝疊層時預留的搭接槽**（不是榫）
+- 腳上原本的榫眼改成 cosmetic 矩形盲槽，label 前綴 `搭接槽`，尺寸 = 料的（寬 × 厚）。
+- 槽深：同一帶（裙板帶 / 橫撐帶）**兩向都有料**時，每向 ≤ `(腳 − 料厚)/2`，兩向才不會在腳裡互撞；只有一向 → 一層 18。
+  例：72 腳配 36 橫撐 → 18；54 腳配 36 → (54−36)/2 = 9。
+- 橫撐 / 裙板的 `visible.length`（§A10：可見長 = 實際切料長）**加上兩端槽深**，因為料真的伸進槽裡。
+- 腳頂不接榫：從腳內側兩面各斜鑽 2 個口袋孔螺絲鎖桌面底層（共 16 支）。
+- ⚠️ 稽核：料伸進槽裡 = 結構性重疊（同紅酒架半搭接），槽是 cosmetic mortise、OBB 不扣，
+  所以這些變體列在 `scripts/audit-overlaps.ts` 的允許清單，重疊厚度必須恰等於槽深。
+
+**料與五金**
+- 骨架件（top / leg-* / ls-* / apron-* / under-shelf / well-*）設 `materialOverride: "plywood"` → 料單與報價走夾板計價。
+- 4×8 呎（1220×2440）張數 = ⌈總面積 × 1.15 ÷ 單張面積⌉（面積法 +15% 損耗，寫在說明裡）。
+- 螺絲：疊層 4×40 每 250mm 一支、搭接槽每處 3 支 6×80、腳頂口袋孔 6×63 共 16 支 + L 角鐵 4 片。都是外購五金，不進料單件數。
+- 桌面厚度**不套** solid 的「最薄 40」夾制：2 層 36 是合法的，硬夾到 40 會讓層厚變 20、料單對不上 18mm 夾板。
+
+**不做的事**
+- 穿帶、兩端封邊板：疊層桌面不會翹、也批不出燕尾槽 → 略過並出聲。
+- ⛔ MFT 流派**不預選** plywood：那會把使用者自己填的腳粗 / 橫撐厚吃掉（舊指紋與兩條測試都會變）。想整台夾板自己切材料樣式。
+
+**工序**：`step-10f-ply-laminate`（`lib/steps/derive.ts`），工時 = 20 + 12 × 膠合面數 + 6 × 搭接槽數，英文在 `STEP_OVERRIDE_EN`。
+
 
 ### M1. 座標系統
 

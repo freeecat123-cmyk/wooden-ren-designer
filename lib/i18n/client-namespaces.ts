@@ -8,7 +8,7 @@
 //    所以名單一律由掃描產生,不手寫。
 //
 // 掃描結果:client 元件用到 92 個命名空間 /
-//          messages 共 129 個 / 省下 37 個不送。
+//          messages 共 130 個 / 省下 38 個不送。
 // 不帶命名空間的 useTranslations()(已從實際 key 反推):
 //   - components/PricingClient.tsx
 //   - components/SiteFooter.tsx

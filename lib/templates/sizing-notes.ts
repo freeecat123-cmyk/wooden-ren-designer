@@ -41,10 +41,14 @@ export const SIZING_NOTES: Partial<Record<FurnitureCategory, SizingNotes>> = {
     zh: [
       "工作桌高 85～95 cm，依手肘高抓：站直、手腕自然垂下的位置就是桌面高度。",
       "範本的「你的身高」欄位會照這個原則反推桌高，改身高就好。",
+      "不會做榫卯就選「材料樣式：夾板疊層」：18mm 夾板一層層膠合＋螺絲。桌面 2 層（36mm）只適合當夾具台，holdfast 咬不住；3 層（54mm）手刨、holdfast 都夠，是建議值；4 層（72mm）給重刨重敲。桌腳 3 層（54mm 方）輕量、4 層（72mm 方）建議、5 層（90mm 方）重型。",
+      "夾板版的橫撐固定 2 層（36mm），嵌進腳上疊層時預留的缺口再鎖螺絲；料單會把每一層列成一片，說明裡有 4×8 呎張數估算。",
     ],
     en: [
       "Workbench height 85–95 cm, set by elbow height: stand upright and let the wrist hang naturally — that is your top height.",
       "The template's “Your height” field derives the bench height from this rule; just enter your height.",
+      "No joinery skills? Pick “Material style: laminated plywood” — 18mm sheets glued and screwed layer by layer. A 2-layer top (36mm) is a clamping table only (holdfasts will not bite); 3 layers (54mm) handles planing and holdfasts and is the recommended value; 4 layers (72mm) is for heavy planing and chopping. Legs: 3 layers (54mm square) light, 4 layers (72mm) recommended, 5 layers (90mm) heavy duty.",
+      "Plywood stretchers are always 2 layers (36mm) and sit in notches left in the leg lamination, then screwed; the material list shows one piece per layer and the notes estimate the number of 4×8 ft sheets.",
     ],
   },
   "dining-chair": {

@@ -5530,21 +5530,14 @@ export function MaterialList({
               ({ part, cut, bdft, materialLabel, tenonNotes, pieces }) => {
                 // 拼板：可見/切料寬度都先除以片數（單片實際尺寸），方便去料行下單
                 // 疊層（panelSplit="thickness"）：除的是厚度（每層厚 = 厚 ÷ 層數），面寬不動
+                // ⚠️ 疊層除的是「最小的那一維」（跟 cutplan/group.ts 同一套）：夾板疊層的腳 visible.thickness 是腳高，不是層厚
                 const byThickness = part.panelSplit === "thickness";
                 const dispVw = byThickness ? part.visible.width : part.visible.width / pieces;
-                const dispVt = byThickness ? part.visible.thickness / pieces : part.visible.thickness;
                 const dispCw = byThickness ? cut.width : cut.width / pieces;
-                const dispCt = byThickness ? cut.thickness / pieces : cut.thickness;
-                const [vl, vw, vt] = sortDimsDesc(
-                  part.visible.length,
-                  dispVw,
-                  dispVt,
-                );
-                const [cl, cw, ct] = sortDimsDesc(
-                  cut.length,
-                  dispCw,
-                  dispCt,
-                );
+                const [vl0, vw0, vt0] = sortDimsDesc(part.visible.length, dispVw, part.visible.thickness);
+                const [cl0, cw0, ct0] = sortDimsDesc(cut.length, dispCw, cut.thickness);
+                const [vl, vw, vt]: [number, number, number] = byThickness ? [vl0, vw0, vt0 / pieces] : [vl0, vw0, vt0];
+                const [cl, cw, ct]: [number, number, number] = byThickness ? [cl0, cw0, ct0 / pieces] : [cl0, cw0, ct0];
                 const piecesPrefix = pieces > 1 ? (isEn ? `${pieces} × ` : `${pieces} 片 × `) : "";
                 const isSelected = selectedPartId === part.id;
                 const interactive = !!onPartClick;

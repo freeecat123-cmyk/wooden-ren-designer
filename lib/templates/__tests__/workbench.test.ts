@@ -460,3 +460,88 @@ describe("09-04 視覺審查修掉的（尾鉗槽切進腳榫眼、疊層料單�
     expect(bb.mortises[0]).toMatchObject({ origin: { x: 0, y: 37.5, z: -30 }, depth: 30, width: 12 });
   });
 });
+
+describe("夾板疊層（materialStyle = plywood，§AU23）", () => {
+  const ply = (o: Record<string, OptVal> = {}) => build({ materialStyle: "plywood", ...o });
+  it("預設 3 層桌面 = 54、4 層腳 = 72 方、橫撐 2 層 = 36；桌面層數列進料單", () => {
+    const d = ply();
+    const top = d.parts.find((p) => p.id === "top")!;
+    expect(top.visible.thickness).toBe(54);
+    expect(top.panelPieces).toBe(3);
+    expect(top.panelSplit).toBe("thickness");
+    const leg = d.parts.find((p) => p.id === "leg-1")!;
+    expect(leg.visible.length).toBe(72);
+    expect(leg.visible.width).toBe(72);
+    expect(leg.panelPieces).toBe(4);
+    expect(leg.visible.thickness).toBe(830 - 54); // 腳高 = 桌高 − 桌面厚
+    const ls = d.parts.find((p) => p.id === "ls-front")!;
+    expect(ls.visible.thickness).toBe(36);
+    expect(ls.panelPieces).toBe(2);
+  });
+  it("層數選項會動：桌面 2/4 層 = 36/72，腳 3/5 層 = 54/90", () => {
+    expect(ply({ plyTopLayers: "2" }).parts.find((p) => p.id === "top")!.visible.thickness).toBe(36);
+    expect(ply({ plyTopLayers: "4" }).parts.find((p) => p.id === "top")!.visible.thickness).toBe(72);
+    expect(ply({ legLayers: "3" }).parts.find((p) => p.id === "leg-1")!.visible.length).toBe(54);
+    expect(ply({ legLayers: "5" }).parts.find((p) => p.id === "leg-1")!.visible.length).toBe(90);
+  });
+  it("整台沒有任何榫頭；腳上的接合榫眼變成 cosmetic 搭接槽", () => {
+    const d = ply({ withApron: true });
+    expect(d.parts.every((p) => (p.tenons?.length ?? 0) === 0)).toBe(true);
+    const leg = d.parts.find((p) => p.id === "leg-1")!;
+    const notches = leg.mortises.filter((m) => m.shape !== "round");
+    expect(notches.length).toBeGreaterThan(0);
+    expect(notches.every((m) => m.cosmetic && !m.through)).toBe(true);
+    expect(notches.every((m) => (m.label ?? "").includes("搭接槽"))).toBe(true);
+  });
+  it("搭接槽深：72 腳兩向各 18（一層）；54 腳兩向各 (54 − 36) / 2 = 9", () => {
+    const deep = (o: Record<string, OptVal>) => {
+      const leg = ply(o).parts.find((p) => p.id === "leg-1")!;
+      return leg.mortises.filter((m) => m.shape !== "round").map((m) => m.depth);
+    };
+    expect(deep({}).every((v) => v === 18)).toBe(true);
+    expect(deep({ legLayers: "3" }).every((v) => v === 9)).toBe(true);
+  });
+  it("橫撐的可見長（＝實際切料長）要伸進兩端的槽裡：前後撐 = 淨距 + 2 × 槽深", () => {
+    const solid = build();
+    // 腳距桌端 = 1800/5 = 360，腳中心 x = ±(900 − 360 − 72/2) = ±504
+    const clear = 2 * 504 - 72; // 72 方腳的內側淨距 = 936
+    const d = ply();
+    expect(d.parts.find((p) => p.id === "ls-front")!.visible.length).toBe(clear + 2 * 18);
+    // 實木版同一位置是「淨距 + 兩端榫長」，兩者不該相等（證明這條有真的改）
+    expect(solid.parts.find((p) => p.id === "ls-front")!.visible.length).not.toBe(clear + 2 * 18);
+  });
+  it("腳鉗要 ≥64 厚的腳：3 層（54）自動提到 4 層（72）並出聲", () => {
+    const d = ply({ frontVise: "leg", legLayers: "3" });
+    expect(d.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(72);
+    expect(d.warnings?.some((w) => w.includes("夾板腳已從 3 層提到 4 層"))).toBe(true);
+  });
+  it("骨架件改夾板計價，外購五金不受影響", () => {
+    const d = ply({ endVise: "wagon" });
+    for (const id of ["top", "leg-1", "ls-front"]) {
+      expect(d.parts.find((p) => p.id === id)!.materialOverride).toBe("plywood");
+    }
+    expect(d.parts.filter((p) => p.visual === "metal").every((p) => !p.materialOverride)).toBe(true);
+  });
+  it("說明要給 4×8 呎張數與三種螺絲數（初學者照著買）", () => {
+    const notes = String(ply().notes);
+    expect(notes).toMatch(/18mm 4×8 呎（1220×2440）約 \d+ 張/);
+    expect(notes).toMatch(/4×40 皿頭木螺絲約 \d+ 支/);
+    expect(notes).toMatch(/搭接槽 6×80 螺絲 \d+ 支/);
+    expect(notes).toMatch(/口袋孔螺絲 6×63 \d+ 支/);
+  });
+  it("疊層桌面不做穿帶／封邊板（沒地方批燕尾），並出聲", () => {
+    const d = ply({ topBattens: true, breadboardEnds: true });
+    expect(d.parts.some((p) => p.id.startsWith("batten"))).toBe(false);
+    expect(d.parts.some((p) => p.id.startsWith("breadboard"))).toBe(false);
+    expect(d.warnings?.some((w) => w.includes("穿帶已略過"))).toBe(true);
+  });
+  it("實木（預設）完全不受影響：腳粗滑桿照舊生效、榫頭還在", () => {
+    const d = build({ legSize: 110 });
+    expect(d.parts.find((p) => p.id === "leg-1")!.visible.length).toBe(110);
+    expect(d.parts.find((p) => p.id === "ls-front")!.tenons.length).toBe(2);
+  });
+  it("⛔ 回歸：MFT 流派不准預選夾板（會把使用者填的腳粗／橫撐厚吃掉）", () => {
+    expect(WORKBENCH_PRESETS.mft.materialStyle).toBeUndefined();
+    expect(WORKBENCH_PRESET_DEFAULTS.materialStyle).toBe("solid");
+  });
+});

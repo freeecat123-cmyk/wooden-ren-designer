@@ -148,18 +148,15 @@ export default async function Landing({
                 {t("hero.subtitleB")}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
+                {/* 2026-09-04 木頭仁拍板：主打免費送的木工工作桌 → 落地頁 /workbench（再進 /design/workbench 編輯器） */}
                 <Link
-                  href={locale === routing.defaultLocale ? "/app" : `/${locale}/app`}
+                  href="/workbench"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-700 text-white font-semibold shadow-lg shadow-amber-700/30 hover:bg-amber-800 hover:-translate-y-0.5 transition-all"
                 >
                   {t("hero.ctaPrimary")}
                 </Link>
                 <Link
-                  href={
-                    locale === routing.defaultLocale
-                      ? "/pricing"
-                      : `/${locale}/pricing`
-                  }
+                  href="/pricing"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-zinc-800 font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 transition-all"
                 >
                   {t("hero.ctaSecondary")}
@@ -171,7 +168,7 @@ export default async function Landing({
               <div className="rounded-3xl bg-white ring-1 ring-amber-200 shadow-2xl overflow-hidden p-4 sm:p-6">
                 <div className="aspect-[4/3] flex items-center justify-center bg-gradient-to-br from-stone-50 to-amber-50/40">
                   <Image
-                    src="/about-assets/hero-3d.png"
+                    src="/about-assets/hero-workbench.png"
                     alt={t("hero.heroAlt")}
                     width={620}
                     height={465}
@@ -268,9 +265,7 @@ export default async function Landing({
             <p className="mt-2 text-zinc-600">{t("templates.subtitle")}</p>
           </div>
           <Link
-            href={
-              locale === routing.defaultLocale ? "/templates" : `/${locale}/templates`
-            }
+            href="/templates"
             className="text-amber-700 hover:text-amber-900 font-semibold text-sm inline-flex items-center gap-1"
           >
             {t("templates.seeAll")}
@@ -280,10 +275,9 @@ export default async function Landing({
           {featuredEntries.map((e) => {
             const free = FREE_UNLOCKED_CATEGORIES.includes(e.category);
             const hasDetail = FEATURED_TEMPLATE_CATEGORIES.includes(e.category);
-            const prefix = locale === routing.defaultLocale ? "" : `/${locale}`;
-            const href = hasDetail
-              ? `${prefix}/templates/${e.category}`
-              : `${prefix}/app`;
+            // ⚠️ next-intl 的 <Link> 會自己補 locale 前綴；以前這裡多加一次 `/${locale}`
+            //    → 英文首頁所有連結變成 /en/en/...（正式站 404，2026-09-04 實測 20 條）。
+            const href = hasDetail ? `/templates/${e.category}` : "/app";
             return (
               <Link
                 key={e.category}
@@ -373,7 +367,7 @@ export default async function Landing({
             popularLabel={t("pricing.popular")}
             cta={{
               label: t("pricing.free.cta"),
-              href: locale === routing.defaultLocale ? "/app" : `/${locale}/app`,
+              href: "/app",
             }}
           />
           <PricingCard
@@ -391,7 +385,7 @@ export default async function Landing({
             cta={{
               label: t("pricing.personal.cta"),
               href:
-                locale === routing.defaultLocale ? "/pricing" : `/${locale}/pricing`,
+                "/pricing",
             }}
             currency={isEn ? "$" : "NT$"}
           />
@@ -410,7 +404,7 @@ export default async function Landing({
             cta={{
               label: t("pricing.pro.cta"),
               href:
-                locale === routing.defaultLocale ? "/pricing" : `/${locale}/pricing`,
+                "/pricing",
             }}
             currency={isEn ? "$" : "NT$"}
           />
@@ -452,9 +446,7 @@ export default async function Landing({
           </div>
           <div className="mt-5 text-center md:text-right">
             <Link
-              href={
-                locale === routing.defaultLocale ? "/pricing" : `/${locale}/pricing`
-              }
+              href="/pricing"
               className="text-sm font-semibold text-amber-800 hover:text-amber-900 underline underline-offset-4"
             >
               {t("pricing.custom.seeAll")}
@@ -489,7 +481,7 @@ export default async function Landing({
           </div>
           <div className="mt-8 text-center">
             <Link
-              href={locale === routing.defaultLocale ? "/help" : `/${locale}/help`}
+              href="/help"
               className="text-amber-700 hover:text-amber-900 font-semibold text-sm"
             >
               {t("faq.seeAll")}
@@ -511,13 +503,13 @@ export default async function Landing({
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              href={locale === routing.defaultLocale ? "/app" : `/${locale}/app`}
+              href="/app"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-amber-800 font-bold shadow-xl hover:-translate-y-0.5 hover:bg-amber-50 transition-all"
             >
               {t("bottomCta.ctaPrimary")}
             </Link>
             <Link
-              href={locale === routing.defaultLocale ? "/about" : `/${locale}/about`}
+              href="/about"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white/10 text-white font-semibold ring-1 ring-white/30 hover:bg-white/20 transition-all"
             >
               {t("bottomCta.ctaSecondary")}

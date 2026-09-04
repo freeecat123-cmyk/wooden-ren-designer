@@ -451,12 +451,12 @@
       "badge": "Wooden Ren Academy · Designer v0.5",
       "h1Line1": "Dimensions in,",
       "h1Highlight": "plans in 3 minutes",
-      "subtitleA": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts.",
-      "subtitleB": "This tool compresses all three into 3 minutes.",
-      "ctaPrimary": "Try the square stool free →",
+      "subtitleA": "Every woodworker's first project should be their own workbench — one that takes a plane, holds a board, and won't walk across the floor. Everything you build after that gets built on it.",
+      "subtitleB": "Enter your height, pick a style, and 3 minutes later you have three-views, a cut list and part drawings. Free, no signup.",
+      "ctaPrimary": "Draw your workbench free →",
       "ctaSecondary": "See pricing",
       "note": "No signup required to try · Square stool + pencil holder + workbench always free",
-      "heroAlt": "Wooden Ren Designer real output — walnut media console 3D perspective",
+      "heroAlt": "Wooden Ren Designer real output — workbench 3D perspective (slab-top bench with front vise and dog holes)",
       "heroCaption": "Real output",
       "heroBadgeFast": "⚡ 3-minute generation"
     },
@@ -579,7 +579,7 @@
       "seeAll": "See full FAQ →"
     },
     "bottomCta": {
-      "h2Line1": "Build a stool first.",
+      "h2Line1": "Draw your workbench first.",
       "h2Highlight": "Then decide if you want to pay.",
       "subtitle": "Fairest deal I know — use it first, pay only if it actually helps you.",
       "ctaPrimary": "Start designing →",
@@ -4045,7 +4045,7 @@
   "pricingFaqs": [
     {
       "q": "What does the free plan actually include?",
-      "a": "The Square Stool and Pencil Holder are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (materials stay switchable in the preview)."
+      "a": "The square stool, pencil holder and workbench are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (materials stay switchable in the preview)."
     },
     {
       "q": "What's the difference between Personal (NT$390) and Pro (NT$890)?",
@@ -5357,5 +5357,111 @@
     "empty": "No records.",
     "processedYes": "✓",
     "processedNo": "—"
+  },
+  "workbenchLanding": {
+    "metadata": {
+      "title": "Draw Your Workbench Free — Enter your height, pick a style, get three-views, cut list and part drawings in 3 minutes",
+      "description": "Wooden Ren gives the workbench template away to everyone who wants to start woodworking: Roubo slab-top, apron (Nicholson), tool-well, 20mm MFT grid and double-sided classroom bench. Height-based bench height, front vise, dog holes and holdfast holes placed automatically. No login, no signup — three-views, cut list, part drawings and stock layout right away.",
+      "ogTitle": "Draw Your Workbench Free — Wooden Ren Designer",
+      "ogDescription": "Every woodworker's first project is their own workbench. Five bench styles, height-based sizing, vise and dog holes placed for you. Free, no signup, plans in 3 minutes."
+    },
+    "hero": {
+      "badge": "Wooden Ren · Free for everyone who wants to start woodworking",
+      "h1Line1": "Every woodworker's first project",
+      "h1Highlight": "is their own workbench",
+      "intro": "Get a bench that takes a plane, holds a board and won't walk across the floor — then every stool, chair and desk after it gets built on top. This template is free: enter your height, pick a style, and 3 minutes later you have your own plans.",
+      "cta": "Start drawing your workbench free →",
+      "ctaNote": "No login, no signup, no payment · opens the editor directly",
+      "readMore": "Read the full template guide first",
+      "imgAlt": "Workbench 3D output — slab-top bench with front vise and a row of dog holes",
+      "imgCaption": "Real output (generated from default values)"
+    },
+    "why": {
+      "eyebrow": "Why it's free",
+      "h2": "I want more people to start woodworking",
+      "p1": "In over a decade of teaching, the thing that stops most beginners isn't skill — it's not having anywhere to work. Chopping mortises on the dining table, sawing on the balcony floor: two tries and they give up.",
+      "p2": "A workbench you built yourself is where woodworking starts. It's heavy, it's flat, it holds your stock — and it's the first piece you'll actually use every day. Finish it and you have your own workspace; whatever you want to build next has a place to happen.",
+      "p3": "So this template is a gift, in the name of getting more people into the craft. No account, no payment — draw it, buy the lumber, start.",
+      "sign": "— Wooden Ren"
+    },
+    "choose": {
+      "eyebrow": "What you can choose",
+      "h2": "Five bench styles, one click loads the whole set of dimensions",
+      "intro": "Not sure where to start? Pick the slab-top bench. Short on space or lumber? Pick the apron bench. Every style can then be tuned: top thickness, leg size, vise position, hole spacing.",
+      "styles": {
+        "roubo": {
+          "title": "Slab-top bench (French Roubo)",
+          "desc": "Thick top, stout legs with through-tenons, front vise plus a row of dog holes. The classic hand-tool bench — heavy enough that planing won't push it around."
+        },
+        "apron": {
+          "title": "Apron bench (English Nicholson)",
+          "desc": "A thinner top stiffened by tall aprons, bolted so it comes apart. Uses the least lumber — first choice for apartments and frequent movers."
+        },
+        "well": {
+          "title": "Tool-well bench (Scandinavian)",
+          "desc": "A trough along the back of the top so chisels and planes stay put and the work surface stays clear."
+        },
+        "mft": {
+          "title": "20mm grid bench (modern MFT)",
+          "desc": "Plywood top with 20mm holes on a 96mm grid — works with track-saw guides and MFT-style clamps."
+        },
+        "classroom": {
+          "title": "Double-sided classroom bench",
+          "desc": "Two people face to face, each with their own vise and row of dog holes — the bench in the Wooden Ren Academy classroom."
+        }
+      },
+      "height": {
+        "title": "Bench height from your height and use",
+        "desc": "Enter your height and choose hand planing, machine work, fine joinery or table-saw outfeed; the notes give a recommended height — and never silently change the one you set."
+      },
+      "holding": {
+        "title": "Vise, dog holes and holdfast holes placed for you",
+        "desc": "Choose a 7\" or 9\" cast-iron quick-release vise; the template mounts it outside the leg and adds a spacer block if the front edge is too thin. Dog holes every 100mm at Ø19 or Ø20, holdfast holes staggered behind."
+      },
+      "plywood": {
+        "title": "Laminated plywood: buildable without cutting a single mortise",
+        "desc": "Top, legs and stretchers are stacked from 18mm plywood, glued and screwed; the stretchers drop into notches left in the leg lamination, so there is no joinery at all. Pick your own layer counts — top 2/3/4 layers (36/54/72mm), legs 3/4/5 — the menu tells you which is strong enough. The cut list gives you sheet count and screw count."
+      }
+    },
+    "outputs": {
+      "eyebrow": "No login, no signup — plans right away",
+      "h2": "One click gives you a full set of plans you can build from",
+      "threeview": {
+        "title": "Three-view drawings",
+        "desc": "Front, side and top views with full dimensions, every hole position marked."
+      },
+      "bom": {
+        "title": "Cut list",
+        "desc": "Length, width, thickness and count for every piece — take it straight to the lumber yard."
+      },
+      "parts": {
+        "title": "Part drawings",
+        "desc": "One sheet per part with tenon, mortise and hole dimensions."
+      },
+      "cutplan": {
+        "title": "Stock layout",
+        "desc": "Automatic nesting that shows the most economical cuts and how many boards to buy."
+      }
+    },
+    "cta": {
+      "h2": "Draw your workbench now",
+      "body": "Don't overthink it — open it with the defaults, then change the height and length to yours.",
+      "button": "Start drawing your workbench free →",
+      "note": "No login, no signup · square stool + pencil holder + workbench always free"
+    },
+    "others": {
+      "eyebrow": "Two more free templates",
+      "h2": "The first things to build on your new bench",
+      "stool": {
+        "title": "Square stool",
+        "desc": "Four legs, eight tenons — the best stool for practising mortise and tenon."
+      },
+      "pencilHolder": {
+        "title": "Pencil holder",
+        "desc": "One board, one afternoon — a small project for practising chisel work and glue-ups."
+      },
+      "open": "Start free →",
+      "seeAll": "See all 26 templates →"
+    }
   }
 }

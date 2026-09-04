@@ -31,7 +31,9 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
   },
   /** 教室雙面桌：厚板桌骨架，兩人面對面各一支前鉗、各一列狗孔（木頭仁教室 1800×900） */
   classroom: { doubleSided: true },
-  /** 20mm 孔陣桌（現代 MFT）：夾板疊層 + 淺裙板 + 20mm 格陣（96 間距）、不裝鉗 */
+  /** 20mm 孔陣桌（現代 MFT）：桌面疊層 + 淺裙板 + 20mm 格陣（96 間距）、不裝鉗。
+   *  ⛔ 不預選 materialStyle=plywood：那會讓使用者自己填的腳粗／橫撐厚被層數蓋掉（舊指紋與兩條測試都會變），
+   *     整台夾板請自己把「材料樣式」切到夾板疊層。 */
   mft: {
     topThickness: 40, topBuild: "stack", topLayers: 2,
     legSize: 60, legTopJoint: "blind",
@@ -44,6 +46,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
 
 /** 所有流派會動到的 key 的 spec 預設值（切回別的流派時沒帶到的 key 要回這裡） */
 export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
+  materialStyle: "solid", plyTopLayers: "3", legLayers: "4",
   topThickness: 75, topBuild: "plank", topLayers: 2,
   legSize: 100, legTopJoint: "through",
   withApron: false, apronWidth: 250, apronThickness: 40,

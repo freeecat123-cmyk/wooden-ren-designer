@@ -39,15 +39,19 @@ export function welcomeEmail(input: { name?: string | null; locale?: string }): 
     const text = [
       `Hi ${greetingText},`,
       ``,
-      `Welcome to the Wooden Ren furniture design tool. I built it for my own woodworking workflow:`,
-      `- Quickly produce furniture dimensions + 3-views + engineering drawings`,
-      `- Quotes, cut lists, and stock layouts`,
-      `- Share design links with clients`,
+      `Welcome to the Wooden Ren furniture design tool. First thing to do: draw your own workbench.`,
+      `Every woodworker's first project should be their bench — everything after it gets built on top. The workbench template is free, no payment needed:`,
+      `${SITE_URL}/en/workbench`,
+      ``,
+      `Enter your height, pick a style (Roubo slab-top, apron, tool-well, MFT grid or classroom bench), and you get:`,
+      `- 3D + three-view drawings + part drawings`,
+      `- Cut list and stock layout`,
+      `- Vise, dog holes and holdfast holes placed for you`,
       ``,
       `Free plan: 3 templates (square stool, pencil holder, workbench).`,
       `Paid plans: all 28 furniture templates + advanced features.`,
       ``,
-      `Get started: ${SITE_URL}/en`,
+      `Draw your workbench: ${SITE_URL}/en/workbench`,
       `See plans: ${SITE_URL}/en/pricing`,
       ``,
       `📌 Subscription notes:`,
@@ -64,11 +68,14 @@ export function welcomeEmail(input: { name?: string | null; locale?: string }): 
     const html = htmlShell(
       subject,
       `<p>Hi ${greetingHtml},</p>
-<p>Welcome to <strong>Wooden Ren Blueprint</strong>. I built it for my own woodworking workflow:</p>
+<p>Welcome to <strong>Wooden Ren Blueprint</strong>. First thing to do: <strong>draw your own workbench</strong>.</p>
+<p>Every woodworker's first project should be their bench — everything after it gets built on top. The workbench template is free, no payment needed:<br/>
+<a href="${SITE_URL}/en/workbench" target="_blank" rel="noopener" style="color:#059669;font-weight:600">${SITE_URL.replace(/^https?:\/\//, "")}/en/workbench</a></p>
+<p>Enter your height, pick a style (Roubo slab-top, apron, tool-well, MFT grid or classroom bench), and you get:</p>
 <ul style="padding-left:20px;line-height:1.7">
-<li>Quickly produce furniture dimensions + 3-views + engineering drawings</li>
-<li>Quotes, cut lists, and stock layouts</li>
-<li>Share design links with clients</li>
+<li>3D + three-view drawings + part drawings</li>
+<li>Cut list and stock layout</li>
+<li>Vise, dog holes and holdfast holes placed for you</li>
 </ul>
 <p style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;color:#166534;font-size:14px">
 Free plan: 3 templates (square stool, pencil holder, workbench). Paid plans: all furniture templates + advanced features.
@@ -82,7 +89,7 @@ Free plan: 3 templates (square stool, pencil holder, workbench). Paid plans: all
 </ul>
 </div>
 <p style="margin:20px 0">
-  <a href="${SITE_URL}/en" target="_blank" rel="noopener" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">Get started →</a>
+  <a href="${SITE_URL}/en/workbench" target="_blank" rel="noopener" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">Draw your workbench →</a>
   <a href="${SITE_URL}/en/pricing" target="_blank" rel="noopener" style="display:inline-block;background:#fff;color:#059669;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #059669">See plans</a>
 </p>
 <p style="color:#374151;font-size:14px;margin-top:24px"><strong>Questions:</strong></p>
@@ -101,15 +108,19 @@ Free plan: 3 templates (square stool, pencil holder, workbench). Paid plans: all
   const text = [
     `${greetingText}，`,
     ``,
-    `歡迎加入木頭仁家具工程圖。這是我自己做木工時用來：`,
-    `- 快速產出家具尺寸 + 三視圖 + 工程圖`,
-    `- 報價、材料單、裁切圖`,
-    `- 跟客戶分享設計連結`,
+    `歡迎加入木頭仁木作藍圖。第一件事：先把你的工作桌畫出來。`,
+    `每個木工的第一件作品，都該是自己的工作桌——之後每件家具都在它上面做出來。工作桌模板我免費送，不用付錢：`,
+    `${SITE_URL}/workbench`,
+    ``,
+    `填身高、選流派（厚板桌、裙板桌、工具槽桌、20mm 孔陣桌、教室雙面桌），直接出：`,
+    `- 3D + 三視圖 + 零件圖`,
+    `- 材料單、裁切圖`,
+    `- 前鉗、狗孔、holdfast 孔自動排好`,
     ``,
     `免費版可以用 3 個範本（方凳、筆筒、木工工作桌）。`,
     `付費方案開放全部 28 種家具 + 進階功能。`,
     ``,
-    `馬上開始：${SITE_URL}`,
+    `畫工作桌：${SITE_URL}/workbench`,
     `看付費方案：${SITE_URL}/pricing`,
     ``,
     `📌 訂閱小提醒：`,
@@ -126,11 +137,14 @@ Free plan: 3 templates (square stool, pencil holder, workbench). Paid plans: all
   const html = htmlShell(
     subject,
     `<p>${greetingHtml}，</p>
-<p>歡迎加入<strong>木頭仁家具工程圖</strong>。這是我自己做木工時用來：</p>
+<p>歡迎加入<strong>木頭仁木作藍圖</strong>。第一件事：<strong>先把你的工作桌畫出來</strong>。</p>
+<p>每個木工的第一件作品，都該是自己的工作桌——之後每件家具都在它上面做出來。工作桌模板我免費送，不用付錢：<br/>
+<a href="${SITE_URL}/workbench" target="_blank" rel="noopener" style="color:#059669;font-weight:600">${SITE_URL.replace(/^https?:\/\//, "")}/workbench</a></p>
+<p>填身高、選流派（厚板桌、裙板桌、工具槽桌、20mm 孔陣桌、教室雙面桌），直接出：</p>
 <ul style="padding-left:20px;line-height:1.7">
-<li>快速產出家具尺寸 + 三視圖 + 工程圖</li>
-<li>報價、材料單、裁切圖</li>
-<li>跟客戶分享設計連結</li>
+<li>3D + 三視圖 + 零件圖</li>
+<li>材料單、裁切圖</li>
+<li>前鉗、狗孔、holdfast 孔自動排好</li>
 </ul>
 <p style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;color:#166534;font-size:14px">
 免費版可以用 3 個範本（方凳、筆筒、木工工作桌）。付費方案開放全部家具 + 進階功能。
@@ -144,7 +158,7 @@ Free plan: 3 templates (square stool, pencil holder, workbench). Paid plans: all
 </ul>
 </div>
 <p style="margin:20px 0">
-  <a href="${SITE_URL}" target="_blank" rel="noopener" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">馬上開始 →</a>
+  <a href="${SITE_URL}/workbench" target="_blank" rel="noopener" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">免費畫工作桌 →</a>
   <a href="${SITE_URL}/pricing" target="_blank" rel="noopener" style="display:inline-block;background:#fff;color:#059669;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #059669">看付費方案</a>
 </p>
 <p style="color:#374151;font-size:14px;margin-top:24px"><strong>有問題聯絡：</strong></p>

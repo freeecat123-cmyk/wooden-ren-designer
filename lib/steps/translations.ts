@@ -125,6 +125,14 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
     },
     description: () => "Drill after the top is glued up and flattened. Use a Forstner or auger bit in a drill press or a drilling guide — 2° off vertical and dogs bind, holdfasts slip. Start at the vise end and lay out every hole from one reference edge with one rule.",
   },
+  "step-10f-ply-laminate": {
+    title: (d) => {
+      const notches = d.parts.reduce((n, p) => n + p.mortises.filter((m) => m.cosmetic && (m.label ?? "").startsWith("搭接槽")).length, 0);
+      const glueLines = d.parts.reduce((n, p) => n + (p.panelSplit === "thickness" ? Math.max(0, (p.panelPieces ?? 1) - 1) : 0), 0);
+      return `Plywood lamination: glue up top / legs / stretchers (${glueLines} glue lines), leave ${notches} lap notches`;
+    },
+    description: () => "Cut every layer 5mm oversize with a track saw; cut the notches for the stretchers out of the relevant layers BEFORE laminating (same position on every layer). Roll glue over the whole face, align one corner, drive a 4×40 countersunk screw every 250mm from the centre outwards (or clamp until dry), then flush the edges with a router and a flush-trim bit. Glue the stretchers into the leg notches with 3 × 6×80 screws each; pocket-screw the top from the inside faces of the legs.",
+  },
   "step-10c-wagon-slot": {
     title: () => "Wagon vise: cut the slot and fit the end cap",
     description: () => "Measure the actual hardware first (365×52 on the drawing is the Benchcrafted size). Rout the through slot against a straightedge in several passes and square the corners with a chisel. Fix the end cap with a dovetail or two bolts at the front and a slotted bolt hole at the back so the top can move, then fit the screw and hand wheel.",
