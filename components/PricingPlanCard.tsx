@@ -107,6 +107,18 @@ export function PlanCardView({
     setCheckingPref(true);
     try {
       const r = await fetch("/api/invoice-preference", { credentials: "include" });
+      /**
+       * ⚠️ 2026-09-04：401 原本會掉進下面的「沒設過 → 開 modal」，
+       * 於是沒登入的人被請去填發票載具，填完按送出再收到一次 401，
+       * 畫面只顯示紅字 unauthenticated，從頭到尾沒說「你要先登入」→ 卡死走不到金流。
+       * （真實客訴：載具 /2D3LUK6 格式正確卻一直失敗，訂單 WRMTMF5JZLHD9Y 從未送出。）
+       * 現在 401 直接導去登入，登入後回到原本這一頁。
+       */
+      if (r.status === 401) {
+        const next = window.location.pathname + window.location.search;
+        window.location.href = `/login?next=${encodeURIComponent(next)}`;
+        return;
+      }
       if (r.ok) {
         const j = await r.json();
         if (j.preference) {

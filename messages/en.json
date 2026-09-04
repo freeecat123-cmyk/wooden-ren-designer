@@ -4443,7 +4443,9 @@
     "btnSaving": "Saving…",
     "btnConfirm": "✓ Confirm and submit",
     "btnNext": "Next → Confirm",
-    "btnSavePersonal": "Save · Continue to checkout"
+    "btnSavePersonal": "Save · Continue to checkout",
+    "errNeedLogin": "You're not signed in (or your session expired), so we can't save your invoice settings. Please sign in and try again — nothing is lost.",
+    "btnGoLogin": "Sign in"
   },
   "cutPlanApp": {
     "summaryNameDot": " · total ",

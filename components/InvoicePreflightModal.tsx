@@ -41,6 +41,7 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmStep, setConfirmStep] = useState(false);
+  const [needLogin, setNeedLogin] = useState(false);
 
   if (!open) return null;
 
@@ -116,6 +117,12 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // 401 = 沒登入 / session 過期。給人話，不要把 error code 原封丟到使用者臉上。
+        if (res.status === 401) {
+          setNeedLogin(true);
+          setError(t("errNeedLogin"));
+          return;
+        }
         setError(typeof j.error === "string" ? j.error : t("errStatusTpl", { code: res.status }));
         return;
       }
@@ -252,6 +259,19 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
           </>
         )}
         </>
+        )}
+
+        {needLogin && (
+          <button
+            type="button"
+            onClick={() => {
+              const next = window.location.pathname + window.location.search;
+              window.location.href = `/login?next=${encodeURIComponent(next)}`;
+            }}
+            className="mt-3 w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+          >
+            {t("btnGoLogin")}
+          </button>
         )}
 
         {error && (

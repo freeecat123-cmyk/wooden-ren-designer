@@ -4443,7 +4443,9 @@
     "btnSaving": "儲存中…",
     "btnConfirm": "✓ 沒問題，送出",
     "btnNext": "下一步 → 確認",
-    "btnSavePersonal": "存好 · 去結帳"
+    "btnSavePersonal": "存好 · 去結帳",
+    "errNeedLogin": "你還沒登入（或登入已逾時），所以存不了發票設定。請先登入再結帳，資料不會不見。",
+    "btnGoLogin": "前往登入"
   },
   "cutPlanApp": {
     "summaryNameDot": "．共 ",
