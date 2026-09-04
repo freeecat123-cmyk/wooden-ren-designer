@@ -122,8 +122,6 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 工作桌下層板：notched-corners 缺角讓腳，silhouette 看不到缺角 → 腳 × 層板誤報（同 tea-table）。
   // 這幾個變體裡只有這 4 對；其他新零件（尾鉗 / 靠板 / 抽屜櫃）都在別的變體裡另外驗到 0。
   "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
-  "workbench:default+benchStyle=apron",
-  "workbench:default+benchStyle=mft",
   "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";

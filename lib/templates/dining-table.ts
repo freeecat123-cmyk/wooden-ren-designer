@@ -511,7 +511,9 @@ export function applyLowerStretcherArrangement(
     for (const p of design.parts) {
       if (!p.id.startsWith("leg-")) continue;
       for (const m of p.mortises) {
-        if (legFaceMatch(m)) {
+        // 只動下橫撐高度那顆：同一個腳面上還有裙板榫眼（餐桌 / 書桌 / 工作桌都有），
+        // 沒過濾會把裙板榫眼也拉到橫撐高度（裙板那顆消失、橫撐那裡疊兩顆；09-04 工作桌隨機測試抓到）
+        if (legFaceMatch(m) && isLowerStretcherMortise(m)) {
           m.length = fullTenonW;
           m.origin = { ...m.origin, y: lsCenterY };
         }
@@ -586,7 +588,11 @@ export function applyLowerStretcherArrangement(
           // mortiseLocalBox 以最近表面決定 depthAxis；origin.z 設成 ±some 讓 z 軸成為 depth
           // 簡化：ls-* part-local X axis（visible.length）= 世界 Z；Y=世界Y；Z=世界 X (因 rotation y:PI/2)
           // 但 mortise.origin 是 part-local，這邊直接給：origin.z = 朝家具中心方向（part-local Z 一側）
-          origin: { x: 0, y: lsW / 2, z: innerSide * (lsT / 2 - 1) },
+          // §M1 mesh-local：ls-* 的 rotation (x:π/2, y:π/2) 讓 local +Y（thickness 軸）= 世界 +X、
+          // local Z（width 軸）= 世界 −Y、local X（length 軸）= 世界 −Z。朝家具中心的面 = ls-left 的
+          // local Y=lsT 面、ls-right 的 local Y=0 面；榫眼垂直置中 → z=0。
+          // （舊寫法 y=lsW/2、z=±(lsT/2−1) 在 lsW/2 > lsT 時超出零件厚度，且 ls-right 那顆會被畫到外側面）
+          origin: { x: 0, y: innerSide > 0 ? lsT : 0, z: 0 },
           depth: 18,
           length: lsW - 8,
           width: Math.round(lsT / 2),

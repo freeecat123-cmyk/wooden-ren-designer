@@ -110,7 +110,7 @@ export const workbenchOptions: OptionSpec[] = [
   ] },
   { group: "top", type: "number", key: "gapWidth", label: "中縫寬", defaultValue: 45, unit: "mm", min: 25, max: 80, step: 5, dependsOn: { key: "topSplit", equals: "gap" }, help: "F 夾的夾頭要塞得進去；擋條做成跟桌面齊平，翻面可當刨擋" },
   { group: "top", type: "number", key: "wellWidth", label: "工具槽寬", defaultValue: 150, unit: "mm", min: 80, max: 320, step: 10, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "後側槽：從桌深扣掉，桌腳只在工作面下；中央槽：夾在兩片桌面之間，兩片各要蓋得住腳" },
-  { group: "top", type: "number", key: "wellDepth", label: "工具槽深", defaultValue: 45, unit: "mm", min: 20, max: 80, step: 5, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "槽底板厚 24；槽深不能超過桌面厚 −20（中央槽的底板要鎖在兩片桌面內側的墊條上）" },
+  { group: "top", type: "number", key: "wellDepth", label: "工具槽深", defaultValue: 45, unit: "mm", min: 20, max: 80, step: 5, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "槽底板厚 24；後側槽深 ≤ 桌面厚 −10，中央槽深 ≤ 桌面厚 −24（底板嵌在兩片桌面內側的溝裡，桌底維持平的）" },
   { group: "top", type: "number", key: "endOverhang", label: "桌端懸出（腳距桌端）", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 ＝ 自動 ＝ 桌長 ÷ 5（Roubo 原版比例）。懸出夠長，鉗才裝得進腳外側；裝尾鉗那端會自動拉到 470" },
   { group: "top", type: "number", key: "frontOverhang", label: "桌面前緣凸出腳／裙板", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 5, dependsOn: { key: "topSplit", notIn: ["well"] }, help: "裙板桌要凸出 50 才夾得到桌面（後悔榜第一名）；厚板桌保持 0 齊平，腳鉗和長板靠板都要齊平" },
   { group: "top", type: "checkbox", key: "topBattens", label: "桌面底穿帶（燕尾，防翹）", defaultValue: false, dependsOn: { key: "topBuild", notIn: ["stack"] }, help: "桌面底面兩端各一條 60×30 穿帶，滑入 15 深的燕尾槽（槽口 40、槽底 50，約 1:6）；只在中央上膠、兩端留 20 不出邊，桌面才能脹縮" },
@@ -214,7 +214,7 @@ export const workbench: FurnitureTemplate = (input) => {
   const topTRaw = pick<number>("topThickness");
   const topBuild = pick<string>("topBuild");
   const topLayers = pick<number>("topLayers");
-  const topSplit = pick<string>("topSplit");
+  const topSplitRaw = pick<string>("topSplit");
   const gapWidth = pick<number>("gapWidth");
   const wellWidthRaw = pick<number>("wellWidth");
   const wellDepthRaw = pick<number>("wellDepth");
@@ -223,11 +223,11 @@ export const workbench: FurnitureTemplate = (input) => {
   const legTopJoint = pick<string>("legTopJoint");
   const withApron = pick<boolean>("withApron");
   const apronWidth = pick<number>("apronWidth");
-  const apronThickness = pick<number>("apronThickness");
+  const apronThicknessRaw = pick<number>("apronThickness");
   const withLowerStretchers = pick<boolean>("withLowerStretchers");
   const lowerStretcherArrangement = pick<string>("lowerStretcherArrangement");
   const lowerStretcherWidth = pick<number>("lowerStretcherWidth");
-  const lowerStretcherThickness = pick<number>("lowerStretcherThickness");
+  const lowerStretcherThicknessRaw = pick<number>("lowerStretcherThickness");
   const lowerStretcherHeightRaw = pick<number>("lowerStretcherHeight");
   const withUnderShelfRaw = pick<boolean>("withUnderShelf");
   const legPenetratingTenon = pick<boolean>("legPenetratingTenon");
@@ -258,29 +258,45 @@ export const workbench: FurnitureTemplate = (input) => {
 
   // ── 夾制（§A10.11：夾在讀選項這一層、夾了要出聲） ──
   const topT = Math.max(40, Math.min(150, topTRaw));
+  // 中央槽的槽底板（24 厚）要嵌在兩片桌面的厚度裡，不能吊在桌底（會撞裙板／穿帶）：桌面 < 60 放不下
+  const topSplit = topSplitRaw === "center-well" && topT < 60 ? "none" : topSplitRaw;
+  if (topSplit !== topSplitRaw) warnings.push(isEn ? `Centre well needs a top ≥ 60mm (yours ${topT}); drawn as a one-piece top.` : `中央槽的槽底板要嵌在桌面厚度裡，桌面至少 60（目前 ${topT}），已改成整片桌面。`);
   // 腳鉗木顎 64 厚，那支腳至少也要 64（Benchcrafted：leg ≥ 2½"）
   const legSize = frontVise === "leg" ? Math.max(legSizeRaw, LEG_VISE_CHOP_T) : legSizeRaw;
   if (legSize !== legSizeRaw) warnings.push(isEn ? `Leg vise needs a leg ≥ ${LEG_VISE_CHOP_T}mm thick; leg size raised ${legSizeRaw} → ${legSize}.` : `腳鉗那支腳至少 ${LEG_VISE_CHOP_T}mm 厚，腳粗已從 ${legSizeRaw} 提到 ${legSize}。`);
   const legHeight = H - topT;
+  // 裙板 / 下橫撐不能比腳粗：榫眼兩側各要留 ≥10 的頰壁（隨機測試抓到 80 厚橫撐配 60 腳時前後撐在腳角互穿）
+  const clampToLeg = (v: number) => Math.max(25, Math.min(v, Math.floor((legSize - 20) / 5) * 5));
+  const apronThickness = withApron ? clampToLeg(apronThicknessRaw) : apronThicknessRaw;
+  if (apronThickness !== apronThicknessRaw) warnings.push(isEn ? `Apron ${apronThicknessRaw}mm is too thick for a ${legSize}mm leg; thinned to ${apronThickness}.` : `裙板 ${apronThicknessRaw} 厚對 ${legSize} 的腳太厚（榫眼頰壁不夠），已收到 ${apronThickness}。`);
+  const lowerStretcherThickness = withLowerStretchers ? clampToLeg(lowerStretcherThicknessRaw) : lowerStretcherThicknessRaw;
+  if (lowerStretcherThickness !== lowerStretcherThicknessRaw) warnings.push(isEn ? `Lower stretcher ${lowerStretcherThicknessRaw}mm is too thick for a ${legSize}mm leg; thinned to ${lowerStretcherThickness}.` : `下橫撐 ${lowerStretcherThicknessRaw} 厚對 ${legSize} 的腳太厚（榫眼頰壁不夠），已收到 ${lowerStretcherThickness}。`);
   // 工具槽：從桌深扣掉，桌腳只在工作面下；槽深不能深過桌面厚 −10
   const wellWidth = topSplit === "well" ? Math.min(wellWidthRaw, Math.max(80, W - 2 * legSize - 200)) : 0;
   // 中央凹槽：夾在兩片桌面之間，兩片各要蓋得住腳（腳 + 40 餘裕）
-  const centerWell = topSplit === "center-well" ? Math.min(wellWidthRaw, Math.max(80, W - 2 * (legSize + 40))) : 0;
-  if (topSplit === "center-well" && centerWell !== wellWidthRaw) warnings.push(isEn ? `Centre well narrowed ${wellWidthRaw} → ${centerWell} so both slabs still cover the legs.` : `中央槽 ${wellWidthRaw} 會讓兩片桌面蓋不住腳，已收到 ${centerWell}。`);
   if (topSplit === "well" && wellWidth !== wellWidthRaw) warnings.push(isEn ? `Tool well narrowed ${wellWidthRaw} → ${wellWidth} so the legs still fit under the working top.` : `工具槽寬 ${wellWidthRaw} 會讓工作面放不下桌腳，已收到 ${wellWidth}。`);
-  const wellDepth = topSplit === "well" ? Math.min(wellDepthRaw, topT - 10) : topSplit === "center-well" ? Math.min(wellDepthRaw, topT - 20) : 0;
-  if ((topSplit === "well" || topSplit === "center-well") && wellDepth !== wellDepthRaw) warnings.push(isEn ? `Tool well depth clamped ${wellDepthRaw} → ${wellDepth} (top thickness − 10).` : `工具槽深 ${wellDepthRaw} 超過桌面厚 −10，已收到 ${wellDepth}。`);
-  const workW = W - wellWidth; // 桌腳 / 工作面所在的深度
-  // 中縫：兩片各要放得下腳頂榫（腳 + 餘裕）
-  const gap = topSplit === "gap" ? Math.min(gapWidth, Math.max(25, workW - 2 * legSize - 100)) : 0;
-  if (topSplit === "gap" && gap !== gapWidth) warnings.push(isEn ? `Split gap clamped ${gapWidth} → ${gap} so each half still covers the leg tenons.` : `中縫 ${gapWidth} 會讓兩片桌面蓋不住腳頂榫，已收到 ${gap}。`);
+  const wellDepth = topSplit === "well" ? Math.min(wellDepthRaw, topT - 10) : topSplit === "center-well" ? Math.min(wellDepthRaw, topT - 24) : 0;
+  if ((topSplit === "well" || topSplit === "center-well") && wellDepth !== wellDepthRaw) warnings.push(isEn ? `Tool well depth clamped ${wellDepthRaw} → ${wellDepth} (top thickness − ${topSplit === "well" ? 10 : 24}).` : `工具槽深 ${wellDepthRaw} 超過桌面厚 −${topSplit === "well" ? 10 : 24}${topSplit === "well" ? "" : "（槽底板 24 要嵌在桌面厚度裡）"}，已收到 ${wellDepth}。`);
   // 前緣凸出腳／裙板：腳鉗與長板靠板要齊平；工具槽桌不給
   let frontOverhang = topSplit === "well" ? 0 : Math.max(0, Math.min(100, frontOverhangRaw));
+  // 凸出是從桌深扣的：腳架深度扣掉後至少要留兩支腳 + 100（極端組合 400 深 + 150 腳 + 凸出 100 會把左右橫撐算成 0 長）
+  const maxFrontOverhang = Math.max(0, W - wellWidth - 2 * legSize - 100);
+  if (frontOverhang > maxFrontOverhang) {
+    warnings.push(isEn ? `Front overhang ${frontOverhang} leaves too little depth for the legs; clamped to ${maxFrontOverhang}.` : `前緣凸出 ${frontOverhang} 會讓腳架深度不夠放兩支腳，已收到 ${maxFrontOverhang}。`);
+    frontOverhang = maxFrontOverhang;
+  }
   if (topSplit === "well" && frontOverhangRaw > 0) warnings.push(isEn ? "Tool-well bench keeps the front edge flush; front overhang reset to 0." : "工具槽桌的前緣維持跟腳齊平，前緣凸出已改回 0。");
   if (frontVise === "leg" && frontOverhang > 0) {
     warnings.push(isEn ? "A leg vise needs the top flush with the leg; front overhang reset to 0." : "腳鉗的木顎要貼著腳，桌面前緣必須跟腳齊平，前緣凸出已改回 0。");
     frontOverhang = 0;
   }
+  // 桌深 W = 桌面總深（含前緣凸出）；腳架 / 工作面深度扣掉後槽與前緣凸出
+  const workW = W - wellWidth - frontOverhang;
+  const centerWell = topSplit === "center-well" ? Math.min(wellWidthRaw, Math.max(80, workW - 2 * (legSize + 40))) : 0;
+  if (topSplit === "center-well" && centerWell !== wellWidthRaw) warnings.push(isEn ? `Centre well narrowed ${wellWidthRaw} → ${centerWell} so both slabs still cover the legs.` : `中央槽 ${wellWidthRaw} 會讓兩片桌面蓋不住腳，已收到 ${centerWell}。`);
+  // 中縫：兩片各要放得下腳頂榫（腳 + 餘裕）
+  const gap = topSplit === "gap" ? Math.min(gapWidth, Math.max(25, workW - 2 * legSize - 100)) : 0;
+  if (topSplit === "gap" && gap !== gapWidth) warnings.push(isEn ? `Split gap clamped ${gapWidth} → ${gap} so each half still covers the leg tenons.` : `中縫 ${gapWidth} 會讓兩片桌面蓋不住腳頂榫，已收到 ${gap}。`);
   // 腳距桌端：0 = 桌長/5（§AT4.5）；上限讓兩腳之間至少留 300
   const maxOverhang = Math.max(0, Math.floor((L - 2 * legSize - 300) / 2));
   const endOverhangWanted = endOverhangRaw > 0 ? endOverhangRaw : Math.round(L / 5);
@@ -313,6 +329,15 @@ export const workbench: FurnitureTemplate = (input) => {
     const maxLsY = legHeight - apronWidth - lowerStretcherWidth - 20;
     if (lowerStretcherHeight > maxLsY) {
       warnings.push(isEn ? `Lower stretcher ${lowerStretcherHeight}mm off the floor would run into the ${apronWidth}mm apron; lowered to ${Math.max(0, maxLsY)}.` : `下橫撐離地 ${lowerStretcherHeight} 會頂到 ${apronWidth}mm 的裙板，已降到 ${Math.max(0, maxLsY)}。`);
+      lowerStretcherHeight = Math.max(0, maxLsY);
+    }
+  }
+  // 快速鉗本體（70 高）掛在桌底，下橫撐頂面要在它下面 20（極矮桌 + 橫撐離地 300 會撞上）
+  if (withLowerStretchers && frontVise === "quick") {
+    const bodyBottomY = legHeight - Math.max(0, VISE_MIN_EDGE_MM - topT) - VISE_BODY_HEIGHT_MM;
+    const maxLsY = bodyBottomY - 20 - lowerStretcherWidth;
+    if (lowerStretcherHeight > maxLsY) {
+      warnings.push(isEn ? `Lower stretcher ${lowerStretcherHeight}mm off the floor would hit the vise body under the top; lowered to ${Math.max(0, maxLsY)}.` : `下橫撐離地 ${lowerStretcherHeight} 會撞到桌底的鉗本體，已降到 ${Math.max(0, maxLsY)}。`);
       lowerStretcherHeight = Math.max(0, maxLsY);
     }
   }
@@ -440,7 +465,7 @@ export const workbench: FurnitureTemplate = (input) => {
       };
       design.parts.splice(idx, 1, front, back, stop);
     } else {
-      // 中央凹槽：槽底板 24 厚，頂面比桌面低 wellDepth；兩側各一條 20×20 墊條鎖在桌面內側撐住槽底
+      // 中央凹槽：槽底板 24 厚，頂面比桌面低 wellDepth，嵌在兩片桌面內側各 10 深的溝裡（整片都在桌面厚度內，桌底維持平的，不擋裙板／穿帶）
       const trayT = 24;
       const trayTopY = H - wellDepth;
       const tray: Part = {
@@ -454,18 +479,7 @@ export const workbench: FurnitureTemplate = (input) => {
         tenons: [],
         mortises: [],
       };
-      const cleats: Part[] = ([-1, 1] as const).map((sz) => ({
-        id: `center-well-cleat-${sz < 0 ? "f" : "b"}`,
-        nameZh: sz < 0 ? "中央槽墊條（前片內側）" : "中央槽墊條（後片內側）",
-        nameEn: sz < 0 ? "Centre well cleat (front slab)" : "Centre well cleat (back slab)",
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: topLen - 40, width: 20, thickness: 20 },
-        origin: { x: topOriginX, y: trayTopY - trayT - 20, z: sz * (centerWell / 2 - 10) },
-        tenons: [],
-        mortises: [],
-      }));
-      design.parts.splice(idx, 1, front, back, tray, ...cleats);
+      design.parts.splice(idx, 1, front, back, tray);
     }
     topPieces.push(front, back);
   } else {
@@ -478,6 +492,10 @@ export const workbench: FurnitureTemplate = (input) => {
     }
     return null;
   };
+  // 孔要落在那片桌面的長度範圍內（尾鉗端蓋把桌面縮短、平移後，格陣 / holdfast 列不能算到桌面外），也要避開尾鉗槽那一段
+  const wagonKeepOut = wagon ? L / 2 - (WAGON_END_CAP_T + 30 + WAGON_SLOT_L + 60) : Infinity;
+  const holeFits = (piece: Part, x: number, dia: number) =>
+    Math.abs(x - piece.origin.x) <= piece.visible.length / 2 - (dia / 2 + 30) && wagonSign * x <= wagonKeepOut + 0.5;
 
   // ── 工具槽（Sellers well board：槽底板 + 後擋板 + 兩端板，鎖在桌面後緣） ──
   if (wellWidth > 0) {
@@ -565,7 +583,7 @@ export const workbench: FurnitureTemplate = (input) => {
     if (planingStop) { planingStopX = x; x -= sideSign * pitch; }
     for (; sideSign * (x - endX) >= -0.5 && dogCount < MAX_DOG_HOLES; x -= sideSign * pitch) {
       const piece = topPieceAt(rowZ, dia / 2 + 5);
-      if (piece) {
+      if (piece && holeFits(piece, x, dia)) {
         piece.mortises.push(roundHole(x - piece.origin.x, topT, rowZ - piece.origin.z, dia, topT));
         dogCount++;
       }
@@ -575,7 +593,7 @@ export const workbench: FurnitureTemplate = (input) => {
       let x2 = viseX2 + sideSign * (viseHalfSpan + 50);
       for (let n = 0; -sideSign * (x2 + sideSign * (L / 2 - 100)) <= 0.5 && Math.abs(x2) <= L / 2 - 100 + 0.5 && n < MAX_DOG_HOLES; n++, x2 += sideSign * pitch) {
         const piece = topPieceAt(rearRowZ, dia / 2 + 5);
-        if (piece) {
+        if (piece && holeFits(piece, x2, dia)) {
           piece.mortises.push(roundHole(x2 - piece.origin.x, topT, rearRowZ - piece.origin.z, dia, topT));
           dogCount++;
         }
@@ -588,7 +606,7 @@ export const workbench: FurnitureTemplate = (input) => {
       let hx = startX - sideSign * pitch / 2;
       while (Math.abs(hx) <= L / 2 - 120 && holdfastCount < 12) {
         const piece = topPieceAt(hz, dia / 2 + 5);
-        if (piece) {
+        if (piece && holeFits(piece, hx, dia)) {
           piece.mortises.push(roundHole(hx - piece.origin.x, topT, hz - piece.origin.z, dia, topT));
           holdfastCount++;
         }
@@ -612,7 +630,7 @@ export const workbench: FurnitureTemplate = (input) => {
         // 避開鉗那一塊
         if (viseX !== null && Math.abs(x - viseX) < viseHalfSpan + 30 && z < -workW / 2 + 200) continue;
         const piece = topPieceAt(z, dia / 2 + 5);
-        if (!piece) continue;
+        if (!piece || !holeFits(piece, x, dia)) continue;
         piece.mortises.push(roundHole(x - piece.origin.x, topT, z - piece.origin.z, dia, topT));
         dogCount++;
       }
@@ -779,7 +797,12 @@ export const workbench: FurnitureTemplate = (input) => {
     const chopBottomY = 100;
     const chopH = H - chopBottomY;
     const screwY = H - 200; // Benchcrafted：螺桿約 8" 在桌面下
-    const guideY = lowerStretcherHeight + lowerStretcherWidth + 40; // 平行導件槽要避開橫撐榫
+    // 平行導件槽要避開下橫撐榫眼（槽底在橫撐頂 +40），槽頂 (+40) 又要在裙板底下 40（裙板寬時導件會被裙板壓低）
+    const guideYMin = withLowerStretchers ? lowerStretcherHeight + lowerStretcherWidth + 40 : 100;
+    const guideYMax = withApron ? legHeight - apronWidth - 80 : legHeight - 120;
+    const guideY = Math.min(guideYMin, guideYMax);
+    const guideFits = !withLowerStretchers || guideY >= lowerStretcherHeight + lowerStretcherWidth + 10;
+    if (guideY < guideYMin) warnings.push(isEn ? `Parallel guide lowered to ${guideY}mm so it clears the ${apronWidth}mm apron${guideFits ? "" : " — no room above the lower stretcher; guide bar skipped, use a criss-cross kit instead"}.` : `腳鉗平行導件被 ${apronWidth} 寬的裙板壓低到 ${guideY}${guideFits ? "" : "，但下橫撐上方已放不下，導件已略過，改買交叉連桿（criss-cross）五金"}。`);
     const chopZ = -workW / 2 - LEG_VISE_CHOP_T / 2;
     design.parts.push({
       id: "leg-vise-chop",
@@ -812,8 +835,10 @@ export const workbench: FurnitureTemplate = (input) => {
       .filter((p) => p.id.startsWith("leg-") && !p.id.startsWith("leg-vise"))
       .sort((a, b) => Math.hypot(a.origin.x - viseX!, a.origin.z + workW / 2) - Math.hypot(b.origin.x - viseX!, b.origin.z + workW / 2))[0];
     if (viseLeg) {
+      viseLeg.mortises.push(roundHole(0, screwY, -legSize / 2, 32, legSize));
+    }
+    if (viseLeg && guideFits) {
       viseLeg.mortises.push(
-        roundHole(0, screwY, -legSize / 2, 32, legSize),
         { origin: { x: 0, y: guideY + 20, z: -legSize / 2 }, depth: legSize, length: 40, width: 25, through: true, label: isEn ? "parallel guide slot" : "平行導件槽" },
       );
       // 平行導件木條：鎖在木顎底、穿過腳、露出腳後 120，一排 Ø10 銷孔（插銷擋住木顎下端才夾得平）
@@ -909,10 +934,16 @@ export const workbench: FurnitureTemplate = (input) => {
         const bodyInner = Math.abs(viseX) - jaw / 2;
         const maxCenter = bodyInner - 30 - 10;
         if (maxCenter - Math.abs(legOuterX) < 30) {
-          warnings.push(isEn ? `No room for a batten between the ${sx > 0 ? "left" : "right"} leg and the vise body; only the other end gets one.` : `${sx > 0 ? "左" : "右"}端腳外面到鉗本體之間放不下穿帶，只做另一端。`);
-          continue;
+          // 腳外側擠不下：沒裙板、沒靠板導軌時改放腳內側（桌底那一段是空的）；有裙板／靠板就只做另一端
+          if (withApron || deadmanRaw) {
+            warnings.push(isEn ? `No room for a batten between the ${sx > 0 ? "left" : "right"} leg and the vise body; only the other end gets one.` : `${sx > 0 ? "左" : "右"}端腳外面到鉗本體之間放不下穿帶，只做另一端。`);
+            continue;
+          }
+          warnings.push(isEn ? `No room outside the ${sx > 0 ? "left" : "right"} leg for a batten (vise body); it goes just inside the leg instead.` : `${sx > 0 ? "左" : "右"}端腳外面到鉗本體之間放不下穿帶，那一條改放腳內側。`);
+          bx = legOuterX - sx * (legSize + 40);
+        } else {
+          bx = sx * Math.min(Math.abs(bx), maxCenter);
         }
-        bx = sx * Math.min(Math.abs(bx), maxCenter);
       }
       design.parts.push({
         id: `top-batten-${sx < 0 ? "r" : "l"}`,
@@ -1177,6 +1208,10 @@ export const workbench: FurnitureTemplate = (input) => {
   // ── 工具槽時整體往前移半個槽寬，讓桌子在自己的外框裡置中 ──
   if (wellWidth > 0) {
     for (const p of design.parts) p.origin.z -= wellWidth / 2;
+  }
+  // 前緣凸出：桌面往 −Z 加寬了 frontOverhang，整體往 +Z 平移半個，讓外框（深 W）置中
+  if (frontOverhang > 0) {
+    for (const p of design.parts) p.origin.z += frontOverhang / 2;
   }
   design.overall = { length: L, width: W, thickness: H + (moxon ? 140 : accessories ? 38 : 0) };
 

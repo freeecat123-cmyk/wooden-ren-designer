@@ -246,19 +246,29 @@ describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
     const zs = new Set(top.mortises.filter((m) => m.shape === "round").map((m) => m.origin.z));
     expect(zs.has(-240) && zs.has(240) && zs.has(0)).toBe(true);
   });
-  it("裙板桌前緣凸出 50：桌面 650 寬、中心 z −25、前緣 −350；狗孔離新前緣 60 → 世界 z −290 = local −265", () => {
+  it("裙板桌前緣凸出 50：桌深 600 = 桌面總深（腳架 550）、整體置中 z 0、前緣 −300；狗孔離前緣 60 → 世界 z −240 = local −240", () => {
+    // 09-04 全面檢查：凸出原本是「加在 W 外面」→ 桌面比外框深 50、三視圖外框漏掉前緣；改成從 W 扣（跟桌長 L 同一套語意）
     const d = build({ benchStyle: "apron" });
     const top = d.parts.find((p) => p.id === "top")!;
-    expect(top.visible.width).toBe(650);
-    expect(top.origin.z).toBe(-25);
+    expect(top.visible.width).toBe(600);
+    expect(top.origin.z).toBe(0);
+    expect(d.overall.width).toBe(600);
+    const legs = d.parts.filter((p) => /^leg-\d$/.test(p.id));
+    expect(new Set(legs.map((l) => l.origin.z))).toEqual(new Set([-212.5, 262.5])); // 腳架深 550、腳 75 → ±237.5，整體往後靠 25
     const front = top.mortises.filter((m) => m.shape === "round" && m.through && m.origin.z + top.origin.z < 0);
     expect(front.length).toBeGreaterThan(5);
-    expect(front.every((m) => m.origin.z === -265)).toBe(true);
+    expect(front.every((m) => m.origin.z === -240)).toBe(true);
+  });
+  it("極端組合 400 深 + 150 腳 + 凸出 100：凸出收到 0，左右橫撐長度不會變 0", () => {
+    const d = build({ frontOverhang: 100, legSize: 150, topSplit: "none" }, { length: 1800, width: 400, height: 830 });
+    const ls = d.parts.find((p) => p.id === "ls-left")!;
+    expect(ls.visible.length).toBeGreaterThan(50);
+    expect(d.warnings?.some((w) => w.includes("前緣凸出 100"))).toBe(true);
   });
 });
 
 describe("專業做法：中央凹槽、前腳孔列", () => {
-  it("中央凹槽 150：兩片各 225 寬、槽底板 24 厚頂面低 45、兩條墊條在槽底板下", () => {
+  it("中央凹槽 150：兩片各 225 寬、槽底板 24 厚頂面低 45、整片嵌在桌面厚度裡（沒有吊在桌底的墊條）", () => {
     const d = build({ topSplit: "center-well" });
     const f = d.parts.find((p) => p.id === "top-front")!;
     const b = d.parts.find((p) => p.id === "top-back")!;
@@ -267,9 +277,21 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
     expect(b.visible.width).toBe(225);
     expect(tray.visible).toEqual({ length: 1800, width: 150, thickness: 24 });
     expect(tray.origin.y + 24).toBe(830 - 45);
-    const cleat = d.parts.find((p) => p.id === "center-well-cleat-f")!;
-    expect(cleat.origin.y + 20).toBe(tray.origin.y);
+    expect(tray.origin.y).toBeGreaterThanOrEqual(830 - 75); // 底板底面不低於桌面底面 → 不會撞裙板 / 穿帶
+    expect(d.parts.some((p) => p.id.startsWith("center-well-cleat"))).toBe(false);
     expect(d.parts.find((p) => p.id === "gap-stop")).toBeUndefined();
+  });
+  it("中央凹槽 + 裙板桌（桌面 65）：槽深 45 收到 41（65 − 24）、底板底面 = 桌面底面", () => {
+    const d = build({ benchStyle: "apron", topSplit: "center-well" });
+    const tray = d.parts.find((p) => p.id === "center-well-bottom")!;
+    expect(tray.origin.y).toBe(830 - 65);
+    expect(d.warnings?.some((w) => w.includes("已收到 41"))).toBe(true);
+  });
+  it("中央凹槽 + 40 厚桌面（MFT）：放不下槽底板 → 改整片桌面並警告", () => {
+    const d = build({ benchStyle: "mft", topSplit: "center-well" });
+    expect(d.parts.find((p) => p.id === "center-well-bottom")).toBeUndefined();
+    expect(d.parts.find((p) => p.id === "top")).toBeDefined();
+    expect(d.warnings?.some((w) => w.includes("桌面至少 60"))).toBe(true);
   });
   it("前腳 holdfast 孔列預設開：兩支前腳各 3 個 Ø19，從腳頂下 120 到橫撐上 120 均分；後腳沒有", () => {
     const d = build();
@@ -327,5 +349,62 @@ describe("v2：純提示欄位", () => {
     const b = build({ breadboardEnds: true });
     expect((b.warnings ?? []).join("\n")).toMatch(/14\.3mm/);
     expect((build().warnings ?? []).join("\n")).not.toMatch(/長孔/);
+  });
+});
+
+describe("09-04 全面檢查修掉的（孔出界、裙板榫眼被橫撐排列拉走、料比腳粗、導件撞裙板）", () => {
+  const within = (d: ReturnType<typeof build>) => {
+    for (const p of d.parts) {
+      if (!/^top(-front|-back)?$/.test(p.id)) continue;
+      for (const m of p.mortises) {
+        if (m.shape !== "round") continue;
+        expect(Math.abs(m.origin.x)).toBeLessThanOrEqual(p.visible.length / 2 - m.length / 2);
+      }
+    }
+  };
+  it("MFT 格陣 + 尾鉗：桌面縮短 100 並平移後，格陣孔全部落在桌面片範圍內", () => {
+    within(build({ benchStyle: "mft", endVise: "wagon" }));
+  });
+  it("雙面桌 + holdfast 後列 + 尾鉗略過：孔都在桌面內；尾鉗端 60 之內不打孔", () => {
+    within(build({ doubleSided: true, holdfastHoles: true }));
+    const d = build({ endVise: "wagon", holdfastHoles: true });
+    within(d);
+    const top = d.parts.find((p) => p.id === "top")!;
+    const xs = top.mortises.filter((m) => m.shape === "round").map((m) => m.origin.x + top.origin.x);
+    // 尾鉗在 −X 端：槽區 x < −(900 − 100 − 30 − 365 − 60) = −345 不能有孔
+    expect(xs.every((x) => x >= -345.5)).toBe(true);
+  });
+  it("裙板桌改雙條（pair-x）：裙板榫眼留在裙板高度，不會被拉到橫撐高度", () => {
+    const d = build({ ...workbenchPresetValues("apron"), benchStyle: "apron", lowerStretcherArrangement: "pair-x" });
+    const leg = d.parts.find((p) => p.id === "leg-1")!;
+    const apron = d.parts.find((p) => p.id === "apron-front")!;
+    const ys = leg.mortises.filter((m) => !m.cosmetic).map((m) => m.origin.y);
+    const y0 = apron.origin.y, y1 = apron.origin.y + apron.visible.width; // 裙板佔的高度帶（兩面的榫眼上下錯開，各在帶內）
+    expect(ys.filter((y) => y >= y0 && y <= y1).length).toBe(2); // 兩個面各一顆裙板榫眼（修前：0 顆，被拉到橫撐高度）
+    expect(ys.filter((y) => y < 300).length).toBe(1); // 橫撐榫眼只剩 X 面那顆
+  });
+  it("H 形：左右橫撐上的中央橫撐榫眼在朝中心那一面（mesh-local y = 厚 / 0）、垂直置中", () => {
+    const d = build({ lowerStretcherArrangement: "h-frame" });
+    const l = d.parts.find((p) => p.id === "ls-left")!;
+    const r = d.parts.find((p) => p.id === "ls-right")!;
+    expect(l.mortises[0].origin).toEqual({ x: 0, y: 50, z: 0 });
+    expect(r.mortises[0].origin).toEqual({ x: 0, y: 0, z: 0 });
+  });
+  it("下橫撐 80 厚配 60 腳：收到 40 並警告；裙板同理", () => {
+    const d = build({ ...workbenchPresetValues("mft"), benchStyle: "mft", lowerStretcherThickness: 80, withApron: true, apronThickness: 60 });
+    const ls = d.parts.find((p) => p.id === "ls-front")!;
+    expect(ls.visible.thickness).toBe(40);
+    const ap = d.parts.find((p) => p.id === "apron-front")!;
+    expect(ap.visible.thickness).toBe(40);
+    expect(d.warnings?.filter((w) => w.includes("太厚")).length).toBe(2);
+  });
+  it("腳鉗 + 裙板 340 寬 + 橫撐離地 150：平行導件從 290 壓低到 265（裙板底下 80），槽頂 305 不進裙板", () => {
+    const d = build({ frontVise: "leg", withApron: true, apronWidth: 340, lowerStretcherHeight: 150 }, { length: 1800, width: 600, height: 760 });
+    const legHeight = 760 - 75; // 685
+    const slot = d.parts.flatMap((p) => p.mortises).find((m) => m.label === "平行導件槽")!;
+    expect(slot).toBeDefined();
+    expect(slot.origin.y).toBe(265 + 20);
+    expect(slot.origin.y + 20).toBeLessThanOrEqual(legHeight - 340 - 40);
+    expect(d.warnings?.some((w) => w.includes("壓低"))).toBe(true);
   });
 });
