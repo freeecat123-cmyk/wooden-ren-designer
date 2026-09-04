@@ -3,6 +3,7 @@
 import { useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { workbenchPresetValues } from "@/lib/templates/workbench-presets";
+import { workbenchHeightFor } from "@/lib/knowledge/ergonomics";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
  *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset。
@@ -149,6 +150,32 @@ export function DesignFormShell({
         if (cb) { cb.checked = v === true; continue; }
         const inp = form.querySelector<HTMLInputElement>(`input[name="${k}"]`);
         if (inp) { inp.value = String(v); inp.dispatchEvent(new Event("input", { bubbles: true })); }
+      }
+    }
+    // 工作桌「桌高用途 / 你的身高 / 桌鋸台面高」→ 直接把建議桌高寫進「高」欄位。
+    // 🩸2026-09-04 木頭仁：「選桌高用途 高度也沒變」。以前這幾欄只產生一句建議文字，
+    // 使用者當然覺得選了沒作用。改成選了就套用（套完他仍可自己再調高度）。
+    const HEIGHT_DRIVERS = ["heightMode", "userHeightCm", "sawTableHeightMm"];
+    if (
+      formRef.current &&
+      (target instanceof HTMLSelectElement || target instanceof HTMLInputElement) &&
+      HEIGHT_DRIVERS.includes(target.name)
+    ) {
+      const form = formRef.current;
+      const val = (name: string) => {
+        const el = form.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`);
+        return el ? el.value : "";
+      };
+      const heightInput = form.querySelector<HTMLInputElement>('input[name="height"]');
+      const mode = val("heightMode");
+      const cm = Number(val("userHeightCm"));
+      const saw = Number(val("sawTableHeightMm"));
+      if (heightInput && mode && Number.isFinite(cm) && cm > 0) {
+        const next = String(workbenchHeightFor(mode, cm, Number.isFinite(saw) && saw > 0 ? saw : undefined));
+        if (heightInput.value !== next) {
+          heightInput.value = next;
+          heightInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
       }
     }
     // Reverse sync：input 改變時、若值脫離 master select 的 preset 對應、

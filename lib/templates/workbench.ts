@@ -16,6 +16,7 @@
  *    （§M1：x ∈ ±length/2、y ∈ [0, thickness] 從底量、z ∈ ±width/2）。
  */
 import type { FurnitureTemplate, FurnitureDesign, OptionSpec, Part, Mortise } from "@/lib/types";
+import { WORKBENCH_HEIGHT_COEF, workbenchHeightFor } from "@/lib/knowledge/ergonomics";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { WORKBENCH_PRESETS } from "./workbench-presets";
@@ -50,7 +51,8 @@ const MAX_GRID_HOLES = 200;
 /** 平拼單片實木上限（同 round-table / 工具牆的 280 慣例） */
 const PLANK_MAX_W = 280;
 /** 桌高係數（§O7 + Schwarz 小指根法；170cm → 833 / 935 / 1020） */
-const HEIGHT_COEF: Record<string, number> = { plane: 0.49, machine: 0.55, fine: 0.60, assembly: 0.44 };
+// 係數與建議高公式在 lib/knowledge/ergonomics.ts（設計頁「自動套用桌高」共用同一份）
+const HEIGHT_COEF = WORKBENCH_HEIGHT_COEF;
 /** 尾鉗（wagon）：Benchcrafted 懸出 ≥ 18½"、槽 = 行程 310 + dog 45 + 10、端蓋 4" */
 const WAGON_MIN_OVERHANG = 470;
 const WAGON_SLOT_L = 365;
@@ -107,15 +109,15 @@ export const workbenchOptions: OptionSpec[] = [
   ], help: "腳粗＝層數 × 18。橫撐固定 2 層（36mm）、裙板 1～2 層看流派，缺口在疊層時直接預留" },
 
   // ───────────── 桌高怎麼定（只給建議，不動滑桿） ─────────────
-  { group: "structure", type: "select", key: "heightMode", label: "桌高用途（給建議值）", defaultValue: "plane", choices: [
+  { group: "structure", type: "select", key: "heightMode", label: "桌高用途（會直接套用桌高）", defaultValue: "plane", choices: [
     { value: "plane", label: "手刨為主（桌面 ≈ 掌根高，身高 × 0.49）" },
     { value: "machine", label: "機具 / 組裝為主（肘下約 10cm，身高 × 0.55）" },
     { value: "fine", label: "精細作業（鑿榫、鳩尾；身高 × 0.60）" },
     { value: "assembly", label: "組裝／上漆矮桌（身高 × 0.44；兼餐桌約 730）" },
     { value: "outfeed", label: "當桌鋸出料台（桌高 ＝ 桌鋸台面 − 2，只能低不能高）" },
-  ], help: "依身高算出建議桌高，寫在下方說明與警告裡；不會自動改你設的「高」" },
-  { group: "structure", type: "number", key: "userHeightCm", label: "你的身高", defaultValue: 170, unit: "cm", min: 145, max: 195, step: 1, help: "台灣男性中位約 170、女性約 160。只用來算建議桌高" },
-  { group: "structure", type: "number", key: "sawTableHeightMm", label: "桌鋸台面高", defaultValue: 870, unit: "mm", min: 700, max: 1000, step: 5, dependsOn: { key: "heightMode", equals: "outfeed" }, help: "出料台只能跟台面同高或低 1~2mm，高於台面木料尾端會被抬起反彈。只影響建議值與警告" },
+  ], help: "選了就依身高算出桌高、直接填進上面的「高」（套用後你仍可自己再調）" },
+  { group: "structure", type: "number", key: "userHeightCm", label: "你的身高", defaultValue: 170, unit: "cm", min: 145, max: 195, step: 1, help: "台灣男性中位約 170、女性約 160。改了就會照上面的用途重新套用桌高" },
+  { group: "structure", type: "number", key: "sawTableHeightMm", label: "桌鋸台面高", defaultValue: 870, unit: "mm", min: 700, max: 1000, step: 5, dependsOn: { key: "heightMode", equals: "outfeed" }, help: "出料台只能跟台面同高或低 1~2mm，高於台面木料尾端會被抬起反彈。改了會直接套用成桌高 −2" },
   { group: "structure", type: "number", key: "roomLengthCm", label: "房間能放的長", defaultValue: 0, unit: "cm", min: 0, max: 1000, step: 10, help: "量牆到牆。0 ＝ 不管；桌長加 90cm 走道放不下會提醒。只影響警告" },
   { group: "structure", type: "number", key: "roomWidthCm", label: "房間能放的深", defaultValue: 0, unit: "cm", min: 0, max: 1000, step: 10, help: "0 ＝ 不管；桌深加 90cm 走道放不下會提醒。只影響警告" },
 
@@ -1431,7 +1433,7 @@ export const workbench: FurnitureTemplate = (input) => {
 
   // ── 警告：桌高 vs 身高（含鞋墊、出料台）、抗晃、重量、房門、房間、伸縮、搬運 ──
   const coef = HEIGHT_COEF[heightMode] ?? HEIGHT_COEF.plane;
-  const suggested = heightMode === "outfeed" ? sawTableHeightMm - 2 : Math.round(userHeightCm * 10 * coef);
+  const suggested = workbenchHeightFor(heightMode, userHeightCm, sawTableHeightMm);
   const modeZh = ({ machine: "機具／組裝", fine: "精細作業", assembly: "組裝／上漆矮桌", outfeed: "桌鋸出料台" } as Record<string, string>)[heightMode] ?? "手刨";
   const modeEn = ({ machine: "machine/assembly", fine: "fine work", assembly: "assembly / finishing", outfeed: "table-saw outfeed" } as Record<string, string>)[heightMode] ?? "hand-planing";
   if (heightMode === "outfeed") {
