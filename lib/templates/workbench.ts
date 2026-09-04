@@ -485,6 +485,10 @@ export const workbench: FurnitureTemplate = (input) => {
   } else {
     topPieces.push(top);
   }
+  // 疊層桌面：料單 / 裁切圖拆的是厚度（N 層 × 厚/N），不是面寬
+  if (topBuild === "stack") {
+    for (const p of topPieces) p.panelSplit = "thickness";
+  }
   /** 找到蓋住世界 z 的桌面片（縫裡沒有片就回 null） */
   const topPieceAt = (z: number, margin: number): Part | null => {
     for (const p of topPieces) {
@@ -493,7 +497,7 @@ export const workbench: FurnitureTemplate = (input) => {
     return null;
   };
   // 孔要落在那片桌面的長度範圍內（尾鉗端蓋把桌面縮短、平移後，格陣 / holdfast 列不能算到桌面外），也要避開尾鉗槽那一段
-  const wagonKeepOut = wagon ? L / 2 - (WAGON_END_CAP_T + 30 + WAGON_SLOT_L + 60) : Infinity;
+  const wagonKeepOut = wagon ? L / 2 - (WAGON_END_CAP_T + WAGON_SLOT_L + 60) : Infinity;
   const holeFits = (piece: Part, x: number, dia: number) =>
     Math.abs(x - piece.origin.x) <= piece.visible.length / 2 - (dia / 2 + 30) && wagonSign * x <= wagonKeepOut + 0.5;
 
@@ -569,7 +573,7 @@ export const workbench: FurnitureTemplate = (input) => {
     const startX = viseX !== null
       ? viseX - sideSign * dogHolePitchRaw * Math.ceil((viseHalfSpan + 20) / dogHolePitchRaw)
       : sideSign * (L / 2 - 100);
-    const farLimit = wagon ? L / 2 - (WAGON_END_CAP_T + 30 + WAGON_SLOT_L + 60) : L / 2 - 100;
+    const farLimit = wagon ? L / 2 - (WAGON_END_CAP_T + WAGON_SLOT_L + 60) : L / 2 - 100;
     const endX = -sideSign * farLimit;
     const span = Math.abs(endX - startX);
     let pitch = dogHolePitchRaw;
@@ -670,6 +674,8 @@ export const workbench: FurnitureTemplate = (input) => {
     }
   }
 
+  // 腳鉗那支腳上的螺桿孔 / 導件槽高度：前腳 holdfast 孔列要避開（±60）
+  let legViseInfo: { legId: string; ys: number[] } | null = null;
   // ── 前鉗（快速鉗）：可放前緣（zSign −1）或雙面桌的後緣（zSign +1） ──
   let viseHardwareNote = "";
   const addQuickVise = (vx: number, zSign: -1 | 1, idPrefix: string, labelZh: string, labelEn: string) => {
@@ -815,6 +821,10 @@ export const workbench: FurnitureTemplate = (input) => {
       tenons: [],
       mortises: [
         roundHole(0, screwY - chopBottomY, -LEG_VISE_CHOP_T / 2, 32, LEG_VISE_CHOP_T),
+        // 木顎頂一顆桌狗孔（配前緣狗孔列夾長料）
+        { ...roundHole(0, chopH, 0, dogHoleDiaRow, 60), through: false, label: isEn ? "vise dog" : "鉗口桌狗孔" },
+        // 平行導件榫眼：木顎背面（朝腳，mesh-local +z 面），導件穿過腳後插進來 40
+        ...(guideFits ? [{ origin: { x: 0, y: guideY + 20 - chopBottomY, z: LEG_VISE_CHOP_T / 2 }, depth: 40, length: 40, width: 25, through: false, label: isEn ? "parallel guide mortise" : "平行導件榫眼" }] : []),
       ],
     });
     design.parts.push({
@@ -836,26 +846,31 @@ export const workbench: FurnitureTemplate = (input) => {
       .sort((a, b) => Math.hypot(a.origin.x - viseX!, a.origin.z + workW / 2) - Math.hypot(b.origin.x - viseX!, b.origin.z + workW / 2))[0];
     if (viseLeg) {
       viseLeg.mortises.push(roundHole(0, screwY, -legSize / 2, 32, legSize));
+      legViseInfo = { legId: viseLeg.id, ys: guideFits ? [screwY, guideY + 20] : [screwY] };
     }
     if (viseLeg && guideFits) {
       viseLeg.mortises.push(
         { origin: { x: 0, y: guideY + 20, z: -legSize / 2 }, depth: legSize, length: 40, width: 25, through: true, label: isEn ? "parallel guide slot" : "平行導件槽" },
       );
       // 平行導件木條：鎖在木顎底、穿過腳、露出腳後 120，一排 Ø10 銷孔（插銷擋住木顎下端才夾得平）
-      const guideProud = 120;
+      // 導件總長：露出腳後 120 + 開口行程 150（閉合時整段在腳後面）；穿腳的那頭再加 40 插進木顎背面榫眼
+      // 行程受桌深限制：導件伸到後腳前面要留 20（隨機測試：淺桌 + 粗腳時 270 會撞後腳）
+      const guideTravel = Math.max(40, Math.min(150, workW - 2 * legSize - 20 - 120));
+      const guideProud = 120 + guideTravel;
       const pinHoles: Mortise[] = [];
       for (let gx = -guideProud / 2 + 15; gx <= guideProud / 2 - 10; gx += 25) pinHoles.push(roundHole(gx, 40, 0, 10, 40));
       design.parts.push({
         id: "leg-vise-guide",
-        nameZh: "腳鉗平行導件（穿腳，露出腳後 120）",
-        nameEn: "Leg vise parallel guide (through the leg)",
+        nameZh: "腳鉗平行導件（插木顎 40、穿腳、腳後留 270 行程）",
+        nameEn: "Leg vise parallel guide (into the chop, through the leg)",
         material: input.material,
         grainDirection: "length",
         // rotation.y = π/2：length 軸轉到世界 Z（前後向）；「end」= 世界 −Z 那頭 = 穿進腳的榫
         visible: { length: guideProud, width: 25, thickness: 40 },
         origin: { x: viseLeg.origin.x, y: guideY, z: viseLeg.origin.z + legSize / 2 + guideProud / 2 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
-        tenons: [{ position: "end", type: "through-tenon", length: legSize, width: 40, thickness: 25 }],
+        // 榫長 = 穿過腳（腳粗）+ 插進木顎 40（audit-joints 的「穿越」規則：先穿腳的通孔，再進木顎的盲榫眼）
+        tenons: [{ position: "end", type: "through-tenon", length: legSize + 40, width: 40, thickness: 25 }],
         mortises: pinHoles,
       });
     }
@@ -868,7 +883,8 @@ export const workbench: FurnitureTemplate = (input) => {
   if (wagon) {
     const xE = wagonSign * (L / 2);
     const capX = xE - wagonSign * (WAGON_END_CAP_T / 2);
-    const slotCx = xE - wagonSign * (WAGON_END_CAP_T + 30 + WAGON_SLOT_L / 2);
+    // 槽從端蓋內側面起算（原本多留 30 → 槽尾切進前腳的桌面貫穿榫眼 15mm；視覺審查 09-04 抓到）
+    const slotCx = xE - wagonSign * (WAGON_END_CAP_T + WAGON_SLOT_L / 2);
     const capZ = top.origin.z;
     design.parts.push({
       id: "end-cap",
@@ -929,21 +945,32 @@ export const workbench: FurnitureTemplate = (input) => {
     for (const sx of [-1, 1] as const) {
       const legOuterX = frameDx + sx * (frameL / 2);
       let bx = legOuterX + sx * 40;
-      // 鉗那端：鉗本體佔掉桌底，穿帶要擠在腳外面與鉗本體之間（9" 鉗 + 尾鉗把懸出縮到 305 時只剩 20 就放不下）
-      if (frontVise === "quick" && viseX !== null && fitsOutside && Math.sign(viseX) === sx) {
-        const bodyInner = Math.abs(viseX) - jaw / 2;
-        const maxCenter = bodyInner - 30 - 10;
-        if (maxCenter - Math.abs(legOuterX) < 30) {
-          // 腳外側擠不下：沒裙板、沒靠板導軌時改放腳內側（桌底那一段是空的）；有裙板／靠板就只做另一端
-          if (withApron || deadmanRaw) {
-            warnings.push(isEn ? `No room for a batten between the ${sx > 0 ? "left" : "right"} leg and the vise body; only the other end gets one.` : `${sx > 0 ? "左" : "右"}端腳外面到鉗本體之間放不下穿帶，只做另一端。`);
-            continue;
-          }
-          warnings.push(isEn ? `No room outside the ${sx > 0 ? "left" : "right"} leg for a batten (vise body); it goes just inside the leg instead.` : `${sx > 0 ? "左" : "右"}端腳外面到鉗本體之間放不下穿帶，那一條改放腳內側。`);
-          bx = legOuterX - sx * (legSize + 40);
-        } else {
-          bx = sx * Math.min(Math.abs(bx), maxCenter);
+      // 這一端能放的最外位置：桌面那一端往內 20（止燕尾）+ 半寬 15；鉗那端再受鉗本體限制
+      // （9" 鉗 + 尾鉗把懸出縮到 305 時只剩 20 就放不下；懸出 10 時穿帶會跑到桌面外——隨機測試抓到）
+      const topEndX = topOriginX + sx * (topLen / 2);
+      let maxCenter = Math.abs(topEndX) - 20 - 15;
+      const viseThisEnd = frontVise === "quick" && viseX !== null && fitsOutside && Math.sign(viseX) === sx;
+      if (viseThisEnd) maxCenter = Math.min(maxCenter, Math.abs(viseX!) - jaw / 2 - 30 - 10);
+      if (maxCenter - Math.abs(legOuterX) < 30) {
+        // 腳外側擠不下：沒裙板、沒靠板導軌時改放腳內側（桌底那一段是空的）；有裙板／靠板就只做另一端
+        const whyZh = viseThisEnd ? "腳外面到鉗本體之間" : "腳外面到桌端之間";
+        const whyEn = viseThisEnd ? "between the leg and the vise body" : "between the leg and the end of the top";
+        // 鉗裝在腳內側（懸出不夠）時，腳內側那段桌底被鉗本體佔掉，也只能做另一端
+        const viseInboardHere = frontVise === "quick" && viseX !== null && !fitsOutside && Math.sign(viseX) === sx;
+        if (withApron || deadmanRaw || viseInboardHere) {
+          warnings.push(isEn ? `No room for a batten ${whyEn} on the ${sx > 0 ? "left" : "right"}; only the other end gets one.` : `${sx > 0 ? "左" : "右"}端${whyZh}放不下穿帶，只做另一端。`);
+          continue;
         }
+        warnings.push(isEn ? `No room for a batten ${whyEn} on the ${sx > 0 ? "left" : "right"}; it goes just inside the leg instead.` : `${sx > 0 ? "左" : "右"}端${whyZh}放不下穿帶，那一條改放腳內側。`);
+        bx = legOuterX - sx * (legSize + 40);
+      } else {
+        bx = sx * Math.min(Math.abs(bx), maxCenter);
+      }
+      // 桌底燕尾槽：口 40／底 50、深 15，兩端各留 20 止住（畫在每片桌面底面；cosmetic 不算榫接配對）
+      for (const piece of topPieces) {
+        const gl = piece.visible.width - 40;
+        if (gl < 60) continue;
+        piece.mortises.push({ origin: { x: bx - piece.origin.x, y: 0, z: 0 }, depth: 15, length: 40, width: gl, through: false, cosmetic: true, label: isEn ? "dovetail housing 40/50 × 15" : "燕尾槽（口 40 底 50、深 15）" });
       }
       design.parts.push({
         id: `top-batten-${sx < 0 ? "r" : "l"}`,
@@ -974,7 +1001,8 @@ export const workbench: FurnitureTemplate = (input) => {
         origin: { x: sx * (L / 2 - 30), y: legHeight, z: top.origin.z },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
         tenons: [],
-        mortises: [],
+        // 朝桌面那一面（rotation.y=π/2：mesh-local +z = 世界 +x → 朝桌面 = −sx 側）開 12 寬 30 深舌槽，兩端各留 40
+        mortises: [{ origin: { x: 0, y: topT / 2, z: -sx * 30 }, depth: 30, length: workW + frontOverhang - 80, width: 12, through: false, cosmetic: true, label: isEn ? "groove 12 × 30 for the top's tongue (elongated screw holes)" : "舌槽 12 寬 30 深（桌面端做舌、螺絲走長孔）" }],
       });
     }
   }
@@ -1013,10 +1041,15 @@ export const workbench: FurnitureTemplate = (input) => {
       tenons: [],
       mortises: [],
     });
-    const boardH = (legHeight - 25) - (lsTop + 25) - 2;
+    // 滑板底開 V 槽（12 深）騎在脊條尖上、頂開 25 寬 12 深的直槽咬住上軌：兩處各「咬進」12（不是貼著，
+    // 貼著會直接倒出來；視覺審查 09-04 抓到）。overlap 稽核會看到這兩對結構性重疊 → 那幾個變體列 allowlist（同紅酒架半搭接）。
+    const boardY = lsTop + 25 - 11;             // 脊條尖（lsTop+25）在 V 槽裡，留 1
+    const boardH = (legHeight - 25 + 12) - boardY; // 頂槽 12 深咬住 25×25 上軌
     const boardX = viseLegInnerEdge - sideSign * (30 + 90);
     const holes: Mortise[] = [];
     for (let hy = 60; hy <= boardH - 60; hy += 100) holes.push(roundHole(0, hy, -20, dogHoleDiaRow, 40));
+    holes.push({ origin: { x: 0, y: 0, z: 0 }, depth: 12, length: 180, width: 25, through: false, cosmetic: true, label: isEn ? "V-groove (rides the ridge)" : "底 V 槽（騎在脊條上）" });
+    holes.push({ origin: { x: 0, y: boardH, z: 0 }, depth: 12, length: 180, width: 25, through: false, cosmetic: true, label: isEn ? "top slot (captures the rail)" : "頂直槽（咬住上軌）" });
     design.parts.push({
       id: "deadman-board",
       nameZh: "長板靠板（滑板）",
@@ -1024,7 +1057,7 @@ export const workbench: FurnitureTemplate = (input) => {
       material: input.material,
       grainDirection: "length",
       visible: { length: 180, width: 40, thickness: boardH },
-      origin: { x: boardX, y: lsTop + 26, z: deadmanRidgeZ },
+      origin: { x: boardX, y: boardY, z: deadmanRidgeZ },
       tenons: [],
       mortises: holes,
     });
@@ -1039,8 +1072,11 @@ export const workbench: FurnitureTemplate = (input) => {
       const n = Math.max(1, Math.floor((yTop - yBot) / 150) + 1);
       const step = n > 1 ? (yTop - yBot) / (n - 1) : 0;
       for (let i = 0; i < n; i++) {
+        const hy = yTop - i * step;
+        // 腳鉗那支腳：避開螺桿孔 Ø32 與導件槽（±60），不然零件圖上兩個孔疊在同一點
+        if (legViseInfo && leg.id === legViseInfo.legId && legViseInfo.ys.some((y) => Math.abs(hy - y) < 60)) continue;
         // 腳零件：length=legSize(x)、width=legSize(z)、thickness=腳高(y)；前面 = mesh-local −z
-        leg.mortises.push({ ...roundHole(0, yTop - i * step, -legSize / 2, dogHoleDiaRow, legSize), label: isEn ? "leg holdfast hole" : "前腳 holdfast 孔" });
+        leg.mortises.push({ ...roundHole(0, hy, -legSize / 2, dogHoleDiaRow, legSize), label: isEn ? "leg holdfast hole" : "前腳 holdfast 孔" });
       }
     }
   }

@@ -5529,17 +5529,21 @@ export function MaterialList({
             {catRows.map(
               ({ part, cut, bdft, materialLabel, tenonNotes, pieces }) => {
                 // 拼板：可見/切料寬度都先除以片數（單片實際尺寸），方便去料行下單
-                const dispVw = part.visible.width / pieces;
-                const dispCw = cut.width / pieces;
+                // 疊層（panelSplit="thickness"）：除的是厚度（每層厚 = 厚 ÷ 層數），面寬不動
+                const byThickness = part.panelSplit === "thickness";
+                const dispVw = byThickness ? part.visible.width : part.visible.width / pieces;
+                const dispVt = byThickness ? part.visible.thickness / pieces : part.visible.thickness;
+                const dispCw = byThickness ? cut.width : cut.width / pieces;
+                const dispCt = byThickness ? cut.thickness / pieces : cut.thickness;
                 const [vl, vw, vt] = sortDimsDesc(
                   part.visible.length,
                   dispVw,
-                  part.visible.thickness,
+                  dispVt,
                 );
                 const [cl, cw, ct] = sortDimsDesc(
                   cut.length,
                   dispCw,
-                  cut.thickness,
+                  dispCt,
                 );
                 const piecesPrefix = pieces > 1 ? (isEn ? `${pieces} × ` : `${pieces} 片 × `) : "";
                 const isSelected = selectedPartId === part.id;
@@ -5565,7 +5569,7 @@ export function MaterialList({
                       {partName(part, locale)}
                       {pieces > 1 && (
                         <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">
-                          {isEn ? `glue ${pieces}` : `拼 ${pieces} 片`}
+                          {byThickness ? (isEn ? `laminate ${pieces}` : `疊 ${pieces} 層`) : (isEn ? `glue ${pieces}` : `拼 ${pieces} 片`)}
                         </span>
                       )}
                     </td>
@@ -5632,7 +5636,7 @@ export function MaterialList({
         <tbody className="border-t-2 border-amber-400 bg-amber-50/30">
           <tr className="bg-amber-100/60">
             <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-amber-900">
-              {isEn ? "🪙 Antiqued-brass hardware (purchased; not in cut list)" : "🪙 仿古銅五金（外購，不入裁切）"}
+              {isEn ? "🪙 Hardware (purchased; not in cut list)" : "🪙 五金（外購，不入裁切）"}
               <span className="ml-2 font-normal text-amber-700">{isEn ? `· ${brassRows.length} items` : `· ${brassRows.length} 件`}</span>
             </td>
             <td className="px-2 py-1.5 text-right text-xs font-mono text-amber-700">—</td>

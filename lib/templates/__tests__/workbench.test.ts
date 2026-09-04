@@ -4,6 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { workbench, workbenchOptions } from "../workbench";
+import { auditJoints } from "@/lib/joinery/audit-joints";
+import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { WORKBENCH_PRESETS, WORKBENCH_PRESET_DEFAULTS, workbenchPresetValues } from "../workbench-presets";
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
 
@@ -180,14 +182,14 @@ describe("v2：尾鉗（wagon）", () => {
     const legM = top.mortises.filter((m) => !m.cosmetic).map((m) => m.origin.x).sort((a, b) => a - b);
     expect(legM).toEqual([-425, -425, 495, 495]);
   });
-  it("槽 365×52 中心 = −900 + 100 + 30 + 182.5 = −587.5（桌面 local −637.5），狗孔停在槽前", () => {
+  it("槽 365×52 從端蓋內側面起算：中心 = −900 + 100 + 182.5 = −617.5（桌面 local −667.5），槽尾 −435 不碰前腳榫眼 −420", () => {
     const top = d.parts.find((p) => p.id === "top")!;
     const slot = top.mortises.find((m) => m.length === 365)!;
     expect(slot.width).toBe(52);
-    expect(slot.origin.x + top.origin.x).toBe(-587.5);
+    expect(slot.origin.x + top.origin.x).toBe(-617.5);
     expect(slot.through && slot.cosmetic).toBe(true);
     const front = top.mortises.filter((m) => m.shape === "round" && m.origin.z < 0).map((m) => m.origin.x + top.origin.x);
-    expect(Math.min(...front)).toBeGreaterThanOrEqual(-587.5 + 182.5 + 60 - 0.5);
+    expect(Math.min(...front)).toBeGreaterThanOrEqual(-617.5 + 182.5 + 60 - 0.5);
   });
   it("桌長 1500 不做尾鉗並出聲", () => {
     const s = build({ endVise: "wagon" }, { length: 1500, width: 600, height: 830 });
@@ -197,16 +199,17 @@ describe("v2：尾鉗（wagon）", () => {
 });
 
 describe("v2：長板靠板 / 抽屜櫃 / 封邊板 / 雙面桌", () => {
-  it("靠板：脊條在前橫撐頂（y=200）、軌在桌底 −25、滑板高 = (755−25) − (225) − 2 = 503", () => {
+  it("靠板：脊條在前橫撐頂（y=200）、軌在桌底 −25、滑板底 V 槽騎脊條（y=214）、頂槽咬上軌（頂 742）→ 高 528", () => {
     const d = build({ deadman: true, lowerStretcherArrangement: "box-frame" });
     const ridge = d.parts.find((p) => p.id === "deadman-ridge")!;
     const rail = d.parts.find((p) => p.id === "deadman-rail")!;
     const board = d.parts.find((p) => p.id === "deadman-board")!;
     expect(ridge.origin.y).toBe(200);
     expect(rail.origin.y).toBe(730);
-    expect(board.visible.thickness).toBe(503);
-    expect(board.origin.y).toBe(226);
-    expect(board.mortises.length).toBe(4); // 60,160,260,360 ≤ 443
+    expect(board.visible.thickness).toBe(528);
+    expect(board.origin.y).toBe(214);
+    expect(board.mortises.filter((m) => m.shape === "round").length).toBe(5); // 60,160,260,360,460 ≤ 468
+    expect(board.mortises.filter((m) => m.shape !== "round").map((m) => m.origin.y)).toEqual([0, 528]); // 底 V 槽、頂直槽
   });
   it("靠板前提不符（H 形沒有前橫撐）→ 不生、出聲", () => {
     const d = build({ deadman: true, lowerStretcherArrangement: "h-frame" });
@@ -371,8 +374,8 @@ describe("09-04 全面檢查修掉的（孔出界、裙板榫眼被橫撐排列�
     within(d);
     const top = d.parts.find((p) => p.id === "top")!;
     const xs = top.mortises.filter((m) => m.shape === "round").map((m) => m.origin.x + top.origin.x);
-    // 尾鉗在 −X 端：槽區 x < −(900 − 100 − 30 − 365 − 60) = −345 不能有孔
-    expect(xs.every((x) => x >= -345.5)).toBe(true);
+    // 尾鉗在 −X 端：槽區 x < −(900 − 100 − 365 − 60) = −375 不能有孔
+    expect(xs.every((x) => x >= -375.5)).toBe(true);
   });
   it("裙板桌改雙條（pair-x）：裙板榫眼留在裙板高度，不會被拉到橫撐高度", () => {
     const d = build({ ...workbenchPresetValues("apron"), benchStyle: "apron", lowerStretcherArrangement: "pair-x" });
@@ -406,5 +409,54 @@ describe("09-04 全面檢查修掉的（孔出界、裙板榫眼被橫撐排列�
     expect(slot.origin.y).toBe(265 + 20);
     expect(slot.origin.y + 20).toBeLessThanOrEqual(legHeight - 340 - 40);
     expect(d.warnings?.some((w) => w.includes("壓低"))).toBe(true);
+  });
+});
+
+describe("09-04 視覺審查修掉的（尾鉗槽切進腳榫眼、疊層料單、腳鉗三件對不上、穿帶／封邊板沒槽）", () => {
+  it("疊層桌面 stack 2 層：料單 / 裁切拆的是厚度（2 × 1800×600×37.5），不是面寬", () => {
+    const d = build({ topBuild: "stack", topLayers: 2 });
+    const top = d.parts.find((p) => p.id === "top")!;
+    expect(top.panelPieces).toBe(2);
+    expect(top.panelSplit).toBe("thickness");
+  });
+  it("腳鉗：導件榫長 = 腳 100 + 木顎 40，木顎背面有 40×25 榫眼、頂有狗孔；那支腳的 holdfast 孔避開螺桿孔 ±60", () => {
+    const d = build({ frontVise: "leg" });
+    const guide = d.parts.find((p) => p.id === "leg-vise-guide")!;
+    expect(guide.visible.length).toBe(270);
+    expect(guide.tenons[0].length).toBe(140);
+    const chop = d.parts.find((p) => p.id === "leg-vise-chop")!;
+    expect(chop.mortises.some((m) => m.length === 40 && m.width === 25 && m.depth === 40)).toBe(true);
+    expect(chop.mortises.some((m) => m.shape === "round" && m.length === 19 && !m.through)).toBe(true);
+    const legs = d.parts.filter((p) => /^leg-\d$/.test(p.id));
+    const viseLeg = legs.find((l) => l.mortises.some((m) => m.shape === "round" && m.length === 32))!;
+    const screwY = viseLeg.mortises.find((m) => m.shape === "round" && m.length === 32)!.origin.y;
+    for (const m of viseLeg.mortises.filter((m) => m.label === "前腳 holdfast 孔")) expect(Math.abs(m.origin.y - screwY)).toBeGreaterThanOrEqual(60);
+    // 導件榫：先穿腳的通槽、再進木顎盲榫眼 → audit-joints 的穿越規則要全部對上
+    const ja = auditJoints(applyEdgeProtection(d));
+    expect(ja.unmatchedTenons).toEqual([]);
+    expect(ja.unmatchedMortises).toEqual([]);
+  });
+  it("穿帶：懸出只有 10 時腳外面放不下 → 鉗那端（鉗裝在腳內側）只做另一端、另一端改放腳內側，都不跑到桌面外", () => {
+    const d = build({ topBattens: true, endOverhang: 10 });
+    expect(d.parts.find((p) => p.id === "top-batten-l")).toBeUndefined(); // 左端：7" 鉗裝在腳內側佔掉桌底
+    const r = d.parts.find((p) => p.id === "top-batten-r")!;
+    expect(Math.abs(r.origin.x) + 15).toBeLessThanOrEqual(900);
+    expect(Math.abs(r.origin.x)).toBeLessThan(900 - 10 - 100); // 在腳內側
+    expect(d.warnings?.filter((w) => w.includes("改放腳內側")).length).toBe(1);
+    expect(d.warnings?.filter((w) => w.includes("只做另一端")).length).toBe(1);
+  });
+  it("腳鉗導件行程受桌深限制：500 深 + 150 腳 → 導件不撞後腳", () => {
+    const d = build({ frontVise: "leg", legSize: 150 }, { length: 1800, width: 500, height: 830 });
+    const guide = d.parts.find((p) => p.id === "leg-vise-guide")!;
+    expect(guide.visible.length).toBe(120 + Math.max(40, 500 - 300 - 20 - 120));
+  });
+  it("穿帶：每片桌面底面有 40 寬 15 深的燕尾槽（cosmetic）；封邊板朝桌面那面有 12×30 舌槽", () => {
+    const d = build({ topBattens: true, breadboardEnds: true });
+    const top = d.parts.find((p) => p.id === "top")!;
+    const housings = top.mortises.filter((m) => m.shape !== "round" && m.depth === 15 && m.length === 40);
+    expect(housings.length).toBe(2);
+    expect(housings.every((m) => m.origin.y === 0 && m.cosmetic)).toBe(true);
+    const bb = d.parts.find((p) => p.id === "breadboard-l")!;
+    expect(bb.mortises[0]).toMatchObject({ origin: { x: 0, y: 37.5, z: -30 }, depth: 30, width: 12 });
   });
 });

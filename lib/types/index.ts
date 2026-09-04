@@ -226,6 +226,8 @@ export interface Part {
    * - 3D / 報價總材積不變（同一塊概念面板）
    */
   panelPieces?: number;
+  /** 拼板方向：預設 "width" = 沿面寬拼 N 片；"thickness" = 疊 N 層（每層厚 = 厚 ÷ N，工作桌疊層桌面）。 */
+  panelSplit?: "width" | "thickness";
 
   /**
    * 視覺渲染提示——影響 3D / 材料單 / 報價：

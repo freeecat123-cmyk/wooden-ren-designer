@@ -122,6 +122,12 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 工作桌下層板：notched-corners 缺角讓腳，silhouette 看不到缺角 → 腳 × 層板誤報（同 tea-table）。
   // 這幾個變體裡只有這 4 對；其他新零件（尾鉗 / 靠板 / 抽屜櫃）都在別的變體裡另外驗到 0。
   "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
+  // 長板靠板：滑板底 V 槽騎在脊條尖上、頂直槽咬住上軌，各咬進 12（槽是 cosmetic mortise，OBB 不計）
+  // = 結構性重疊（同紅酒架半搭接），不是穿模。09-04 視覺審查：原本只是「貼著」會倒出來。
+  "workbench:default+topSplit=center-well+deadman",
+  "workbench:default+deadman+lowerStretcherArrangement=box-frame",
+  "workbench:default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
+  "workbench:default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
   "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
