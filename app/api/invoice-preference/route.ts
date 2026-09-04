@@ -103,11 +103,28 @@ export async function GET() {
   });
 }
 
-export async function POST(req: NextRequest) {
+
+/**
+ * 取得登入者。先走 cookie；cookie 沒帶上來（LINE / IG 這類 in-app browser 常見）
+ * 就退而用前端送來的 `Authorization: Bearer <access_token>` 驗簽。
+ * 兩條路都是 `auth.getUser()`，都會真的驗簽章，不是只解 cookie。
+ * 2026-09-04 加：客人在 LINE 內建瀏覽器結帳，發票 modal 收到 401 unauthenticated
+ * 卡死、走不到綠界（訂單 WRMTMF5JZLHD9Y）。
+ */
+async function resolveUser(req: NextRequest) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const viaCookie = await supabase.auth.getUser();
+  if (viaCookie.data.user) return viaCookie.data.user;
+
+  const auth = req.headers.get("authorization") ?? "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  if (!token) return null;
+  const viaToken = await supabase.auth.getUser(token);
+  return viaToken.data.user ?? null;
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }

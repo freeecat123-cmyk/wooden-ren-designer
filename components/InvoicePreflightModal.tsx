@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { createClient } from "@/lib/supabase/client";
 
 type InvoiceType = "personal" | "company";
 type CarrierType = "mobile" | "member";
@@ -89,9 +90,28 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         body.carrierType = carrierType;
         if (carrierType === "mobile") body.carrierNum = normalizeCarrier(carrierNum);
       }
+      /**
+       * ⚠️ 2026-09-04：這支原本沒帶 credentials，而全站另外三個呼叫點都有帶
+       * （InvoicePreferenceCard ×2、PricingPlanCard）。在 LINE / IG 這類
+       * in-app browser 裡 cookie 最容易掉，客人就會看到紅字 unauthenticated
+       * 而卡在發票那一頁、走不到綠界（真實客訴：訂單 WRMTMF5JZLHD9Y 從未送出）。
+       *
+       * 除了補上 credentials，再多送一份 Authorization: Bearer。
+       * 瀏覽器端的 session 是活的（畫面能顯示方案就是證明），
+       * 就算 cookie 沒被帶上去，後端仍可用這個 token 驗身分。
+       */
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const { data } = await createClient().auth.getSession();
+        const token = data.session?.access_token;
+        if (token) headers.Authorization = `Bearer ${token}`;
+      } catch {
+        // 拿不到就算了，後端還有 cookie 這條路
+      }
       const res = await fetch("/api/invoice-preference", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify(body),
       });
       const j = await res.json().catch(() => ({}));
