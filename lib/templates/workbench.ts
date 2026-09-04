@@ -84,7 +84,7 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "structure", type: "select", key: "heightMode", label: "桌高用途（給建議值）", defaultValue: "plane", choices: [
     { value: "plane", label: "手刨為主（桌面 ≈ 掌根高，身高 × 0.49）" },
     { value: "machine", label: "機具 / 組裝為主（肘下約 10cm，身高 × 0.55）" },
-    { value: "fine", label: "精細作業（鑿榫、鳩尾；身高 × 0.60，或加一座桌上加高小鉗）" },
+    { value: "fine", label: "精細作業（鑿榫、鳩尾；身高 × 0.60）" },
     { value: "assembly", label: "組裝／上漆矮桌（身高 × 0.44；兼餐桌約 730）" },
     { value: "outfeed", label: "當桌鋸出料台（桌高 ＝ 桌鋸台面 − 2，只能低不能高）" },
   ], help: "依身高算出建議桌高，寫在下方說明與警告裡；不會自動改你設的「高」" },

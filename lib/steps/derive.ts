@@ -205,7 +205,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   // ---------------------------------------------------------------------------
   // 2. 切料 — 按長到短切、按長到短編號
   // ---------------------------------------------------------------------------
-  const totalParts = design.parts.length;
+  const totalParts = design.parts.filter((p) => p.visual === undefined).length; // 五金／玻璃不是切料
   steps.push({
     id: "step-03-cut-stock",
     phase: "cut-stock",
