@@ -317,11 +317,14 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
 });
 
 describe("桌面底穿帶（騎在腳頂，2026-09-04 改）", () => {
-  it("開：兩端各一條，寬＝腳粗、長 600−40=560、坐在腳頂；腳短 30、腳頂榫長 30，總高不變", () => {
+  it("開：兩端各一條，寬＝腳粗、長度跟腳前後切齊（600）、坐在腳頂；腳短 30、腳頂榫長 30，總高不變", () => {
     const base = build();
     const d = build({ topBattens: true });
     const l = d.parts.find((p) => p.id === "top-batten-l")!;
-    expect(l.visible).toEqual({ length: 560, width: 100, thickness: 30 }); // 寬 = legSize 100（腳頂榫 90 寬要穿過去）
+    // 長 600 ＝ 兩支腳外緣到外緣（腳 z ±250、腳粗 100）→ 前後跟腳切齊，不再兩端各縮 20
+    expect(l.visible).toEqual({ length: 600, width: 100, thickness: 30 }); // 寬 = legSize 100（腳頂榫 90 寬要穿過去）
+    // 腳落在穿帶寬度正中間
+    expect(l.origin.x).toBe(d.parts.find((p) => p.id === "leg-1")!.origin.x * -1);
     // 擺在腳的正上方（腳中心 x = ±490），不是以前的腳外側 ±580
     expect(l.origin.x).toBe(490);
     expect(d.parts.find((p) => p.id === "top-batten-r")!.origin.x).toBe(-490);
@@ -339,6 +342,14 @@ describe("桌面底穿帶（騎在腳頂，2026-09-04 改）", () => {
     expect(l.mortises.length).toBe(2);
     expect(l.mortises.every((m) => m.through && !m.cosmetic)).toBe(true);
     expect(d.notes).toMatch(/穿帶 100×30/);
+    // 前緣凸出時前腳往後縮 → 長度要照實際腳位算，不是用桌深推
+    const fo = build({ topBattens: true, frontOverhang: 50 });
+    const fb = fo.parts.find((p) => p.id === "top-batten-l")!;
+    const foLegs = fo.parts.filter((p) => /^leg-\d+$/.test(p.id) && Math.abs(p.origin.x - fb.origin.x) < 100);
+    const lo = Math.min(...foLegs.map((p) => p.origin.z - p.visible.width / 2));
+    const hi = Math.max(...foLegs.map((p) => p.origin.z + p.visible.width / 2));
+    expect(fb.visible.length).toBe(hi - lo);
+    expect(fb.origin.z).toBe((lo + hi) / 2);
     expect(build().parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
   });
   it("疊層桌面／有裙板／長板靠板都不做穿帶，而且要出聲說為什麼", () => {
@@ -646,5 +657,51 @@ describe("桌下抽屜：橫向分格（2026-09-04 加）", () => {
     // 短桌：抽屜櫃夾在兩支腳之間，寬度不夠切 3 格
     const d = build({ drawerCount: 1, drawerCols: 3 }, { length: 900, width: 600, height: 830 });
     expect((d.warnings ?? []).some((w) => w.includes("手伸不進去"))).toBe(true);
+  });
+});
+
+describe("穿帶寬度／厚度可調（2026-09-04）", () => {
+  it("填了就照填的做；厚多少腳就短多少、榫就長多少，總高永遠不變", () => {
+    const d = build({ topBattens: true, battenWidth: 160, battenThickness: 45 });
+    const b = d.parts.find((p) => p.id === "top-batten-l")!;
+    expect(b.visible.width).toBe(160);
+    expect(b.visible.thickness).toBe(45);
+    const leg = d.parts.find((p) => p.id === "leg-1")!;
+    const tenon = leg.tenons.find((t) => t.position === "top")!;
+    expect(leg.visible.thickness).toBe(830 - 75 - 45);
+    expect(leg.visible.thickness + tenon.length).toBe(830);
+    // 腳落在穿帶寬度正中間
+    expect(Math.abs(b.origin.x)).toBe(Math.abs(leg.origin.x));
+  });
+  it("填得比腳窄會自動加寬到腳粗並出聲（腳不能凸出穿帶）", () => {
+    const d = build({ topBattens: true, battenWidth: 50 });
+    expect(d.parts.find((p) => p.id === "top-batten-l")!.visible.width).toBe(100);
+    expect((d.warnings ?? []).some((w) => w.includes("已加寬到 100"))).toBe(true);
+  });
+  it("沒開穿帶時這兩個值不影響任何零件", () => {
+    const a = build({ battenWidth: 200, battenThickness: 60 });
+    const b = build();
+    expect(a.parts.map((p) => `${p.id}:${p.visible.length}x${p.visible.width}x${p.visible.thickness}`))
+      .toEqual(b.parts.map((p) => `${p.id}:${p.visible.length}x${p.visible.width}x${p.visible.thickness}`));
+  });
+});
+
+describe("裙板榫眼不准在腳頂破口（2026-09-04）", () => {
+  const legTop = (d: FurnitureDesign) => d.parts.find((p) => p.id === "leg-1")!;
+  it("裙板頂跟腳頂齊平時，最上面那顆榫眼距腳頂要留 ≥25 實料", () => {
+    for (const w of [150, 250, 340]) {
+      const d = build({ withApron: true, apronWidth: w, legPenetratingTenon: true });
+      const leg = legTop(d);
+      const rect = leg.mortises.filter((m) => m.shape !== "round");
+      const highest = Math.max(...rect.map((m) => m.origin.y + m.length / 2));
+      expect(leg.visible.thickness - highest).toBeGreaterThanOrEqual(25);
+    }
+  });
+  it("盲榫（沒勾通榫）也一樣不能破口", () => {
+    const d = build({ withApron: true, apronWidth: 250, legPenetratingTenon: false });
+    const leg = legTop(d);
+    const rect = leg.mortises.filter((m) => m.shape !== "round");
+    const highest = Math.max(...rect.map((m) => m.origin.y + m.length / 2));
+    expect(leg.visible.thickness - highest).toBeGreaterThanOrEqual(25);
   });
 });

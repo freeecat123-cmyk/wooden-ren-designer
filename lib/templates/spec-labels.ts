@@ -19,7 +19,6 @@ import type { OptionSpec } from "@/lib/types";
 
 export const SPEC_LABEL_EN: Record<string, string> = {
   // === workbench v2 ===
-  shoeAllowanceMm: "How much you stand on (boot soles + anti-fatigue mat)",
   sawTableHeightMm: "Table-saw top height",
   roomLengthCm: "Room length available",
   roomWidthCm: "Room width available",
@@ -595,7 +594,6 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  */
 export const SPEC_HELP_EN: Record<string, string> = {
   // === workbench v2 ===
-  shoeAllowanceMm: "⚠️ Only feeds the SUGGESTED bench height — nothing is drawn for it. Boots and an anti-fatigue mat make you taller, so the suggested height goes up by the same amount.",
   sawTableHeightMm: "An outfeed table must be level with or 1–2mm below the saw table; higher lifts the board tail and kicks back. Only affects suggestions and warnings.",
   roomLengthCm: "Wall to wall. 0 = ignore; warns when bench length plus a 90cm aisle will not fit. Warnings only.",
   roomWidthCm: "0 = ignore; warns when bench depth plus a 90cm aisle will not fit. Warnings only.",

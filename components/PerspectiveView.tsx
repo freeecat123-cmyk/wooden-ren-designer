@@ -334,14 +334,23 @@ const Part = memo(function PartInner({
   const crossGrainMm =
     (grainDirection === "width" ? size[0] : size[2]) * 100;
   const isWide = crossGrainMm >= WIDE_BOARD_THRESHOLD_MM;
-  // 拼板 / 疊層：料單說這件是 N 片，3D 就把每片的木紋錯開並畫膠合線（不動幾何）
-  const boardSpanMm = boardThin ? size[1] * 100 : crossGrainMm;
+  // 拼板 / 疊層：料單說這件是 N 片，3D 就把每片的木紋錯開並畫膠合線（不動幾何）。
+  // ⭐疊層切「最小的那一維」（跟料單 / cutplan 同一套）：腳的 visible.thickness 是腳高，
+  //   照它切會把腳沿高度切成好幾段（木頭仁 09-04 回報）。拼板則切跨紋方向那一維。
+  const dimsMm: Array<{ axis: "x" | "y" | "z"; mm: number }> = [
+    { axis: "x", mm: size[0] * 100 },
+    { axis: "y", mm: size[1] * 100 },
+    { axis: "z", mm: size[2] * 100 },
+  ];
+  const thinnest = dimsMm.reduce((a, b) => (b.mm < a.mm ? b : a));
+  const crossAxis: "x" | "z" = grainDirection === "width" ? "x" : "z";
+  const board = boardThin
+    ? { pieces: boardPieces ?? 1, spanMm: thinnest.mm, axis: thinnest.axis }
+    : { pieces: boardPieces ?? 1, spanMm: crossGrainMm, axis: crossAxis };
   const woodCompile = getWoodCompile(
     grainDirection === "width" ? "width" : "length",
     isWide ? "wide" : "narrow",
-    boardPieces && boardPieces > 1
-      ? { pieces: boardPieces, spanMm: boardSpanMm, split: boardThin ? "thin" : "cross" }
-      : undefined,
+    boardPieces && boardPieces > 1 ? board : undefined,
   );
   // useMemo deps：size 是 [a,b,c] array、shape 是 object——父元件每 render
   // 都建新 reference 害 useMemo 永遠 invalidate。改 primitive + shape JSON

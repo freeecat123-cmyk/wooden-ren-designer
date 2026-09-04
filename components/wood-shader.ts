@@ -51,8 +51,13 @@ float wd_fbm(vec2 p) {
 
 type GrainMode = "narrow" | "wide";
 
-/** 拼板 / 疊層：零件在料單上是 pieces 片，沿 split 軸切、總跨距 spanMm */
-export type BoardSplit = { pieces: number; spanMm: number; split: "cross" | "thin" };
+/**
+ * 拼板 / 疊層：零件在料單上是 pieces 片，沿零件 local 的 `axis` 切、總跨距 spanMm。
+ * ⭐ axis 是「零件自己的軸」（x=長、y=厚、z=寬），呼叫端要跟料單同一套判斷：
+ *    拼板 → 跨紋方向那一軸；疊層 → **最小的那一維**（腳的 visible.thickness 是腳高，
+ *    照它切會把腳沿高度切成好幾段——2026-09-04 木頭仁回報「桌腳這些零件也要看得出分層」）。
+ */
+export type BoardSplit = { pieces: number; spanMm: number; axis: "x" | "y" | "z" };
 
 /**
  * grainAxis = 沿木紋方向的 local 座標（如 lp.x）
@@ -73,7 +78,7 @@ function makeGrainFragment(
   //   split = "cross"（寬板平拼 / 窄條側立拼）沿跨紋方向切，"thin"（疊層）沿厚度切。
   const boardHeader = board
     ? `
-float bAxis = ${board.split === "thin" ? thinAxis : crossAxis};
+float bAxis = lp.${board.axis};
 float bT = clamp((bAxis + ${board.spanMm.toFixed(2)} * 0.5) / ${(board.spanMm / board.pieces).toFixed(4)}, 0.0, ${board.pieces.toFixed(1)} - 0.0001);
 float bIdx = floor(bT);
 float bHash = wd_hash(vec2(bIdx * 1.7 + 0.3, 3.7));
@@ -198,7 +203,7 @@ function makeCompile(
   // 方向會跟著「第一個編譯的零件」跑（豎梃拿到橫檔的 X-grain）。附唯一
   // cacheKey 給 material.customProgramCacheKey，three.js 才會分開編譯。
   compile.cacheKey = board
-    ? `wood:${grainAxis}:${mode}:${board.split}:${board.pieces}:${board.spanMm.toFixed(1)}`
+    ? `wood:${grainAxis}:${mode}:${board.axis}:${board.pieces}:${board.spanMm.toFixed(1)}`
     : `wood:${grainAxis}:${mode}`;
   return compile;
 }
@@ -223,7 +228,7 @@ export function getWoodCompile(
       ? (mode === "wide" ? woodCompileZWide : woodCompileZNarrow)
       : (mode === "wide" ? woodCompileXWide : woodCompileXNarrow);
   }
-  const key = `${grainDirection}:${mode}:${board.split}:${board.pieces}:${board.spanMm.toFixed(1)}`;
+  const key = `${grainDirection}:${mode}:${board.axis}:${board.pieces}:${board.spanMm.toFixed(1)}`;
   let c = boardCompileCache.get(key);
   if (!c) {
     c = makeCompile(axes[0], axes[1], axes[2], mode, board);

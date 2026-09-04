@@ -151,6 +151,10 @@ export interface SimpleTableOpts {
   /** 腳頂榫頭兩側肩額外加厚（mm）。餐桌等承重大、桌面端頭沿 X 順紋方向有開裂風險，
    *  傳 5+ 讓榫寬縮成 legSize - 2*(SHOULDER + extra)，外側肩變厚。預設 0（沿用標準 5mm 肩）。 */
   legTopShoulderExtraMm?: number;
+  /** 裙板／牙條「上肩」＝從它的頂邊到榫頭上緣留多少實料（mm）。
+   *  預設 10（一般桌子的慣例）。腳頂另有貫穿榫、或裙板頂跟腳頂齊平時，
+   *  10mm 的殼會在腳頂破口 → caller 傳大一點（工作桌傳 25）。 */
+  apronTopShoulderMm?: number;
   /** 腳頂榫頭改**貫穿**桌面（Roubo 工作桌：榫頭端面露在桌面上）。
    *  undefined/false = 既有行為（autoTenonType：桌面 >25mm 一律盲榫）。 */
   legTopThroughTenon?: boolean;
@@ -275,7 +279,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronTenonThick = apronTenonStd.thickness;
   const apronTenonWidth = apronTenonStd.width;
   // 半榫錯位（stagger 預設 0 → 走半榫）
-  const APRON_TOP_SHOULDER = 10;
+  const APRON_TOP_SHOULDER = Math.max(10, opts.apronTopShoulderMm ?? 10);
   const APRON_HALF_TENON_GAP = 4;
   // 牙條造型（edge-profile）：深度 0=自動 40%。「下緣外圓弧」（arch-out）兩端上收＝深度
   // → 貼下緣的下半榫會露出，底肩自動抬 = 深度把榫上移進實體（同 square-stool）。
