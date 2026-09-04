@@ -45,7 +45,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   frontViseSize: "Vise width",
   viseSide: "Vise end",
   dogHoles: "Dog holes",
-  dogHoleDia: "Hole diameter",
+  dogHoleDia: "Hole diameter (dogs / grid / holdfast / leg / deadman)",
   dogHolePitch: "Hole pitch",
   dogHoleFrontOffset: "Distance from front edge",
   holdfastHoles: "Holdfast holes (rear row, staggered)",

@@ -38,7 +38,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
     withApron: true, apronWidth: 120, apronThickness: 25,
     lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 60, lowerStretcherThickness: 25,
     withUnderShelf: true, legPenetratingTenon: false,
-    frontVise: "none", dogHoles: "grid", holdfastHoles: false,
+    frontVise: "none", dogHoles: "grid", dogHoleDia: "20", holdfastHoles: false,
   },
 };
 
@@ -51,7 +51,7 @@ export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
   withUnderShelf: false, legPenetratingTenon: true,
   knockdown: "none", frontOverhang: 0,
   topSplit: "none", wellWidth: 150, wellDepth: 45,
-  frontViseSize: "7in", frontVise: "quick", dogHoles: "row", holdfastHoles: true,
+  frontViseSize: "7in", frontVise: "quick", dogHoles: "row", dogHoleDia: "19", holdfastHoles: true,
   doubleSided: false,
 };
 

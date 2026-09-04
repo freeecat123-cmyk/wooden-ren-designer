@@ -168,10 +168,10 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "grid", label: "20mm 格陣（每 96mm 一孔，MFT 配件通用）" },
     { value: "none", label: "不打" },
   ] },
-  { group: "workholding", type: "select", key: "dogHoleDia", label: "孔徑", defaultValue: "19", choices: [
+  { group: "workholding", type: "select", key: "dogHoleDia", label: "孔徑（狗孔／格陣／holdfast／前腳孔／靠板孔一起）", defaultValue: "19", choices: [
     { value: "19", label: "Ø19（3/4\"，台灣桌狗 / holdfast 主流）" },
     { value: "20", label: "Ø20（MFT 配件；3/4\" 桌狗也插得進）" },
-  ], dependsOn: { key: "dogHoles", equals: "row" } },
+  ], help: "所有圓孔同一個孔徑，桌狗、holdfast 才通用。孔陣桌流派預設 20，其他 19" },
   { group: "workholding", type: "number", key: "dogHolePitch", label: "孔距", defaultValue: 100, unit: "mm", min: 60, max: 200, step: 10, dependsOn: { key: "dogHoles", equals: "row" }, help: "要小於鉗的行程（快速鉗開口 260 以上都夠）" },
   { group: "workholding", type: "number", key: "dogHoleFrontOffset", label: "離前緣", defaultValue: 60, unit: "mm", min: 40, max: 150, step: 5, dependsOn: { key: "dogHoles", equals: "row" }, help: "Schwarz 2~4\"；太靠邊會沿木紋裂" },
   { group: "workholding", type: "checkbox", key: "holdfastHoles", label: "holdfast 壓桿孔（後排，錯開）", defaultValue: true, dependsOn: { key: "dogHoles", notIn: ["none"] }, help: "跟狗孔同孔徑零成本；一支 holdfast 抵三支 F 夾。桌面 <44mm 咬不住會自動取消" },
@@ -594,7 +594,7 @@ export const workbench: FurnitureTemplate = (input) => {
       }
     }
   } else if (dogHoles === "grid") {
-    const dia = 20;
+    const dia = dogHoleDiaRow;
     const pitch = 96;
     const margin = 60;
     const cols = Math.max(1, Math.floor((L - 2 * margin) / pitch) + 1);

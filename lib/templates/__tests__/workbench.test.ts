@@ -288,6 +288,18 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
   });
 });
 
+describe("孔徑一個總開關", () => {
+  it("選 20 → 狗孔、holdfast、前腳孔、靠板孔全是 Ø20；格陣桌用 19 也照設定", () => {
+    const d = build({ dogHoleDia: "20", deadman: true });
+    // 桌面狗孔／holdfast、前腳孔、靠板孔（鉗木顎上的螺桿孔 Ø30/Ø20 不算）
+    const all = d.parts.filter((p) => /^(top|leg-\d|deadman-board)$/.test(p.id)).flatMap((p) => p.mortises).filter((m) => m.shape === "round" && m.through && m.cosmetic);
+    expect(all.length).toBeGreaterThan(20);
+    expect(all.every((m) => m.length === 20)).toBe(true);
+    const g = build({ ...workbenchPresetValues("mft"), benchStyle: "mft", dogHoleDia: "19" });
+    expect(roundHoles(g, "top").every((m) => m.length === 19)).toBe(true);
+  });
+});
+
 describe("v2：純提示欄位", () => {
   it("出料台高於台面 → 危險警告；房間放不下 → 警告", () => {
     const a = build({ heightMode: "outfeed", sawTableHeightMm: 820 });
