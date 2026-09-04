@@ -10,6 +10,17 @@ type InvoiceType = "personal" | "company";
 type CarrierType = "mobile" | "member";
 
 const MOBILE_CARRIER_REGEX = /^\/[0-9A-Z+\-.]{7}$/;
+
+/**
+ * 手機條碼載具正規化：去掉所有空白、轉大寫、缺開頭斜線就補上。
+ * 財政部的手機條碼是「/」+ 7 碼大寫英數（含 + - .），但使用者實際會打出來的是
+ * 小寫、前後有空白、或忘了斜線。這些都應該被接受而不是擋在門口。
+ */
+export function normalizeCarrier(raw: string): string {
+  const s = raw.replace(/\s+/g, "").toUpperCase();
+  if (!s) return "";
+  return s.startsWith("/") ? s : "/" + s;
+}
 const TAX_ID_REGEX = /^\d{8}$/;
 
 interface Props {
@@ -44,7 +55,13 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         return false;
       }
     } else if (carrierType === "mobile") {
-      if (!MOBILE_CARRIER_REGEX.test(carrierNum)) {
+      // ⚠️ 2026-09-04：原本直接拿使用者輸入去比對，而 regex 只收大寫 [0-9A-Z+-.]，
+      // 手機鍵盤預設小寫 → 打 "/ab12cd3" 永遠過不了，畫面一直說格式錯，
+      // 客人就卡死在這一頁、走不到綠界（真實客訴，訂單 WRMTMF5JZLHD9Y 因此從未送出）。
+      // 現在先正規化（去空白＋轉大寫）再驗，並把正規化後的值寫回欄位。
+      const normalized = normalizeCarrier(carrierNum);
+      if (normalized !== carrierNum) setCarrierNum(normalized);
+      if (!MOBILE_CARRIER_REGEX.test(normalized)) {
         setError(t("errCarrier"));
         return false;
       }
@@ -70,7 +87,7 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         body.title = title.trim();
       } else {
         body.carrierType = carrierType;
-        if (carrierType === "mobile") body.carrierNum = carrierNum.toUpperCase();
+        if (carrierType === "mobile") body.carrierNum = normalizeCarrier(carrierNum);
       }
       const res = await fetch("/api/invoice-preference", {
         method: "POST",
@@ -179,10 +196,11 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
                 <input
                   type="text"
                   value={carrierNum}
-                  onChange={(e) => setCarrierNum(e.target.value)}
+                  onChange={(e) => setCarrierNum(e.target.value.toUpperCase())}
+                  onBlur={(e) => setCarrierNum(normalizeCarrier(e.target.value))}
                   placeholder={t("phCarrierNum")}
                   className="w-full border border-zinc-300 rounded px-2 py-1.5 text-sm mb-2 font-mono"
-                  maxLength={8}
+                  maxLength={12}
                 />
                 <p className="text-[11px] text-zinc-500 mb-3">{t("carrierHint")}</p>
               </>
