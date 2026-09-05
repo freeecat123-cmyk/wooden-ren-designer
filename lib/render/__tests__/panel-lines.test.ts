@@ -11,7 +11,7 @@ import React from "react";
 import { workbench, workbenchOptions } from "@/lib/templates/workbench";
 import { ThreeViewLayout } from "@/lib/render/svg-views";
 import { panelSplitWorld } from "@/lib/render/geometry";
-import { getWoodCompile } from "@/components/wood-shader";
+import { getWoodCompile, boardBandMath } from "@/components/wood-shader";
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
 
 type OptVal = string | number | boolean;
@@ -121,5 +121,40 @@ describe("3D 木紋著色器：只畫內部界線", () => {
     const f = fragmentFor(3);
     expect(f).toMatch(/float bPix = fwidth\(bT\);/);
     expect(f).toMatch(/max\(bWantUnit, bPix \* 1\.3\)/);
+  });
+});
+
+describe("分件線的位置：幾條、在哪、等不等距（跟 GLSL 同一份算式）", () => {
+  it("2 層 36mm：只有 1 條線，在正中間；上下邊不畫", () => {
+    const m = boardBandMath(2, 36);
+    expect(m.w).toBe(18);
+    expect(m.boundariesMm).toEqual([0]);          // 中間
+    expect(m.lineAt(0)).toBeGreaterThan(0.9);      // 中間有線
+    expect(m.lineAt(-18)).toBe(0);                 // 上邊不畫
+    expect(m.lineAt(18)).toBe(0);                  // 下邊不畫
+    expect(m.lineAt(-9)).toBe(0);                  // 片中間沒線
+  });
+  it("4 層 72mm：3 條線，等距 18mm；上下邊不畫", () => {
+    const m = boardBandMath(4, 72);
+    expect(m.boundariesMm).toEqual([-18, 0, 18]);
+    for (const b of m.boundariesMm) expect(m.lineAt(b)).toBeGreaterThan(0.9);
+    expect(m.lineAt(-36)).toBe(0);
+    expect(m.lineAt(36)).toBe(0);
+    const gaps = m.boundariesMm.slice(1).map((v, i) => v - m.boundariesMm[i]);
+    expect(new Set(gaps).size).toBe(1);            // 等距
+  });
+  it("N 層一定是 N−1 條線、每片一樣厚（2~6 層都驗）", () => {
+    for (const n of [2, 3, 4, 5, 6]) {
+      const m = boardBandMath(n, 18 * n);
+      expect(m.boundariesMm).toHaveLength(n - 1);
+      expect(m.w).toBe(18);
+      // 掃過整個厚度，數出有線的位置（用 0.1mm 取樣，合併相鄰）
+      const hits: number[] = [];
+      for (let mm = -9 * n; mm <= 9 * n; mm += 0.1) {
+        // 一條線本身有寬度（±wantMm），合併門檻要用「半片」才不會把同一條數成兩條
+        if (m.lineAt(mm) > 0.5 && (hits.length === 0 || mm - hits[hits.length - 1] > m.w / 2)) hits.push(mm);
+      }
+      expect(hits).toHaveLength(n - 1);
+    }
   });
 });

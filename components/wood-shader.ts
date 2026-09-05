@@ -57,6 +57,33 @@ type GrainMode = "narrow" | "wide";
  *    拼板 → 跨紋方向那一軸；疊層 → **最小的那一維**（腳的 visible.thickness 是腳高，
  *    照它切會把腳沿高度切成好幾段——2026-09-04 木頭仁回報「桌腳這些零件也要看得出分層」）。
  */
+/**
+ * 分件線的數學（GLSL 與測試共用同一份，避免兩邊各寫一套）。
+ * - 每片寬 w = spanMm / pieces
+ * - 界線在 lp = −span/2 + w × i（i = 1..pieces−1）；**最外面的 i=0 與 i=pieces 不畫**
+ *   （那是零件自己的邊；畫了 N 片會看起來像 N+1 片）
+ * - 線寬 = max(想要的 mm 寬換算成片單位, 螢幕一個多像素)
+ */
+export function boardBandMath(pieces: number, spanMm: number) {
+  const w = spanMm / pieces;
+  const wantMm = Math.min(3.0, Math.max(1.5, w * 0.06));
+  const wantUnit = wantMm / w;
+  /** 會畫線的界線位置（零件 local 座標，mm，中心為 0） */
+  const boundariesMm = Array.from({ length: Math.max(0, pieces - 1) }, (_, i) => -spanMm / 2 + w * (i + 1));
+  /** 某個 local 座標（mm）上這裡有多暗的線（0~1）；pixUnit = 螢幕一像素等於幾片，測試給 0 */
+  const lineAt = (mm: number, pixUnit = 0) => {
+    const bT = Math.min(Math.max((mm + spanMm / 2) / w, 0), pieces - 0.0001);
+    const near = Math.floor(bT + 0.5);
+    if (near < 1 || near > pieces - 1) return 0;
+    const dist = Math.abs(bT - near);
+    const edge = Math.max(wantUnit, pixUnit * 1.3);
+    if (dist >= edge) return 0;
+    const t = dist / edge;
+    return 1 - (t * t * (3 - 2 * t));
+  };
+  return { w, wantMm, wantUnit, boundariesMm, lineAt };
+}
+
 export type BoardSplit = { pieces: number; spanMm: number; axis: "x" | "y" | "z" };
 
 /**
@@ -95,7 +122,7 @@ float bNear = floor(bT + 0.5);                                           // 最�
 float bDist = abs(bT - bNear);                                           // 到那條界線的距離
 float bInner = step(0.5, bNear) * step(bNear, ${board.pieces.toFixed(1)} - 0.5);
 float bPix = fwidth(bT);                                                 // 每像素幾片
-float bWantUnit = ${(Math.min(3.0, Math.max(1.5, (board.spanMm / board.pieces) * 0.06)) / (board.spanMm / board.pieces)).toFixed(5)};
+float bWantUnit = ${boardBandMath(board.pieces, board.spanMm).wantUnit.toFixed(5)};
 float bGlue = bInner * (1.0 - smoothstep(0.0, max(bWantUnit, bPix * 1.3), bDist));
 // 每片再帶一點色差（真實拼板／疊層每片本來就深淺不同）。線太細時（薄板疊層一層才 18mm、
 // 側立拼一條 60mm）光靠膠合線在縮圖上看不出來，色差在任何縮放都讀得到。
