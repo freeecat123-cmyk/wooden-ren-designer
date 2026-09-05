@@ -16,7 +16,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
   roubo: {},
   /** 裙板桌（英式 Nicholson / Sellers 平價）：薄桌面 + 高裙板 + 四邊下橫撐 + 下層板 + 螺栓可拆 + 前緣凸出 50 */
   apron: {
-    topThickness: 65, topBuild: "stack", topLayers: 2,
+    topThickness: 65, topBuild: "plank",
     legSize: 75, legTopJoint: "blind",
     withApron: true, apronWidth: 290, apronThickness: 40,
     lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 90, lowerStretcherThickness: 40,
@@ -35,7 +35,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
    *  ⛔ 不預選 materialStyle=plywood：那會讓使用者自己填的腳粗／橫撐厚被層數蓋掉（舊指紋與兩條測試都會變），
    *     整台夾板請自己把「材料樣式」切到夾板疊層。 */
   mft: {
-    topThickness: 40, topBuild: "stack", topLayers: 2,
+    topThickness: 40, topBuild: "plank",
     legSize: 60, legTopJoint: "blind",
     withApron: true, apronWidth: 120, apronThickness: 25,
     lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 60, lowerStretcherThickness: 25,
@@ -47,7 +47,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
 /** 所有流派會動到的 key 的 spec 預設值（切回別的流派時沒帶到的 key 要回這裡） */
 export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
   materialStyle: "solid", plyTopLayers: "3", legLayers: "4",
-  topThickness: 75, topBuild: "plank", topLayers: 2,
+  topThickness: 75, topBuild: "plank",
   legSize: 100, legTopJoint: "blind",
   withApron: false, apronWidth: 250, apronThickness: 40,
   lowerStretcherArrangement: "box-frame", lowerStretcherWidth: 100, lowerStretcherThickness: 50,

@@ -358,7 +358,7 @@ describe("桌面底穿帶（騎在腳頂，2026-09-04 改）", () => {
     expect(build().parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
   });
   it("疊層桌面／有裙板／長板靠板都不做穿帶，而且要出聲說為什麼", () => {
-    const cases: Record<string, OptVal>[] = [{ topBuild: "stack" }, { withApron: true }, { deadman: true, frontVise: "leg" }];
+    const cases: Record<string, OptVal>[] = [{ withApron: true }, { deadman: true, frontVise: "leg" }];
     for (const opt of cases) {
       const d = build({ topBattens: true, ...opt });
       expect(d.parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
@@ -451,11 +451,19 @@ describe("09-04 全面檢查修掉的（孔出界、裙板榫眼被橫撐排列�
 });
 
 describe("09-04 視覺審查修掉的（尾鉗槽切進腳榫眼、疊層料單、腳鉗三件對不上、穿帶／封邊板沒槽）", () => {
-  it("疊層桌面 stack 2 層：料單 / 裁切拆的是厚度（2 × 1800×600×37.5），不是面寬", () => {
-    const d = build({ topBuild: "stack", topLayers: 2 });
+  it("疊層只存在夾板版：料單 / 裁切拆的是厚度（3 × 18），實木沒有這個做法", () => {
+    const d = build({ materialStyle: "plywood" });
     const top = d.parts.find((p) => p.id === "top")!;
-    expect(top.panelPieces).toBe(2);
+    expect(top.panelPieces).toBe(3);
     expect(top.panelSplit).toBe("thickness");
+    // ⛔ 實木沒有疊層：選項裡沒有這個值，舊網址帶 stack 也要收回寬板平拼
+    const spec = workbenchOptions.find((o) => o.key === "topBuild")!;
+    const values = spec.type === "select" ? spec.choices.map((c) => c.value) : [];
+    expect(values).toEqual(["plank", "stave"]);
+    expect(workbenchOptions.some((o) => o.key === "topLayers")).toBe(false);
+    const legacy = build({ topBuild: "stack" }).parts.find((p) => p.id === "top")!;
+    expect(legacy.panelSplit).toBeUndefined();
+    expect(legacy.panelPieces).toBe(3); // 600 / 280 → 3 片寬板平拼
   });
   it("腳鉗：導件榫長 = 腳 100 + 木顎 40，木顎背面有 40×25 榫眼、頂有狗孔；那支腳的 holdfast 孔避開螺桿孔 ±60", () => {
     const d = build({ frontVise: "leg" });

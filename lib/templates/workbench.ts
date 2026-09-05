@@ -89,7 +89,7 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "roubo", label: "厚板桌（法式 Roubo）— 厚桌面、粗腳通榫、快速鉗 + 狗孔" },
     { value: "apron", label: "裙板桌（英式 Nicholson / Sellers 平價）— 薄桌面靠高裙板撐，螺栓可拆" },
     { value: "well", label: "工具槽桌（北歐式）— 桌面後側一道放工具的槽" },
-    { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 疊層薄桌面、20mm 孔每 96mm 一格（想整台用夾板做，把「材料樣式」切到夾板疊層）" },
+    { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 薄桌面、20mm 孔每 96mm 一格（想整台用夾板做，把「材料樣式」切到夾板疊層）" },
     { value: "classroom", label: "教室雙面桌 — 兩人面對面各一支鉗、各一列狗孔（深度建議 900）" },
   ], help: "選了一次帶入整組預設值；你改過的欄位不會被蓋掉。長／深／高請自己在上面調（厚板桌建議 1800×600×830、教室雙面桌 1800×900）" },
   // ───────────── ⭐ 材料樣式（實木榫卯 / 夾板疊層免榫卯，§AU23） ─────────────
@@ -123,12 +123,12 @@ export const workbenchOptions: OptionSpec[] = [
 
   // ───────────── 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 75, unit: "mm", min: 40, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "手工具桌建議 ≥75；holdfast 要咬得住桌面 44~89mm；≥90 會提醒孔底反鑽" },
+  // ⛔ 實木沒有「疊層」這個做法（木頭仁 2026-09-05：「實木榫卯不要有層疊 沒人這樣做」）。
+  //    疊層只存在於材料樣式＝夾板疊層，層數由 plyTopLayers 決定。
   { group: "top", type: "select", key: "topBuild", label: "桌面做法", defaultValue: "plank", choices: [
     { value: "plank", label: "寬板平拼（每片 ≤ 280mm，自動算片數）" },
     { value: "stave", label: "窄條側立拼（條寬 ＝ 桌面厚，台灣 2×4 / 角料做法）" },
-    { value: "stack", label: "薄板疊層（薄板面對面膠合成厚桌面，層數在下面設）" },
-  ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "只影響材料單與裁切怎麼拆，3D 外觀一樣" },
-  { group: "top", type: "number", key: "topLayers", label: "疊層數", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", equals: "stack" }] }, help: "每層厚 ＝ 桌面厚 ÷ 層數（例：75 厚分 3 層 ＝ 每層 25）。想整台用夾板做，請把上面的「材料樣式」切到夾板疊層" },
+  ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "影響料單／裁切怎麼拆，也會畫進 3D 與三視圖（拼縫看得出來）" },
   { group: "top", type: "select", key: "topSplit", label: "桌面分割", defaultValue: "none", choices: [
     { value: "none", label: "整片" },
     { value: "gap", label: "中間留縫 + 擋條（split-top，夾具可從縫伸進去）" },
@@ -262,8 +262,10 @@ export const workbench: FurnitureTemplate = (input) => {
   const legLayers = ply && frontViseEarly === "leg" ? Math.max(legLayersRaw, 4) : legLayersRaw;
   if (ply && legLayers !== legLayersRaw) warnings.push(isEn ? `Leg vise needs a leg ≥ ${LEG_VISE_CHOP_T}mm thick; plywood legs raised ${legLayersRaw} → ${legLayers} layers (${legLayers * PLY_T}mm).` : `腳鉗那支腳至少 ${LEG_VISE_CHOP_T}mm 厚，夾板腳已從 ${legLayersRaw} 層提到 ${legLayers} 層（${legLayers * PLY_T}mm）。`);
   const topTRaw = ply ? PLY_T * plyTopLayers : pick<number>("topThickness");
-  const topBuild = ply ? "stack" : pick<string>("topBuild");
-  const topLayers = ply ? plyTopLayers : pick<number>("topLayers");
+  // 夾板內部仍用 "stack" 這條路徑；實木只收 plank / stave（舊網址帶 stack 一律收回 plank）
+  const topBuildPicked = pick<string>("topBuild");
+  const topBuild = ply ? "stack" : (topBuildPicked === "stave" ? "stave" : "plank");
+  const topLayers = ply ? plyTopLayers : 1;
   const topSplitRaw = pick<string>("topSplit");
   const gapWidth = pick<number>("gapWidth");
   const wellWidthRaw = pick<number>("wellWidth");
