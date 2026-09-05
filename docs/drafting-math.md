@@ -1085,6 +1085,11 @@ hidden_end = visible_length + 母榫深度
 - 公榫件：木紋沿榫頭長軸 → 平行條紋（淺褐色 0.3mm 線）
 - 母榫件：木紋與榫頭垂直 → 條紋旋轉 90°
 - 紋路間距：1.5–2mm（細紋）或 4–6mm（明顯紋）
+- ⛔ **零件圖（PartDrawing）不畫右下角的「順紋」小箭頭**（2026-05-29 木頭仁決定）：
+  箭頭固定畫在 view 右下角，常跟同區的榫頭標註／尺寸標籤疊在一起；順紋資訊材料表與
+  spec 欄位本來就有。`annotation.tsx` 的 `GrainArrow` 直接 `return null`。
+  `scripts/audit-part-drawings.ts` 以**反向斷言**釘住（223 張卡都必須 0 個 grain-arrow），
+  哪天有人把 `return null` 拿掉會紅。榫卯細節圖（本節上面三條）不受此限，那邊照畫。
 
 ### B8. 必標尺寸
 1. 榫厚 t（橫向）
