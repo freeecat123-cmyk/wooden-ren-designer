@@ -85,9 +85,13 @@ float bHash = wd_hash(vec2(bIdx * 1.7 + 0.3, 3.7));
 // 每片各自的木紋起點與樹心偏移 → 相鄰兩片紋路不會連成一片
 gx += bHash * 900.0;
 wz += (bHash - 0.5) * 90.0;
-// 膠合線：離交界 1.6mm 內壓暗（真實膠縫更細，但 3D 預覽 0.7mm 不到一個像素＝等於沒畫）
-float bEdgeMm = min(fract(bT), 1.0 - fract(bT)) * ${(board.spanMm / board.pieces).toFixed(4)};
-float bGlue = 1.0 - smoothstep(0.0, ${Math.min(3.0, Math.max(1.5, (board.spanMm / board.pieces) * 0.06)).toFixed(2)}, bEdgeMm);
+// 膠合線。真實膠縫很細，照 mm 畫在縮小的預覽裡不到一個像素＝等於沒畫
+// （🩸夾板 18mm 一層時整條邊只有幾像素，木頭仁：「夾板層疊沒反應」）。
+// 用 fwidth 取「這個像素跨了幾片」，把線寬夾到**至少一個多像素**，縮放到多小都看得到。
+float bEdgeUnit = min(fract(bT), 1.0 - fract(bT));                       // 0~0.5（片為單位）
+float bPix = fwidth(bT);                                                 // 每像素幾片
+float bWantUnit = ${(Math.min(3.0, Math.max(1.5, (board.spanMm / board.pieces) * 0.06)) / (board.spanMm / board.pieces)).toFixed(5)};
+float bGlue = 1.0 - smoothstep(0.0, max(bWantUnit, bPix * 1.3), bEdgeUnit);
 // 每片再帶一點色差（真實拼板／疊層每片本來就深淺不同）。線太細時（薄板疊層一層才 18mm、
 // 側立拼一條 60mm）光靠膠合線在縮圖上看不出來，色差在任何縮放都讀得到。
 // 亂數色差 + 奇偶交替：純亂數會有相鄰兩片剛好同深淺而糊在一起（側立拼 10 條時很明顯），
