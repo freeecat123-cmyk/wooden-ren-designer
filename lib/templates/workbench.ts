@@ -89,7 +89,7 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "roubo", label: "厚板桌（法式 Roubo）— 厚桌面、粗腳通榫、快速鉗 + 狗孔" },
     { value: "apron", label: "裙板桌（英式 Nicholson / Sellers 平價）— 薄桌面靠高裙板撐，螺栓可拆" },
     { value: "well", label: "工具槽桌（北歐式）— 桌面後側一道放工具的槽" },
-    { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 夾板疊層桌面、20mm 孔每 96mm 一格（想整台夾板請把「材料樣式」切到夾板疊層）" },
+    { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 疊層薄桌面、20mm 孔每 96mm 一格（想整台用夾板做，把「材料樣式」切到夾板疊層）" },
     { value: "classroom", label: "教室雙面桌 — 兩人面對面各一支鉗、各一列狗孔（深度建議 900）" },
   ], help: "選了一次帶入整組預設值；你改過的欄位不會被蓋掉。長／深／高請自己在上面調（厚板桌建議 1800×600×830、教室雙面桌 1800×900）" },
   // ───────────── ⭐ 材料樣式（實木榫卯 / 夾板疊層免榫卯，§AU23） ─────────────
@@ -126,9 +126,9 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "top", type: "select", key: "topBuild", label: "桌面做法", defaultValue: "plank", choices: [
     { value: "plank", label: "寬板平拼（每片 ≤ 280mm，自動算片數）" },
     { value: "stave", label: "窄條側立拼（條寬 ＝ 桌面厚，台灣 2×4 / 角料做法）" },
-    { value: "stack", label: "夾板或薄板疊層（層數在下面設）" },
+    { value: "stack", label: "薄板疊層（薄板面對面膠合成厚桌面，層數在下面設）" },
   ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "只影響材料單與裁切怎麼拆，3D 外觀一樣" },
-  { group: "top", type: "number", key: "topLayers", label: "疊層數", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", equals: "stack" }] }, help: "每層厚 ＝ 桌面厚 ÷ 層數（18mm 樺木夾板 × 3 ≈ 54）" },
+  { group: "top", type: "number", key: "topLayers", label: "疊層數", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", equals: "stack" }] }, help: "每層厚 ＝ 桌面厚 ÷ 層數（例：75 厚分 3 層 ＝ 每層 25）。想整台用夾板做，請把上面的「材料樣式」切到夾板疊層" },
   { group: "top", type: "select", key: "topSplit", label: "桌面分割", defaultValue: "none", choices: [
     { value: "none", label: "整片" },
     { value: "gap", label: "中間留縫 + 擋條（split-top，夾具可從縫伸進去）" },
