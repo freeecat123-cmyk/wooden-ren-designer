@@ -88,10 +88,15 @@ wz += (bHash - 0.5) * 90.0;
 // 膠合線。真實膠縫很細，照 mm 畫在縮小的預覽裡不到一個像素＝等於沒畫
 // （🩸夾板 18mm 一層時整條邊只有幾像素，木頭仁：「夾板層疊沒反應」）。
 // 用 fwidth 取「這個像素跨了幾片」，把線寬夾到**至少一個多像素**，縮放到多小都看得到。
-float bEdgeUnit = min(fract(bT), 1.0 - fract(bT));                       // 0~0.5（片為單位）
+// ⛔ 只畫**內部**的界線。最外面那兩條（bT = 0 與 bT = 片數）是零件自己的上下邊，
+//    畫了就會在邊緣多出一條，N 片看起來變成 N+1 片
+//    （🩸木頭仁 2026-09-05：「2 層看起來是 3 層、4 層像 5 層」）。
+float bNear = floor(bT + 0.5);                                           // 最近的界線編號 0..片數
+float bDist = abs(bT - bNear);                                           // 到那條界線的距離
+float bInner = step(0.5, bNear) * step(bNear, ${board.pieces.toFixed(1)} - 0.5);
 float bPix = fwidth(bT);                                                 // 每像素幾片
 float bWantUnit = ${(Math.min(3.0, Math.max(1.5, (board.spanMm / board.pieces) * 0.06)) / (board.spanMm / board.pieces)).toFixed(5)};
-float bGlue = 1.0 - smoothstep(0.0, max(bWantUnit, bPix * 1.3), bEdgeUnit);
+float bGlue = bInner * (1.0 - smoothstep(0.0, max(bWantUnit, bPix * 1.3), bDist));
 // 每片再帶一點色差（真實拼板／疊層每片本來就深淺不同）。線太細時（薄板疊層一層才 18mm、
 // 側立拼一條 60mm）光靠膠合線在縮圖上看不出來，色差在任何縮放都讀得到。
 // 亂數色差 + 奇偶交替：純亂數會有相鄰兩片剛好同深淺而糊在一起（側立拼 10 條時很明顯），
