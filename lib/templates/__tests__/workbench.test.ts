@@ -72,14 +72,13 @@ describe("木工工作桌：預設（厚板桌）", () => {
 });
 
 describe("夾制要出聲", () => {
-  it("桌面 40：holdfast 取消、鉗加 20 墊塊，警告都在", () => {
+  it("桌面 40：holdfast 取消並出聲；⛔ 鉗只是示意，不准自動加墊塊改桌子", () => {
     const d = build({ topThickness: 40 });
     expect(roundHoles(d, "top").filter((m) => m.origin.z > 0)).toHaveLength(0);
-    const spacer = d.parts.find((p) => p.id === "vise-spacer")!;
-    expect(spacer.visible.thickness).toBe(20);
-    const w = (d.warnings ?? []).join("\n");
-    expect(w).toMatch(/holdfast/);
-    expect(w).toMatch(/墊塊/);
+    expect((d.warnings ?? []).join("\n")).toMatch(/holdfast/);
+    // 2026-09-05 木頭仁裁示：虎鉗只是示意，不該反過來替使用者加料
+    expect(d.parts.some((p) => p.id.includes("spacer"))).toBe(false);
+    expect((d.warnings ?? []).join("\n")).not.toMatch(/墊塊/);
   });
   it("腳鉗會把 60 的腳提到 64 並出聲", () => {
     const d = build({ frontVise: "leg", legSize: 60 });

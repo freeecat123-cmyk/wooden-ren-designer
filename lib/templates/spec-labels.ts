@@ -620,7 +620,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   wellDepth: "Well floor is 18mm; depth cannot exceed top thickness − 10 (the floor screws to the back edge of the top).",
   endOverhang: "0 = automatic = length ÷ 5 (Roubo's proportion). Enough overhang lets the vise mount outboard of the leg.",
   frontVise: "A cast-iron quick-release vise is easy to buy; a leg vise grips wide boards best but the screw must be made or imported.",
-  frontViseSize: "The front edge needs ≥60mm of wood; a spacer block is added automatically if not.",
+  frontViseSize: "The vise is indicative only — it never changes your top thickness. In real life a quick-release vise wants ≥60mm of wood at the front edge; if yours is thinner, pack it out under the vise yourself.",
   dogHolePitch: "Must be less than the vise travel (any quick-release vise opening 260mm+ is fine).",
   dogHoleFrontOffset: "Schwarz 2–4\"; too close to the edge splits along the grain.",
   holdfastHoles: "Same bit as the dog holes, zero extra cost; one holdfast replaces three F-clamps. Cancelled automatically if the top is under 44mm.",

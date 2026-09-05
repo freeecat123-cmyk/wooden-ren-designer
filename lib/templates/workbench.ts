@@ -6,7 +6,7 @@
  *
  * v1 有的：四種流派 preset（厚板桌 / 裙板桌 / 工具槽桌 / 20mm 孔陣桌）、腳頂貫穿榫、
  *   桌面拼法（寬板平拼 / 窄條側立 / 疊層）、桌面中縫擋條、後側工具槽、狗孔列 / 20mm 格陣、
- *   holdfast 後排孔、刨擋（木方柱穿桌面）、鑄鐵快速前鉗（含墊塊）、腳鉗簡版、下層板、
+ *   holdfast 後排孔、刨擋（木方柱穿桌面）、鑄鐵快速前鉗（示意）、腳鉗簡版、下層板、
  *   螺栓可拆（腳上穿孔）、身高→桌高提示、重量 / 抗晃 / 房門警告。
  * v2 才做（沒有幾何表示法，別在這裡硬塞）：尾鉗、Moravian 斜腳 + 楔形通榫、滑入鳩尾、
  *   deadman、抽屜櫃、日式低台、腳輪。
@@ -30,7 +30,7 @@ import { formatMm } from "@/lib/units/format";
 // ───────────────────────── 常數（來源見 §AU） ─────────────────────────
 /** 鑄鐵快速鉗鉗口寬（台灣建成 / SKC 規格：7" = 180、9" = 225） */
 const VISE_JAW_MM: Record<string, number> = { "7in": 180, "9in": 225 };
-/** 快速鉗要求的前緣木料厚度（廠商標「桌板厚度約 60mm」），不足就加墊塊 */
+/** 快速鉗建議的前緣木料厚度（廠商標「桌板厚度約 60mm」）。⛔ 只寫在說明裡，不動幾何 */
 const VISE_MIN_EDGE_MM = 60;
 /** 鉗本體（鑄件）在桌底佔的深 / 高 */
 const VISE_BODY_DEPTH_MM = 160;
@@ -183,7 +183,7 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "workholding", type: "select", key: "frontViseSize", label: "鉗寬", defaultValue: "7in", choices: [
     { value: "7in", label: "7 吋（鉗口 180mm）" },
     { value: "9in", label: "9 吋（鉗口 225mm）" },
-  ], dependsOn: { key: "frontVise", equals: "quick" }, help: "前緣木料要 ≥60mm 厚，不夠會自動加墊塊" },
+  ], dependsOn: { key: "frontVise", equals: "quick" }, help: "鉗只是示意，不會反過來改你的桌面厚度；實際裝鉗時前緣木料建議 ≥60mm（不夠就自己在鉗座那段桌底加一塊墊料）" },
   { group: "workholding", type: "number", key: "viseInset", label: "前鉗中心離桌端（0 ＝ 自動）", defaultValue: 0, unit: "mm", min: 0, max: 900, step: 10, dependsOn: { key: "frontVise", equals: "quick" }, help: "0 ＝ 自動放在腳外側靠桌端。想把鉗移到順手的位置就自己填：太靠桌端鉗顎會懸空、太往中間會撞腳，超出範圍會自動收回並出聲" },
   { group: "workholding", type: "select", key: "viseSide", label: "慣用手（鉗在哪一端）", defaultValue: "left", choices: [
     { value: "left", label: "右撇子：前鉗在左端" },
@@ -413,7 +413,7 @@ export const workbench: FurnitureTemplate = (input) => {
   }
   // 快速鉗本體（70 高）掛在桌底，下橫撐頂面要在它下面 20（極矮桌 + 橫撐離地 300 會撞上）
   if (withLowerStretchers && frontVise === "quick") {
-    const bodyBottomY = legHeight - Math.max(0, VISE_MIN_EDGE_MM - topT) - VISE_BODY_HEIGHT_MM;
+    const bodyBottomY = legHeight - VISE_BODY_HEIGHT_MM;
     const maxLsY = bodyBottomY - 20 - lowerStretcherWidth;
     if (lowerStretcherHeight > maxLsY) {
       warnings.push(isEn ? `Lower stretcher ${lowerStretcherHeight}mm off the floor would hit the vise body under the top; lowered to ${Math.max(0, maxLsY)}.` : `下橫撐離地 ${lowerStretcherHeight} 會撞到桌底的鉗本體，已降到 ${Math.max(0, maxLsY)}。`);
@@ -874,7 +874,9 @@ export const workbench: FurnitureTemplate = (input) => {
   // ── 前鉗（快速鉗）：可放前緣（zSign −1）或雙面桌的後緣（zSign +1） ──
   let viseHardwareNote = "";
   const addQuickVise = (vx: number, zSign: -1 | 1, idPrefix: string, labelZh: string, labelEn: string) => {
-    const spacerH = Math.max(0, VISE_MIN_EDGE_MM - topT);
+    // ⛔ 不再自動加鉗座墊塊（木頭仁 2026-09-05：「你不用預設虎鉗要多少 直接忽略 虎鉗只是示意」）。
+    //    鉗是示意用的，不該反過來替使用者改桌子；桌面薄到裝不下鉗是他自己決定的事。
+    const spacerH = 0;
     const bodyTopY = legHeight - spacerH;
     const screwY = bodyTopY - VISE_BODY_HEIGHT_MM / 2;
     const chopH = H - (bodyTopY - VISE_BODY_HEIGHT_MM);
@@ -932,19 +934,6 @@ export const workbench: FurnitureTemplate = (input) => {
         topPieceForVise.mortises.push({ origin: { x: hx, y: 0, z: hz }, depth: 40, length: 8, width: 8, through: false, shape: "round", cosmetic: true, label: isEn ? "vise lag bolt" : "鉗座螺栓孔" });
       }
     }
-    if (spacerH > 0) {
-      design.parts.push({
-        id: `${idPrefix}spacer`,
-        nameZh: `${labelZh}鉗座墊塊`,
-        nameEn: `${labelEn} spacer block`,
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: jaw, width: VISE_BODY_DEPTH_MM, thickness: spacerH },
-        origin: { x: vx, y: bodyTopY, z: bodyCenterZ },
-        tenons: [],
-        mortises: [],
-      });
-    }
     design.parts.push({
       id: `${idPrefix}body`,
       nameZh: `鑄鐵快速鉗本體（${frontViseSize === "9in" ? "9" : "7"} 吋）`,
@@ -987,8 +976,7 @@ export const workbench: FurnitureTemplate = (input) => {
     return spacerH;
   };
   if (frontVise === "quick" && viseX !== null) {
-    const spacerH = addQuickVise(viseX, -1, "vise-", "前鉗", "Front vise");
-    if (spacerH > 0) warnings.push(isEn ? `Top is ${topT}mm; a quick-release vise wants ${VISE_MIN_EDGE_MM}mm at the front edge — a ${spacerH}mm spacer block was added under the top.` : `桌面 ${topT}mm 不到快速鉗要的 ${VISE_MIN_EDGE_MM}mm，已在桌底加 ${spacerH}mm 鉗座墊塊。`);
+    addQuickVise(viseX, -1, "vise-", "前鉗", "Front vise");
     if (viseX2 !== null) addQuickVise(viseX2, 1, "vise2-", "對側鉗", "Second vise");
     viseHardwareNote = isEn
       ? `Hardware: ${viseX2 !== null ? "2 × " : ""}${frontViseSize === "9in" ? "9" : "7"}" quick-release bench vise (jaw ${jaw}mm) + 4 lag bolts each.`
