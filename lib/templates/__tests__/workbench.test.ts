@@ -579,11 +579,20 @@ describe("夾板疊層（materialStyle = plywood，§AU23）", () => {
     expect(notes).toMatch(/搭接槽 6×80 螺絲 \d+ 支/);
     expect(notes).toMatch(/口袋孔螺絲 6×63 \d+ 支/);
   });
-  it("疊層桌面不做穿帶／封邊板（沒地方批燕尾），並出聲", () => {
+  /**
+   * 🩸2026-09-05 木頭仁：「夾板疊層的下橫撐、穿帶也都是夾板才對」。
+   * 舊行為是「夾板不做穿帶」，理由寫的是「沒地方批燕尾」——但 09-04 穿帶就已經改成
+   * **騎在腳頂**、根本沒有燕尾槽了，那條理由是過期的（見 feedback_comment_rationale_may_be_false）。
+   * 夾板桌面確實不會翹，但穿帶還有「把同一端兩支腳的頂端拉在一起」的結構作用，所以開放。
+   * 封邊板（breadboard）仍然不做：那是給實木桌面伸縮用的，夾板不需要。
+   */
+  it("夾板也做得出穿帶（09-05 改），但封邊板仍然不做", () => {
     const d = ply({ topBattens: true, breadboardEnds: true });
-    expect(d.parts.some((p) => p.id.startsWith("batten"))).toBe(false);
+    const bats = d.parts.filter((p) => /^top-batten-/.test(p.id));
+    expect(bats).toHaveLength(2);
+    expect(bats.every((b) => b.materialOverride === "plywood")).toBe(true);
     expect(d.parts.some((p) => p.id.startsWith("breadboard"))).toBe(false);
-    expect(d.warnings?.some((w) => w.includes("穿帶已略過"))).toBe(true);
+    expect(d.warnings?.some((w) => w.includes("穿帶已略過"))).toBe(false);
   });
   it("實木（預設）完全不受影響：腳粗滑桿照舊生效、榫頭還在", () => {
     const d = build({ legSize: 110 });

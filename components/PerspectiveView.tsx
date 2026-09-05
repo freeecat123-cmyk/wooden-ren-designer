@@ -14,6 +14,7 @@ import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
+import { plyLayers as plyLayerBoxes } from "@/lib/render/ply-layers";
 import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld, type WorldMortise } from "@/lib/assembly/joint-world";
 import { offsetsAt, planAssembly, stepIndexAt, travelMm, type AssemblyPlan, type ScrewSpec } from "@/lib/assembly/plan";
 import { downloadBlob, extensionForMime, pickRecorderMime, startCanvasRecording, type CanvasRecording } from "@/lib/assembly/record";
@@ -63,6 +64,16 @@ class HDRBoundary extends Component<{ children: ReactNode }, { failed: boolean }
  * Used to highlight drawer / door parts so they're easy to spot against
  * the rest of the cabinet (which all share the same wood color).
  */
+/** 把 hex 顏色乘一個係數（<1 變深）。夾板疊層用來讓相鄰兩層深淺不同。 */
+function shadeHex(hex: string, f: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+  return "#" + ch.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
 function tintHex(baseHex: string, tintHex: string, amount: number): string {
   const parse = (h: string) => {
     const s = h.replace("#", "");
@@ -241,6 +252,8 @@ type PartProps = {
   boardPieces?: number;
   /** true = 沿厚度疊層（panelSplit="thickness"），false = 沿跨紋方向拼板 */
   boardThin?: boolean;
+  /** 這件是夾板（materialOverride==='plywood'）→ 用夾板的表皮木紋，不是實木年輪 */
+  isPly?: boolean;
   mortiseBoxes?: LocalBox[];
   mortiseShapes?: Array<"rect" | "round">;
   /** 圓形貫穿裝飾孔（工作桌狗孔 / holdfast 孔 / MFT 格陣）不走 CSG，改畫深色圓柱「塞」在孔位：
@@ -271,6 +284,7 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   if (a.grainDirection !== b.grainDirection) return false;
   if (a.boardPieces !== b.boardPieces) return false;
   if (a.boardThin !== b.boardThin) return false;
+  if (a.isPly !== b.isPly) return false;
   if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
   if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
   if (a.polygonOffset !== b.polygonOffset) return false;
@@ -309,6 +323,7 @@ const Part = memo(function PartInner({
   grainDirection,
   boardPieces,
   boardThin,
+  isPly,
   mortiseBoxes,
   mortiseShapes,
   holeDecals,
@@ -356,7 +371,8 @@ const Part = memo(function PartInner({
     : { pieces: boardPieces ?? 1, spanMm: crossGrainMm, axis: crossAxis };
   const woodCompile = getWoodCompile(
     grainDirection === "width" ? "width" : "length",
-    isWide ? "wide" : "narrow",
+    // 夾板不看寬窄——它的面永遠是薄表皮的細直紋，不會有實木的山形年輪
+    isPly ? "ply" : (isWide ? "wide" : "narrow"),
     boardPieces && boardPieces > 1 ? board : undefined,
   );
   // useMemo deps：size 是 [a,b,c] array、shape 是 object——父元件每 render
@@ -623,7 +639,16 @@ const Part = memo(function PartInner({
       ) : (
         <boxGeometry args={size} />
       )}
+      {/*
+        🩸2026-09-05 木頭仁：「選桌面做法時不會即時更新，要重新整理網頁」。
+        three.js 的 onBeforeCompile 只在**材質第一次編譯**時跑；換了 woodCompile
+        （拼板片數 / 疊層 / 木紋方向變了）之後 material 還是拿舊的 program，
+        除非 needsUpdate 或整個重建。夾板疊層那條路是改幾何所以看得到，
+        實木「桌面做法」只改著色器參數 → 畫面就卡在舊的，要 F5 才會變。
+        給材質一把跟著 cacheKey 走的 key，參數一變 React 就重建材質＝重新編譯。
+      */}
       <meshStandardMaterial
+        key={woodCompile.cacheKey}
         color={color}
         roughness={0.55}
         metalness={0.05}
@@ -2031,37 +2056,103 @@ export function PerspectiveView({
                 onPartSelect(nextPartSelection(activeSelectedId, part.id));
               } : undefined}
             >
-              <Part
-                position={[px, py, pz]}
-                size={[
-                  part.visible.length * SCALE,
-                  part.visible.thickness * SCALE,
-                  part.visible.width * SCALE,
-                ]}
-                rotation={openRotation ?? new Euler(
+              {(() => {
+                /**
+                 * 夾板疊層：**每一層畫成真的一塊板**，不是在整塊上用著色器畫線。
+                 *
+                 * 🩸2026-09-05 木頭仁連續十幾輪回報層數數不對（2 像 3、4 像 5、3 又多一條），
+                 * 而且同一份程式碼前後兩次講的還相反。最後量出來真因是：
+                 *   正視圖 2 層 → 1 條線 ✅；45° 同一台 → 2 條線 ❌
+                 * 多的那條是**桌面上表面與前緣面的交界稜線**，長得跟膠合線一模一樣。
+                 * 只要看得到桌面就會多一條 —— 所以「在著色器上畫線」這條路本身就躲不掉，
+                 * 線畫多粗多深都沒用（前面十幾輪都卡在這裡）。
+                 *
+                 * 改成真實幾何後，每層有自己的稜線與陰影，任何角度、任何縮放數到的都是真層數。
+                 * 只在「方塊 + 沒有鳩尾切割」時拆；其餘（異形件、鳩尾件）維持原本單塊路徑。
+                 */
+                const rot = openRotation ?? new Euler(
                   part.rotation?.x ?? 0,
                   part.rotation?.y ?? 0,
                   part.rotation?.z ?? 0,
                   "ZYX",
-                )}
-                color={color}
-                shape={shape}
-                isGlass={part.visual === "glass"}
-                isBrass={part.visual === "brass-antique"}
-                grainDirection={part.grainDirection}
-                boardPieces={part.panelPieces}
-                boardThin={part.panelSplit === "thickness"}
-                mortiseBoxes={mortiseBoxesScaled}
-                mortiseShapes={mortiseShapesArr}
-                holeDecals={holeDecalsScaled}
-                dovetailCuts={partDovetailCuts}
-                isSelected={isSelected}
-                isHovered={isHovered}
-                isDimmed={isDimmed}
-                wireframe={wireframeMode}
-                polygonOffset={part.id.startsWith("diamond-")}
-                pushBack={/-louver-\d+$/.test(part.id)}
-              />
+                );
+                const sizeXZ: [number, number] = [
+                  part.visible.length * SCALE,
+                  part.visible.width * SCALE,
+                ];
+                const commonProps = {
+                  rotation: rot,
+                  isGlass: part.visual === "glass",
+                  isBrass: part.visual === "brass-antique",
+                  grainDirection: part.grainDirection,
+                  isPly: part.materialOverride === "plywood",
+                  mortiseShapes: mortiseShapesArr,
+                  isSelected,
+                  isHovered,
+                  isDimmed,
+                  wireframe: wireframeMode,
+                  polygonOffset: part.id.startsWith("diamond-"),
+                  pushBack: /-louver-\d+$/.test(part.id),
+                } as const;
+                const plyLayers = part.panelSplit === "thickness" ? (part.panelPieces ?? 1) : 1;
+                const canSplit = plyLayers > 1 && !shape && !partDovetailCuts;
+                if (!canSplit) {
+                  return (
+                    <Part
+                      {...commonProps}
+                      position={[px, py, pz]}
+                      size={[sizeXZ[0], part.visible.thickness * SCALE, sizeXZ[1]]}
+                      color={color}
+                      shape={shape}
+                      boardPieces={part.panelPieces}
+                      boardThin={part.panelSplit === "thickness"}
+                      mortiseBoxes={mortiseBoxesScaled}
+                      holeDecals={holeDecalsScaled}
+                      dovetailCuts={partDovetailCuts}
+                    />
+                  );
+                }
+                /**
+                 * ⭐ 疊層要切「**最小的那一維**」，不是 `visible.thickness`。
+                 * 🩸2026-09-05 木頭仁：「腳的層數也不見了」——桌腳的 `visible.thickness`
+                 * 裝的是**腳高**（776mm），照它切等於把腳沿高度剁成幾段，看起來就跟沒切一樣。
+                 * 這條規則跟料單 / cutplan / 原本的著色器是同一套（見 wood-shader 檔頭）。
+                 */
+                const dimsMm: Array<{ i: 0 | 1 | 2; mm: number }> = [
+                  { i: 0, mm: part.visible.length },
+                  { i: 1, mm: part.visible.thickness },
+                  { i: 2, mm: part.visible.width },
+                ];
+                const thinAxis = dimsMm.reduce((a, b) => (b.mm < a.mm ? b : a));
+                const fullSize: [number, number, number] = [
+                  sizeXZ[0], part.visible.thickness * SCALE, sizeXZ[1],
+                ];
+                return plyLayerBoxes(thinAxis.mm * SCALE, plyLayers, SCALE).map(({ dy, thick: layerThick }, i) => {
+                  const dir = new Vector3(0, 0, 0);
+                  dir.setComponent(thinAxis.i, dy);
+                  const off = dir.applyEuler(rot);
+                  const shift = (b: LocalBox): LocalBox => ({
+                    ...b,
+                    cx: thinAxis.i === 0 ? b.cx - dy : b.cx,
+                    cy: thinAxis.i === 1 ? b.cy - dy : b.cy,
+                    cz: thinAxis.i === 2 ? b.cz - dy : b.cz,
+                  });
+                  const layerSize = [...fullSize] as [number, number, number];
+                  layerSize[thinAxis.i] = layerThick;
+                  return (
+                    <Part
+                      key={`ply-${i}`}
+                      {...commonProps}
+                      position={[px + off.x, py + off.y, pz + off.z]}
+                      size={layerSize}
+                      // 真實夾板每層深淺本來就不同；奇偶交替保證相鄰兩層不同色
+                      color={shadeHex(color, i % 2 === 0 ? 1.0 : 0.94)}
+                      mortiseBoxes={mortiseBoxesScaled?.map(shift)}
+                      holeDecals={holeDecalsScaled?.map(shift)}
+                    />
+                  );
+                });
+              })()}
               {tenonMeshes}
               {auditOverlay}
               {assemblyOn && screwsByMother.get(part.id)?.map((sc) => (

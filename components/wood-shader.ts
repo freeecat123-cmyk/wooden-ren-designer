@@ -49,7 +49,16 @@ float wd_fbm(vec2 p) {
 }
 `;
 
-type GrainMode = "narrow" | "wide";
+/**
+ * narrow = 直紋（細條：腳、橫撐、牙條）
+ * wide   = 山形紋（寬板 plain-sawn 的 cathedral 拱）
+ * ply    = **夾板的面**：淡、細、直，沒有 cathedral 拱也沒有大尺度心邊材色差。
+ *          🩸2026-09-05 木頭仁：「夾板疊層的下橫撐看起來像一整根實木」——
+ *          之前夾板零件跟實木共用同一套木紋，整台畫成大片山形年輪，
+ *          所以再怎麼畫層線都還是「看起來不像夾板」。真實夾板的**面**是薄表皮、
+ *          紋很淡很直；層次只在**邊**上看得到（那部分由幾何拆層負責）。
+ */
+type GrainMode = "narrow" | "wide" | "ply";
 
 /**
  * 拼板 / 疊層：零件在料單上是 pieces 片，沿零件 local 的 `axis` 切、總跨距 spanMm。
@@ -128,9 +137,18 @@ float bGlue = bInner * (1.0 - smoothstep(0.0, max(bWantUnit, bPix * 1.3), bDist)
 // 側立拼一條 60mm）光靠膠合線在縮圖上看不出來，色差在任何縮放都讀得到。
 // 亂數色差 + 奇偶交替：純亂數會有相鄰兩片剛好同深淺而糊在一起（側立拼 10 條時很明顯），
 // 交替那一項保證隔壁一定不同色。
-float bTone = (bHash - 0.5) * 0.06 + (mod(bIdx, 2.0) - 0.5) * 0.07;
+// ⭐ 側邊的木紋雜訊會跟膠合線長得一模一樣（都是沿桌長的細橫線），而木紋是每片
+//    亂數 → 同一個層數換個角度就數出不同答案（🩸木頭仁 2026-09-05：「3 層錯」，
+//    十分鐘後同一份程式又變成「2 跟 4 錯」）。前幾輪一直在加粗膠合線＝只調訊號，
+//    但雜訊（順紋 0.10 + 導管 0.12 + 斑紋 0.07）比層色差 0.07 還強，永遠治不好。
+//    改成：**看得到分層的那些面，把木紋雜訊壓掉、把層色差放大**，
+//    邊上剩下的每一條線就保證都是分層線。
+float bFace = abs(vWoodLocalNormal.${board.axis});          // 1 = 正對分件軸（看不到分層的廣面）
+float bShowSplit = 1.0 - smoothstep(0.5, 0.85, bFace);      // 1 = 側邊，看得到層
+float bNoiseMul = 1.0 - 0.85 * bShowSplit;                  // 側邊只留 15% 木紋雜訊
+float bTone = ((bHash - 0.5) * 0.06 + (mod(bIdx, 2.0) - 0.5) * 0.07) * (1.0 + 2.0 * bShowSplit);
 `
-    : "\nfloat bGlue = 0.0;\nfloat bTone = 0.0;\n";
+    : "\nfloat bGlue = 0.0;\nfloat bTone = 0.0;\nfloat bNoiseMul = 1.0;\nfloat bShowSplit = 0.0;\n";
   const header = `#include <map_fragment>
 vec3 lp = vWoodLocalPos;
 float gx = ${grainAxis};
@@ -167,18 +185,36 @@ float subRing = fract(r * 0.20);
 dimming -= smoothstep(0.85, 0.95, subRing) * (1.0 - smoothstep(0.95, 1.0, subRing)) * 0.10 * cathedralFade;
 // 8. 沿 grain 拉長的導管孔列
 float pore = wd_noise(vec2(gx * 0.06, wz * 0.55));
-dimming -= smoothstep(0.74, 0.90, pore) * 0.12;
+dimming -= smoothstep(0.74, 0.90, pore) * 0.12 * bNoiseMul;
 // 9. 大尺度心材/邊材色差
 dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.14;
 // 10. 中尺度斑紋
-dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07;
+dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07 * bNoiseMul;
 // 11. 順紋條紋（補強 grain 方向感，但比 narrow 弱因為已有 cathedral 拱）
 float streak = wd_fbm(vec2(gx * 0.004, wz * 0.07)) * 0.50
              + wd_fbm(vec2(gx * 0.009, wz * 0.22)) * 0.30
              + wd_fbm(vec2(gx * 0.020, wz * 0.55)) * 0.20;
-dimming -= smoothstep(0.40, 0.62, streak) * 0.10;
+dimming -= smoothstep(0.40, 0.62, streak) * 0.10 * bNoiseMul;
 // 端面/薄邊（faceY 低）grain dimming 很弱→比廣面亮、會在交界露成白點
 // （百葉葉片端嵌豎梃露白，user 回報「斜的白塊」）。補 baseline dim 貼齊廣面亮度。
+dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
+dimming -= bGlue * 0.5;
+dimming -= bTone;
+dimming = max(dimming, 0.0);
+diffuseColor.rgb *= dimming;`;
+  }
+  if (mode === "ply") {
+    // 夾板的面：薄表皮，只有很淡的直紋 + 偶爾的補片色差。振幅刻意壓到 narrow 的 1/3,
+    // 這樣「邊上的層線」才會是整台最顯眼的線條（不然又會被木紋蓋掉）。
+    return `${header}
+float streak = wd_fbm(vec2(gx * 0.006, wz * 0.12)) * 0.55
+             + wd_fbm(vec2(gx * 0.015, wz * 0.40)) * 0.45;
+float dimming = 1.0;
+// 細直紋：頻率比實木高（表皮是旋切的，紋路細而密）、振幅只有 narrow 的三分之一
+dimming -= smoothstep(0.44, 0.60, streak) * 0.075 * bNoiseMul;
+// 夾板表皮偶爾的補片 / 色差塊，非常淡
+dimming -= (wd_fbm(vec2(gx * 0.004, wz * 0.02)) - 0.5) * 0.05 * bNoiseMul;
+// 端面/薄邊 baseline dim（同 wide / narrow：避免端面比廣面亮成白點）
 dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
 dimming -= bGlue * 0.5;
 dimming -= bTone;
@@ -193,14 +229,14 @@ float streak = wd_fbm(vec2(gx * 0.004, wz * 0.07)) * 0.50
              + wd_fbm(vec2(gx * 0.009, wz * 0.22)) * 0.30
              + wd_fbm(vec2(gx * 0.020, wz * 0.55)) * 0.20;
 float dimming = 1.0;
-dimming -= smoothstep(0.40, 0.62, streak) * 0.22;
+dimming -= smoothstep(0.40, 0.62, streak) * 0.22 * bNoiseMul;
 // 沿 grain 拉長的導管孔列
 float pore = wd_noise(vec2(gx * 0.06, wz * 0.55));
-dimming -= smoothstep(0.74, 0.90, pore) * 0.10;
+dimming -= smoothstep(0.74, 0.90, pore) * 0.10 * bNoiseMul;
 // 大尺度心材/邊材色差
 dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.14;
 // 中尺度斑紋
-dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07;
+dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.07 * bNoiseMul;
 // 端面/薄邊 baseline dim（同 wide：避免端面比廣面亮成白點）
 dimming -= (1.0 - smoothstep(0.5, 0.85, abs(vWoodLocalNormal.y))) * 0.22;
 dimming -= bGlue * 0.5;
@@ -267,6 +303,16 @@ export function getWoodCompile(
   const axes: [string, string, string] =
     grainDirection === "width" ? ["lp.z", "lp.x", "lp.y"] : ["lp.x", "lp.z", "lp.y"];
   if (!board || board.pieces < 2 || !(board.spanMm > 0)) {
+    if (mode === "ply") {
+      // 夾板沒有預先建好的常數變體（實木那四個是熱路徑），依方向快取。
+      const k = `ply:${grainDirection}`;
+      let c = boardCompileCache.get(k);
+      if (!c) {
+        c = makeCompile(axes[0], axes[1], axes[2], "ply");
+        boardCompileCache.set(k, c);
+      }
+      return c;
+    }
     return grainDirection === "width"
       ? (mode === "wide" ? woodCompileZWide : woodCompileZNarrow)
       : (mode === "wide" ? woodCompileXWide : woodCompileXNarrow);
