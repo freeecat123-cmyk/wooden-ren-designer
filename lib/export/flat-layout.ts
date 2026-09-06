@@ -1,6 +1,6 @@
 import { BufferGeometry, Group, Mesh, MeshBasicMaterial } from "three";
 import type { FurnitureDesign } from "@/lib/types";
-import { partExportGeometry, thickenForPrint } from "./three-d-export";
+import { partExportGeometry, thickenForPrint, assertExportOptions, type ExportMode } from "./three-d-export";
 
 /** 攤平排版零件間隔（mm，縮放前） */
 export const LAYOUT_GAP_MM = 8;
@@ -102,15 +102,17 @@ export function orientFlat(geom: BufferGeometry): FlatDims {
 export function buildFlatLayoutGroup(
   design: FurnitureDesign,
   scale: number,
+  mode: ExportMode = "printable",
 ): Group {
+  assertExportOptions(scale, mode);
   const root = new Group();
   const mat = new MeshBasicMaterial();
 
   // 1) 每件建幾何 + 攤平姿態
   const entries: Array<{ geom: BufferGeometry; dims: FlatDims; name: string }> = [];
   for (const part of design.parts) {
-    const geom = partExportGeometry(part);
-    thickenForPrint(geom, scale);
+    const geom = partExportGeometry(part, mode, design.parts);
+    if (mode === "printable") thickenForPrint(geom, scale);
     const dims = orientFlat(geom);
     entries.push({ geom, dims, name: part.nameZh || part.id });
   }

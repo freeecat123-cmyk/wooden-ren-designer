@@ -31,6 +31,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
 | 重疊例外掩蓋新碰撞 / 逐對基線 | `"overlap-baseline\|known-defect"` | §A10.7 |
 | Half-lap / blind rebate cut coverage | `"rectangular cut coverage\|coplanar"` | §A10.7 |
+| Revised construction / frame rear rebate | `"constructionVersion\|A10.15"` | §A10.15 |
 | 側視座標還原 / 外框深度錯誤 | `"world-bounds\|negative world Z"` | §A10.7 |
 | 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
 | 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
@@ -816,6 +817,72 @@ const [thin, mid, long] = [cut.length, cut.width, cut.thickness].sort((a, b) => 
 本體 `origin.y = hookCenterY − HOOK_SIZE/2`，榫眼 y = 中心。舊寫法讓掛鉤本體 1663~1681 浮在 1664 的柱頂上方。
 另：非 90° 倍數旋轉的圓料（掛鉤繞 Y 轉 60°）正／側視要走 `projectPartSilhouette`（縮短的圓棒），
 不能用 `|sin| > 0.5` 當成「端面朝你」畫成圓圈（`isTiltedRound`）。
+
+### A10.15 Versioned construction (approved 2026-09-07)
+
+`options.constructionVersion` uses "1" for legacy and "2" for revised work.
+Direct template defaults stay "1". Only blank editor requests without a saved
+reference or structural query start at "2"; legacy links and saved parameters
+remain "1" until selected explicitly. Output links serialize the version. Old
+signed snapshots without this newly introduced field mean version "1".
+
+Photo-frame version 2: front is world +Y, rear Y=0. Glass and backer share the
+rear rebate on all four inside rail edges. Rebate inset = glassGrooveDepth;
+rear depth = glassThickness + backThickness + 2mm fitting space. Keep at least
+2mm front stock: miter frameThickness >= glassThickness + backThickness + 4mm.
+For butt corners, choose the corner tenon before increasing stock thickness,
+then require frameThickness >= rear depth + tenon thickness + 2mm. Place the
+whole tenon ahead of the rebate, with its matching mortise at the same Y and
+2mm stock remaining at the front. Insufficient requested thickness is raised
+with an explicit warning. Backer
+occupies Y=[0,backT], glass Y=[backT,backT+glassT]. Both cut sizes equal photo
+opening + 2*(rebate inset - 1mm per-edge clearance). Rail stock lengths stay
+unchanged; only version-2 butt corner tenon placement changes. Miter rails use the same world-space rebate,
+transformed to their existing rotated local coordinates; no rotation convention
+is changed. Glass ordering notes must give actual glass cut sizes, not opening.
+
+Chinese-cabinet version 2 uses inside-post shoulder spans for rails with tenon
+extensions counted separately. Version 1 remains untouched, including notes.
+Panel receivers have actual 5mm engagement grooves with 0.5mm total normal
+clearance. Raked rail ends follow the inner post planes at both end heights.
+Hoof receivers follow the renderer's directional rings with <=0.25mm profile
+steps plus 0.25mm running clearance, so excess removal stays <=0.5mm. The audit
+uses continuous endpoint envelopes between mesh/cutter Y boundaries: a single
+physical cutter must cover each whole intersection envelope. Labels and part IDs
+never establish clearance. Missing, shallow, shifted and mid-span gaps stay errors.
+
+Explicit version-2 construction cuts use the centered local millimetre box
+`[cx+-hx] x [cy+-hy] x [cz+-hz]`. Transform with the renderer's ZYX rotation and
+the part's centered origin, not a second face-location heuristic. Generated
+receiver envelopes expand the actual stock intersection by 0.25mm; complementary
+half laps split the world-Y intersection at its midpoint first. `depthAxis`
+must reach the corresponding exterior face; unverified enclosed cuts are rejected.
+
+Remaining-stock guards are geometric limits, not structural load certification:
+- Rails: at every cutter-X interval and boundary, compute the exact YZ rectangle
+  union. Remaining area must be >=50% of T*W and continuous Y web >=6mm in every
+  Z strip, including opposing cuts and adjacent half-lap boundary sections.
+- Splayed round posts: radius R(t)=D/2*(bottomScale+(1-bottomScale)*t),
+  t=(y+H/2)/H for centered local Y.
+  Preserve an outer square spine centered 0.65R/sqrt(2) along each outward axis,
+  half-width 0.15R. Every cut must miss this spine, whose width must be >=6mm;
+  cutter depth along its entry axis is <=0.6D.
+- Turned columns: preserve the central 0.3D by 0.3D square hub and keep housing
+  tops within the bottom 0.2H. Rejected cuts are removed with a fabrication warning,
+  and cannot be excused by another collision-clearance proof.
+
+Machining time counts only actual retained operations: construction housings
+8min/cut, rear frame rebates 6min/rail, deadman shelf relief 8min/cut. These are
+added before fitting/gluing and scale linearly without increasing blank volume.
+Cabinet additions: panel grooves 6min/cut; hoof reliefs 8min per unique
+receiver/post site (not per overlapping cutter pass); integral spandrels
+12min/apron; raked shoulders 4min/end. Default v2 cabinet has six grooves,
+16 hoof-relief sites and four integral aprons; the round-cabinet preset has
+eight raked rails / 16 ends. Removing duplicate v1 spandrel solids corrects
+double-counted stock; carving the four remaining apron blanks does not shrink
+their purchasing dimensions.
+Round-cabinet shelf-to-post clearance adds 6min/notch; the tested 3-degree,
+1000x550x2000mm case has 12 notches (72min).
 
 ### A11. Tapered 腳跟橫撐／牙條對齊
 

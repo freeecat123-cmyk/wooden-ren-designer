@@ -51,6 +51,7 @@ import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER, groupLabel } from "@/lib/design/option-groups";
+import { WorkbenchOptionGroups } from "@/components/design/WorkbenchOptionGroups";
 import { specLabel, choiceLabel, specHelp } from "@/lib/templates/spec-labels";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
@@ -471,7 +472,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     {currentDesignId && <p role="status" className="mx-auto max-w-7xl px-6 py-2 text-xs text-zinc-600">
       {frozen
         ? (locale === "en" ? "Saved model loaded. Model notes retain the original language." : "已載入儲存時的模型；模型註記保留原語言。")
-        : (locale === "en" ? "Current template model. Older parameter-only records do not preserve historical geometry." : "目前使用現行模板；僅保存參數的舊紀錄不含歷史模型。")}
+        : (locale === "en" ? "Previewing current parameters. Save to preserve this model version." : "目前依編輯中的參數產生預覽；儲存後才會保存這個模型版本。")}
     </p>}
     {/* BreadcrumbList JSON-LD — SERP rich snippet 顯示麵包屑路徑 */}
     <script
@@ -517,6 +518,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <ShareDesignButton
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
+            savedDesignId={currentDesignId}
+            savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
+            hasUnsavedChanges={!frozen}
           />
           <DesignHistoryControls />
           {/* <PhotoToParamsButton /> */}
@@ -633,7 +637,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <SceneThemeToggle current={sceneId} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} noSync />
             {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) && (
-              <ThreeDExportButton design={design} />
+              <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />
             )}
             {isAdmin || getPlanFeatures(profile).canDownloadPdf ? (
               <TemplatePackButton design={design} />
@@ -858,6 +862,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lineShareText={lineShareText}
         formAction={`/${locale}/design/${entry.category}`}
         currentDesignId={currentDesignId}
+        savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
+        hasUnsavedChanges={!frozen}
         saveParams={saveParams}
         wireframeMode={wireframeMode}
         joineryMode={joineryMode}
@@ -1294,6 +1300,7 @@ async function ParameterForm({
           </div> */}
           <StyleMismatchWarning />
           <GroupedOptionFields
+            category={type}
             optionSchema={optionSchema}
             optionValues={optionValues}
             joineryMode={joineryMode}
@@ -1348,6 +1355,7 @@ function evalDep(
 }
 
 function GroupedOptionFields({
+  category,
   optionSchema,
   optionValues,
   joineryMode,
@@ -1356,6 +1364,7 @@ function GroupedOptionFields({
   allPartIds,
   locale,
 }: {
+  category: string;
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
@@ -1368,6 +1377,34 @@ function GroupedOptionFields({
   const visibleSchema = optionSchema.filter(
     (s) => isVisible(s, optionValues) && (joineryMode || s.key !== "legPenetratingTenon"),
   );
+  if (category === "workbench") {
+    const visibleKeys = new Set(visibleSchema.map((spec) => spec.key));
+    return (
+      <>
+        {Object.entries(optionValues).map(([key, value]) =>
+          visibleKeys.has(key) ? null : (
+            <input key={key} type="hidden" name={key} value={String(value)} />
+          ),
+        )}
+        <WorkbenchOptionGroups
+          specs={visibleSchema}
+          locale={locale}
+          renderField={(spec) => (
+            <OptionField
+              key={`${spec.key}-${String(optionValues[spec.key])}`}
+              spec={spec}
+              value={optionValues[spec.key]}
+              allValues={optionValues}
+              overallHeight={overallHeight}
+              overallLength={overallLength}
+              allPartIds={allPartIds}
+              locale={locale}
+            />
+          )}
+        />
+      </>
+    );
+  }
   const grouped = new Map<string, OptionSpec[]>();
   for (const spec of visibleSchema) {
     const g = spec.group ?? "misc";

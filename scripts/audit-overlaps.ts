@@ -124,7 +124,9 @@ import type {
 } from "../lib/types";
 
 const useJoinery = process.argv.includes("--joinery");
+const useRevised = process.argv.includes("--revised");
 const writeBaseline = process.argv.includes("--write-baseline");
+if (useRevised && writeBaseline) throw new Error("Revised construction cannot inherit a warning baseline.");
 const baselinePath = path.join(__dirname, "overlap-baseline.json");
 if (writeBaseline && useJoinery) throw new Error("The reviewed baseline is assembly-only.");
 if (!existsSync(baselinePath) && !writeBaseline) throw new Error("Missing overlap baseline; do not silently bypass regression checks.");
@@ -241,6 +243,7 @@ function buildDesign(
       opts[k] = /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
     }
   }
+  if (useRevised && entry.optionSchema?.some(spec => spec.key === "constructionVersion")) opts.constructionVersion = "2";
   return entry.template({
     length: entry.defaults.length,
     width: entry.defaults.width,
@@ -295,12 +298,12 @@ for (const entry of FURNITURE_CATALOG) {
       partsCount: design.parts.length,
       overlapCount: overlaps.length,
       flag: design.useButtJointConvention ? "✓" : "  ",
-      expected:
+      expected: !useRevised && (
         SHAPE_AWARE_VARIANTS.has(variant) ||
-        SHAPE_AWARE_CASES.has(`${entry.category}:${variant}`),
+        SHAPE_AWARE_CASES.has(`${entry.category}:${variant}`)),
       examples,
       overlaps,
-      regressions: writeBaseline ? [] : overlapRegressions(overlaps, baseline[`${entry.category}:${variant}`] ?? []),
+      regressions: writeBaseline ? [] : overlapRegressions(overlaps, useRevised ? [] : baseline[`${entry.category}:${variant}`] ?? []),
       reviewStatus: overlaps.length === 0 ? "clean" : ["tea-table", "photo-frame"].includes(entry.category) ? "confirmed-defect" : entry.category === "wine-rack" ? "documented-joint" : "unreviewed",
     });
   }
@@ -314,7 +317,7 @@ if (writeBaseline) {
   writeFileSync(baselinePath, JSON.stringify(Object.fromEntries(rows.filter(row => row.overlapCount > 0).map(row => [`${row.category}:${row.variant}`, row.overlaps])), null, 2) + "\n");
 }
 const reportPath = process.argv.find(arg => arg.startsWith("--report="))?.slice("--report=".length);
-if (reportPath) writeFileSync(reportPath, JSON.stringify({ mode: useJoinery ? "joinery" : "assembly", rows }, null, 2) + "\n");
+if (reportPath) writeFileSync(reportPath, JSON.stringify({ mode: useJoinery ? "joinery" : "assembly", construction: useRevised ? "revised" : "legacy", rows }, null, 2) + "\n");
 
 const totalOverlaps = rows.reduce((sum, r) => sum + r.overlapCount, 0);
 

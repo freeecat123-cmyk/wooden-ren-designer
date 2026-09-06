@@ -50,6 +50,7 @@ const COAT_RACK_PRESETS: Record<string, CoatRackPresetConfig> = {
 };
 
 export const coatRackOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   { group: "structure", type: "select", key: "mountType", label: "安裝形式", defaultValue: "standing", choices: [
     { value: "standing", label: "立式（4 腳獨立站立，傳統款）" },
     { value: "wall-rail", label: "壁掛 Shaker peg rail（橫板 + N 個木栓掛勾，玄關經典）" },
@@ -242,7 +243,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
           y: 0,
           z: !isXAxis ? d.sign * center : 0,
         },
-        rotation: isXAxis
+        rotation: String(input.options?.constructionVersion) === "2"
+          ? { x: Math.PI / 2, y: -d.mAngle, z: 0 }
+          : isXAxis
           ? { x: Math.PI / 2, y: 0, z: 0 }
           : { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [
@@ -288,7 +291,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
           y: 0,
           z: sinA * center,
         },
-        rotation: { x: Math.PI / 2, y: angle, z: 0 },
+        rotation: { x: Math.PI / 2, y: String(input.options?.constructionVersion) === "2" ? -angle : angle, z: 0 },
         tenons: [
           {
             position: "start",

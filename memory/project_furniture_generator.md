@@ -1,5 +1,42 @@
 # Furniture Generator Memory
 
+## 2026-09-07 Integrated Upgrade (Release Verification)
+
+- User approved completing geometry, machining exports, fixed sharing and
+  desktop/mobile workbench controls continuously, preserving all old designs.
+- Explicitly approved shared rear frame rebate and cabinet inside-post shoulder
+  spans. New construction uses version 2; direct template defaults remain 1.
+  Legacy snapshots/parameterized links must not silently upgrade. See A10.15.
+- New designs must serialize actual parameters on first save; appending only
+  designId to a blank URL incorrectly changes v2 back to v1. Form blur/timers
+  must retain the latest saved revision, and undo rebasing must retain the
+  original blank-page version semantics.
+- Private design-shares Storage bucket provisioned; no SQL migration needed.
+  Explicit publication stores an immutable signed-model projection; owner
+  revocation is rechecked without caching. See lib/design-sharing/README.md.
+- Live disposable design save/publish/update/revoke passed: saved model changed
+  from 170mm to 180mm while publication stayed 170mm; anonymous API returned 404
+  after revocation, and reload showed the revoked state. Existing designs untouched.
+- 29 default templates / 514 full part records match pre-upgrade ff7d1d9d exactly;
+  165 legacy leg fingerprints still match. Revised audit now 236/236 clean,
+  with legacy baseline left intact. Unsupported unsafe excavation retains warnings.
+- Shared explicit construction boxes feed preview, CNC and dimensional exports.
+  Never apply shaped splay correction again to an explicit construction box.
+  Aggregate stock checks include X/Z boundaries, not only interval midpoints;
+  opposing cuts can sever a part even if each cutter independently leaves stock.
+- Accurate exports require the unstripped raw model, including frozen raw snapshots.
+  Printable simplifications remain separate; unsupported accurate geometry fails closed.
+- Sharing preserves only allowlisted louver semantic labels, never free-form label
+  suffixes. Reset dirty/pending state on a genuine design switch, not save-as sync.
+  Analytics drops capability-link page events. Private Storage policies must not grant
+  anonymous/authenticated object access; never publish or sign bucket URLs.
+- Desktop workbench groups retain hidden option values just like mobile. Save URL
+  canonicalization is not an undo step; a pending save must honor Reset key deletions
+  and blank-v2 semantics. These races have real Chromium component regressions.
+- Local full verify: 1506 tests passed, all audits passed; production build passed.
+  Export desktop/mobile browser test passed separately. Final production deployment
+  still requires GitHub/Vercel checks; no release claim based on build alone.
+
 ## 2026-09-06 Rectangular Cut Audit Follow-up
 
 - Recognize only complete rectangular cutter coverage, including blind rebates

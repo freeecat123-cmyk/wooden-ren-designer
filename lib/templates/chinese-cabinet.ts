@@ -2,6 +2,8 @@ import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part, Tenon } from
 import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
 import { formatMm } from "@/lib/units/format";
+import { cabinetHoofNotches, cabinetPanelGroove, orientCabinetSideRail, rakeCabinetRail } from "./chinese-cabinet-machining";
+import { shelfClearanceMortises } from "../geometry/shelf-clearance";
 
 /**
  * 中式方角櫃（Chinese square-corner cabinet）
@@ -79,6 +81,10 @@ const CABINET_PRESETS: Record<string, CabinetPresetConfig> = {
 };
 
 export const chineseCabinetOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [
+    { value: "1", label: "原版" },
+    { value: "2", label: "修正版" },
+  ] },
   // 配置預設（最頂端，影響後續 layer 設定）
   { group: "preset", type: "select", key: "cabinetPreset", label: "配置預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（依下方層配置）" },
@@ -274,6 +280,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
 ];
 
 export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
+  const revisedConstruction = String(input.options?.constructionVersion) === "2";
   const o = chineseCabinetOptions;
   const { length, width, material } = input;
   const heightInput = input.height;
@@ -463,8 +470,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const innerSpanXat = (y: number): number => 2 * (postOuterXat(y) - postSize / 2);
   const innerSpanZat = (y: number): number => 2 * (postOuterZat(y) - postSize / 2);
   // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × outer face）
-  const railLenXat = (y: number): number => 2 * postOuterFaceXat(y);
-  const railLenZat = (y: number): number => 2 * postOuterFaceZat(y);
+  // §A10.2: revised stock stops at the post inner faces; tenons add cut allowance.
+  const railLenXat = (y: number): number => revisedConstruction ? innerSpanXat(y) : 2 * postOuterFaceXat(y);
+  const railLenZat = (y: number): number => revisedConstruction ? innerSpanZat(y) : 2 * postOuterFaceZat(y);
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -500,7 +508,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
    * MIN_LAYER_H = 60mm:再矮連一個薄抽屜都放不下(§N 五金孔位)。
    * 撐開後總高會超過內高,所以要同時發警告 —— 不能默默做出一個裝不下的櫃子。
    */
-  const MIN_LAYER_H = 60;
+  // Allow the divider thickness, 6mm bottom, two 3mm gaps and 18mm box wall.
+  const MIN_LAYER_H = revisedConstruction && layerTypes.includes("drawer") ? Math.max(60, railWidth + 30) : 60;
   const squeezedLayers: number[] = [];
   layerHeights = layerHeights.map((h, i) => {
     if (h >= MIN_LAYER_H) return h;
@@ -575,8 +584,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const postShape: Part["shape"] | undefined = isRoundCorner
         ? {
             kind: "splayed",
-            dxMm: sx * splayMmGlobal,
-            dzMm: sz * splayMmGlobal,
+            dxMm: sx * (revisedConstruction ? splayShiftAt(postBottomY) : splayMmGlobal),
+            dzMm: sz * (revisedConstruction ? splayShiftAt(postBottomY) : splayMmGlobal),
           }
         : effectiveLegShape === "box"
           ? undefined
@@ -1283,7 +1292,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               grainDirection: "length",
               shape: { kind: "round" },
               visible: { length: 30, width: 30, thickness: 8 },
-              origin: { x: pullX, y: pullY - 4, z: pullZ },
+              origin: { x: pullX, y: pullY - (revisedConstruction ? 15 : 4), z: pullZ },
+              ...(revisedConstruction ? { rotation: { x: Math.PI / 2, y: 0, z: 0 } } : {}),
               visual: "brass-antique",
               tenons: [],
               mortises: [],
@@ -1343,7 +1353,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               grainDirection: "length",
               shape: { kind: "round" },
               visible: { length: 28, width: 28, thickness: 8 },
-              origin: { x: cxOffset, y: pullY - 4, z: pullZ },
+              origin: { x: cxOffset, y: pullY - (revisedConstruction ? 14 : 4), z: pullZ },
+              ...(revisedConstruction ? { rotation: { x: Math.PI / 2, y: 0, z: 0 } } : {}),
               visual: "brass-antique",
               tenons: [],
               mortises: [],
@@ -1365,6 +1376,11 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       }
       // 抽屜底（簡化用 1 片底板）— 圓角櫃 splay：用該層 Y 算 Z 跨距
       const drawerBottomThickness = 6;
+      // §A10.5: the drawer box fits the clear opening, not the layer pitch.
+      const drawerBoxBottomY = revisedConstruction
+        ? layerBottomY + (i === 0 ? 18 : railWidth / 2) + 3
+        : layerBottomY + 5;
+      const drawerBoxTopY = layerTopY - (i === layerCount - 1 ? 0 : railWidth / 2) - 3;
       const drawerLayerCenterY = layerBottomY + drawerHeight / 2;
       const drawerInnerSpanZ = innerSpanZat(drawerLayerCenterY);
       parts.push({
@@ -1373,13 +1389,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: drawerWidth - 20, width: drawerInnerSpanZ - 30, thickness: drawerBottomThickness },
-        origin: { x: 0, y: layerBottomY + 5, z: 0 },
+        origin: { x: 0, y: drawerBoxBottomY, z: 0 },
         tenons: [],
         mortises: [],
       });
       // 抽屜兩側（立著的板，沿 Z 延伸）：X=厚, Y=高, Z=長
       const drawerSideThickness = 12;
-      const drawerSideHeight = drawerHeight - 12;
+      const drawerSideHeight = revisedConstruction
+        ? drawerBoxTopY - drawerBoxBottomY - drawerBottomThickness
+        : drawerHeight - 12;
       const drawerSideLength = drawerInnerSpanZ - 30;
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
@@ -1389,7 +1407,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: drawerSideThickness, width: drawerSideLength, thickness: drawerSideHeight },
-          origin: { x: sx * (drawerWidth / 2 - 10 - drawerSideThickness / 2), y: layerBottomY + 5 + drawerBottomThickness, z: 0 },
+          origin: { x: sx * (drawerWidth / 2 - 10 - drawerSideThickness / 2), y: drawerBoxBottomY + drawerBottomThickness, z: 0 },
           tenons: [],
           mortises: [],
         });
@@ -1401,7 +1419,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: drawerWidth - 20 - drawerSideThickness * 2, width: drawerSideThickness, thickness: drawerSideHeight },
-        origin: { x: 0, y: layerBottomY + 5 + drawerBottomThickness, z: postOuterZat(drawerLayerCenterY) - postSize / 2 - 20 },
+        origin: { x: 0, y: drawerBoxBottomY + drawerBottomThickness, z: postOuterZat(drawerLayerCenterY) - postSize / 2 - 20 },
         tenons: [],
         mortises: [],
       });
@@ -1410,7 +1428,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         const dividerThickness = 8;
         const innerWidth = drawerWidth - 20 - drawerSideThickness * 2;     // 兩側板內寬
         const innerLength = drawerSideLength - drawerSideThickness * 2;    // 後板到前抽屜面內深
-        const innerY = layerBottomY + 5 + drawerBottomThickness;
+        const innerY = drawerBoxBottomY + drawerBottomThickness;
         // 縱向分隔板（沿 Z 軸延伸，把抽屜分成左右兩格）
         parts.push({
           id: `layer${i + 1}-drawer-divider-vert`,
@@ -1483,7 +1501,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 牙條 shape（雲頭 / 壼門用 face-rounded 的 archMm 表示弧度）
   // arched 走純底凹強弧（壼門深弧），cloud-head 同時帶上凸+下凹（雲頭起翹）
   const skirtShape: Part["shape"] | undefined =
-    skirtStyle === "arched"
+    revisedConstruction && spandrelStyle !== "none" && !isRoundCorner
+      ? { kind: "face-rounded", cornerR: Math.min(spandrelSize * 0.35, skirtHeight * 0.25),
+          bottomArchMm: Math.min(skirtHeight - 18, skirtHeight * (spandrelStyle === "ruyi" ? 0.55 : 0.45), spandrelSize * 0.5) }
+      : skirtStyle === "arched"
       ? { kind: "face-rounded", cornerR: 8, bottomArchMm: skirtHeight * 0.55 }
       : skirtStyle === "cloud-head"
         ? { kind: "face-rounded", cornerR: 18, topArchMm: skirtHeight * 0.32, bottomArchMm: skirtHeight * 0.45 }
@@ -1508,7 +1529,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const fbLabel = sz < 0 ? "前" : "後";
     parts.push({
       id: `skirt-${fbId}`,
-      nameZh: `${fbLabel}牙條`,
+      nameZh: `${fbLabel}牙條${revisedConstruction && spandrelStyle !== "none" && !isRoundCorner ? "（連體牙頭）" : ""}`,
       material,
       grainDirection: "length",
       visible: { length: skirtSpanXatY, width: skirtThickness, thickness: skirtHeight },
@@ -1526,11 +1547,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const lrLabel = sx < 0 ? "左" : "右";
     parts.push({
       id: `skirt-${lrId}`,
-      nameZh: `${lrLabel}牙條`,
+      nameZh: `${lrLabel}牙條${revisedConstruction && spandrelStyle !== "none" && !isRoundCorner ? "（連體牙頭）" : ""}`,
       material,
       grainDirection: "length",
-      visible: { length: skirtThickness, width: skirtSpanZatY, thickness: skirtHeight },
+      visible: revisedConstruction
+        ? { length: skirtSpanZatY, width: skirtThickness, thickness: skirtHeight }
+        : { length: skirtThickness, width: skirtSpanZatY, thickness: skirtHeight },
       origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
+      ...(revisedConstruction ? { rotation: { x: 0, y: Math.PI / 2, z: 0 } } : {}),
       ...(skirtShape ? { shape: skirtShape } : {}),
       tenons: skirtTenons,
       mortises: [],
@@ -1540,7 +1564,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 牙頭裝飾（spandrel）：立柱跟牙條交角的小三角雕飾
   // ruyi 如意紋（明式）尖頂高弧、cloud-head 雲頭（清式）厚實圓弧
   // 圓角櫃不該有牙頭（裝飾構件衝突明式四大櫃形 sleek 形式）
-  if (spandrelStyle !== "none" && !isRoundCorner) {
+  // V2 carves the decorative ends integrally from each apron blank. Separate
+  // spandrel solids at these coordinates duplicate the same physical wood.
+  if (spandrelStyle !== "none" && !isRoundCorner && !revisedConstruction) {
     // ruyi 如意：尖頂高弧（如意紋上端尖凸），cornerR 大、topArch 強、bottomArch 也凹下露出花邊
     // cloud-head 雲頭：圓潤厚實（卷雲），cornerR 小、topArch 中等、bottomArch 不凹
     const spandrelShape: Part["shape"] =
@@ -1829,8 +1855,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const tbPostX = tbLength / 2 - tbPostSize / 2;
     const tbPostZ = tbWidth / 2 - tbPostSize / 2;
     const tbPostTopY = tbBaseY + topBoxHeight - tbTopThickness;
-    const tbRailLenX = 2 * (tbPostX + tbPostSize / 2);
-    const tbRailLenZ = 2 * (tbPostZ + tbPostSize / 2);
+    const tbRailLenX = 2 * (tbPostX + (revisedConstruction ? -1 : 1) * tbPostSize / 2);
+    const tbRailLenZ = 2 * (tbPostZ + (revisedConstruction ? -1 : 1) * tbPostSize / 2);
     const tbInnerSpanX = 2 * (tbPostX - tbPostSize / 2);
     const tbInnerSpanZ = 2 * (tbPostZ - tbPostSize / 2);
     const tbPanelInnerW_Z = tbInnerSpanZ - 10;
@@ -1956,7 +1982,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const tbDrawerY = tbDoorBottomY + tbDoorActualH + 2;
       const tbDrawerW = tbDrawerH - 4;
       const tbDrawerLen = tbInnerSpanX - 4;
-      const tbDrawerDepth = tbWidth - 30;  // 抽屜深 = 頂箱內深 - 30mm 餘量
+      const tbDrawerDepth = revisedConstruction
+        ? tbFbRailOffsetZ - panelThickness / 2 - 3 - (tbDoorZ + tbDoorThickness / 2)
+        : tbWidth - 30;
       // 1. 抽屜面板
       parts.push({
         id: "tb-drawer-front",
@@ -1990,7 +2018,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerBackT, thickness: tbDrawerW - 8 },
-        origin: { x: 0, y: tbDrawerY + 4, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth - tbDrawerBackT / 2 },
+        origin: { x: 0, y: tbDrawerY + (revisedConstruction ? 8 : 4), z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth - tbDrawerBackT / 2 },
         tenons: [],
         mortises: [],
       });
@@ -2000,8 +2028,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: "頂箱抽屜底板",
         material,
         grainDirection: "length",
-        visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerDepth - 8, thickness: tbDrawerBottomT },
-        origin: { x: 0, y: tbDrawerY + 2, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth / 2 },
+        visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerDepth - (revisedConstruction ? tbDrawerBackT : 8), thickness: tbDrawerBottomT },
+        origin: { x: 0, y: tbDrawerY + 2, z: tbDoorZ + tbDoorThickness / 2 + (tbDrawerDepth - (revisedConstruction ? tbDrawerBackT : 0)) / 2 },
         tenons: [],
         mortises: [],
       });
@@ -2036,6 +2064,55 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
+  if (revisedConstruction) {
+    const posts = parts.filter(p => p.id.startsWith("post-"));
+    // Floating panels retain their full blanks, including 5mm engagement at
+    // each end. Machine the receivers, with 0.5mm total thickness clearance.
+    if (isRoundCorner) {
+      for (const shelf of parts.filter(p => p.id.startsWith("divider-") || p.id === "bottom-board" || p.id.includes("extra-shelf"))) {
+        shelf.mortises.push(...shelfClearanceMortises(shelf, posts, "側腳避讓"));
+      }
+      for (const rail of parts.filter(p => /^(left-side|right-side|front|back)-(upper|lower)-rail$/.test(p.id))) {
+        const side = rail.id.includes("side");
+        const sign = Math.sign(side ? rail.origin.x : rail.origin.z);
+        const bottom = rail.origin.y, top = bottom + rail.visible.thickness;
+        rakeCabinetRail(rail, side, side ? innerSpanZat(bottom) : innerSpanXat(bottom),
+          side ? innerSpanZat(top) : innerSpanXat(top), sign * (splayShiftAt(bottom) - splayShiftAt(top)) / 2);
+      }
+    }
+    for (const rail of parts.filter(p => /side-(upper|lower)-rail$/.test(p.id))) orientCabinetSideRail(rail);
+    for (const receiver of parts.filter(p => p.id.startsWith("skirt-") || p.id.endsWith("lower-rail"))) {
+      receiver.mortises.push(...cabinetHoofNotches(receiver, posts));
+    }
+    for (const face of ["left-side", "right-side", "back", ...(isCompound ? ["tb-left-side", "tb-right-side", "tb-back"] : [])]) {
+      const panel = parts.find(p => p.id === `${face}-panel`)!;
+      for (const role of ["upper", "lower"]) {
+        const rail = parts.find(p => p.id === `${face}-${role}-rail`);
+        if (!rail || (face === "back" && backPanelStyle !== "framed")) continue;
+        const side = face.includes("side");
+        rail.mortises.push(cabinetPanelGroove(rail, panel, side, role === "upper"));
+      }
+    }
+    for (const rail of parts.filter(p => /^tb-.*-rail$/.test(p.id))) {
+      const tbPost = parts.find(p => p.id === "tb-post-front-left")!;
+      rail.tenons = (["start", "end"] as const).map(position => ({
+        position, type: "shouldered-tenon", length: Math.min(20, Math.round(tbPost.visible.length / 2 - 2)),
+        width: Math.max(15, rail.visible.thickness - 16), thickness: tenonT,
+      }));
+      const side = rail.id.includes("side");
+      const face = rail.id.split("-")[1];
+      const receivers = parts.filter(p => p.id.startsWith("tb-post-") && p.id.includes(`-${face}`));
+      for (const post of receivers) {
+        const tenon = rail.tenons[0];
+        post.mortises.push({ origin: {
+          x: side ? rail.origin.x - post.origin.x : -Math.sign(post.origin.x) * post.visible.length / 2,
+          y: rail.origin.y + rail.visible.thickness / 2 - post.origin.y,
+          z: side ? -Math.sign(post.origin.z) * post.visible.width / 2 : rail.origin.z - post.origin.z,
+        }, depth: tenon.length, length: tenon.width, width: tenon.thickness, through: false });
+      }
+    }
+  }
+
   const design: FurnitureDesign = {
     id: `chinese-cabinet-${length}x${width}x${heightInput}`,
     category: "chinese-cabinet",
@@ -2051,6 +2128,22 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   if (layerWarnings.length > 0) design.warnings = [...(design.warnings ?? []), ...layerWarnings];
+  if (revisedConstruction) {
+    design.notes += isEn
+      ? " Construction v2 uses inner-post rail shoulders and separate tenon allowances. Floating-panel grooves are 5mm deep, enclosing the panel over its full engagement band plus 0.5mm total thickness clearance; groove removal does not reduce blank dimensions."
+      : " 結構 v2：邊抹採立柱內面肩距，榫長另計。板心槽深 5mm，槽寬包絡整段入槽板形並另留厚向總間隙 0.5mm；開槽不扣減毛料尺寸。";
+    if (parts.some(p => p.mortises.some(m => m.label?.startsWith("馬蹄避讓")))) {
+      design.notes += isEn
+        ? " Hoof relief follows the directional foot profile in steps of at most 0.25mm plus 0.25mm clearance. End-connected cuts open through the broad faces; overlapping tool paths represent one removal union and are counted once per receiver/post, not once per cutter box."
+        : " 馬蹄避讓依方向性足形分階加工，輪廓階差不超過 0.25mm，另留 0.25mm 間隙；切口連通端面並穿透大面。重疊刀路僅表達同一切除聯集，按零件與立柱組合計一次加工，不按刀塊逐筆計工。";
+    }
+    if (spandrelStyle !== "none" && !isRoundCorner) {
+      const removedBlankMm3 = 8 * spandrelSize * skirtThickness * skirtHeight;
+      design.notes += isEn
+        ? ` The eight separate spandrels in v1 duplicated the apron stock. V2 carves integral decorative ends into four apron blanks, eliminating eight parts and ${removedBlankMm3}mm3 of duplicate blank allowance, not reducing the four apron blanks. The central apron web remains at least 18mm high.`
+        : ` v1 的 8 塊獨立牙頭與牙條重複佔料；v2 改由 4 支牙條毛料雕成連體牙頭，移除 8 個重複零件及 ${removedBlankMm3}mm³ 重複毛料，並非縮小 4 支牙條毛料。牙條中央保留至少 18mm 肉高。`;
+    }
+  }
   applyStandardChecks(design, {
     minLength: 500, minWidth: 250, minHeight: 600,
     maxLength: 1500, maxWidth: 600, maxHeight: isCompound ? 2600 : 2200,

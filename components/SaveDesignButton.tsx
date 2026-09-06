@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { designFingerprint } from "@/lib/design/saved-query";
+import { designFingerprint, savedDesignQuery } from "@/lib/design/saved-query";
+import { isBlankDesignQuery } from "@/lib/design/is-blank-design-query";
 import { DesignVersions } from "@/components/design/DesignVersions";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -20,6 +21,16 @@ interface Props {
   currentDesignId?: string | null;
 }
 
+const VISUAL_KEYS = ["scene", "xray", "wf", "audit", "explode", "ui", "lidLift", "style", "styleVariant", "hide"];
+function editorQuery(id: string, params: Record<string, unknown>, revision?: string) {
+  const query = savedDesignQuery(id, params, revision);
+  const live = new URLSearchParams(window.location.search);
+  for (const key of VISUAL_KEYS) {
+    for (const value of live.getAll(key)) query.append(key, value);
+  }
+  return query;
+}
+
 export function SaveDesignButton({ furnitureType, defaultName, params, currentDesignId }: Props) {
   const t = useTranslations("saveDesign");
   const tPrompt = useTranslations("saveDesign.loginPrompt");
@@ -34,6 +45,8 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
   );
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const fingerprint = designFingerprint(params);
+  const latestParams = useRef(params);
+  latestParams.current = params;
   const [savedFingerprint, setSavedFingerprint] = useState(fingerprint);
   const revisionRef = useRef(searchParams?.get("revision") ?? undefined);
   const inFlight = useRef(false);
@@ -56,8 +69,8 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
     return () => window.removeEventListener("wooden-ren:design-saved", sync);
   }, []);
 
-  const markSaved = (id: string) => {
-    window.dispatchEvent(new CustomEvent("wooden-ren:design-saved", { detail: { id, fingerprint, revision: revisionRef.current, search: searchParams.toString() } }));
+  const markSaved = (id: string, editorSearch: string) => {
+    window.dispatchEvent(new CustomEvent("wooden-ren:design-saved", { detail: { id, fingerprint, revision: revisionRef.current, search: editorQuery(id, params, revisionRef.current).toString(), editorSearch } }));
   };
 
   useEffect(() => {
@@ -156,11 +169,24 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
   };
 
   const attachDesignIdToUrl = (id: string) => {
-    const next = new URLSearchParams(window.location.search);
-    next.set("designId", id);
-    if (revisionRef.current) next.set("revision", revisionRef.current);
+    // Use model inputs, not the potentially blank/stale URL. Retain newer edits
+    // while the response still marks only the submitted fingerprint as saved.
+    const next = editorQuery(id, latestParams.current, revisionRef.current);
+    const versionedTemplate = next.has("constructionVersion");
+    const live = new URLSearchParams(window.location.search);
+    for (const key of new Set([...searchParams.keys(), ...live.keys()])) {
+      if (key === "designId" || key === "revision") continue;
+      // A navigation may precede its server render: do not erase in-flight edits.
+      if (JSON.stringify(live.getAll(key)) !== JSON.stringify(searchParams.getAll(key))) {
+        next.delete(key);
+        for (const value of live.getAll(key)) next.append(key, value);
+      }
+    }
+    // A10.15: Reset to a blank URL remains v2 after attaching the saved reference.
+    if (versionedTemplate && isBlankDesignQuery(live.keys())) next.set("constructionVersion", "2");
     const qs = next.toString();
     router.replace(qs ? `${pathname ?? ""}?${qs}` : (pathname ?? ""), { scroll: false });
+    return qs;
   };
 
   const handleSave = async () => {
@@ -186,8 +212,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
         const id = await handleCreate(requestContext);
         if (!id) return;
         setActiveDesignId(id);
-        attachDesignIdToUrl(id);
-        markSaved(id);
+        markSaved(id, attachDesignIdToUrl(id));
         setMsg({ kind: "ok", text: t("okSaved") });
         return;
       }
@@ -216,8 +241,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       }
 
       revisionRef.current = json.updated_at;
-      attachDesignIdToUrl(activeDesignId);
-      markSaved(activeDesignId);
+      markSaved(activeDesignId, attachDesignIdToUrl(activeDesignId));
       setMsg({ kind: "ok", text: t("okUpdated") });
     } catch (e) {
       setMsg({
@@ -245,8 +269,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       const id = await handleCreate(requestContext);
       if (!id) return;
       setActiveDesignId(id);
-      attachDesignIdToUrl(id);
-      markSaved(id);
+      markSaved(id, attachDesignIdToUrl(id));
       setMsg({ kind: "ok", text: t("okSavedAs") });
     } catch (e) {
       setMsg({

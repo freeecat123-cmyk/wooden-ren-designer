@@ -55,5 +55,5 @@ it("recognizes the dovetail-box lid rebate without excusing wall joints", () => 
   expect(parts).toHaveLength(2);
   expect(findOverlaps(parts)).toEqual([]);
   expect(findOverlaps(parts.map(p => ({ ...p, mortises: [] })))).toHaveLength(1);
-  expect(findOverlaps(design.parts)).toHaveLength(6);
+  expect(findOverlaps(design.parts)).toHaveLength(0);
 });

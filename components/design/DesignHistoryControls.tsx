@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { isBlankDesignQuery } from "@/lib/design/is-blank-design-query";
 
 const STORAGE_PREFIX = "wooden-ren-designer:design-history:v1";
 const MAX_HISTORY = 40;
@@ -82,18 +83,27 @@ export function DesignHistoryControls({
 
   useEffect(() => {
     const onSaved = (event: Event) => {
-      const { id } = (event as CustomEvent<{ id: string }>).detail;
+      const { id, search: savedSearch, editorSearch } = (event as CustomEvent<{ id: string; search?: string; editorSearch?: string }>).detail;
+      const versionedTemplate = new URLSearchParams(savedSearch).has("constructionVersion");
       const nextKey = `${STORAGE_PREFIX}:${pathname}:${id}`;
-      if (nextKey === storageKey) return;
+      if (nextKey === storageKey && editorSearch === undefined) return;
       const rebase = (target: string) => {
         const url = new URL(target, window.location.origin);
+        // A10.15: adding a saved reference must not turn a blank v2 baseline into
+        // legacy construction. Unknown/structural keys conservatively stay unchanged.
+        if (versionedTemplate && url.pathname === pathname
+          && isBlankDesignQuery(url.searchParams.keys())) {
+          url.searchParams.set("constructionVersion", "2");
+        }
         url.searchParams.set("designId", id);
         url.searchParams.delete("revision");
         url.searchParams.sort();
         return `${url.pathname}?${url.searchParams}`;
       };
       const base = readState(storageKey) ?? history;
-      const next = { past: base.past.map(rebase), current: rebase(base.current), future: base.future.map(rebase) };
+      // Save supplies its actual navigation query, including newer unsaved edits.
+      // Canonicalizing that same editor state is not an additional undo step.
+      const next = { past: base.past.map(rebase), current: rebase(editorSearch === undefined ? base.current : `${pathname}?${editorSearch}`), future: base.future.map(rebase) };
       writeState(nextKey, next);
       lastStorageKeyRef.current = nextKey;
       setHistory(next);

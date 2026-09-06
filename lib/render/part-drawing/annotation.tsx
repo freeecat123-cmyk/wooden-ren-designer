@@ -14,6 +14,7 @@
  */
 
 import React from "react";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
 import {
   DimensionLine,
@@ -1046,6 +1047,8 @@ export function T2Annotations({
     depthAxis: "x" | "y" | "z";
     rotX: number; rotY: number; rotZ: number;
   } {
+    const construction = constructionCutBox(m);
+    if (construction) return { ...construction, rotX: 0, rotY: 0, rotZ: 0 };
     const lx = part.visible.length;
     const ly = part.visible.thickness;
     const lz = part.visible.width;

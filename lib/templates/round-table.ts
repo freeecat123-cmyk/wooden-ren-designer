@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { addConstructionHousing, enforceConstructionLimits } from "@/lib/geometry/construction-cuts";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { apronSetbackOption, resolveApronSetbackForLeg, apronMortiseOffset, legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -354,6 +355,7 @@ function buildTrestleRoundTable(p: {
 }
 
 export const roundTableOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
   seatEdgeOption("top", 1),
   seatEdgeStyleOption("top"),
@@ -467,7 +469,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const seatChamferMmEarly = parseSeatChamferMm(seatEdge);
   // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
   if (legShape === "pedestal") {
-    return buildPedestalRoundTable({
+    const pedestal = buildPedestalRoundTable({
       diameter, height, material, topThickness, legSize, legHeight, radius,
       footLengthOverride: getOption<number>(input, opt(o, "pedestalFootLength")),
       footWidth: getOption<number>(input, opt(o, "pedestalFootWidth")),
@@ -476,6 +478,14 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       seatEdgeStyle,
       locale,
     });
+    if (String(input.options?.constructionVersion) === "2") {
+      const column = pedestal.parts.find(p => p.id === "pedestal-column")!;
+      for (const foot of pedestal.parts.filter(p => p.id.startsWith("pedestal-foot-"))) {
+        addConstructionHousing(column, foot, locale === "en" ? "Pedestal foot housing" : "獨柱底爪嵌槽");
+      }
+      enforceConstructionLimits(pedestal, locale);
+    }
+    return pedestal;
   }
   if (legShape === "trestle") {
     return buildTrestleRoundTable({

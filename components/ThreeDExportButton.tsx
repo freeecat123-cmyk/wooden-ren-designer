@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
-import { downloadSTL, downloadOBJ, downloadFlatLayoutSTL, download3MF, validateDesignExport } from "@/lib/export/three-d-export";
+import { downloadSTL, downloadOBJ, downloadFlatLayoutSTL, download3MF, validateDesignExport, MORTISE_EXPORT_LIMITATIONS, JOINERY_EXPORT_LIMITATIONS, type ExportMode } from "@/lib/export/three-d-export";
 import { downloadPartsSvgZip, downloadNestedSvg, downloadJoineryFacesZip, downloadNestedJoinerySvg, designHasMortises } from "@/lib/export/parts-svg";
 import { DEFAULT_SHEET, type NestSheetConfig } from "@/lib/export/nest-sheet";
 import { analyzeMinThickness, MIN_PRINTABLE_MM } from "@/lib/export/export-checks";
 
 interface Props {
   design: FurnitureDesign;
+  /** Unstripped joinery model; never infer it from the assembly display model. */
+  machiningDesign?: FurnitureDesign;
 }
 
 const DEFAULT_IDX = 3;
@@ -83,8 +85,11 @@ function clampNest(v: NestSheetConfig): NestSheetConfig {
   };
 }
 
-export function ThreeDExportButton({ design }: Props) {
+export function ThreeDExportButton({ design, machiningDesign }: Props) {
   const t = useTranslations("threeDExport");
+  const en = useLocale().startsWith("en");
+  const [mode, setMode] = useState<ExportMode>("printable");
+  const [exportError, setExportError] = useState("");
   const [scaleIdx, setScaleIdx] = useState(DEFAULT_IDX);
   const SCALES: Array<{ label: string; value: number }> = [
     { label: t("scale1to1"), value: 1 },
@@ -100,8 +105,20 @@ export function ThreeDExportButton({ design }: Props) {
 
   const minThk = useMemo(() => analyzeMinThickness(design, scale), [design, scale]);
   const tooThin = minThk.thinnestMm < MIN_PRINTABLE_MM;
+  const exportDesign = mode === "printable" ? design : machiningDesign;
 
-  const validation = useMemo(() => validateDesignExport(design), [design]);
+  const check = useMemo(() => {
+    if (!exportDesign) return { validation: null, error: en ? "Accurate export requires the joinery source model." : "尺寸保真匯出需要未移除榫接的來源模型。" };
+    try { return { validation: validateDesignExport(exportDesign, mode), error: "" }; }
+    catch (err) { return { validation: null, error: err instanceof Error ? err.message : String(err) }; }
+  }, [exportDesign, mode, en]);
+  const validation = check.validation;
+  const runExport = (download: typeof downloadSTL) => {
+    setExportError("");
+    if (!exportDesign || check.error) { setExportError(check.error); return; }
+    try { download(exportDesign, scale, mode); }
+    catch (err) { setExportError(err instanceof Error ? err.message : String(err)); }
+  };
   const hasMortises = useMemo(() => designHasMortises(design), [design]);
 
   // ⚠️localStorage 不能在 useState 初值讀：伺服器端算出來的是預設值，兩邊不一致會 hydration 警告。
@@ -126,6 +143,16 @@ export function ThreeDExportButton({ design }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-zinc-500 font-medium">{t("lbl")}</span>
         <select
+          aria-label={en ? "Export geometry" : "匯出幾何"}
+          value={mode}
+          onChange={(e) => { setMode(e.target.value as ExportMode); setExportError(""); }}
+          className="max-w-full px-2 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700"
+        >
+          <option value="printable">{en ? "Simplified printable model" : "簡化列印模型"}</option>
+          <option value="mortise-accurate" disabled={!machiningDesign}>{en ? "True dimensions: mortise cuts only" : "尺寸保真：僅扣榫孔"}</option>
+          <option value="joinery-accurate" disabled={!machiningDesign}>{en ? "True dimensions: supported joinery" : "尺寸保真：已支援榫接"}</option>
+        </select>
+        <select
           value={scaleIdx}
           onChange={(e) => setScaleIdx(Number(e.target.value))}
           className="px-2 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
@@ -137,7 +164,8 @@ export function ThreeDExportButton({ design }: Props) {
         </select>
         <button
           type="button"
-          onClick={() => downloadSTL(design, scale)}
+          disabled={!!check.error}
+          onClick={() => runExport(downloadSTL)}
           className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
           title={t("stlTitle")}
         >
@@ -145,7 +173,8 @@ export function ThreeDExportButton({ design }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => downloadOBJ(design, scale)}
+          disabled={!!check.error}
+          onClick={() => runExport(downloadOBJ)}
           className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
           title={t("objTitle")}
         >
@@ -153,7 +182,8 @@ export function ThreeDExportButton({ design }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => downloadFlatLayoutSTL(design, scale)}
+          disabled={!!check.error}
+          onClick={() => runExport(downloadFlatLayoutSTL)}
           className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
           title={t("flatTitle")}
         >
@@ -161,7 +191,8 @@ export function ThreeDExportButton({ design }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => download3MF(design, scale)}
+          disabled={!!check.error}
+          onClick={() => runExport(download3MF)}
           className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
           title={t("threeMfTitle")}
         >
@@ -285,7 +316,16 @@ export function ThreeDExportButton({ design }: Props) {
           </span>
         </div>
       )}
-      {tooThin && (
+      {mode !== "printable" && (
+        <p className="text-amber-800">
+          {mode === "mortise-accurate"
+            ? (en ? MORTISE_EXPORT_LIMITATIONS : "僅扣除明確定義的榫孔；不含公榫凸出、衍生鳩尾母槽。圓孔為 24 邊近似，不是完整加工模型或刀路。")
+            : (en ? JOINERY_EXPORT_LIMITATIONS : "含方料一般矩形公榫、圓料軸向圓榫及預覽定義的鳩尾母槽；不套視覺縮量。複合斜榫與特殊肩形會阻擋匯出。圓形為多邊近似，不是完整加工模型或刀路。")}
+          {en ? " No automatic thickening; selected scale applies." : " 不自動加厚，依所選比例輸出。"}
+        </p>
+      )}
+      {(exportError || check.error) && <p role="alert" className="text-rose-600">{exportError || check.error}</p>}
+      {tooThin && mode === "printable" && (
         <p className="text-amber-700">
           {t("warnThinTpl", {
             thin: minThk.thinnestMm.toFixed(1),
@@ -294,7 +334,7 @@ export function ThreeDExportButton({ design }: Props) {
           })}
         </p>
       )}
-      {!validation.ok && (
+      {validation && !validation.ok && (
         <p className="text-rose-600">
           {t("warnBadGeoTpl", {
             n: validation.badParts.length,

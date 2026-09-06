@@ -16,7 +16,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
 import { WebInstallBanner } from "@/components/WebInstallBanner";
 import { pickClientMessages } from "@/lib/i18n/client-namespaces";
-import { Analytics } from "@vercel/analytics/next";
+import { PrivacySafeAnalytics } from "@/components/PrivacySafeAnalytics";
 import { SignupTracker } from "@/components/SignupTracker";
 
 const geistSans = Geist({
@@ -282,7 +282,7 @@ export default async function LocaleLayout({
             <WebInstallBanner />
           </AuthProvider>
         </NextIntlClientProvider>
-        <Analytics />
+        <PrivacySafeAnalytics />
       </body>
     </html>
   );

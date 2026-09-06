@@ -8,9 +8,11 @@ import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
 import { CoffeeDuck } from "@/components/viewer/CoffeeDuck";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, Mesh, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group, type Material } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, Mesh, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group, type Material } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
+import type { Brush } from "three-bvh-csg";
+import { subtractMortisesFromGeometry, ordinaryTenonPrimitive, buildDovetailCutBrushes, dovetailCutsForPart, subtractDovetailReceiverGeometry, partForJoineryView } from "@/lib/render/mortise-csg";
+export { subtractMortisesFromGeometry } from "@/lib/render/mortise-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
@@ -22,7 +24,6 @@ import { partName } from "@/lib/templates/part-names";
 import {
   type ShapeSpec,
   buildShapeGeometry,
-  buildDovetailEndsGeometry,
   holeAxisOf,
   holeRadiusOf,
 } from "@/lib/render/part-geometry";
@@ -123,121 +124,6 @@ function pairShadeByPartId(hex: string, partId: string): string {
   return `#${toHex(clamp(r))}${toHex(clamp(g))}${toHex(clamp(b))}`;
 }
 
-
-/**
- * 把母件的 base geometry 用 CSG 減掉每個 mortise 對應的方塊，produce 帶
- * 真實榫眼洞的 buffer geometry。box 座標已 SCALE 過（three.js units）。
- *
- * - through mortise 由 caller 傳入時自帶內墊（避免 CSG 留薄殼）
- * - 共用一個 Evaluator 跑完所有 mortise（sequential subtraction）
- * - 中間 brush 的 geometry 會 dispose；保留原 baseGeo 不動（useMemo 會重用）
- */
-export function subtractMortisesFromGeometry(
-  baseGeo: BufferGeometry,
-  mortiseBoxes: LocalBox[],
-  mortiseShapes?: Array<"rect" | "round">,
-): BufferGeometry {
-  if (mortiseBoxes.length === 0) return baseGeo;
-  // 確保 base 有 normal 跟 index（CSG 必須）。原 builder 多半都做了，
-  // 但雙保險：toNonIndexed → mergeVertices? 實際試 prepareGeometry 再
-  // call evaluator。BoxGeometry / buildChamferedEdgesGeometry 都 indexed。
-  const material = new MeshStandardMaterial();
-  const evaluator = new Evaluator();
-  evaluator.useGroups = false;
-  // 限定只處理 position + normal，避免 base 有 uv 但 cut 沒 uv（或反之）
-  // 觸發 evaluator 內部 attribute mismatch crash。
-  evaluator.attributes = ["position", "normal"];
-  // 統一兩個 brush 的 attribute set：剝掉 uv
-  const baseClean = baseGeo.clone();
-  baseClean.deleteAttribute("uv");
-  if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
-  let acc = new Brush(baseClean, material);
-  acc.updateMatrixWorld();
-  for (let i = 0; i < mortiseBoxes.length; i++) {
-    const m = mortiseBoxes[i];
-    if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
-    // 防呆：half-extent 或中心若是 NaN/Infinity，BoxGeometry 會吐 degenerate
-    // triangles → three-bvh-csg 計算 BVH 時 normal=null → dot() crash
-    if (
-      !Number.isFinite(m.hx) || !Number.isFinite(m.hy) || !Number.isFinite(m.hz) ||
-      !Number.isFinite(m.cx) || !Number.isFinite(m.cy) || !Number.isFinite(m.cz)
-    ) {
-      if (typeof console !== "undefined") {
-        console.warn("[subtractMortisesFromGeometry] skip non-finite mortise", m);
-      }
-      continue;
-    }
-    const isRound = mortiseShapes?.[i] === "round";
-    // 外撇牆 cosmetic 孔（rotX≠0）的 slice 幾何修正：
-    // Wall 在 part-local 是 parallelogram（mitered-ends vertices）；外面法線
-    // 在 y-z 平面斜 θ。cut Brush 繞 part-local X 軸轉 ±θ，cut Y 軸對齊牆法線。
-    //
-    // 問題：rotated BoxGeometry / CylinderGeometry 切到「牆外面」slice 處的
-    // 形狀跟使用者指定的 (handleW × handleH) 矩形 / 半徑 hz 圓**對不上**：
-    //   - Box slice z 半寬 = hz_cut / cos θ（cos 放大）
-    //   - Cyl slice 是橢圓（x 半徑 r，z 半徑 r/c），不是圓
-    //   - 兩者形狀差距使 pill 中段 rect 跟兩端 circle z 大小錯位
-    //
-    // 數學解（見 /tmp/slice-math.md）：
-    //   hy_ext  = m.hy / cosθ + m.hz · sinθ       （延伸 depth，避免 strip 1 截斷）
-    //   hz_scaled = m.hz · cosθ                    （壓縮 z，slice 後還原成 m.hz）
-    //   Box: BoxGeometry(2·hx, 2·hy_ext, 2·hz_scaled)
-    //   Cyl: CylinderGeometry(hz, hz, 2·hy_ext).scale(1, 1, cosθ)
-    //     （cross-section 預壓成 ellipse，rotation 後 slice 才是正圓 radius=hz）
-    //
-    // Slice 中心會在 z = hy_wall·tanθ（非 z=0），但 pill 三孔同 cz、同步偏移、仍對齊。
-    const absRot = m.rotX ? Math.abs(m.rotX) : 0;
-    const c = absRot ? Math.cos(absRot) : 1;
-    const s = absRot ? Math.sin(absRot) : 0;
-    const hyExt = absRot ? (m.hy / c + m.hz * s) : m.hy;
-    const hzScaled = absRot ? m.hz * c : m.hz;
-    let cutGeo: BufferGeometry;
-    // 圓孔的「孔軸」＝ half-extent 最大那軸（跟下面「塞」那條同一套判斷）。
-    // 🩸2026-09-04 木頭仁回報「前腳 holdfast、長板靠板都沒顯示孔」：桌面狗孔的深度落在
-    // local Y，但腳 / 靠板的孔是往側面鑽、深度落在 local Z。以前一律當 Y 軸做圓柱
-    // → 半徑拿到的是「半個孔深」（50）、長度拿到的是孔半徑（19），等於拿一塊餅去挖，
-    // 挖出來根本不是孔。rotX≠0（外撇牆斜孔）維持原本的 Y 軸 slice 數學不動。
-    const holeAxis: "x" | "y" | "z" = absRot ? "y" : holeAxisOf(m.hx, m.hy, m.hz);
-    if (isRound) {
-      const halfLen = holeAxis === "x" ? m.hx : holeAxis === "z" ? m.hz : hyExt;
-      const radius = absRot ? m.hz : holeRadiusOf(m.hx, m.hy, m.hz);
-      // 圓孔 cross-section 預壓 ellipse：x-radius radius、z-radius radius·c
-      // rotation 後 slice = 半徑 radius 正圓
-      cutGeo = new CylinderGeometry(radius, radius, 2 * halfLen, 24);
-      if (absRot) cutGeo.scale(1, 1, c);
-      // CylinderGeometry 預設軸是 Y；孔軸在 X / Z 要先轉過去
-      if (holeAxis === "z") cutGeo.rotateX(Math.PI / 2);
-      else if (holeAxis === "x") cutGeo.rotateZ(Math.PI / 2);
-    } else {
-      cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
-    }
-    // 把 rotation 直接烤進 geometry，避免 three-bvh-csg 的 matrixWorld
-    // propagation 不一致（mesh.rotation 有時不反映到 evaluator）。
-    // rotX：外撇牆 cosmetic 孔（孔軸跟牆面法線一致）
-    // rotZ：splayed apron Z 面 mortise（cross-section 跟 tilted tenon 對齊）
-    if (m.rotX) cutGeo.rotateX(m.rotX);
-    if (m.rotY) cutGeo.rotateY(m.rotY);
-    if (m.rotZ) cutGeo.rotateZ(m.rotZ);
-    cutGeo.deleteAttribute("uv");
-    const cut = new Brush(cutGeo, material);
-    cut.position.set(m.cx, m.cy, m.cz);
-    cut.updateMatrixWorld();
-    try {
-      const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-      cutGeo.dispose();
-      acc.geometry.dispose();
-      acc = next;
-    } catch (err) {
-      // three-bvh-csg 偶爾因 degenerate triangle / 邊界重疊 hit null normal
-      // → 整個頁面掛掉。skip 這個 mortise 比讓使用者看到錯誤頁好。
-      if (typeof console !== "undefined") {
-        console.warn("[subtractMortisesFromGeometry] CSG evaluate failed, skipping mortise", { mortise: m, err });
-      }
-      cutGeo.dispose();
-    }
-  }
-  return acc.geometry;
-}
 
 type PartProps = {
   position: [number, number, number];
@@ -416,30 +302,15 @@ const Part = memo(function PartInner({
   const dovetailCutGeometry = useMemo(() => {
     if (!dovetailCuts || dovetailCuts.length === 0) return null;
     const localGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
-    const material = new MeshStandardMaterial();
-    const evaluator = new Evaluator();
-    evaluator.useGroups = false;
-    evaluator.attributes = ["position", "normal"];
-    const baseClean = localGeo.clone();
-    baseClean.deleteAttribute("uv");
-    if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
     // PRE-TRANSFORM base geo to world：vertices 直接套上 part 的 world matrix
     const m = new Matrix4().compose(
       new Vector3(px0, py0, pz0),
       new Quaternion().setFromEuler(new Euler(rx0, ry0, rz0, "ZYX")),
       new Vector3(1, 1, 1),
     );
-    baseClean.applyMatrix4(m);
-    baseClean.computeVertexNormals();
-    let acc = new Brush(baseClean, material);
-    acc.updateMatrixWorld();  // identity
-    for (const cut of dovetailCuts) {
-      const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-      acc.geometry.dispose();
-      acc = next;
-    }
+    const result = subtractDovetailReceiverGeometry(localGeo, m, dovetailCuts);
     if (!csgGeometry && !geometry) localGeo.dispose();
-    return acc.geometry;
+    return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [csgGeometry, geometry, size[0], size[1], size[2], dovetailCuts, px0, py0, pz0, rx0, ry0, rz0]);
   // wireframeMode：抽出 silhouette edges（box=12 邊、tapered=12、圓柱=雙圈
@@ -852,52 +723,7 @@ export function PerspectiveView({
   // 上輪 (09c1097 → revert 191a5ac) 用 brush.position.set + rotation.set +
   // updateMatrixWorld 對齊，側板整個被挖空。本輪改 pre-transform geometry 避開
   // matrixWorld propagation 疑慮。
-  const dovetailCutBrushes = useMemo<{ brush: Brush; fromLid: boolean }[]>(() => {
-    const brushes: { brush: Brush; fromLid: boolean }[] = [];
-    const material = new MeshStandardMaterial();
-    for (const part of design.parts) {
-      if (part.shape?.kind !== "dovetail-ends") continue;
-      const sx = part.visible.length * SCALE;
-      const sy = part.visible.thickness * SCALE;
-      const sz = part.visible.width * SCALE;
-      const geo = buildDovetailEndsGeometry(
-        [sx, sy, sz],
-        part.shape.segmentCount,
-        part.shape.phase,
-        part.shape.angleDeg,
-        part.shape.pinDepth * SCALE,
-        part.shape.halfPin ?? true,
-      );
-      geo.deleteAttribute("uv");
-      if (!geo.attributes.normal) geo.computeVertexNormals();
-      // tail tip 在 X=±halfLength 跟側板外面 face 重合 → Z-fighting
-      // 沿 X 微放大讓 cut 超出側板外面 0.2mm（feedback_csg_overlap_over_analytical_fit）
-      // 之前用 1mm 過大，cavity 比 tail 深 1mm，視覺上會看到 tail tip 後面亮色細縫。
-      const sxFull = part.visible.length;
-      const xScale = (sxFull + 0.4) / sxFull;
-      geo.scale(xScale, 1, 1);
-      const { yExt } = worldExtents(part);
-      const px = part.origin.x * SCALE;
-      const py = (part.origin.y + yExt / 2) * SCALE;
-      const pz = part.origin.z * SCALE;
-      const m = new Matrix4().compose(
-        new Vector3(px, py, pz),
-        new Quaternion().setFromEuler(new Euler(
-          part.rotation?.x ?? 0,
-          part.rotation?.y ?? 0,
-          part.rotation?.z ?? 0,
-          "ZYX",
-        )),
-        new Vector3(1, 1, 1),
-      );
-      geo.applyMatrix4(m);
-      geo.computeVertexNormals();
-      const brush = new Brush(geo, material);
-      brush.updateMatrixWorld();  // identity matrix
-      brushes.push({ brush, fromLid: /-lid$/.test(part.id) });
-    }
-    return brushes;
-  }, [design.parts]);
+  const dovetailCutBrushes = useMemo(() => buildDovetailCutBrushes(design.parts, SCALE), [design.parts]);
 
   const tPV = useTranslations("perspectiveView");
   const pvLocale = useLocale();
@@ -1204,14 +1030,7 @@ export function PerspectiveView({
           if (hidePartIds.includes(partRaw.id)) return null;
           // joineryView 覆寫：joineryMode 開啟時，部分 part 會用「榫接版專用幾何」
           // （e.g. 書擋的 45° miter）；組裝版維持原本直角對接 / 簡潔形狀。
-          const part = joineryMode && partRaw.joineryView
-            ? {
-                ...partRaw,
-                shape: partRaw.joineryView.shape ?? partRaw.shape,
-                visible: partRaw.joineryView.visible ?? partRaw.visible,
-                origin: partRaw.joineryView.origin ?? partRaw.origin,
-              }
-            : partRaw;
+          const part = joineryMode ? partForJoineryView(partRaw) : partRaw;
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
           // X-ray 模式過濾：
@@ -1878,27 +1697,12 @@ export function PerspectiveView({
                     castShadow
                   >
                     {(() => {
-                      const SHRINK_MM = 0.5;
                       // Only shrink the CROSS-SECTION (real z-fight risk against
                       // mortise walls). Keep the long axis at full effLen so the
                       // root face sits flush with the parent's shoulder face —
                       // shrinking it lifts the root by 0.5mm and shows as a gap.
-                      const isLongAxisX = (t.position === "start" || t.position === "end");
-                      const isLongAxisY = (t.position === "top" || t.position === "bottom");
-                      const isLongAxisZ = !isLongAxisX && !isLongAxisY;
-                      const sx = (isLongAxisX ? hx : Math.max(0.05, hx - SHRINK_MM)) * 2 * SCALE;
-                      const sy = (isLongAxisY ? hy : Math.max(0.05, hy - SHRINK_MM)) * 2 * SCALE;
-                      const sz = (isLongAxisZ ? hz : Math.max(0.05, hz - SHRINK_MM)) * 2 * SCALE;
-                      if (useRoundTenon) {
-                        return (
-                          <cylinderGeometry args={[
-                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                            sy,
-                            24,
-                          ]} />
-                        );
-                      }
+                      const primitive = ordinaryTenonPrimitive(t.position, { hx, hy, hz }, useRoundTenon, SCALE);
+                      if (primitive.kind === "round") return <cylinderGeometry args={primitive.args} />;
                       if (shearedGeom) {
                         return (
                           <bufferGeometry>
@@ -1917,7 +1721,7 @@ export function PerspectiveView({
                           </bufferGeometry>
                         );
                       }
-                      return <boxGeometry args={[sx, sy, sz]} />;
+                      return <boxGeometry args={primitive.args} />;
                     })()}
                     <meshStandardMaterial
                       color="#c0392b"
@@ -2022,18 +1826,10 @@ export function PerspectiveView({
           // 鳩尾榫 wall-left / wall-right：base box geo 減掉前後板 dovetail tail
           // brush。lift-off 蓋段側板 wall-*-lid 也要套——但只套同段 brush 避免
           // Y=cutY 邊界跟另一段 brush 衝突造成 z-fighting。
-          const isBodySide = part.id === "wall-left" || part.id === "wall-right";
-          const isLidSide = part.id === "wall-left-lid" || part.id === "wall-right-lid";
           // 抽屜半鳩尾：tail carrier 是側板（shape=dovetail-ends），receiver 是
           // 前/後板。drawer-row.ts 生的 part id 格式 `${idPrefix}-${i+1}-(front|back)`，
           // pattern 配 `-\d+-(front|back)$`、跨多 zone / 多 drawer 都對得到。
-          const isDrawerReceiver = /-\d+-(front|back)$/.test(part.id);
-          const partDovetailCuts: Brush[] | undefined =
-            dovetailCutBrushes.length > 0 && (isBodySide || isLidSide || isDrawerReceiver)
-              ? dovetailCutBrushes
-                  .filter((b) => (isLidSide ? b.fromLid : !b.fromLid))
-                  .map((b) => b.brush)
-              : undefined;
+          const partDovetailCuts = dovetailCutsForPart(part, dovetailCutBrushes);
           return (
             <group
               key={part.id}

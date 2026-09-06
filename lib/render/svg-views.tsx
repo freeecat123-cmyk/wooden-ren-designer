@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
@@ -888,6 +889,8 @@ function mortiseAxisHint(part: Part, m: Part["mortises"][number]): "x" | "y" | "
 }
 
 export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
+  const construction = constructionCutBox(m);
+  if (construction) return construction;
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;

@@ -4,6 +4,11 @@ import { precomputeSilhouettes, sliceOverlapAtY } from "@/lib/geometry/y-slice";
 import { obstacleInShelf } from "./shelf-clearance";
 import { mortiseLocalBox } from "@/lib/render/svg-views";
 import { Euler, Vector3 } from "three";
+import { separatedFromTurnedColumn } from "./turned-column-clearance";
+import { constructionCutBox, constructionCutsCoverPair, constructionLimits, constructionStockBounds } from "./construction-cuts";
+import { clearedByRenderedDovetail } from "./dovetail-clearance";
+import { clearedByHoofSections } from "./hoof-clearance";
+import { clearedByCabinetPanelGrooves } from "./cabinet-panel-clearance";
 
 const AXES = ["x", "y", "z"] as const;
 const CUT_EPSILON = 0.001;
@@ -11,7 +16,9 @@ const CUT_EPSILON = 0.001;
 function rectangularWorldCuts(part: Part, bounds: AABB3D): AABB3D[] {
   // Restrict to undeformed stock and quarter turns. Confirm the renderer's
   // transformed stock agrees with the audit bounds before trusting its cuts.
-  if (part.shape) return [];
+  if (part.shape && !["box", "mitered-ends", "chamfered-edges", "dovetail-ends"].includes(part.shape.kind)) return [];
+  if (part.shape?.kind === "mitered-ends"
+    && (part.shape.tiltAngle || part.shape.bevelAngle || part.shape.vertices)) return [];
   const angles = AXES.map(axis => part.rotation?.[axis] ?? 0);
   if (angles.some(a => !Number.isFinite(a) || Math.abs(a / (Math.PI / 2) - Math.round(a / (Math.PI / 2))) > 1e-8)) return [];
   const rotation = new Euler(angles[0], angles[1], angles[2], "ZYX");
@@ -339,9 +346,23 @@ export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
         if (layer.z > worstZ) worstZ = layer.z;
       }
       if (!foundLayer) continue;
-      // Reject only when the actual rectangular through-cut covers the entire overlap.
-      if (clearedByThroughCut(candidates[i], candidates[j]) || clearedByThroughCut(candidates[j], candidates[i])) continue;
-      if (clearedByRectangularCuts(candidates[i], candidates[j], a.aabb, b.aabb)) continue;
+      // A rejected aggregate excavation must not be re-approved by a later
+      // legacy cutter/shape proof. Keep the candidate visible for review.
+      const unsafeConstruction = [candidates[i], candidates[j]].some(p => constructionLimits(p).issues.length > 0);
+      if (!unsafeConstruction) {
+        if (clearedByCabinetPanelGrooves(candidates[i], candidates[j]) || clearedByCabinetPanelGrooves(candidates[j], candidates[i])) continue;
+        if (clearedByHoofSections(candidates[i], candidates[j]) || clearedByHoofSections(candidates[j], candidates[i])) continue;
+        if (clearedByRenderedDovetail(candidates[i], candidates[j]) || clearedByRenderedDovetail(candidates[j], candidates[i])) continue;
+        if ([candidates[i], candidates[j]].some(p => p.mortises.some(m => constructionCutBox(m)))) {
+          const intersection = constructionStockBounds(candidates[i]).intersect(constructionStockBounds(candidates[j]));
+          if (!intersection.isEmpty() && constructionCutsCoverPair(candidates[i], candidates[j], intersection)) continue;
+        }
+        if (separatedFromTurnedColumn(candidates[i], candidates[j], yMin, yMax)
+          || separatedFromTurnedColumn(candidates[j], candidates[i], yMin, yMax)) continue;
+        // Reject only when the actual rectangular through-cut covers the entire overlap.
+        if (clearedByThroughCut(candidates[i], candidates[j]) || clearedByThroughCut(candidates[j], candidates[i])) continue;
+        if (clearedByRectangularCuts(candidates[i], candidates[j], a.aabb, b.aabb)) continue;
+      }
       worstY = ySpan;
       const minDim = Math.min(worstX, worstY, worstZ);
       const worstAxis: "x" | "y" | "z" =

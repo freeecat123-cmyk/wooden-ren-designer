@@ -23,6 +23,7 @@ for (const e of FURNITURE_CATALOG as any[]) {
   if (!e.template) continue;
   const specs = (e.optionSchema ?? []) as any[];
   const base: any = specs.reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+  if (process.argv.includes("--revised") && specs.some(s => s.key === "constructionVersion")) base.constructionVersion = "2";
   // 榫接版會把「釘底 / 釘背」自動升級成「入溝」(見 parse-search-params.ts),要一起掃
   const variants: [string, any][] = [
     ["預設", base],
@@ -60,11 +61,14 @@ for (const e of FURNITURE_CATALOG as any[]) {
     } catch { continue; }
     let files: Record<string, string>;
     try { files = joineryFacesSvgFiles(d); } catch { continue; }
-    for (const [name, svg] of Object.entries(files)) {
+    for (const [name, originalSvg] of Object.entries(files)) {
       scanned++;
-      const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+      const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(originalSvg);
       if (!vb) continue;
       const W = +vb[1], H = +vb[2];
+      const svg = process.argv.includes("--inject-out-of-bounds") && scanned === 1
+        ? originalSvg.replace("</svg>", `<path d="M ${W + 10} ${H + 10} L ${W + 20} ${H + 20}" /></svg>`)
+        : originalSvg;
       let worst = 0;
       for (const m of svg.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)) {
         const x = +m[1], y = +m[2];

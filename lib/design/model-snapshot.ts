@@ -60,7 +60,7 @@ export function matchesSnapshotQuery(sp: SpRecord, params: Record<string, unknow
   for (const key of keys) {
     const raw = sp[key];
     let value = Array.isArray(raw) ? raw[0] : raw;
-    const expected = saved.get(key);
+    const expected = saved.get(key) ?? (key === "constructionVersion" ? "1" : null);
     if (value === undefined && expected === null) continue;
     if (key === "joineryMode" || key === "designerMode" || typeof defaults[key] === "boolean") {
       const fallback = key === "joineryMode" ? sp.beginnerMode === "false" : defaults[key] ?? false;

@@ -14,11 +14,13 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { WorkbenchOptionGroups } from "@/components/design/WorkbenchOptionGroups";
 import { DesignHistoryControls } from "@/components/design/DesignHistoryControls";
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { useUnit } from "@/hooks/useUnit";
 import { formatDimensions } from "@/lib/units/format";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
+import { ShareDesignButton } from "@/components/design/ShareDesignButton";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
 import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
 import { MobileTopBar } from "./MobileTopBar";
@@ -58,6 +60,8 @@ interface MobileShellProps {
   lineShareText: string;
   formAction: string;
   currentDesignId?: string | null;
+  savedRevision?: string | null;
+  hasUnsavedChanges?: boolean;
   saveParams?: Record<string, unknown>;
   wireframeMode?: boolean;
   joineryMode?: boolean;
@@ -177,10 +181,11 @@ export function MobileShell(props: MobileShellProps) {
   // 分流 spec 到 4 tab。先匹配美學 / 榫接，剩下的全進「結構」當 catch-all（避免漏選項）。
   const inGroup = (s: OptionSpec, keywords: string[]) =>
     keywords.some((k) => s.key.toLowerCase().includes(k));
-  const styleSpecs = optionSchema.filter((s) =>
+  const isWorkbench = entry.category === "workbench";
+  const styleSpecs = isWorkbench ? [] : optionSchema.filter((s) =>
     inGroup(s, ["edge", "handle", "grain", "pull", "hardware", "knob", "finish"]),
   );
-  const joinerySpecs = optionSchema.filter((s) =>
+  const joinerySpecs = isWorkbench ? [] : optionSchema.filter((s) =>
     inGroup(s, ["joinery", "tenon", "mortise", "joint"]) && !styleSpecs.includes(s),
   );
   const structureSpecs = optionSchema.filter(
@@ -367,6 +372,11 @@ export function MobileShell(props: MobileShellProps) {
               currentDesignId={props.currentDesignId}
               params={props.saveParams ?? saveParams}
             />
+            <ShareDesignButton
+              savedDesignId={props.currentDesignId}
+              savedRevision={props.savedRevision}
+              hasUnsavedChanges={props.hasUnsavedChanges}
+            />
             <button
               type="button"
               onClick={() => setAdvancedOpen(true)}
@@ -484,7 +494,7 @@ export function MobileShell(props: MobileShellProps) {
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">{t("advancedSheet.noStructure")}</div>
             ) : (
-              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
+              <GroupedSpecs workbench={isWorkbench} specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
             )}
             </fieldset>
           </DesignFormShell>
@@ -684,12 +694,14 @@ export function MobileShell(props: MobileShellProps) {
  * 解決手機進階設定一連串選項看不出哪幾項屬於上層 / 中層 / 下層 / 抽屜 / 門板 的問題。
  */
 function GroupedSpecs({
+  workbench = false,
   specs,
   optionValues,
   overallHeight,
   overallLength,
   allPartIds,
 }: {
+  workbench?: boolean;
   specs: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   overallHeight?: number;
@@ -697,6 +709,11 @@ function GroupedSpecs({
   allPartIds?: string[];
 }) {
   const locale = useLocale();
+  if (workbench) return (
+    <WorkbenchOptionGroups specs={specs} locale={locale} mobile renderField={(s) => (
+      <MobileOptionField key={`${s.key}-${String(optionValues[s.key])}`} spec={s} value={optionValues[s.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} allPartIds={allPartIds} />
+    )} />
+  );
   const groups = groupSpecsByGroup(specs);
   return (
     <>

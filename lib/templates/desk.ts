@@ -1,5 +1,6 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { addConstructionHousing, addConstructionHalfLap, enforceConstructionLimits } from "@/lib/geometry/construction-cuts";
 import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
 import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { caseFurniture } from "./_builders/case-furniture";
@@ -43,6 +44,7 @@ import {
 } from "./_builders/zone-helpers";
 
 export const deskOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   // ───────────── ① 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, unit: "mm", min: 12, max: 60, step: 2 },
   // 桌面俯視輪廓造型（top-outline）：與 liveEdge 互斥、非方形時倒角欄隱藏（一件一 shape）
@@ -855,6 +857,18 @@ export const desk: FurnitureTemplate = (input) => {
       }
     }
   }
+  if (String(input.options?.constructionVersion) === "2" && legShape === "splayed-round-tapered") {
+    const rails = design.parts.filter(p => /^(apron-|ls-|desk-h-side-)/.test(p.id));
+    for (const leg of design.parts.filter(p => /^leg-\d+$/.test(p.id))) {
+      for (const rail of rails) addConstructionHousing(leg, rail, isEn ? "Round leg rail housing" : "圓斜腳牙撐嵌槽");
+    }
+    for (const rail of rails.filter(p => /^(apron|ls)-(front|back)$/.test(p.id))) {
+      for (const side of rails.filter(p => /^(apron|ls)-(left|right)$/.test(p.id))) {
+        addConstructionHalfLap(rail, side, isEn ? "Rail corner half lap" : "牙撐交角半搭槽");
+      }
+    }
+  }
+  if (String(input.options?.constructionVersion) === "2") enforceConstructionLimits(design, locale);
   applyStandardChecks(design, {
     minLength: 900, minWidth: 400, minHeight: 650,
     maxLength: 2000, maxWidth: 900, maxHeight: 800,

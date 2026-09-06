@@ -18,6 +18,7 @@
 import type { OptionSpec } from "@/lib/types";
 
 export const SPEC_LABEL_EN: Record<string, string> = {
+  constructionVersion: "Construction version",
   // === workbench v2 ===
   sawTableHeightMm: "Table-saw top height",
   roomLengthCm: "Room length available",
@@ -393,7 +394,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   frameWidth: "Frame width",
   friezeHeight: "Frieze panel height",
   galleryInset: "Gallery inset",
-  glassGrooveDepth: "Glass groove depth",
+  glassGrooveDepth: "Rear rebate inset",
   glassThickness: "Glass thickness",
   handleHeight: "Handle hole height",
   handleTopMargin: "Handle margin from top",
@@ -819,7 +820,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   frameWidth: "Face width of the frame stock, measured outwards from the edge of the picture.",
   backThickness: "Thickness of the plywood or matboard backer.",
   glassThickness: "Standard glazier's stock sizes; 2mm clear glass is the usual choice.",
-  glassGrooveDepth: "Depth of the rebate cut on the inside of all four frame members. Glass 2 + backer 4 = 6mm is already enough; going deeper eats into the strength left in the frame width.",
+  glassGrooveDepth: "Width cut into each frame member from the picture opening, not the rear cutting depth. In revised construction (v2), rear cutting depth = glass thickness + backer thickness + 2mm fitting allowance; for example, 2 + 4 + 2 = 8mm. A wider inset leaves less stock at the outer edge.",
   frameProfile: "Front profile of the frame stock. Flat is the simplest; the chamfered option puts a 45° bevel along all four front edges.",
   chamferMm: "Only applies to the outer-chamfer profile.",
   // Tray
@@ -1267,6 +1268,8 @@ export function specHelp(spec: OptionSpec, locale: string): string | undefined {
  * stretcherStyle / withLowerStretcher 等高頻 dropdown。
  */
 export const CHOICE_LABEL_EN: Record<string, string> = {
+  "constructionVersion:1": "Original",
+  "constructionVersion:2": "Revised",
   // === workbench v2 ===
   "benchStyle:classroom": "Classroom double-sided — a vise and a dog row on each long side (depth 900 suggested)",
   "heightMode:assembly": "Assembly / finishing (low, height × 0.44; dining ≈ 730)",

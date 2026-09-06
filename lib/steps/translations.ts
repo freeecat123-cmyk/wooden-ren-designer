@@ -118,6 +118,38 @@ const JOINERY_STEP_BULLETS_EN: Record<JoineryType, string[]> = {
 };
 
 const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
+  "cabinet-shelf-reliefs": {
+    title: () => "Cut shelf-to-post clearance notches",
+    description: () => "Mark each shelf notch from the part drawing, remove waste in shallow cuts and pare the seat. Retain the shown clearance and dry-fit each shelf height against the inward-splayed posts.",
+  },
+  "cabinet-panel-grooves": {
+    title: () => "Machine floating-panel grooves",
+    description: () => "Mark the 5mm-deep grooves from the machining drawings. Cut in shallow passes and retain the shown groove walls. Dry-fit the floating panels and allow movement; do not glue the entire panel perimeter.",
+  },
+  "cabinet-hoof-reliefs": {
+    title: () => "Machine hoof clearance profiles",
+    description: () => "Lay out each hoof profile from the part drawing. Follow its stepped tool paths, blend the transitions and dry-fit against the corresponding post. Treat all passes for one post at one location as a single machining site.",
+  },
+  "cabinet-integral-spandrels": {
+    title: () => "Shape integral apron spandrels",
+    description: () => "Lay out each decorative profile on its apron blank, saw off the waste and finish to the template. Keep at least 18mm of central apron web. Do not add separate overlapping spandrel stock.",
+  },
+  "cabinet-raked-ends": {
+    title: () => "Cut raked rail shoulders",
+    description: () => "Mark the upper and lower shoulder spans from the part drawing. Cut each end to follow the inner post rake. Measure shoulder spans separately from tenon extensions and dry-fit before cutting the joinery.",
+  },
+  "deadman-shelf-clearance": {
+    title: () => "Machine deadman shelf clearance",
+    description: () => "Mark the lower rear relief from the part drawing. Clamp the board securely and machine to the specified depth in shallow passes. Dry-fit and slide through the full travel to confirm shelf clearance while retaining the rail and lower-groove bearing surfaces.",
+  },
+  "construction-housings": {
+    title: () => "Machine construction housings",
+    description: () => "Mark each housing from its machining-face drawing, including the entry face and depth. Clamp the stock, remove waste in shallow passes and clean the seat without cutting into the remaining stock shown. Dry-fit the rails, feet or intersecting corners before glue-up.",
+  },
+  "frame-rear-rebate": {
+    title: d => `Machine rear rebates (${d.parts.reduce((sum, p) => sum + p.mortises.filter(m => m.cosmetic && m.label === "框背槽").length, 0)} rails)`,
+    description: () => "Machine the inside rear rebate shown on each part drawing. Check width and depth on scrap first, then cut in shallow passes. Dry-fit glass and backer together with the specified clearance and secure the backer with removable retainers.",
+  },
   "shelf-leg-clearance": {
     title: d => `Cut shelf leg-clearance notches (${d.parts.reduce((sum, p) => sum + p.mortises.filter(m => m.label === "避腳缺角" || m.label === "Leg clearance notch").length, 0)})`,
     description: () => "Mark each notch and its orientation from the part drawing. Saw away the corner waste and pare flat with a chisel. The notch includes 0.5mm clearance. Test-fit the slats on the lower stretchers, check clearance at every leg, then ease the cut edges.",

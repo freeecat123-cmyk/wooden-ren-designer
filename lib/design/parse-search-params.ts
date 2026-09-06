@@ -1,6 +1,7 @@
 import type { FurnitureCatalogEntry } from "@/lib/templates";
 import { MATERIALS } from "@/lib/materials";
 import type { MaterialId, OptionSpec } from "@/lib/types";
+import { isBlankDesignQuery } from "./is-blank-design-query";
 
 export type SpRecord = Record<string, string | string[] | undefined>;
 
@@ -65,6 +66,11 @@ export function parseDesignSearchParams(
   const options: Record<string, string | number | boolean> = {};
   for (const spec of entry.optionSchema ?? []) {
     const raw = spStr(sp, spec.key);
+    if (spec.key === "constructionVersion") {
+      const blank = isBlankDesignQuery(Object.keys(sp));
+      options[spec.key] = raw === "2" || (raw === undefined && blank) ? "2" : "1";
+      continue;
+    }
     // 榫接版預設改入溝（傳統榫卯做法）：backMode / drawerBottomMode 兩個 key 在
     // joineryMode 時 surface（釘背/釘底）強制升級為 rebated（入溝）。
     // 使用者要在 joineryMode 用 surface 需手動選；其他值（none）正常 pass-through。

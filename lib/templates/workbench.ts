@@ -84,6 +84,7 @@ const PLY_PART_RE = /^(top|top-front|top-back|gap-stop|center-well-bottom|leg-\d
 // 值在 ./workbench-presets.ts（設計頁切流派時把整組寫進網址；模板不覆寫）。
 // 唯一例外：舊連結只帶 benchStyle、其他 key 完全不在網址上 → 當成「還沒被表單寫過」套一次。
 export const workbenchOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   // ───────────── ⭐ 流派 ─────────────
   { group: "preset", type: "select", key: "benchStyle", label: "工作桌流派", defaultValue: "roubo", wide: true, choices: [
     { value: "roubo", label: "厚板桌（法式 Roubo）— 厚桌面、粗腳通榫、快速鉗 + 狗孔" },
@@ -1282,6 +1283,16 @@ export const workbench: FurnitureTemplate = (input) => {
     for (let hy = 60; hy <= boardH - 60; hy += 100) holes.push(roundHole(0, hy, -20, dogHoleDiaRow, 40));
     holes.push({ origin: { x: 0, y: 0, z: 0 }, depth: 12, length: 180, width: 25, through: false, cosmetic: true, label: isEn ? "V-groove (rides the ridge)" : "底 V 槽（騎在脊條上）" });
     holes.push({ origin: { x: 0, y: boardH, z: 0 }, depth: 12, length: 180, width: 25, through: false, cosmetic: true, label: isEn ? "top slot (captures the rail)" : "頂直槽（咬住上軌）" });
+    if (String(input.options?.constructionVersion) === "2" && withUnderShelf) {
+      // AU16: the shelf clears the 25mm ridge, not the 40mm sliding board.
+      // Relieve its rear cheek across the full travel; keep both blanks unchanged.
+      const reliefH = DEFAULT_SHELF_THICKNESS_MM - (boardY - lsTop) + 0.5;
+      if (reliefH > 0) holes.push({
+        origin: { x: 0, y: 0, z: 16 }, depth: reliefH,
+        length: 180, width: 8, through: false, cosmetic: true,
+        label: isEn ? "Rear cheek shelf clearance" : "滑板後側避層板槽",
+      });
+    }
     design.parts.push({
       id: "deadman-board",
       nameZh: "長板靠板（滑板）",

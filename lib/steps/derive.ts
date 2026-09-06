@@ -2,6 +2,7 @@ import type { FurnitureCategory, FurnitureDesign, JoineryType } from "@/lib/type
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
 import { MATERIALS } from "@/lib/materials";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 
 export type StepPhase =
   | "prepare"
@@ -1026,6 +1027,61 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       description: "依零件圖標出缺角位置與朝向，鋸除端部廢料後用鑿刀修平。缺角已留 0.5mm 餘隙；放回下橫撐試裝，確認四腳不頂住棚條，再處理缺口邊緣。",
       toolIds: ["tape-measure-5m", "japanese-saw", "chisel-set-3-6-12", "f-clamp-x4"], estimatedMinutes: 6 * clearanceCuts,
     });
+  }
+  const frameRebates = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.cosmetic && m.label === "框背槽").length, 0);
+  if (frameRebates > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "frame-rear-rebate", phase: "cut-joinery",
+      title: `加工框背槽（${frameRebates} 條）`,
+      description: "依零件圖從邊框背面加工內緣槽口，先用廢料試切槽寬與槽深，再分次加工。玻璃與背板同置背槽；乾組確認各邊餘隙，以可拆壓片固定背板。",
+      toolIds: ["router-table", "marking-gauge", "f-clamp-x4"], estimatedMinutes: 6 * frameRebates,
+    });
+  }
+  const deadmanReliefs = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.cosmetic && ["滑板後側避層板槽", "Rear cheek shelf clearance"].includes(m.label ?? "")).length, 0);
+  if (deadmanReliefs > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "deadman-shelf-clearance", phase: "cut-joinery",
+      title: "加工滑板後側避層板槽",
+      description: "依零件圖在滑板後側下緣標出槽口，固定工件並分次切削至指定深度。乾組後沿全行程滑動，確認層板不頂住滑板，保留導軌與底槽的承靠面。",
+      toolIds: ["router-table", "marking-gauge", "f-clamp-x4"], estimatedMinutes: 8 * deadmanReliefs,
+    });
+  }
+  const housingParts = design.parts.filter(part => part.mortises.some(m => constructionCutBox(m)));
+  const housings = housingParts.reduce((sum, part) => sum + part.mortises.filter(m => constructionCutBox(m)).length, 0);
+  if (housings > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "construction-housings", phase: "cut-joinery",
+      title: `加工結構嵌槽（${housings} 處）`,
+      description: "依加工面圖逐處標出嵌槽範圍、進刀面與深度。固定工件後分次切削，修平槽底並保留圖示剩餘木料；乾組確認牙撐、底爪或交角能就位，再進行膠合。",
+      toolIds: ["router-table", "marking-gauge", "chisel-set-3-6-12", "f-clamp-x4"],
+      partIds: housingParts.map(part => part.id), estimatedMinutes: 8 * housings,
+    });
+  }
+  if (design.category === "chinese-cabinet") {
+    const grooves = design.parts.reduce((n, p) => n + p.mortises.filter(m => m.cosmetic && m.label === "板心槽 5mm").length, 0);
+    const shelfReliefs = design.parts.reduce((n, p) => n + p.mortises.filter(m => m.cosmetic && m.label === "側腳避讓").length, 0);
+    const hoofSites = design.parts.reduce((n, p) => n + new Set(p.mortises.filter(m => m.cosmetic && m.label?.startsWith("馬蹄避讓 ")).map(m => m.label)).size, 0);
+    const spandrels = design.parts.filter(p => p.nameZh.includes("連體牙頭")).length;
+    const rakedRails = design.parts.filter(p => p.id.includes("-rail") && p.shape?.kind === "mitered-ends" && p.shape.vertices).length;
+    const operations = [
+      { id: "cabinet-shelf-reliefs", count: shelfReliefs, minutes: 6, title: "加工層板避腳缺口", description: "依零件圖標出層板與斜腳相接的缺口，分次鋸除並修平。保留圖示餘隙，乾組確認各高度的層板不會頂住向內傾斜的立柱。" },
+      { id: "cabinet-panel-grooves", count: grooves, minutes: 6, title: "加工板心槽", description: "依加工面圖標出板心槽，槽深 5mm，分次進刀並保留圖示槽壁。試裝板心確認可浮動伸縮，不將整圈板心膠死。" },
+      { id: "cabinet-hoof-reliefs", count: hoofSites, minutes: 8, title: "加工馬蹄避讓", description: "依零件圖逐處放樣馬蹄輪廓，以分層刀路移除干涉木料，再修順接續處。每處按同一立柱的完整輪廓加工並乾組，不把多段刀路當成多個獨立缺口。" },
+      { id: "cabinet-integral-spandrels", count: spandrels, minutes: 12, title: "鋸修連體牙頭", description: "在同一支牙條毛料放樣連體牙頭，鋸除曲線廢料後依樣板修整。中央肉高至少保留 18mm；牙頭不另加一塊重複木料。" },
+      { id: "cabinet-raked-ends", count: rakedRails * 2, minutes: 4, title: "修整斜端肩位", description: "依零件圖的上下肩距放樣每個斜端，沿立柱內面斜率修肩。肩距與榫頭伸出量分開量測，先乾組確認貼合，再加工接合。" },
+    ];
+    for (const operation of operations) {
+      if (!operation.count) continue;
+      const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+      steps.splice(position < 0 ? steps.length : position, 0, {
+        id: operation.id, phase: "cut-joinery", title: `${operation.title}（${operation.count} 處）`,
+        description: operation.description, estimatedMinutes: operation.minutes * operation.count,
+        toolIds: ["marking-gauge", "japanese-saw", "chisel-set-3-6-12", "f-clamp-x4"],
+      });
+    }
   }
   return steps;
 }

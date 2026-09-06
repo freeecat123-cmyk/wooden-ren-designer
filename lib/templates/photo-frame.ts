@@ -14,11 +14,14 @@ const BACK_PANEL_CLEARANCE = 1;
 const GLASS_FRAME_INSET = 2;
 
 export const photoFrameOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [
+    { value: "1", label: "原版" }, { value: "2", label: "修正版" },
+  ] },
   { group: "structure", type: "number", key: "frameWidth", label: "邊框寬", defaultValue: 35, min: 15, max: 60, step: 1, unit: "mm", help: "邊框面寬度（從照片邊緣往外的木料寬）" },
   { group: "structure", type: "number", key: "frameThickness", label: "邊框厚", defaultValue: 25, min: 12, max: 30, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "backThickness", label: "背板厚", defaultValue: 4, min: 3, max: 8, step: 1, unit: "mm", help: "三合板或卡紙板背板厚度" },
   { group: "structure", type: "number", key: "glassThickness", label: "玻璃厚", defaultValue: 2, min: 2, max: 4, step: 1, unit: "mm", help: "玻璃行標準切片，2mm 透明玻璃最常用" },
-  { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深", defaultValue: 6, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 2 + 背板 4 = 6mm 已足夠；太深會吃到 frameWidth 強度" },
+  { group: "structure", type: "number", key: "glassGrooveDepth", label: "背槽內嵌寬度", defaultValue: 6, min: 5, max: 12, step: 1, unit: "mm", help: "從照片開口向四邊木框內吃入的寬度，不是背面加工深度。修正版（v2）的背面加工深度 = 玻璃厚 + 背板厚 + 2mm 安裝餘量，例如 2 + 4 + 2 = 8mm。內嵌越寬，邊框外側剩餘木料越少。" },
   { group: "structure", type: "select", key: "frameProfile", label: "邊框輪廓", defaultValue: "flat", choices: [
     { value: "flat", label: "平面（最簡單）" },
     { value: "chamfer-out", label: "外緣 45° 倒角" },
@@ -39,10 +42,12 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const locale = input.locale ?? "zh-TW";
   const isEn = locale === "en";
   const o = photoFrameOptions;
+  const revised = String(input.options?.constructionVersion) === "2";
   const frameW = getOption<number>(input, opt(o, "frameWidth"));
-  const frameT = getOption<number>(input, opt(o, "frameThickness"));
   const backT = getOption<number>(input, opt(o, "backThickness"));
   const glassT = getOption<number>(input, opt(o, "glassThickness"));
+  const requestedFrameT = getOption<number>(input, opt(o, "frameThickness"));
+  let frameT = revised ? Math.max(requestedFrameT, backT + glassT + 4) : requestedFrameT;
   const glassGrooveDepth = getOption<number>(input, opt(o, "glassGrooveDepth"));
   const frameProfile = getOption<string>(input, opt(o, "frameProfile"));
   const chamferMm = getOption<number>(input, opt(o, "chamferMm"));
@@ -69,7 +74,18 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     tenonType === "through-tenon"
       ? frameW
       : Math.max(8, Math.round(frameW * 0.5) - 2);
-  const tenonSpec = { ...tenonSpecRaw, length: tenonLengthOverride };
+  const tenonSpec = { ...tenonSpecRaw, length: tenonLengthOverride,
+    // Keep the front-entry distance below half the rail width so the existing
+    // mortise footprint resolver retains length along X (2mm shoulder + 1mm margin).
+    thickness: revised && !useMiter ? Math.min(tenonSpecRaw.thickness, Math.max(6, frameW - 6)) : tenonSpecRaw.thickness,
+  };
+  // Size the tenon before increasing stock, avoiding a thickness feedback loop.
+  // The entire corner joint stays in front of the rebate, with a 2mm front shoulder.
+  const rebateHeight = glassT + backT + 2;
+  if (revised && !useMiter) frameT = Math.max(frameT, rebateHeight + tenonSpec.thickness + 2);
+  const tenonOffset = revised && !useMiter
+    ? frameT / 2 - 2 - tenonSpec.thickness / 2
+    : 0;
   const cornerTenon = (pos: "start" | "end"): Part["tenons"][number] => ({
     position: pos,
     type: tenonType,
@@ -77,12 +93,13 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     width: tenonSpec.width,
     thickness: tenonSpec.thickness,
     shoulderOn: tenonSpec.shoulderOn,
+    ...(tenonOffset > 0 ? { offsetThickness: tenonOffset } : {}),
   });
   const cornerMortise = (
     xWorld: number,
     zLocal: number,
   ): Part["mortises"][number] => ({
-    origin: { x: xWorld, y: frameT / 2, z: zLocal },
+    origin: { x: xWorld, y: frameT / 2 + tenonOffset, z: zLocal },
     depth: tenonSpec.length,
     length: tenonSpec.width,
     width: tenonSpec.thickness,
@@ -179,6 +196,19 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  if (revised) {
+    for (const rail of [topRail, bottomRail, leftRail, rightRail]) {
+      const innerSign = rail === topRail || rail === rightRail ? -1 : 1;
+      rail.mortises = [...rail.mortises, {
+        origin: useMiter
+          ? { x: 0, y: frameW / 2 + innerSign * (frameW / 2 - glassGrooveDepth / 2), z: frameT / 2 }
+          : { x: 0, y: 0, z: innerSign * (frameW / 2 - glassGrooveDepth / 2) },
+        depth: rebateHeight, length: rail.visible.length, width: glassGrooveDepth,
+        through: false, cosmetic: true, label: "框背槽",
+      }];
+    }
+  }
+
   // 玻璃（visual: glass 不入材積、不出材料單）
   // 跟背板一樣卡進邊框 rabbet 區，每邊 overlap = rabbet 深度 - 1mm 裕度。
   // 三視圖正面/側面才看得到玻璃邊緣伸入邊框後方。
@@ -191,7 +221,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     visual: "glass",
     grainDirection: "length",
     visible: { length: photoW + 2 * glassOverlap, width: photoH + 2 * glassOverlap, thickness: glassT },
-    origin: { x: 0, y: frameT - glassGrooveDepth - glassT, z: 0 },
+    origin: { x: 0, y: revised ? backT : frameT - glassGrooveDepth - glassT, z: 0 },
     tenons: [],
     mortises: [],
   };
@@ -222,6 +252,12 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   const warnings: string[] = [];
+  if (frameT !== requestedFrameT) warnings.push(isEn
+    ? `Frame thickness increased from ${requestedFrameT} to ${frameT}mm to fit the glass, backer, 2mm fitting space${!useMiter ? ", intact corner tenons" : ""} and 2mm front stock.`
+    : `邊框厚度由 ${requestedFrameT} 調整為 ${frameT}mm，保留玻璃、背板、2mm 安裝餘量${!useMiter ? "、完整角榫" : ""}與 2mm 正面木料。`);
+  if (revised && useMiter && frameProfile === "chamfer-out") warnings.push(isEn
+    ? "The mitered frame retains flat faces; combined outer chamfers are not modeled."
+    : "斜角相框保留平面邊框；此組合尚未建模外緣倒角。" );
   if (photoW > 800 || photoH > 800) {
     warnings.push(`相框照片 ${photoW}×${photoH}mm 超過 800mm（最大）——大尺寸玻璃易破，建議改用壓克力或拆成多框拼接`);
   }
@@ -239,7 +275,9 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: useMiter ? "mitered" : "blind-tenon",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,
-    notes: isEn
+    notes: revised ? (isEn
+      ? `Picture frame opening ${photoW}×${photoH}mm, outer ${outerL}×${outerW}×${frameT}mm. Machine a ${glassGrooveDepth}×${glassT + backT + 2}mm rear rebate on all four inside rail edges. Order glass ${backPanelL}×${backPanelW}mm, ${glassT}mm thick, and a matching ${backT}mm backer. Glass and backer share the rebate with 1mm clearance at each edge and 2mm depth allowance. Secure the backer with removable retainers. ${useMiter ? "45° miter corners; optional reinforcing splines are not included in the cut list." : "90° corners; joinery mode includes the modeled corner tenons."}`
+      : `相框開口 ${photoW}×${photoH}mm，外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側加工 ${glassGrooveDepth}×${glassT + backT + 2}mm 背面槽口。玻璃裁 ${backPanelL}×${backPanelW}mm、厚 ${glassT}mm；背板裁同尺寸、厚 ${backT}mm。玻璃與背板同置背槽，各邊留 1mm、槽深留 2mm 安裝餘量，以可拆壓片固定背板。${useMiter ? "邊角採 45° 斜接；選配加固木片未計入材料單。" : "邊角採 90° 接合；榫接版含角榫尺寸。"}`) : isEn
       ? `Picture frame (fits a ${formatMm(photoW, "inch")}×${formatMm(photoH, "inch")} photo), outer ${formatMm(outerL, "inch")}×${formatMm(outerW, "inch")}×${formatMm(frameT, "inch")}. Cut a ${formatMm(glassGrooveDepth, "inch")}×${formatMm(glassT + backT + 2, "inch")} rebate on the inside back of all 4 rails so the glass + backer board slide in from behind. ${useMiter ? "Corners are 45° miters + glue (clamp and leave 24 hr); add splines or corner brads for more strength — splines are not in the cut list, cut your own from offcuts." : "Corners are 90° butt joints with hidden dowels for reinforcement."}${frameProfile === "chamfer-out" ? ` Chamfer the front face long edges ${formatMm(chamferMm, "inch")} × 45° with a router V-bit or sander.` : ""} **Glass not included**: have a glazier cut ${formatMm(photoW, "inch")}×${formatMm(photoH, "inch")} × ${formatMm(glassT, "inch")} clear glass. The glass groove is set back ${formatMm(GLASS_FRAME_INSET, "inch")} so the rebate isn't visible from the front.`
       : `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。${useMiter ? "4 角 45° 斜接 + 膠合（夾具夾緊靜置 24 小時）；想要更強可在 4 角另加 spline 木片或對角木釘加固——目前材料單未含 spline，需自行裁切。" : "4 角 90° 對接 + 隱榫補強。"}${frameProfile === "chamfer-out" ? `邊框正面 4 條長邊各倒 ${chamferMm}mm × 45°（修邊機 V 型刀或砂帶機）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
