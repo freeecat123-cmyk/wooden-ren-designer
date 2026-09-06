@@ -1,5 +1,15 @@
 # Furniture Generator Memory
 
+## 2026-09-07 Design Studio Renewal (Specification)
+
+- User approved a full interface/workflow renewal: large central model,
+  collapsible desktop side panels, mobile bottom sheets, design management,
+  selection inspector and integrated drawings/materials/build/quote views.
+- Preserve existing geometry, old designs, URLs, entitlements and explicit cloud
+  saves. This is separate from the already released integrated upgrade below.
+- Written scope: docs/superpowers/specs/2026-09-07-design-studio-renewal.md.
+  Specification awaiting review; implementation and deployment not yet performed.
+
 ## 2026-09-07 Integrated Upgrade (Released)
 
 - User approved completing geometry, machining exports, fixed sharing and
