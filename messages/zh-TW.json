@@ -4348,6 +4348,9 @@
     "alertDeleteFailTpl": "刪除失敗：{msg}"
   },
   "saveDesign": {
+    "unsaved": "尚未儲存到雲端",
+    "saved": "已儲存到雲端",
+    "conflict": "雲端設計已有更新，這次未覆蓋。請另存新設計保留修改，或從我的設計重新開啟。",
     "btnLoading": "💾 載入中…",
     "btnSaving": "儲存中…",
     "btnSave": "💾 儲存設計",

@@ -44,6 +44,7 @@ import { resolveCtBlockForApron,
 import { applyStandardChecks, appendSuggestion, appendWarnings } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 import { formatMm } from "@/lib/units/format";
+import { shelfClearanceMortises } from "@/lib/geometry/shelf-clearance";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -788,6 +789,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [],
       mortises: [],
     });
+  }
+
+  for (const slat of slatParts) {
+    slat.mortises.push(...shelfClearanceMortises(slat, legs, locale === "en" ? "Leg clearance notch" : "避腳缺角"));
   }
 
   // 翻板（drop-leaf）：沿 length 軸 ±X 端延伸，蝶式鉸鏈接

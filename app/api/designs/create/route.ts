@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
   // 4. Count check — 超過 maxDesigns 擋
   const features = getPlanFeatures(profile);
-  if (features.maxDesigns !== Infinity) {
+  if (!isAdmin && features.maxDesigns !== Infinity) {
     const { count } = await admin
       .from("designs")
       .select("*", { count: "exact", head: true })
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       name: v.name,
       params: v.params,
     })
-    .select("id, name")
+    .select("id, name, updated_at")
     .single();
 
   if (insertErr) {

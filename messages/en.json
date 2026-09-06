@@ -4348,6 +4348,9 @@
     "alertDeleteFailTpl": "Delete failed: {msg}"
   },
   "saveDesign": {
+    "unsaved": "Unsaved cloud changes",
+    "saved": "Saved to cloud",
+    "conflict": "This design has changed in the cloud. Nothing was overwritten. Save as new to keep your edits, or reopen it from My Designs.",
     "btnLoading": "💾 Loading…",
     "btnSaving": "Saving…",
     "btnSave": "💾 Save design",

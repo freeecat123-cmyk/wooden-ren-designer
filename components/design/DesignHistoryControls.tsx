@@ -64,7 +64,10 @@ export function DesignHistoryControls({
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
-  const search = searchParams?.toString() ?? "";
+  const historyQuery = new URLSearchParams(searchParams?.toString() ?? "");
+  historyQuery.delete("revision");
+  historyQuery.sort();
+  const search = historyQuery.toString();
   const currentUrl = search ? `${pathname}?${search}` : pathname;
   const storageKey = useMemo(() => {
     const designId = searchParams?.get("designId") ?? "draft";
@@ -78,12 +81,34 @@ export function DesignHistoryControls({
   });
 
   useEffect(() => {
+    const onSaved = (event: Event) => {
+      const { id } = (event as CustomEvent<{ id: string }>).detail;
+      const nextKey = `${STORAGE_PREFIX}:${pathname}:${id}`;
+      if (nextKey === storageKey) return;
+      const rebase = (target: string) => {
+        const url = new URL(target, window.location.origin);
+        url.searchParams.set("designId", id);
+        url.searchParams.delete("revision");
+        url.searchParams.sort();
+        return `${url.pathname}?${url.searchParams}`;
+      };
+      const base = readState(storageKey) ?? history;
+      const next = { past: base.past.map(rebase), current: rebase(base.current), future: base.future.map(rebase) };
+      writeState(nextKey, next);
+      lastStorageKeyRef.current = nextKey;
+      setHistory(next);
+    };
+    window.addEventListener("wooden-ren:design-saved", onSaved);
+    return () => window.removeEventListener("wooden-ren:design-saved", onSaved);
+  }, [history, pathname, storageKey]);
+
+  useEffect(() => {
     setHistory((prev) => {
       const loaded = readState(storageKey);
       const base =
-        lastStorageKeyRef.current === storageKey
+        loaded ?? (lastStorageKeyRef.current === storageKey
           ? prev
-          : loaded ?? { past: [], current: currentUrl, future: [] };
+          : { past: [], current: currentUrl, future: [] });
       lastStorageKeyRef.current = storageKey;
 
       if (base.current === currentUrl) {
@@ -105,7 +130,10 @@ export function DesignHistoryControls({
     (target: string, nextState: HistoryState) => {
       writeState(storageKey, nextState);
       setHistory(nextState);
-      router.replace(target, { scroll: false });
+      const url = new URL(target, window.location.origin);
+      const revision = new URLSearchParams(window.location.search).get("revision");
+      if (revision) url.searchParams.set("revision", revision);
+      router.replace(`${url.pathname}?${url.searchParams}`, { scroll: false });
     },
     [router, storageKey],
   );

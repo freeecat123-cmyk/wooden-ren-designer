@@ -29,6 +29,8 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 我要做的事 | grep keyword | 對應 section |
 |---|---|---|
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
+| 重疊例外掩蓋新碰撞 / 逐對基線 | `"overlap-baseline\|known-defect"` | §A10.7 |
+| 側視座標還原 / 外框深度錯誤 | `"world-bounds\|negative world Z"` | §A10.7 |
 | 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
 | 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
 | 弧肩要圓弧還是 S 形 / 肩根太利 | `"sCurve\|smoothstep\|弧肩曲線"` | §A9.9c |
@@ -584,6 +586,38 @@ butt-joint 模式下**會過度縮窄**（每端少 legSize/2 的權重）。
 等問題（見 A10.1）。
 
 **A10.7 Audit 工具**：
+
+2026-09-06: `world-bounds.test.ts` verifies off-center box bounds and slice
+coordinates. Side silhouette X is negative world Z, so both `worldAABB` and
+`partAabbAtY` must negate/reverse that coordinate. Previously a box at Z=100
+with depth 20 incorrectly had world bounds [-110,110] instead of [90,110].
+The fix changes audit helpers only, not template geometry or renderer rotation.
+All 236 baseline cases retain the same overlap results after this correction.
+
+2026-09-05: `scripts/overlap-baseline.json` now records individual part pairs and
+their measured X/Y/Z intersection bounds. Historical case exceptions do not
+permit a new pair or an increase of 0.1mm on any axis. The comparison allowance
+is 0.05mm (measurements are rounded to 0.1mm). `--inject-collision` must exit 1
+even in a historically exempt case. `--write-baseline` is an explicit maintenance
+operation, not a way to fix regressions; review the geometry before updating it.
+`--report=<path>` exports every pair and review status as JSON.
+
+`confirmed-defect` is distinct from `documented-joint` and `unreviewed`. Passing
+the regression baseline does not establish manufacturability. Tea-table's six
+warning variants were missing leg-clearance cuts; these are now resolved with
+full-thickness cosmetic mortises while preserving blank sizes and positions.
+`shelf-clearance.ts` bounds each leg across the shelf's entire height, including
+silhouette vertex heights, and adds 0.5mm internal clearance. Side-view X is
+negative world Z. The overlap audit checks the actual `mortiseLocalBox` and only
+excludes a collision fully contained by a rectangular, full-thickness cut.
+Removed the resolved 24 pairs from the baseline so reintroduction fails.
+
+2026-09-06: `wine-rack-half-lap.test.ts` checks complementary cutter coverage in
+the current renderer's world coordinates (explicit Three.js `ZYX`). Covers seven
+leg styles and three grid/thickness combinations; missing/shifted/same-side cuts
+must fail. This is not full CSG validation. The historical OBB `XYZ` description
+below differs from the renderer; do not silently change either convention based
+on this test. Simplified `partExportGeometry` still omits mortise subtraction.
 
 `scripts/audit-overlaps.ts` 跑遍所有 `FURNITURE_CATALOG`，組裝版（預設）下偵測
 零件穿模，輸出 markdown 表。每改家具模板執行：

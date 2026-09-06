@@ -1,6 +1,21 @@
 import type { Part } from "@/lib/types";
 import { projectPartSilhouette, worldExtents } from "@/lib/render/geometry";
 import { precomputeSilhouettes, sliceOverlapAtY } from "@/lib/geometry/y-slice";
+import { obstacleInShelf } from "./shelf-clearance";
+import { mortiseLocalBox } from "@/lib/render/svg-views";
+
+function clearedByThroughCut(part: Part, obstacle: Part): boolean {
+  if (!part.mortises.some(m => m.cosmetic && m.through && m.shape !== "round")) return false;
+  const bounds = obstacleInShelf(part, obstacle);
+  if (!bounds) return false;
+  return part.mortises.some(m => {
+    if (!m.cosmetic || !m.through || m.shape === "round" || m.rotX || m.rotY || m.rotZ) return false;
+    const box = mortiseLocalBox(part, m);
+    if (box.depthAxis !== "y" || box.hy * 2 < part.visible.thickness - 0.001 || Math.abs(box.cy) > 0.001) return false;
+    return box.cx - box.hx <= bounds.minX + 0.001 && box.cx + box.hx >= bounds.maxX - 0.001
+      && box.cz - box.hz <= bounds.minZ + 0.001 && box.cz + box.hz >= bounds.maxZ - 0.001;
+  });
+}
 
 export interface AABB3D {
   min: { x: number; y: number; z: number };
@@ -49,7 +64,7 @@ export interface Overlap {
  *   top:   vx = -worldX, vy = worldZ
  *
  * 因此 worldX 從 front 或 top 的 -vx 取，worldY 從 front/side 的 vy 取，worldZ
- * 從 top 的 vy 或 side 的 vx 取。
+ * 從 top 的 vy 或 side 的 -vx 取。
  */
 export function worldAABB(part: Part): AABB3D {
   const front = projectPartSilhouette(part, "front");
@@ -57,7 +72,7 @@ export function worldAABB(part: Part): AABB3D {
   const top = projectPartSilhouette(part, "top");
   const xs = [...front.map((p) => -p.x), ...top.map((p) => -p.x)];
   const ys = [...front.map((p) => p.y), ...side.map((p) => p.y)];
-  const zs = [...top.map((p) => p.y), ...side.map((p) => p.x)];
+  const zs = [...top.map((p) => p.y), ...side.map((p) => -p.x)];
   return {
     min: { x: Math.min(...xs), y: Math.min(...ys), z: Math.min(...zs) },
     max: { x: Math.max(...xs), y: Math.max(...ys), z: Math.max(...zs) },
@@ -256,6 +271,8 @@ export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
         if (layer.z > worstZ) worstZ = layer.z;
       }
       if (!foundLayer) continue;
+      // Reject only when the actual rectangular through-cut covers the entire overlap.
+      if (clearedByThroughCut(candidates[i], candidates[j]) || clearedByThroughCut(candidates[j], candidates[i])) continue;
       worstY = ySpan;
       const minDim = Math.min(worstX, worstY, worstZ);
       const worstAxis: "x" | "y" | "z" =

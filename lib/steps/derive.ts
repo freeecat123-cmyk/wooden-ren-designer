@@ -1017,6 +1017,16 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     }
   }
 
+  const clearanceCuts = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.label === "避腳缺角" || m.label === "Leg clearance notch").length, 0);
+  if (clearanceCuts > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "shelf-leg-clearance", phase: "cut-joinery",
+      title: `下棚條避腳缺角（${clearanceCuts} 處）`,
+      description: "依零件圖標出缺角位置與朝向，鋸除端部廢料後用鑿刀修平。缺角已留 0.5mm 餘隙；放回下橫撐試裝，確認四腳不頂住棚條，再處理缺口邊緣。",
+      toolIds: ["tape-measure-5m", "japanese-saw", "chisel-set-3-6-12", "f-clamp-x4"], estimatedMinutes: 6 * clearanceCuts,
+    });
+  }
   return steps;
 }
 

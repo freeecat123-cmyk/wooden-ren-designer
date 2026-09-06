@@ -32,22 +32,20 @@
  */
 const SHAPE_AWARE_VARIANTS = new Set<string>([]);
 /**
- * `${category}:${variant}` allowlist——shape-aware silhouette 看不到的 X-Z
- * 缺口造成的 audit false positive：
- *   - tea-table × box / tapered: shelf 用 notched-corners 切角避腳柱，
- *     overlap 偵測 silhouette（front/side）看不到 X-Z 缺角，誤判 leg×shelf。
- *     實際 3D 棚板四角已切除，物理上不重疊。
+ * Historical case classifications; exact pair/depth baseline is also required.
+ * Tea-table now has real through cuts and needs no exception.
  */
 const SHAPE_AWARE_CASES = new Set<string>([
+  // 2026-09-05 review: these are historical baselines, not proofs of valid joinery.
+  // Tea-table's six leg/slat cases were fixed on 2026-09-05 and removed below.
+  // Older tea-table notes below are historical, not current findings.
+  // Pair/size checks now prevent this list from hiding additional regressions.
   // 方凳弧肩斜腳（curved-taper）：曾在此 allowlist（腳 bbox 全寬、內面實際收窄→誤報）。
   // 2026-08-03 補上 projectPartSilhouette / projectPartPolygon 的 curved-taper 分支後，
   // audit 的 Y-segmented silhouette 路徑已能看到「隨高度收窄的實際內面」，AABB-at-Y 正確 →
   // 0 overlap，不再需要 allowlist（移除）。
-  "tea-table:box",
-  "tea-table:tapered",
   // 弧肩斜腳（curved-taper）同 box/tapered：下棚 slat 端角 × 腳，silhouette
   // 看不到 slat notched-corner → 誤報。腳實際內面已收窄、離 slat 更遠，非真重疊。
-  "tea-table:curved-taper",
   /**
    * 兩向弧肩:4 對「下橫撐 × 下橫撐」在腳的內角互切 1.6 × 50 × 1.6mm。
    *
@@ -63,7 +61,6 @@ const SHAPE_AWARE_CASES = new Set<string>([
    *   b) 把橫撐移離腳中心線 7.8mm → 單向 / 直腳 / 錐形腳全部跟著位移
    * 真家具在這個角落是格肩榫互讓,本來就不是兩塊實體對撞。
    */
-  "tea-table:curved-taper+ctTwoWay",
   /**
    * 方凳兩向弧肩:4 對「下橫撐 × 下橫撐」在腳的內角互切 1.1 × 40 × 9.1mm。
    * 跟上面茶几完全同一類 —— 兩個方向的橫撐都補償到腳的弧面之後,
@@ -77,8 +74,6 @@ const SHAPE_AWARE_CASES = new Set<string>([
    */
   "stool:curved-taper+ctTwoWay",
   // 加了「橫撐處也做弧肩」之後同一批既有誤報換了變體名稱,理由同上兩條。
-  "tea-table:curved-taper+ctLowerCove",
-  "tea-table:curved-taper+ctTwoWay+ctLowerCove",
   "stool:curved-taper+ctLowerCove",
   "stool:curved-taper+ctTwoWay+ctLowerCove",
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
@@ -148,6 +143,10 @@ import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
 import { toBeginnerMode } from "../lib/templates/beginner-mode";
 import { findOverlaps } from "../lib/geometry/overlap";
+import type { Overlap } from "../lib/geometry/overlap";
+import { overlapRegressions, type OverlapBaseline } from "../lib/geometry/overlap-baseline";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import type {
   FurnitureDesign,
   MaterialId,
@@ -155,6 +154,11 @@ import type {
 } from "../lib/types";
 
 const useJoinery = process.argv.includes("--joinery");
+const writeBaseline = process.argv.includes("--write-baseline");
+const baselinePath = path.join(__dirname, "overlap-baseline.json");
+if (writeBaseline && useJoinery) throw new Error("The reviewed baseline is assembly-only.");
+if (!existsSync(baselinePath) && !writeBaseline) throw new Error("Missing overlap baseline; do not silently bypass regression checks.");
+const baseline: OverlapBaseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
 
 interface Row {
   category: string;
@@ -165,6 +169,9 @@ interface Row {
   flag: string;
   expected: boolean;
   examples: string[];
+  overlaps: Overlap[];
+  regressions: string[];
+  reviewStatus: "confirmed-defect" | "documented-joint" | "unreviewed" | "clean";
 }
 
 /**
@@ -282,6 +289,9 @@ for (const entry of FURNITURE_CATALOG) {
     const raw = buildDesign(entry, variant);
     if (!raw) continue;
     const design = useJoinery ? raw : toBeginnerMode(raw);
+    if (process.argv.includes("--inject-collision") && entry.category === "tea-table" && variant === "box") {
+      design.parts.push({ ...structuredClone(design.parts[0]), id: "audit-injected-duplicate" });
+    }
     const allOverlaps = findOverlaps(design.parts);
     // butt-joint convention 允許椅背後仰時背柱底端 dip 進座板/後腳 AABB（物理必然，
     // overshoot 補縫 → bottom-back corner 必然下沉，視覺被遮蓋；2026-05-05）。
@@ -319,11 +329,22 @@ for (const entry of FURNITURE_CATALOG) {
         SHAPE_AWARE_VARIANTS.has(variant) ||
         SHAPE_AWARE_CASES.has(`${entry.category}:${variant}`),
       examples,
+      overlaps,
+      regressions: writeBaseline ? [] : overlapRegressions(overlaps, baseline[`${entry.category}:${variant}`] ?? []),
+      reviewStatus: overlaps.length === 0 ? "clean" : entry.category === "tea-table" ? "confirmed-defect" : entry.category === "wine-rack" ? "documented-joint" : "unreviewed",
     });
   }
 }
 
 rows.sort((a, b) => b.overlapCount - a.overlapCount);
+
+if (writeBaseline) {
+  if (process.argv.includes("--inject-collision")) throw new Error("Cannot baseline injected errors.");
+  if (rows.some(row => row.overlapCount > 0 && !row.expected)) throw new Error("Cannot baseline new, unclassified cases.");
+  writeFileSync(baselinePath, JSON.stringify(Object.fromEntries(rows.filter(row => row.overlapCount > 0).map(row => [`${row.category}:${row.variant}`, row.overlaps])), null, 2) + "\n");
+}
+const reportPath = process.argv.find(arg => arg.startsWith("--report="))?.slice("--report=".length);
+if (reportPath) writeFileSync(reportPath, JSON.stringify({ mode: useJoinery ? "joinery" : "assembly", rows }, null, 2) + "\n");
 
 const totalOverlaps = rows.reduce((sum, r) => sum + r.overlapCount, 0);
 
@@ -343,7 +364,7 @@ console.log("|---|---|---|---|---|---|---|---|");
 for (const r of rows) {
   const exCol = r.examples.length > 0 ? r.examples.join("<br>") : "—";
   const status =
-    r.overlapCount === 0 ? "✅" : r.expected ? "⚠️ design-residue" : "❌ NEW";
+    r.overlapCount === 0 ? "✅" : r.expected && r.regressions.length === 0 ? `⚠️ ${r.reviewStatus}` : "❌ NEW / INCREASED";
   console.log(
     `| ${status} | ${r.flag} | \`${r.category}\` | \`${r.variant}\` | ${r.nameZh} | ${r.partsCount} | **${r.overlapCount}** | ${exCol} |`,
   );
@@ -351,7 +372,7 @@ for (const r of rows) {
 console.log("");
 
 const failed = rows.filter((r) => r.overlapCount > 0);
-const newFailures = failed.filter((r) => !r.expected);
+const newFailures = failed.filter((r) => !r.expected || r.regressions.length > 0);
 const expectedStillFailing = failed.filter((r) => r.expected);
 const expectedNowPassing = rows.filter(
   (r) => r.expected && r.overlapCount === 0,
@@ -381,18 +402,19 @@ if (expectedNowPassing.length > 0) {
 
 if (newFailures.length > 0) {
   console.error(
-    `❌ Audit failed: ${newFailures.reduce((s, r) => s + r.overlapCount, 0)} NEW overlap pair(s) across ${newFailures.length} case(s):`,
+    `❌ Audit failed: ${newFailures.reduce((s, r) => s + (r.regressions.length || r.overlapCount), 0)} NEW / INCREASED overlap pair(s) across ${newFailures.length} case(s):`,
   );
   for (const r of newFailures) {
+    for (const regression of r.regressions) console.error(`     ${regression}`);
     console.error(
       `   - ${r.nameZh} (\`${r.category}\` × \`${r.variant}\`) · ${r.overlapCount} pairs · ${r.examples.slice(0, 1).join("")}`,
     );
   }
   console.error(
-    `   Fix or set useButtJointConvention=true on the design (see docs/drafting-math.md §A10).`,
+    `   Investigate the reported pairs; do not change conventions or regenerate the baseline merely to pass (docs/drafting-math.md §A10.7).`,
   );
   process.exit(1);
 }
 console.log(
-  `✅ All non-allowlisted cases clean (${rows.length - expectedStillFailing.length}/${rows.length}).`,
+  `✅ No new or increased overlap pairs. ${rows.length - expectedStillFailing.length}/${rows.length} cases clean; ${failed.filter(r => r.reviewStatus === "confirmed-defect").length} known-defect cases remain.`,
 );

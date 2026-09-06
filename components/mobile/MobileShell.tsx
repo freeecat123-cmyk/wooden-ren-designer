@@ -211,6 +211,7 @@ export function MobileShell(props: MobileShellProps) {
     height,
     material,
     joineryMode: props.joineryMode,
+    designerMode: props.designerMode ?? false,
     options: optionValues,
   };
   const saveName = `${entry.nameZh} ${length}×${width}×${height}`;
@@ -236,7 +237,7 @@ export function MobileShell(props: MobileShellProps) {
         {/* 3D viewer：sticky 釘在 TopBar (56px) 下。
             原本固定 220px（3D + TopBar 約 1/3 viewport），2026-09-02 木頭仁：「手機版圖面太小了 再拉高一些」
             → 跟螢幕高走：52vh，夾在 320~460px（iPhone 13 Safari 視窗約 664px → 345px，扣掉視角列後畫布約 290px，原本 167px；組裝動畫控制列還會吃掉約 46px） */}
-        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
+        <div className={`${advancedOpen ? "sticky top-[56px] z-10" : "relative"} -mx-4 px-4 py-1`}>
           <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
             {/* 進階設定面板（AdvancedSheet）打開時 3D 縮成 clamp(220px, 36dvh, 320px)，
                 面板頂端 = 這個高度 + 76（TopBar 56 + padding 8 + 外框 12），兩邊同一條式子、要一起改。
@@ -368,7 +369,7 @@ export function MobileShell(props: MobileShellProps) {
             <button
               type="button"
               onClick={() => setAdvancedOpen(true)}
-              className="min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
+              className="col-span-2 min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
             >
               {t("form.advanced")}
             </button>

@@ -1,5 +1,7 @@
 import { Link } from "@/i18n/navigation";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { savedDesignQuery } from "@/lib/design/saved-query";
+import { DesignDraftRecovery } from "@/components/design/DesignDraftRecovery";
 import { after } from "next/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
@@ -179,6 +181,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 唯讀 SSR 頁面用 getSession（無 HTTP），middleware 已每個 request 驗 JWT。
   const user = await getSessionUser();
   const supabase = await createClient();
+  if (currentDesignId && sp.loadSaved === "1") {
+    if (!user) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/design/${type}?designId=${currentDesignId}&loadSaved=1`)}`);
+    const { data: saved, error } = await supabase.from("designs")
+      .select("params, furniture_type, updated_at").eq("id", currentDesignId).eq("user_id", user.id).single();
+    if (error && error.code !== "PGRST116") throw new Error("Could not load saved design");
+    if (!saved) notFound();
+    const query = savedDesignQuery(currentDesignId, saved.params, saved.updated_at);
+    redirect(`/${locale}/design/${saved.furniture_type.replace(/_/g, "-")}?${query}`);
+  }
   let profile = null;
   let unlockedCategories: string[] = [];
   if (user) {
@@ -448,6 +459,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   return (
     <>
+    <DesignDraftRecovery />
     {/* BreadcrumbList JSON-LD — SERP rich snippet 顯示麵包屑路徑 */}
     <script
       type="application/ld+json"
@@ -505,6 +517,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               height,
               material,
               joineryMode,
+              designerMode: parsed.designerMode,
               options,
             }}
           />

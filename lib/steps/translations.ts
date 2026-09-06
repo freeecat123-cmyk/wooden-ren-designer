@@ -118,6 +118,10 @@ const JOINERY_STEP_BULLETS_EN: Record<JoineryType, string[]> = {
 };
 
 const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
+  "shelf-leg-clearance": {
+    title: d => `Cut shelf leg-clearance notches (${d.parts.reduce((sum, p) => sum + p.mortises.filter(m => m.label === "避腳缺角" || m.label === "Leg clearance notch").length, 0)})`,
+    description: () => "Mark each notch and its orientation from the part drawing. Saw away the corner waste and pare flat with a chisel. The notch includes 0.5mm clearance. Test-fit the slats on the lower stretchers, check clearance at every leg, then ease the cut edges.",
+  },
   "step-10b-dog-holes": {
     title: (d) => {
       const n = d.parts.reduce((k, p) => k + p.mortises.filter((m) => m.cosmetic && m.shape === "round" && m.through && !m.label).length, 0);

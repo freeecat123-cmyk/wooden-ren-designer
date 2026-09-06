@@ -10,7 +10,7 @@ import { workbenchHeightFor } from "@/lib/knowledge/ergonomics";
  *  ⭐ designId：載入雲端設計後改參數，必須保留 ?designId，否則 SaveDesignButton
  *  的 currentDesignId 變 null →「儲存設計」又跳出輸入新專案名（變另存新檔，
  *  user 2026-06-25 回報「改參數後就存不回原設計」）。 */
-const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant", "designId"];
+const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant", "designId", "revision"];
 
 /**
  * Preset → 自動同步 sibling input 值的映射表。
@@ -250,6 +250,7 @@ export function DesignFormShell({
       className={className}
     >
       {designId && <input type="hidden" name="designId" value={designId} />}
+      {sp?.get("revision") && <input type="hidden" name="revision" value={sp.get("revision")!} />}
       {children}
     </form>
   );
