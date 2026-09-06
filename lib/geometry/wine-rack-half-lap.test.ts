@@ -5,6 +5,7 @@ import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { mortiseLocalBox } from "@/lib/render/svg-views";
 import { worldExtents } from "@/lib/render/geometry";
 import type { Part } from "@/lib/types";
+import { findOverlaps } from "./overlap";
 
 type Bounds = { min: number[]; max: number[] };
 
@@ -62,6 +63,7 @@ for (const legShape of ["box", "tapered", "round", "round-tapered", "bracket", "
       expect(shelves).toHaveLength(tall - 1);
       expect(dividers).toHaveLength(wide - 1);
       for (const shelf of shelves) for (const divider of dividers) validatePair(shelf, divider);
+      expect(findOverlaps([...shelves, ...dividers])).toEqual([]);
     });
   }
 }
@@ -69,9 +71,11 @@ for (const legShape of ["box", "tapered", "round", "round-tapered", "bracket", "
 it("rejects a missing, vertically shifted, or same-side divider cut", () => {
   const { shelves, dividers } = build();
   const shelf = shelves[0], divider = dividers[0];
+  expect(findOverlaps([shelf, { ...divider, mortises: [] }])).toHaveLength(1);
   expect(() => validatePair(shelf, { ...divider, mortises: [] })).toThrow();
   for (const mode of ["shift", "same-side"]) {
     const mortises = divider.mortises.map(m => ({ ...m, origin: { ...m.origin, ...(mode === "shift" ? { z: m.origin.z + 7.5 } : { x: -m.origin.x }) } }));
     expect(() => validatePair(shelf, { ...divider, mortises })).toThrow();
+    expect(findOverlaps([shelf, { ...divider, mortises }])).toHaveLength(1);
   }
 });

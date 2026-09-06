@@ -1,5 +1,21 @@
 # Furniture Generator Memory
 
+## 2026-09-06 Rectangular Cut Audit Follow-up
+
+- Recognize only complete rectangular cutter coverage, including blind rebates
+  and complementary half-laps. Renderer ZYX stock bounds must agree with audit
+  bounds before cuts qualify; no rotation-convention or template changes.
+- Tightened baseline by exactly 117 reviewed pairs: wine-rack 42, plywood laps
+  62, deadman rails 12, box lid 1. Remaining 11 cases / 277 pairs supersede the
+  earlier counts below. Workbench deadman-board versus under-shelf stays flagged.
+- Missing/shallow/shifted/same-side/gapped cuts have negative controls. Actual
+  wine-rack CSG mesh volumes and ray occupancy verified at renderer scale 0.01;
+  do not claim the simplified STL exporter includes machining.
+- Full local verify: 1236 tests / 77 files, typecheck and all audits passed.
+  Production build passed. Deployment status must be checked separately.
+- Photo-frame construction choice and Chinese-cabinet rail convention remain
+  unresolved; generic continuation does not pick a conflicting specification.
+
 ## 2026-09-06 Saved Model Compatibility
 
 - Signed schema-v1 model snapshots in params._modelSnapshot, owned loading,

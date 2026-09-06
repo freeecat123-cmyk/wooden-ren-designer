@@ -104,41 +104,10 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 正交平面）後，柱俯視輪廓由「誤畫的方形」變成正確的「圓形」，腳榫butt 進
   // 圓柱的結構性重疊才被偵到——同 round-table:pedestal 性質（柱實際是圓的）。
   "coat-rack:default",
-  // 紅酒架：方格佈局縱向分隔板 × 水平層板用十字搭接（half-lap），兩件都滿深、垂直
-  // 交叉、重疊處各挖一半深度互鎖（明式格屜做法）。audit 用實體 OBB 看到 shelf × divider
-  // 在交叉處 15×15×280 結構性重疊（缺口是 mortise CSG subtract、OBB 不計）= joint，非穿模。
-  // 菱形佈局無縱向分隔板不在此列。legShape 各 variant 格屜結構相同故全列。
-  "wine-rack:box",
-  "wine-rack:tapered",
-  "wine-rack:round",
-  "wine-rack:round-tapered",
-  "wine-rack:bracket",
-  "wine-rack:plinth",
-  "wine-rack:panel-side",
-  // 工作桌下層板：notched-corners 缺角讓腳，silhouette 看不到缺角 → 腳 × 層板誤報（同 tea-table）。
-  // 這幾個變體裡只有這 4 對；其他新零件（尾鉗 / 靠板 / 抽屜櫃）都在別的變體裡另外驗到 0。
+  // Actual remaining interference: deadman rear cheek versus under-shelf.
+  // Rail grooves, plywood laps and wine-rack half-laps now use cut coverage,
+  // not category exceptions. Missing or undersized cuts must fail the audit.
   "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf",
-  // 長板靠板：滑板底 V 槽騎在脊條尖上、頂直槽咬住上軌，各咬進 12（槽是 cosmetic mortise，OBB 不計）
-  // = 結構性重疊（同紅酒架半搭接），不是穿模。09-04 視覺審查：原本只是「貼著」會倒出來。
-  "workbench:default+topSplit=center-well+deadman",
-  "workbench:default+deadman+lowerStretcherArrangement=box-frame",
-  "workbench:default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
-  "workbench:default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
-  "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
-  // 長方腳 + 長板靠板：靠板滑板咬住脊條／上軌（同上面那組 deadman 變體）
-  "workbench:default+legDepth=75+deadman",
-  // 長方腳 + 下層板：notched-corners 缺角讓腳，silhouette 看不到缺角 → 誤報（同上面那組 withUnderShelf）
-  "workbench:default+legDepth=75+withApron+withUnderShelf",
-  // 夾板疊層（§AU23）：橫撐／裙板的端頭伸進「疊層時預留的搭接槽」裡（半搭接，同紅酒架
-  // box 那組）。槽是 cosmetic mortise，OBB 不扣 → 腳 × 橫撐 / 腳 × 裙板 在槽裡結構性重疊，
-  // 重疊厚度恰等於槽深（腳 72 兩向 → 18；腳 54 兩向 → (54−36)/2 = 9），不是穿模。
-  "workbench:default+materialStyle=plywood",
-  "workbench:default+materialStyle=plywood+plyTopLayers=2+legLayers=3",
-  "workbench:default+materialStyle=plywood+plyTopLayers=4+legLayers=5",
-  "workbench:default+materialStyle=plywood+withApron+lowerStretcherArrangement=h-frame+knockdown=bolt",
-  "workbench:default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf",
-  "workbench:default+materialStyle=plywood+benchStyle=apron",
-  "workbench:default+materialStyle=plywood+topSplit=center-well+drawerCount=2",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
@@ -201,7 +170,7 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
     "default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt",
     "default+viseSide=right+endVise=wagon+deadman+lowerStretcherArrangement=box-frame",
     "default+frontVise=leg+deadman+lowerStretcherArrangement=pair-x",
-    // 夾板疊層（§AU23）：料伸進腳的搭接槽 → 結構性重疊列 SHAPE_AWARE_CASES；每種層數 / 流派各掃一次
+    // Plywood laps (§AU23): verify real cutter coverage across layer/style variants.
     "default+materialStyle=plywood",
     "default+materialStyle=plywood+plyTopLayers=2+legLayers=3",
     "default+materialStyle=plywood+plyTopLayers=4+legLayers=5",

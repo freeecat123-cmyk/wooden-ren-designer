@@ -30,6 +30,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 |---|---|---|
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
 | 重疊例外掩蓋新碰撞 / 逐對基線 | `"overlap-baseline\|known-defect"` | §A10.7 |
+| Half-lap / blind rebate cut coverage | `"rectangular cut coverage\|coplanar"` | §A10.7 |
 | 側視座標還原 / 外框深度錯誤 | `"world-bounds\|negative world Z"` | §A10.7 |
 | 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
 | 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
@@ -630,6 +631,23 @@ leg styles and three grid/thickness combinations; missing/shifted/same-side cuts
 must fail. This is not full CSG validation. The historical OBB `XYZ` description
 below differs from the renderer; do not silently change either convention based
 on this test. Simplified `partExportGeometry` still omits mortise subtraction.
+
+2026-09-06: rectangular cut coverage now also recognizes complementary half-laps
+and blind rebates. Only rendered cosmetic rectangular cuts in undeformed stock
+with quarter-turn rotations qualify. Cutter placement uses renderer ZYX, and
+its transformed stock bounds must agree with the existing audit bounds within
+0.001mm; this does not change either rotation convention. A cut must cover the
+entire intersection cross-section. Its intervals, together with cuts from the
+other part, must continuously cover the remaining axis. Missing, shifted,
+shallow, same-side and 0.2mm-gapped cuts must still report a collision.
+Wine-rack tests additionally check actual renderer CSG mesh volumes and interior
+ray occupancy at scale 0.01, including deliberately broken cuts. Sampling is not
+a general solid-intersection proof; analytical coverage remains required. A
+second CSG intersection of exactly coplanar touching meshes produces unreliable
+open surfaces and is not used as the acceptance oracle. Workbench lap/deadman
+and box-lid tests check cutter coverage without claiming STL machining support.
+No template blanks, positions, pricing or saved model data change. The remaining
+deadman-board / under-shelf interference is not excused by the rail grooves.
 
 `scripts/audit-overlaps.ts` 跑遍所有 `FURNITURE_CATALOG`，組裝版（預設）下偵測
 零件穿模，輸出 markdown 表。每改家具模板執行：

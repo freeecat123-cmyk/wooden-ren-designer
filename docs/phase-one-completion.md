@@ -14,11 +14,16 @@ data, dimensions and unrelated work. No blanket overlap exceptions.
   saved geometry. Private references do not replace ownership checks.
 - [x] Editing ergonomics: mobile controls remain reachable, history and save
   workflows have desktop/mobile browser regression coverage.
-- [ ] Geometry review: classify the remaining 30 cases / 394 pairs individually,
+- [ ] Geometry review: classify the remaining 11 cases / 277 pairs individually,
   prove machining coverage or fix confirmed defects without shrinking blanks.
 - [ ] Full tests, type checks, audits, build, browser checks and release checks.
 
 ## Constraints Found
+
+- Rectangular cut coverage removed 117 verified false-positive pairs (wine-rack
+  42, plywood workbench 62, deadman rails 12, box lid 1) without template changes.
+  Remaining 277 pairs are unresolved warnings, not 277 confirmed defects. The
+  workbench deadman rear cheek still intersects the under-shelf; keep that warning.
 
 - Photo-frame notes specify a rear rebate but rail machining data omits it.
   Glass/back placement and stated rebate height disagree; do not invent a new
@@ -32,6 +37,12 @@ data, dimensions and unrelated work. No blanket overlap exceptions.
   A public immutable sharing format is not implemented in this phase.
 
 ## Verification Evidence (2026-09-06)
+
+- Cut-audit follow-up: 1236 tests / 77 files, typecheck, all audits and production
+  build passed. Injected duplicate-part collision correctly failed the audit.
+  Desktop/iPhone wine-rack pages report zero overlaps; canvas pixel checks prove
+  nonblank output and rotation changes (verify-cut-audit.mjs). Mobile controls
+  remain reachable, including the negative fixed-overlay check. No cloud writes.
 
 - Authenticated Chrome: existing test record saved with a model, reopened in a
   new tab at 500mm, edited/saved at 550mm, restored to the archived 500mm model.

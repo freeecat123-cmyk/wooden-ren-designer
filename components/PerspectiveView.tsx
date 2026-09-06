@@ -132,7 +132,7 @@ function pairShadeByPartId(hex: string, partId: string): string {
  * - 共用一個 Evaluator 跑完所有 mortise（sequential subtraction）
  * - 中間 brush 的 geometry 會 dispose；保留原 baseGeo 不動（useMemo 會重用）
  */
-function subtractMortisesFromGeometry(
+export function subtractMortisesFromGeometry(
   baseGeo: BufferGeometry,
   mortiseBoxes: LocalBox[],
   mortiseShapes?: Array<"rect" | "round">,
