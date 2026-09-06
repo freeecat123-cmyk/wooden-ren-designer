@@ -9,6 +9,7 @@ interface Version {
   name: string | null;
   created_at: string;
   params: Record<string, unknown>;
+  hasModelSnapshot?: boolean;
 }
 
 export function DesignVersions({ designId, revision, disabled, hasChanges }: {
@@ -59,7 +60,10 @@ export function DesignVersions({ designId, revision, disabled, hasChanges }: {
         body: JSON.stringify({ versionId: selected.id, expectedUpdatedAt: revision }),
       });
       if (response.status === 409) {
-        setError(en ? "The cloud design has changed. Reopen it before restoring." : "雲端設計已有更新，請重新開啟設計後再還原。");
+        const data = await response.json();
+        setError(data.error === "invalid_model_snapshot"
+          ? (en ? "This archived model could not be verified. Contact support; your current design has not changed." : "歷史模型驗證未通過，請聯絡管理員；目前設計未被更動。")
+          : (en ? "The cloud design has changed. Reopen it before restoring." : "雲端設計已有更新，請重新開啟設計後再還原。"));
         return;
       }
       if (!response.ok) throw new Error("restore");
@@ -84,7 +88,9 @@ export function DesignVersions({ designId, revision, disabled, hasChanges }: {
         <p className="break-words font-medium">{selected.name}</p>
         <p className="text-sm">{[selected.params.length, selected.params.width, selected.params.height].map(v => typeof v === "number" || typeof v === "string" ? v : "?").join(" × ")} mm</p>
         <p className="text-sm text-zinc-600">{en ? "Restoring updates the cloud design. Its current saved version will remain in history." : "還原會更新雲端設計，目前已儲存的版本仍會保留在歷史紀錄。"}</p>
-        <p className="text-xs text-zinc-500">{en ? "Drawings are regenerated with the current furniture template." : "圖面會依目前的家具模板重新產生。"}</p>
+        <p className="text-xs text-zinc-500">{selected.hasModelSnapshot
+          ? (en ? "Saved model data is preserved. Pricing and rendering use the current app." : "保留當時模型資料；價格與繪圖程式使用目前版本。")
+          : (en ? "This older record contains parameters only, not its original model. Drawings use the current template." : "此舊紀錄只有參數，沒有當時模型；圖面會使用目前模板重新產生。")}</p>
         {hasChanges && <p className="text-sm text-red-700">{en ? "Your unsaved edits will be replaced. Save them first if you need to keep them." : "目前尚未儲存的修改會被取代；需要保留的話，請先取消並儲存。"}</p>}
         {!revision && <p className="text-sm text-red-700">{en ? "Reopen this design from My Designs before restoring." : "請先從我的設計重新開啟，再使用還原。"}</p>}
         <div className="flex flex-wrap justify-end gap-2">

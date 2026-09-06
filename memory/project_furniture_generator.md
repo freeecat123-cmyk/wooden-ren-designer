@@ -1,5 +1,23 @@
 # Furniture Generator Memory
 
+## 2026-09-06 Saved Model Compatibility
+
+- Signed schema-v1 model snapshots in params._modelSnapshot, owned loading,
+  atomic history restore, invalid/stale rejection and explicit legacy fallback.
+  See docs/phase-one-completion.md for key rotation and public-sharing limits.
+- Actual Chrome save/reopen/edit/restore verified on the existing test design;
+  four output routes retain 500 x 350 x 400mm / 17 parts. Admin output gates now
+  match existing verified admin entitlement, without changing member plans.
+- Project rebuilding now flattens nested options and respects assembly mode and
+  signed models. Client estimates are not authoritative signature checks.
+- Mobile report control no longer floats over editor controls. Real desktop/mobile
+  editing fixtures and iPhone slider/advanced-sheet checks passed.
+- Output review caught stale USD cookie overriding Chinese server quote currency
+  while client terms used TWD; align with existing locale policy, regression tested.
+- Geometry still 30 warning cases / 394 pairs, not 394 proven defects. Photo-frame
+  confirmed missing rebate needs user's construction decision; not silently fixed.
+  This is not a declaration that the full phase is complete.
+
 - Workbench corner-notch audit follow-up: actual mesh and four template variants
   verified with missing-cut controls. Fixed cap fans spanning concave cutouts
   using Earcut; blank sizes/outlines unchanged. 16 cleared pairs removed; 30

@@ -58,6 +58,7 @@ interface MobileShellProps {
   lineShareText: string;
   formAction: string;
   currentDesignId?: string | null;
+  saveParams?: Record<string, unknown>;
   wireframeMode?: boolean;
   joineryMode?: boolean;
   designerMode?: boolean;
@@ -364,7 +365,7 @@ export function MobileShell(props: MobileShellProps) {
               furnitureType={entry.category}
               defaultName={saveName}
               currentDesignId={props.currentDesignId}
-              params={saveParams}
+              params={props.saveParams ?? saveParams}
             />
             <button
               type="button"

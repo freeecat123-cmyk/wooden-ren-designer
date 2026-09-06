@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
+import { validateSnapshotParams } from "@/lib/design/model-snapshot";
 
 /**
  * 更新 / 刪除自己的 design。
@@ -18,7 +19,7 @@ function isUuid(s: string): boolean {
 }
 
 const MAX_NAME_LEN = 100;
-const MAX_PARAMS_BYTES = 32 * 1024;
+const MAX_PARAMS_BYTES = 2 * 1024 * 1024 + 32 * 1024;
 
 function validateParams(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -92,7 +93,7 @@ export async function PATCH(
 
   if ("params" in body) {
     const nextParams = validateParams(body.params);
-    if (!nextParams) {
+    if (!nextParams || !validateSnapshotParams(nextParams, patch.furniture_type)) {
       return NextResponse.json({ error: "invalid_params" }, { status: 400 });
     }
     patch.params = nextParams;

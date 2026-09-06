@@ -2944,6 +2944,14 @@ grep keyword：`sanitizeLaborOpts|sanitizeEngQuoteOpts|LABOR_BOUNDS|ENG_RATE_BOU
 （每個費用參數被亂改後，客戶拿到的單都不准有負數或 NaN，且訂金 + 尾款 = 總價）。
 
 
+### X1c. 報價與列印幣別一致
+
+`getCurrencyFromCookies` 與 `useCurrency` 採同一既有規則：`zh-TW` 顯示 TWD，
+`en` 顯示 USD；舊 `wr-currency` cookie 不得蓋過語系規則。金額仍以 TWD
+計算、儲存，顯示時才經 `formatPrice` 換算，不變更計價公式或固定匯率。
+2026-09-06 實測舊 USD cookie 使中文報價表為 USD，但付款條件為 TWD；
+由 `lib/units/server-currency.test.ts` 釘住兩語系與相反 cookie 的回歸案例。
+
 ### X2. 損料率分級
 - 實木 10%
 - 硬雜木（紅木/胡桃）15%

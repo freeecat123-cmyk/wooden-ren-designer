@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { readModelSnapshot } from "@/lib/design/model-snapshot";
 
 const uuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 type Context = { params: Promise<{ id: string }> };
@@ -30,7 +31,11 @@ export async function GET(req: NextRequest, context: Context) {
     console.error("[design versions] list failed", error.code);
     return NextResponse.json({ error: "history_unavailable" }, { status: 503 });
   }
-  return NextResponse.json({ versions: (data ?? []).slice(0, 20), hasMore: (data?.length ?? 0) > 20 }, { headers: { "Cache-Control": "private, no-store" } });
+  const versions = (data ?? []).slice(0, 20).map(version => {
+    const { _modelSnapshot, ...params } = version.params ?? {};
+    return { ...version, params, hasModelSnapshot: Boolean(_modelSnapshot), modelLocale: _modelSnapshot?.locale };
+  });
+  return NextResponse.json({ versions, hasMore: (data?.length ?? 0) > 20 }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest, context: Context) {
@@ -47,6 +52,9 @@ export async function POST(req: NextRequest, context: Context) {
     .select("params, name, furniture_type").eq("id", body.versionId).eq("design_id", id).eq("user_id", owner).maybeSingle();
   if (error) return NextResponse.json({ error: "db_error" }, { status: 500 });
   if (!version) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (version.params?._modelSnapshot && !readModelSnapshot(version.params._modelSnapshot, version.furniture_type.replace(/_/g, "-"), version.params)) {
+    return NextResponse.json({ error: "invalid_model_snapshot" }, { status: 409 });
+  }
   // The existing database trigger snapshots the displaced design in this same transaction.
   const { data: restored, error: updateError } = await db.from("designs")
     .update({ params: version.params, name: version.name, furniture_type: version.furniture_type })

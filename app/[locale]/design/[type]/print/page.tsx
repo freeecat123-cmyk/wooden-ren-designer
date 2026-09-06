@@ -3,6 +3,8 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { loadModelSnapshot } from "@/lib/design/load-model-snapshot";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import type {
   FurnitureCategory,
@@ -71,7 +73,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   if (!user) {
     redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/print`)}`);
   }
-  if (!(await isPaidUser(user.id))) {
+  if (!isAdminEmail(user.email, getServerAdminEmails()) && !(await isPaidUser(user.id))) {
     redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
@@ -108,10 +110,11 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     spStr("joineryMode") === "1" ||
     spStr("beginnerMode") === "false";
   const unit = await getUnitFromCookies(rawLocale);
-  const rawDesign = entry.template({ length, width, height, material, options, locale: rawLocale });
-  const design = joineryMode
+  const frozen = await loadModelSnapshot(type, sp);
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale: rawLocale });
+  const design = frozen?.design ?? (joineryMode
     ? applyEdgeProtection(rawDesign)
-    : toBeginnerMode(rawDesign);
+    : toBeginnerMode(rawDesign));
   const usages = extractJoineryUsages(design);
   const steps = translateSteps(deriveBuildSteps(design), design, locale);
   const totalHours = totalEstimatedHours(steps);

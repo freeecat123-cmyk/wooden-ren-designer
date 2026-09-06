@@ -90,7 +90,8 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 鳩尾盒：壁體間鳩尾齒互嵌、頂蓋邊條入槽——所有 overlap 都是 joint 結構性
   // 重疊（CSG subtract 重疊規範、見 feedback_csg_overlap_over_analytical_fit）
   "dovetail-box:default",
-  // 相框：back-panel 入立柱凹溝、frame × panel 結構性 overlap
+  // Confirmed defect: notes specify a rebate, but rails have no rebate cuts.
+  // Keep exact regression pairs while the conflicting glass placement is reviewed.
   "photo-frame:default",
   // 書擋：三角加固 brace 用 right-triangle shape 倚靠 back panel 立面、
   // 物理上是「靠著」不是「穿進」，audit 用 brace bbox 偵測誤判結構 overlap
@@ -331,7 +332,7 @@ for (const entry of FURNITURE_CATALOG) {
       examples,
       overlaps,
       regressions: writeBaseline ? [] : overlapRegressions(overlaps, baseline[`${entry.category}:${variant}`] ?? []),
-      reviewStatus: overlaps.length === 0 ? "clean" : entry.category === "tea-table" ? "confirmed-defect" : entry.category === "wine-rack" ? "documented-joint" : "unreviewed",
+      reviewStatus: overlaps.length === 0 ? "clean" : ["tea-table", "photo-frame"].includes(entry.category) ? "confirmed-defect" : entry.category === "wine-rack" ? "documented-joint" : "unreviewed",
     });
   }
 }

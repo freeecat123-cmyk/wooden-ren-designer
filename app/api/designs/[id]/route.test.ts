@@ -35,3 +35,7 @@ it("rejects signed-out saves before reaching the database", async () => {
   expect(db.eq).not.toHaveBeenCalled();
 });
 it("rejects a null body", async () => { expect((await save(null)).status).toBe(400); });
+it("rejects unsigned model data before issuing any database update", async () => {
+  expect((await save({ furnitureType: "stool", params: { length: 500, _modelSnapshot: { schema: 1 } } })).status).toBe(400);
+  expect(db.eq).not.toHaveBeenCalled();
+});

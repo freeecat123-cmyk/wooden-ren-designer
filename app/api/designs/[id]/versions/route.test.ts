@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const state = vi.hoisted(() => ({ user: { id: "owner" } as { id: string } | null, calls: [] as unknown[][],
   current: { id: "design" } as unknown, version: { params: { length: 900 }, name: "Old", furniture_type: "stool" } as unknown,
   restored: { id: "design", updated_at: "2026-09-05T11:00:00Z" } as unknown,
-  versions: Array.from({ length: 21 }, (_, i) => ({ id: String(i) })),
+  versions: Array.from({ length: 21 }, (_, i) => ({ id: String(i) })) as Array<Record<string, unknown>>,
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ auth: { getUser: async () => ({ data: { user: state.user } }) } }),
@@ -31,6 +31,7 @@ const restore = () => POST(new NextRequest(`http://localhost/api/designs/${id}/v
 beforeEach(() => {
   state.user = { id: "owner" }; state.calls = []; state.current = { id }; state.restored = { id, updated_at: revision };
   state.version = { params: { length: 900 }, name: "Old", furniture_type: "stool" };
+  state.versions = Array.from({ length: 21 }, (_, i) => ({ id: String(i) }));
 });
 it("requires authentication for listing and restoring", async () => {
   state.user = null;
@@ -69,4 +70,15 @@ it("rejects a version from another design or account before updating", async () 
 it("does not report success when another editor saved first", async () => {
   state.restored = null;
   expect((await restore()).status).toBe(409);
+});
+it("does not send full model archives in the history listing", async () => {
+  state.versions = [{ id: versionId, params: { length: 500, _modelSnapshot: { locale: "zh-TW", raw: "large-model" } } }];
+  const data = await (await list()).json();
+  expect(data.versions[0].params).toEqual({ length: 500 });
+  expect(data.versions[0].hasModelSnapshot).toBe(true);
+});
+it("refuses corrupt archived models without overwriting the current design", async () => {
+  state.version = { furniture_type: "stool", params: { _modelSnapshot: { schema: 1 } } };
+  expect((await restore()).status).toBe(409);
+  expect(state.calls.some(call => call[0] === "update")).toBe(false);
 });

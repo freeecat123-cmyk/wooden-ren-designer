@@ -13,4 +13,7 @@ describe("saved design round trip", () => {
     expect(designFingerprint({ options: { a: 1, b: false }, length: 900 })).toBe(designFingerprint({ length: 900, options: { b: false, a: 1 } }));
     expect(designFingerprint({ length: 900 })).not.toBe(designFingerprint({ length: 901 }));
   });
+  it("does not treat model archive metadata as a parameter edit", () => {
+    expect(designFingerprint({ length: 900, _modelSnapshot: { build: "new" } })).toBe(designFingerprint({ length: 900 }));
+  });
 });

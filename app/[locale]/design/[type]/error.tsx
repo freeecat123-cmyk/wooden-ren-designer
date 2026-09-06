@@ -2,7 +2,7 @@
 
 import { Link } from "@/i18n/navigation";
 import { useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 export default function DesignError({
   error,
@@ -12,6 +12,7 @@ export default function DesignError({
   reset: () => void;
 }) {
   const t = useTranslations("designError");
+  const en = useLocale() === "en";
 
   useEffect(() => {
     console.error("[design page error boundary]", error);
@@ -46,6 +47,9 @@ export default function DesignError({
           {error.digest && <span> · digest:{error.digest}</span>}
         </div>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link href="/account/designs" className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 hover:bg-zinc-50">
+            {en ? "Reopen from My Designs" : "從我的設計重新開啟"}
+          </Link>
           <button
             onClick={reset}
             className="rounded-lg bg-zinc-900 px-5 py-2.5 text-white hover:bg-zinc-700"

@@ -1,6 +1,8 @@
 import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 import { savedDesignQuery } from "@/lib/design/saved-query";
+import { loadModelSnapshot, preserveSavedReference } from "@/lib/design/load-model-snapshot";
+import { makeModelSnapshot } from "@/lib/design/model-snapshot";
 import { DesignDraftRecovery } from "@/components/design/DesignDraftRecovery";
 import { after } from "next/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -275,6 +277,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         Object.entries(sp).filter(([k]) => PREVIEW_KEEP_PARAMS.has(k)),
       )
     : sp;
+  const frozen = previewLocked ? null : await loadModelSnapshot(type, sp);
   const parsed = parseDesignSearchParams(parseSp, entry);
   const { material, options, joineryMode } = parsed;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
@@ -284,7 +287,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // Server-side hard clamp:雙保險 — 不靠 canUseDesignerMode aggregate flag,
   // 直接看 plan 權限 + admin。即使 UI 哪天把 toggle 露給 free user(或 designerMode
   // 旗標被汙染),只要 plan 不允許就強制夾。admin 仍可繞 limit 方便測試。
-  const limits = (planAllowsDesigner || isAdmin) && parsed.designerMode
+  const limits = frozen || ((planAllowsDesigner || isAdmin) && parsed.designerMode)
     ? null
     : entry.limits ?? null;
   // 圓形家具（圓凳/圓茶几/圓餐桌）只有「直徑」一個尺寸——template 端 input.length
@@ -304,7 +307,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   // 書桌特例：H 框離地高 server-side clamp 到櫃底以下，讓 form 顯示實際採用值
-  if (type === "desk") {
+  if (type === "desk" && !frozen) {
     const drawerCount = Number(options.drawerCount ?? 0);
     const reqStretcherY = Number(options.pedestalStretcherHeight ?? 0);
     if (drawerCount > 0 && reqStretcherY > 0) {
@@ -325,10 +328,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       }
     }
   }
-  const rawDesign = entry.template({ length, width, height, material, options, locale });
-  const design = joineryMode
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale });
+  const design = frozen?.design ?? (joineryMode
     ? applyEdgeProtection(rawDesign)
-    : toBeginnerMode(rawDesign);
+    : toBeginnerMode(rawDesign));
+  const savedInputs = frozen ? JSON.parse(frozen.input) : {
+    length, width, height, material, joineryMode, designerMode: parsed.designerMode, options,
+  };
+  const modelSnapshot = frozen ?? (user && !previewLocked ? makeModelSnapshot(type, savedInputs, rawDesign, design, locale) : undefined);
+  const saveParams = { ...savedInputs, ...(modelSnapshot ? { _modelSnapshot: modelSnapshot } : {}) };
   // 組裝動畫排程（§H8）：用還帶榫頭榫眼的 rawDesign 算，組裝版的 design 已被拔掉榫接
   // 資料、排不出插入方向。組裝版多鎖螺絲。
   const assemblyPlan = planAssembly(rawDesign, { screws: !joineryMode });
@@ -373,7 +381,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     return n > 0 ? Math.min(300, n) : 0;
   })();
 
-  const printQuery = designParamsToQuery(parsed, entry);
+  const printQuery = preserveSavedReference(frozen ? savedDesignQuery(currentDesignId!, savedInputs) : designParamsToQuery(parsed, entry), sp);
 
   // MobileShell 需要的 server 端計算
   let mobileTotalPrice = 0;
@@ -460,6 +468,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   return (
     <>
     <DesignDraftRecovery />
+    {currentDesignId && <p role="status" className="mx-auto max-w-7xl px-6 py-2 text-xs text-zinc-600">
+      {frozen
+        ? (locale === "en" ? "Saved model loaded. Model notes retain the original language." : "已載入儲存時的模型；模型註記保留原語言。")
+        : (locale === "en" ? "Current template model. Older parameter-only records do not preserve historical geometry." : "目前使用現行模板；僅保存參數的舊紀錄不含歷史模型。")}
+    </p>}
     {/* BreadcrumbList JSON-LD — SERP rich snippet 顯示麵包屑路徑 */}
     <script
       type="application/ld+json"
@@ -511,15 +524,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             furnitureType={type}
             defaultName={`${entryName} ${length}×${width}×${height}`}
             currentDesignId={currentDesignId}
-            params={{
-              length,
-              width,
-              height,
-              material,
-              joineryMode,
-              designerMode: parsed.designerMode,
-              options,
-            }}
+            params={saveParams}
           />
           {previewLocked ? (
             <>
@@ -586,7 +591,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <div className="flex items-start gap-2">
             <span className="text-base leading-none mt-0.5">⚠️</span>
             <div className="flex-1">
-              <div className="font-semibold mb-1">{t("warnings.title")}</div>
+              <div className="font-semibold mb-1">{frozen
+                ? (locale === "en" ? "Saved model warnings (original geometry preserved)" : "儲存模型的提醒（保留原模型，未重新修正）")
+                : t("warnings.title")}</div>
               <ul className="list-disc pl-5 space-y-0.5 text-xs">
                 {design.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
@@ -851,6 +858,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lineShareText={lineShareText}
         formAction={`/${locale}/design/${entry.category}`}
         currentDesignId={currentDesignId}
+        saveParams={saveParams}
         wireframeMode={wireframeMode}
         joineryMode={joineryMode}
         designerMode={designerMode}

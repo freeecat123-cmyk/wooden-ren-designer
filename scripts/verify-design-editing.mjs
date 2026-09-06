@@ -1,10 +1,12 @@
 import { build } from "esbuild";
 import { chromium, devices } from "playwright";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 
 const messages = JSON.parse(readFileSync("messages/zh-TW.json", "utf8"));
-const css = readFileSync(".next/dev/static/css/app/[locale]/layout.css", "utf8");
+const css = existsSync(".next/static/chunks")
+  ? readdirSync(".next/static/chunks").filter(f => f.endsWith(".css")).map(f => readFileSync(`.next/static/chunks/${f}`, "utf8")).join("\n")
+  : readFileSync(".next/dev/static/css/app/[locale]/layout.css", "utf8");
 const navigation = `import {useSyncExternalStore} from 'react';
 const subscribe=cb=>{addEventListener('fixture-navigation',cb);return()=>removeEventListener('fixture-navigation',cb)};
 export const usePathname=()=>location.pathname;

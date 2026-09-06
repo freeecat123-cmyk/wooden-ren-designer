@@ -5,6 +5,9 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate, getEntryName } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { loadModelSnapshot, preserveSavedReference } from "@/lib/design/load-model-snapshot";
+import { savedDesignQuery } from "@/lib/design/saved-query";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import type { FurnitureCategory } from "@/lib/types";
 import { materialName } from "@/lib/materials";
@@ -46,7 +49,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
     if (!user) {
       redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/cut-plan`)}`);
     }
-    if (!(await isPaidUser(user.id))) {
+    if (!isAdminEmail(user.email, getServerAdminEmails()) && !(await isPaidUser(user.id))) {
       redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
     }
   }
@@ -54,12 +57,13 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const parsed = parseDesignSearchParams(sp, entry);
   const { length, width, height, material, options, joineryMode } = parsed;
 
-  const rawDesign = entry.template({ length, width, height, material, options, locale });
+  const frozen = await loadModelSnapshot(type, sp);
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale });
   const unit = await getUnitFromCookies(locale);
   const dims = formatDimensions(length, width, height, unit);
-  const design = joineryMode
+  const design = frozen?.design ?? (joineryMode
     ? applyEdgeProtection(rawDesign)
-    : toBeginnerMode(rawDesign);
+    : toBeginnerMode(rawDesign));
 
   const { lumberGroups, sheetGroups } = buildCutPieces(design);
   // 旋轉預設不勾——使用者可在零件清單個別勾。原本為 sheet 強制 allowRotate:true
@@ -70,7 +74,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   ];
   const initialSpecs = collapseIntoSpecs(allPieces, locale);
 
-  const designQuery = designParamsToQuery(parsed, entry);
+  const designQuery = preserveSavedReference(frozen ? savedDesignQuery(String(sp.designId), JSON.parse(frozen.input)) : designParamsToQuery(parsed, entry), sp);
   const entryName = getEntryName(entry, locale);
   const matName = materialName(material, locale);
 

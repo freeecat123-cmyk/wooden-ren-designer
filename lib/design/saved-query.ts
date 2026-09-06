@@ -14,10 +14,11 @@ export function savedDesignQuery(id: string, params: Record<string, unknown>, re
 }
 
 export function designFingerprint(params: Record<string, unknown>): string {
+  const { _modelSnapshot: _ignored, ...values } = params;
   const normalize = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(normalize);
     if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, v]) => [key, normalize(v)]));
     return value;
   };
-  return JSON.stringify(normalize(params));
+  return JSON.stringify(normalize(values));
 }
