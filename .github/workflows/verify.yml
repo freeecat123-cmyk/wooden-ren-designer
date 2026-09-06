@@ -28,8 +28,13 @@ jobs:
       - name: 型別檢查
         run: npm run typecheck
 
+      - name: 安裝瀏覽器回歸測試執行環境
+        run: npx playwright install --with-deps chromium
+
       - name: 單元測試（vitest）
         run: npm test
+        env:
+          RUN_EXPORT_BROWSER: "1"
 
       - name: 斷言腳本（tsx）
         run: npm run assert
