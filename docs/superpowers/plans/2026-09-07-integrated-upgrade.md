@@ -103,7 +103,7 @@ page overflow. Final build must recheck areas changed after this run.
 - [x] Run authenticated version/share workflows on disposable test data only.
 - [x] Verify desktop/mobile and selected output routes against selected model.
 - [x] Update drafting-math, completion checklist and project memory with evidence.
-- [ ] Commit specific paths, push and verify both CI checks, Vercel and live build.
+- [x] Commit specific paths, push and verify both CI checks, Vercel and live build.
 
 Release verification: 1506 unit/integration tests passed (110 files); the opt-in
 desktop/mobile export browser test passed separately, including 3MF volume.
@@ -119,3 +119,21 @@ Fresh share-browser rerun passed desktop/mobile pixels, rotation, revocation,
 reload and management dialog behavior. The live private-Storage probe passed
 immutable create/read/revoke and anonymous isolation, then removed only its
 three synthetic objects; no customer database rows were modified.
+
+## Production Acceptance
+
+- Application commit: `4256c742`; CI provisioning follow-up: `6b662f68`.
+- Geometry Audit run `34050772406`: success. Verify run `34050929344`: success,
+  including installed Chromium and the enabled export browser test. The first
+  Verify run lacked Chromium; the workflow now explicitly provisions it.
+- Vercel reported deployment complete for both commits. Live private-Storage
+  create/read/immutable-update/revoke probe passed against designer.woodenren.com
+  and removed only its three synthetic objects.
+- Production workbench: Chinese/English desktop/iPhone scenarios all passed.
+  Chinese desktop had one initial 15-second navigation timeout and passed its
+  isolated retry; the other three scenarios passed first run. Total 286 controls.
+- All 1507 tests passed together with export-browser coverage enabled locally.
+  No collision baseline was regenerated and no existing customer design changed.
+- The Mac locked before the final production run, so final browser checks used
+  headless Chromium; the earlier authenticated Chrome save/share workflow remains
+  separately recorded above. Test servers started for this release were stopped.

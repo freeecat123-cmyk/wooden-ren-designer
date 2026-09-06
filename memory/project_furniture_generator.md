@@ -1,6 +1,6 @@
 # Furniture Generator Memory
 
-## 2026-09-07 Integrated Upgrade (Release Verification)
+## 2026-09-07 Integrated Upgrade (Released)
 
 - User approved completing geometry, machining exports, fixed sharing and
   desktop/mobile workbench controls continuously, preserving all old designs.
@@ -34,8 +34,13 @@
   canonicalization is not an undo step; a pending save must honor Reset key deletions
   and blank-v2 semantics. These races have real Chromium component regressions.
 - Local full verify: 1506 tests passed, all audits passed; production build passed.
-  Export desktop/mobile browser test passed separately. Final production deployment
-  still requires GitHub/Vercel checks; no release claim based on build alone.
+  Enabling export-browser coverage gives 1507/1507. CI now installs Chromium and
+  enables that coverage rather than skipping it on the runner.
+- Released application `4256c742`, CI follow-up `6b662f68`. Geometry Audit
+  34050772406 and Verify 34050929344 passed; Vercel confirmed both deployments.
+  Production desktop/mobile zh/en checks passed (one zh desktop navigation timeout
+  passed isolated retry). Live production immutable sharing/revocation probe passed
+  and removed its three synthetic objects. See the integrated-upgrade plan.
 
 ## 2026-09-06 Rectangular Cut Audit Follow-up
 
