@@ -587,6 +587,18 @@ butt-joint 模式下**會過度縮窄**（每端少 legSize/2 的權重）。
 
 **A10.7 Audit 工具**：
 
+2026-09-06 workbench follow-up: `notched-shelf.test.ts` verifies all four corner
+cutouts against the actual 3D mesh, plus four real workbench variants with
+missing-cut negative controls. Overlap checks recognize a corner only when the
+entire obstacle/shelf intersection is within it. Restrict this to requested
+notches <=45% of each blank dimension: 2D clamps at 45%, 3D at 47.5%; outside the
+shared range retain warnings rather than silently choose a geometry convention.
+The mesh test exposed cap fan triangles crossing concave cutouts. Use Three.js
+Earcut triangulation for both caps; verify empty corners, outward cap winding,
+and cap area (400x200 minus four 40x30 cuts, twice = 150400 mm2).
+After this mesh fix, remove 16 corner-cut pairs from the baseline (30 cases/394
+pairs remain). Furniture templates, blank dimensions and outlines stay unchanged.
+
 2026-09-06: `world-bounds.test.ts` verifies off-center box bounds and slice
 coordinates. Side silhouette X is negative world Z, so both `worldAABB` and
 `partAabbAtY` must negate/reverse that coordinate. Previously a box at Z=100

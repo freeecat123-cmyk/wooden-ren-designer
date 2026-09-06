@@ -2671,128 +2671,6 @@
       "worstAxis": "x"
     }
   ],
-  "workbench:default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf": [
-    {
-      "a": "leg-1",
-      "b": "ls-front",
-      "intersectionMm": {
-        "x": 18,
-        "y": 100,
-        "z": 36
-      },
-      "worstAxis": "x"
-    },
-    {
-      "a": "leg-1",
-      "b": "ls-left",
-      "intersectionMm": {
-        "x": 36,
-        "y": 100,
-        "z": 18
-      },
-      "worstAxis": "z"
-    },
-    {
-      "a": "leg-1",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 54,
-        "y": 18,
-        "z": 54
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-2",
-      "b": "ls-front",
-      "intersectionMm": {
-        "x": 18,
-        "y": 100,
-        "z": 36
-      },
-      "worstAxis": "x"
-    },
-    {
-      "a": "leg-2",
-      "b": "ls-right",
-      "intersectionMm": {
-        "x": 36,
-        "y": 100,
-        "z": 18
-      },
-      "worstAxis": "z"
-    },
-    {
-      "a": "leg-2",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 54,
-        "y": 18,
-        "z": 54
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-3",
-      "b": "ls-back",
-      "intersectionMm": {
-        "x": 18,
-        "y": 100,
-        "z": 36
-      },
-      "worstAxis": "x"
-    },
-    {
-      "a": "leg-3",
-      "b": "ls-left",
-      "intersectionMm": {
-        "x": 36,
-        "y": 100,
-        "z": 18
-      },
-      "worstAxis": "z"
-    },
-    {
-      "a": "leg-3",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 54,
-        "y": 18,
-        "z": 54
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-4",
-      "b": "ls-back",
-      "intersectionMm": {
-        "x": 18,
-        "y": 100,
-        "z": 36
-      },
-      "worstAxis": "x"
-    },
-    {
-      "a": "leg-4",
-      "b": "ls-right",
-      "intersectionMm": {
-        "x": 36,
-        "y": 100,
-        "z": 18
-      },
-      "worstAxis": "z"
-    },
-    {
-      "a": "leg-4",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 54,
-        "y": 18,
-        "z": 54
-      },
-      "worstAxis": "y"
-    }
-  ],
   "workbench:default+materialStyle=plywood": [
     {
       "a": "leg-1",
@@ -3039,6 +2917,88 @@
       "worstAxis": "z"
     }
   ],
+  "workbench:default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf": [
+    {
+      "a": "leg-1",
+      "b": "ls-front",
+      "intersectionMm": {
+        "x": 18,
+        "y": 100,
+        "z": 36
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-1",
+      "b": "ls-left",
+      "intersectionMm": {
+        "x": 36,
+        "y": 100,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-2",
+      "b": "ls-front",
+      "intersectionMm": {
+        "x": 18,
+        "y": 100,
+        "z": 36
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-2",
+      "b": "ls-right",
+      "intersectionMm": {
+        "x": 36,
+        "y": 100,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-3",
+      "b": "ls-back",
+      "intersectionMm": {
+        "x": 18,
+        "y": 100,
+        "z": 36
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-3",
+      "b": "ls-left",
+      "intersectionMm": {
+        "x": 36,
+        "y": 100,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-4",
+      "b": "ls-back",
+      "intersectionMm": {
+        "x": 18,
+        "y": 100,
+        "z": 36
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-4",
+      "b": "ls-right",
+      "intersectionMm": {
+        "x": 36,
+        "y": 100,
+        "z": 18
+      },
+      "worstAxis": "z"
+    }
+  ],
   "workbench:default+materialStyle=plywood+benchStyle=apron": [
     {
       "a": "leg-1",
@@ -3201,78 +3161,6 @@
         "z": 18
       },
       "worstAxis": "z"
-    }
-  ],
-  "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf": [
-    {
-      "a": "leg-1",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 50
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-2",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 50
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-3",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 75
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-4",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 75
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "deadman-ridge",
-      "b": "deadman-board",
-      "intersectionMm": {
-        "x": 180,
-        "y": 11,
-        "z": 24.9
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "deadman-rail",
-      "b": "deadman-board",
-      "intersectionMm": {
-        "x": 180,
-        "y": 12,
-        "z": 25
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "deadman-board",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 180,
-        "y": 4,
-        "z": 7.5
-      },
-      "worstAxis": "y"
     }
   ],
   "dovetail-box:default": [
@@ -3885,90 +3773,6 @@
       "worstAxis": "x"
     }
   ],
-  "workbench:default+topSplit=gap+frontVise=leg+withUnderShelf+knockdown=bolt": [
-    {
-      "a": "leg-1",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 75
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-2",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 75
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-3",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 75
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-4",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 75
-      },
-      "worstAxis": "y"
-    }
-  ],
-  "workbench:default+legDepth=75+withApron+withUnderShelf": [
-    {
-      "a": "leg-1",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 62.5
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-2",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 62.5
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-3",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 62.5
-      },
-      "worstAxis": "y"
-    },
-    {
-      "a": "leg-4",
-      "b": "under-shelf",
-      "intersectionMm": {
-        "x": 75,
-        "y": 18,
-        "z": 62.5
-      },
-      "worstAxis": "y"
-    }
-  ],
   "round-table:pedestal": [
     {
       "a": "pedestal-column",
@@ -4049,6 +3853,38 @@
         "x": 5,
         "y": 4,
         "z": 150
+      },
+      "worstAxis": "y"
+    }
+  ],
+  "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf": [
+    {
+      "a": "deadman-ridge",
+      "b": "deadman-board",
+      "intersectionMm": {
+        "x": 180,
+        "y": 11,
+        "z": 24.9
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "deadman-rail",
+      "b": "deadman-board",
+      "intersectionMm": {
+        "x": 180,
+        "y": 12,
+        "z": 25
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "deadman-board",
+      "b": "under-shelf",
+      "intersectionMm": {
+        "x": 180,
+        "y": 4,
+        "z": 7.5
       },
       "worstAxis": "y"
     }

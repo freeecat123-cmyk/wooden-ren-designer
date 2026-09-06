@@ -1,5 +1,12 @@
 # Overlap review
 
+Latest follow-up: workbench cap fan triangulation incorrectly filled concave
+corner cuts. Earcut now preserves these openings; the audit recognizes 16
+cleared pairs, leaving 30 warning cases / 394 pairs. Four actual variants and
+mesh rays, winding and cap area are tested; removing cuts restores warnings.
+Template dimensions and outlines remain unchanged. Oversized notches remain unclassified
+because existing 2D/3D clamps differ (45% vs 47.5%).
+
 236 template/variant cases: 198 clean, 38 with recorded intersections (434 pairs).
 Initial review did not change geometry. Follow-up now resolves tea-table's
 24 pairs with clearance notches: 204 clean cases, 32 warnings, 410 pairs remain.

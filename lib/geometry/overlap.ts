@@ -5,9 +5,21 @@ import { obstacleInShelf } from "./shelf-clearance";
 import { mortiseLocalBox } from "@/lib/render/svg-views";
 
 function clearedByThroughCut(part: Part, obstacle: Part): boolean {
-  if (!part.mortises.some(m => m.cosmetic && m.through && m.shape !== "round")) return false;
+  const cornerShape = part.shape?.kind === "notched-corners" ? part.shape : null;
+  if (!cornerShape && !part.mortises.some(m => m.cosmetic && m.through && m.shape !== "round")) return false;
   const bounds = obstacleInShelf(part, obstacle);
   if (!bounds) return false;
+  if (cornerShape) {
+    const { notchLengthMm: length, notchWidthMm: width } = cornerShape;
+    // Only recognize the range where both 2D and 3D use the requested cut size.
+    // Their extreme-size clamps differ; do not silently approve that ambiguity.
+    if (length > 0 && width > 0 && length <= part.visible.length * 0.45 && width <= part.visible.width * 0.45) {
+      const hx = part.visible.length / 2, hz = part.visible.width / 2;
+      const inEndX = bounds.maxX <= -hx + length + 0.001 || bounds.minX >= hx - length - 0.001;
+      const inEndZ = bounds.maxZ <= -hz + width + 0.001 || bounds.minZ >= hz - width - 0.001;
+      if (inEndX && inEndZ) return true;
+    }
+  }
   return part.mortises.some(m => {
     if (!m.cosmetic || !m.through || m.shape === "round" || m.rotX || m.rotY || m.rotZ) return false;
     const box = mortiseLocalBox(part, m);

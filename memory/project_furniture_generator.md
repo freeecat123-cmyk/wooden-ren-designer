@@ -1,5 +1,11 @@
 # Furniture Generator Memory
 
+- Workbench corner-notch audit follow-up: actual mesh and four template variants
+  verified with missing-cut controls. Fixed cap fans spanning concave cutouts
+  using Earcut; blank sizes/outlines unchanged. 16 cleared pairs removed; 30
+  warning cases/394 pairs remain. Recognize only common
+  2D/3D unclamped range <=45%; oversized-notch discrepancy remains documented.
+
 ## 2026-09-06 Autonomous Phase-One Follow-up
 
 - Successfully completed real authenticated cloud verification on localhost:3108:
