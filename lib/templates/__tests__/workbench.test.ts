@@ -72,14 +72,13 @@ describe("木工工作桌：預設（厚板桌）", () => {
 });
 
 describe("夾制要出聲", () => {
-  it("桌面 40：holdfast 取消、鉗加 20 墊塊，警告都在", () => {
+  it("桌面 40：holdfast 取消並出聲；⛔ 鉗只是示意，不准自動加墊塊改桌子", () => {
     const d = build({ topThickness: 40 });
     expect(roundHoles(d, "top").filter((m) => m.origin.z > 0)).toHaveLength(0);
-    const spacer = d.parts.find((p) => p.id === "vise-spacer")!;
-    expect(spacer.visible.thickness).toBe(20);
-    const w = (d.warnings ?? []).join("\n");
-    expect(w).toMatch(/holdfast/);
-    expect(w).toMatch(/墊塊/);
+    expect((d.warnings ?? []).join("\n")).toMatch(/holdfast/);
+    // 2026-09-05 木頭仁裁示：虎鉗只是示意，不該反過來替使用者加料
+    expect(d.parts.some((p) => p.id.includes("spacer"))).toBe(false);
+    expect((d.warnings ?? []).join("\n")).not.toMatch(/墊塊/);
   });
   it("腳鉗會把 60 的腳提到 64 並出聲", () => {
     const d = build({ frontVise: "leg", legSize: 60 });
@@ -358,7 +357,7 @@ describe("桌面底穿帶（騎在腳頂，2026-09-04 改）", () => {
     expect(build().parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
   });
   it("疊層桌面／有裙板／長板靠板都不做穿帶，而且要出聲說為什麼", () => {
-    const cases: Record<string, OptVal>[] = [{ topBuild: "stack" }, { withApron: true }, { deadman: true, frontVise: "leg" }];
+    const cases: Record<string, OptVal>[] = [{ withApron: true }, { deadman: true, frontVise: "leg" }];
     for (const opt of cases) {
       const d = build({ topBattens: true, ...opt });
       expect(d.parts.some((p) => p.id.startsWith("top-batten"))).toBe(false);
@@ -451,11 +450,19 @@ describe("09-04 全面檢查修掉的（孔出界、裙板榫眼被橫撐排列�
 });
 
 describe("09-04 視覺審查修掉的（尾鉗槽切進腳榫眼、疊層料單、腳鉗三件對不上、穿帶／封邊板沒槽）", () => {
-  it("疊層桌面 stack 2 層：料單 / 裁切拆的是厚度（2 × 1800×600×37.5），不是面寬", () => {
-    const d = build({ topBuild: "stack", topLayers: 2 });
+  it("疊層只存在夾板版：料單 / 裁切拆的是厚度（3 × 18），實木沒有這個做法", () => {
+    const d = build({ materialStyle: "plywood" });
     const top = d.parts.find((p) => p.id === "top")!;
-    expect(top.panelPieces).toBe(2);
+    expect(top.panelPieces).toBe(3);
     expect(top.panelSplit).toBe("thickness");
+    // ⛔ 實木沒有疊層：選項裡沒有這個值，舊網址帶 stack 也要收回寬板平拼
+    const spec = workbenchOptions.find((o) => o.key === "topBuild")!;
+    const values = spec.type === "select" ? spec.choices.map((c) => c.value) : [];
+    expect(values).toEqual(["plank", "stave"]);
+    expect(workbenchOptions.some((o) => o.key === "topLayers")).toBe(false);
+    const legacy = build({ topBuild: "stack" }).parts.find((p) => p.id === "top")!;
+    expect(legacy.panelSplit).toBeUndefined();
+    expect(legacy.panelPieces).toBe(3); // 600 / 280 → 3 片寬板平拼
   });
   it("腳鉗：導件榫長 = 腳 100 + 木顎 40，木顎背面有 40×25 榫眼、頂有狗孔；那支腳的 holdfast 孔避開螺桿孔 ±60", () => {
     const d = build({ frontVise: "leg" });
@@ -572,11 +579,20 @@ describe("夾板疊層（materialStyle = plywood，§AU23）", () => {
     expect(notes).toMatch(/搭接槽 6×80 螺絲 \d+ 支/);
     expect(notes).toMatch(/口袋孔螺絲 6×63 \d+ 支/);
   });
-  it("疊層桌面不做穿帶／封邊板（沒地方批燕尾），並出聲", () => {
+  /**
+   * 🩸2026-09-05 木頭仁：「夾板疊層的下橫撐、穿帶也都是夾板才對」。
+   * 舊行為是「夾板不做穿帶」，理由寫的是「沒地方批燕尾」——但 09-04 穿帶就已經改成
+   * **騎在腳頂**、根本沒有燕尾槽了，那條理由是過期的（見 feedback_comment_rationale_may_be_false）。
+   * 夾板桌面確實不會翹，但穿帶還有「把同一端兩支腳的頂端拉在一起」的結構作用，所以開放。
+   * 封邊板（breadboard）仍然不做：那是給實木桌面伸縮用的，夾板不需要。
+   */
+  it("夾板也做得出穿帶（09-05 改），但封邊板仍然不做", () => {
     const d = ply({ topBattens: true, breadboardEnds: true });
-    expect(d.parts.some((p) => p.id.startsWith("batten"))).toBe(false);
+    const bats = d.parts.filter((p) => /^top-batten-/.test(p.id));
+    expect(bats).toHaveLength(2);
+    expect(bats.every((b) => b.materialOverride === "plywood")).toBe(true);
     expect(d.parts.some((p) => p.id.startsWith("breadboard"))).toBe(false);
-    expect(d.warnings?.some((w) => w.includes("穿帶已略過"))).toBe(true);
+    expect(d.warnings?.some((w) => w.includes("穿帶已略過"))).toBe(false);
   });
   it("實木（預設）完全不受影響：腳粗滑桿照舊生效、榫頭還在", () => {
     const d = build({ legSize: 110 });

@@ -6,7 +6,7 @@
  *
  * v1 有的：四種流派 preset（厚板桌 / 裙板桌 / 工具槽桌 / 20mm 孔陣桌）、腳頂貫穿榫、
  *   桌面拼法（寬板平拼 / 窄條側立 / 疊層）、桌面中縫擋條、後側工具槽、狗孔列 / 20mm 格陣、
- *   holdfast 後排孔、刨擋（木方柱穿桌面）、鑄鐵快速前鉗（含墊塊）、腳鉗簡版、下層板、
+ *   holdfast 後排孔、刨擋（木方柱穿桌面）、鑄鐵快速前鉗（示意）、腳鉗簡版、下層板、
  *   螺栓可拆（腳上穿孔）、身高→桌高提示、重量 / 抗晃 / 房門警告。
  * v2 才做（沒有幾何表示法，別在這裡硬塞）：尾鉗、Moravian 斜腳 + 楔形通榫、滑入鳩尾、
  *   deadman、抽屜櫃、日式低台、腳輪。
@@ -30,7 +30,7 @@ import { formatMm } from "@/lib/units/format";
 // ───────────────────────── 常數（來源見 §AU） ─────────────────────────
 /** 鑄鐵快速鉗鉗口寬（台灣建成 / SKC 規格：7" = 180、9" = 225） */
 const VISE_JAW_MM: Record<string, number> = { "7in": 180, "9in": 225 };
-/** 快速鉗要求的前緣木料厚度（廠商標「桌板厚度約 60mm」），不足就加墊塊 */
+/** 快速鉗建議的前緣木料厚度（廠商標「桌板厚度約 60mm」）。⛔ 只寫在說明裡，不動幾何 */
 const VISE_MIN_EDGE_MM = 60;
 /** 鉗本體（鑄件）在桌底佔的深 / 高 */
 const VISE_BODY_DEPTH_MM = 160;
@@ -78,7 +78,7 @@ const PLY_NOTCH_MAX = PLY_T;
 /** 搭接槽的 label 前綴（螺栓可拆要靠它找槽心；步驟／稽核也用） */
 const PLY_NOTCH_TAG = "搭接槽";
 /** 疊層時要換成夾板計價（materialOverride）的零件 id */
-const PLY_PART_RE = /^(top|top-front|top-back|gap-stop|center-well-bottom|leg-\d+|apron-.+|ls-.+|under-shelf|well-.+)$/;
+const PLY_PART_RE = /^(top|top-front|top-back|gap-stop|center-well-bottom|leg-\d+|apron-.+|ls-.+|top-batten-.+|under-shelf|well-.+)$/;
 
 // ───────────────────────── 流派 preset ─────────────────────────
 // 值在 ./workbench-presets.ts（設計頁切流派時把整組寫進網址；模板不覆寫）。
@@ -89,7 +89,7 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "roubo", label: "厚板桌（法式 Roubo）— 厚桌面、粗腳通榫、快速鉗 + 狗孔" },
     { value: "apron", label: "裙板桌（英式 Nicholson / Sellers 平價）— 薄桌面靠高裙板撐，螺栓可拆" },
     { value: "well", label: "工具槽桌（北歐式）— 桌面後側一道放工具的槽" },
-    { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 夾板疊層桌面、20mm 孔每 96mm 一格（想整台夾板請把「材料樣式」切到夾板疊層）" },
+    { value: "mft", label: "20mm 孔陣桌（現代 MFT）— 薄桌面、20mm 孔每 96mm 一格（想整台用夾板做，把「材料樣式」切到夾板疊層）" },
     { value: "classroom", label: "教室雙面桌 — 兩人面對面各一支鉗、各一列狗孔（深度建議 900）" },
   ], help: "選了一次帶入整組預設值；你改過的欄位不會被蓋掉。長／深／高請自己在上面調（厚板桌建議 1800×600×830、教室雙面桌 1800×900）" },
   // ───────────── ⭐ 材料樣式（實木榫卯 / 夾板疊層免榫卯，§AU23） ─────────────
@@ -106,7 +106,12 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "3", label: "3 層＝54mm 方：輕量（夾持台、小空間）" },
     { value: "4", label: "4 層＝72mm 方：建議（手刨桌夠穩）" },
     { value: "5", label: "5 層＝90mm 方：重型（大刨、大料）" },
-  ], help: "腳粗＝層數 × 18。橫撐固定 2 層（36mm）、裙板 1～2 層看流派，缺口在疊層時直接預留" },
+  ], help: "腳粗＝層數 × 18。裙板 1～2 層看流派，缺口在疊層時直接預留" },
+  { group: "preset", type: "select", key: "lsLayers", label: "下橫撐層數（18mm 夾板）", defaultValue: "2", dependsOn: { key: "materialStyle", equals: "plywood" }, choices: [
+    { value: "1", label: "1 層＝18mm：輕量（小桌、只放東西）" },
+    { value: "2", label: "2 層＝36mm：建議（刨削推力靠它擋）" },
+    { value: "3", label: "3 層＝54mm：重型（大刨、常搬動）" },
+  ], help: "橫撐厚＝層數 × 18。腳上的搭接槽深度跟著變，但最深只到一層 18（挖太深腳會弱）" },
 
   // ───────────── 桌高怎麼定（只給建議，不動滑桿） ─────────────
   { group: "structure", type: "select", key: "heightMode", label: "桌高用途（會直接套用桌高）", defaultValue: "plane", choices: [
@@ -123,12 +128,12 @@ export const workbenchOptions: OptionSpec[] = [
 
   // ───────────── 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 75, unit: "mm", min: 40, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "手工具桌建議 ≥75；holdfast 要咬得住桌面 44~89mm；≥90 會提醒孔底反鑽" },
+  // ⛔ 實木沒有「疊層」這個做法（木頭仁 2026-09-05：「實木榫卯不要有層疊 沒人這樣做」）。
+  //    疊層只存在於材料樣式＝夾板疊層，層數由 plyTopLayers 決定。
   { group: "top", type: "select", key: "topBuild", label: "桌面做法", defaultValue: "plank", choices: [
     { value: "plank", label: "寬板平拼（每片 ≤ 280mm，自動算片數）" },
     { value: "stave", label: "窄條側立拼（條寬 ＝ 桌面厚，台灣 2×4 / 角料做法）" },
-    { value: "stack", label: "夾板或薄板疊層（層數在下面設）" },
-  ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "只影響材料單與裁切怎麼拆，3D 外觀一樣" },
-  { group: "top", type: "number", key: "topLayers", label: "疊層數", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", equals: "stack" }] }, help: "每層厚 ＝ 桌面厚 ÷ 層數（18mm 樺木夾板 × 3 ≈ 54）" },
+  ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "影響料單／裁切怎麼拆，也會畫進 3D 與三視圖（拼縫看得出來）" },
   { group: "top", type: "select", key: "topSplit", label: "桌面分割", defaultValue: "none", choices: [
     { value: "none", label: "整片" },
     { value: "gap", label: "中間留縫 + 擋條（split-top，夾具可從縫伸進去）" },
@@ -140,9 +145,14 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "wellDepth", label: "工具槽深", defaultValue: 45, unit: "mm", min: 20, max: 80, step: 5, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "槽底板厚 24；後側槽深 ≤ 桌面厚 −10，中央槽深 ≤ 桌面厚 −24（底板嵌在兩片桌面內側的溝裡，桌底維持平的）" },
   { group: "top", type: "number", key: "endOverhang", label: "桌端懸出（腳距桌端）", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 ＝ 自動 ＝ 桌長 ÷ 5（Roubo 原版比例）。懸出夠長，鉗才裝得進腳外側；裝尾鉗那端會自動拉到 470" },
   { group: "top", type: "number", key: "frontOverhang", label: "桌面前緣凸出腳／裙板", defaultValue: 0, unit: "mm", min: 0, max: 100, step: 5, dependsOn: { key: "topSplit", notIn: ["well"] }, help: "裙板桌要凸出 50 才夾得到桌面（後悔榜第一名）；厚板桌保持 0 齊平，腳鉗和長板靠板都要齊平" },
-  { group: "top", type: "checkbox", key: "topBattens", label: "桌面底穿帶（騎在腳頂，防翹）", defaultValue: false, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }] }, help: "兩端各一條穿帶，夾在腳頂與桌面之間、被腳頂榫貫穿：既防桌面翹，又把同一端兩支腳的頂端拉在一起。腳會自動照穿帶厚度變短、腳頂榫等量變長，總高不變；長度自動跟腳前後切齊。（有裙板或長板靠板時穿帶會撞到它們、也沒必要，所以這個選項只在沒有它們時出現）" },
-  { group: "top", type: "number", key: "battenWidth", label: "穿帶寬（0 ＝ 跟腳同寬）", defaultValue: 0, unit: "mm", min: 0, max: 240, step: 5, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }, { key: "topBattens", equals: true }] }, help: "沿桌長方向的寬度。腳一定落在穿帶寬度的正中間，所以不會比腳窄（填得比腳窄會自動加寬並出聲）" },
+  { group: "top", type: "checkbox", key: "topBattens", label: "桌面底穿帶（騎在腳頂）", defaultValue: false, dependsOn: { all: [{ any: [{ all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }] }, { key: "materialStyle", equals: "plywood" }] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }] }, help: "兩端各一條穿帶，夾在腳頂與桌面之間。實木桌面：被腳頂榫貫穿，既防桌面翹、又把同一端兩支腳的頂端拉在一起。夾板桌面本來就不會翹，所以夾板版的用處是**把兩支腳的頂端拉在一起**（腳頂不接榫，靠螺絲鎖），要不要做看你。腳會自動照穿帶厚度變短、總高不變；長度自動跟腳前後切齊。（有裙板或長板靠板時穿帶會撞到它們，所以只在沒有它們時出現）" },
+  { group: "top", type: "number", key: "battenWidth", label: "穿帶寬（0 ＝ 跟腳同寬）", defaultValue: 0, unit: "mm", min: 0, max: 240, step: 5, dependsOn: { all: [{ any: [{ all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }] }, { key: "materialStyle", equals: "plywood" }] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }, { key: "topBattens", equals: true }] }, help: "沿桌長方向的寬度。腳一定落在穿帶寬度的正中間，所以不會比腳窄（填得比腳窄會自動加寬並出聲）" },
   { group: "top", type: "number", key: "battenThickness", label: "穿帶厚", defaultValue: 30, unit: "mm", min: 20, max: 60, step: 5, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }, { key: "topBattens", equals: true }] }, help: "厚多少，腳就短多少、腳頂榫就長多少（總高不變）。太厚會吃掉桌下淨高" },
+  { group: "top", type: "select", key: "battenLayers", label: "穿帶層數（18mm 夾板）", defaultValue: "2", dependsOn: { all: [{ key: "materialStyle", equals: "plywood" }, { key: "withApron", notIn: [true] }, { key: "deadman", notIn: [true] }, { key: "topBattens", equals: true }] }, choices: [
+    { value: "1", label: "1 層＝18mm" },
+    { value: "2", label: "2 層＝36mm：建議" },
+    { value: "3", label: "3 層＝54mm：重型" },
+  ], help: "穿帶厚＝層數 × 18。厚多少腳就短多少，總高不變（太厚會吃掉桌下淨高）" },
   { group: "top", type: "checkbox", key: "breadboardEnds", label: "兩端封邊板（防桌面翹）", defaultValue: false, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { key: "topBuild", notIn: ["stack"] }, { key: "topSplit", equals: "none" }, { key: "endVise", equals: "none" }] }, help: "60mm 寬、木紋跟桌面垂直；只在中央 15cm 上膠，外側銷孔做長孔讓桌面伸縮" },
 
   // ───────────── 腳 ─────────────
@@ -183,7 +193,7 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "workholding", type: "select", key: "frontViseSize", label: "鉗寬", defaultValue: "7in", choices: [
     { value: "7in", label: "7 吋（鉗口 180mm）" },
     { value: "9in", label: "9 吋（鉗口 225mm）" },
-  ], dependsOn: { key: "frontVise", equals: "quick" }, help: "前緣木料要 ≥60mm 厚，不夠會自動加墊塊" },
+  ], dependsOn: { key: "frontVise", equals: "quick" }, help: "鉗只是示意，不會反過來改你的桌面厚度；實際裝鉗時前緣木料建議 ≥60mm（不夠就自己在鉗座那段桌底加一塊墊料）" },
   { group: "workholding", type: "number", key: "viseInset", label: "前鉗中心離桌端（0 ＝ 自動）", defaultValue: 0, unit: "mm", min: 0, max: 900, step: 10, dependsOn: { key: "frontVise", equals: "quick" }, help: "0 ＝ 自動放在腳外側靠桌端。想把鉗移到順手的位置就自己填：太靠桌端鉗顎會懸空、太往中間會撞腳，超出範圍會自動收回並出聲" },
   { group: "workholding", type: "select", key: "viseSide", label: "慣用手（鉗在哪一端）", defaultValue: "left", choices: [
     { value: "left", label: "右撇子：前鉗在左端" },
@@ -262,8 +272,10 @@ export const workbench: FurnitureTemplate = (input) => {
   const legLayers = ply && frontViseEarly === "leg" ? Math.max(legLayersRaw, 4) : legLayersRaw;
   if (ply && legLayers !== legLayersRaw) warnings.push(isEn ? `Leg vise needs a leg ≥ ${LEG_VISE_CHOP_T}mm thick; plywood legs raised ${legLayersRaw} → ${legLayers} layers (${legLayers * PLY_T}mm).` : `腳鉗那支腳至少 ${LEG_VISE_CHOP_T}mm 厚，夾板腳已從 ${legLayersRaw} 層提到 ${legLayers} 層（${legLayers * PLY_T}mm）。`);
   const topTRaw = ply ? PLY_T * plyTopLayers : pick<number>("topThickness");
-  const topBuild = ply ? "stack" : pick<string>("topBuild");
-  const topLayers = ply ? plyTopLayers : pick<number>("topLayers");
+  // 夾板內部仍用 "stack" 這條路徑；實木只收 plank / stave（舊網址帶 stack 一律收回 plank）
+  const topBuildPicked = pick<string>("topBuild");
+  const topBuild = ply ? "stack" : (topBuildPicked === "stave" ? "stave" : "plank");
+  const topLayers = ply ? plyTopLayers : 1;
   const topSplitRaw = pick<string>("topSplit");
   const gapWidth = pick<number>("gapWidth");
   const wellWidthRaw = pick<number>("wellWidth");
@@ -281,7 +293,8 @@ export const workbench: FurnitureTemplate = (input) => {
   const withLowerStretchers = pick<boolean>("withLowerStretchers");
   const lowerStretcherArrangement = pick<string>("lowerStretcherArrangement");
   const lowerStretcherWidth = pick<number>("lowerStretcherWidth");
-  const lowerStretcherThicknessRaw = ply ? 2 * PLY_T : pick<number>("lowerStretcherThickness");
+  const lsLayers = ply ? pickLayers("lsLayers", 1, 3) : 0;
+  const lowerStretcherThicknessRaw = ply ? PLY_T * lsLayers : pick<number>("lowerStretcherThickness");
   const lowerStretcherHeightRaw = pick<number>("lowerStretcherHeight");
   const withUnderShelfRaw = pick<boolean>("withUnderShelf");
   const legPenetratingTenon = pick<boolean>("legPenetratingTenon");
@@ -411,7 +424,7 @@ export const workbench: FurnitureTemplate = (input) => {
   }
   // 快速鉗本體（70 高）掛在桌底，下橫撐頂面要在它下面 20（極矮桌 + 橫撐離地 300 會撞上）
   if (withLowerStretchers && frontVise === "quick") {
-    const bodyBottomY = legHeight - Math.max(0, VISE_MIN_EDGE_MM - topT) - VISE_BODY_HEIGHT_MM;
+    const bodyBottomY = legHeight - VISE_BODY_HEIGHT_MM;
     const maxLsY = bodyBottomY - 20 - lowerStretcherWidth;
     if (lowerStretcherHeight > maxLsY) {
       warnings.push(isEn ? `Lower stretcher ${lowerStretcherHeight}mm off the floor would hit the vise body under the top; lowered to ${Math.max(0, maxLsY)}.` : `下橫撐離地 ${lowerStretcherHeight} 會撞到桌底的鉗本體，已降到 ${Math.max(0, maxLsY)}。`);
@@ -502,6 +515,14 @@ export const workbench: FurnitureTemplate = (input) => {
       const hasX = ms.some((m) => Math.abs(m.origin.x) > Math.abs(m.origin.z));
       const hasZ = ms.some((m) => Math.abs(m.origin.z) > Math.abs(m.origin.x));
       plyNotchDepth[band] = hasX && hasZ ? Math.max(0, Math.min(PLY_NOTCH_MAX, Math.floor((legSize - t) / 2))) : PLY_NOTCH_MAX;
+      // ⭐夾板的缺口是「疊層時少疊幾層」做出來的 → 深度只能是 18 的倍數。
+      //   兩個方向的橫撐都進同一支腳時，深度被 (腳寬 − 厚)/2 夾住，可能夾成 9mm 這種
+      //   做不出來的數字。夾了要出聲（否則他照工序做會發現對不起來）。
+      if (plyNotchDepth[band] > 0 && plyNotchDepth[band] % PLY_T !== 0) {
+        warnings.push(isEn
+          ? `${band === "ls" ? "Stretcher" : "Apron"} lap notch is ${plyNotchDepth[band]}mm deep — not a multiple of ${PLY_T}, so you cannot make it by leaving out a layer; rout it instead, or use a thicker leg / thinner ${band === "ls" ? "stretcher" : "apron"}.`
+          : `${band === "ls" ? "橫撐" : "裙板"}的搭接槽深 ${plyNotchDepth[band]}mm，不是 ${PLY_T} 的倍數 → 沒辦法用「疊層時少疊一層」做出來，要用修邊機挖（或把腳加厚一層、${band === "ls" ? "橫撐" : "裙板"}減一層）。`);
+      }
     }
     for (const leg of legs) {
       leg.tenons = [];
@@ -872,7 +893,9 @@ export const workbench: FurnitureTemplate = (input) => {
   // ── 前鉗（快速鉗）：可放前緣（zSign −1）或雙面桌的後緣（zSign +1） ──
   let viseHardwareNote = "";
   const addQuickVise = (vx: number, zSign: -1 | 1, idPrefix: string, labelZh: string, labelEn: string) => {
-    const spacerH = Math.max(0, VISE_MIN_EDGE_MM - topT);
+    // ⛔ 不再自動加鉗座墊塊（木頭仁 2026-09-05：「你不用預設虎鉗要多少 直接忽略 虎鉗只是示意」）。
+    //    鉗是示意用的，不該反過來替使用者改桌子；桌面薄到裝不下鉗是他自己決定的事。
+    const spacerH = 0;
     const bodyTopY = legHeight - spacerH;
     const screwY = bodyTopY - VISE_BODY_HEIGHT_MM / 2;
     const chopH = H - (bodyTopY - VISE_BODY_HEIGHT_MM);
@@ -930,19 +953,6 @@ export const workbench: FurnitureTemplate = (input) => {
         topPieceForVise.mortises.push({ origin: { x: hx, y: 0, z: hz }, depth: 40, length: 8, width: 8, through: false, shape: "round", cosmetic: true, label: isEn ? "vise lag bolt" : "鉗座螺栓孔" });
       }
     }
-    if (spacerH > 0) {
-      design.parts.push({
-        id: `${idPrefix}spacer`,
-        nameZh: `${labelZh}鉗座墊塊`,
-        nameEn: `${labelEn} spacer block`,
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: jaw, width: VISE_BODY_DEPTH_MM, thickness: spacerH },
-        origin: { x: vx, y: bodyTopY, z: bodyCenterZ },
-        tenons: [],
-        mortises: [],
-      });
-    }
     design.parts.push({
       id: `${idPrefix}body`,
       nameZh: `鑄鐵快速鉗本體（${frontViseSize === "9in" ? "9" : "7"} 吋）`,
@@ -985,8 +995,7 @@ export const workbench: FurnitureTemplate = (input) => {
     return spacerH;
   };
   if (frontVise === "quick" && viseX !== null) {
-    const spacerH = addQuickVise(viseX, -1, "vise-", "前鉗", "Front vise");
-    if (spacerH > 0) warnings.push(isEn ? `Top is ${topT}mm; a quick-release vise wants ${VISE_MIN_EDGE_MM}mm at the front edge — a ${spacerH}mm spacer block was added under the top.` : `桌面 ${topT}mm 不到快速鉗要的 ${VISE_MIN_EDGE_MM}mm，已在桌底加 ${spacerH}mm 鉗座墊塊。`);
+    addQuickVise(viseX, -1, "vise-", "前鉗", "Front vise");
     if (viseX2 !== null) addQuickVise(viseX2, 1, "vise2-", "對側鉗", "Second vise");
     viseHardwareNote = isEn
       ? `Hardware: ${viseX2 !== null ? "2 × " : ""}${frontViseSize === "9in" ? "9" : "7"}" quick-release bench vise (jaw ${jaw}mm) + 4 lag bolts each.`
@@ -1135,15 +1144,19 @@ export const workbench: FurnitureTemplate = (input) => {
   //   他說「腳就應該接在穿帶才對吧」——對：有穿帶就讓它同時當腳頂的橫向連結，
   //   穿帶夾在腳肩與桌面之間、又被腳頂榫貫穿，防翹之外還把同一端兩支腳的頂端拉在一起。
   //   代價：腳要短 30（穿帶厚），腳頂榫要長 30 才穿得過去（總高不變）。
-  const BATTEN_T = Math.max(20, Math.min(60, battenThicknessRaw));
+  // 夾板版一定是 18 的倍數（不然疊不出來）；實木版沿用原本的自由厚度
+  const battenLayers = ply ? pickLayers("battenLayers", 1, 3) : 0;
+  const BATTEN_T = ply ? PLY_T * battenLayers : Math.max(20, Math.min(60, battenThicknessRaw));
   let battenSize = { w: 0, t: BATTEN_T };
+  // ⚠️ topBuild 是實木專屬選項；夾板模式下網址可能還留著舊的 topBuild=stack，
+  //    不先擋掉的話夾板穿帶會被誤判成「疊層桌面」而靜默略過（勾了沒反應）。
   const battenBlockedZh =
-    topBuild === "stack" ? "疊層桌面不會翹，也沒地方讓腳榫穿過穿帶，"
+    (!ply && topBuild === "stack") ? "疊層桌面不會翹，也沒地方讓腳榫穿過穿帶，"
     : withApron ? "有裙板就不必再加穿帶（裙板本身就在防翹），"
     : deadmanRaw ? "長板靠板的上軌佔住桌底，"
     : "";
   const battenBlockedEn =
-    topBuild === "stack" ? "a laminated sheet top does not cup, "
+    (!ply && topBuild === "stack") ? "a laminated sheet top does not cup, "
     : withApron ? "a deep apron already stops the top cupping, "
     : deadmanRaw ? "the sliding deadman's rail takes up the underside, "
     : "";
@@ -1192,6 +1205,9 @@ export const workbench: FurnitureTemplate = (input) => {
         grainDirection: "length",
         // rotation.y = π/2：length 軸轉到世界 Z（跨桌面深度方向）
         visible: { length: battenLen, width: battenW, thickness: BATTEN_T },
+        // 夾板版：料單要列「疊 N 層」、3D 也要拆得出層（這支零件是在
+        // 前面設定層數的迴圈**之後**才建的，所以要自己標）
+        ...(ply && battenLayers > 1 ? { panelPieces: battenLayers, panelSplit: "thickness" as const } : {}),
         origin: { x: bx, y: legHeight - BATTEN_T, z: battenZ },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
         tenons: [],
@@ -1556,12 +1572,12 @@ export const workbench: FurnitureTemplate = (input) => {
   const buildZh = ply ? `${topPanelPieces} 層 18mm 夾板疊合` : topBuild === "stave" ? `窄條側立拼 ${topPanelPieces} 條` : topBuild === "stack" ? `${topPanelPieces} 層疊合` : `寬板平拼 ${topPanelPieces} 片`;
   const buildEn = ply ? `${topPanelPieces} × 18mm plywood laminated` : topBuild === "stave" ? `${topPanelPieces} staves on edge` : topBuild === "stack" ? `${topPanelPieces} layers` : `${topPanelPieces} planks`;
   const plyNoteZh = ply
-    ? `夾板疊層版（免榫卯）：腳 ${legLayers} 層疊成 ${legSize} 方；橫撐 2 層 36${withApron ? `、裙板 ${apronThickness === PLY_T ? "1 層 18" : "2 層 36"}` : ""}，嵌進腳上疊層時預留的搭接槽（${withApron ? `裙板槽深 ${plyNotchDepth.apron}、` : ""}橫撐槽深 ${plyNotchDepth.ls}）再上膠鎖螺絲；腳頂不接榫，從腳內側兩面各斜鑽 2 個口袋孔鎖進桌面底層。` +
+    ? `夾板疊層版（免榫卯）：腳 ${legLayers} 層疊成 ${legSize} 方；橫撐 ${lsLayers} 層 ${lowerStretcherThickness}${withApron ? `、裙板 ${apronThickness === PLY_T ? "1 層 18" : "2 層 36"}` : ""}，嵌進腳上疊層時預留的搭接槽（${withApron ? `裙板槽深 ${plyNotchDepth.apron}、` : ""}橫撐槽深 ${plyNotchDepth.ls}）再上膠鎖螺絲；腳頂不接榫，從腳內側兩面各斜鑽 2 個口袋孔鎖進桌面底層。` +
       `夾板用量：18mm 4×8 呎（1220×2440）約 ${plySheets} 張（面積法 +15% 損耗）。` +
       `五金：疊層固定 4×40 皿頭木螺絲約 ${plyLamScrews} 支、搭接槽 6×80 螺絲 ${plyNotchEnds * 3} 支（每處 3 支）、腳頂口袋孔螺絲 6×63 ${plyTopScrews} 支＋ L 角鐵 4 片。`
     : "";
   const plyNoteEn = ply
-    ? `Laminated-plywood version (no joinery): legs ${legLayers} layers = ${legSize}mm square; stretchers 2 layers (36)${withApron ? `, apron ${apronThickness === PLY_T ? "1 layer (18)" : "2 layers (36)"}` : ""} sit in lap notches left in the leg lamination (${withApron ? `apron notch ${plyNotchDepth.apron} deep, ` : ""}stretcher notch ${plyNotchDepth.ls} deep), glued and screwed; the top is pocket-screwed from the inside faces of each leg (2 per face). ` +
+    ? `Laminated-plywood version (no joinery): legs ${legLayers} layers = ${legSize}mm square; stretchers ${lsLayers} layers (${lowerStretcherThickness})${withApron ? `, apron ${apronThickness === PLY_T ? "1 layer (18)" : "2 layers (36)"}` : ""} sit in lap notches left in the leg lamination (${withApron ? `apron notch ${plyNotchDepth.apron} deep, ` : ""}stretcher notch ${plyNotchDepth.ls} deep), glued and screwed; the top is pocket-screwed from the inside faces of each leg (2 per face). ` +
       `Plywood: about ${plySheets} sheets of 18mm 4×8 ft (1220×2440), area method +15% waste. ` +
       `Hardware: ~${plyLamScrews} × 4×40 countersunk screws for the laminations, ${plyNotchEnds * 3} × 6×80 screws at the notches (3 each), ${plyTopScrews} × 6×63 pocket screws + 4 L-brackets for the top. `
     : "";
