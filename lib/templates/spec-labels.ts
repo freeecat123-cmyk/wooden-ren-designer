@@ -33,6 +33,7 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   // === workbench（木工工作桌） ===
   benchStyle: "Workbench style",
   materialStyle: "Material style",
+  plyLegBuild: "Leg construction (plywood)",
   plyTopLayers: "Top layers (18mm plywood)",
   legLayers: "Leg layers (18mm plywood, laminated post)",
   lsLayers: "Lower stretcher layers (18mm plywood)",
@@ -611,6 +612,7 @@ export const SPEC_HELP_EN: Record<string, string> = {
   drawerCount: "Cabinet sits on the lower stretchers; its top stays 210mm below the bench top so holdfasts still reach. Drawers plus a deep apron leave nowhere to clamp.",
   // === workbench ===
   materialStyle: "Laminated plywood: top, legs and stretchers are stacked from 18mm plywood; stretchers / aprons sit in notches left in the leg lamination and are screwed — no tenons at all. Top thickness and leg size then come from the layer counts below.",
+  plyLegBuild: "Slab legs: every layer is a full depth × leg-height sheet, laminated to the leg thickness. The slab is its own side stretcher, so side stretchers / side aprons are dropped; front/back rails and the centre rail sit in lap notches left in the slab. Leg vise and front-leg holes are not available on a slab.",
   plyTopLayers: "18mm per layer. Top thickness = layers × 18; the material list shows one piece per layer.",
   legLayers: "Leg size = layers × 18. Aprons are 1–2 layers depending on the style; the notches are left while laminating.",
   lsLayers: "Stretcher thickness = layers × 18. The lap notch in the leg follows, but never deeper than one layer (18) — cutting deeper weakens the leg.",
@@ -1279,6 +1281,8 @@ export const CHOICE_LABEL_EN: Record<string, string> = {
   "endVise:none": "None",
   "endVise:wagon": "Wagon vise (slot in the top; imported hardware)",
   // === workbench ===
+  "plyLegBuild:post": "Laminated square posts (four legs, size = layers × 18)",
+  "plyLegBuild:slab": "Full slab per end (width = bench depth, thickness = layers × 18)",
   "materialStyle:solid": "Solid wood joinery (square stock, through-tenoned legs, tenoned stretchers)",
   "materialStyle:plywood": "Laminated plywood (18mm sheets glued and screwed layer by layer — no mortises, beginner-friendly)",
   "plyTopLayers:2": "2 layers = 36mm: light / MFT clamping table (holdfasts will not bite; use F-clamps or MFT clamps)",

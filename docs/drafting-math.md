@@ -93,6 +93,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
 | 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
 | 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
+| 工作桌整片板腳 / 夾板層疊腳板 | `"整片板腳\|slab leg\|plyLegBuild\|applyPlySlabLegs"` | §AU23.2 |
 | 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
 | 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 / 夾板木紋 / 穿帶 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers\|lsLayers\|battenLayers\|ply-layers"` | §AU23、§AU23.1 |
 | 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞"` | §AU24 |
@@ -5424,6 +5425,23 @@ holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙�
 - ⛔ MFT 流派**不預選** plywood：那會把使用者自己填的腳粗 / 橫撐厚吃掉（舊指紋與兩條測試都會變）。想整台夾板自己切材料樣式。
 
 **工序**：`step-10f-ply-laminate`（`lib/steps/derive.ts`），工時 = 20 + 12 × 膠合面數 + 6 × 搭接槽數，英文在 `STEP_OVERRIDE_EN`。
+
+#### AU23.2 整片板腳（`plyLegBuild = slab`，2026-09-07 木頭仁）
+
+木頭仁：「夾板層疊這個選項要增加一個連腳都是整片板層疊（左右腳就是整塊板），不是層疊角柱。」
+
+- 選項只在 `materialStyle = plywood` 出現，預設 `post`（四支疊層方柱，舊行為一格不動）。
+- 腳板 = 左右各一片 **桌深 `workW` × 腳高 × (legLayers × 18)** 的 box；x 跟原角柱一樣 = ±(frameL/2 − legSize/2)、z 置中。
+  `panelPieces = legLayers`、`panelSplit = "thickness"`（3D 拆層切最小的那一維 = 腳厚，`ply-layers.ts` 不用改）。
+- 做法：ply 區塊照舊把四支腳的榫眼換成搭接槽、橫撐加槽深，**然後** `applyPlySlabLegs()` 合併：
+  - 原腳 **X 面**的槽（|x| > |z|：前後橫撐 / 前後裙板）照搬到腳板、z 加上原腳 z；
+  - **Z 面**的槽連 `ls-left / ls-right / apron-left / apron-right` 一起刪——腳板本身就是側撐；
+  - 槽深：算 `hasZ` 時板腳一律當成沒有左右向的料 → 兩帶都是一層 18（不會再被 (腳 − 料厚)/2 夾成 9）；
+  - H 形 `ls-center`：原本半搭在左右橫撐上，改成嵌進腳板：長 = 兩腳板內面距 + 2 × 18，腳板在 `y = lsY + lsW/2、z = 0` 補一個 18 深的槽；
+  - 搭接槽數 `plyNotchEnds` 合併後重數（左右向的槽沒了，6×80 螺絲數才對）。
+- 不能一起用的：腳鉗（螺桿要穿過整片桌深）→ 退回快速鉗並出聲；前腳 holdfast 孔列 → 略過並出聲；「只左右 2 根」排列 → 出聲不改值。
+- 下層板卡在兩片腳板之間（長 = frameL − 2 × 腳厚）、深度吃滿、不缺角。腳頂口袋孔螺絲 16 → 8（每片腳板內側 4 支）。
+- 螺栓可拆的 Ø11 孔改掃 `/^leg-(\d+|slab-(left|right))$/`；`PLY_PART_RE` 加 `leg-slab-(left|right)` 才會走夾板計價與張數。
 
 
 

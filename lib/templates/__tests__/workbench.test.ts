@@ -792,3 +792,70 @@ describe("09-04 深夜第三輪：選了要有反應（靠板／穿帶／鉗位�
     expect(conds).toContain("deadman");
   });
 });
+
+describe("夾板疊層整片板腳（plyLegBuild = slab，§AU23.2）", () => {
+  // 預設：桌面 3 層 54、腳 4 層 72、橫撐 2 層 36；腳架長 1800 − 2×360 = 1080 → 腳板中心 x = ±(540 − 36) = ±504；腳高 830 − 54 = 776
+  const slab = (o: Record<string, OptVal> = {}) => build({ materialStyle: "plywood", plyLegBuild: "slab", ...o });
+  const d = slab();
+  const left = d.parts.find((p) => p.id === "leg-slab-left")!;
+  const right = d.parts.find((p) => p.id === "leg-slab-right")!;
+  it("四支方柱換成左右兩片：72 厚（4 層）× 600 深 × 776 高，x = ±504、z 置中，夾板計價、拆層", () => {
+    expect(d.parts.filter((p) => /^leg-\d+$/.test(p.id))).toHaveLength(0);
+    expect(left.visible).toEqual({ length: 72, width: 600, thickness: 776 });
+    expect(left.origin).toEqual({ x: 504, y: 0, z: 0 });
+    expect(right.origin.x).toBe(-504);
+    expect(left.panelPieces).toBe(4);
+    expect(left.panelSplit).toBe("thickness");
+    expect(left.materialOverride).toBe("plywood");
+    expect(d.parts.every((p) => (p.tenons?.length ?? 0) === 0)).toBe(true);
+    // 預設 4 邊框：左右兩根刪掉，前後兩根的槽搬到腳板 z = ±(300 − 36)
+    expect(d.parts.find((p) => p.id === "ls-left")).toBeUndefined();
+    expect(d.parts.find((p) => p.id === "ls-right")).toBeUndefined();
+    expect(left.mortises.filter((m) => m.shape !== "round").map((m) => m.origin.z).sort((a, b) => a - b)).toEqual([-264, 264]);
+  });
+  it("H 形：中央長撐嵌進腳板 → 長 2×(504−36) + 2×18 = 972；腳板各一個 100×36、深 18 的搭接槽在 y = 100+50", () => {
+    const h = slab({ lowerStretcherArrangement: "h-frame" });
+    const hl = h.parts.find((p) => p.id === "leg-slab-left")!;
+    const hr = h.parts.find((p) => p.id === "leg-slab-right")!;
+    expect(h.parts.find((p) => p.id === "ls-left")).toBeUndefined();
+    expect(h.parts.find((p) => p.id === "ls-front")).toBeUndefined();
+    expect(h.parts.find((p) => p.id === "ls-center")!.visible.length).toBe(972);
+    const notches = hl.mortises.filter((m) => m.shape !== "round");
+    expect(notches).toHaveLength(1);
+    expect(notches[0]).toMatchObject({ origin: { x: -1, y: 150, z: 0 }, depth: 18, length: 100, width: 36, cosmetic: true });
+    expect((notches[0].label ?? "").includes("搭接槽")).toBe(true);
+    expect(hr.mortises[0].origin.x).toBe(1);
+  });
+  it("4 邊框 + 裙板：前後橫撐 / 前後裙板的槽搬到腳板（z = ±(300−36) = ±264、深 18 不再被兩向夾成 9），左右料刪掉；螺栓孔跟著每個槽", () => {
+    const b = slab({ lowerStretcherArrangement: "box-frame", withApron: true, knockdown: "bolt", legLayers: "3" });
+    // 3 層腳 = 54：原本兩向都有料時槽深被夾成 (54−36)/2 = 9；板腳沒有左右向 → 一層 18
+    const l = b.parts.find((p) => p.id === "leg-slab-left")!;
+    const ids = b.parts.map((p) => p.id);
+    expect(ids).not.toContain("apron-left");
+    expect(ids).toContain("apron-front");
+    expect(ids).toContain("ls-front");
+    const notches = l.mortises.filter((m) => m.shape !== "round");
+    expect(notches).toHaveLength(4);
+    expect(notches.every((m) => Math.abs(m.origin.z) === 300 - 27 && m.depth === 18)).toBe(true);
+    expect(l.mortises.filter((m) => m.label === "M10 床螺栓孔")).toHaveLength(4);
+    // 前後撐的可見長 = 淨距 2×(900−360−27) − 54 + 2×18
+    expect(b.parts.find((p) => p.id === "ls-front")!.visible.length).toBe(2 * 513 - 54 + 36);
+  });
+  it("腳鉗退回快速鉗、前腳孔列略過、下層板卡在兩腳板之間吃滿深度（1080 − 144 = 936 × 600）、只左右 2 根會出聲", () => {
+    const b = slab({ frontVise: "leg", withUnderShelf: true, lowerStretcherArrangement: "box-frame" });
+    expect(b.parts.find((p) => p.id === "leg-vise-chop")).toBeUndefined();
+    expect(b.parts.find((p) => p.id === "vise-chop")).toBeDefined();
+    expect(b.warnings.some((w) => w.includes("裝不了腳鉗"))).toBe(true);
+    expect(b.warnings.some((w) => w.includes("前腳 holdfast 孔列"))).toBe(true);
+    expect(b.parts.find((p) => p.id === "leg-slab-left")!.mortises.some((m) => m.shape === "round")).toBe(false);
+    const shelf = b.parts.find((p) => p.id === "under-shelf")!;
+    expect([shelf.visible.length, shelf.visible.width]).toEqual([936, 600]);
+    expect(shelf.shape).toBeUndefined();
+    expect(slab({ lowerStretcherArrangement: "pair-z" }).warnings.some((w) => w.includes("只左右 2 根"))).toBe(true);
+  });
+  it("實木版帶著 plyLegBuild=slab（舊網址殘留）不生效；夾板版預設 post 的零件清單跟沒這個 key 完全一樣", () => {
+    expect(build({ plyLegBuild: "slab" }).parts.find((p) => p.id === "leg-slab-left")).toBeUndefined();
+    expect(build({ plyLegBuild: "slab" }).parts.filter((p) => /^leg-\d+$/.test(p.id))).toHaveLength(4);
+    expect(JSON.stringify(build({ materialStyle: "plywood", plyLegBuild: "post" }).parts)).toBe(JSON.stringify(build({ materialStyle: "plywood" }).parts));
+  });
+});
