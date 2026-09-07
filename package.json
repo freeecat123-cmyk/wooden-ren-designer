@@ -12,7 +12,8 @@
     "assert": "for f in $(git ls-files '*.assert.ts'); do echo \"-- $f\" && npx tsx \"$f\" || exit 1; done",
     "verify": "npm run typecheck && npm run test && npm run audit",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
-    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts && tsx scripts/audit-dead-checkboxes.ts && tsx scripts/audit-negative-dims.ts && tsx scripts/gen-client-namespaces.ts --check && tsx scripts/audit-machining-bounds.ts && tsx scripts/audit-dead-options.ts && tsx scripts/audit-rls.ts && tsx scripts/audit-leg-shapes.ts && tsx scripts/audit-leg-joints.ts && tsx scripts/audit-template-pack.ts",
+    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts && tsx scripts/audit-dead-checkboxes.ts && tsx scripts/audit-negative-dims.ts && tsx scripts/gen-client-namespaces.ts --check && tsx scripts/audit-machining-bounds.ts && tsx scripts/audit-dead-options.ts && tsx scripts/audit-rls.ts && tsx scripts/audit-leg-shapes.ts && tsx scripts/audit-leg-joints.ts && tsx scripts/audit-template-pack.ts && npm run audit:revised",
+    "audit:revised": "tsx scripts/audit-overlaps.ts --revised && tsx scripts/audit-machining-bounds.ts --revised && tsx scripts/audit-template-pack.ts --revised",
     "audit:overlaps": "tsx scripts/audit-overlaps.ts",
     "audit:joints": "tsx scripts/audit-joints.ts",
     "audit:joinery-dims": "tsx scripts/audit-joinery-dynamic-dims.ts",
@@ -31,7 +32,9 @@
     "audit:legs": "tsx scripts/audit-leg-shapes.ts",
     "audit:legs:update": "tsx scripts/audit-leg-shapes.ts --update",
     "audit:leg-joints": "tsx scripts/audit-leg-joints.ts",
-    "audit:template-pack": "tsx scripts/audit-template-pack.ts"
+    "audit:template-pack": "tsx scripts/audit-template-pack.ts",
+    "audit:2d-joints": "tsx scripts/audit-2d-joints.ts",
+    "audit:iso-ct-legs": "tsx scripts/audit-iso-ct-legs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
@@ -41,6 +44,7 @@
     "@supabase/supabase-js": "^2.104.1",
     "@types/papaparse": "^5.5.2",
     "@upstash/redis": "^1.37.0",
+    "@vercel/analytics": "^2.0.1",
     "jspdf": "^4.2.1",
     "nanoid": "^5.1.9",
     "next": "16.2.9",

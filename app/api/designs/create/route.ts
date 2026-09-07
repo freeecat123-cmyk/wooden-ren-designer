@@ -29,12 +29,13 @@ import {
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import type { FurnitureCategory } from "@/lib/types";
 import { getTemplate } from "@/lib/templates";
+import { validateSnapshotParams } from "@/lib/design/model-snapshot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_NAME_LEN = 80;
-const MAX_PARAMS_BYTES = 32 * 1024; // 32KB 限制 jsonb 大小,擋暴力塞 payload
+const MAX_PARAMS_BYTES = 2 * 1024 * 1024 + 32 * 1024;
 
 function validate(body: unknown):
   | { ok: true; furnitureType: FurnitureCategory; name: string; params: Record<string, unknown> }
@@ -72,6 +73,9 @@ function validate(body: unknown):
   }
   if (serialized.length > MAX_PARAMS_BYTES) {
     return { ok: false, status: 400, error: "params_too_large" };
+  }
+  if (!validateSnapshotParams(b.params as Record<string, unknown>, b.furnitureType)) {
+    return { ok: false, status: 400, error: "invalid_params" };
   }
 
   return {
@@ -125,7 +129,7 @@ export async function POST(req: NextRequest) {
 
   // 4. Count check — 超過 maxDesigns 擋
   const features = getPlanFeatures(profile);
-  if (features.maxDesigns !== Infinity) {
+  if (!isAdmin && features.maxDesigns !== Infinity) {
     const { count } = await admin
       .from("designs")
       .select("*", { count: "exact", head: true })
@@ -152,7 +156,7 @@ export async function POST(req: NextRequest) {
       name: v.name,
       params: v.params,
     })
-    .select("id, name")
+    .select("id, name, updated_at")
     .single();
 
   if (insertErr) {

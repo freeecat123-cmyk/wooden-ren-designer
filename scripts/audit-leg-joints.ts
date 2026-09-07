@@ -41,7 +41,11 @@ for (const cat of CATS) {
      *    舊的 `/apron|stretcher/` **整組漏掃**。2026-08-25 做變異測試時發現:
      *    把補償改壞了稽核居然不吭聲。過濾條件寧可寬一點。
      */
-    const conns = (d.parts as any[]).filter(p => /apron|stretcher|^ls-|^fr-/.test(p.id) && p.shape?.kind !== "curved-taper");
+    /**
+     * ⚠️ 吧檯椅的下橫撐叫 `footrest-*`（腳踏）—— 也不含 stretcher 這個字。2026-09-02 三視圖實畫稽核
+     *    抓到兩向弧肩時左右腳踏每端短 13mm，而這支一直綠燈就是因為它從沒掃到腳踏。
+     */
+    const conns = (d.parts as any[]).filter(p => /apron|stretcher|footrest|^ls-|^fr-/.test(p.id) && p.shape?.kind !== "curved-taper");
     for (const c of conns) {
       // 判斷這根是沿 X 還是沿 Z(取最長邊的方向)
       /**

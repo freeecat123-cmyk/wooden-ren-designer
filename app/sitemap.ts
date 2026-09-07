@@ -7,7 +7,7 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com
 /**
  * Sitemap with hreflang alternates for zh-TW (default, no prefix) and /en/*.
  *
- * Routes available on both locales: /, /app, /templates, /about, /pricing, /help,
+ * Routes available on both locales: /, /app, /templates, /workbench, /about, /pricing, /help,
  * /contact, /ceiling, /floor, /raised-floor, /design/[type] for non-dev categories.
  * Listed with `alternates.languages` so Google knows they're translated equivalents.
  *
@@ -73,6 +73,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     biLocaleEntry("/", "weekly", 1, now),
     biLocaleEntry("/app", "weekly", 0.95, now),
     biLocaleEntry("/templates", "weekly", 0.95, now),
+    // 免費工作桌落地頁（2026-09-04 首頁主打）
+    biLocaleEntry("/workbench", "weekly", 0.95, now),
     biLocaleEntry("/about", "monthly", 0.9, now),
     biLocaleEntry("/pricing", "monthly", 0.9, now),
     biLocaleEntry("/ceiling", "monthly", 0.85, now),

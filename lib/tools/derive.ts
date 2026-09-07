@@ -121,6 +121,7 @@ const JOINERY_TOOLS: Record<JoineryType, JoinerySpec[]> = {
     { id: "drill-bits", priority: "required", reason: { zh: "斜孔專用階梯鑽頭", en: "Pocket-hole step-drill bits" } },
     { id: "tenz-screw-set", priority: "recommended", reason: { zh: "TENZ 星型螺絲省力不咬合,斜孔鎖固專用", en: "TENZ star-drive screws — low cam-out, great for pocket holes" } },
     { id: "countersink-bit", priority: "recommended", reason: { zh: "螺絲頭埋進木面不外露,正面更光潔", en: "Countersink the head flush — cleaner show face" } },
+    { id: "mallet", priority: "recommended", reason: { zh: "組裝敲合對位,白橡膠不留痕", en: "Tap parts flush during assembly — white rubber leaves no marks" } },
   ],
   screw: [
     { id: "drill", priority: "required", reason: { zh: "鑽先導孔與鎖螺絲", en: "Pilot-drill and drive screws" } },
@@ -128,6 +129,7 @@ const JOINERY_TOOLS: Record<JoineryType, JoinerySpec[]> = {
     { id: "tenz-screw-set", priority: "recommended", reason: { zh: "TENZ 星型螺絲省力不咬合", en: "TENZ star-drive screws — low cam-out" } },
     { id: "countersink-bit", priority: "recommended", reason: { zh: "螺絲頭埋進木面不外露", en: "Countersink the head flush" } },
     { id: "hand-drill-brace", priority: "optional", reason: { zh: "手搖鑽手動鎖固,無電源也能裝", en: "Hand brace — drive screws without power" } },
+    { id: "mallet", priority: "recommended", reason: { zh: "組裝敲合對位,白橡膠不留痕", en: "Tap parts flush during assembly — white rubber leaves no marks" } },
   ],
 };
 
@@ -143,6 +145,10 @@ const POWER_TOOL_IDS = [
 const SHARPENABLE_IDS = ["chisel-set-3-6-12", "chisel-hardwood", "groove-plane"];
 
 const EXTRA_REASONS = {
+  dogHoles: { zh: "工作桌狗孔 / holdfast 孔要 Ø19 平翼鑽頭垂直鑽", en: "Dog and holdfast holes need a 3/4\" Forstner bit drilled dead square" },
+  benchDogs: { zh: "配狗孔用，夾長料兩端", en: "Pair with the dog holes to clamp long stock between dogs" },
+  holdfast: { zh: "壓桿一敲就固定，桌面 44~89mm 才咬得住；台灣木樹林有小號", en: "One tap holds the work; needs a 44–89mm top" },
+  wagonVise: { zh: "尾鉗滑塊五金要另購，開槽前先量實物", en: "Wagon vise hardware is bought separately — measure it before cutting the slot" },
   hardwoodChisel: { zh: "白橡等硬木需高硬度鑿刀,普通鑿刀易崩刃", en: "Hardwoods like white oak need hardened chisels — standard ones chip" },
   hardwoodCoarseSand: { zh: "硬木刨後需 60 番去除刨痕", en: "Hardwood after planing needs 60-grit to remove plane marks" },
   longClamp: { zh: "長型家具膠合需大尺寸夾具", en: "Long furniture glue-ups need large clamps" },
@@ -187,6 +193,15 @@ export function deriveRequiredTools(
       seenJoinery.add(tenon.type);
     }
   }
+  /**
+   * 🩸 組裝版（toBeginnerMode）把榫頭全拔掉、defaultJoinery 設成 pocket-hole，
+   * 但這裡只從榫頭推工具 → 組裝版的工具清單沒有電鑽、斜孔治具、TENZ 螺絲，
+   * 偏偏那一版就是靠螺絲鎖起來的（2026-09-02 木頭仁：「工具清單 增加官網的 tenz 螺絲」）。
+   * 沒有任何榫頭時，退而用設計宣告的預設接合法。
+   */
+  if (seenJoinery.size === 0 && design.defaultJoinery && JOINERY_TOOLS[design.defaultJoinery]) {
+    seenJoinery.add(design.defaultJoinery);
+  }
   for (const joinery of seenJoinery) {
     for (const t of JOINERY_TOOLS[joinery]) {
       add(t.id, t.priority, t.reason);
@@ -222,6 +237,15 @@ export function deriveRequiredTools(
   add("marking-knife", "recommended", EXTRA_REASONS.markingKnife);
   add("masking-tape-low-tack", "recommended", EXTRA_REASONS.maskingTape);
   add("quick-bench-vise", "recommended", EXTRA_REASONS.benchVise);
+  if (design.category === "workbench") {
+    const hasHoles = design.parts.some((p) => p.mortises.some((m) => m.cosmetic && m.shape === "round" && m.through));
+    if (hasHoles) {
+      add("forstner-bit-19", "required", EXTRA_REASONS.dogHoles);
+      add("bench-dog-pair", "recommended", EXTRA_REASONS.benchDogs);
+      add("holdfast", "recommended", EXTRA_REASONS.holdfast);
+    }
+    if (design.parts.some((p) => p.id === "end-cap")) add("wagon-vise-kit", "required", EXTRA_REASONS.wagonVise);
+  }
   add("glue-tray-set", "recommended", EXTRA_REASONS.glueTray);
   add("silicone-glue-box", "recommended", EXTRA_REASONS.glueBox);
 

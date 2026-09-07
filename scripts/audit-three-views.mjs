@@ -17,7 +17,7 @@ const CATEGORIES = [
   "chest-of-drawers", "bench", "tea-table", "round-stool", "round-table",
   "round-tea-table", "side-table", "low-table", "bar-stool", "media-console",
   "chinese-cabinet", "pencil-holder", "bookend", "photo-frame", "tray",
-  "dovetail-box", "wine-rack", "coat-rack",
+  "dovetail-box", "wine-rack", "coat-rack", "workbench",
 ];
 
 const VIEWPORT = { width: 1400, height: 1100 };

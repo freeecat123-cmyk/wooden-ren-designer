@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { isBlankDesignQuery } from "@/lib/design/is-blank-design-query";
 
 const STORAGE_PREFIX = "wooden-ren-designer:design-history:v1";
 const MAX_HISTORY = 40;
@@ -64,7 +65,10 @@ export function DesignHistoryControls({
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
-  const search = searchParams?.toString() ?? "";
+  const historyQuery = new URLSearchParams(searchParams?.toString() ?? "");
+  historyQuery.delete("revision");
+  historyQuery.sort();
+  const search = historyQuery.toString();
   const currentUrl = search ? `${pathname}?${search}` : pathname;
   const storageKey = useMemo(() => {
     const designId = searchParams?.get("designId") ?? "draft";
@@ -78,12 +82,43 @@ export function DesignHistoryControls({
   });
 
   useEffect(() => {
+    const onSaved = (event: Event) => {
+      const { id, search: savedSearch, editorSearch } = (event as CustomEvent<{ id: string; search?: string; editorSearch?: string }>).detail;
+      const versionedTemplate = new URLSearchParams(savedSearch).has("constructionVersion");
+      const nextKey = `${STORAGE_PREFIX}:${pathname}:${id}`;
+      if (nextKey === storageKey && editorSearch === undefined) return;
+      const rebase = (target: string) => {
+        const url = new URL(target, window.location.origin);
+        // A10.15: adding a saved reference must not turn a blank v2 baseline into
+        // legacy construction. Unknown/structural keys conservatively stay unchanged.
+        if (versionedTemplate && url.pathname === pathname
+          && isBlankDesignQuery(url.searchParams.keys())) {
+          url.searchParams.set("constructionVersion", "2");
+        }
+        url.searchParams.set("designId", id);
+        url.searchParams.delete("revision");
+        url.searchParams.sort();
+        return `${url.pathname}?${url.searchParams}`;
+      };
+      const base = readState(storageKey) ?? history;
+      // Save supplies its actual navigation query, including newer unsaved edits.
+      // Canonicalizing that same editor state is not an additional undo step.
+      const next = { past: base.past.map(rebase), current: rebase(editorSearch === undefined ? base.current : `${pathname}?${editorSearch}`), future: base.future.map(rebase) };
+      writeState(nextKey, next);
+      lastStorageKeyRef.current = nextKey;
+      setHistory(next);
+    };
+    window.addEventListener("wooden-ren:design-saved", onSaved);
+    return () => window.removeEventListener("wooden-ren:design-saved", onSaved);
+  }, [history, pathname, storageKey]);
+
+  useEffect(() => {
     setHistory((prev) => {
       const loaded = readState(storageKey);
       const base =
-        lastStorageKeyRef.current === storageKey
+        loaded ?? (lastStorageKeyRef.current === storageKey
           ? prev
-          : loaded ?? { past: [], current: currentUrl, future: [] };
+          : { past: [], current: currentUrl, future: [] });
       lastStorageKeyRef.current = storageKey;
 
       if (base.current === currentUrl) {
@@ -105,7 +140,10 @@ export function DesignHistoryControls({
     (target: string, nextState: HistoryState) => {
       writeState(storageKey, nextState);
       setHistory(nextState);
-      router.replace(target, { scroll: false });
+      const url = new URL(target, window.location.origin);
+      const revision = new URLSearchParams(window.location.search).get("revision");
+      if (revision) url.searchParams.set("revision", revision);
+      router.replace(`${url.pathname}?${url.searchParams}`, { scroll: false });
     },
     [router, storageKey],
   );

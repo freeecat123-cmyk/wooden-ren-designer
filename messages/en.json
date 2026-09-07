@@ -69,7 +69,8 @@
     "coat-rack": "Coat Rack",
     "chinese-cabinet": "Chinese Cabinet",
     "bed": "Bed Frame",
-    "wall-mounted-tool-storage": "Wall-mounted Tool Storage"
+    "wall-mounted-tool-storage": "Wall-mounted Tool Storage",
+    "workbench": "Woodworking Workbench"
   },
   "error": {
     "emoji": "⚠️",
@@ -113,7 +114,7 @@
     "intro2": "International USD billing via LemonSqueezy is scheduled for launch later in 2026, with regional pricing for the US, EU, UK, and Australia.",
     "highlights": "While you wait, the free tier already includes:",
     "h1Free": "Free tier",
-    "f1": "Square stool + pencil holder: fully customizable",
+    "f1": "Square stool + pencil holder + workbench: fully customizable",
     "f2": "Free full preview of every other template (3D, joinery, three-views, cut list)",
     "f3": "Switch materials freely in the preview",
     "f4": "No signup required to try",
@@ -199,7 +200,7 @@
       "q1Outro": "Full terms on the <linkRefund>refund policy page</linkRefund>. To apply: email <linkEmail>support</linkEmail> with subject \"Refund Request - your registered email\", and include order ID, payment date, and reason.",
       "q2Q": "How do I avoid buyer's remorse?",
       "q2Intro": "Since refunds are restricted, we recommend:",
-      "q2Tip1": "Fully build the square stool and pencil holder on the <b>free tier</b> first — and preview every other template for free — to confirm the tool works for you",
+      "q2Tip1": "Fully build the square stool, pencil holder and workbench on the <b>free tier</b> first — and preview every other template for free — to confirm the tool works for you",
       "q2Tip2": "Not sure between monthly and yearly? Start with <b>monthly at $9</b> for a month, then switch to yearly if you like it",
       "q2Tip3": "Monthly can be <linkSub>cancelled anytime</linkSub> — access stays through period end"
     }
@@ -442,20 +443,20 @@
   "landing": {
     "metadata": {
       "title": "Wooden Ren Designer — Plans, cut lists, and joinery in 3 minutes",
-      "description": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts. Enter dimensions, pick your wood, and get three-view drawings, exploded 3D, mortise & tenon details, cut lists, and printable PDFs. Free for the square stool and pencil holder; paid plans from $12.9/month.",
+      "description": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts. Enter dimensions, pick your wood, and get three-view drawings, exploded 3D, mortise & tenon details, cut lists, and printable PDFs. Free for the square stool, pencil holder and workbench; paid plans from $12.9/month.",
       "ogTitle": "Wooden Ren Designer — Plans in 3 minutes",
-      "ogDescription": "Drawing, cut list, and quote compressed into 3 minutes. Free for the square stool and pencil holder. Built by the Wooden Ren woodworking academy."
+      "ogDescription": "Drawing, cut list, and quote compressed into 3 minutes. Free for the square stool, pencil holder and workbench. Built by the Wooden Ren woodworking academy."
     },
     "hero": {
       "badge": "Wooden Ren Academy · Designer v0.5",
       "h1Line1": "Dimensions in,",
       "h1Highlight": "plans in 3 minutes",
-      "subtitleA": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts.",
-      "subtitleB": "This tool compresses all three into 3 minutes.",
-      "ctaPrimary": "Try the square stool free →",
+      "subtitleA": "Every woodworker's first project should be their own workbench — one that takes a plane, holds a board, and won't walk across the floor. Everything you build after that gets built on it.",
+      "subtitleB": "Enter your height, pick a style, and 3 minutes later you have three-views, a cut list and part drawings. Free, no signup.",
+      "ctaPrimary": "Draw your workbench free →",
       "ctaSecondary": "See pricing",
-      "note": "No signup required to try · Square stool + pencil holder always free",
-      "heroAlt": "Wooden Ren Designer real output — walnut media console 3D perspective",
+      "note": "No signup required to try · Square stool + pencil holder + workbench always free",
+      "heroAlt": "Wooden Ren Designer real output — workbench 3D perspective (slab-top bench with front vise and dog holes)",
       "heroCaption": "Real output",
       "heroBadgeFast": "⚡ 3-minute generation"
     },
@@ -532,7 +533,7 @@
       "popular": "Most chosen",
       "free": {
         "tier": "Free",
-        "f1": "Square stool + pencil holder: fully customizable",
+        "f1": "Square stool + pencil holder + workbench: fully customizable",
         "f2": "Free full preview of every other template (3D / three-view / joinery / cut list)",
         "f3": "Upgrade to resize, quote, and print",
         "f4": "No signup required to try",
@@ -566,7 +567,7 @@
     "faq": {
       "h2": "FAQ",
       "freeQ": "What does the free tier actually include?",
-      "freeA": "The square stool and pencil holder are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
+      "freeA": "The square stool, pencil holder and workbench are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
       "cadQ": "How does this compare to SketchUp / Fusion 360?",
       "cadA": "Designer is for woodworkers who want to build, not learn CAD. Five-minute learning curve, automatic joinery / three-view / cut list / cutting plan. Not trying to replace professional CAD.",
       "tierQ": "Personal vs Pro — what's the difference?",
@@ -578,7 +579,7 @@
       "seeAll": "See full FAQ →"
     },
     "bottomCta": {
-      "h2Line1": "Build a stool first.",
+      "h2Line1": "Draw your workbench first.",
       "h2Highlight": "Then decide if you want to pay.",
       "subtitle": "Fairest deal I know — use it first, pay only if it actually helps you.",
       "ctaPrimary": "Start designing →",
@@ -648,7 +649,7 @@
     },
     "bottomCta": {
       "h2": "Pick one to start",
-      "subtitle": "Square stool and pencil holder are free forever. Every other template is free to preview in full — subscribe to resize it to your own dimensions.",
+      "subtitle": "Square stool, pencil holder and workbench are free forever. Every other template is free to preview in full — subscribe to resize it to your own dimensions.",
       "ctaPrimary": "Start designing →",
       "ctaSecondary": "View plans"
     }
@@ -2291,6 +2292,9 @@
     "backHome": "← Back to catalog",
     "justPaidH": "✅ Payment received",
     "justPaidBody": "ECPay has received the payment and your plan is active. If you paid by ATM / convenience store, it may take a few minutes — please refresh or check back shortly.",
+    "paymentPendingH": "⏳ This payment isn't complete",
+    "paymentPendingBody": "We haven't received a successful payment notification from ECPay, so your plan hasn't been activated. If you chose ATM or convenience store payment, come back after paying (it can take a few minutes). If you paid by card and your bank has charged you, contact us and we'll sort it out right away.",
+    "paymentPendingRefresh": "Check again",
     "currentPlanPre": "Active plan:",
     "freeH": "Free",
     "freeBody": "You're not on a paid plan.",
@@ -2588,6 +2592,13 @@
     "fitForNotFor": "Not for",
     "paramsH2": "Parameters you can adjust",
     "paramsSubtitle": "The algorithm auto-computes dimensions, joinery, and material usage.",
+    "sizingH2": "{name} common dimensions",
+    "sizingSubtitle": "These numbers come straight from this template's adjustable ranges and defaults, so they update whenever the template does.",
+    "sizingColDimension": "Dimension",
+    "sizingColRange": "Adjustable range",
+    "sizingColDefault": "Template default",
+    "sizingNotesH3": "How to pick your sizes",
+    "sizingFootnote": "Main dimensions list only the upper bound: the template has no meaningful lower limit. Values in mm with cm in brackets.",
     "outputsH2": "Enter sizes, get everything",
     "outputsSubtitle": "Six deliverables in one pass — print A4 and walk into the shop.",
     "outputs": [
@@ -3496,7 +3507,7 @@
     "sec3Li2": "Account passwords / sign-in tokens are the user's responsibility to safeguard; losses arising from leakage are borne by the user.",
     "sec3Li3": "The Generator reserves the right to suspend or terminate accounts that violate these terms or engage in malicious behavior.",
     "sec4H": "4. Plans and billing",
-    "sec4Li1": "The Free plan offers full use of the square stool and pencil holder templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing, quotes, and the printable engineering pack require a paid plan.",
+    "sec4Li1": "The Free plan offers full use of the square stool, pencil holder and workbench templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing, quotes, and the printable engineering pack require a paid plan.",
     "sec4Li2": "Personal / Pro plans are billed monthly or annually; the Student plan is a complimentary plan for Wooden Ren Academy students, subject to the then-current plan description.",
     "sec4Li3Pre": "Activation is typically immediate after payment. If activation fails, please email ",
     "sec4Li3Suffix": ".",
@@ -4034,7 +4045,7 @@
   "pricingFaqs": [
     {
       "q": "What does the free plan actually include?",
-      "a": "The Square Stool and Pencil Holder are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (materials stay switchable in the preview)."
+      "a": "The square stool, pencil holder and workbench are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (materials stay switchable in the preview)."
     },
     {
       "q": "What's the difference between Personal (NT$390) and Pro (NT$890)?",
@@ -4337,6 +4348,9 @@
     "alertDeleteFailTpl": "Delete failed: {msg}"
   },
   "saveDesign": {
+    "unsaved": "Unsaved cloud changes",
+    "saved": "Saved to cloud",
+    "conflict": "This design has changed in the cloud. Nothing was overwritten. Save as new to keep your edits, or reopen it from My Designs.",
     "btnLoading": "💾 Loading…",
     "btnSaving": "Saving…",
     "btnSave": "💾 Save design",
@@ -4432,7 +4446,9 @@
     "btnSaving": "Saving…",
     "btnConfirm": "✓ Confirm and submit",
     "btnNext": "Next → Confirm",
-    "btnSavePersonal": "Save · Continue to checkout"
+    "btnSavePersonal": "Save · Continue to checkout",
+    "errNeedLogin": "You're not signed in (or your session expired), so we can't save your invoice settings. Please sign in and try again — nothing is lost.",
+    "btnGoLogin": "Sign in"
   },
   "cutPlanApp": {
     "summaryNameDot": " · total ",
@@ -4601,7 +4617,27 @@
     "wireframeLabel": "⊞ Wireframe",
     "lidLiftTitleTpl": "Lift lid (reveal what's under): currently {state} — click to cycle",
     "viewLbl": "View",
-    "selectedPartChip": "Selected: {name} · tap to clear"
+    "selectedPartChip": "Selected: {name} · tap to clear",
+    "assemblyBtn": "▶ Assemble",
+    "assemblyTitle": "Play the assembly animation: parts slide into place in joinery order. You can rotate while it plays.",
+    "assemblyPlay": "▶ Play",
+    "assemblyPause": "❚❚ Pause",
+    "assemblyReplay": "↺ Replay",
+    "assemblyClose": "✕ Close",
+    "assemblyStepTpl": "Step {n} of {total}: {names}",
+    "assemblyMoreTpl": "+{n} more",
+    "assemblyExport": "⬇ Export video",
+    "assemblyExportTitle": "Record this assembly animation and download it (WebM in Chrome / Edge, MP4 in Safari)",
+    "assemblyExportingTpl": "Recording… {pct}%",
+    "assemblyExportUnsupported": "This browser can't record video. Please use desktop Chrome or Safari.",
+    "assemblyAspectLbl": "Aspect",
+    "assemblyAspectCurrent": "Current view",
+    "assemblyAspectPortrait": "Portrait 9:16",
+    "assemblyAspectSquare": "Square 1:1",
+    "assemblyDoneTpl": "Video saved: {file}",
+    "assemblyOrbit": "🎥 Orbit",
+    "assemblyOrbitTitle": "Slowly orbit the camera while playing (about 120° total). Turn off for a fixed view; dragging still works.",
+    "assemblyDuckTitle": "A coffee-drinking duck (drawn by Wooden Ren's daughter) keeps you company. Click to hide."
   },
   "photoToParams": {
     "errReadFail": "File read failed",
@@ -5324,5 +5360,111 @@
     "empty": "No records.",
     "processedYes": "✓",
     "processedNo": "—"
+  },
+  "workbenchLanding": {
+    "metadata": {
+      "title": "Draw Your Workbench Free — Enter your height, pick a style, get three-views, cut list and part drawings in 3 minutes",
+      "description": "Wooden Ren gives the workbench template away to everyone who wants to start woodworking: Roubo slab-top, apron (Nicholson), tool-well, 20mm MFT grid and double-sided classroom bench. Height-based bench height, front vise, dog holes and holdfast holes placed automatically. No login, no signup — three-views, cut list, part drawings and stock layout right away.",
+      "ogTitle": "Draw Your Workbench Free — Wooden Ren Designer",
+      "ogDescription": "Every woodworker's first project is their own workbench. Five bench styles, height-based sizing, vise and dog holes placed for you. Free, no signup, plans in 3 minutes."
+    },
+    "hero": {
+      "badge": "Wooden Ren · Free for everyone who wants to start woodworking",
+      "h1Line1": "Every woodworker's first project",
+      "h1Highlight": "is their own workbench",
+      "intro": "Get a bench that takes a plane, holds a board and won't walk across the floor — then every stool, chair and desk after it gets built on top. This template is free: enter your height, pick a style, and 3 minutes later you have your own plans.",
+      "cta": "Start drawing your workbench free →",
+      "ctaNote": "No login, no signup, no payment · opens the editor directly",
+      "readMore": "Read the full template guide first",
+      "imgAlt": "Workbench 3D output — slab-top bench with front vise and a row of dog holes",
+      "imgCaption": "Real output (generated from default values)"
+    },
+    "why": {
+      "eyebrow": "Why it's free",
+      "h2": "I want more people to start woodworking",
+      "p1": "In over a decade of teaching, the thing that stops most beginners isn't skill — it's not having anywhere to work. Chopping mortises on the dining table, sawing on the balcony floor: two tries and they give up.",
+      "p2": "A workbench you built yourself is where woodworking starts. It's heavy, it's flat, it holds your stock — and it's the first piece you'll actually use every day. Finish it and you have your own workspace; whatever you want to build next has a place to happen.",
+      "p3": "So this template is a gift, in the name of getting more people into the craft. No account, no payment — draw it, buy the lumber, start.",
+      "sign": "— Wooden Ren"
+    },
+    "choose": {
+      "eyebrow": "What you can choose",
+      "h2": "Five bench styles, one click loads the whole set of dimensions",
+      "intro": "Not sure where to start? Pick the slab-top bench. Short on space or lumber? Pick the apron bench. Every style can then be tuned: top thickness, leg size, vise position, hole spacing.",
+      "styles": {
+        "roubo": {
+          "title": "Slab-top bench (French Roubo)",
+          "desc": "Thick top, stout legs with through-tenons, front vise plus a row of dog holes. The classic hand-tool bench — heavy enough that planing won't push it around."
+        },
+        "apron": {
+          "title": "Apron bench (English Nicholson)",
+          "desc": "A thinner top stiffened by tall aprons, bolted so it comes apart. Uses the least lumber — first choice for apartments and frequent movers."
+        },
+        "well": {
+          "title": "Tool-well bench (Scandinavian)",
+          "desc": "A trough along the back of the top so chisels and planes stay put and the work surface stays clear."
+        },
+        "mft": {
+          "title": "20mm grid bench (modern MFT)",
+          "desc": "Plywood top with 20mm holes on a 96mm grid — works with track-saw guides and MFT-style clamps."
+        },
+        "classroom": {
+          "title": "Double-sided classroom bench",
+          "desc": "Two people face to face, each with their own vise and row of dog holes — the bench in the Wooden Ren Academy classroom."
+        }
+      },
+      "height": {
+        "title": "Bench height from your height and use",
+        "desc": "Enter your height and choose hand planing, machine work, fine joinery or table-saw outfeed; the notes give a recommended height — and never silently change the one you set."
+      },
+      "holding": {
+        "title": "Vise, dog holes and holdfast holes placed for you",
+        "desc": "Choose a 7\" or 9\" cast-iron quick-release vise; the template mounts it outside the leg and adds a spacer block if the front edge is too thin. Dog holes every 100mm at Ø19 or Ø20, holdfast holes staggered behind."
+      },
+      "plywood": {
+        "title": "Laminated plywood: buildable without cutting a single mortise",
+        "desc": "Top, legs and stretchers are stacked from 18mm plywood, glued and screwed; the stretchers drop into notches left in the leg lamination, so there is no joinery at all. Pick your own layer counts — top 2/3/4 layers (36/54/72mm), legs 3/4/5 — the menu tells you which is strong enough. The cut list gives you sheet count and screw count."
+      }
+    },
+    "outputs": {
+      "eyebrow": "No login, no signup — plans right away",
+      "h2": "One click gives you a full set of plans you can build from",
+      "threeview": {
+        "title": "Three-view drawings",
+        "desc": "Front, side and top views with full dimensions, every hole position marked."
+      },
+      "bom": {
+        "title": "Cut list",
+        "desc": "Length, width, thickness and count for every piece — take it straight to the lumber yard."
+      },
+      "parts": {
+        "title": "Part drawings",
+        "desc": "One sheet per part with tenon, mortise and hole dimensions."
+      },
+      "cutplan": {
+        "title": "Stock layout",
+        "desc": "Automatic nesting that shows the most economical cuts and how many boards to buy."
+      }
+    },
+    "cta": {
+      "h2": "Draw your workbench now",
+      "body": "Don't overthink it — open it with the defaults, then change the height and length to yours.",
+      "button": "Start drawing your workbench free →",
+      "note": "No login, no signup · square stool + pencil holder + workbench always free"
+    },
+    "others": {
+      "eyebrow": "Two more free templates",
+      "h2": "The first things to build on your new bench",
+      "stool": {
+        "title": "Square stool",
+        "desc": "Four legs, eight tenons — the best stool for practising mortise and tenon."
+      },
+      "pencilHolder": {
+        "title": "Pencil holder",
+        "desc": "One board, one afternoon — a small project for practising chisel work and glue-ups."
+      },
+      "open": "Start free →",
+      "seeAll": "See all 26 templates →"
+    }
   }
 }

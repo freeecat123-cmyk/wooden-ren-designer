@@ -14,6 +14,7 @@ import {
   Float32BufferAttribute,
   LatheGeometry,
   Shape,
+  ShapeUtils,
   Vector2,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -60,7 +61,7 @@ export type ShapeSpec =
   | { kind: "lathe-turned" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number; bevelMode?: "full" | "half" }
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; taperSpanMm?: number; bevelAngle?: number; bevelMode?: "full" | "half" }
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "apron-half-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
@@ -184,6 +185,8 @@ export function buildApronTrapezoidGeometry(
   bottomScale: number,
   bevelAngle: number = 0,
   bevelMode: "full" | "half" = "full",
+  /** 梯形只作用在 −Z 邊起這段（mm），之後端面垂直（床頭板貼錐腳用）。見 types 註解。 */
+  taperSpanMm?: number,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -196,6 +199,30 @@ export function buildApronTrapezoidGeometry(
   const shear = Math.tan(bevelAngle);
   const topShear = shear;
   const botShear = bevelMode === "half" ? 0 : shear;
+  if (taperSpanMm !== undefined && taperSpanMm > 0 && taperSpanMm < lz) {
+    // 三圈：A(−hz, topX) → B(−hz+span, botX) → C(+hz, botX)；B–C 段端面垂直
+    const zB = -hz + taperSpanMm;
+    const ring = (x: number, z: number, sh: number) => [
+      -x, -hy, z - (-hy) * sh,
+      x, -hy, z - (-hy) * sh,
+      x, hy, z - (+hy) * sh,
+      -x, hy, z - (+hy) * sh,
+    ];
+    const v3 = [...ring(topX, -hz, topShear), ...ring(botX, zB, botShear), ...ring(botX, hz, botShear)];
+    const f3 = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+    const side = (o: number) => [
+      ...f3(o + 0, o + 1, o + 5, o + 4), // -y
+      ...f3(o + 2, o + 3, o + 7, o + 6), // +y
+      ...f3(o + 1, o + 2, o + 6, o + 5), // +x
+      ...f3(o + 3, o + 0, o + 4, o + 7), // -x
+    ];
+    const idx3 = [...f3(0, 3, 2, 1), ...f3(8, 9, 10, 11), ...side(0), ...side(4)];
+    const g3 = new BufferGeometry();
+    g3.setAttribute("position", new Float32BufferAttribute(v3, 3));
+    g3.setIndex(idx3);
+    g3.computeVertexNormals();
+    return g3;
+  }
   const v: number[] = [
     -topX, -hy, -hz - (-hy) * topShear,
     topX, -hy, -hz - (-hy) * topShear,
@@ -1753,15 +1780,11 @@ export function buildNotchedCornersGeometry(
     const bt = b + N;
     idx.push(a, at, bt, a, bt, b);
   }
-  // ring 在上方俯視是 CW 順序，所以底面（從下方看）是 CCW，
-  // 但頂面（從上方看）是 CW → 需要反轉 winding
-  // 底面 fan from vertex 0：idx 順序 0, i, i+1（順 ring CW）= 從下看 CCW ✓
-  for (let i = 1; i < N - 1; i++) {
-    idx.push(0, i, i + 1);
-  }
-  // 頂面 fan from vertex N：要從上看 CCW，所以反轉 ring 順序 → N, i+1, i
-  for (let i = 1; i < N - 1; i++) {
-    idx.push(N, N + i + 1, N + i);
+  // A fan crosses the concave corner cutouts. Earcut respects the full outline.
+  const faces = ShapeUtils.triangulateShape(ring.map(([x, z]) => new Vector2(x, z)), []);
+  for (const [a, b, c] of faces) {
+    idx.push(a, b, c);
+    idx.push(N + a, N + c, N + b);
   }
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
@@ -2607,7 +2630,7 @@ export function buildShapeGeometry(
     return merged ?? new BoxGeometry(size[0], size[1], size[2]);
   }
   if (shape.kind === "apron-trapezoid") {
-    return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full");
+    return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full", shape.taperSpanMm);
   }
   if (shape.kind === "apron-beveled") {
     return buildBeveledApronGeometry(size, shape.bevelAngle);
@@ -2753,4 +2776,25 @@ export function curvedTaperProfileYs(
   ys.push(-hy);
   // 由上而下、去重
   return ys.filter((y, i) => i === 0 || Math.abs(y - ys[i - 1]) > 1e-9);
+}
+
+/**
+ * 圓孔的「孔軸」＝ 三個半徑裡最大的那一軸（另外兩軸是孔的半徑，兩者相等）。
+ *
+ * 🩸 2026-09-04：3D 挖孔以前寫死用 local Y 當孔軸。桌面狗孔剛好是往下鑽（深度在
+ * local Y）所以看起來對，但前腳的 holdfast 孔、長板靠板的孔是往側面鑽（深度在
+ * local Z）→ 拿「半個孔深」當半徑、「孔半徑」當長度，挖出來是一塊餅不是孔，
+ * 結果就是木頭仁回報的「前腳 holdfast、長板靠板 都沒顯示孔」。
+ *
+ * CSG（subtractMortisesFromGeometry）與孔太多時改畫的「塞」都吃這一支，
+ * 避免同一個判斷有兩套。
+ */
+export function holeAxisOf(hx: number, hy: number, hz: number): "x" | "y" | "z" {
+  return hx >= hy && hx >= hz ? "x" : hz > hy ? "z" : "y";
+}
+
+/** 圓孔半徑 ＝ 非孔軸那兩軸的較小者 */
+export function holeRadiusOf(hx: number, hy: number, hz: number): number {
+  const axis = holeAxisOf(hx, hy, hz);
+  return axis === "y" ? Math.min(hx, hz) : axis === "x" ? Math.min(hy, hz) : Math.min(hx, hy);
 }

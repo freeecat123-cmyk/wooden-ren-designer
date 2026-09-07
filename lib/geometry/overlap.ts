@@ -1,6 +1,96 @@
 import type { Part } from "@/lib/types";
 import { projectPartSilhouette, worldExtents } from "@/lib/render/geometry";
 import { precomputeSilhouettes, sliceOverlapAtY } from "@/lib/geometry/y-slice";
+import { obstacleInShelf } from "./shelf-clearance";
+import { mortiseLocalBox } from "@/lib/render/svg-views";
+import { Euler, Vector3 } from "three";
+import { separatedFromTurnedColumn } from "./turned-column-clearance";
+import { constructionCutBox, constructionCutsCoverPair, constructionLimits, constructionStockBounds } from "./construction-cuts";
+import { clearedByRenderedDovetail } from "./dovetail-clearance";
+import { clearedByHoofSections } from "./hoof-clearance";
+import { clearedByCabinetPanelGrooves } from "./cabinet-panel-clearance";
+
+const AXES = ["x", "y", "z"] as const;
+const CUT_EPSILON = 0.001;
+
+function rectangularWorldCuts(part: Part, bounds: AABB3D): AABB3D[] {
+  // Restrict to undeformed stock and quarter turns. Confirm the renderer's
+  // transformed stock agrees with the audit bounds before trusting its cuts.
+  if (part.shape && !["box", "mitered-ends", "chamfered-edges", "dovetail-ends"].includes(part.shape.kind)) return [];
+  if (part.shape?.kind === "mitered-ends"
+    && (part.shape.tiltAngle || part.shape.bevelAngle || part.shape.vertices)) return [];
+  const angles = AXES.map(axis => part.rotation?.[axis] ?? 0);
+  if (angles.some(a => !Number.isFinite(a) || Math.abs(a / (Math.PI / 2) - Math.round(a / (Math.PI / 2))) > 1e-8)) return [];
+  const rotation = new Euler(angles[0], angles[1], angles[2], "ZYX");
+  const center = new Vector3(part.origin.x, part.origin.y + worldExtents(part).yExt / 2, part.origin.z);
+  const halfAxes = [new Vector3(part.visible.length / 2, 0, 0), new Vector3(0, part.visible.thickness / 2, 0), new Vector3(0, 0, part.visible.width / 2)]
+    .map(v => v.applyEuler(rotation));
+  if (AXES.some(axis => {
+    const extent = halfAxes.reduce((sum, v) => sum + Math.abs(v[axis]), 0);
+    return Math.abs(center[axis] - extent - bounds.min[axis]) > CUT_EPSILON
+      || Math.abs(center[axis] + extent - bounds.max[axis]) > CUT_EPSILON;
+  })) return [];
+  return part.mortises.filter(m => m.cosmetic && m.shape !== "round"
+    && !m.rotX && !m.rotY && !m.rotZ && !m.axis && !(m.label ?? "").startsWith("百葉槽")).flatMap(m => {
+    const b = mortiseLocalBox(part, m);
+    if (![b.cx, b.cy, b.cz, b.hx, b.hy, b.hz].every(Number.isFinite) || Math.min(b.hx, b.hy, b.hz) <= 0) return [];
+    const corners: Vector3[] = [];
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+      corners.push(new Vector3(b.cx + x * b.hx, b.cy + y * b.hy, b.cz + z * b.hz).applyEuler(rotation).add(center));
+    }
+    return [{
+      min: { x: Math.min(...corners.map(p => p.x)), y: Math.min(...corners.map(p => p.y)), z: Math.min(...corners.map(p => p.z)) },
+      max: { x: Math.max(...corners.map(p => p.x)), y: Math.max(...corners.map(p => p.y)), z: Math.max(...corners.map(p => p.z)) },
+    }];
+  });
+}
+
+function clearedByRectangularCuts(a: Part, b: Part, boxA: AABB3D, boxB: AABB3D): boolean {
+  const cutsA = rectangularWorldCuts(a, boxA), cutsB = rectangularWorldCuts(b, boxB);
+  if (!cutsA.length && !cutsB.length) return false;
+  const min = { x: Math.max(boxA.min.x, boxB.min.x), y: Math.max(boxA.min.y, boxB.min.y), z: Math.max(boxA.min.z, boxB.min.z) };
+  const max = { x: Math.min(boxA.max.x, boxB.max.x), y: Math.min(boxA.max.y, boxB.max.y), z: Math.min(boxA.max.z, boxB.max.z) };
+  // A ∩ B is empty only if cuts from either stock cover the entire intersection.
+  // Require complete cross-sections; disconnected/mosaic cuts stay conservative.
+  return AXES.some(axis => {
+    const intervals = [...cutsA, ...cutsB].filter(cut => AXES.every(other => other === axis
+      || (cut.min[other] <= min[other] + CUT_EPSILON && cut.max[other] >= max[other] - CUT_EPSILON)))
+      .map(cut => [Math.max(min[axis], cut.min[axis]), Math.min(max[axis], cut.max[axis])])
+      .filter(([start, end]) => end > start).sort((a, b) => a[0] - b[0]);
+    let covered = min[axis];
+    for (const [start, end] of intervals) {
+      if (start > covered + CUT_EPSILON) return false;
+      covered = Math.max(covered, end);
+      if (covered >= max[axis] - CUT_EPSILON) return true;
+    }
+    return false;
+  });
+}
+
+function clearedByThroughCut(part: Part, obstacle: Part): boolean {
+  const cornerShape = part.shape?.kind === "notched-corners" ? part.shape : null;
+  if (!cornerShape && !part.mortises.some(m => m.cosmetic && m.through && m.shape !== "round")) return false;
+  const bounds = obstacleInShelf(part, obstacle);
+  if (!bounds) return false;
+  if (cornerShape) {
+    const { notchLengthMm: length, notchWidthMm: width } = cornerShape;
+    // Only recognize the range where both 2D and 3D use the requested cut size.
+    // Their extreme-size clamps differ; do not silently approve that ambiguity.
+    if (length > 0 && width > 0 && length <= part.visible.length * 0.45 && width <= part.visible.width * 0.45) {
+      const hx = part.visible.length / 2, hz = part.visible.width / 2;
+      const inEndX = bounds.maxX <= -hx + length + 0.001 || bounds.minX >= hx - length - 0.001;
+      const inEndZ = bounds.maxZ <= -hz + width + 0.001 || bounds.minZ >= hz - width - 0.001;
+      if (inEndX && inEndZ) return true;
+    }
+  }
+  return part.mortises.some(m => {
+    if (!m.cosmetic || !m.through || m.shape === "round" || m.rotX || m.rotY || m.rotZ) return false;
+    const box = mortiseLocalBox(part, m);
+    if (box.depthAxis !== "y" || box.hy * 2 < part.visible.thickness - 0.001 || Math.abs(box.cy) > 0.001) return false;
+    return box.cx - box.hx <= bounds.minX + 0.001 && box.cx + box.hx >= bounds.maxX - 0.001
+      && box.cz - box.hz <= bounds.minZ + 0.001 && box.cz + box.hz >= bounds.maxZ - 0.001;
+  });
+}
 
 export interface AABB3D {
   min: { x: number; y: number; z: number };
@@ -49,7 +139,7 @@ export interface Overlap {
  *   top:   vx = -worldX, vy = worldZ
  *
  * 因此 worldX 從 front 或 top 的 -vx 取，worldY 從 front/side 的 vy 取，worldZ
- * 從 top 的 vy 或 side 的 vx 取。
+ * 從 top 的 vy 或 side 的 -vx 取。
  */
 export function worldAABB(part: Part): AABB3D {
   const front = projectPartSilhouette(part, "front");
@@ -57,7 +147,7 @@ export function worldAABB(part: Part): AABB3D {
   const top = projectPartSilhouette(part, "top");
   const xs = [...front.map((p) => -p.x), ...top.map((p) => -p.x)];
   const ys = [...front.map((p) => p.y), ...side.map((p) => p.y)];
-  const zs = [...top.map((p) => p.y), ...side.map((p) => p.x)];
+  const zs = [...top.map((p) => p.y), ...side.map((p) => -p.x)];
   return {
     min: { x: Math.min(...xs), y: Math.min(...ys), z: Math.min(...zs) },
     max: { x: Math.max(...xs), y: Math.max(...ys), z: Math.max(...zs) },
@@ -256,6 +346,23 @@ export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
         if (layer.z > worstZ) worstZ = layer.z;
       }
       if (!foundLayer) continue;
+      // A rejected aggregate excavation must not be re-approved by a later
+      // legacy cutter/shape proof. Keep the candidate visible for review.
+      const unsafeConstruction = [candidates[i], candidates[j]].some(p => constructionLimits(p).issues.length > 0);
+      if (!unsafeConstruction) {
+        if (clearedByCabinetPanelGrooves(candidates[i], candidates[j]) || clearedByCabinetPanelGrooves(candidates[j], candidates[i])) continue;
+        if (clearedByHoofSections(candidates[i], candidates[j]) || clearedByHoofSections(candidates[j], candidates[i])) continue;
+        if (clearedByRenderedDovetail(candidates[i], candidates[j]) || clearedByRenderedDovetail(candidates[j], candidates[i])) continue;
+        if ([candidates[i], candidates[j]].some(p => p.mortises.some(m => constructionCutBox(m)))) {
+          const intersection = constructionStockBounds(candidates[i]).intersect(constructionStockBounds(candidates[j]));
+          if (!intersection.isEmpty() && constructionCutsCoverPair(candidates[i], candidates[j], intersection)) continue;
+        }
+        if (separatedFromTurnedColumn(candidates[i], candidates[j], yMin, yMax)
+          || separatedFromTurnedColumn(candidates[j], candidates[i], yMin, yMax)) continue;
+        // Reject only when the actual rectangular through-cut covers the entire overlap.
+        if (clearedByThroughCut(candidates[i], candidates[j]) || clearedByThroughCut(candidates[j], candidates[i])) continue;
+        if (clearedByRectangularCuts(candidates[i], candidates[j], a.aabb, b.aabb)) continue;
+      }
       worstY = ySpan;
       const minDim = Math.min(worstX, worstY, worstZ);
       const worstAxis: "x" | "y" | "z" =

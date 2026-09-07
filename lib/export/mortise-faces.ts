@@ -25,6 +25,7 @@
 import type { Part } from "@/lib/types";
 import { projectPartSilhouette, type OrthoView } from "@/lib/render/geometry";
 import { mortiseLocalBox, tenonLocalBox } from "@/lib/render/svg-views";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 
 export interface FaceHole {
   kind: "rect" | "circle";
@@ -246,7 +247,9 @@ function mortiseToRawHoles(
   // 階段那個孔的開口就是正矩形，歪的是鑿進去的方向（改用 angleDeg 標註）。
   // 套了剪切會讓同一條中線上的兩個孔在紙上橫移（實測外斜方凳差 23mm），貼到
   // 方料上直接鑿錯位（木頭仁 2026-08-21 實際印出來抓到）。
-  const tilted = blankFrame ? raw : applySplayTilt(part, raw);
+  // Explicit construction tools already occupy final shaped-local coordinates.
+  // Reapplying the legacy splay compensation would move the physical cutter.
+  const tilted = blankFrame || constructionCutBox(m) ? raw : applySplayTilt(part, raw);
   const angleDeg = mortiseAngleDeg(m);
   return angleDeg === 0 ? tilted : tilted.map((h) => ({ ...h, angleDeg }));
 }

@@ -31,6 +31,8 @@ import { partName } from "@/lib/templates/part-names";
  * + FX3 patch（2026-05-18）：主面板 / 隔板 / 玻璃補上
  */
 export function needsPartDrawing(part: Part): boolean {
+  // 外購五金（visual="metal"：鑄鐵鉗身、螺桿、手輪…）不是自己做的，不出零件圖
+  if (part.visual === "metal") return false;
   if (part.tenons.length > 0) return true;
   if (part.mortises.length > 0) return true;
   if (part.shape !== undefined && part.shape.kind !== "box") return true;

@@ -1,5 +1,10 @@
 import { Link } from "@/i18n/navigation";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { savedDesignQuery } from "@/lib/design/saved-query";
+import { loadModelSnapshot, preserveSavedReference } from "@/lib/design/load-model-snapshot";
+import { makeModelSnapshot } from "@/lib/design/model-snapshot";
+import { DesignDraftRecovery } from "@/components/design/DesignDraftRecovery";
+import { after } from "next/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
 import { getTemplate, getEntryName, getEntryDescription , isDevCategory } from "@/lib/templates";
@@ -9,6 +14,7 @@ import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permis
 import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { planAssembly } from "@/lib/assembly/plan";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
@@ -45,6 +51,7 @@ import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER, groupLabel } from "@/lib/design/option-groups";
+import { WorkbenchOptionGroups } from "@/components/design/WorkbenchOptionGroups";
 import { specLabel, choiceLabel, specHelp } from "@/lib/templates/spec-labels";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
@@ -177,6 +184,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 唯讀 SSR 頁面用 getSession（無 HTTP），middleware 已每個 request 驗 JWT。
   const user = await getSessionUser();
   const supabase = await createClient();
+  if (currentDesignId && sp.loadSaved === "1") {
+    if (!user) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/design/${type}?designId=${currentDesignId}&loadSaved=1`)}`);
+    const { data: saved, error } = await supabase.from("designs")
+      .select("params, furniture_type, updated_at").eq("id", currentDesignId).eq("user_id", user.id).single();
+    if (error && error.code !== "PGRST116") throw new Error("Could not load saved design");
+    if (!saved) notFound();
+    const query = savedDesignQuery(currentDesignId, saved.params, saved.updated_at);
+    redirect(`/${locale}/design/${saved.furniture_type.replace(/_/g, "-")}?${query}`);
+  }
   let profile = null;
   let unlockedCategories: string[] = [];
   if (user) {
@@ -204,6 +220,29 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     !isThumbShoot &&
     isPaidCategory(type as FurnitureCategory) &&
     !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories);
+  // 記「登入用戶開過哪個付費範本」（給自動信「你上週看的〈款名〉設計圖」用）。
+  // after()：回應送出後才跑，不佔首屏；失敗吞掉。同人同款 24h 內只記一筆。
+  if (previewLocked && user) {
+    const viewerId = user.id;
+    const viewedCategory = type;
+    after(async () => {
+      try {
+        const db = createAdminClient();
+        const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+        const { data: recent } = await db
+          .from("template_views")
+          .select("id")
+          .eq("user_id", viewerId)
+          .eq("category", viewedCategory)
+          .gte("viewed_at", dayAgo)
+          .limit(1);
+        if (recent && recent.length) return;
+        await db.from("template_views").insert({ user_id: viewerId, category: viewedCategory });
+      } catch (e) {
+        console.warn("[template_views] record failed (ignored)", e instanceof Error ? e.message : e);
+      }
+    });
+  }
   // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
   // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
   // 不小心讓非付費 user 繞過尺寸上限。
@@ -239,6 +278,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         Object.entries(sp).filter(([k]) => PREVIEW_KEEP_PARAMS.has(k)),
       )
     : sp;
+  const frozen = previewLocked ? null : await loadModelSnapshot(type, sp);
   const parsed = parseDesignSearchParams(parseSp, entry);
   const { material, options, joineryMode } = parsed;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
@@ -248,7 +288,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // Server-side hard clamp:雙保險 — 不靠 canUseDesignerMode aggregate flag,
   // 直接看 plan 權限 + admin。即使 UI 哪天把 toggle 露給 free user(或 designerMode
   // 旗標被汙染),只要 plan 不允許就強制夾。admin 仍可繞 limit 方便測試。
-  const limits = (planAllowsDesigner || isAdmin) && parsed.designerMode
+  const limits = frozen || ((planAllowsDesigner || isAdmin) && parsed.designerMode)
     ? null
     : entry.limits ?? null;
   // 圓形家具（圓凳/圓茶几/圓餐桌）只有「直徑」一個尺寸——template 端 input.length
@@ -268,7 +308,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   // 書桌特例：H 框離地高 server-side clamp 到櫃底以下，讓 form 顯示實際採用值
-  if (type === "desk") {
+  if (type === "desk" && !frozen) {
     const drawerCount = Number(options.drawerCount ?? 0);
     const reqStretcherY = Number(options.pedestalStretcherHeight ?? 0);
     if (drawerCount > 0 && reqStretcherY > 0) {
@@ -289,10 +329,18 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       }
     }
   }
-  const rawDesign = entry.template({ length, width, height, material, options, locale });
-  const design = joineryMode
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale });
+  const design = frozen?.design ?? (joineryMode
     ? applyEdgeProtection(rawDesign)
-    : toBeginnerMode(rawDesign);
+    : toBeginnerMode(rawDesign));
+  const savedInputs = frozen ? JSON.parse(frozen.input) : {
+    length, width, height, material, joineryMode, designerMode: parsed.designerMode, options,
+  };
+  const modelSnapshot = frozen ?? (user && !previewLocked ? makeModelSnapshot(type, savedInputs, rawDesign, design, locale) : undefined);
+  const saveParams = { ...savedInputs, ...(modelSnapshot ? { _modelSnapshot: modelSnapshot } : {}) };
+  // 組裝動畫排程（§H8）：用還帶榫頭榫眼的 rawDesign 算，組裝版的 design 已被拔掉榫接
+  // 資料、排不出插入方向。組裝版多鎖螺絲。
+  const assemblyPlan = planAssembly(rawDesign, { screws: !joineryMode });
 
   // 場景主題：URL `?scene=nordic|japandi|industrial|chinese`，預設 natural
   const sceneIdRaw = (typeof sp.scene === "string" ? sp.scene : "natural") as SceneThemeId;
@@ -334,7 +382,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     return n > 0 ? Math.min(300, n) : 0;
   })();
 
-  const printQuery = designParamsToQuery(parsed, entry);
+  const printQuery = preserveSavedReference(frozen ? savedDesignQuery(currentDesignId!, savedInputs) : designParamsToQuery(parsed, entry), sp);
 
   // MobileShell 需要的 server 端計算
   let mobileTotalPrice = 0;
@@ -399,7 +447,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 相關範本：同 family 中挑 3 個非自己的，給設計頁互連、SEO link juice +
   // UX「也想做這些嗎」入口。family 分組維持跟 lib/steps/derive.ts 同一套邏輯。
   const FAMILY_MAP: Record<string, FurnitureCategory[]> = {
-    table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table"],
+    table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table", "workbench"],
     seating: ["stool", "bench", "dining-chair", "bar-stool", "round-stool"],
     cabinet: ["open-bookshelf", "chest-of-drawers", "chinese-cabinet", "shoe-cabinet", "display-cabinet", "media-console", "nightstand", "wardrobe"],
     accessory: ["pencil-holder", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
@@ -420,6 +468,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   return (
     <>
+    <DesignDraftRecovery />
+    {currentDesignId && <p role="status" className="mx-auto max-w-7xl px-6 py-2 text-xs text-zinc-600">
+      {frozen
+        ? (locale === "en" ? "Saved model loaded. Model notes retain the original language." : "已載入儲存時的模型；模型註記保留原語言。")
+        : (locale === "en" ? "Previewing current parameters. Save to preserve this model version." : "目前依編輯中的參數產生預覽；儲存後才會保存這個模型版本。")}
+    </p>}
     {/* BreadcrumbList JSON-LD — SERP rich snippet 顯示麵包屑路徑 */}
     <script
       type="application/ld+json"
@@ -452,7 +506,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <span>{entryDesc}</span>
             <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{formatDimensions(length, width, height, unit)}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{materialName(material, locale)}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.length })}</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.filter((p) => p.visual === undefined).length })}</span>
             <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title={t("header.weightTitle")}>{t("header.weightApprox", { kg: estimateWeight(design) })}</span>
           </p>
         </div>
@@ -464,6 +518,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <ShareDesignButton
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
+            savedDesignId={currentDesignId}
+            savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
+            hasUnsavedChanges={!frozen}
           />
           <DesignHistoryControls />
           {/* <PhotoToParamsButton /> */}
@@ -471,14 +528,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             furnitureType={type}
             defaultName={`${entryName} ${length}×${width}×${height}`}
             currentDesignId={currentDesignId}
-            params={{
-              length,
-              width,
-              height,
-              material,
-              joineryMode,
-              options,
-            }}
+            params={saveParams}
           />
           {previewLocked ? (
             <>
@@ -545,7 +595,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <div className="flex items-start gap-2">
             <span className="text-base leading-none mt-0.5">⚠️</span>
             <div className="flex-1">
-              <div className="font-semibold mb-1">{t("warnings.title")}</div>
+              <div className="font-semibold mb-1">{frozen
+                ? (locale === "en" ? "Saved model warnings (original geometry preserved)" : "儲存模型的提醒（保留原模型，未重新修正）")
+                : t("warnings.title")}</div>
               <ul className="list-disc pl-5 space-y-0.5 text-xs">
                 {design.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
@@ -583,9 +635,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <span className="text-[10px] font-normal text-zinc-400">{t("section.perspectiveHint")}</span>
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} noSync />
             {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) && (
-              <ThreeDExportButton design={design} />
+              <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />
             )}
             {isAdmin || getPlanFeatures(profile).canDownloadPdf ? (
               <TemplatePackButton design={design} />
@@ -662,7 +714,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
             {t("section.cutList")}
-            <span className="text-[10px] font-normal text-zinc-400">{t("section.cutListHint", { count: design.parts.length })}</span>
+            <span className="text-[10px] font-normal text-zinc-400">{t("section.cutListHint", { count: design.parts.filter((p) => p.visual === undefined).length })}</span>
           </span>
           <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
@@ -691,14 +743,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                     {t("section.preview3d")}
                   </div>
                   <SceneThemeToggle current={sceneId} />
-                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
+                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />
                 </div>
               </div>
             </div>
           </div>
           {/* mobile only：scroll 進材料區出現頂端 banner */}
           <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} compactMode />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} compactMode />
           </Material3dPip>
         </div>
       </details>
@@ -810,6 +862,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lineShareText={lineShareText}
         formAction={`/${locale}/design/${entry.category}`}
         currentDesignId={currentDesignId}
+        savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
+        hasUnsavedChanges={!frozen}
+        saveParams={saveParams}
         wireframeMode={wireframeMode}
         joineryMode={joineryMode}
         designerMode={designerMode}
@@ -819,6 +874,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lidLiftMm={lidLiftMm}
         explodeMm={explodeMm}
         xrayMode={xrayMode}
+        assemblyPlan={assemblyPlan}
       />
     )}
     </>
@@ -1244,6 +1300,7 @@ async function ParameterForm({
           </div> */}
           <StyleMismatchWarning />
           <GroupedOptionFields
+            category={type}
             optionSchema={optionSchema}
             optionValues={optionValues}
             joineryMode={joineryMode}
@@ -1298,6 +1355,7 @@ function evalDep(
 }
 
 function GroupedOptionFields({
+  category,
   optionSchema,
   optionValues,
   joineryMode,
@@ -1306,6 +1364,7 @@ function GroupedOptionFields({
   allPartIds,
   locale,
 }: {
+  category: string;
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
@@ -1318,6 +1377,34 @@ function GroupedOptionFields({
   const visibleSchema = optionSchema.filter(
     (s) => isVisible(s, optionValues) && (joineryMode || s.key !== "legPenetratingTenon"),
   );
+  if (category === "workbench") {
+    const visibleKeys = new Set(visibleSchema.map((spec) => spec.key));
+    return (
+      <>
+        {Object.entries(optionValues).map(([key, value]) =>
+          visibleKeys.has(key) ? null : (
+            <input key={key} type="hidden" name={key} value={String(value)} />
+          ),
+        )}
+        <WorkbenchOptionGroups
+          specs={visibleSchema}
+          locale={locale}
+          renderField={(spec) => (
+            <OptionField
+              key={`${spec.key}-${String(optionValues[spec.key])}`}
+              spec={spec}
+              value={optionValues[spec.key]}
+              allValues={optionValues}
+              overallHeight={overallHeight}
+              overallLength={overallLength}
+              allPartIds={allPartIds}
+              locale={locale}
+            />
+          )}
+        />
+      </>
+    );
+  }
   const grouped = new Map<string, OptionSpec[]>();
   for (const spec of visibleSchema) {
     const g = spec.group ?? "misc";

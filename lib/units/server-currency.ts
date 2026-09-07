@@ -2,6 +2,7 @@
  * Server-side currency resolver. Mirrors hooks/useCurrency.ts on the client.
  *
  * 解析優先序（高→低）：
+ *   0. 與 useCurrency 相同：zh-TW 固定 TWD，en 固定 USD。
  *   1. cookie `wr-currency`（使用者手動偏好，由 CurrencyToggle 寫入；
  *      不過目前 toggle 只寫 localStorage，所以這條多半 miss — 預留供未來 server-side
  *      sync 用）
@@ -17,11 +18,15 @@
  */
 
 import { cookies } from "next/headers";
+import { getLocale } from "next-intl/server";
 import { parseGeoDefaultsCookie, GEO_DEFAULTS_COOKIE, type CurrencyPref } from "@/lib/geo-defaults";
 
 const CURRENCY_COOKIE = "wr-currency";
 
 export async function getCurrencyFromCookies(): Promise<CurrencyPref> {
+  const locale = await getLocale();
+  if (locale === "zh-TW") return "TWD";
+  if (locale === "en") return "USD";
   const store = await cookies();
   const direct = store.get(CURRENCY_COOKIE)?.value;
   if (direct === "TWD" || direct === "USD") return direct;

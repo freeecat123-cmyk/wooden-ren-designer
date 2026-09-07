@@ -118,6 +118,69 @@ const JOINERY_STEP_BULLETS_EN: Record<JoineryType, string[]> = {
 };
 
 const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
+  "cabinet-shelf-reliefs": {
+    title: () => "Cut shelf-to-post clearance notches",
+    description: () => "Mark each shelf notch from the part drawing, remove waste in shallow cuts and pare the seat. Retain the shown clearance and dry-fit each shelf height against the inward-splayed posts.",
+  },
+  "cabinet-panel-grooves": {
+    title: () => "Machine floating-panel grooves",
+    description: () => "Mark the 5mm-deep grooves from the machining drawings. Cut in shallow passes and retain the shown groove walls. Dry-fit the floating panels and allow movement; do not glue the entire panel perimeter.",
+  },
+  "cabinet-hoof-reliefs": {
+    title: () => "Machine hoof clearance profiles",
+    description: () => "Lay out each hoof profile from the part drawing. Follow its stepped tool paths, blend the transitions and dry-fit against the corresponding post. Treat all passes for one post at one location as a single machining site.",
+  },
+  "cabinet-integral-spandrels": {
+    title: () => "Shape integral apron spandrels",
+    description: () => "Lay out each decorative profile on its apron blank, saw off the waste and finish to the template. Keep at least 18mm of central apron web. Do not add separate overlapping spandrel stock.",
+  },
+  "cabinet-raked-ends": {
+    title: () => "Cut raked rail shoulders",
+    description: () => "Mark the upper and lower shoulder spans from the part drawing. Cut each end to follow the inner post rake. Measure shoulder spans separately from tenon extensions and dry-fit before cutting the joinery.",
+  },
+  "deadman-shelf-clearance": {
+    title: () => "Machine deadman shelf clearance",
+    description: () => "Mark the lower rear relief from the part drawing. Clamp the board securely and machine to the specified depth in shallow passes. Dry-fit and slide through the full travel to confirm shelf clearance while retaining the rail and lower-groove bearing surfaces.",
+  },
+  "construction-housings": {
+    title: () => "Machine construction housings",
+    description: () => "Mark each housing from its machining-face drawing, including the entry face and depth. Clamp the stock, remove waste in shallow passes and clean the seat without cutting into the remaining stock shown. Dry-fit the rails, feet or intersecting corners before glue-up.",
+  },
+  "frame-rear-rebate": {
+    title: d => `Machine rear rebates (${d.parts.reduce((sum, p) => sum + p.mortises.filter(m => m.cosmetic && m.label === "框背槽").length, 0)} rails)`,
+    description: () => "Machine the inside rear rebate shown on each part drawing. Check width and depth on scrap first, then cut in shallow passes. Dry-fit glass and backer together with the specified clearance and secure the backer with removable retainers.",
+  },
+  "shelf-leg-clearance": {
+    title: d => `Cut shelf leg-clearance notches (${d.parts.reduce((sum, p) => sum + p.mortises.filter(m => m.label === "避腳缺角" || m.label === "Leg clearance notch").length, 0)})`,
+    description: () => "Mark each notch and its orientation from the part drawing. Saw away the corner waste and pare flat with a chisel. The notch includes 0.5mm clearance. Test-fit the slats on the lower stretchers, check clearance at every leg, then ease the cut edges.",
+  },
+  "step-10b-dog-holes": {
+    title: (d) => {
+      const n = d.parts.reduce((k, p) => k + p.mortises.filter((m) => m.cosmetic && m.shape === "round" && m.through && !m.label).length, 0);
+      return `Drill dog / holdfast holes (×${n})`;
+    },
+    description: () => "Drill after the top is glued up and flattened. Use a Forstner or auger bit in a drill press or a drilling guide — 2° off vertical and dogs bind, holdfasts slip. Start at the vise end and lay out every hole from one reference edge with one rule.",
+  },
+  "step-10f-ply-laminate": {
+    title: (d) => {
+      const notches = d.parts.reduce((n, p) => n + p.mortises.filter((m) => m.cosmetic && (m.label ?? "").startsWith("搭接槽")).length, 0);
+      const glueLines = d.parts.reduce((n, p) => n + (p.panelSplit === "thickness" ? Math.max(0, (p.panelPieces ?? 1) - 1) : 0), 0);
+      return `Plywood lamination: glue up top / legs / stretchers (${glueLines} glue lines), leave ${notches} lap notches`;
+    },
+    description: () => "Cut every layer 5mm oversize with a track saw; cut the notches for the stretchers out of the relevant layers BEFORE laminating (same position on every layer). Roll glue over the whole face, align one corner, drive a 4×40 countersunk screw every 250mm from the centre outwards (or clamp until dry), then flush the edges with a router and a flush-trim bit. Glue the stretchers into the leg notches with 3 × 6×80 screws each; pocket-screw the top from the inside faces of the legs.",
+  },
+  "step-10c-wagon-slot": {
+    title: () => "Wagon vise: cut the slot and fit the end cap",
+    description: () => "Measure the actual hardware first (365×52 on the drawing is the Benchcrafted size). Rout the through slot against a straightedge in several passes and square the corners with a chisel. Fix the end cap with a dovetail or two bolts at the front and a slotted bolt hole at the back so the top can move, then fit the screw and hand wheel.",
+  },
+  "step-10e-top-battens": {
+    title: () => "Top battens: rout the sliding dovetails and slide them in",
+    description: () => "Flip the top and rout a stopped sliding dovetail 20mm in from each end: 15 deep, 40 at the mouth, 50 at the bottom (≈1:6) — straight bit first, then the dovetail bit for the walls. Cut the matching dovetail on the 60×30 battens on the router table, fit snug, and glue only the middle 100mm so the top can move.",
+  },
+  "step-10d-deadman": {
+    title: () => "Sliding deadman: ridge, rail and board",
+    description: () => "Bevel the ridge strip to 45° and screw it to the top front edge of the lower stretcher; fix the rail under the top on the same vertical line. Saw a V in the bottom of the board, leave a 25mm tongue on top, 1mm play each end, then drill the hole row.",
+  },
   "step-06b-cove-legs": {
     title: (d) => {
       const legs = d.parts.filter((p) => p.shape?.kind === "curved-taper");

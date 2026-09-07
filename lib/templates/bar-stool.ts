@@ -796,9 +796,20 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lwC = legW * legSizeScaleAt(centerY);
     const lwT = legW * legSizeScaleAt(topY);
     const lwB = legW * legSizeScaleAt(botY);
-    const ldC = legD * legScaleAt(centerY, seatY, bottomScale);
-    const ldT = legD * legScaleAt(topY, seatY, bottomScale);
-    const ldB = legD * legScaleAt(botY, seatY, bottomScale);
+    /**
+     * ⛔ 上面那行註解「Z 面不收窄」只對**單向**弧肩成立。
+     *    兩向弧肩（ctTwoWay）把 Z 面也挖了 → 左右腳踏（沿 Z 走）兩端要對到收窄後的 Z 內面，
+     *    否則接撐段以下（腳踏高度）每端短 13mm、弧肩內收 40 時短 27mm（2026-09-02 三視圖實畫稽核抓到；
+     *    跟 08-24 茶几「Z 向下橫撐短 14.7」同病，只是 audit-leg-joints 的零件名過濾沒認 footrest）。
+     *    牙條在接撐段（recession=0）→ 走這條也是同值，byte 不變。同 tea-table lowerScaleAtZ。
+     */
+    const legSizeScaleAtZ = (y: number): number =>
+      legShape === "curved-taper" && ctTwoWay
+        ? curvedTaperInnerScaleAt(y, _legHeightForScale, legD, ctBlockEff, ctShoulder, ctInset, ctLowerCoveRange, ctSCurve)
+        : legScaleAt(y, seatY, bottomScale);
+    const ldC = legD * legSizeScaleAtZ(centerY);
+    const ldT = legD * legSizeScaleAtZ(topY);
+    const ldB = legD * legSizeScaleAtZ(botY);
     return {
       sides: [
         // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面（含 taper 補償）

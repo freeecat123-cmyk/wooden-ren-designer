@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
@@ -21,6 +22,7 @@ import {
   projectPart,
   projectPartPolygon,
   projectPartSilhouette,
+  panelSplitWorld,
   projectTiltedBoxSilhouette,
   sortPartsByDepth,
   worldExtents,
@@ -887,6 +889,8 @@ function mortiseAxisHint(part: Part, m: Part["mortises"][number]): "x" | "y" | "
 }
 
 export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
+  const construction = constructionCutBox(m);
+  if (construction) return construction;
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;
@@ -1948,7 +1952,7 @@ function OrthoViewImpl({
             const x1 = r.x, x2 = r.x + r.w;
             const y1 = -(r.y + r.h), y2 = -r.y;
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 {/* 外框：淡灰實線 */}
                 <rect x={x1} y={y1} width={r.w} height={r.h}
                   fill="none" stroke="#9ca3af" strokeWidth={0.7} />
@@ -2038,7 +2042,7 @@ function OrthoViewImpl({
             });
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               {backLines}
               <polygon
                 points={fmt(frontFace)}
@@ -2116,7 +2120,7 @@ function OrthoViewImpl({
             });
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               {botLines}
               <polygon
                 points={fmt(topFace)}
@@ -2148,7 +2152,7 @@ function OrthoViewImpl({
           const polyPts = [...right, ...left.reverse()];
           return (
             <polygon
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               points={polyPts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
               fill="none"
               stroke={stroke}
@@ -2178,9 +2182,16 @@ function OrthoViewImpl({
           roundAxis === "z" ? "front" :
           roundAxis === "x" ? "side" :
           "top";
+        /**
+         * 🩸 上面的 qRot 用 |sin| > 0.5 認「轉了 90°」——衣帽架掛鉤是繞 Y 轉 60°/120° 的圓棒，
+         *    被當成端面朝你 → 正/側視畫成一個小圓圈，跟柱子之間看起來有縫（2026-09-02 三視圖實畫稽核）。
+         *    非 90° 倍數旋轉的圓料一律走 projectPartSilhouette（圓截面採樣→旋轉→投影→hull ＝ 縮短的圓棒）。
+         */
+        const isTiltedRound = part.shape?.kind === "round" && hasNonQuarterRotation(part);
         // round axis="z"/"x"：用對應視角畫圓；其他視角 fall-through 走預設矩形。
         if (
           part.shape?.kind === "round" &&
+          !isTiltedRound &&
           (roundAxis === "z" || roundAxis === "x") &&
           view === roundCircleView
         ) {
@@ -2190,7 +2201,7 @@ function OrthoViewImpl({
           const radius = Math.min(r.w, r.h) / 2;
           return (
             <circle
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               cx={cx}
               cy={cy}
               r={radius}
@@ -2207,6 +2218,7 @@ function OrthoViewImpl({
             part.shape?.kind === "round-tapered" ||
             part.shape?.kind === "splayed-round-tapered" ||
             part.shape?.kind === "lathe-turned") &&
+          !isTiltedRound &&
           view === roundCircleView
         ) {
           const r = projectPart(part, view);
@@ -2304,7 +2316,7 @@ function OrthoViewImpl({
             // 頂圓（接 bow 那端）：圓心在 bow footprint 內 → 整圓虛線
             const topCircleHidden = isHidden(cx, cy);
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <circle
                   cx={cx}
                   cy={cy}
@@ -2321,7 +2333,7 @@ function OrthoViewImpl({
           }
           return (
             <circle
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               cx={cx}
               cy={cy}
               r={radius}
@@ -2357,6 +2369,7 @@ function OrthoViewImpl({
         const isFrenchCleat = part.shape?.kind === "french-cleat";
         if (
           isTiltedBox ||
+          isTiltedRound ||
           isApronTrapezoid ||
           isApronBeveled ||
           isApronHalfBeveled ||
@@ -2366,7 +2379,7 @@ function OrthoViewImpl({
         ) {
           // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
           // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
-          if (view === "top" && !isFrenchCleat) {
+          if (view === "top" && !isFrenchCleat && !isTiltedRound) {
             const lx = part.visible.length;
             const ly = part.visible.thickness;
             const lz = part.visible.width;
@@ -2404,7 +2417,7 @@ function OrthoViewImpl({
                 .join(" ");
               return (
                 <polygon
-                  key={part.id}
+                  key={part.id} data-part-id={part.id}
                   points={pts}
                   fill="none"
                   stroke={stroke}
@@ -2458,7 +2471,7 @@ function OrthoViewImpl({
             // top view 同 convention，視覺上看得出哪面是頂哪面是底（user 2026-05-21
             // 回報 apron-beveled top view 兩條虛線重疊分不出 top/bot）。
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} />
                 <polygon points={fmt(botCorners)} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               </g>
@@ -2496,7 +2509,7 @@ function OrthoViewImpl({
             const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
             void arch;
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <polygon
                   points={points}
                   fill="none"
@@ -2592,7 +2605,7 @@ function OrthoViewImpl({
           }
           if (trapShoulderOverlay) {
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <polygon
                   points={points}
                   fill="none"
@@ -2606,7 +2619,7 @@ function OrthoViewImpl({
           }
           return (
             <polygon
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               points={points}
               fill="none"
               stroke={stroke}
@@ -2633,11 +2646,54 @@ function OrthoViewImpl({
             [footX, footY], [footX + footW, footY], [footX + footW, footY + footH], [footX, footY + footH],
           ];
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <rect x={r.x} y={headY} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
               <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               {topCorners.map((tc, i) => (
                 <line key={i} x1={tc[0]} y1={tc[1]} x2={botCorners[i][0]} y2={botCorners[i][1]} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              ))}
+            </g>
+          );
+        }
+        /**
+         * 俯視「腳底投影」補畫（§A9.9c，2026-09-02）——兩種腳的腳底不在頂面正下方，
+         * 只畫頂面小方塊會讓接在下半段的橫撐／腳踏看起來懸空 3~27mm：
+         *   (a) 弧肩腳帶外斜（curved-taper + ctSplay → dxMm/dzMm）：腳底整個外移，
+         *       且內面在腳底縮進 insetMm+shoulderMm（兩向時 Z 面也縮）。
+         *   (b) 倒錐腳（tapered、bottomScale > 1）：腳底比頂面大。
+         * 畫法跟上面 splayed-tapered 一樣：頂面實線／腳底虛線／4 條角對角線。
+         * 3D 本來就對，這裡只補圖。零件圖（isolatePartId）與帶旋轉的件不走這裡。
+         */
+        const footPrintRot = (part.rotation?.x ?? 0) !== 0 || (part.rotation?.y ?? 0) !== 0 || (part.rotation?.z ?? 0) !== 0;
+        const ctFoot = part.shape?.kind === "curved-taper" && (Math.abs(part.shape.dxMm ?? 0) > 0.5 || Math.abs(part.shape.dzMm ?? 0) > 0.5) ? part.shape : null;
+        const invFoot = part.shape?.kind === "tapered" && part.shape.bottomScale > 1 && (part.shape.chamferMm ?? 0) <= 0 ? part.shape : null;
+        if (view === "top" && !isolatePartId && !footPrintRot && (ctFoot || invFoot)) {
+          const r = projectPart(part, view);
+          const headY = -(r.y + r.h);
+          let footX = r.x, footY = headY, footW = r.w, footH = r.h;
+          if (ctFoot) {
+            const rec = ctFoot.insetMm + ctFoot.shoulderMm;   // 腳底內面縮進量（弧＋斜線總和）
+            // 局部 +X → 螢幕左（vx = -wx）；dir = 外面朝哪個局部 X，內面在 -dir 側
+            const dirX = (ctFoot.dir || 1) as 1 | -1;
+            if (dirX > 0) footW = Math.max(1, r.w - rec); else { footX = r.x + rec; footW = Math.max(1, r.w - rec); }
+            if (ctFoot.twoWay) {
+              const dirZ = (ctFoot.dirZ || 1) as 1 | -1;   // 局部 +Z → 螢幕上（y = -wz）
+              if (dirZ > 0) footH = Math.max(1, r.h - rec); else { footY = headY + rec; footH = Math.max(1, r.h - rec); }
+            }
+            footX += -(ctFoot.dxMm ?? 0);   // 同 splayed-tapered：俯視鏡像 X
+            footY += -(ctFoot.dzMm ?? 0);   // 翻轉 Y 後 dz 符號反過來
+          } else if (invFoot) {
+            footW = r.w * invFoot.bottomScale; footH = r.h * invFoot.bottomScale;
+            footX = r.x + r.w / 2 - footW / 2; footY = headY + r.h / 2 - footH / 2;
+          }
+          const topC = [[r.x, headY], [r.x + r.w, headY], [r.x + r.w, headY + r.h], [r.x, headY + r.h]];
+          const botC = [[footX, footY], [footX + footW, footY], [footX + footW, footY + footH], [footX, footY + footH]];
+          return (
+            <g key={part.id} data-part-id={part.id}>
+              <rect x={r.x} y={headY} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
+              {topC.map((tc, i) => (
+                <line key={i} x1={tc[0]} y1={tc[1]} x2={botC[i][0]} y2={botC[i][1]} stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               ))}
             </g>
           );
@@ -2936,7 +2992,7 @@ function OrthoViewImpl({
             const yTop = -(r.y + r.h);
             const yBot = -r.y;
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <line
                   x1={r.x}
                   x2={r.x + r.w}
@@ -2960,7 +3016,7 @@ function OrthoViewImpl({
             );
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <polygon
                 points={points}
                 fill="none"
@@ -3071,7 +3127,7 @@ function OrthoViewImpl({
             );
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <polygon
                 points={points}
                 fill="none"
@@ -3097,7 +3153,7 @@ function OrthoViewImpl({
           const mod = (n: number) => ((n % PERIOD) + PERIOD) % PERIOD;
           const vfx = isolatePartId ? "non-scaling-stroke" : undefined;
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <line x1={r.x} y1={ry} x2={r.x + r.w} y2={ry}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
                 strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
@@ -3180,7 +3236,7 @@ function OrthoViewImpl({
             );
           });
         }
-        return <g key={part.id}>{lines}</g>;
+        return <g key={part.id} data-part-id={part.id}>{lines}</g>;
       });
       })()}
 
@@ -3701,6 +3757,57 @@ function OrthoViewImpl({
         </g>
         );
       })()}
+
+      {/* 拼板 / 疊層分件線：桌面做法（寬板平拼 / 窄條側立拼 / 疊層）要從圖上看得出來
+          （🩸2026-09-04 木頭仁：「桌面做法從圖上都要看得出來」）。分件方向跟 3D 木紋、
+          料單同一支 panelSplitWorld()，不要各判一套。 */}
+      <g pointerEvents="none">
+        {renderDesign.parts.map((part) => {
+          if (part.visual === "glass" || part.visual === "metal") return null;
+          const sp = panelSplitWorld(part);
+          if (!sp) return null;
+          // 這個視圖看不看得到分件線：分件方向跟視線同軸 = 看不到
+          const hidden =
+            (view === "front" && sp.axis === "z") ||
+            (view === "side" && sp.axis === "x") ||
+            (view === "top" && sp.axis === "y");
+          if (hidden) return null;
+          const { xExt, yExt, zExt } = worldExtents(part);
+          const ox = part.origin?.x ?? 0, oy = part.origin?.y ?? 0, oz = part.origin?.z ?? 0;
+          // 世界 → svg（跟 makeProjector 同慣例：front/top 用 -wx、側視 -wz；y 再取負）
+          const sx = (wx: number, wz: number) => (view === "side" ? -wz : -wx);
+          const sy = (wy: number, wz: number) => (view === "top" ? -wz : -wy);
+          const lines: React.ReactNode[] = [];
+          const step = (sp.hi - sp.lo) / sp.pieces;
+          for (let i = 1; i < sp.pieces; i++) {
+            const at = sp.lo + step * i;
+            let x1: number, y1: number, x2: number, y2: number;
+            if (sp.axis === "x") {
+              x1 = x2 = sx(at, oz);
+              if (view === "top") { y1 = sy(0, oz - zExt / 2); y2 = sy(0, oz + zExt / 2); }
+              else { y1 = sy(oy, oz); y2 = sy(oy + yExt, oz); }
+            } else if (sp.axis === "y") {
+              y1 = y2 = sy(at, oz);
+              if (view === "side") { x1 = sx(ox, oz - zExt / 2); x2 = sx(ox, oz + zExt / 2); }
+              else { x1 = sx(ox - xExt / 2, oz); x2 = sx(ox + xExt / 2, oz); }
+            } else {
+              if (view === "top") {
+                y1 = y2 = sy(0, at);
+                x1 = sx(ox - xExt / 2, oz); x2 = sx(ox + xExt / 2, oz);
+              } else {
+                // 側視：分件方向沿世界 Z = 畫面水平
+                x1 = x2 = sx(ox, at);
+                y1 = sy(oy, oz); y2 = sy(oy + yExt, oz);
+              }
+            }
+            lines.push(
+              <line key={`${part.id}-panel-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="#666" strokeWidth={0.6} />,
+            );
+          }
+          return lines.length > 0 ? <g key={`panel-${part.id}`}>{lines}</g> : null;
+        })}
+      </g>
 
       {/* Cosmetic mortise（無線充電凹槽、後板穿線孔等產品功能）—正常三視圖也要可見 */}
       <g pointerEvents="none">
@@ -5357,7 +5464,10 @@ export function MaterialList({
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
     const isGlass = part.visual === "glass";
-    const isBrass = part.visual === "brass-antique";
+    // metal（鉗身、手把、螺桿、手輪…）跟仿古銅一樣是外購五金：歸五金區、不計件數、不計材積
+    //（2026-09-04 木頭仁：「虎鉗不該算進料單裡面，通常都是買金屬的」）
+    const isMetal = part.visual === "metal";
+    const isBrass = part.visual === "brass-antique" || isMetal;
     const isHardware = isGlass || isBrass;
     // bdft 體積：bbox × thickness 是預設；對非方形截面（regular-polygon / round）改用實際面積。
     // 注意：cut 尺寸仍維持 bbox（下料需要方板），只是 bdft 計算用實際截面積避免高估。
@@ -5380,7 +5490,9 @@ export function MaterialList({
     const matName = isEn ? (MATERIALS[part.material].nameEn ?? MATERIALS[part.material].nameZh) : MATERIALS[part.material].nameZh;
     const materialLabel = isGlass
       ? (isEn ? `${formatMm(cut.thickness, effectiveUnit)} tempered glass` : `${formatMm(cut.thickness, effectiveUnit)} 強化玻璃`)
-      : isBrass
+      : isMetal
+        ? (isEn ? "Hardware (purchased, not in cut list)" : "五金（外購，不入料單）")
+        : isBrass
         ? (isEn ? "Antiqued-brass hardware (purchased)" : "仿古銅五金（外購）")
         : billable === "plywood" || billable === "mdf"
           ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
@@ -5472,18 +5584,15 @@ export function MaterialList({
             {catRows.map(
               ({ part, cut, bdft, materialLabel, tenonNotes, pieces }) => {
                 // 拼板：可見/切料寬度都先除以片數（單片實際尺寸），方便去料行下單
-                const dispVw = part.visible.width / pieces;
-                const dispCw = cut.width / pieces;
-                const [vl, vw, vt] = sortDimsDesc(
-                  part.visible.length,
-                  dispVw,
-                  part.visible.thickness,
-                );
-                const [cl, cw, ct] = sortDimsDesc(
-                  cut.length,
-                  dispCw,
-                  cut.thickness,
-                );
+                // 疊層（panelSplit="thickness"）：除的是厚度（每層厚 = 厚 ÷ 層數），面寬不動
+                // ⚠️ 疊層除的是「最小的那一維」（跟 cutplan/group.ts 同一套）：夾板疊層的腳 visible.thickness 是腳高，不是層厚
+                const byThickness = part.panelSplit === "thickness";
+                const dispVw = byThickness ? part.visible.width : part.visible.width / pieces;
+                const dispCw = byThickness ? cut.width : cut.width / pieces;
+                const [vl0, vw0, vt0] = sortDimsDesc(part.visible.length, dispVw, part.visible.thickness);
+                const [cl0, cw0, ct0] = sortDimsDesc(cut.length, dispCw, cut.thickness);
+                const [vl, vw, vt]: [number, number, number] = byThickness ? [vl0, vw0, vt0 / pieces] : [vl0, vw0, vt0];
+                const [cl, cw, ct]: [number, number, number] = byThickness ? [cl0, cw0, ct0 / pieces] : [cl0, cw0, ct0];
                 const piecesPrefix = pieces > 1 ? (isEn ? `${pieces} × ` : `${pieces} 片 × `) : "";
                 const isSelected = selectedPartId === part.id;
                 const interactive = !!onPartClick;
@@ -5508,7 +5617,7 @@ export function MaterialList({
                       {partName(part, locale)}
                       {pieces > 1 && (
                         <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">
-                          {isEn ? `glue ${pieces}` : `拼 ${pieces} 片`}
+                          {byThickness ? (isEn ? `laminate ${pieces}` : `疊 ${pieces} 層`) : (isEn ? `glue ${pieces}` : `拼 ${pieces} 片`)}
                         </span>
                       )}
                     </td>
@@ -5575,7 +5684,7 @@ export function MaterialList({
         <tbody className="border-t-2 border-amber-400 bg-amber-50/30">
           <tr className="bg-amber-100/60">
             <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-amber-900">
-              {isEn ? "🪙 Antiqued-brass hardware (purchased; not in cut list)" : "🪙 仿古銅五金（外購，不入裁切）"}
+              {isEn ? "🪙 Hardware (purchased; not in cut list)" : "🪙 五金（外購，不入裁切）"}
               <span className="ml-2 font-normal text-amber-700">{isEn ? `· ${brassRows.length} items` : `· ${brassRows.length} 件`}</span>
             </td>
             <td className="px-2 py-1.5 text-right text-xs font-mono text-amber-700">—</td>

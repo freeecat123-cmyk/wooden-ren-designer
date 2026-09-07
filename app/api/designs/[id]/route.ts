@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
+import { validateSnapshotParams } from "@/lib/design/model-snapshot";
 
 /**
  * 更新 / 刪除自己的 design。
@@ -18,7 +19,7 @@ function isUuid(s: string): boolean {
 }
 
 const MAX_NAME_LEN = 100;
-const MAX_PARAMS_BYTES = 32 * 1024;
+const MAX_PARAMS_BYTES = 2 * 1024 * 1024 + 32 * 1024;
 
 function validateParams(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -53,13 +54,19 @@ export async function PATCH(
   const auth = await getAuthedUserOr401();
   if (auth instanceof NextResponse) return auth;
 
-  let body: { name?: unknown; furnitureType?: unknown; params?: unknown };
+  let body: { name?: unknown; furnitureType?: unknown; params?: unknown; expectedUpdatedAt?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+  if (body.expectedUpdatedAt !== undefined && (typeof body.expectedUpdatedAt !== "string" || !Number.isFinite(Date.parse(body.expectedUpdatedAt)))) {
+    return NextResponse.json({ error: "invalid_revision" }, { status: 400 });
+  }
   const patch: {
     name?: string;
     furniture_type?: FurnitureCategory;
@@ -86,7 +93,7 @@ export async function PATCH(
 
   if ("params" in body) {
     const nextParams = validateParams(body.params);
-    if (!nextParams) {
+    if (!nextParams || !validateSnapshotParams(nextParams, patch.furniture_type)) {
       return NextResponse.json({ error: "invalid_params" }, { status: 400 });
     }
     patch.params = nextParams;
@@ -97,11 +104,13 @@ export async function PATCH(
   }
 
   const admin = createAdminClient();
-  const { error, count } = await admin
+  let update = admin
     .from("designs")
     .update(patch, { count: "exact" })
     .eq("id", id)
     .eq("user_id", auth.userId);
+  if (typeof body.expectedUpdatedAt === "string") update = update.eq("updated_at", body.expectedUpdatedAt);
+  const { error, count, data } = await update.select("updated_at");
 
   if (error) {
     // ⚠️ 原本把 `error.message` 直接回給前端 —— Postgres 的原始訊息會洩漏欄位名 /
@@ -112,9 +121,10 @@ export async function PATCH(
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
   if (count === 0) {
+    if (body.expectedUpdatedAt) return NextResponse.json({ error: "design_conflict" }, { status: 409 });
     return NextResponse.json({ error: "not_found_or_forbidden" }, { status: 404 });
   }
-  return NextResponse.json({ ok: true, ...patch });
+  return NextResponse.json({ ok: true, ...patch, updated_at: data?.[0]?.updated_at });
 }
 
 export async function DELETE(

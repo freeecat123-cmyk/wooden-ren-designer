@@ -3,6 +3,8 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { loadModelSnapshot } from "@/lib/design/load-model-snapshot";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import type {
   FurnitureCategory,
@@ -71,7 +73,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   if (!user) {
     redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/print`)}`);
   }
-  if (!(await isPaidUser(user.id))) {
+  if (!isAdminEmail(user.email, getServerAdminEmails()) && !(await isPaidUser(user.id))) {
     redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
@@ -108,10 +110,11 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     spStr("joineryMode") === "1" ||
     spStr("beginnerMode") === "false";
   const unit = await getUnitFromCookies(rawLocale);
-  const rawDesign = entry.template({ length, width, height, material, options, locale: rawLocale });
-  const design = joineryMode
+  const frozen = await loadModelSnapshot(type, sp);
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale: rawLocale });
+  const design = frozen?.design ?? (joineryMode
     ? applyEdgeProtection(rawDesign)
-    : toBeginnerMode(rawDesign);
+    : toBeginnerMode(rawDesign));
   const usages = extractJoineryUsages(design);
   const steps = translateSteps(deriveBuildSteps(design), design, locale);
   const totalHours = totalEstimatedHours(steps);
@@ -157,7 +160,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             <p className="text-xs text-zinc-500 tracking-widest">
               {isEn ? "WOODEN REN · CARPENTER ACADEMY" : "WOODEN REN · 木頭仁木匠學院"}
             </p>
-            <p className="text-sm text-zinc-700">{isEn ? "Furniture shop drawings" : "家具設計圖紙"}</p>
+            <p className="text-sm text-zinc-700">{isEn ? "Furniture shop drawings" : "家具設計設計圖"}</p>
           </div>
         </header>
 
@@ -176,7 +179,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
               label={isEn ? "Estimated time" : "預估工時"}
               value={isEn ? `~${totalHours} hours` : `約 ${totalHours} 小時`}
             />
-            <CoverField label={isEn ? "Parts" : "零件數"} value={isEn ? `${design.parts.length} parts` : `${design.parts.length} 件`} />
+            <CoverField label={isEn ? "Parts" : "零件數"} value={isEn ? `${design.parts.filter((p) => p.visual === undefined).length} parts` : `${design.parts.filter((p) => p.visual === undefined).length} 件`} />
             <CoverField
               label={isEn ? "Est. volume" : "預估材積"}
               value={`${totalVolumeM3.toFixed(3)} m³`}
@@ -400,6 +403,7 @@ function CoverField({ label, value }: { label: string; value: string }) {
 function estimateTotalVolume(design: FurnitureDesign): number {
   let mm3 = 0;
   for (const part of design.parts) {
+    if (part.visual !== undefined) continue; // 五金／玻璃是買的，不算材積
     const cut = calculateCutDimensions(part);
     mm3 += cut.length * cut.width * cut.thickness;
   }

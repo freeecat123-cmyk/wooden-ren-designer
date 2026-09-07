@@ -52,7 +52,7 @@ const CATEGORY_GROUPS: Array<{
     match: (c) =>
       c === "tea-table" || c === "side-table" || c === "low-table" ||
       c === "dining-table" || c === "desk" ||
-      c === "round-tea-table" || c === "round-table",
+      c === "round-tea-table" || c === "round-table" || c === "workbench",
   },
   {
     id: "cabinet",

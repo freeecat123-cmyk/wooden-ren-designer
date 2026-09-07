@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { addConstructionHousing, enforceConstructionLimits } from "@/lib/geometry/construction-cuts";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { apronSetbackOption, resolveApronSetbackForLeg, apronMortiseOffset, legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -354,6 +355,7 @@ function buildTrestleRoundTable(p: {
 }
 
 export const roundTableOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
   seatEdgeOption("top", 1),
   seatEdgeStyleOption("top"),
@@ -467,7 +469,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const seatChamferMmEarly = parseSeatChamferMm(seatEdge);
   // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
   if (legShape === "pedestal") {
-    return buildPedestalRoundTable({
+    const pedestal = buildPedestalRoundTable({
       diameter, height, material, topThickness, legSize, legHeight, radius,
       footLengthOverride: getOption<number>(input, opt(o, "pedestalFootLength")),
       footWidth: getOption<number>(input, opt(o, "pedestalFootWidth")),
@@ -476,6 +478,14 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       seatEdgeStyle,
       locale,
     });
+    if (String(input.options?.constructionVersion) === "2") {
+      const column = pedestal.parts.find(p => p.id === "pedestal-column")!;
+      for (const foot of pedestal.parts.filter(p => p.id.startsWith("pedestal-foot-"))) {
+        addConstructionHousing(column, foot, locale === "en" ? "Pedestal foot housing" : "獨柱底爪嵌槽");
+      }
+      enforceConstructionLimits(pedestal, locale);
+    }
+    return pedestal;
   }
   if (legShape === "trestle") {
     return buildTrestleRoundTable({
@@ -731,7 +741,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const isSplayed = legShape.startsWith("splayed-");
   // 圓家具腳對角線 splay，apron 在前/側視平面看到的 Z 斜率 = tan(α)/√2
   const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
-  const apronBottomScale = legBottomScale(legShape);
+  /**
+   * 圓桌自己的錐腳幾何是 0.55（下面 legs 的 shape mapping），共用的 legBottomScale 是 0.6 →
+   * 補償跟腳對不上，下橫撐兩端短 1.2mm（2026-09-02 三視圖實畫稽核）。這裡照 shape mapping 回同一個值。
+   */
+  const rtBottomScale: number | undefined =
+    legShape === "tapered" || legShape === "round-taper-down" || legShape === "splayed-tapered" || legShape === "splayed-round-taper-down"
+      ? 0.55
+      : undefined;
+  const apronBottomScale = rtBottomScale ?? legBottomScale(legShape);
   const hasTaper = apronBottomScale !== 1;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處外傾更多——
   // X 軸 / Z 軸 各用各自的 Y 中心算 splay/span/trapezoid，否則接不到腳
@@ -742,9 +760,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const dz = isSplayed ? splayDz * shift : 0;
     const yTop = yCenter + apronWidth / 2;
     const yBot = yCenter - apronWidth / 2;
-    const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight);
-    const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight);
-    const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight);
+    const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight, rtBottomScale);
+    const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight, rtBottomScale);
+    const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight, rtBottomScale);
     const span = 2 * (cornerOffset + dx) - legSizeC;
     const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
     const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
@@ -856,9 +874,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       const dz = isSplayed ? splayDz * shift : 0;
       const yTop = yCenter + lowerStretcherWidth / 2;
       const yBot = yCenter - lowerStretcherWidth / 2;
-      const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight);
-      const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight);
-      const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight);
+      const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight, rtBottomScale);
+      const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight, rtBottomScale);
+      const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight, rtBottomScale);
       const span = 2 * (cornerOffset + dx) - legSizeC;
       const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
       const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;

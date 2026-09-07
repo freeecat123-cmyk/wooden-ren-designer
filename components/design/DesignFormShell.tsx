@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { workbenchPresetValues } from "@/lib/templates/workbench-presets";
+import { workbenchHeightFor } from "@/lib/knowledge/ergonomics";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
  *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset。
  *  ⭐ designId：載入雲端設計後改參數，必須保留 ?designId，否則 SaveDesignButton
  *  的 currentDesignId 變 null →「儲存設計」又跳出輸入新專案名（變另存新檔，
  *  user 2026-06-25 回報「改參數後就存不回原設計」）。 */
-const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant", "designId"];
+const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant", "designId", "revision"];
 
 /**
  * Preset → 自動同步 sibling input 值的映射表。
@@ -71,18 +73,48 @@ export function DesignFormShell({
   const sp = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const focusedValue = useRef<string | null>(null);
+  const savedReference = useRef<{ id: string; revision?: string } | null>(null);
+  const designContext = sp?.get("designId");
+  const revisionContext = sp?.get("revision");
+
+  useEffect(() => {
+    savedReference.current = null;
+  }, [action, designContext, revisionContext]);
+
+  useEffect(() => {
+    clearTimeout(timerRef.current);
+  }, [action, designContext]);
+
+  useEffect(() => {
+    const saved = (event: Event) => {
+      savedReference.current = (event as CustomEvent<{ id: string; revision?: string }>).detail;
+    };
+    window.addEventListener("wooden-ren:design-saved", saved);
+    return () => {
+      clearTimeout(timerRef.current);
+      window.removeEventListener("wooden-ren:design-saved", saved);
+    };
+  }, []);
 
   const pushURL = useCallback(() => {
     if (!formRef.current) return;
     const data = new FormData(formRef.current);
     const params = new URLSearchParams();
+    const live = new URLSearchParams(window.location.search);
     // 先保留非表單管的 URL 狀態（wf / xray / scene 等）
     for (const k of PRESERVE_KEYS) {
-      const v = sp?.get(k);
+      const v = live.get(k) ?? sp?.get(k);
       if (v !== null && v !== undefined) params.set(k, v);
     }
     for (const [k, v] of data.entries()) {
+      if (k === "designId" || k === "revision") continue;
       params.set(k, v as string);
+    }
+    if (savedReference.current) {
+      params.set("designId", savedReference.current.id);
+      if (savedReference.current.revision) params.set("revision", savedReference.current.revision);
+      else params.delete("revision");
     }
     // 未勾選的 checkbox 不在 FormData 裡，但 server parser 對「缺 key」
     // 的處理是回 spec.defaultValue——defaultValue=true 的 checkbox（如圓凳
@@ -99,7 +131,7 @@ export function DesignFormShell({
     router.replace(`${action}?${params.toString()}`, { scroll: false });
   }, [action, router, sp]);
 
-  const isInputFocused = (target: EventTarget | null): boolean => {
+  const isInputFocused = (target: EventTarget | null): target is HTMLInputElement | HTMLTextAreaElement => {
     if (!(target instanceof HTMLElement)) return false;
     const tag = target.tagName;
     if (tag === "INPUT") {
@@ -127,6 +159,52 @@ export function DesignFormShell({
           targetInput.value = targetVal;
           // 觸發 input event 讓 React controlled-component listener（若有）跟上
           targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+    }
+    // 工作桌流派 preset：切 benchStyle（桌機 select / 手機 radio 晶片）就把整組值寫進表單，
+    // 網址跟著帶齊、模板不再暗中覆寫 → 表單顯示 = 3D 用的值（2026-09-04 工程師抓蟲：
+    // 原本「值等於預設才吃 preset」讓 preset 帶到的 key 永遠選不回預設，表單跟 3D 也對不上）。
+    const isBenchStyle =
+      (target instanceof HTMLSelectElement || (target instanceof HTMLInputElement && target.type === "radio")) &&
+      target.name === "benchStyle";
+    if (isBenchStyle && formRef.current) {
+      const vals = workbenchPresetValues(target.value);
+      for (const [k, v] of Object.entries(vals)) {
+        const form = formRef.current;
+        const sel = form.querySelector<HTMLSelectElement>(`select[name="${k}"]`);
+        if (sel) { sel.value = String(v); continue; }
+        const radios = form.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${k}"]`);
+        if (radios.length) { radios.forEach((r) => { r.checked = r.value === String(v); }); continue; }
+        const cb = form.querySelector<HTMLInputElement>(`input[type="checkbox"][name="${k}"]`);
+        if (cb) { cb.checked = v === true; continue; }
+        const inp = form.querySelector<HTMLInputElement>(`input[name="${k}"]`);
+        if (inp) { inp.value = String(v); inp.dispatchEvent(new Event("input", { bubbles: true })); }
+      }
+    }
+    // 工作桌「桌高用途 / 你的身高 / 桌鋸台面高」→ 直接把建議桌高寫進「高」欄位。
+    // 🩸2026-09-04 木頭仁：「選桌高用途 高度也沒變」。以前這幾欄只產生一句建議文字，
+    // 使用者當然覺得選了沒作用。改成選了就套用（套完他仍可自己再調高度）。
+    const HEIGHT_DRIVERS = ["heightMode", "userHeightCm", "sawTableHeightMm"];
+    if (
+      formRef.current &&
+      (target instanceof HTMLSelectElement || target instanceof HTMLInputElement) &&
+      HEIGHT_DRIVERS.includes(target.name)
+    ) {
+      const form = formRef.current;
+      const val = (name: string) => {
+        const el = form.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`);
+        return el ? el.value : "";
+      };
+      const heightInput = form.querySelector<HTMLInputElement>('input[name="height"]');
+      const mode = val("heightMode");
+      const cm = Number(val("userHeightCm"));
+      const saw = Number(val("sawTableHeightMm"));
+      if (heightInput && mode && Number.isFinite(cm) && cm > 0) {
+        const next = String(workbenchHeightFor(mode, cm, Number.isFinite(saw) && saw > 0 ? saw : undefined));
+        if (heightInput.value !== next) {
+          heightInput.value = next;
+          heightInput.dispatchEvent(new Event("input", { bubbles: true }));
         }
       }
     }
@@ -175,6 +253,7 @@ export function DesignFormShell({
 
   const handleBlur = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
     if (!isInputFocused(e.target)) return;
+    if (focusedValue.current === e.target.value) return;
     clearTimeout(timerRef.current);
     pushURL();
   }, [pushURL]);
@@ -193,15 +272,18 @@ export function DesignFormShell({
 
   return (
     <form
+      data-design-form
       ref={formRef}
       method="get"
       action={action}
       onChange={handleChange}
+      onFocus={e => { if (isInputFocused(e.target)) focusedValue.current = e.target.value; }}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       className={className}
     >
       {designId && <input type="hidden" name="designId" value={designId} />}
+      {sp?.get("revision") && <input type="hidden" name="revision" value={sp.get("revision")!} />}
       {children}
     </form>
   );

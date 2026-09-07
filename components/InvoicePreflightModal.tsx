@@ -5,11 +5,23 @@
  */
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { createClient } from "@/lib/supabase/client";
 
 type InvoiceType = "personal" | "company";
 type CarrierType = "mobile" | "member";
 
 const MOBILE_CARRIER_REGEX = /^\/[0-9A-Z+\-.]{7}$/;
+
+/**
+ * 手機條碼載具正規化：去掉所有空白、轉大寫、缺開頭斜線就補上。
+ * 財政部的手機條碼是「/」+ 7 碼大寫英數（含 + - .），但使用者實際會打出來的是
+ * 小寫、前後有空白、或忘了斜線。這些都應該被接受而不是擋在門口。
+ */
+export function normalizeCarrier(raw: string): string {
+  const s = raw.replace(/\s+/g, "").toUpperCase();
+  if (!s) return "";
+  return s.startsWith("/") ? s : "/" + s;
+}
 const TAX_ID_REGEX = /^\d{8}$/;
 
 interface Props {
@@ -29,6 +41,7 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmStep, setConfirmStep] = useState(false);
+  const [needLogin, setNeedLogin] = useState(false);
 
   if (!open) return null;
 
@@ -44,7 +57,13 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         return false;
       }
     } else if (carrierType === "mobile") {
-      if (!MOBILE_CARRIER_REGEX.test(carrierNum)) {
+      // ⚠️ 2026-09-04：原本直接拿使用者輸入去比對，而 regex 只收大寫 [0-9A-Z+-.]，
+      // 手機鍵盤預設小寫 → 打 "/ab12cd3" 永遠過不了，畫面一直說格式錯，
+      // 客人就卡死在這一頁、走不到綠界（真實客訴，訂單 WRMTMF5JZLHD9Y 因此從未送出）。
+      // 現在先正規化（去空白＋轉大寫）再驗，並把正規化後的值寫回欄位。
+      const normalized = normalizeCarrier(carrierNum);
+      if (normalized !== carrierNum) setCarrierNum(normalized);
+      if (!MOBILE_CARRIER_REGEX.test(normalized)) {
         setError(t("errCarrier"));
         return false;
       }
@@ -70,15 +89,40 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         body.title = title.trim();
       } else {
         body.carrierType = carrierType;
-        if (carrierType === "mobile") body.carrierNum = carrierNum.toUpperCase();
+        if (carrierType === "mobile") body.carrierNum = normalizeCarrier(carrierNum);
+      }
+      /**
+       * ⚠️ 2026-09-04：這支原本沒帶 credentials，而全站另外三個呼叫點都有帶
+       * （InvoicePreferenceCard ×2、PricingPlanCard）。在 LINE / IG 這類
+       * in-app browser 裡 cookie 最容易掉，客人就會看到紅字 unauthenticated
+       * 而卡在發票那一頁、走不到綠界（真實客訴：訂單 WRMTMF5JZLHD9Y 從未送出）。
+       *
+       * 除了補上 credentials，再多送一份 Authorization: Bearer。
+       * 瀏覽器端的 session 是活的（畫面能顯示方案就是證明），
+       * 就算 cookie 沒被帶上去，後端仍可用這個 token 驗身分。
+       */
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const { data } = await createClient().auth.getSession();
+        const token = data.session?.access_token;
+        if (token) headers.Authorization = `Bearer ${token}`;
+      } catch {
+        // 拿不到就算了，後端還有 cookie 這條路
       }
       const res = await fetch("/api/invoice-preference", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify(body),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // 401 = 沒登入 / session 過期。給人話，不要把 error code 原封丟到使用者臉上。
+        if (res.status === 401) {
+          setNeedLogin(true);
+          setError(t("errNeedLogin"));
+          return;
+        }
         setError(typeof j.error === "string" ? j.error : t("errStatusTpl", { code: res.status }));
         return;
       }
@@ -179,10 +223,11 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
                 <input
                   type="text"
                   value={carrierNum}
-                  onChange={(e) => setCarrierNum(e.target.value)}
+                  onChange={(e) => setCarrierNum(e.target.value.toUpperCase())}
+                  onBlur={(e) => setCarrierNum(normalizeCarrier(e.target.value))}
                   placeholder={t("phCarrierNum")}
                   className="w-full border border-zinc-300 rounded px-2 py-1.5 text-sm mb-2 font-mono"
-                  maxLength={8}
+                  maxLength={12}
                 />
                 <p className="text-[11px] text-zinc-500 mb-3">{t("carrierHint")}</p>
               </>
@@ -214,6 +259,19 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
           </>
         )}
         </>
+        )}
+
+        {needLogin && (
+          <button
+            type="button"
+            onClick={() => {
+              const next = window.location.pathname + window.location.search;
+              window.location.href = `/login?next=${encodeURIComponent(next)}`;
+            }}
+            className="mt-3 w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+          >
+            {t("btnGoLogin")}
+          </button>
         )}
 
         {error && (

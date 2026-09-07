@@ -136,6 +136,33 @@ export function MySubscriptionClient() {
     }
   }, []);
 
+  /**
+   * ⚠️ 2026-09-04：`?paid=1` 只代表「綠界把瀏覽器導回來了」，不代表付款成功。
+   * 綠界的**失敗頁一樣有「返回商店」按鈕**，按下去也會帶著 paid=1 回到這裡。
+   * 舊版只看這個參數就顯示「付款成功」→ 刷卡失敗的客人看到綠色成功畫面，
+   * 以為訂閱好了，然後來問為什麼沒收到信（2026-09-04 真實客訴，訂單 WRMTMF5JZLHD9Y，
+   * 綠界查無資料、webhook 從未進來、payments 停在 pending）。
+   * 現在改成以**實際方案**為準：升級成功才綠色，還是 free 就顯示「尚未完成」。
+   */
+  const paymentConfirmed = justPaid && plan !== "free";
+  const paymentUnconfirmed = justPaid && plan === "free";
+
+  /**
+   * webhook 可能比使用者早一步或晚一步。還沒生效就自動重讀一次（只一次，
+   * 用 sessionStorage 記住，避免無限重整）。ATM／超商繳款本來就會停在這裡。
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!paymentUnconfirmed || isLoading) return;
+    const KEY = "wooden-ren-designer:paidRecheck";
+    if (window.sessionStorage.getItem(KEY)) return;
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.setItem(KEY, "1");
+      window.location.reload();
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [paymentUnconfirmed, isLoading]);
+
   if (isLoading) {
     return (
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-12 text-sm text-zinc-500">
@@ -167,7 +194,7 @@ export function MySubscriptionClient() {
         {t("h1")}
       </h1>
 
-      {justPaid && (
+      {paymentConfirmed && (
         <div
           className="mb-4 rounded-lg p-4 border-2"
           style={{ background: "#ecfdf5", borderColor: "#34d399" }}
@@ -178,6 +205,27 @@ export function MySubscriptionClient() {
           <p className="text-sm text-emerald-700 mt-1 leading-relaxed">
             {t("justPaidBody")}
           </p>
+        </div>
+      )}
+
+      {paymentUnconfirmed && (
+        <div
+          className="mb-4 rounded-lg p-4 border-2"
+          style={{ background: "#fffbeb", borderColor: "#fbbf24" }}
+        >
+          <div className="font-semibold text-amber-900 flex items-center gap-2">
+            {t("paymentPendingH")}
+          </div>
+          <p className="text-sm text-amber-800 mt-1 leading-relaxed">
+            {t("paymentPendingBody")}
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-3 rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-50"
+          >
+            {t("paymentPendingRefresh")}
+          </button>
         </div>
       )}
 

@@ -29,6 +29,8 @@ import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { QrCode } from "@/components/print/QrCode";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { loadModelSnapshot } from "@/lib/design/load-model-snapshot";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatDimensions } from "@/lib/units/format";
 
@@ -118,8 +120,9 @@ export default async function QuotePrintPage({
     sp.joineryMode === "true" ||
     sp.joineryMode === "1" ||
     sp.beginnerMode === "false";
-  const rawDesign = entry.template({ length, width, height, material, options });
-  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
+  const frozen = await loadModelSnapshot(type, sp);
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options });
+  const design = frozen?.design ?? (joineryMode ? rawDesign : toBeginnerMode(rawDesign));
   const unit = await getUnitFromCookies(locale);
   const currency = await getCurrencyFromCookies();
   const fmt = (n: number) => formatMoney(n, currency);
@@ -162,7 +165,7 @@ export default async function QuotePrintPage({
   let viewMode: "customer" | "internal" = "customer";
   if (wantsInternal) {
     const user = await getSessionUser();
-    if (user && (await isPaidUser(user.id))) {
+    if (user && (isAdminEmail(user.email, getServerAdminEmails()) || (await isPaidUser(user.id)))) {
       viewMode = "internal";
     }
   }

@@ -1,31 +1,37 @@
 "use client";
 
-import { memo, Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, Component, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
 import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
-import { Canvas, useThree } from "@react-three/fiber";
+import { CoffeeDuck } from "@/components/viewer/CoffeeDuck";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, Mesh, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group, type Material } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
+import type { Brush } from "three-bvh-csg";
+import { subtractMortisesFromGeometry, ordinaryTenonPrimitive, buildDovetailCutBrushes, dovetailCutsForPart, subtractDovetailReceiverGeometry, partForJoineryView } from "@/lib/render/mortise-csg";
+export { subtractMortisesFromGeometry } from "@/lib/render/mortise-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
+import { plyLayers as plyLayerBoxes } from "@/lib/render/ply-layers";
+import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld, type WorldMortise } from "@/lib/assembly/joint-world";
+import { offsetsAt, planAssembly, stepIndexAt, travelMm, type AssemblyPlan, type ScrewSpec } from "@/lib/assembly/plan";
+import { downloadBlob, extensionForMime, pickRecorderMime, startCanvasRecording, type CanvasRecording } from "@/lib/assembly/record";
+import { partName } from "@/lib/templates/part-names";
 import {
   type ShapeSpec,
   buildShapeGeometry,
-  buildDovetailEndsGeometry,
+  holeAxisOf,
+  holeRadiusOf,
 } from "@/lib/render/part-geometry";
 import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
 import {
-  woodCompileXNarrow,
-  woodCompileXWide,
-  woodCompileZNarrow,
-  woodCompileZWide,
+  getWoodCompile,
   WIDE_BOARD_THRESHOLD_MM,
 } from "@/components/wood-shader";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
@@ -33,25 +39,6 @@ import { useHoveredParts } from "@/components/HoveredPartsContext";
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
 // Three.js consumes from `new Euler(rx, ry, rz, "ZYX")`.
-function rotateXYZ(
-  rx: number, ry: number, rz: number,
-  lx: number, ly: number, lz: number,
-) {
-  const cosX = Math.cos(rx), sinX = Math.sin(rx);
-  const cosY = Math.cos(ry), sinY = Math.sin(ry);
-  const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
-  let x = lx, y = ly, z = lz;
-  const y1 = y * cosX - z * sinX;
-  const z1 = y * sinX + z * cosX;
-  y = y1; z = z1;
-  const x2 = x * cosY + z * sinY;
-  const z2 = -x * sinY + z * cosY;
-  x = x2; z = z2;
-  const x3 = x * cosZ - y * sinZ;
-  const y3 = x * sinZ + y * cosZ;
-  x = x3; y = y3;
-  return { x, y, z };
-}
 
 /**
  * 包住 <Environment> HDR 載入 — drei CDN 抖動時 (Could not load lebombo_1k.hdr)
@@ -72,25 +59,22 @@ class HDRBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
-type WorldMortise = {
-  partId: string;
-  entryX: number; entryY: number; entryZ: number;
-  axis: "x" | "y" | "z";
-  sign: 1 | -1;
-  depth: number;
-  through: boolean;
-  // World-space unit vector pointing OUT of the leg (opening direction).
-  // Negated copy of the rotated m.axis (since m.axis points INTO leg).
-  // Only set when the source Mortise carried an explicit axis override
-  // (compound splay). When null, fall back to dominant-axis legacy path.
-  axisUnit?: { x: number; y: number; z: number } | null;
-};
 
 /**
  * Blend a hex color toward a tint. amount=0 → original, 1 → tint.
  * Used to highlight drawer / door parts so they're easy to spot against
  * the rest of the cabinet (which all share the same wood color).
  */
+/** 把 hex 顏色乘一個係數（<1 變深）。夾板疊層用來讓相鄰兩層深淺不同。 */
+function shadeHex(hex: string, f: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+  return "#" + ch.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
 function tintHex(baseHex: string, tintHex: string, amount: number): string {
   const parse = (h: string) => {
     const s = h.replace("#", "");
@@ -141,110 +125,6 @@ function pairShadeByPartId(hex: string, partId: string): string {
 }
 
 
-/**
- * 把母件的 base geometry 用 CSG 減掉每個 mortise 對應的方塊，produce 帶
- * 真實榫眼洞的 buffer geometry。box 座標已 SCALE 過（three.js units）。
- *
- * - through mortise 由 caller 傳入時自帶內墊（避免 CSG 留薄殼）
- * - 共用一個 Evaluator 跑完所有 mortise（sequential subtraction）
- * - 中間 brush 的 geometry 會 dispose；保留原 baseGeo 不動（useMemo 會重用）
- */
-function subtractMortisesFromGeometry(
-  baseGeo: BufferGeometry,
-  mortiseBoxes: LocalBox[],
-  mortiseShapes?: Array<"rect" | "round">,
-): BufferGeometry {
-  if (mortiseBoxes.length === 0) return baseGeo;
-  // 確保 base 有 normal 跟 index（CSG 必須）。原 builder 多半都做了，
-  // 但雙保險：toNonIndexed → mergeVertices? 實際試 prepareGeometry 再
-  // call evaluator。BoxGeometry / buildChamferedEdgesGeometry 都 indexed。
-  const material = new MeshStandardMaterial();
-  const evaluator = new Evaluator();
-  evaluator.useGroups = false;
-  // 限定只處理 position + normal，避免 base 有 uv 但 cut 沒 uv（或反之）
-  // 觸發 evaluator 內部 attribute mismatch crash。
-  evaluator.attributes = ["position", "normal"];
-  // 統一兩個 brush 的 attribute set：剝掉 uv
-  const baseClean = baseGeo.clone();
-  baseClean.deleteAttribute("uv");
-  if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
-  let acc = new Brush(baseClean, material);
-  acc.updateMatrixWorld();
-  for (let i = 0; i < mortiseBoxes.length; i++) {
-    const m = mortiseBoxes[i];
-    if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
-    // 防呆：half-extent 或中心若是 NaN/Infinity，BoxGeometry 會吐 degenerate
-    // triangles → three-bvh-csg 計算 BVH 時 normal=null → dot() crash
-    if (
-      !Number.isFinite(m.hx) || !Number.isFinite(m.hy) || !Number.isFinite(m.hz) ||
-      !Number.isFinite(m.cx) || !Number.isFinite(m.cy) || !Number.isFinite(m.cz)
-    ) {
-      if (typeof console !== "undefined") {
-        console.warn("[subtractMortisesFromGeometry] skip non-finite mortise", m);
-      }
-      continue;
-    }
-    const isRound = mortiseShapes?.[i] === "round";
-    // 外撇牆 cosmetic 孔（rotX≠0）的 slice 幾何修正：
-    // Wall 在 part-local 是 parallelogram（mitered-ends vertices）；外面法線
-    // 在 y-z 平面斜 θ。cut Brush 繞 part-local X 軸轉 ±θ，cut Y 軸對齊牆法線。
-    //
-    // 問題：rotated BoxGeometry / CylinderGeometry 切到「牆外面」slice 處的
-    // 形狀跟使用者指定的 (handleW × handleH) 矩形 / 半徑 hz 圓**對不上**：
-    //   - Box slice z 半寬 = hz_cut / cos θ（cos 放大）
-    //   - Cyl slice 是橢圓（x 半徑 r，z 半徑 r/c），不是圓
-    //   - 兩者形狀差距使 pill 中段 rect 跟兩端 circle z 大小錯位
-    //
-    // 數學解（見 /tmp/slice-math.md）：
-    //   hy_ext  = m.hy / cosθ + m.hz · sinθ       （延伸 depth，避免 strip 1 截斷）
-    //   hz_scaled = m.hz · cosθ                    （壓縮 z，slice 後還原成 m.hz）
-    //   Box: BoxGeometry(2·hx, 2·hy_ext, 2·hz_scaled)
-    //   Cyl: CylinderGeometry(hz, hz, 2·hy_ext).scale(1, 1, cosθ)
-    //     （cross-section 預壓成 ellipse，rotation 後 slice 才是正圓 radius=hz）
-    //
-    // Slice 中心會在 z = hy_wall·tanθ（非 z=0），但 pill 三孔同 cz、同步偏移、仍對齊。
-    const absRot = m.rotX ? Math.abs(m.rotX) : 0;
-    const c = absRot ? Math.cos(absRot) : 1;
-    const s = absRot ? Math.sin(absRot) : 0;
-    const hyExt = absRot ? (m.hy / c + m.hz * s) : m.hy;
-    const hzScaled = absRot ? m.hz * c : m.hz;
-    let cutGeo: BufferGeometry;
-    if (isRound) {
-      // 圓孔 cross-section 預壓 ellipse：x-radius m.hz、z-radius m.hz·c
-      // rotation 後 slice = 半徑 m.hz 正圓
-      cutGeo = new CylinderGeometry(m.hz, m.hz, 2 * hyExt, 24);
-      if (absRot) cutGeo.scale(1, 1, c);
-    } else {
-      cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
-    }
-    // 把 rotation 直接烤進 geometry，避免 three-bvh-csg 的 matrixWorld
-    // propagation 不一致（mesh.rotation 有時不反映到 evaluator）。
-    // rotX：外撇牆 cosmetic 孔（孔軸跟牆面法線一致）
-    // rotZ：splayed apron Z 面 mortise（cross-section 跟 tilted tenon 對齊）
-    if (m.rotX) cutGeo.rotateX(m.rotX);
-    if (m.rotY) cutGeo.rotateY(m.rotY);
-    if (m.rotZ) cutGeo.rotateZ(m.rotZ);
-    cutGeo.deleteAttribute("uv");
-    const cut = new Brush(cutGeo, material);
-    cut.position.set(m.cx, m.cy, m.cz);
-    cut.updateMatrixWorld();
-    try {
-      const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-      cutGeo.dispose();
-      acc.geometry.dispose();
-      acc = next;
-    } catch (err) {
-      // three-bvh-csg 偶爾因 degenerate triangle / 邊界重疊 hit null normal
-      // → 整個頁面掛掉。skip 這個 mortise 比讓使用者看到錯誤頁好。
-      if (typeof console !== "undefined") {
-        console.warn("[subtractMortisesFromGeometry] CSG evaluate failed, skipping mortise", { mortise: m, err });
-      }
-      cutGeo.dispose();
-    }
-  }
-  return acc.geometry;
-}
-
 type PartProps = {
   position: [number, number, number];
   size: [number, number, number];
@@ -254,8 +134,17 @@ type PartProps = {
   isGlass?: boolean;
   isBrass?: boolean;
   grainDirection?: "length" | "width";
+  /** 料單上這個零件是幾片拼的 / 幾層疊的（panelPieces）；> 1 時 3D 畫出片與片的膠合線 */
+  boardPieces?: number;
+  /** true = 沿厚度疊層（panelSplit="thickness"），false = 沿跨紋方向拼板 */
+  boardThin?: boolean;
+  /** 這件是夾板（materialOverride==='plywood'）→ 用夾板的表皮木紋，不是實木年輪 */
+  isPly?: boolean;
   mortiseBoxes?: LocalBox[];
   mortiseShapes?: Array<"rect" | "round">;
+  /** 圓形貫穿裝飾孔（工作桌狗孔 / holdfast 孔 / MFT 格陣）不走 CSG，改畫深色圓柱「塞」在孔位：
+   *  20 個孔 sequential subtraction 一次 4.7 秒（M4），手機直接像當機（木頭仁 2026-09-03「參數都沒辦法點」）。 */
+  holeDecals?: LocalBox[];
   dovetailCuts?: Brush[];
   isSelected?: boolean;
   isHovered?: boolean;
@@ -279,6 +168,9 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   if (a.color !== b.color) return false;
   if (a.isGlass !== b.isGlass || a.isBrass !== b.isBrass) return false;
   if (a.grainDirection !== b.grainDirection) return false;
+  if (a.boardPieces !== b.boardPieces) return false;
+  if (a.boardThin !== b.boardThin) return false;
+  if (a.isPly !== b.isPly) return false;
   if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
   if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
   if (a.polygonOffset !== b.polygonOffset) return false;
@@ -297,6 +189,9 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   const msa = a.mortiseShapes, msb = b.mortiseShapes;
   if ((msa?.length ?? 0) !== (msb?.length ?? 0)) return false;
   if (msa && msb) for (let i = 0; i < msa.length; i++) if (msa[i] !== msb[i]) return false;
+  const ha = a.holeDecals, hb = b.holeDecals;
+  if ((ha?.length ?? 0) !== (hb?.length ?? 0)) return false;
+  if (ha && hb) for (let i = 0; i < ha.length; i++) if (ha[i] !== hb[i]) return false;
   const da = a.dovetailCuts, db = b.dovetailCuts;
   if ((da?.length ?? 0) !== (db?.length ?? 0)) return false;
   if (da && db) for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return false;
@@ -312,8 +207,12 @@ const Part = memo(function PartInner({
   isGlass,
   isBrass,
   grainDirection,
+  boardPieces,
+  boardThin,
+  isPly,
   mortiseBoxes,
   mortiseShapes,
+  holeDecals,
   dovetailCuts,
   isSelected,
   isHovered,
@@ -335,11 +234,33 @@ const Part = memo(function PartInner({
   // size 是 three-units（1 unit = 100mm），×100 換回 mm。
   const crossGrainMm =
     (grainDirection === "width" ? size[0] : size[2]) * 100;
-  const isWide = crossGrainMm >= WIDE_BOARD_THRESHOLD_MM;
-  const woodCompile =
-    grainDirection === "width"
-      ? (isWide ? woodCompileZWide : woodCompileZNarrow)
-      : (isWide ? woodCompileXWide : woodCompileXNarrow);
+  // 山形紋 vs 直紋要看「每一片自己的跨紋寬」，不是整個零件的寬。
+  // 🩸2026-09-04 木頭仁：「窄條側立拼要能看出來」——側立拼每條只有 75mm（＝桌面厚），
+  // 真實長相是直紋；用整片 600 去判就變成整面山形紋，跟寬板平拼看起來一樣。
+  // 疊層（thin）不分：每一層都是整片寬，維持用零件寬判。
+  const perPieceCrossMm = !boardThin && (boardPieces ?? 1) > 1
+    ? crossGrainMm / (boardPieces as number)
+    : crossGrainMm;
+  const isWide = perPieceCrossMm >= WIDE_BOARD_THRESHOLD_MM;
+  // 拼板 / 疊層：料單說這件是 N 片，3D 就把每片的木紋錯開並畫膠合線（不動幾何）。
+  // ⭐疊層切「最小的那一維」（跟料單 / cutplan 同一套）：腳的 visible.thickness 是腳高，
+  //   照它切會把腳沿高度切成好幾段（木頭仁 09-04 回報）。拼板則切跨紋方向那一維。
+  const dimsMm: Array<{ axis: "x" | "y" | "z"; mm: number }> = [
+    { axis: "x", mm: size[0] * 100 },
+    { axis: "y", mm: size[1] * 100 },
+    { axis: "z", mm: size[2] * 100 },
+  ];
+  const thinnest = dimsMm.reduce((a, b) => (b.mm < a.mm ? b : a));
+  const crossAxis: "x" | "z" = grainDirection === "width" ? "x" : "z";
+  const board = boardThin
+    ? { pieces: boardPieces ?? 1, spanMm: thinnest.mm, axis: thinnest.axis }
+    : { pieces: boardPieces ?? 1, spanMm: crossGrainMm, axis: crossAxis };
+  const woodCompile = getWoodCompile(
+    grainDirection === "width" ? "width" : "length",
+    // 夾板不看寬窄——它的面永遠是薄表皮的細直紋，不會有實木的山形年輪
+    isPly ? "ply" : (isWide ? "wide" : "narrow"),
+    boardPieces && boardPieces > 1 ? board : undefined,
+  );
   // useMemo deps：size 是 [a,b,c] array、shape 是 object——父元件每 render
   // 都建新 reference 害 useMemo 永遠 invalidate。改 primitive + shape JSON
   // 後 box 件 fast-path 不變，異形件每次拖滑桿省一次 geometry 重建（50-200ms）。
@@ -381,30 +302,15 @@ const Part = memo(function PartInner({
   const dovetailCutGeometry = useMemo(() => {
     if (!dovetailCuts || dovetailCuts.length === 0) return null;
     const localGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
-    const material = new MeshStandardMaterial();
-    const evaluator = new Evaluator();
-    evaluator.useGroups = false;
-    evaluator.attributes = ["position", "normal"];
-    const baseClean = localGeo.clone();
-    baseClean.deleteAttribute("uv");
-    if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
     // PRE-TRANSFORM base geo to world：vertices 直接套上 part 的 world matrix
     const m = new Matrix4().compose(
       new Vector3(px0, py0, pz0),
       new Quaternion().setFromEuler(new Euler(rx0, ry0, rz0, "ZYX")),
       new Vector3(1, 1, 1),
     );
-    baseClean.applyMatrix4(m);
-    baseClean.computeVertexNormals();
-    let acc = new Brush(baseClean, material);
-    acc.updateMatrixWorld();  // identity
-    for (const cut of dovetailCuts) {
-      const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-      acc.geometry.dispose();
-      acc = next;
-    }
+    const result = subtractDovetailReceiverGeometry(localGeo, m, dovetailCuts);
     if (!csgGeometry && !geometry) localGeo.dispose();
-    return acc.geometry;
+    return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [csgGeometry, geometry, size[0], size[1], size[2], dovetailCuts, px0, py0, pz0, rx0, ry0, rz0]);
   // wireframeMode：抽出 silhouette edges（box=12 邊、tapered=12、圓柱=雙圈
@@ -578,8 +484,23 @@ const Part = memo(function PartInner({
   // dovetailCutGeometry 已在 world，mesh 必須 identity transform 否則雙重套位置錯
   const meshPosition: [number, number, number] = hasDovetailCut ? [0, 0, 0] : position;
   const meshRotation = hasDovetailCut ? new Euler(0, 0, 0) : rotation;
+  // 圓孔「塞」：深色圓柱沿孔的深度軸（half-extent 最大那軸）擺，兩端各露出 0.3mm 蓋過木面
+  const holePlugs = holeDecals && holeDecals.length > 0 && !hasDovetailCut ? holeDecals.map((h, i) => {
+    const axis = holeAxisOf(h.hx, h.hy, h.hz);
+    const half = axis === "x" ? h.hx : axis === "z" ? h.hz : h.hy;
+    const r = holeRadiusOf(h.hx, h.hy, h.hz);
+    const rot: [number, number, number] = axis === "x" ? [0, 0, Math.PI / 2] : axis === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
+    return (
+      <mesh key={`plug-${i}`} position={[h.cx, h.cy, h.cz]} rotation={rot}>
+        <cylinderGeometry args={[r, r, 2 * half + 0.006, 20]} />
+        <meshStandardMaterial color="#241a10" roughness={1} metalness={0} transparent opacity={isDimmed ? DIM_OPACITY : 1} depthWrite={!isDimmed} />
+      </mesh>
+    );
+  }) : null;
   return (
-    <mesh position={meshPosition} rotation={meshRotation} castShadow receiveShadow>
+    <group position={meshPosition} rotation={meshRotation}>
+    {holePlugs}
+    <mesh castShadow receiveShadow>
       {dovetailCutGeometry ? (
         <primitive attach="geometry" object={dovetailCutGeometry} />
       ) : csgGeometry ? (
@@ -589,7 +510,16 @@ const Part = memo(function PartInner({
       ) : (
         <boxGeometry args={size} />
       )}
+      {/*
+        🩸2026-09-05 木頭仁：「選桌面做法時不會即時更新，要重新整理網頁」。
+        three.js 的 onBeforeCompile 只在**材質第一次編譯**時跑；換了 woodCompile
+        （拼板片數 / 疊層 / 木紋方向變了）之後 material 還是拿舊的 program，
+        除非 needsUpdate 或整個重建。夾板疊層那條路是改幾何所以看得到，
+        實木「桌面做法」只改著色器參數 → 畫面就卡在舊的，要 F5 才會變。
+        給材質一把跟著 cacheKey 走的 key，參數一變 React 就重建材質＝重新編譯。
+      */}
       <meshStandardMaterial
+        key={woodCompile.cacheKey}
         color={color}
         roughness={0.55}
         metalness={0.05}
@@ -606,6 +536,7 @@ const Part = memo(function PartInner({
         polygonOffsetUnits={pushBack ? 24 : polygonOffset ? 1 : 0}
       />
     </mesh>
+    </group>
   );
 }, arePartPropsEqual);
 
@@ -623,8 +554,15 @@ export function PerspectiveView({
   compactMode = false,
   wireframeMode = false,
   hidePartIds = [],
+  assemblyPlan: assemblyPlanProp = null,
 }: {
   design: FurnitureDesign;
+  /**
+   * 組裝動畫排程（server 端用「還帶榫頭榫眼的原始設計」算好傳進來，見 §H8）。
+   * 組裝版的 design 已被 toBeginnerMode 拔掉榫接資料，PerspectiveView 自己算會
+   * 排不出榫的方向；沒傳才退而用 design 自己算（榫接版可用）。
+   */
+  assemblyPlan?: AssemblyPlan | null;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
   /** 榫接模式：3D 多畫一層紅色 tenon 凸出 */
@@ -656,6 +594,60 @@ export function PerspectiveView({
   // Hover 高亮（Bot B：context 進來的 part id 集合，emissive 預覽用）
   // 沒 provider 也 fallback 空集合，hook 不會 throw
   const { hoveredPartIds } = useHoveredParts();
+
+  /**
+   * 組裝動畫（docs/drafting-math.md §H8）。
+   * 順序 / 方向由 lib/assembly/plan.ts 從榫接關係推出來；這裡只負責
+   * 「每幀把每個零件的 <group> 位移設成 offsetsAt(t)」——幾何、材質一律不重建，
+   * 所以不會踩到 useMemo 重做 CSG 的坑，也不動任何家具定義。
+   * 時鐘放 ref 不放 state：播放中每幀改 state 會讓整棵零件樹重 render。
+   */
+  const [assemblyOn, setAssemblyOn] = useState(false);
+  const [assemblyPlaying, setAssemblyPlaying] = useState(false);
+  const [assemblyUiT, setAssemblyUiT] = useState(0);       // 給滑桿 / 步驟文字用，100ms 更新一次
+  const [assemblyScrubNonce, setAssemblyScrubNonce] = useState(0);
+  const assemblyClockRef = useRef(0);
+  const partGroupRefs = useRef(new Map<string, Group>());
+  const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const assemblyPlan = useMemo<AssemblyPlan | null>(
+    () => (assemblyOn ? (assemblyPlanProp ?? planAssembly(design)) : null),
+    [assemblyOn, assemblyPlanProp, design],
+  );
+  const screwsByMother = useMemo(() => {
+    const m = new Map<string, ScrewSpec[]>();
+    for (const sc of assemblyPlan?.screws ?? []) (m.get(sc.motherId) ?? m.set(sc.motherId, []).get(sc.motherId)!).push(sc);
+    return m;
+  }, [assemblyPlan]);
+  const registerGroup = useCallback((id: string, g: Group | null) => {
+    if (g) partGroupRefs.current.set(id, g);
+    else partGroupRefs.current.delete(id);
+  }, []);
+  // 錄影：把 WebGL 每一幀複製到這張 2D 畫布（含背景色），錄的是它
+  const [exportTarget, setExportTarget] = useState<HTMLCanvasElement | null>(null);
+  const toggleAssembly = useCallback(() => {
+    setAssemblyOn((on) => {
+      if (on) { setAssemblyPlaying(false); return false; }
+      assemblyClockRef.current = 0;
+      setAssemblyUiT(0);
+      setAssemblyPlaying(true);
+      return true;
+    });
+  }, []);
+  const seekAssembly = useCallback((tMs: number) => {
+    assemblyClockRef.current = tMs;
+    setAssemblyUiT(tMs);
+    setAssemblyScrubNonce((n) => n + 1);
+  }, []);
+  // 影片輸出：錄 WebGL canvas，播完自動停、下載
+  const recordingRef = useRef<CanvasRecording | null>(null);
+  const exportRestoreRef = useRef<(() => void) | null>(null);
+  const [exporting, setExporting] = useState<{ pct: number } | null>(null);
+  const [exportAspect, setExportAspect] = useState<"current" | "portrait" | "square">("current");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
+  // 運鏡：播放（含錄影）期間相機繞著家具慢慢轉，整段約 120°；使用者拖曳照樣有效
+  const [cameraOrbit, setCameraOrbit] = useState(true);
+  // 🦆 喝咖啡的鴨子（木頭仁女兒畫的），站在家具旁邊陪組裝；控制列可關
+  const [duckOn, setDuckOn] = useState(true);
   // xrayMode 完全用 URL 當 source of truth:
   //   ViewPresetBar 按鈕走 router.replace 改 URL,App Router 在手機 + Vercel cache
   //   下 server 不一定立刻 re-render,server prop 會 stale。改在 client 直接讀
@@ -686,106 +678,11 @@ export function PerspectiveView({
   // joineryMode：把所有 mortise 攤成 world 座標索引，給 tenon mesh 配對用。
   // 配對後 tenon mesh 長度 clamp 到 mortise.depth，確保 mesh 永遠住在母件
   // 預挖的洞裡，不會因為母件 shape（圓腳/倒角）讓 CSG 失效而從外面戳出來。
-  const worldMortiseIndex = useMemo<WorldMortise[]>(() => {
-    if (!joineryMode) return [];
-    const idx: WorldMortise[] = [];
-    for (const part of design.parts) {
-      if (!part.mortises || part.mortises.length === 0) continue;
-      const rx = part.rotation?.x ?? 0;
-      const ry = part.rotation?.y ?? 0;
-      const rz = part.rotation?.z ?? 0;
-      const lx = part.visible.length;
-      const ly = part.visible.thickness;
-      const lz = part.visible.width;
-      const yExt = worldExtents(part).yExt;
-      const pcx = part.origin.x;
-      const pcy = part.origin.y + yExt / 2;
-      const pcz = part.origin.z;
-      for (const m of part.mortises) {
-        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）。
-        // 重要：origin.y=0 或 origin.y=ly 是 from-bottom 慣例的「便利預設值」
-        // （側板/牙條 mortise template 常寫 y:0 表示「不指定 Y 入榫」），不該被
-        // 當作真的 Y face 入榫。當 origin.y 在 canonical 值 + X 或 Z 軸有
-        // origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—跟
-        // svg-views.tsx 的 mortiseLocalBox 邏輯保持一致，否則 tenon outAxis
-        // 配對全錯，drawer-bottom tenon 抓不到 side-panel mortise → 紅塊。
-        const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
-        const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
-        const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
-        const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
-        let lex = 0, ley = 0, lez = 0;
-        let localAxis: "x" | "y" | "z";
-        let localSign: 1 | -1;
-        if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
-          // canonical Y 不是真深度軸 → 改選 X 或 Z（最靠近 face 的那個）
-          if (xToFace <= zToFace) {
-            localAxis = "x";
-            localSign = m.origin.x >= 0 ? 1 : -1;
-            lex = localSign === 1 ? lx / 2 : -lx / 2;
-            ley = m.origin.y - ly / 2;
-            lez = m.origin.z;
-          } else {
-            localAxis = "z";
-            localSign = m.origin.z >= 0 ? 1 : -1;
-            lex = m.origin.x;
-            ley = m.origin.y - ly / 2;
-            lez = localSign === 1 ? lz / 2 : -lz / 2;
-          }
-        } else if (yToFace <= xToFace && yToFace <= zToFace) {
-          localAxis = "y";
-          localSign = m.origin.y >= ly - 1 ? 1 : -1;
-          lex = m.origin.x;
-          ley = localSign === 1 ? ly / 2 : -ly / 2;
-          lez = m.origin.z;
-        } else if (xToFace <= zToFace) {
-          localAxis = "x";
-          localSign = m.origin.x >= 0 ? 1 : -1;
-          lex = localSign === 1 ? lx / 2 : -lx / 2;
-          ley = m.origin.y - ly / 2;
-          lez = m.origin.z;
-        } else {
-          localAxis = "z";
-          localSign = m.origin.z >= 0 ? 1 : -1;
-          lex = m.origin.x;
-          ley = m.origin.y - ly / 2;
-          lez = localSign === 1 ? lz / 2 : -lz / 2;
-        }
-        const e = rotateXYZ(rx, ry, rz, lex, ley, lez);
-        const ax = localAxis === "x" ? localSign : 0;
-        const ay = localAxis === "y" ? localSign : 0;
-        const az = localAxis === "z" ? localSign : 0;
-        const a = rotateXYZ(rx, ry, rz, ax, ay, az);
-        const aX = Math.abs(a.x), aY = Math.abs(a.y), aZ = Math.abs(a.z);
-        let worldAxis: "x" | "y" | "z";
-        let worldSign: 1 | -1;
-        if (aX >= aY && aX >= aZ) { worldAxis = "x"; worldSign = a.x >= 0 ? 1 : -1; }
-        else if (aY >= aZ) { worldAxis = "y"; worldSign = a.y >= 0 ? 1 : -1; }
-        else { worldAxis = "z"; worldSign = a.z >= 0 ? 1 : -1; }
-        // Compound splay: Mortise.axis is now WORLD-frame opening direction
-        // (out of leg, toward apron). Consume directly — no part-rotation
-        // composition, no negation. The matching Tenon.axis (out of apron,
-        // into leg) is anti-parallel; dot-product check below uses < -0.85.
-        const axisUnit = m.axis
-          ? (() => {
-              const mag = Math.hypot(m.axis!.x, m.axis!.y, m.axis!.z) || 1;
-              return { x: m.axis!.x / mag, y: m.axis!.y / mag, z: m.axis!.z / mag };
-            })()
-          : null;
-        idx.push({
-          partId: part.id,
-          entryX: pcx + e.x,
-          entryY: pcy + e.y,
-          entryZ: pcz + e.z,
-          axis: worldAxis,
-          sign: worldSign,
-          depth: m.depth,
-          through: m.through ?? false,
-          axisUnit,
-        });
-      }
-    }
-    return idx;
-  }, [design.parts, joineryMode]);
+  // 榫眼世界索引：抽到 lib/assembly/joint-world.ts（組裝動畫共用同一份）。
+  const worldMortiseIndex = useMemo<WorldMortise[]>(
+    () => (joineryMode ? buildWorldMortiseIndex(design.parts) : []),
+    [design.parts, joineryMode],
+  );
 
   // Audit mode：抓 overlap 對，把出現在裡面的 part id 拉成 set。標紅色高亮。
   const overlapIds = useMemo(() => {
@@ -826,52 +723,7 @@ export function PerspectiveView({
   // 上輪 (09c1097 → revert 191a5ac) 用 brush.position.set + rotation.set +
   // updateMatrixWorld 對齊，側板整個被挖空。本輪改 pre-transform geometry 避開
   // matrixWorld propagation 疑慮。
-  const dovetailCutBrushes = useMemo<{ brush: Brush; fromLid: boolean }[]>(() => {
-    const brushes: { brush: Brush; fromLid: boolean }[] = [];
-    const material = new MeshStandardMaterial();
-    for (const part of design.parts) {
-      if (part.shape?.kind !== "dovetail-ends") continue;
-      const sx = part.visible.length * SCALE;
-      const sy = part.visible.thickness * SCALE;
-      const sz = part.visible.width * SCALE;
-      const geo = buildDovetailEndsGeometry(
-        [sx, sy, sz],
-        part.shape.segmentCount,
-        part.shape.phase,
-        part.shape.angleDeg,
-        part.shape.pinDepth * SCALE,
-        part.shape.halfPin ?? true,
-      );
-      geo.deleteAttribute("uv");
-      if (!geo.attributes.normal) geo.computeVertexNormals();
-      // tail tip 在 X=±halfLength 跟側板外面 face 重合 → Z-fighting
-      // 沿 X 微放大讓 cut 超出側板外面 0.2mm（feedback_csg_overlap_over_analytical_fit）
-      // 之前用 1mm 過大，cavity 比 tail 深 1mm，視覺上會看到 tail tip 後面亮色細縫。
-      const sxFull = part.visible.length;
-      const xScale = (sxFull + 0.4) / sxFull;
-      geo.scale(xScale, 1, 1);
-      const { yExt } = worldExtents(part);
-      const px = part.origin.x * SCALE;
-      const py = (part.origin.y + yExt / 2) * SCALE;
-      const pz = part.origin.z * SCALE;
-      const m = new Matrix4().compose(
-        new Vector3(px, py, pz),
-        new Quaternion().setFromEuler(new Euler(
-          part.rotation?.x ?? 0,
-          part.rotation?.y ?? 0,
-          part.rotation?.z ?? 0,
-          "ZYX",
-        )),
-        new Vector3(1, 1, 1),
-      );
-      geo.applyMatrix4(m);
-      geo.computeVertexNormals();
-      const brush = new Brush(geo, material);
-      brush.updateMatrixWorld();  // identity matrix
-      brushes.push({ brush, fromLid: /-lid$/.test(part.id) });
-    }
-    return brushes;
-  }, [design.parts]);
+  const dovetailCutBrushes = useMemo(() => buildDovetailCutBrushes(design.parts, SCALE), [design.parts]);
 
   const tPV = useTranslations("perspectiveView");
   const pvLocale = useLocale();
@@ -913,7 +765,91 @@ export function PerspectiveView({
     hidePartIds.join(","),
     hoveredPartIds,
     viewPreset,
+    assemblyOn,
+    assemblyPlaying,
+    assemblyScrubNonce,
+    assemblyPlanProp,
+    duckOn,
   ]);
+
+  const finishExport = useCallback(async () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    exportRestoreRef.current?.();
+    exportRestoreRef.current = null;
+    setExportTarget((c) => { c?.remove(); return null; });
+    if (!rec) return;
+    const blob = await rec.stop();
+    const ext = extensionForMime(rec.mime);
+    const base = pvLocale === "en" ? `${design.id}-assembly` : `${design.nameZh}-組裝動畫`;
+    const file = `${base}.${ext}`;
+    downloadBlob(blob, file);
+    setExporting(null);
+    setExportMsg(tPV("assemblyDoneTpl", { file }));
+  }, [design.id, design.nameZh, pvLocale, tPV]);
+
+  const onAssemblyTick = useCallback((tMs: number, done: boolean) => {
+    setAssemblyUiT(tMs);
+    if (recordingRef.current && assemblyPlan) {
+      setExporting({ pct: Math.min(100, Math.round((100 * tMs) / assemblyPlan.totalMs)) });
+    }
+    if (done) {
+      setAssemblyPlaying(false);
+      if (recordingRef.current) void finishExport();
+    }
+  }, [assemblyPlan, finishExport]);
+
+  const startExport = useCallback(async () => {
+    if (!assemblyPlan || exporting) return;
+    const canvas = glCanvasRef.current;
+    const host = canvasHostRef.current;
+    if (!canvas || !host) return;
+    if (!pickRecorderMime()) { setExportMsg(tPV("assemblyExportUnsupported")); return; }
+    setExportMsg(null);
+    // 2D 目標畫布：接在 body 下（Safari 對脫離 DOM 的 canvas 不吐幀），尺寸由 RecorderTap 每幀對齊
+    const target = document.createElement("canvas");
+    target.width = canvas.width;
+    target.height = canvas.height;
+    target.style.cssText = "position:fixed;left:-20000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(target);
+    setExportTarget(target);
+    // 直式 / 方形：暫時把 canvas 容器改成該比例（R3F 會跟著 resize），錄完還原
+    if (exportAspect !== "current") {
+      const prev = host.style.cssText;
+      const h = host.clientHeight;
+      const w = exportAspect === "portrait" ? Math.round((h * 9) / 16) : h;
+      host.style.width = `${w}px`;
+      host.style.height = `${h}px`;
+      host.style.flex = "none";
+      host.style.alignSelf = "center";
+      exportRestoreRef.current = () => { host.style.cssText = prev; };
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+    assemblyClockRef.current = 0;
+    setAssemblyUiT(0);
+    setAssemblyScrubNonce((n) => n + 1);
+    try {
+      recordingRef.current = startCanvasRecording(target);
+    } catch {
+      exportRestoreRef.current?.();
+      exportRestoreRef.current = null;
+      setExportTarget((c) => { c?.remove(); return null; });
+      setExportMsg(tPV("assemblyExportUnsupported"));
+      return;
+    }
+    setExporting({ pct: 0 });
+    setAssemblyPlaying(true);
+  }, [assemblyPlan, exporting, exportAspect, tPV]);
+
+  // 元件卸載時若還在錄，收掉（不下載）
+  useEffect(() => () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    exportRestoreRef.current?.();
+    exportRestoreRef.current = null;
+    if (rec) void rec.stop();
+    document.querySelectorAll<HTMLCanvasElement>("canvas[data-assembly-export]").forEach((c) => c.remove());
+  }, []);
 
   /**
    * 🧷 選取的 id 在目前設計裡找不到時,一律當成「沒選」。
@@ -936,7 +872,39 @@ export function PerspectiveView({
         ? "w-full h-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
         : "w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
     }>
-      <ViewPresetBar onSelect={setViewPreset} hasLid={design.parts.some((p) => p.id === "lid")} />
+      <ViewPresetBar
+        onSelect={setViewPreset}
+        hasLid={design.parts.some((p) => p.id === "lid")}
+        assemblyOn={assemblyOn}
+        onToggleAssembly={toggleAssembly}
+      />
+      {assemblyOn && assemblyPlan ? (
+        <AssemblyControls
+          plan={assemblyPlan}
+          design={design}
+          locale={pvLocale}
+          playing={assemblyPlaying}
+          tMs={assemblyUiT}
+          compact={compactMode}
+          exporting={exporting}
+          exportAspect={exportAspect}
+          exportMsg={exportMsg}
+          onPlayPause={() => {
+            if (exporting) return;
+            if (!assemblyPlaying && assemblyClockRef.current >= assemblyPlan.totalMs) seekAssembly(0);
+            setAssemblyPlaying((p) => !p);
+          }}
+          onReplay={() => { if (exporting) return; seekAssembly(0); setAssemblyPlaying(true); }}
+          onSeek={(t) => { if (exporting) return; setAssemblyPlaying(false); seekAssembly(t); }}
+          onClose={() => { if (exporting) return; toggleAssembly(); }}
+          onExport={() => { void startExport(); }}
+          onAspect={setExportAspect}
+          orbit={cameraOrbit}
+          onOrbit={setCameraOrbit}
+          duck={duckOn}
+          onDuck={setDuckOn}
+        />
+      ) : null}
       <div
         ref={canvasHostRef}
         data-thumb="3d"
@@ -1062,14 +1030,7 @@ export function PerspectiveView({
           if (hidePartIds.includes(partRaw.id)) return null;
           // joineryView 覆寫：joineryMode 開啟時，部分 part 會用「榫接版專用幾何」
           // （e.g. 書擋的 45° miter）；組裝版維持原本直角對接 / 簡潔形狀。
-          const part = joineryMode && partRaw.joineryView
-            ? {
-                ...partRaw,
-                shape: partRaw.joineryView.shape ?? partRaw.shape,
-                visible: partRaw.joineryView.visible ?? partRaw.visible,
-                origin: partRaw.joineryView.origin ?? partRaw.origin,
-              }
-            : partRaw;
+          const part = joineryMode ? partForJoineryView(partRaw) : partRaw;
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
           // X-ray 模式過濾：
@@ -1250,6 +1211,7 @@ export function PerspectiveView({
               bevelAngle: part.shape.bevelAngle,
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
+              ...(part.shape.taperSpanMm !== undefined ? { taperSpanMm: part.shape.taperSpanMm * SCALE } : {}),
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
@@ -1367,82 +1329,11 @@ export function PerspectiveView({
                 const oW = t.offsetWidth ?? 0;
                 const oT = t.offsetThickness ?? 0;
 
-                // 算 tenon 根面世界座標 + outward 世界軸，給 mortise 配對用
-                const rxP = part.rotation?.x ?? 0;
-                const ryP = part.rotation?.y ?? 0;
-                const rzP = part.rotation?.z ?? 0;
-                let lrx = 0, lry = 0, lrz = 0;
-                let lox = 0, loy = 0, loz = 0;
-                switch (t.position) {
-                  case "start":  lrx = -lx / 2; lry = oT; lrz = oW; lox = -1; break;
-                  case "end":    lrx = +lx / 2; lry = oT; lrz = oW; lox = +1; break;
-                  case "top":    lrx = oW; lry = +ly / 2; lrz = oT; loy = +1; break;
-                  case "bottom": lrx = oW; lry = -ly / 2; lrz = oT; loy = -1; break;
-                  case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
-                  case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
-                }
-                // Compute root position in world (always via part rotation).
-                const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
-                const wRootX = part.origin.x + rRoot.x;
-                const wRootY = part.origin.y + worldExtents(part).yExt / 2 + rRoot.y;
-                const wRootZ = part.origin.z + rRoot.z;
-                // outUnit / outAxis: tenon outward direction in WORLD frame.
-                // - With t.axis present (compound splay): t.axis IS world; use directly.
-                // - Without t.axis: rotate position-default local outward through partQ.
-                let outUnit: { x: number; y: number; z: number };
-                if (t.axis) {
-                  const m = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
-                  outUnit = { x: t.axis.x / m, y: t.axis.y / m, z: t.axis.z / m };
-                } else {
-                  const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
-                  const mag = Math.hypot(rOut.x, rOut.y, rOut.z) || 1;
-                  outUnit = { x: rOut.x / mag, y: rOut.y / mag, z: rOut.z / mag };
-                }
-                const aX = Math.abs(outUnit.x), aY = Math.abs(outUnit.y), aZ = Math.abs(outUnit.z);
-                let outAxis: "x" | "y" | "z";
-                let outSign: 1 | -1;
-                if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = outUnit.x >= 0 ? 1 : -1; }
-                else if (aY >= aZ) { outAxis = "y"; outSign = outUnit.y >= 0 ? 1 : -1; }
-                else { outAxis = "z"; outSign = outUnit.z >= 0 ? 1 : -1; }
-
-                // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
-                //
-                // Owner-family filter（避免抽屜 part 配到櫃體 part）：
-                //   抽屜 part id 慣例 `{prefix}drawer-{i+1}-{role}`，例：
-                //     `drawer-1-back`（單區）
-                //     `col1-drawer-1-back`（columns）
-                //     `z2-drawer-1-back`（zones）
-                //   如果 tenon owner id 含 `drawer-N-`，只跟同 `…drawer-N-`
-                //   前綴的 mortise 配對；不准跨抽屜也不准爬到櫃體 side panel。
-                //   其它（leg/apron/top/case-side）維持原 1-NN 行為。
-                const drawerMatch = part.id.match(/^(.*?drawer-\d+)-/);
-                const drawerFamily = drawerMatch ? drawerMatch[1] + "-" : null;
-                let bestMort: WorldMortise | null = null;
-                let bestDist = Infinity;
-                for (const mw of worldMortiseIndex) {
-                  if (mw.partId === part.id) continue;
-                  if (drawerFamily && !mw.partId.startsWith(drawerFamily)) continue;
-                  // Compound splay: both sides are WORLD-frame unit vectors.
-                  // mw.axisUnit = mortise OPENING direction (out of leg toward apron).
-                  // outUnit    = tenon outward direction (out of apron into leg).
-                  // They point opposite each other → anti-parallel (dot ≈ -1).
-                  if (mw.axisUnit && t.axis) {
-                    const dot =
-                      mw.axisUnit.x * outUnit.x +
-                      mw.axisUnit.y * outUnit.y +
-                      mw.axisUnit.z * outUnit.z;
-                    if (dot > -0.85) continue;
-                  } else {
-                    if (mw.axis !== outAxis) continue;
-                    if (mw.sign === outSign) continue;
-                  }
-                  const dx = mw.entryX - wRootX;
-                  const dy = mw.entryY - wRootY;
-                  const dz = mw.entryZ - wRootZ;
-                  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                  // 60mm 容忍（compound splay 允許多一點偏差，原 50mm）
-                  if (d < bestDist && d < 60) { bestDist = d; bestMort = mw; }
-                }
+                // 算 tenon 根面世界座標 + outward 世界軸，配對母件榫眼
+                // （邏輯在 lib/assembly/joint-world.ts，組裝動畫共用同一份）
+                const tw = tenonWorld(part, t);
+                const outUnit = tw.outUnit;
+                const bestMort: WorldMortise | null = matchMortiseForTenon(part, t, tw, worldMortiseIndex);
 
                 // 通榫不 clamp（要凸出母件背面）；其它都 clamp 到母件 mortise 深
                 const effLen = bestMort && !bestMort.through
@@ -1726,6 +1617,13 @@ export function PerspectiveView({
                     // 端面有 Z 傾斜 → 不同 Z 位置 (lcz) 的 miter X 位置不同
                     const zCompensation = hzPart > 0 ? lxPart * (botS - topS) / (4 * hzPart) * lcz : 0;
                     halfLenLocal = lxPart * (1 - avgScale) / 2 + Math.abs(effLen) / 2 - zCompensation + ROOT_BURY;
+                    // taperSpanMm：端面斜度只在 −Z 邊起 span 內 → 直接用「這個 Z 的端面 scale」（無 span 時跟上式代數相等）
+                    const spanMm = part.shape.taperSpanMm;
+                    if (spanMm !== undefined && spanMm > 0 && hzPart > 0) {
+                      const t = Math.min(1, Math.max(0, (lcz + hzPart) / spanMm));
+                      const scaleAtZ = topS + (botS - topS) * t;
+                      halfLenLocal = lxPart * (1 - scaleAtZ) / 2 + Math.abs(effLen) / 2 + ROOT_BURY;
+                    }
                   }
                   const halfLenWorld = halfLenLocal * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
@@ -1799,27 +1697,12 @@ export function PerspectiveView({
                     castShadow
                   >
                     {(() => {
-                      const SHRINK_MM = 0.5;
                       // Only shrink the CROSS-SECTION (real z-fight risk against
                       // mortise walls). Keep the long axis at full effLen so the
                       // root face sits flush with the parent's shoulder face —
                       // shrinking it lifts the root by 0.5mm and shows as a gap.
-                      const isLongAxisX = (t.position === "start" || t.position === "end");
-                      const isLongAxisY = (t.position === "top" || t.position === "bottom");
-                      const isLongAxisZ = !isLongAxisX && !isLongAxisY;
-                      const sx = (isLongAxisX ? hx : Math.max(0.05, hx - SHRINK_MM)) * 2 * SCALE;
-                      const sy = (isLongAxisY ? hy : Math.max(0.05, hy - SHRINK_MM)) * 2 * SCALE;
-                      const sz = (isLongAxisZ ? hz : Math.max(0.05, hz - SHRINK_MM)) * 2 * SCALE;
-                      if (useRoundTenon) {
-                        return (
-                          <cylinderGeometry args={[
-                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                            sy,
-                            24,
-                          ]} />
-                        );
-                      }
+                      const primitive = ordinaryTenonPrimitive(t.position, { hx, hy, hz }, useRoundTenon, SCALE);
+                      if (primitive.kind === "round") return <cylinderGeometry args={primitive.args} />;
                       if (shearedGeom) {
                         return (
                           <bufferGeometry>
@@ -1838,7 +1721,7 @@ export function PerspectiveView({
                           </bufferGeometry>
                         );
                       }
-                      return <boxGeometry args={[sx, sy, sz]} />;
+                      return <boxGeometry args={primitive.args} />;
                     })()}
                     <meshStandardMaterial
                       color="#c0392b"
@@ -1897,7 +1780,7 @@ export function PerspectiveView({
           // 不挖時葉片端藏在豎梃實料內、視覺乾淨；joineryMode 仍挖（接合視圖要看槽）。
           const isLouverGroove = (m: { label?: string }) =>
             (m.label ?? "").startsWith("百葉槽");
-          const mortisesToCsg = joineryMode
+          let mortisesToCsg = joineryMode
             ? part.mortises.filter((m) => {
                 if (m.cosmetic) return true;
                 if (isSplayedLeg) return false;
@@ -1905,6 +1788,20 @@ export function PerspectiveView({
                 return true;
               })
             : part.mortises.filter((m) => m.cosmetic && !isLouverGroove(m));
+          // 圓形貫穿裝飾孔一多（狗孔 / holdfast / MFT 格陣 ≥ 6 個）就不 CSG，改畫「塞」——
+          // 每個孔一次 sequential subtraction，20 孔 4.7 秒、手機像當機。托盤手把 pill（3 孔）等少量仍走 CSG。
+          // 盲孔也用塞（塞的長度 = 孔深，外露面看起來一樣是深色圓；工作桌桌底鉗座螺栓孔 ×4）
+          const isPlugHole = (m: { cosmetic?: boolean; shape?: string; through?: boolean; rotX?: number }) =>
+            !!m.cosmetic && m.shape === "round" && !m.rotX;
+          const plugCount = mortisesToCsg.filter(isPlugHole).length;
+          const usePlugs = plugCount >= 6;
+          const mortisesToPlug = usePlugs ? mortisesToCsg.filter(isPlugHole) : [];
+          if (usePlugs) mortisesToCsg = mortisesToCsg.filter((m) => !isPlugHole(m));
+          const toScaled = (m: (typeof part.mortises)[number]): LocalBox => {
+            const lb = mortiseLocalBox(part, m);
+            return { cx: lb.cx * SCALE, cy: lb.cy * SCALE, cz: lb.cz * SCALE, hx: lb.hx * SCALE, hy: lb.hy * SCALE, hz: lb.hz * SCALE, rotX: lb.rotX, rotY: lb.rotY, rotZ: lb.rotZ };
+          };
+          const holeDecalsScaled: LocalBox[] | undefined = mortisesToPlug.length > 0 ? mortisesToPlug.map(toScaled) : undefined;
           const mortiseBoxesScaled: LocalBox[] | undefined =
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => {
@@ -1929,21 +1826,14 @@ export function PerspectiveView({
           // 鳩尾榫 wall-left / wall-right：base box geo 減掉前後板 dovetail tail
           // brush。lift-off 蓋段側板 wall-*-lid 也要套——但只套同段 brush 避免
           // Y=cutY 邊界跟另一段 brush 衝突造成 z-fighting。
-          const isBodySide = part.id === "wall-left" || part.id === "wall-right";
-          const isLidSide = part.id === "wall-left-lid" || part.id === "wall-right-lid";
           // 抽屜半鳩尾：tail carrier 是側板（shape=dovetail-ends），receiver 是
           // 前/後板。drawer-row.ts 生的 part id 格式 `${idPrefix}-${i+1}-(front|back)`，
           // pattern 配 `-\d+-(front|back)$`、跨多 zone / 多 drawer 都對得到。
-          const isDrawerReceiver = /-\d+-(front|back)$/.test(part.id);
-          const partDovetailCuts: Brush[] | undefined =
-            dovetailCutBrushes.length > 0 && (isBodySide || isLidSide || isDrawerReceiver)
-              ? dovetailCutBrushes
-                  .filter((b) => (isLidSide ? b.fromLid : !b.fromLid))
-                  .map((b) => b.brush)
-              : undefined;
+          const partDovetailCuts = dovetailCutsForPart(part, dovetailCutBrushes);
           return (
             <group
               key={part.id}
+              ref={(g: Group | null) => registerGroup(part.id, g)}
               /**
                * ⚠️ 再點同一個零件 = **取消選取**,不要一律 set。
                *
@@ -1962,36 +1852,108 @@ export function PerspectiveView({
                 onPartSelect(nextPartSelection(activeSelectedId, part.id));
               } : undefined}
             >
-              <Part
-                position={[px, py, pz]}
-                size={[
-                  part.visible.length * SCALE,
-                  part.visible.thickness * SCALE,
-                  part.visible.width * SCALE,
-                ]}
-                rotation={openRotation ?? new Euler(
+              {(() => {
+                /**
+                 * 夾板疊層：**每一層畫成真的一塊板**，不是在整塊上用著色器畫線。
+                 *
+                 * 🩸2026-09-05 木頭仁連續十幾輪回報層數數不對（2 像 3、4 像 5、3 又多一條），
+                 * 而且同一份程式碼前後兩次講的還相反。最後量出來真因是：
+                 *   正視圖 2 層 → 1 條線 ✅；45° 同一台 → 2 條線 ❌
+                 * 多的那條是**桌面上表面與前緣面的交界稜線**，長得跟膠合線一模一樣。
+                 * 只要看得到桌面就會多一條 —— 所以「在著色器上畫線」這條路本身就躲不掉，
+                 * 線畫多粗多深都沒用（前面十幾輪都卡在這裡）。
+                 *
+                 * 改成真實幾何後，每層有自己的稜線與陰影，任何角度、任何縮放數到的都是真層數。
+                 * 只在「方塊 + 沒有鳩尾切割」時拆；其餘（異形件、鳩尾件）維持原本單塊路徑。
+                 */
+                const rot = openRotation ?? new Euler(
                   part.rotation?.x ?? 0,
                   part.rotation?.y ?? 0,
                   part.rotation?.z ?? 0,
                   "ZYX",
-                )}
-                color={color}
-                shape={shape}
-                isGlass={part.visual === "glass"}
-                isBrass={part.visual === "brass-antique"}
-                grainDirection={part.grainDirection}
-                mortiseBoxes={mortiseBoxesScaled}
-                mortiseShapes={mortiseShapesArr}
-                dovetailCuts={partDovetailCuts}
-                isSelected={isSelected}
-                isHovered={isHovered}
-                isDimmed={isDimmed}
-                wireframe={wireframeMode}
-                polygonOffset={part.id.startsWith("diamond-")}
-                pushBack={/-louver-\d+$/.test(part.id)}
-              />
+                );
+                const sizeXZ: [number, number] = [
+                  part.visible.length * SCALE,
+                  part.visible.width * SCALE,
+                ];
+                const commonProps = {
+                  rotation: rot,
+                  isGlass: part.visual === "glass",
+                  isBrass: part.visual === "brass-antique",
+                  grainDirection: part.grainDirection,
+                  isPly: part.materialOverride === "plywood",
+                  mortiseShapes: mortiseShapesArr,
+                  isSelected,
+                  isHovered,
+                  isDimmed,
+                  wireframe: wireframeMode,
+                  polygonOffset: part.id.startsWith("diamond-"),
+                  pushBack: /-louver-\d+$/.test(part.id),
+                } as const;
+                const plyLayers = part.panelSplit === "thickness" ? (part.panelPieces ?? 1) : 1;
+                const canSplit = plyLayers > 1 && !shape && !partDovetailCuts;
+                if (!canSplit) {
+                  return (
+                    <Part
+                      {...commonProps}
+                      position={[px, py, pz]}
+                      size={[sizeXZ[0], part.visible.thickness * SCALE, sizeXZ[1]]}
+                      color={color}
+                      shape={shape}
+                      boardPieces={part.panelPieces}
+                      boardThin={part.panelSplit === "thickness"}
+                      mortiseBoxes={mortiseBoxesScaled}
+                      holeDecals={holeDecalsScaled}
+                      dovetailCuts={partDovetailCuts}
+                    />
+                  );
+                }
+                /**
+                 * ⭐ 疊層要切「**最小的那一維**」，不是 `visible.thickness`。
+                 * 🩸2026-09-05 木頭仁：「腳的層數也不見了」——桌腳的 `visible.thickness`
+                 * 裝的是**腳高**（776mm），照它切等於把腳沿高度剁成幾段，看起來就跟沒切一樣。
+                 * 這條規則跟料單 / cutplan / 原本的著色器是同一套（見 wood-shader 檔頭）。
+                 */
+                const dimsMm: Array<{ i: 0 | 1 | 2; mm: number }> = [
+                  { i: 0, mm: part.visible.length },
+                  { i: 1, mm: part.visible.thickness },
+                  { i: 2, mm: part.visible.width },
+                ];
+                const thinAxis = dimsMm.reduce((a, b) => (b.mm < a.mm ? b : a));
+                const fullSize: [number, number, number] = [
+                  sizeXZ[0], part.visible.thickness * SCALE, sizeXZ[1],
+                ];
+                return plyLayerBoxes(thinAxis.mm * SCALE, plyLayers, SCALE).map(({ dy, thick: layerThick }, i) => {
+                  const dir = new Vector3(0, 0, 0);
+                  dir.setComponent(thinAxis.i, dy);
+                  const off = dir.applyEuler(rot);
+                  const shift = (b: LocalBox): LocalBox => ({
+                    ...b,
+                    cx: thinAxis.i === 0 ? b.cx - dy : b.cx,
+                    cy: thinAxis.i === 1 ? b.cy - dy : b.cy,
+                    cz: thinAxis.i === 2 ? b.cz - dy : b.cz,
+                  });
+                  const layerSize = [...fullSize] as [number, number, number];
+                  layerSize[thinAxis.i] = layerThick;
+                  return (
+                    <Part
+                      key={`ply-${i}`}
+                      {...commonProps}
+                      position={[px + off.x, py + off.y, pz + off.z]}
+                      size={layerSize}
+                      // 真實夾板每層深淺本來就不同；奇偶交替保證相鄰兩層不同色
+                      color={shadeHex(color, i % 2 === 0 ? 1.0 : 0.94)}
+                      mortiseBoxes={mortiseBoxesScaled?.map(shift)}
+                      holeDecals={holeDecalsScaled?.map(shift)}
+                    />
+                  );
+                });
+              })()}
               {tenonMeshes}
               {auditOverlay}
+              {assemblyOn && screwsByMother.get(part.id)?.map((sc) => (
+                <ScrewMesh key={sc.id} spec={sc} scale={SCALE} register={registerGroup} />
+              ))}
             </group>
           );
         })}
@@ -2022,6 +1984,40 @@ export function PerspectiveView({
           onApplied={() => setViewPreset(null)}
         />
         <InvalidateOnDep dep={activeSelectedId} />
+        <AssemblyDriver
+          plan={assemblyPlan}
+          playing={assemblyPlaying}
+          clockRef={assemblyClockRef}
+          groups={partGroupRefs}
+          scale={SCALE}
+          scrubNonce={assemblyScrubNonce}
+          canvasRef={glCanvasRef}
+          onTick={onAssemblyTick}
+          orbit={cameraOrbit}
+        />
+        {exportTarget && <RecorderTap target={exportTarget} />}
+        {assemblyOn && duckOn && assemblyPlan && (
+          <CoffeeDuck
+            // 在 +x 側、爆炸零件（travel）再外面一點的走道上沿 z 來回跑；
+            // 路線只到家具前後緣再多一點，太外面會被預設鏡頭切掉
+            path={{
+              x: (design.overall.length / 2 + travelMm(design) + 90) * SCALE,
+              zMin: -(design.overall.width / 2 + 60) * SCALE,
+              zMax: (design.overall.width / 2 + 60) * SCALE,
+            }}
+            perch={(() => {
+              // 有座板（凳 / 椅）→ 坐在座面中央；否則站在家具頂面中央
+              const seat = design.parts.find((p) => p.id === "seat");
+              return seat
+                ? { x: seat.origin.x * SCALE, y: (seat.origin.y + worldExtents(seat).yExt) * SCALE, z: seat.origin.z * SCALE, sit: true }
+                : { x: 0, y: design.overall.thickness * SCALE, z: 0, sit: false };
+            })()}
+            scale={Math.min(480, Math.max(240, design.overall.thickness * 0.5)) * SCALE}
+            playing={assemblyPlaying}
+            clockRef={assemblyClockRef}
+            jumpAtMs={assemblyPlan.steps.length ? assemblyPlan.steps[assemblyPlan.steps.length - 1].endMs : 0}
+          />
+        )}
       </Canvas>
       {/**
         * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
@@ -2051,9 +2047,345 @@ export function PerspectiveView({
   );
 }
 
+/** 整段組裝動畫相機水平轉的總角度 */
+const ORBIT_TOTAL_DEG = 120;
+const ORBIT_UP = new Vector3(0, 1, 0);
+
+/**
+ * 組裝動畫驅動器（掛在 <Canvas> 裡）。
+ * 每幀：推進時鐘 → offsetsAt(t) → 直接改每個零件 <group> 的 position。
+ * 不碰 React state（時鐘在 ref），零件樹不會重 render；UI 文字每 100ms 回報一次。
+ * 播放中每幀 invalidate()，所以 frameloop 在 demand 模式也會一直畫；播完就停，
+ * 不會回到「靜置時空燒」（見 useSmartFrameloop）。
+ */
+function AssemblyDriver({
+  plan,
+  playing,
+  clockRef,
+  groups,
+  scale,
+  scrubNonce,
+  canvasRef,
+  onTick,
+  orbit = true,
+}: {
+  plan: AssemblyPlan | null;
+  playing: boolean;
+  clockRef: MutableRefObject<number>;
+  groups: MutableRefObject<Map<string, Group>>;
+  scale: number;
+  scrubNonce: number;
+  canvasRef: MutableRefObject<HTMLCanvasElement | null>;
+  onTick: (tMs: number, done: boolean) => void;
+  /** 播放期間相機繞 Y 軸慢轉（整段動畫約 ORBIT_TOTAL_DEG 度） */
+  orbit?: boolean;
+}) {
+  const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as { target: Vector3; update: () => void } | null;
+  useEffect(() => { canvasRef.current = gl.domElement; }, [gl, canvasRef]);
+  const lastUi = useRef(0);
+  /**
+   * 還沒輪到的零件先當「虛影」（15% 透明、不投影），輪到時在前 30% 的時間淡入成實體，
+   * 不然堆在爆炸位置的零件會擋住正在組的地方（2026-09-02 木頭仁：「還沒進入組裝程序的
+   * 材料是不是要透明 不然會擋住」）。材質是每個 mesh 自己的（JSX 各建一份），直接改
+   * opacity；React 那邊 opacity prop 沒變就不會蓋回來。關掉動畫時全部還原。
+   */
+  const ghostRef = useRef(new Map<string, number>());
+  const setGhost = useCallback((g: Group, id: string, alpha: number) => {
+    const prev = ghostRef.current.get(id);
+    if (prev !== undefined && Math.abs(prev - alpha) < 0.01) return;
+    ghostRef.current.set(id, alpha);
+    g.traverse((obj) => {
+      if (!(obj instanceof Mesh)) return;
+      // 螺絲掛在母件 group 底下，但它們自己管顯示（appearMs），不跟著變虛影；
+      // 而且一旦被改成 transparent 就會進透明排序、從木頭裡透出來
+      if (obj.userData.isScrew) return;
+      const mats: Material[] = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of mats) {
+        if (!m) continue;
+        if (m.userData.baseOpacity === undefined) {
+          m.userData.baseOpacity = m.opacity;
+          m.userData.baseTransparent = m.transparent;
+          m.userData.baseDepthWrite = m.depthWrite;
+        }
+        const solid = alpha >= 0.999;
+        m.transparent = solid ? (m.userData.baseTransparent as boolean) : true;
+        m.opacity = solid ? (m.userData.baseOpacity as number) : (m.userData.baseOpacity as number) * alpha;
+        m.depthWrite = solid ? (m.userData.baseDepthWrite as boolean) : false;
+        m.needsUpdate = true;
+      }
+      if (obj.userData.baseCastShadow === undefined) obj.userData.baseCastShadow = obj.castShadow;
+      obj.castShadow = alpha >= 0.999 ? (obj.userData.baseCastShadow as boolean) : false;
+    });
+  }, []);
+  const apply = useCallback((t: number) => {
+    const offs = plan ? offsetsAt(plan, t) : null;
+    const screwIds = new Set((plan?.screws ?? []).map((sc) => sc.id));
+    for (const [id, g] of groups.current) {
+      const o = offs?.get(id);
+      if (o) g.position.set(o.x * scale, o.y * scale, o.z * scale);
+      else g.position.set(0, 0, 0);
+      if (screwIds.has(id)) continue;
+      // 虛影：第一筆 move 開始前 0.15，開始後前 30% 淡入
+      let alpha = 1;
+      if (plan) {
+        const idx = plan.partMoves[id];
+        if (idx && idx.length > 0) {
+          const first = plan.moves[idx[0]];
+          const span = Math.max(1, (first.endMs - first.startMs) * 0.3);
+          const p = (t - first.startMs) / span;
+          alpha = p <= 0 ? 0.15 : p >= 1 ? 1 : 0.15 + 0.85 * p;
+        }
+      }
+      setGhost(g, id, alpha);
+    }
+    // 螺絲：鎖入前不顯示
+    for (const sc of plan?.screws ?? []) {
+      const g = groups.current.get(sc.id);
+      if (g) g.visible = t >= sc.appearMs;
+    }
+  }, [plan, groups, scale, setGhost]);
+  // 關掉 / 拖滑桿 / 換設計 → 套一次、重繪一幀
+  useEffect(() => { apply(clockRef.current); invalidate(); }, [apply, scrubNonce, clockRef, invalidate]);
+  useFrame((_, delta) => {
+    if (!plan || !playing) return;
+    const dt = Math.min(delta, 0.1) * 1000;
+    const t = Math.min(plan.totalMs, clockRef.current + dt);
+    clockRef.current = t;
+    apply(t);
+    // 運鏡：繞著 OrbitControls 的 target 水平轉，角速度 = 總角度 / 總時長
+    if (orbit && controls && plan.totalMs > 0) {
+      const ang = (ORBIT_TOTAL_DEG * Math.PI / 180) * (dt / plan.totalMs);
+      const off = camera.position.clone().sub(controls.target);
+      off.applyAxisAngle(ORBIT_UP, ang);
+      camera.position.copy(controls.target).add(off);
+      camera.lookAt(controls.target);
+      controls.update();
+    }
+    invalidate();
+    const now = performance.now();
+    if (t >= plan.totalMs) onTick(t, true);
+    else if (now - lastUi.current > 100) { lastUi.current = now; onTick(t, false); }
+  });
+  return null;
+}
+
+/**
+ * 組裝版的螺絲：外層 group 給動畫位移（跟零件一樣走 offsetsAt），內層擺頭 + 桿。
+ * 圓柱幾何預設沿 local +y，用四元數轉到「鎖入方向」；頭在木頭外面（−y 側）。
+ * `visible={false}` 是常數 prop，React 重繪不會再套回去；顯示與否由 AssemblyDriver 控制。
+ */
+function ScrewMesh({ spec, scale, register }: { spec: ScrewSpec; scale: number; register: (id: string, g: Group | null) => void }) {
+  const quat = useMemo(
+    () => new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(spec.axis.x, spec.axis.y, spec.axis.z).normalize()),
+    [spec.axis.x, spec.axis.y, spec.axis.z],
+  );
+  const L = spec.lengthMm * scale;
+  return (
+    <group ref={(g: Group | null) => register(spec.id, g)} visible={false}>
+      <group position={[spec.head.x * scale, spec.head.y * scale, spec.head.z * scale]} quaternion={quat}>
+        {/* 頭沉進木頭（埋頭）：只露 0.3mm，從側面看不會像一條黑槓突出來；
+            用 userData.isScrew 讓虛影邏輯跳過（2026-09-02 木頭仁：「會看到螺絲 透視進去了」） */}
+        <mesh position={[0, 0.95 * scale, 0]} userData={{ isScrew: true }}>
+          <cylinderGeometry args={[4 * scale, 3.2 * scale, 2.5 * scale, 18]} />
+          <meshStandardMaterial color="#2f2f2f" metalness={0.85} roughness={0.35} />
+        </mesh>
+        <mesh position={[0, L / 2, 0]} userData={{ isScrew: true }}>
+          <cylinderGeometry args={[1.7 * scale, 1.7 * scale, L, 10]} />
+          <meshStandardMaterial color="#565656" metalness={0.85} roughness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * 錄影分接頭：掛著的時候接管渲染（useFrame priority 1 會關掉 R3F 自動 render），
+ * 自己 render 完馬上把 WebGL 畫布複製到 2D 目標畫布——先鋪跟頁面一樣的淺灰漸層底，
+ * 再疊 WebGL 幀。錄的是 2D 畫布：
+ * - WebGL canvas 沒開 preserveDrawingBuffer 時 captureStream 在 Safari 會拿到定格
+ *   （2026-09-02 木頭仁：「輸出的組裝動畫是不會動的」）；同一個 task 內 drawImage 拿得到。
+ * - WebGL 透明背景直接錄出來是黑的（同日：「影片空間是黑色的」）。
+ * 掛載期間把 dpr 拉到 2（畫質），卸載還原。
+ */
+function RecorderTap({ target }: { target: HTMLCanvasElement }) {
+  const gl = useThree((s) => s.gl);
+  const setDpr = useThree((s) => s.setDpr);
+  const prevDpr = useRef<number | null>(null);
+  useEffect(() => {
+    prevDpr.current = gl.getPixelRatio();
+    setDpr(Math.min(2, (typeof window !== "undefined" ? window.devicePixelRatio : 1) * 1.5 || 2));
+    target.dataset.assemblyExport = "1";
+    return () => { if (prevDpr.current !== null) setDpr(prevDpr.current); };
+  }, [gl, setDpr, target]);
+  useFrame(({ gl: r, scene, camera }) => {
+    r.render(scene, camera);
+    const src = r.domElement;
+    if (target.width !== src.width || target.height !== src.height) {
+      target.width = src.width;
+      target.height = src.height;
+    }
+    const ctx = target.getContext("2d");
+    if (!ctx) return;
+    const grad = ctx.createLinearGradient(0, 0, 0, target.height);
+    grad.addColorStop(0, "#fafafa");
+    grad.addColorStop(1, "#e4e4e7");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, target.width, target.height);
+    ctx.drawImage(src, 0, 0, target.width, target.height);
+  }, 1);
+  return null;
+}
+
+function AssemblyControls({
+  plan,
+  design,
+  locale,
+  playing,
+  tMs,
+  compact,
+  exporting,
+  exportAspect,
+  exportMsg,
+  onPlayPause,
+  onReplay,
+  onSeek,
+  onClose,
+  onExport,
+  onAspect,
+  orbit,
+  onOrbit,
+  duck,
+  onDuck,
+}: {
+  plan: AssemblyPlan;
+  design: FurnitureDesign;
+  locale: string;
+  playing: boolean;
+  tMs: number;
+  compact: boolean;
+  exporting: { pct: number } | null;
+  exportAspect: "current" | "portrait" | "square";
+  exportMsg: string | null;
+  onPlayPause: () => void;
+  onReplay: () => void;
+  onSeek: (tMs: number) => void;
+  onClose: () => void;
+  onExport: () => void;
+  onAspect: (a: "current" | "portrait" | "square") => void;
+  orbit: boolean;
+  onOrbit: (v: boolean) => void;
+  duck: boolean;
+  onDuck: (v: boolean) => void;
+}) {
+  const t = useTranslations("perspectiveView");
+  const step = plan.steps[stepIndexAt(plan, tMs)];
+  // 同名零件合併計數：「凳腳 1、凳腳 2、凳腳 3、凳腳 4」→「凳腳 ×4」
+  const counts = new Map<string, number>();
+  for (const id of step.partIds) {
+    const p = design.parts.find((pp) => pp.id === id);
+    const base = (p ? partName(p, locale) : id).replace(/\s*\d+$/, "");
+    counts.set(base, (counts.get(base) ?? 0) + 1);
+  }
+  const names = Array.from(counts, ([n, c]) => (c > 1 ? `${n} ×${c}` : n));
+  const sep = locale === "en" ? ", " : "、";
+  const shown =
+    names.slice(0, 3).join(sep) +
+    (names.length > 3 ? " " + t("assemblyMoreTpl", { n: names.length - 3 }) : "");
+  const label = t("assemblyStepTpl", { n: step.index + 1, total: plan.steps.length, names: shown });
+  const btn = "shrink-0 px-2 py-0.5 text-xs font-medium rounded ring-1 ring-zinc-200 bg-white text-zinc-700 hover:ring-amber-400 hover:bg-amber-50 disabled:opacity-40 transition";
+  return (
+    <div data-testid="assembly-controls" className="shrink-0 border-b border-amber-200/70 bg-amber-50/80 px-2 py-1 text-xs">
+      <div className="flex items-center gap-1.5 overflow-x-auto">
+        <button type="button" className={btn} onClick={onPlayPause} disabled={!!exporting} data-testid="assembly-play">
+          {playing ? t("assemblyPause") : t("assemblyPlay")}
+        </button>
+        <button type="button" className={btn} onClick={onReplay} disabled={!!exporting} title={t("assemblyReplay")}>
+          ↺
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={plan.totalMs}
+          step={10}
+          value={Math.min(tMs, plan.totalMs)}
+          onChange={(e) => onSeek(Number(e.target.value))}
+          disabled={!!exporting}
+          className="flex-1 min-w-[72px] accent-amber-600"
+          aria-label={label}
+          data-testid="assembly-scrub"
+        />
+        <button
+          type="button"
+          className={`${btn} ${orbit ? "bg-amber-100 ring-amber-300" : ""}`}
+          onClick={() => onOrbit(!orbit)}
+          disabled={!!exporting}
+          title={t("assemblyOrbitTitle")}
+          aria-pressed={orbit}
+          data-testid="assembly-orbit"
+        >
+          {t("assemblyOrbit")}
+        </button>
+        <button
+          type="button"
+          className={`${btn} ${duck ? "bg-amber-100 ring-amber-300" : ""}`}
+          onClick={() => onDuck(!duck)}
+          disabled={!!exporting}
+          title={t("assemblyDuckTitle")}
+          aria-pressed={duck}
+          data-testid="assembly-duck"
+        >
+          🦆
+        </button>
+        {!compact && (
+          <select
+            value={exportAspect}
+            onChange={(e) => onAspect(e.target.value as "current" | "portrait" | "square")}
+            disabled={!!exporting}
+            className="shrink-0 rounded ring-1 ring-zinc-200 bg-white px-1 py-0.5 text-xs text-zinc-700"
+            title={t("assemblyAspectLbl")}
+          >
+            <option value="current">{t("assemblyAspectCurrent")}</option>
+            <option value="portrait">{t("assemblyAspectPortrait")}</option>
+            <option value="square">{t("assemblyAspectSquare")}</option>
+          </select>
+        )}
+        <button
+          type="button"
+          className={`${btn} ${exporting ? "" : "text-amber-900 ring-amber-300"}`}
+          onClick={onExport}
+          disabled={!!exporting}
+          title={t("assemblyExportTitle")}
+          data-testid="assembly-export"
+        >
+          {exporting ? t("assemblyExportingTpl", { pct: exporting.pct }) : t("assemblyExport")}
+        </button>
+        <button type="button" className={btn} onClick={onClose} disabled={!!exporting} title={t("assemblyClose")}>
+          ✕
+        </button>
+      </div>
+      {/* 步驟文字獨立一行：塞在滑桿旁邊時文字長度一變滑桿就跟著伸縮（2026-09-02 木頭仁回報「晃動」） */}
+      <div className="mt-0.5 truncate text-[11px] text-zinc-700" data-testid="assembly-step">{label}</div>
+      {exportMsg && <div className="mt-0.5 text-[11px] text-zinc-600" data-testid="assembly-export-msg">{exportMsg}</div>}
+    </div>
+  );
+}
+
 type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero" | "fit";
 
-function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset) => void; hasLid?: boolean }) {
+function ViewPresetBar({
+  onSelect,
+  hasLid = false,
+  assemblyOn = false,
+  onToggleAssembly,
+}: {
+  onSelect: (p: ViewPreset) => void;
+  hasLid?: boolean;
+  assemblyOn?: boolean;
+  onToggleAssembly?: () => void;
+}) {
   const t = useTranslations("perspectiveView");
   const router = useRouter();
   const pathname = usePathname();
@@ -2129,6 +2461,21 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
         >
           {t("wireframeLabel")}
         </button>
+        {onToggleAssembly && (
+          <button
+            type="button"
+            title={t("assemblyTitle")}
+            onClick={onToggleAssembly}
+            data-testid="assembly-toggle"
+            className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+              assemblyOn
+                ? "bg-amber-600 text-white ring-amber-700"
+                : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+            }`}
+          >
+            {t("assemblyBtn")}
+          </button>
+        )}
         <button
           type="button"
           title={

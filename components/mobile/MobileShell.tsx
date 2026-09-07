@@ -14,11 +14,13 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { WorkbenchOptionGroups } from "@/components/design/WorkbenchOptionGroups";
 import { DesignHistoryControls } from "@/components/design/DesignHistoryControls";
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { useUnit } from "@/hooks/useUnit";
 import { formatDimensions } from "@/lib/units/format";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
+import { ShareDesignButton } from "@/components/design/ShareDesignButton";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
 import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
 import { MobileTopBar } from "./MobileTopBar";
@@ -58,6 +60,9 @@ interface MobileShellProps {
   lineShareText: string;
   formAction: string;
   currentDesignId?: string | null;
+  savedRevision?: string | null;
+  hasUnsavedChanges?: boolean;
+  saveParams?: Record<string, unknown>;
   wireframeMode?: boolean;
   joineryMode?: boolean;
   designerMode?: boolean;
@@ -72,6 +77,8 @@ interface MobileShellProps {
   explodeMm?: number;
   /** X-ray 透視模式 */
   xrayMode?: "off" | "face" | "full";
+  /** 組裝動畫排程（server 用原始設計算好） */
+  assemblyPlan?: import("@/lib/assembly/plan").AssemblyPlan | null;
 }
 
 export function MobileShell(props: MobileShellProps) {
@@ -174,10 +181,11 @@ export function MobileShell(props: MobileShellProps) {
   // 分流 spec 到 4 tab。先匹配美學 / 榫接，剩下的全進「結構」當 catch-all（避免漏選項）。
   const inGroup = (s: OptionSpec, keywords: string[]) =>
     keywords.some((k) => s.key.toLowerCase().includes(k));
-  const styleSpecs = optionSchema.filter((s) =>
+  const isWorkbench = entry.category === "workbench";
+  const styleSpecs = isWorkbench ? [] : optionSchema.filter((s) =>
     inGroup(s, ["edge", "handle", "grain", "pull", "hardware", "knob", "finish"]),
   );
-  const joinerySpecs = optionSchema.filter((s) =>
+  const joinerySpecs = isWorkbench ? [] : optionSchema.filter((s) =>
     inGroup(s, ["joinery", "tenon", "mortise", "joint"]) && !styleSpecs.includes(s),
   );
   const structureSpecs = optionSchema.filter(
@@ -209,6 +217,7 @@ export function MobileShell(props: MobileShellProps) {
     height,
     material,
     joineryMode: props.joineryMode,
+    designerMode: props.designerMode ?? false,
     options: optionValues,
   };
   const saveName = `${entry.nameZh} ${length}×${width}×${height}`;
@@ -231,11 +240,17 @@ export function MobileShell(props: MobileShellProps) {
         {Object.entries(optionValues).map(([k, v]) => (
           <input key={`main-hidden-${k}`} type="hidden" name={k} value={String(v)} />
         ))}
-        {/* 3D viewer：sticky 釘在 TopBar (56px) 下；3D + TopBar 合計約 1/3 viewport */}
-        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
+        {/* 3D viewer：sticky 釘在 TopBar (56px) 下。
+            原本固定 220px（3D + TopBar 約 1/3 viewport），2026-09-02 木頭仁：「手機版圖面太小了 再拉高一些」
+            → 跟螢幕高走：52vh，夾在 320~460px（iPhone 13 Safari 視窗約 664px → 345px，扣掉視角列後畫布約 290px，原本 167px；組裝動畫控制列還會吃掉約 46px） */}
+        <div className={`${advancedOpen ? "sticky top-[56px] z-10" : "relative"} -mx-4 px-4 py-1`}>
           <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
-            <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} />
+            {/* 進階設定面板（AdvancedSheet）打開時 3D 縮成 clamp(220px, 36dvh, 320px)，
+                面板頂端 = 這個高度 + 76（TopBar 56 + padding 8 + 外框 12），兩邊同一條式子、要一起改。
+                （2026-09-02 木頭仁先說「進階設定點出來會蓋住圖」，縮到面板上方後又說「圖就變得太小了」
+                → 改成 3D 保留 36dvh、面板往下讓；iPhone 13：3D 239 / 畫布約 186 / 面板高 349） */}
+            <div style={{ height: advancedOpen ? "clamp(220px, 36dvh, 320px)" : "clamp(320px, 52vh, 460px)", transition: "height 200ms ease" }}>
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} assemblyPlan={props.assemblyPlan} />
             </div>
           </div>
         </div>
@@ -355,12 +370,17 @@ export function MobileShell(props: MobileShellProps) {
               furnitureType={entry.category}
               defaultName={saveName}
               currentDesignId={props.currentDesignId}
-              params={saveParams}
+              params={props.saveParams ?? saveParams}
+            />
+            <ShareDesignButton
+              savedDesignId={props.currentDesignId}
+              savedRevision={props.savedRevision}
+              hasUnsavedChanges={props.hasUnsavedChanges}
             />
             <button
               type="button"
               onClick={() => setAdvancedOpen(true)}
-              className="min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
+              className="col-span-2 min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
             >
               {t("form.advanced")}
             </button>
@@ -401,7 +421,7 @@ export function MobileShell(props: MobileShellProps) {
             補進 MobileShell。面板自身已響應式(grid-cols-2)、含 modal 全圖。 */}
         <PartDrawingsPanel design={design} />
 
-        <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.length })}>
+        <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.filter((p) => p.visual === undefined).length })}>
           <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
             <span className="leading-snug">{t("section.cutListNotice")}</span>
             <a
@@ -474,7 +494,7 @@ export function MobileShell(props: MobileShellProps) {
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">{t("advancedSheet.noStructure")}</div>
             ) : (
-              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
+              <GroupedSpecs workbench={isWorkbench} specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
             )}
             </fieldset>
           </DesignFormShell>
@@ -674,12 +694,14 @@ export function MobileShell(props: MobileShellProps) {
  * 解決手機進階設定一連串選項看不出哪幾項屬於上層 / 中層 / 下層 / 抽屜 / 門板 的問題。
  */
 function GroupedSpecs({
+  workbench = false,
   specs,
   optionValues,
   overallHeight,
   overallLength,
   allPartIds,
 }: {
+  workbench?: boolean;
   specs: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   overallHeight?: number;
@@ -687,6 +709,11 @@ function GroupedSpecs({
   allPartIds?: string[];
 }) {
   const locale = useLocale();
+  if (workbench) return (
+    <WorkbenchOptionGroups specs={specs} locale={locale} mobile renderField={(s) => (
+      <MobileOptionField key={`${s.key}-${String(optionValues[s.key])}`} spec={s} value={optionValues[s.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} allPartIds={allPartIds} />
+    )} />
+  );
   const groups = groupSpecsByGroup(specs);
   return (
     <>

@@ -38,6 +38,8 @@ export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
   ash: 150,
   beech: 120,
   pine: 80,
+  // 南方松：2×4 12 呎（實際 38×89×3600 ≈ 5.2 板呎）NT$300~420 → 約 60~80/板呎（2026-09 蝦皮 / 木材行）
+  "southern-pine": 70,
   teak: 300, // 估算（使用者未提供）
   "douglas-fir": 90, // 估算（花旗松比松木略貴）
   // —— 板材類（裝潢用）——

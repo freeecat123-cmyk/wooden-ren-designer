@@ -352,7 +352,23 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const railLegSizeAtBot = legSize * legScaleAt(sideRailY, legHeight, bottomScale);
   // rail Y 區間內腳的「最大」cross-section — 用來算 rail span，避免 tapered/inverted 任一方向腳寬都不會跟 rail 干涉
   const railLegSizeMax = Math.max(railLegSizeAtTop, railLegSizeAtBot, railLegSizeAtCenter);
-  const sideRailInnerSpan = 2 * apronEdgeX - railLegSizeMax;
+  /**
+   * 🩸 舊寫法 side rail 長度取「rail 高度區間內腳最寬處」且端面直切 → 錐腳/倒錐腳時
+   *    只有一個角碰到腳，另一角開口成楔形縫（倒錐腳上緣 7.2mm、錐腳下緣 13mm；
+   *    2026-09-02 三視圖實畫稽核）。改成跟桌類牙條一樣：長度對到 rail 中心高度的腳面，
+   *    端面做 apron-trapezoid 貼著腳的斜面。bottomScale=1（直腳）時三個值相同 → byte 不變。
+   */
+  const sideRailInnerSpan = 2 * apronEdgeX - railLegSizeAtCenter;
+  const sideRailTrapTop = sideRailInnerSpan > 0 ? (2 * apronEdgeX - railLegSizeAtTop) / sideRailInnerSpan : 1;
+  const sideRailTrapBot = sideRailInnerSpan > 0 ? (2 * apronEdgeX - railLegSizeAtBot) / sideRailInnerSpan : 1;
+  const sideRailIsTrap = bottomScale !== 1;
+  // ledger 貼在 rail 內側、比 rail 矮；它自己高度區間內取腳最寬處（直切端，楔形縫 ≤ ledger 高 × 斜率）
+  const ledgerY0 = mattressClearanceMm - slatThicknessMm - ledgerWidthMm;
+  const ledgerLegSizeMax = Math.max(
+    legSize * legScaleAt(ledgerY0, legHeight, bottomScale),
+    legSize * legScaleAt(ledgerY0 + ledgerWidthMm, legHeight, bottomScale),
+  );
+  const ledgerInnerSpan = 2 * apronEdgeX - ledgerLegSizeMax;
   // headboard / footboard 從地板 y=0 到頂端橫跨整個腳高，要考慮 y=0 的腳底寬（inverted 腳底較寬）
   const headLegSizeAtFloor = legSize * legScaleAt(0, legHeight, bottomScale);
   const headLegSizeMax = Math.max(railLegSizeMax, headLegSizeAtFloor);
@@ -381,7 +397,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: sideRailInnerSpan, width: sideRailWidthFinal, thickness: sideRailThickness },
       origin: { x: 0, y: sideRailY, z: sz * apronEdgeZ },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+      // 錐腳/倒錐腳：端面梯形貼腳斜面（同桌類牙條）；直腳維持原造型邊
+      shape: sideRailIsTrap
+        ? { kind: "apron-trapezoid" as const, topLengthScale: sideRailTrapTop, bottomLengthScale: sideRailTrapBot }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
       tenons: [
         {
           position: "start",
@@ -424,7 +443,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh,
       material,
       grainDirection: "length",
-      visible: { length: sideRailInnerSpan, width: ledgerWidthMm, thickness: ledgerThicknessMm },
+      visible: { length: ledgerInnerSpan, width: ledgerWidthMm, thickness: ledgerThicknessMm },
       origin: { x: 0, y: ledgerY, z: ledgerCenterZ },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
@@ -436,6 +455,16 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   // 跨在頭端兩腳之間（Z 軸長度 = 兩頭腳內面距離）
   // headStyle="panel" 整片立板；"spindled" 改頂底兩橫木 + N 直柵欄；其他 silhouette 變化共用 panel 結構
   const headLegInnerSpan = 2 * apronEdgeZ - headLegSizeMax;
+  /**
+   * 床頭板／床尾板本體（panel 系）：板從地板立到腳頂以上。錐腳/倒錐腳時腳的內面是斜的，
+   * 舊寫法拿「腳最寬處」直切端面 → 倒錐腳在腳頂 10mm 楔形縫、錐腳在地板 18mm（2026-09-02）。
+   * 改成：長度對到**腳頂**的內面、端面用 apron-trapezoid 且只在 0~腳高 這段貼斜面（taperSpanMm），
+   * 腳頂以上維持垂直邊。直腳時三個值相同 → byte 不變。其他 head 樣式的橫檔仍走 headLegInnerSpan。
+   */
+  const headPanelSpan = 2 * apronEdgeZ - railLegSizeAtTop;
+  const headPanelShape: Part["shape"] = bottomScale !== 1 && headPanelSpan > 0
+    ? { kind: "apron-trapezoid", topLengthScale: (2 * apronEdgeZ - headLegSizeAtFloor) / headPanelSpan, bottomLengthScale: 1, taperSpanMm: legHeight }
+    : undefined;
   const headboardX = -apronEdgeX; // 頭端
 
   const headParts: Part[] = [];
@@ -557,9 +586,11 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "床頭板",
       material,
       grainDirection: "length",
-      visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
+      visible: { length: headPanelSpan, width: headboardPlateHeight, thickness: headboardThickness },
       // origin.y = 板底（renderer 把 origin.y 當底部）；板從地板 0 到 headboardPlateHeight
       origin: { x: headboardX, y: 0, z: 0 },
+      // local −Z = 地板那邊（Rx(-π/2)Ry(-π/2) 後 local +Z → world +Y），所以 topLengthScale = 地板處
+      ...(headPanelShape ? { shape: headPanelShape } : {}),
       // 雙軸 Rx(-π/2) Ry(-π/2)：依 pushPoint 的 Rx→Ry→Rz 順序計算：
       // - local +X(length=headLegInnerSpan) → world +Z（跨床寬）
       // - local +Y(thickness=25) → world +X（朝 head 端薄厚）
@@ -682,9 +713,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "床尾板",
       material,
       grainDirection: "length",
-      visible: { length: headLegInnerSpan, width: footPlateHeight, thickness: footboardThickness },
+      visible: { length: headPanelSpan, width: footPlateHeight, thickness: footboardThickness },
       origin: { x: apronEdgeX, y: 0, z: 0 },
       rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+      ...(headPanelShape ? { shape: headPanelShape } : {}),
       tenons: [
         {
           position: "start",
@@ -717,8 +749,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const ledgerInnerSpanZ = 2 * apronEdgeZ - 2 * (sideRailThickness) - 2 * (ledgerThicknessMm / 2);
   // slat 跨距（簡化）：從一邊 ledger 中心線到另一邊，= 2 × (apronEdgeZ - sideRailThickness/2 - ledgerThickness/2)
   const slatLengthZ = 2 * apronEdgeZ - 2 * sideRailThickness; // 留 ledger 上面足夠承接
-  const slatCount = Math.max(3, Math.floor((sideRailInnerSpan - slatWidthMm) / (slatWidthMm + slatGapMm)) + 1);
-  const slatPitch = slatCount > 1 ? (sideRailInnerSpan - slatWidthMm) / (slatCount - 1) : 0;
+  // 床板排在腳頂面之間（床板在 rail 頂緣高度，錐腳那裡最寬）；直腳時＝sideRailInnerSpan，byte 不變
+  const slatLayoutSpan = 2 * apronEdgeX - railLegSizeAtTop;
+  const slatCount = Math.max(3, Math.floor((slatLayoutSpan - slatWidthMm) / (slatWidthMm + slatGapMm)) + 1);
+  const slatPitch = slatCount > 1 ? (slatLayoutSpan - slatWidthMm) / (slatCount - 1) : 0;
   const slatTopY = mattressClearanceMm;
   const slatOriginY = slatTopY - slatThicknessMm / 2;
 
@@ -726,7 +760,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   for (let i = 0; i < slatCount; i++) {
     const x = slatCount === 1
       ? 0
-      : -sideRailInnerSpan / 2 + slatWidthMm / 2 + i * slatPitch;
+      : -slatLayoutSpan / 2 + slatWidthMm / 2 + i * slatPitch;
     slats.push({
       id: `slat-${i + 1}`,
       nameZh: `床板條 ${i + 1}`,

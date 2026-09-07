@@ -9,11 +9,12 @@ import { isExpiredPastGrace } from "@/lib/pricing/expiry";
 export type PlanId = "free" | "personal" | "pro" | "lifetime" | "student";
 
 /**
- * 免費版可訪問的家具範本——「練習小物」2 種。
+ * 免費版可訪問的家具範本——「練習小物」2 種 + 木工工作桌（2026-09-03 木頭仁：「工作桌我想用送的」）。
  */
 export const FREE_UNLOCKED_CATEGORIES: FurnitureCategory[] = [
   "stool",          // 方凳（椅凳練習）
   "pencil-holder",  // 筆筒（小物件練習）
+  "workbench",      // 木工工作桌（免費送：每個木工都要先有一張桌）
 ];
 
 /** 該分類是否需要付費才能進 */

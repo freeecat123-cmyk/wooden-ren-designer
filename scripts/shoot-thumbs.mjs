@@ -19,6 +19,7 @@ const CATEGORIES = [
   "round-tea-table", "side-table", "low-table", "bar-stool", "media-console",
   "chinese-cabinet", "pencil-holder", "bookend", "photo-frame", "tray",
   "dovetail-box", "wine-rack", "coat-rack",
+  "workbench",
 ];
 
 // 視覺長相過近的家具用 query 參數差異化
@@ -38,7 +39,9 @@ const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 
 const page = await ctx.newPage();
 
 let ok = 0, fail = 0;
+const ONLY = process.env.THUMBS_ONLY ? new Set(process.env.THUMBS_ONLY.split(",")) : null;
 for (const slug of CATEGORIES) {
+  if (ONLY && !ONLY.has(slug)) continue;
   const u = new URL(`${BASE}/design/${slug}`);
   u.searchParams.set("_shoot", "1"); // dev-only paywall bypass
   const overrides = PARAM_OVERRIDES[slug] ?? {};

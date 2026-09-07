@@ -5,7 +5,8 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { resolveCtBlockForApron, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
+import { addConstructionHousing, enforceConstructionLimits } from "@/lib/geometry/construction-cuts";
+import { ctStretcherOutwardShift, resolveCtBlockForApron, rectLegShape, RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER, curvedTaperLegOptions, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, seatOutlineOption, seatOutlineSizeOption, seatOutlineDetailOptions, readSeatOutlineParams, resolveTopOutlineShape, seatOutlineNote, ovalMinLegInset, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, apronSetbackOption, resolveApronSetbackForLeg, apronCenterOffset, apronMortiseOffset, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, curvedTaperInnerScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom , clampLegInset } from "./_helpers";
 import { formatMm } from "@/lib/units/format";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
@@ -13,6 +14,7 @@ import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const squareStoolOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER },
   { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm", help: "正方腳預設值。下方另填寬/厚則優先" },
   { group: "leg", type: "number", key: "legWidthOverride", label: "腳寬 X", defaultValue: 0, min: 0, max: 120, step: 1, unit: "mm", help: "0 = 用「腳粗」；填值 = 沿座板長邊 X 的尺寸（可做扁腳）。弧肩斜腳＝總寬" },
@@ -941,10 +943,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // X 靜止用 lsCenterY；Z 上移用 lsZCenterY = lsCenterY + stagger
     const lsCenterY = lowerY + lowerW / 2;
     const lsZShiftedY = lsCenterY + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0);
-    // 弧肩斜腳：左右(Z)橫撐坐在腳中線會踩空（內面收過中線）。往外挪 recession/2，
-    // 坐到「腳收窄後實際 X 料」的中點上（recession = legW×(1−scale)/2）。
+    // 弧肩斜腳：左右(Z)橫撐的內側會懸在腳收窄後的凹弧裡 → 往外挪到貼齊收窄後的內面，
+    // 但不能超出腳的外面（§A11.9；2026-09-02 之前固定挪 recession/2 會凸出腳外 7.9mm）。
     const ctZShift = legShape === "curved-taper"
-      ? (legW * (1 - legSizeScaleAt(lsZShiftedY))) / 4
+      ? ctStretcherOutwardShift({
+          legW,
+          scaleAtY: legSizeScaleAt(lsZShiftedY),
+          stretcherThickness: lowerStretcherThickness,
+          stretcherAxis: lsAxisX,
+          legCenter: _halfLx,
+        })
       : 0;
     const lsBotShift = legHeight > 0 ? 1 - lowerY / legHeight : 0;
     const lsTopShift = legHeight > 0 ? 1 - (lowerY + lowerW) / legHeight : 0;
@@ -1204,6 +1212,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  if (String(input.options?.constructionVersion) === "2" && legShape === "curved-taper") {
+    for (const receiver of parts.filter(p => p.id === "ls-front" || p.id === "ls-back")) {
+      for (const side of parts.filter(p => p.id === "ls-left" || p.id === "ls-right")) {
+        addConstructionHousing(receiver, side, isEn ? "Stretcher corner housing" : "下橫撐交角格肩槽");
+      }
+    }
+  }
   const design: FurnitureDesign = {
     id: `square-stool-${length}x${width}x${height}`,
     category: "stool",
@@ -1233,6 +1248,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
         (seatOutlineResolved ? seatOutlineNote(seatOutline, seatOutlineResolved.sizeMm, locale) : ""),
   };
+  if (String(input.options?.constructionVersion) === "2") enforceConstructionLimits(design, locale);
   if (ctApronWarnings.length > 0) appendWarnings(design, ctApronWarnings);
   applyStandardChecks(design, {
     minLength: 250, minWidth: 250, minHeight: 350,

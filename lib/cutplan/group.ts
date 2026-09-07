@@ -42,7 +42,10 @@ export function buildCutPieces(design: FurnitureDesign): {
     const [longSide, rawMidSide, shortSide] = [cut.length, cut.width, cut.thickness].sort(
       (a, b) => b - a,
     );
-    const midSide = rawMidSide / pieces;
+    // 疊層（panelSplit="thickness"）：拼的是厚度不是面寬（工作桌 stack 桌面 = N 層 × 厚/N）
+    const byThickness = part.panelSplit === "thickness";
+    const midSide = byThickness ? rawMidSide : rawMidSide / pieces;
+    const thinSide = byThickness ? shortSide / pieces : shortSide;
 
     for (let i = 0; i < pieces; i++) {
       const suffix = pieces > 1 ? ` (${i + 1}/${pieces})` : "";
@@ -52,7 +55,7 @@ export function buildCutPieces(design: FurnitureDesign): {
         partNameEn: `${partName(part, "en")}${suffix}`,
         length: longSide,
         width: midSide,
-        thickness: shortSide,
+        thickness: thinSide,
         material: part.material,
         billable,
       };

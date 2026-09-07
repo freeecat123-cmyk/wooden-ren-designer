@@ -29,6 +29,7 @@ export type FurnitureCategory =
   | "round-tea-table"
   | "round-table"
   | "bed"
+  | "workbench"
   // 小物件 (accessories)
   | "pencil-holder"
   | "bookend"
@@ -181,6 +182,7 @@ export type MaterialId =
   | "ash"
   | "beech"
   | "pine"
+  | "southern-pine"
   // 板材（裝潢常用）— 跟 SheetGood 重疊但這裡作為「主材質」用
   | "blockboard-primary"
   | "plywood-primary"
@@ -224,6 +226,8 @@ export interface Part {
    * - 3D / 報價總材積不變（同一塊概念面板）
    */
   panelPieces?: number;
+  /** 拼板方向：預設 "width" = 沿面寬拼 N 片；"thickness" = 疊 N 層（每層厚 = 厚 ÷ N，工作桌疊層桌面）。 */
+  panelSplit?: "width" | "thickness";
 
   /**
    * 視覺渲染提示——影響 3D / 材料單 / 報價：
@@ -356,6 +360,12 @@ export interface Part {
         kind: "apron-trapezoid";
         topLengthScale: number;
         bottomLengthScale: number;
+        /**
+         * 梯形只作用在離 local −Z 邊這段距離內（mm），再過去端面垂直、維持 bottomLengthScale。
+         * 用途：床頭板／床尾板——板從地板立到腳頂以上，只有 0~腳高 這段要貼錐腳的斜面，
+         * 上面那段是自由邊（2026-09-02）。不給＝整個寬度線性（既有行為）。
+         */
+        taperSpanMm?: number;
         bevelAngle?: number;
         /** "full"（預設, top+bot 都水平）或 "half"（只有 top 水平、bot 跟腳斜） */
         bevelMode?: "full" | "half";
@@ -603,7 +613,9 @@ export type OptionGroup =
   // 三欄櫃體：左中右
   | "col-left"
   | "col-mid"
-  | "col-right";
+  | "col-right"
+  // 木工工作桌：工件固定（前鉗 / 狗孔 / holdfast / 刨擋）
+  | "workholding";
 
 /** Only show this option when the referenced option has a matching value. */
 export interface OptionDependency {

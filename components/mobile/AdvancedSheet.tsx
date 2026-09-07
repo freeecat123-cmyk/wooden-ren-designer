@@ -40,7 +40,11 @@ export function AdvancedSheet({
   // 用 min(288px, 40dvh)：短螢幕（landscape / 鍵盤彈出）時改用 40dvh 避免 sheet 被推出視窗。
   return (
     <div
-      className="fixed top-[min(288px,40dvh)] left-0 right-0 bottom-0 z-50 bg-white flex flex-col rounded-t-3xl border-t border-amber-900/10 shadow-[0_-6px_20px_rgba(120,80,20,0.15)]"
+      className="fixed left-0 right-0 bottom-0 z-50 bg-white flex flex-col rounded-t-3xl border-t border-amber-900/10 shadow-[0_-6px_20px_rgba(120,80,20,0.15)]"
+      // 頂端跟 MobileShell 裡「面板開著時的 3D 高度」同一條式子 + 76（TopBar 56 + padding 8 + 外框 12），
+      // 兩邊一起改。原本 min(288px,40dvh) 是配舊的 220px 3D；3D 拉高後他說「進階功能打開 圖就變得太小了」
+      // → 3D 保留 clamp(220px,36dvh,320px)，面板往下讓（iPhone 13：3D 239 / 面板頂 315 / 面板高 349）。
+      style={{ top: "calc(clamp(220px, 36dvh, 320px) + 76px)" }}
       role="dialog"
       aria-label={tSheet("aria")}
     >

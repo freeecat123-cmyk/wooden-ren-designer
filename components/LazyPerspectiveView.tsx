@@ -39,8 +39,11 @@ export function LazyPerspectiveView({
   noSync = false,
   wireframeMode = false,
   hidePartIds = [],
+  assemblyPlan = null,
 }: {
   design: FurnitureDesign;
+  /** 組裝動畫排程（server 用原始設計算好傳入，見 lib/assembly/plan.ts） */
+  assemblyPlan?: import("@/lib/assembly/plan").AssemblyPlan | null;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
   joineryMode?: boolean;
   auditMode?: boolean;
@@ -76,6 +79,7 @@ export function LazyPerspectiveView({
       compactMode={compactMode}
       wireframeMode={wireframeMode}
       hidePartIds={hidePartIds}
+      assemblyPlan={assemblyPlan}
     />
   );
 }

@@ -12,7 +12,7 @@
  *
  * 投影座標慣例（lib/render/geometry.ts pushPoint）：
  *   front: vx = -worldX, vy = worldY → x range 取負反轉得 worldX
- *   side:  vx = worldZ,  vy = worldY → x range 直接是 worldZ
+ *   side:  vx = -worldZ, vy = worldY → x range 取負反轉得 worldZ
  *   top:   vx = -worldX, vy = worldZ → 不參與 Y-slice
  */
 import type { Part } from "@/lib/types";
@@ -78,7 +78,7 @@ export interface SliceAabb {
 /**
  * 取部件在 worldY = h 處的 XZ-AABB（橫截面外接矩形）。
  *
- * 先用 frontPoly（worldY × -worldX）取 X 區間，再用 sidePoly（worldY × worldZ）
+ * 先用 frontPoly（worldY × -worldX）取 X 區間，再用 sidePoly（worldY × -worldZ）
  * 取 Z 區間。frontPoly / sidePoly 由 caller 預先計算（findOverlaps 一次部件
  * 算完拿來重用）。
  *
@@ -96,7 +96,7 @@ export function partAabbAtY(
   // front 的 vx = -worldX，所以 vx 區間 [a, b] → worldX 區間 [-b, -a]
   return {
     x: [-xr[1], -xr[0]],
-    z: [zr[0], zr[1]],
+    z: [-zr[1], -zr[0]],
   };
 }
 

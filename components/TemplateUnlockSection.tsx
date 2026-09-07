@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useCurrency } from "@/hooks/useCurrency";
+import { track } from "@vercel/analytics";
 import { formatPrice } from "@/lib/units/fx";
 import {
   TEMPLATE_UNLOCK_PRICES,
@@ -150,7 +151,12 @@ export function TemplateUnlockSection({
                     {t("owned")}
                   </button>
                 ) : (
-                  <form method="POST" action="/api/checkout/template" className="mt-3">
+                  <form
+                    method="POST"
+                    action="/api/checkout/template"
+                    className="mt-3"
+                    onSubmit={() => track("checkout_start", { kind: "template", category: item.category })}
+                  >
                     <input type="hidden" name="category" value={item.category} />
                     <button
                       type="submit"

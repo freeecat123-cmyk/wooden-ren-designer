@@ -48,11 +48,20 @@ function validate(input: unknown): { ok: true; value: InvoicePreference } | { ok
   } else {
     // personal
     if (b.carrierType === "mobile") {
-      if (typeof b.carrierNum !== "string" || !MOBILE_CARRIER_REGEX.test(b.carrierNum)) {
+      // 2026-09-04：跟前端一致地先正規化（去空白＋轉大寫＋補開頭斜線）再驗，
+      // 否則小寫輸入會被擋在門外，客人卡在載具那頁走不到金流。
+      const carrier =
+        typeof b.carrierNum === "string"
+          ? (() => {
+              const v = b.carrierNum.replace(/\s+/g, "").toUpperCase();
+              return v && !v.startsWith("/") ? "/" + v : v;
+            })()
+          : "";
+      if (!carrier || !MOBILE_CARRIER_REGEX.test(carrier)) {
         return { ok: false, error: "invalid_carrier_num" };
       }
       out.carrierType = "mobile";
-      out.carrierNum = b.carrierNum;
+      out.carrierNum = carrier;
     } else if (b.carrierType === "member" || !b.carrierType) {
       out.carrierType = "member";
     } else {
@@ -94,11 +103,28 @@ export async function GET() {
   });
 }
 
-export async function POST(req: NextRequest) {
+
+/**
+ * 取得登入者。先走 cookie；cookie 沒帶上來（LINE / IG 這類 in-app browser 常見）
+ * 就退而用前端送來的 `Authorization: Bearer <access_token>` 驗簽。
+ * 兩條路都是 `auth.getUser()`，都會真的驗簽章，不是只解 cookie。
+ * 2026-09-04 加：客人在 LINE 內建瀏覽器結帳，發票 modal 收到 401 unauthenticated
+ * 卡死、走不到綠界（訂單 WRMTMF5JZLHD9Y）。
+ */
+async function resolveUser(req: NextRequest) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const viaCookie = await supabase.auth.getUser();
+  if (viaCookie.data.user) return viaCookie.data.user;
+
+  const auth = req.headers.get("authorization") ?? "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  if (!token) return null;
+  const viaToken = await supabase.auth.getUser(token);
+  return viaToken.data.user ?? null;
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
   if (!user) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }

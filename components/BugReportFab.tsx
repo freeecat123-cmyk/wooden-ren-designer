@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 
 export function BugReportFab() {
   const t = useTranslations("bugReport");
+  const inDesigner = /\/(?:design)\/[^/]+/.test(usePathname() ?? "");
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -116,7 +118,7 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title={t("fabTitle")}
         aria-label={t("fabTitle")}
-        className="no-print fixed bottom-24 lg:bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 overflow-hidden [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity"
+        className={`no-print ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 overflow-hidden [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
       >
         <img
           src="/logo-mark.png"

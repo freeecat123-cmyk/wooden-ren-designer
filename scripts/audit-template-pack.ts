@@ -29,6 +29,7 @@ for (const e of FURNITURE_CATALOG as never[] as any[]) {
   if (!e.template) continue;
   const specs = (e.optionSchema ?? []) as any[];
   const base: any = specs.reduce((a: any, s: any) => ((a[s.key] = s.defaultValue), a), {});
+  if (process.argv.includes("--revised") && specs.some(s => s.key === "constructionVersion")) base.constructionVersion = "2";
   // 有造型的腳型最容易出事,全部掃;沒有 legShape 的家具用預設跑一次
   const legSpec = specs.find((s) => s.key === "legShape");
   const variants: [string, any][] = legSpec?.choices

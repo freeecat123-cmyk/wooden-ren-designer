@@ -26,6 +26,9 @@ import { QuoteHistory } from "@/components/QuoteHistory";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { loadModelSnapshot, preserveSavedReference } from "@/lib/design/load-model-snapshot";
+import { savedDesignQuery } from "@/lib/design/saved-query";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatDimensions } from "@/lib/units/format";
@@ -71,6 +74,9 @@ interface PageProps {
     quotedAt?: string;
     joineryMode?: string;
     beginnerMode?: string;
+    designerMode?: string;
+    designId?: string;
+    revision?: string;
     deliveryDaysOverride?: string;
   }>;
 }
@@ -131,7 +137,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     .select("plan,subscription_status,subscription_expires_at,student_expires_at")
     .eq("id", user.id)
     .single();
-  if (!canUseFeature(quoteProfile as UserPlanProfile | null, "canUseQuoteSystem")) {
+  if (!isAdminEmail(user.email, getServerAdminEmails()) && !canUseFeature(quoteProfile as UserPlanProfile | null, "canUseQuoteSystem")) {
     redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
@@ -197,8 +203,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     sp.joineryMode === "true" ||
     sp.joineryMode === "1" ||
     sp.beginnerMode === "false";
-  const rawDesign = entry.template({ length, width, height, material, options, locale });
-  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
+  const frozen = await loadModelSnapshot(type, sp);
+  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale });
+  const design = frozen?.design ?? (joineryMode ? rawDesign : toBeginnerMode(rawDesign));
   const unit = await getUnitFromCookies(locale);
   const currency = await getCurrencyFromCookies();
   const fmt = (n: number) => formatMoney(n, currency);
@@ -241,7 +248,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   for (const spec of optionSchema) {
     designParams.set(spec.key, String(options[spec.key]));
   }
-  const designQuery = designParams.toString();
+  designParams.set("joineryMode", String(joineryMode));
+  if (typeof sp.designerMode === "string") designParams.set("designerMode", sp.designerMode);
+  const designQuery = preserveSavedReference(frozen ? savedDesignQuery(String(sp.designId), JSON.parse(frozen.input)) : designParams, sp).toString();
   const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&designerMarkupRate=${laborOpts.designerMarkupRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&laborHoursOverride=${laborOpts.laborHoursOverride}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const customerQuery = new URLSearchParams({
     customerName: customer.name,
@@ -333,7 +342,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
           <section className="mt-6 rounded-lg border border-zinc-200 bg-white overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-200 text-sm font-medium text-zinc-800">
-              Bill of materials ({design.parts.length} parts)
+              Bill of materials ({design.parts.filter((p) => p.visual === undefined).length} parts)
             </div>
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 border-b border-zinc-200 text-xs text-zinc-600">
@@ -344,7 +353,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {design.parts.map((part, i) => (
+                {design.parts.filter((p) => p.visual === undefined).map((part, i) => (
                   <tr key={part.id ?? i} className="border-b border-zinc-100">
                     <td className="p-2.5">{part.nameEn ?? part.nameZh}</td>
                     <td className="p-2.5 text-zinc-600 text-xs">{materialName(part.material ?? material, locale)}</td>
@@ -357,6 +366,12 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             </table>
           </section>
 
+          {design.parts.some((p) => p.visual !== undefined) && (
+            <section className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+              <div className="font-medium text-zinc-800 mb-1">Hardware — bought, not in the cut list</div>
+              <div>{[...new Set(design.parts.filter((p) => p.visual !== undefined).map((p) => p.nameEn ?? p.nameZh))].join(" · ")}</div>
+            </section>
+          )}
           <div className="mt-4 text-[11px] text-zinc-500">
             Tip: click <strong>Print / PDF</strong> above to save this estimate as a PDF, or share via Email / Copy link.
           </div>
@@ -717,4 +732,3 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     </main>
   );
 }
-

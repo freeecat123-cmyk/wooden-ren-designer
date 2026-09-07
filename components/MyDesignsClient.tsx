@@ -26,49 +26,7 @@ function formatDate(iso: string): string {
 
 function buildEditHref(row: DesignRow): string {
   const slug = row.furniture_type.replace(/_/g, "-");
-  const p = row.params ?? {};
-  const entry = getTemplate(slug as FurnitureCategory);
-  const qs = new URLSearchParams();
-  qs.set("designId", row.id);
-  const pick = (k: string) => {
-    const v = (p as Record<string, unknown>)[k];
-    if (v === undefined || v === null) return;
-    qs.set(k, String(v));
-  };
-  pick("length");
-  pick("width");
-  pick("height");
-  pick("material");
-  pick("joineryMode");
-  pick("designerMode");
-  // 向後相容：手機端舊版把 options 攤平存成 top-level（沒有 options key）。
-  // 這種舊資料 p.options=undefined，就把「非 length/width/height/material/joinery/
-  // designer 的 top-level key」當成 options 還原，否則舊設計重開全掉進階選項。
-  const RESERVED = new Set([
-    "length", "width", "height", "material", "joineryMode", "designerMode",
-    "style", "styleVariant", "scene", "ui",
-  ]);
-  const options =
-    (p as Record<string, unknown>).options ??
-    Object.fromEntries(
-      Object.entries(p as Record<string, unknown>).filter(([k]) => !RESERVED.has(k)),
-    );
-  if (options && typeof options === "object" && !Array.isArray(options)) {
-    const optionRecord = options as Record<string, unknown>;
-    const specs = entry?.optionSchema ?? [];
-    if (specs.length > 0) {
-      for (const spec of specs) {
-        const v = optionRecord[spec.key];
-        if (v !== undefined && v !== null) qs.set(spec.key, String(v));
-      }
-    } else {
-      for (const [key, value] of Object.entries(optionRecord)) {
-        if (value !== undefined && value !== null) qs.set(key, String(value));
-      }
-    }
-  }
-  const q = qs.toString();
-  return `/design/${slug}${q ? `?${q}` : ""}`;
+  return `/design/${slug}?designId=${encodeURIComponent(row.id)}&loadSaved=1`;
 }
 
 export function MyDesignsClient() {
@@ -239,6 +197,7 @@ export function MyDesignsClient() {
                 <div className="flex items-center gap-2 shrink-0">
                   <Link
                     href={buildEditHref(row)}
+                    prefetch={false}
                     className="px-3 py-1.5 rounded-lg bg-[#8b4513] text-white text-xs font-medium hover:bg-[#6f370f]"
                   >
                     {t("editBtn")}
