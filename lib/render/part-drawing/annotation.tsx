@@ -983,54 +983,83 @@ export function T2Annotations({
   const items: Item[] = [];
 
   /**
-   * 等距圓孔列合併標註（工作桌狗孔 / holdfast 孔 / MFT 20mm 格陣）。
+   * 等距圓孔列合併標註（工作桌狗孔 / holdfast 孔 / 前腳孔列 / MFT 20mm 格陣）。
    * 20 個 Ø19 孔各標一次「Ø19 穿」會把圖面下緣糊成一條（2026-09-03 工作桌零件圖實畫）。
-   * 規則：同零件、cosmetic + round + through、同孔徑、同一列（origin.z 相同）且孔距固定（±0.5）
-   * 且 ≥3 孔 → 只在首孔標「Ø19 穿 ×N @pitch」；多列同 x 集合、同列距 → 再合併成
-   * 「Ø20 穿 18×6 @96」只標一次。孔本身每顆照畫，尺寸鏈另有。
+   *
+   * 規則：同零件、cosmetic + round + through、同孔徑、同 label，沿 **x / y / z 任一軸**
+   * 等距（±0.5）且 ≥2 孔 → 只在首孔標「Ø19 穿 ×N @pitch」；x 軸列再往 z 方向合併成
+   * 「Ø20 穿 18×6 @96」。孔本身每顆照畫，尺寸鏈另有。
+   *
+   * 🩸 2026-09-07（user：「DOG 洞的孔距在圖面都要標示」）：原本只沿 x 找列、且排除帶
+   * label 的孔 → 工作桌**前腳 holdfast 孔列**（沿 y 垂直排、label「前腳 holdfast 孔」）
+   * 三顆各標一次「Ø19 穿」、孔距完全不見。改成軸不限 + 允許 label（同 label 才併），
+   * 門檻同時從 ≥3 降到 ≥2（兩顆孔標「×2 @150」比標兩次「Ø19 穿」資訊更多也更不亂）。
    */
   const holeSeries = new Map<number, string>(); // idx → 合併後的 dims（首孔）
   const holeSeriesMember = new Set<number>();
   {
-    type H = { idx: number; x: number; z: number; w: number };
+    type H = { idx: number; x: number; y: number; z: number; w: number; lb: string };
     const hs: H[] = [];
     part.mortises.forEach((m, idx) => {
-      if (m.shape === "round" && m.cosmetic && m.through && !m.rotX && !m.rotZ && !m.label)
-        hs.push({ idx, x: m.origin?.x ?? 0, z: m.origin?.z ?? 0, w: round1(m.width ?? 0) });
+      if (m.shape === "round" && m.cosmetic && m.through && !m.rotX && !m.rotZ)
+        hs.push({
+          idx,
+          x: m.origin?.x ?? 0,
+          y: m.origin?.y ?? 0,
+          z: m.origin?.z ?? 0,
+          w: round1(m.width ?? 0),
+          lb: m.label ?? "",
+        });
     });
-    const rows = new Map<string, H[]>();
-    for (const h of hs) {
-      const k = `${h.w}|${h.z.toFixed(1)}`;
-      if (!rows.has(k)) rows.set(k, []);
-      rows.get(k)!.push(h);
-    }
-    type Row = { w: number; z: number; pitch: number; xs: number[]; members: H[] };
+    type Axis = "x" | "y" | "z";
+    type Row = { w: number; lb: string; axis: Axis; z: number; pitch: number; ps: number[]; members: H[] };
     const series: Row[] = [];
-    for (const list of rows.values()) {
-      if (list.length < 3) continue;
-      list.sort((a, b) => a.x - b.x);
-      const pitch = list[1].x - list[0].x;
-      if (pitch <= 0) continue;
-      if (!list.every((h, i) => i === 0 || Math.abs(h.x - list[i - 1].x - pitch) <= 0.5)) continue;
-      series.push({ w: list[0].w, z: list[0].z, pitch: round1(pitch), xs: list.map((h) => h.x), members: list });
+    const claimed = new Set<number>(); // 已被某條列吃掉的孔 idx（一顆孔只能屬於一條列）
+    // 軸順序 x → y → z：x 是既有行為（桌面狗孔列/格陣），先跑才不會被新軸搶走。
+    for (const axis of ["x", "y", "z"] as Axis[]) {
+      const other = (["x", "y", "z"] as Axis[]).filter((a) => a !== axis);
+      const lines = new Map<string, H[]>();
+      for (const h of hs) {
+        if (claimed.has(h.idx)) continue;
+        const k = `${h.w}|${h.lb}|${h[other[0]].toFixed(1)}|${h[other[1]].toFixed(1)}`;
+        if (!lines.has(k)) lines.set(k, []);
+        lines.get(k)!.push(h);
+      }
+      for (const list of lines.values()) {
+        if (list.length < 2) continue;
+        list.sort((a, b) => a[axis] - b[axis]);
+        const pitch = list[1][axis] - list[0][axis];
+        if (pitch <= 0) continue;
+        if (!list.every((h, i) => i === 0 || Math.abs(h[axis] - list[i - 1][axis] - pitch) <= 0.5)) continue;
+        for (const h of list) claimed.add(h.idx);
+        series.push({
+          w: list[0].w, lb: list[0].lb, axis,
+          z: list[0].z, pitch: round1(pitch),
+          ps: list.map((h) => h[axis]), members: list,
+        });
+      }
     }
-    // 多列合併成格陣：同孔徑、同 x 集合、列距固定
+    // 多列合併成格陣：只對 x 軸列做（MFT 20mm 格陣），同孔徑、同 x 集合、列距固定
     series.sort((a, b) => a.z - b.z);
     const used = new Set<Row>();
     for (const r of series) {
       if (used.has(r)) continue;
       const grid = [r];
-      const sameXs = (o: Row) => o.w === r.w && o.pitch === r.pitch && o.xs.length === r.xs.length && o.xs.every((x, i) => Math.abs(x - r.xs[i]) <= 0.5);
-      for (const o of series) if (o !== r && !used.has(o) && sameXs(o)) grid.push(o);
-      grid.sort((a, b) => a.z - b.z);
+      if (r.axis === "x") {
+        const sameXs = (o: Row) =>
+          o.axis === "x" && o.w === r.w && o.lb === r.lb && o.pitch === r.pitch &&
+          o.ps.length === r.ps.length && o.ps.every((x, i) => Math.abs(x - r.ps[i]) <= 0.5);
+        for (const o of series) if (o !== r && !used.has(o) && sameXs(o)) grid.push(o);
+        grid.sort((a, b) => a.z - b.z);
+      }
       const rowPitch = grid.length >= 2 ? grid[1].z - grid[0].z : 0;
       const isGrid = grid.length >= 2 && grid.every((g, i) => i === 0 || Math.abs(g.z - grid[i - 1].z - rowPitch) <= 0.5);
       const group = isGrid ? grid : [r];
       for (const g of group) used.add(g);
       const first = group[0].members[0];
       const label = isGrid
-        ? `Ø${r.w} 穿 ${r.xs.length}×${group.length} @${r.pitch}${Math.abs(round1(rowPitch) - r.pitch) > 0.5 ? `/${round1(rowPitch)}` : ""}`
-        : `Ø${r.w} 穿 ×${r.xs.length} @${r.pitch}`;
+        ? `Ø${r.w} 穿 ${r.ps.length}×${group.length} @${r.pitch}${Math.abs(round1(rowPitch) - r.pitch) > 0.5 ? `/${round1(rowPitch)}` : ""}`
+        : `Ø${r.w} 穿 ×${r.ps.length} @${r.pitch}`;
       holeSeries.set(first.idx, label);
       for (const g of group) for (const h of g.members) if (h.idx !== first.idx) holeSeriesMember.add(h.idx);
     }
