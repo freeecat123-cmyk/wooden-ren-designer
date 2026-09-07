@@ -145,6 +145,9 @@ export function buildWorldMortiseIndex(parts: Part[]): WorldMortise[] {
           axisUnit,
         });
       };
+      if(part.shape?.kind==='cad-mesh') {
+        lex=m.origin.x; ley=m.origin.y-ly/2; lez=m.origin.z;
+      }
       pushEntry(localAxis, localSign, lex, ley, lez);
       /**
        * 🩸 第一次判斷只靠「離哪個面最近」——餐桌側牙條的榫眼在腳頂下 31mm、離側面

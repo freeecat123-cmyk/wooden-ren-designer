@@ -16,6 +16,7 @@ import { chineseCabinet, chineseCabinetOptions } from "./chinese-cabinet";
 import { shoeCabinet, shoeCabinetOptions } from "./shoe-cabinet";
 import { displayCabinet, displayCabinetOptions } from "./display-cabinet";
 import { diningChair, diningChairOptions } from "./dining-chair";
+import {sixSlatChair,sixSlatChairOptions} from './six-slat-chair';
 import { wardrobe, wardrobeOptions } from "./wardrobe";
 import { barStool, barStoolOptions } from "./bar-stool";
 import { mediaConsole, mediaConsoleOptions } from "./media-console";
@@ -71,6 +72,7 @@ export function getEntryDescription(
 }
 
 export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
+  ...(process.env.NODE_ENV==='development' ? [{category:'six-slat-chair' as const,nameZh:'六柱圈椅・試作',nameEn:'Six-slat horseshoe chair',description:'原創圈椅：六枝腰弧背條、後腳直通圈、懸浮實板。僅本機試作。',descriptionEn:'Local CAD prototype with six lumbar slats and continuous rear posts.',difficulty:'advanced' as const,template:sixSlatChair,defaults:{length:544,width:460,height:400},limits:{length:580,width:480,height:420},optionSchema:sixSlatChairOptions}] : []),
   {
     category: "stool",
     nameZh: "方凳",

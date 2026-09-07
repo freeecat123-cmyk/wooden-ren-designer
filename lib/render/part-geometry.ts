@@ -48,6 +48,7 @@ export const LATHE_TURNED_SEGMENTS: Array<[number, number, number]> = [
 ];
 
 export type ShapeSpec =
+  | { kind: "cad-mesh"; positions: number[]; indices: number[]; wireCurves?: number[][][] }
   | { kind: "box" }
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
@@ -2449,6 +2450,12 @@ export function buildShapeGeometry(
   size: [number, number, number],
 ): BufferGeometry | null {
   if (!shape || shape.kind === "box") return null;
+  if (shape.kind === "cad-mesh") {
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position",new Float32BufferAttribute(shape.positions.map((v,i)=>v*size[i%3]),3));
+    geometry.setIndex(shape.indices);geometry.computeVertexNormals();
+    return geometry;
+  }
   if (shape.kind === "tapered") {
     // 帶倒角的方錐（圓凳/餐椅方錐腳套用 legEdge）：用 chamfered-edges
     // builder 帶 bottomScale，cross-section 八邊形 + 底端縮小。

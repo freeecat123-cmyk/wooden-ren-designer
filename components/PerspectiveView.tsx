@@ -318,6 +318,16 @@ const Part = memo(function PartInner({
   //  → 不會畫三角形對角線）
   const edgesGeometry = useMemo(() => {
     if (!wireframe) return null;
+    // CAD B-rep curves, not facet edges from a decimated mesh (§A1.1).
+    if (shape?.kind === 'cad-mesh' && shape.wireCurves) {
+      const points:number[]=[];
+      for(const curve of shape.wireCurves) for(let i=1;i<curve.length;i++) {
+        for(const p of [curve[i-1],curve[i]]) points.push(p[0]*sx,p[1]*sy,p[2]*sz);
+      }
+      const eg=new BufferGeometry();
+      eg.setAttribute('position',new Float32BufferAttribute(points,3));
+      return eg;
+    }
     // ⭐ pointed-ends 特例：六角柱的「±X tip」兩條 Z 方向 side edge 在紅酒架
     // 菱形 lattice 用 Rz(π/4) 後落在框內側面 plane 上、wireframe 看像「對角板
     // tip line 從框前緣穿到後緣」（這是 line-in-coplanar-face 視錯覺、非真穿透）。
@@ -1103,7 +1113,9 @@ export function PerspectiveView({
             openRotation = new Euler().setFromQuaternion(openQuat.multiply(partQuat), "ZYX");
           }
           let shape: ShapeSpec | undefined;
-          if (part.shape?.kind === "tapered") {
+          if (part.shape?.kind === "cad-mesh") {
+            shape = part.shape;
+          } else if (part.shape?.kind === "tapered") {
             shape = {
               kind: "tapered",
               bottomScale: part.shape.bottomScale,

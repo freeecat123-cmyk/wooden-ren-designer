@@ -174,9 +174,9 @@ export function MobileShell(props: MobileShellProps) {
   const hMax = entry.limits?.height ?? 3000;
   // 滑桿下限：跟桌面版一樣 20mm 地板，但若當前值更小（筆筒 80、相框厚 18 等小物件）
   // 就降到該值，否則 RangeInput 會把值 clamp 上去（min===max 還會整條拉不動）。
-  const lMin = Math.min(20, length);
-  const wMin = Math.min(20, width);
-  const hMin = Math.min(20, height);
+  const lMin = entry.category === 'six-slat-chair' ? 510 : Math.min(20, length);
+  const wMin = entry.category === 'six-slat-chair' ? 430 : Math.min(20, width);
+  const hMin = entry.category === 'six-slat-chair' ? 370 : Math.min(20, height);
 
   // 分流 spec 到 4 tab。先匹配美學 / 榫接，剩下的全進「結構」當 catch-all（避免漏選項）。
   const inGroup = (s: OptionSpec, keywords: string[]) =>
@@ -310,7 +310,7 @@ export function MobileShell(props: MobileShellProps) {
                 entry.category === "round-table" ||
                 entry.category === "round-tea-table"
                   ? t("form.diameter")
-                  : t("form.length")
+                  : entry.category === 'six-slat-chair' ? (isEn ? 'Seat width' : '座板寬') : t("form.length")
               }
               defaultValue={length}
               min={lMin}
@@ -325,7 +325,7 @@ export function MobileShell(props: MobileShellProps) {
               entry.category !== "round-tea-table" && (
                 <RangeInput
                   name="width"
-                  label={t("form.width")}
+                  label={entry.category === 'six-slat-chair' ? (isEn ? 'Seat depth' : '座板深') : t("form.width")}
                   defaultValue={width}
                   min={wMin}
                   max={wMax}
@@ -337,7 +337,7 @@ export function MobileShell(props: MobileShellProps) {
               )}
             <RangeInput
               name="height"
-              label={t("form.height")}
+              label={entry.category==='six-slat-chair' ? (isEn ? 'Seat rim' : '板緣高') : t("form.height")}
               defaultValue={height}
               min={hMin}
               max={hMax}

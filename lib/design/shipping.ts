@@ -6,6 +6,7 @@
  */
 
 import { MATERIALS } from "@/lib/materials";
+import {cadMeshVolume} from '@/lib/render/cad-mesh';
 import type { FurnitureDesign } from "@/lib/types";
 
 export interface ShippingEstimate {
@@ -38,7 +39,7 @@ export function estimateWeight(design: FurnitureDesign): number {
   let totalKg = 0;
   for (const p of design.parts) {
     const volM3 =
-      (p.visible.length * p.visible.width * p.visible.thickness) / 1_000_000_000;
+      (p.shape?.kind==='cad-mesh' ? cadMeshVolume(p) : p.visible.length * p.visible.width * p.visible.thickness) / 1_000_000_000;
     const density = MATERIALS[p.material]?.density ?? 600;
     totalKg += volM3 * density;
   }

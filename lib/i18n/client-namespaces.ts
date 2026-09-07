@@ -10,8 +10,8 @@
 // 掃描結果:client 元件用到 91 個命名空間 /
 //          messages 共 130 個 / 省下 39 個不送。
 // 不帶命名空間的 useTranslations()(已從實際 key 反推):
-//   - components/PricingClient.tsx
-//   - components/SiteFooter.tsx
+//   - components\PricingClient.tsx
+//   - components\SiteFooter.tsx
 
 export const CLIENT_NAMESPACES = [
   "admin",

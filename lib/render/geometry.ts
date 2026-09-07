@@ -1,4 +1,5 @@
 import type { Part } from "@/lib/types";
+import {cadMeshPolygon} from './cad-mesh';
 import { CURVED_TAPER_ARC_SEG, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 
 /**
@@ -333,6 +334,7 @@ export function projectPartSilhouette(
   part: Part,
   view: OrthoView,
 ): Array<{ x: number; y: number }> {
+  if(part.shape?.kind==='cad-mesh')return cadMeshPolygon(part,view);
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;
@@ -1071,6 +1073,7 @@ export function projectPartPolygon(
   view: OrthoView,
   allParts?: ReadonlyArray<Part>,
 ): Array<{ x: number; y: number }> {
+  if(part.shape?.kind==='cad-mesh')return cadMeshPolygon(part,view);
   const r = projectPart(part, view);
   // Default box polygon (rectangle, tracing CCW in world-Y-up coords).
   const box = [

@@ -118,6 +118,7 @@ const JOINERY_STEP_BULLETS_EN: Record<JoineryType, string[]> = {
 };
 
 const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
+  'six-slat-shaping': {title:()=> 'Lay out curves and verify the prototype',description:()=> 'Choose the ring bending method, rear-leg grain and floating-seat fixing. Shape and trial-fit all six lumbar slats. Envelope dimensions are provisional; joinery is not yet designed.'},
   "cabinet-shelf-reliefs": {
     title: () => "Cut shelf-to-post clearance notches",
     description: () => "Mark each shelf notch from the part drawing, remove waste in shallow cuts and pare the seat. Retain the shown clearance and dry-fit each shelf height against the inward-splayed posts.",

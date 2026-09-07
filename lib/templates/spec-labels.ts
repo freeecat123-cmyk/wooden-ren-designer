@@ -17,7 +17,11 @@
 
 import type { OptionSpec } from "@/lib/types";
 
+import {chairControls} from './six-slat-chair-options';
 export const SPEC_LABEL_EN: Record<string, string> = {
+  ...Object.fromEntries(chairControls.map(([key,,,label])=>[key,label])),
+  chairScoop: "Seat hollow depth (mm)",
+  chairLumbar: "Lumbar forward offset (mm)",
   constructionVersion: "Construction version",
   // === workbench v2 ===
   sawTableHeightMm: "Table-saw top height",
@@ -597,6 +601,9 @@ export const SPEC_LABEL_EN: Record<string, string> = {
  * Missing → falls back to spec.help (zh).
  */
 export const SPEC_HELP_EN: Record<string, string> = {
+  ...Object.fromEntries(chairControls.map(([key,group])=>[key,group==='joinery'?'Adjusts the four trial rail joints and their matching mortises.':'Reference dimensions for a 544 × 460 mm seat with a 400 mm rim. Main dimensions scale the result.'])),
+  chairScoop: "Hollow cut into one solid seat. The rim stays level with the pointed leg tips.",
+  chairLumbar: "Six slats remain attached at the ring and seat; adjust their lumbar curve.",
   // === workbench v2 ===
   sawTableHeightMm: "An outfeed table must be level with or 1–2mm below the saw table; higher lifts the board tail and kicks back. Only affects suggestions and warnings.",
   roomLengthCm: "Wall to wall. 0 = ignore; warns when bench length plus a 90cm aisle will not fit. Warnings only.",

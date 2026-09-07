@@ -41,6 +41,7 @@ function isHeightKey(key: string): boolean {
   const k = key.toLowerCase();
   if (!k.includes("height")) return false;
   if (k === "height") return false; // 家具總高本身
+  if (key === 'chairRingHeight') return false; // Circle-chair main height is the seat rim, not the ring.
   if (k.startsWith("wall") || k.startsWith("ceiling") || k.startsWith("room")) return false;
   return true;
 }

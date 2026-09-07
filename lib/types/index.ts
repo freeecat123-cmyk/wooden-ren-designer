@@ -21,6 +21,7 @@ export type FurnitureCategory =
   | "dining-table"
   | "desk"
   | "dining-chair"
+  | "six-slat-chair"
   | "wardrobe"
   | "bar-stool"
   | "media-console"
@@ -260,6 +261,7 @@ export interface Part {
    * illustrating leg styles.
    */
   shape?:
+    | { kind: "cad-mesh"; positions: number[]; indices: number[]; wireCurves?: number[][][]; outlines: Record<"front" | "side" | "top", number[][][]> }
     | { kind: "box" }
     /** Tapered: scale the bottom face relative to top. bottomScale > 1 = 倒錐
      *  (wider at bottom), bottomScale < 1 = 方錐漸縮 (narrower at bottom).

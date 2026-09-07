@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import {cadMeshLoops} from './cad-mesh';
 import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
@@ -1014,7 +1015,9 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX, rotY: m.rotY, depthAxis: "y" };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
-    const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
+    // CAD receivers carry the real surface entry, which need not be the AABB face.
+    const entryX = part.shape?.kind === 'cad-mesh' ? m.origin.x : (enterRight ? lx / 2 : -lx / 2);
+    const cxL = entryX + (enterRight ? -D / 2 : D / 2);
     const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
     const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
     const longOnZ = zFace > yFace;
@@ -1941,6 +1944,11 @@ function OrthoViewImpl({
               ? 1.4
               : 0.9;
         const dash = hidden ? "4 3" : undefined;
+        if(part.shape?.kind==='cad-mesh'){
+          const loops=cadMeshLoops(part,view);
+          const d=loops.map(loop=>loop.map((p,i)=>`${i?'L':'M'}${p.x},${-p.y}`).join(' ')+' Z').join(' ');
+          return <path key={part.id} data-part-id={part.id} data-cad-outline={loops.length} d={d} fill="white" fillRule="evenodd" stroke={stroke} strokeWidth={sw} strokeDasharray={dash}/>;
+        }
         // 玻璃片（visual === "glass"）特例：玻璃 5mm 比門框 22mm 薄，4 條 outline
         // 邊在 HLE 都會落在 frame 內判 hidden → 全部變灰虛線消失。改用工程圖
         // 慣例「淡色矩形外框 + 45° 對角細線雙條」表明這是透明玻璃片。

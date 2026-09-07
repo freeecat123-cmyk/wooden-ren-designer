@@ -210,7 +210,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const isAdmin = isAdminEmail(user?.email, getServerAdminEmails());
   // dev-only：playwright shoot-thumbs 腳本繞過 paywall 抓所有家具縮圖
   const isThumbShoot =
-    process.env.NODE_ENV === "development" && sp._shoot === "1";
+    process.env.NODE_ENV === "development" && (sp._shoot === "1" || type === "six-slat-chair");
   // 「範例預覽鎖」：免費版進付費模板不再 redirect 走，改成「給看但鎖客製」——
   // 完整呈現 3D / 三視圖 / 榫卯圖 / 材料單（讓人看到價值），但尺寸 + 結構選項
   // 鎖在模板預設值（只能改材料），報價 / 列印 / 裁切仍由各自路由的 isPaidUser
@@ -448,7 +448,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // UX「也想做這些嗎」入口。family 分組維持跟 lib/steps/derive.ts 同一套邏輯。
   const FAMILY_MAP: Record<string, FurnitureCategory[]> = {
     table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table", "workbench"],
-    seating: ["stool", "bench", "dining-chair", "bar-stool", "round-stool"],
+    seating: ["stool", "bench", "dining-chair", "six-slat-chair", "bar-stool", "round-stool"],
     cabinet: ["open-bookshelf", "chest-of-drawers", "chinese-cabinet", "shoe-cabinet", "display-cabinet", "media-console", "nightstand", "wardrobe"],
     accessory: ["pencil-holder", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
     bed: ["bed"],
@@ -486,6 +486,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     />
     <div className={uiV2 ? "hidden md:block" : "block"}>
     <main className="max-w-7xl mx-auto px-6 py-6">
+      {type==='six-slat-chair' && <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+        {locale==='en'?'Local prototype. Joinery view shows four trial rail-to-leg blind tenons. Ring, slat and apron joints remain unfinished. Width/depth refer to the seat; height means its rim. Stock and quotes are envelope estimates.':'六柱圈椅・本機試作｜榫接版已加入前後橫撐接腳的 4 組盲榫試配；圈扶手、背條及側撐接合仍未完成。寬、深指座板，高指板緣；材料與報價是包絡暫估，尚不能直接下料。'}
+      </div>}
       <div className="flex items-center gap-4 flex-wrap">
         <Link href="/app" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">
           <span className="transition-transform group-hover:-translate-x-0.5">←</span> {t("back").replace(/^← ?/, "")}
@@ -1206,7 +1209,7 @@ async function ParameterForm({
             <NumberInput
               key={`length-${defaults.length}`}
               name="length"
-              label={isRound ? t("diameter") : t("width")}
+              label={type==='six-slat-chair' ? (isEn?'Seat width':'座板寬') : isRound ? t("diameter") : t("width")}
               defaultValue={defaults.length}
               max={limits?.length}
               partIds={resolvePartIds("length", allPartIds)}
@@ -1217,7 +1220,7 @@ async function ParameterForm({
               <NumberInput
                 key={`width-${defaults.width}`}
                 name="width"
-                label={t("depth")}
+                label={type==='six-slat-chair' ? (isEn?'Seat depth':'座板深') : t("depth")}
                 defaultValue={defaults.width}
                 max={limits?.width}
                 partIds={resolvePartIds("width", allPartIds)}
@@ -1228,7 +1231,7 @@ async function ParameterForm({
             <NumberInput
               key={`height-${defaults.height}`}
               name="height"
-              label={t("height")}
+              label={type==='six-slat-chair' ? (isEn?'Seat rim height':'板緣高') : t("height")}
               defaultValue={defaults.height}
               max={limits?.height}
               partIds={resolvePartIds("height", allPartIds)}

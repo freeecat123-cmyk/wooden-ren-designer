@@ -79,7 +79,7 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
     c === "round-table" || c === "workbench"
   ) return "table";
   if (
-    c === "stool" || c === "bench" || c === "dining-chair" ||
+    c === "stool" || c === "bench" || c === "dining-chair" || c === "six-slat-chair" ||
     c === "bar-stool" || c === "round-stool"
   ) return "seating";
   if (
@@ -96,6 +96,12 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
 
 export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   const steps: BuildStep[] = [];
+  if(design.category==='six-slat-chair')steps.push({
+    id:'six-slat-shaping',phase:'prepare',title:'曲線放樣與試作核對',
+    description:'先確認圈扶手彎料工法、後腳順紋取料與座板伸縮固定。依六枝背條逐枝修出腰弧並試坐；本版零件外形包絡不是下料定稿，榫卯須另行設計。',
+    partIds:design.parts.map(p=>p.id),toolIds:['marking-gauge','japanese-saw','f-clamp-x4'],
+    estimatedMinutes:design.parts.filter(p=>p.id.startsWith('Back_slat_')).length*20+120,
+  });
   const material = MATERIALS[design.primaryMaterial];
   const joineryUsages = extractJoineryUsages(design);
   const hasJoinery = joineryUsages.length > 0;

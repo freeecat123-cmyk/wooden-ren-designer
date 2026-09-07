@@ -40,6 +40,7 @@ const DEFAULT_SCALE = 0.1;
  */
 function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
   if (!shape) return null;
+  if (shape.kind === "cad-mesh") return shape;
   if (shape.kind === "tapered") {
     return {
       kind: "tapered",
@@ -267,6 +268,9 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
  */
 export function partExportGeometry(part: Part, mode: ExportMode = "printable", context?: readonly Part[]): BufferGeometry {
   assertExportOptions(1, mode);
+  if(part.shape?.kind==='cad-mesh' && part.tenons.length===0 && part.mortises.length===0){
+    return buildShapeGeometry(part.shape,[part.visible.length,part.visible.thickness,part.visible.width])!;
+  }
   if (mode === "joinery-accurate") return partJoineryGeometry(partForJoineryView(part), context);
   const sizeMm: [number, number, number] = [
     part.visible.length,

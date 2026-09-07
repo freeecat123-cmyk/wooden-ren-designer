@@ -14,6 +14,9 @@ export type PartCategory =
   | "misc";
 
 export function categorizePart(id: string): PartCategory {
+  if (/^(Rear_leg_|Front_leg_|Front_arm_post_)/.test(id)) return 'leg';
+  if (/^(Side_apron_|Seat_support_|Front_rail$|Rear_rail$)/.test(id)) return 'apron';
+  if (/^(Back_slat_|Arm_ring$|Solid_scooped_seat$)/.test(id)) return 'seat';
   // 抽屜箱件（面板/前後板/側板/底板）：id 慣例 `{prefix}drawer-{i}-{role}`，prefix
   // 可空（drawer-1-）、含 zone（z2-drawer-1-）、含欄（col1-drawer-1-），也可能整段
   // 前綴在別的家具裡（書桌 desk-pedestal-z1-drawer-1-、desk-apron-drawer-1-）。

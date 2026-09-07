@@ -60,7 +60,7 @@ const CATEGORY_CHIPS: Array<{
     key: "seating",
     labelKey: "chipSeating",
     match: (c) =>
-      c === "stool" || c === "bench" || c === "dining-chair" ||
+      c === "stool" || c === "bench" || c === "dining-chair" || c === "six-slat-chair" ||
       c === "bar-stool" || c === "round-stool",
   },
   {
