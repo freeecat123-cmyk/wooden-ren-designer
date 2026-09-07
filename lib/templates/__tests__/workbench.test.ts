@@ -845,13 +845,13 @@ describe("夾板疊層整片板腳（plyLegBuild = slab，§AU23.2）", () => {
     const b = slab({ frontVise: "leg", withUnderShelf: true, lowerStretcherArrangement: "box-frame" });
     expect(b.parts.find((p) => p.id === "leg-vise-chop")).toBeUndefined();
     expect(b.parts.find((p) => p.id === "vise-chop")).toBeDefined();
-    expect(b.warnings.some((w) => w.includes("裝不了腳鉗"))).toBe(true);
-    expect(b.warnings.some((w) => w.includes("前腳 holdfast 孔列"))).toBe(true);
+    expect(b.warnings?.some((w) => w.includes("裝不了腳鉗"))).toBe(true);
+    expect(b.warnings?.some((w) => w.includes("前腳 holdfast 孔列"))).toBe(true);
     expect(b.parts.find((p) => p.id === "leg-slab-left")!.mortises.some((m) => m.shape === "round")).toBe(false);
     const shelf = b.parts.find((p) => p.id === "under-shelf")!;
     expect([shelf.visible.length, shelf.visible.width]).toEqual([936, 600]);
     expect(shelf.shape).toBeUndefined();
-    expect(slab({ lowerStretcherArrangement: "pair-z" }).warnings.some((w) => w.includes("只左右 2 根"))).toBe(true);
+    expect(slab({ lowerStretcherArrangement: "pair-z" }).warnings?.some((w) => w.includes("只左右 2 根"))).toBe(true);
   });
   it("實木版帶著 plyLegBuild=slab（舊網址殘留）不生效；夾板版預設 post 的零件清單跟沒這個 key 完全一樣", () => {
     expect(build({ plyLegBuild: "slab" }).parts.find((p) => p.id === "leg-slab-left")).toBeUndefined();

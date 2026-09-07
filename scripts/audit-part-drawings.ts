@@ -189,9 +189,13 @@ const mirrorRight: any = {
     { position: "top", offsetWidth: 10, length: 30, width: 12, depth: 25 },
   ],
 };
+// ⚠️ 2026-09-07 修正過期斷言：這裡本來斷言「鏡像對要有不同 hash」，但 grouping.ts 的 FX3
+// （user 2026-06-02「前後牙條一樣」）刻意把 sign-bearing 欄位取絕對值，讓左右／前後鏡像件
+// **合併成同一張零件圖**——木頭仁不想同一支腳印兩張。舊斷言在要求一個被刻意撤掉的行為，
+// 所以它永遠紅。反過來斷言 FX3 這條規則本身（規則出處：grouping.ts `normalizeShape` / `hashPart` 的 FX3 註解）。
 expect(
-  hashPart(mirrorLeft) !== hashPart(mirrorRight),
-  "Mirror pair → different hashes",
+  hashPart(mirrorLeft) === hashPart(mirrorRight),
+  "Mirror pair → same hash (FX3：鏡像件合併成同一張圖)",
 );
 
 // ─── Test 6: grouping across templates produces reasonable count ───────────
