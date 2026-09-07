@@ -15,6 +15,8 @@ import type { FurnitureDesign, Part } from "@/lib/types";
  * tenon/mortise 失配的視覺 bug，但目前 26 個模板都已遷移。
  */
 export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
+  // 純榫卯題（技能檢定）沒有組裝版：原樣回傳，讓所有入口共用同一個判斷（型別註解有講）
+  if (design.joineryOnly) return design;
   const parts: Part[] = design.parts.map((p) => ({
     ...p,
     tenons: [],

@@ -76,6 +76,7 @@ function shrinkSiblingAABB(aabb: WorldAABB, sibling: Part, mm: number): WorldAAB
     k === "splayed-tapered" ||
     k === "splayed-round-tapered" ||
     k === "apron-trapezoid" ||
+    k === "quad" ||
     k === "apron-beveled" ||
     k === "apron-half-beveled";
   if (!isSplayed) return aabb;

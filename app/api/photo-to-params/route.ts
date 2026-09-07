@@ -20,7 +20,7 @@ const VALID_CATEGORIES = [
   "stool", "bench", "tea-table", "low-table", "side-table", "open-bookshelf",
   "chest-of-drawers", "shoe-cabinet", "display-cabinet", "dining-table", "desk",
   "dining-chair", "wardrobe", "bar-stool", "media-console", "nightstand",
-  "round-stool", "round-tea-table", "round-table", "pencil-holder", "bookend",
+  "round-stool", "round-tea-table", "round-table", "pencil-holder", "cert-c1", "bookend",
   "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack", "workbench",
 ] as const;
 

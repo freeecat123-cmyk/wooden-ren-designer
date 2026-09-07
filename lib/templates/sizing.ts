@@ -32,6 +32,7 @@ export const ROUND_CATEGORIES: ReadonlySet<string> = new Set([
 
 /** 每款要放進表格的關鍵子尺寸（schema 沒有的自動略過） */
 export const SIZING_SUB_KEYS: Partial<Record<FurnitureCategory, string[]>> = {
+  "cert-c1": ["tenonProud"],
   stool: ["seatThickness", "legSize"],
   bench: ["topThickness", "legSize"],
   "tea-table": ["topThickness", "legSize"],

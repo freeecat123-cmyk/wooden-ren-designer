@@ -88,7 +88,7 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
     c === "nightstand"
   ) return "cabinet";
   if (
-    c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
+    c === "pencil-holder" || c === "cert-c1" || c === "bookend" || c === "photo-frame" ||
     c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack"
   ) return "accessory";
   return "other";

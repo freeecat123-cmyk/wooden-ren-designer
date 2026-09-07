@@ -8,6 +8,8 @@
 export type Millimeters = number;
 
 export type FurnitureCategory =
+  /** 技術士技能檢定 家具木工 丙級 第一題（01200-100301）練習範本 */
+  | "cert-c1"
   | "stool"
   | "bench"
   | "tea-table"
@@ -239,8 +241,11 @@ export interface Part {
    * - "metal"：銀色金屬（磁鐵 / 鉸鏈 / 滑軌等），不計才、進採購清單。
    *   3D 走 metallic material（metalness=0.9、銀色 #c0c0c0）
    * - "mirror"：鏡面，不計才、進採購清單。3D 走 reflective material。
+   * - "dowel"：現成木釘 / 圓棒（考場供料、市售 Ø8 木釘）。**是木頭**：3D 照木紋畫、
+   *   組裝時看得到它插在孔裡；但不是自己下料的件——不入裁切、不出零件圖、不計才、
+   *   不算件數，材料單另列「木釘／圓棒（現成品）」（2026-09-07 丙級第一題，木頭仁：「ㄎ沒有做出來」）。
    */
-  visual?: "glass" | "brass-antique" | "fabric" | "metal" | "mirror";
+  visual?: "glass" | "brass-antique" | "fabric" | "metal" | "mirror" | "dowel";
 
   /**
    * 四周底邊搭接槽（peripheral rebate / rabbet）— 零件圖標示用。
@@ -369,7 +374,19 @@ export interface Part {
         bevelAngle?: number;
         /** "full"（預設, top+bot 都水平）或 "half"（只有 top 水平、bot 跟腳斜） */
         bevelMode?: "full" | "half";
+        /**
+         * 收窄要靠哪一邊。省略 = "center" = 左右對稱收窄（既有行為，一格不動）。
+         * "min" / "max" = 該側邊整條垂直、只有另一邊斜 → **直角梯形**。
+         * 用途：技能檢定家具木工丙級側板（上緣 120／下緣 95，左緣垂直）。
+         * 數學見 lib/render/trapezoid-anchor.ts。
+         */
+        anchor?: "center" | "min" | "max";
       }
+    /** 自由四邊形輪廓：length(X)×width(Z) 平面四角各自指定（mm，零件中心為原點），
+     *  沿 thickness(Y) 擠出。順序 (−x,−z)→(+x,−z)→(+x,+z)→(−x,+z)。
+     *  用途：技能檢定側板（背緣垂直、上緣前傾、底緣前升、前緣收窄——四邊都不同）。
+     *  算式在 lib/render/quad-profile.ts，3D／三視圖／輪廓取樣共用。 */
+    | { kind: "quad"; corners: [[number, number], [number, number], [number, number], [number, number]] }
     /** Apron beveled: 牙條上下緣切斜面，配合外斜腳家具的 apron tilt。
      *  本體仍是矩形截面，但 local z 方向 shear 量 = -y × tan(bevelAngle)。
      *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。
@@ -536,6 +553,13 @@ export interface FurnitureDesign {
    * toBeginnerMode 自動縮短才不會穿模。
    */
   useButtJointConvention?: boolean;
+  /**
+   * 這款只有榫卯版、沒有「組裝版」（技能檢定考題：考的就是榫卯，拆掉榫眼就不是那道題）。
+   * `toBeginnerMode()` 看到這個旗標會原樣回傳——所有走「非 joineryMode 就轉組裝版」的
+   * 入口（報價 / 列印 / 裁切 / 專案重建 / 穿模稽核）都自動守住，不用每個入口各判一次。
+   * UI 端隱藏「工法選擇」用的是 catalog 的 `joineryOnly`（建 design 之前就要知道）；兩個旗標同一款要一起設。
+   */
+  joineryOnly?: boolean;
   /** 設計參數不合理時（例如下層高度超過可用內高）自動產生的警告 */
   warnings?: string[];
   /** 尺寸超出本模板合理範圍時的「換模板」建議。比 warnings 更具體：

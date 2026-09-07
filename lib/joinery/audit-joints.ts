@@ -66,6 +66,32 @@ export function auditJoints(design: FurnitureDesign): JointAuditResult {
         if (crossSectionMatch(tenon, end) && Math.abs(end.depth - rest) < JOINT_DIM_TOL) return [pass, end];
       }
     }
+    /**
+     * 凸出的貫穿榫（2026-09-07，技能檢定家具木工丙級 01200-100301 上層板）：
+     * 榫頭穿過一片板的通孔後**沒有第三件**，多出來的長度就是露在外面的榫頭
+     * （試題規定凸出 10、端頭倒 3×45°）。type 一定要是 through-tenon 才算，
+     * 盲榫比通孔長就是真的錯（會頂穿）。
+     */
+    if (tenon.type === "through-tenon") {
+      for (const { partId: pid, m: pass } of allMortises) {
+        if (pid === partId || !pass.through || !crossSectionMatch(tenon, pass)) continue;
+        if (tenon.length >= pass.depth - JOINT_DIM_TOL) return [pass];
+      }
+    }
+    return null;
+  };
+
+  /**
+   * 木釘接（2026-09-07）：兩件各鑽一個圓孔、木釘插在中間，**沒有榫頭零件**。
+   * 一顆圓孔只要在別件上找得到同直徑的圓孔，就視為一組木釘接（兩顆互相用掉）。
+   * 既有模板的圓孔都是配圓榫頭（椅背條），這條只會多配、不會少配。
+   */
+  const dowelPartner = (partId: string, m: Mortise): Mortise | null => {
+    if (m.shape !== "round" || m.through) return null;
+    for (const { partId: pid, m: other } of allMortises) {
+      if (pid === partId || other === m || other.shape !== "round" || other.through || consumed.has(other)) continue;
+      if (Math.abs(other.length - m.length) < JOINT_DIM_TOL && Math.abs(other.width - m.width) < JOINT_DIM_TOL) return other;
+    }
     return null;
   };
 
@@ -84,12 +110,17 @@ export function auditJoints(design: FurnitureDesign): JointAuditResult {
     for (const m of part.mortises) {
       if (m.cosmetic) continue;
       if (consumed.has(m)) continue;
+      // 木釘接：兩顆同直徑圓孔互相配對（見 dowelPartner）
+      const partner = dowelPartner(part.id, m);
+      if (partner) { consumed.add(m); consumed.add(partner); continue; }
       // 同尺寸的母榫可能有很多顆（四支腳）而 consumeFor 每支榫頭只登記第一顆 → 反向再用維度比一次
       let found = false;
       for (const other of design.parts) {
         if (other.id === part.id) continue;
         for (const t of other.tenons) {
           if (matchTenonMortise(t, m)) { found = true; break; }
+          // 凸出的貫穿榫：通孔被比它長的 through-tenon 穿過，後面沒東西也算對到（見 consumeFor）
+          if (m.through && t.type === "through-tenon" && crossSectionMatch(t, m) && t.length >= m.depth - JOINT_DIM_TOL) { found = true; break; }
           // 穿越：這顆是通孔且有榫頭比它長、剩餘長度在別件有終點母榫；或這顆是終點母榫
           if (crossSectionMatch(t, m) && t.length > m.depth + JOINT_DIM_TOL) {
             const rest = t.length - m.depth;

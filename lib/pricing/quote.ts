@@ -185,6 +185,7 @@ const WASTE_RATES: Record<"accessory" | "default", number> = {
 function wasteRateFor(category: string): number {
   const accessoryCategories = new Set([
     "pencil-holder",
+    "cert-c1",
     "bookend",
     "photo-frame",
     "tray",

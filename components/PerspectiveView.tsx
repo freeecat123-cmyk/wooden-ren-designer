@@ -1223,7 +1223,13 @@ export function PerspectiveView({
               bevelAngle: part.shape.bevelAngle,
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
+              anchor: part.shape.anchor,
               ...(part.shape.taperSpanMm !== undefined ? { taperSpanMm: part.shape.taperSpanMm * SCALE } : {}),
+            };
+          } else if (part.shape?.kind === "quad") {
+            shape = {
+              kind: "quad",
+              corners: part.shape.corners.map(([x, z]) => [x * SCALE, z * SCALE]) as [[number, number], [number, number], [number, number], [number, number]],
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };

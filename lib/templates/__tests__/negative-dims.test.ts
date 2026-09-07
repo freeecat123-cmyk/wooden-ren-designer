@@ -13,8 +13,8 @@ import { FURNITURE_CATALOG } from "@/lib/templates";
 describe("零件尺寸永遠是正的（全模板 × 全數字選項極值）", () => {
   const entries = (FURNITURE_CATALOG as any[]).filter((e) => e.template);
 
-  it("目錄有 29 款且每款都有 template（確認掃描範圍沒縮水）", () => {
-    expect(entries.length).toBe(29);
+  it("目錄有 30 款且每款都有 template（確認掃描範圍沒縮水；2026-09-07 加丙級檢定第一題 cert-c1 → 30）", () => {
+    expect(entries.length).toBe(30);
   });
 
   for (const e of entries) {

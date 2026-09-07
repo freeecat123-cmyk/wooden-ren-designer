@@ -3037,6 +3037,8 @@ export function ShapeSpecificAnnotation({
       return null;
     case "hoof":
       return <HoofDirection ctx={ctx} part={part} view={view} />;
+    case "quad":
+      return <QuadCornerDims ctx={ctx} part={part} view={view} />;
     case "splayed":
     case "splayed-tapered":
     case "splayed-round-tapered":
@@ -3044,6 +3046,89 @@ export function ShapeSpecificAnnotation({
     default:
       return null;
   }
+}
+
+
+/**
+ * <QuadCornerDims> — quad（四邊各不相同的板，技能檢定家具木工丙級側板）的斜切尺寸。
+ *
+ * 只在看得到板面的那個視圖標（四角投影面積 > 0；看側邊的視圖投成一條線就不標）。
+ * 照試題圖的標法：每個不在外接矩形角上的角，
+ *   - 垂直方向標「內縮量」（頂緣前端降 30、底緣前端升 15）；
+ *   - 水平方向標「從參考邊（背緣）量過來的深度」（底深 95），不標 25 的內縮——木匠劃線是從背緣量。
+ * 四角都在矩形角上（其實是矩形）→ 什麼都不畫。字級 9、細線 0.4，跟 LouverLayoutDims 同一套。
+ *
+ * docs/drafting-math.md §AV9。
+ */
+export function QuadCornerDims({
+  ctx,
+  part,
+  view: _view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (part.shape?.kind !== "quad") return null;
+  const corners = part.shape.corners;
+  const hx = part.visible.length / 2;
+  const hz = part.visible.width / 2;
+  const yMid = part.visible.thickness / 2;
+  const P = (x: number, z: number) => ctx.partLocalToSvg(x, yMid, z);
+  const pts = corners.map(([x, z]) => P(x, z));
+  // 投影面積（鞋帶公式）：看側邊時四點共線 → 0 → 不標
+  let area2 = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = pts[i], b = pts[(i + 1) % 4];
+    area2 += a.x * b.y - b.x * a.y;
+  }
+  if (Math.abs(area2) < 2) return null;
+  const cx = pts.reduce((s, p) => s + p.x, 0) / 4;
+  const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
+  const ARROW = 1.6;
+  const OFF = 9; // 尺寸線離板緣的距離（SVG px）
+  const dims: React.ReactNode[] = [];
+  const dim = (key: string, a: { x: number; y: number }, b: { x: number; y: number }, label: string) => {
+    // 往外（離板心）平移 OFF
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const ox = mx - cx, oy = my - cy;
+    const ol = Math.hypot(ox, oy) || 1;
+    const dx = (ox / ol) * OFF, dy = (oy / ol) * OFF;
+    const a2 = { x: a.x + dx, y: a.y + dy }, b2 = { x: b.x + dx, y: b.y + dy };
+    const ux = (b2.x - a2.x), uy = (b2.y - a2.y);
+    const ul = Math.hypot(ux, uy) || 1;
+    const tx = ux / ul, ty = uy / ul;              // 沿尺寸線
+    const nx = -ty, ny = tx;                         // 法線
+    const head = (p: { x: number; y: number }, s: number) =>
+      `${p.x},${p.y} ${p.x + s * tx * ARROW * 1.6 + nx * ARROW},${p.y + s * ty * ARROW * 1.6 + ny * ARROW} ${p.x + s * tx * ARROW * 1.6 - nx * ARROW},${p.y + s * ty * ARROW * 1.6 - ny * ARROW}`;
+    dims.push(
+      <g key={key}>
+        <line x1={a.x} y1={a.y} x2={a2.x + dx * 0.3} y2={a2.y + dy * 0.3} strokeWidth={0.25} stroke="#888" />
+        <line x1={b.x} y1={b.y} x2={b2.x + dx * 0.3} y2={b2.y + dy * 0.3} strokeWidth={0.25} stroke="#888" />
+        <line x1={a2.x} y1={a2.y} x2={b2.x} y2={b2.y} />
+        <polygon points={head(a2, 1)} />
+        <polygon points={head(b2, -1)} />
+        <text x={(a2.x + b2.x) / 2 + dx * 0.9} y={(a2.y + b2.y) / 2 + dy * 0.9 + 3} textAnchor="middle" fontSize={9} stroke="none">
+          {label}
+        </text>
+      </g>,
+    );
+  };
+  corners.forEach(([x, z], i) => {
+    const insetX = hx - Math.abs(x);
+    const insetZ = hz - Math.abs(z);
+    const sx = Math.sign(x) || 1, sz = Math.sign(z) || 1;
+    // 垂直：角 → 同一 x 的外接矩形邊，標內縮量
+    if (insetZ > 0.5) dim(`z${i}`, P(x, z), P(x, sz * hz), `${round1(insetZ)}`);
+    // 水平：角 → 對面的外接矩形邊（參考邊），標從參考邊量過來的深度
+    if (insetX > 0.5) dim(`x${i}`, P(x, z), P(-sx * hx, z), `${round1(2 * hx - insetX)}`);
+  });
+  if (dims.length === 0) return null;
+  return (
+    <g stroke="#111" fill="#111" strokeWidth={0.4} fontFamily="sans-serif">
+      {dims}
+    </g>
+  );
 }
 
 /**

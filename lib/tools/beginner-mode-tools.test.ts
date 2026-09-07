@@ -29,9 +29,9 @@ describe("組裝版的工具清單要有螺絲那一套（2026-09-02）", () => 
     const ids = deriveRequiredTools(build("stool")).map((t) => t.tool.id);
     expect(ids).not.toContain("pocket-hole-jig");
   });
-  it("全目錄組裝版每一款都列 TENZ 螺絲", () => {
+  it("全目錄組裝版每一款都列 TENZ 螺絲（純榫卯的檢定題沒有組裝版，跳過）", () => {
     for (const e of FURNITURE_CATALOG) {
-      if (!e.template) continue;
+      if (!e.template || e.joineryOnly) continue;
       const ids = deriveRequiredTools(toBeginnerMode(build(e.category))).map((t) => t.tool.id);
       expect(ids, e.category).toContain("tenz-screw-set");
     }

@@ -14,6 +14,7 @@
 import type { FurnitureCategory } from "@/lib/types";
 
 export const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
+  "cert-c1": "丙級檢定 第一題",
   stool: "方凳",
   bench: "長凳",
   "tea-table": "邊桌",
@@ -51,6 +52,7 @@ export function getCategoryLabel(category: FurnitureCategory): string {
 }
 
 export const CATEGORY_LABELS_EN: Record<FurnitureCategory, string> = {
+  "cert-c1": "Trade test Class C — Q1",
   stool: "Square stool",
   bench: "Bench",
   "tea-table": "Tea table",

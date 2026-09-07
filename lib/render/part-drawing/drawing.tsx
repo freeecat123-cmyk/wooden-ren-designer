@@ -58,14 +58,20 @@ export function grossPartDims(part: Part): { L: number; W: number; T: number } {
    *    (2026-08-21 稽核發現。)
    */
   const phys = part.joineryView?.visible ?? part.visible;
+  // 同一端多支榫頭（雙榫頭）從同一端面伸出，只加該端最長那支一次
+  // （同 lib/geometry/cut-dimensions.ts；2026-09-07 技能檢定上層板每端兩支 20 寬）
+  const maxAt = new Map<string, number>();
+  for (const t of part.tenons) {
+    if (t.length <= 0) continue;
+    maxAt.set(t.position, Math.max(maxAt.get(t.position) ?? 0, t.length));
+  }
   let extL = 0;
   let extW = 0;
   let extT = 0;
-  for (const t of part.tenons) {
-    if (t.length <= 0) continue;
-    if (t.position === "start" || t.position === "end") extL += t.length;
-    else if (t.position === "left" || t.position === "right") extW += t.length;
-    else if (t.position === "top" || t.position === "bottom") extT += t.length;
+  for (const [position, len] of maxAt) {
+    if (position === "start" || position === "end") extL += len;
+    else if (position === "left" || position === "right") extW += len;
+    else if (position === "top" || position === "bottom") extT += len;
   }
   // arch-bent (椅背頂橫木 bow 彎弧)：弧線會在 W 軸延伸 bendMm，毛料厚必須含
   // 弧高才切得出弧形（user 2026-06-02「沒有寫最厚厚度」）。

@@ -389,7 +389,7 @@ export function MobileShell(props: MobileShellProps) {
 
         {/* 工法 + 設計師模式：核心 toggle，放主表單下方。pencil-holder 隱藏工法切換 */}
         <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
-          {entry.category !== "pencil-holder" && entry.category !== "tray" && entry.category !== "dovetail-box" && (
+          {!entry.joineryOnly && entry.category !== "pencil-holder" && entry.category !== "tray" && entry.category !== "dovetail-box" && (
             <>
               <div className="text-[11px] text-zinc-500">{t("form.method")}</div>
               <div className="grid grid-cols-2 gap-2">

@@ -18,6 +18,8 @@ import {
   Vector2,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { trapAnchorOffset, type TrapAnchor } from "./trapezoid-anchor";
+import { quadPoint, type QuadCorners } from "./quad-profile";
 import { frenchCleatSection, edgeProfileOutline, topOutlinePoints } from "./geometry";
 
 /**
@@ -61,7 +63,8 @@ export type ShapeSpec =
   | { kind: "lathe-turned" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; taperSpanMm?: number; bevelAngle?: number; bevelMode?: "full" | "half" }
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; taperSpanMm?: number; bevelAngle?: number; bevelMode?: "full" | "half"; anchor?: "center" | "min" | "max" }
+  | { kind: "quad"; corners: [[number, number], [number, number], [number, number], [number, number]] }
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "apron-half-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
@@ -179,6 +182,40 @@ export function buildSplayedGeometry(
  * 用於外斜腳家具的 apron——讓 apron 的左右端跟著腳的中心軸傾斜對齊。
  * 8 corners: 上 (local Z=-hz) 用 topScale 縮 length，下 (local Z=+hz) 用 bottomScale。
  */
+/**
+ * 自由四邊形板：四角在 X–Z 平面各自指定、沿 Y 擠出成 8 頂點 6 面。
+ * corners 單位與 size 相同（呼叫端已 ×SCALE）。頂點順序沿用 apron-trapezoid 的慣例。
+ */
+export function buildQuadGeometry(size: [number, number, number], corners: QuadCorners): BufferGeometry {
+  const hy = size[1] / 2;
+  const [c00, c10, c11, c01] = corners;
+  // 上圈 (−z 側 = c00→c10)、下圈 (+z 側 = c01→c11)；每圈 4 點：(−y,-side) (−y,+side) (+y,+side) (+y,-side)
+  const v: number[] = [
+    c00[0], -hy, c00[1],
+    c10[0], -hy, c10[1],
+    c10[0],  hy, c10[1],
+    c00[0],  hy, c00[1],
+    c01[0], -hy, c01[1],
+    c11[0], -hy, c11[1],
+    c11[0],  hy, c11[1],
+    c01[0],  hy, c01[1],
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1), // −z
+    ...f(4, 5, 6, 7), // +z
+    ...f(0, 1, 5, 4), // −y
+    ...f(2, 3, 7, 6), // +y
+    ...f(1, 2, 6, 5), // +x（前緣，斜）
+    ...f(3, 0, 4, 7), // −x（背緣）
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 export function buildApronTrapezoidGeometry(
   size: [number, number, number],
   topScale: number,
@@ -187,6 +224,8 @@ export function buildApronTrapezoidGeometry(
   bevelMode: "full" | "half" = "full",
   /** 梯形只作用在 −Z 邊起這段（mm），之後端面垂直（床頭板貼錐腳用）。見 types 註解。 */
   taperSpanMm?: number,
+  /** 收窄靠哪一邊；省略＝對稱（既有行為）。見 lib/render/trapezoid-anchor.ts */
+  anchor: TrapAnchor = "center",
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -194,6 +233,9 @@ export function buildApronTrapezoidGeometry(
   const hz = lz / 2;
   const topX = hx * topScale;
   const botX = hx * bottomScale;
+  // 靠邊＝縮放後再補一個位移（數學等價於固定某一側邊，見 trapezoid-anchor.ts）
+  const topOff = trapAnchorOffset(hx, topScale, anchor);
+  const botOff = trapAnchorOffset(hx, bottomScale, anchor);
   // bevel shear：z' = z - y × tan(bevel)
   // mode="half"：只 top 4 vertex shear（頂面水平、底面跟 rotation 自然斜）
   const shear = Math.tan(bevelAngle);
@@ -202,13 +244,13 @@ export function buildApronTrapezoidGeometry(
   if (taperSpanMm !== undefined && taperSpanMm > 0 && taperSpanMm < lz) {
     // 三圈：A(−hz, topX) → B(−hz+span, botX) → C(+hz, botX)；B–C 段端面垂直
     const zB = -hz + taperSpanMm;
-    const ring = (x: number, z: number, sh: number) => [
-      -x, -hy, z - (-hy) * sh,
-      x, -hy, z - (-hy) * sh,
-      x, hy, z - (+hy) * sh,
-      -x, hy, z - (+hy) * sh,
+    const ring = (x: number, z: number, sh: number, off: number) => [
+      -x + off, -hy, z - (-hy) * sh,
+      x + off, -hy, z - (-hy) * sh,
+      x + off, hy, z - (+hy) * sh,
+      -x + off, hy, z - (+hy) * sh,
     ];
-    const v3 = [...ring(topX, -hz, topShear), ...ring(botX, zB, botShear), ...ring(botX, hz, botShear)];
+    const v3 = [...ring(topX, -hz, topShear, topOff), ...ring(botX, zB, botShear, botOff), ...ring(botX, hz, botShear, botOff)];
     const f3 = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
     const side = (o: number) => [
       ...f3(o + 0, o + 1, o + 5, o + 4), // -y
@@ -224,14 +266,14 @@ export function buildApronTrapezoidGeometry(
     return g3;
   }
   const v: number[] = [
-    -topX, -hy, -hz - (-hy) * topShear,
-    topX, -hy, -hz - (-hy) * topShear,
-    topX, hy, -hz - (+hy) * topShear,
-    -topX, hy, -hz - (+hy) * topShear,
-    -botX, -hy, hz - (-hy) * botShear,
-    botX, -hy, hz - (-hy) * botShear,
-    botX, hy, hz - (+hy) * botShear,
-    -botX, hy, hz - (+hy) * botShear,
+    -topX + topOff, -hy, -hz - (-hy) * topShear,
+    topX + topOff, -hy, -hz - (-hy) * topShear,
+    topX + topOff, hy, -hz - (+hy) * topShear,
+    -topX + topOff, hy, -hz - (+hy) * topShear,
+    -botX + botOff, -hy, hz - (-hy) * botShear,
+    botX + botOff, -hy, hz - (-hy) * botShear,
+    botX + botOff, hy, hz - (+hy) * botShear,
+    -botX + botOff, hy, hz - (+hy) * botShear,
   ];
   // 6 faces, CCW from outside
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
@@ -2629,8 +2671,11 @@ export function buildShapeGeometry(
     for (const s of segs) s.dispose();
     return merged ?? new BoxGeometry(size[0], size[1], size[2]);
   }
+  if (shape.kind === "quad") {
+    return buildQuadGeometry(size, shape.corners);
+  }
   if (shape.kind === "apron-trapezoid") {
-    return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full", shape.taperSpanMm);
+    return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full", shape.taperSpanMm, shape.anchor ?? "center");
   }
   if (shape.kind === "apron-beveled") {
     return buildBeveledApronGeometry(size, shape.bevelAngle);

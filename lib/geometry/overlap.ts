@@ -13,10 +13,17 @@ import { clearedByCabinetPanelGrooves } from "./cabinet-panel-clearance";
 const AXES = ["x", "y", "z"] as const;
 const CUT_EPSILON = 0.001;
 
-function rectangularWorldCuts(part: Part, bounds: AABB3D): AABB3D[] {
+/**
+ * @param roundRodInHole 對手是圓料（shape round）時，這件上的**圓孔**（shape "round"，不限 cosmetic）
+ *   也算 cut：木釘 / 圓棒插在圓孔裡是接合不是穿模（2026-09-07 cert-c1 木釘做成零件）。
+ *   圓孔用它的外接方盒近似——圓棒直徑＝孔徑，方盒剛好包住圓棒，不會多放行別的東西。
+ */
+function rectangularWorldCuts(part: Part, bounds: AABB3D, roundRodInHole = false): AABB3D[] {
   // Restrict to undeformed stock and quarter turns. Confirm the renderer's
   // transformed stock agrees with the audit bounds before trusting its cuts.
-  if (part.shape && !["box", "mitered-ends", "chamfered-edges", "dovetail-ends"].includes(part.shape.kind)) return [];
+  // quad（技能檢定側板：四邊各不相同的外形）也算：cosmetic 溝槽是零件本地座標裡的方盒，
+  // 跟外形是不是矩形無關——溝開在垂直的背緣上（2026-09-07，cert-c1 夾板背板入溝）。
+  if (part.shape && !["box", "mitered-ends", "chamfered-edges", "dovetail-ends", "quad"].includes(part.shape.kind)) return [];
   if (part.shape?.kind === "mitered-ends"
     && (part.shape.tiltAngle || part.shape.bevelAngle || part.shape.vertices)) return [];
   const angles = AXES.map(axis => part.rotation?.[axis] ?? 0);
@@ -30,7 +37,7 @@ function rectangularWorldCuts(part: Part, bounds: AABB3D): AABB3D[] {
     return Math.abs(center[axis] - extent - bounds.min[axis]) > CUT_EPSILON
       || Math.abs(center[axis] + extent - bounds.max[axis]) > CUT_EPSILON;
   })) return [];
-  return part.mortises.filter(m => m.cosmetic && m.shape !== "round"
+  return part.mortises.filter(m => (m.shape === "round" ? roundRodInHole : m.cosmetic)
     && !m.rotX && !m.rotY && !m.rotZ && !m.axis && !(m.label ?? "").startsWith("百葉槽")).flatMap(m => {
     const b = mortiseLocalBox(part, m);
     if (![b.cx, b.cy, b.cz, b.hx, b.hy, b.hz].every(Number.isFinite) || Math.min(b.hx, b.hy, b.hz) <= 0) return [];
@@ -46,7 +53,8 @@ function rectangularWorldCuts(part: Part, bounds: AABB3D): AABB3D[] {
 }
 
 function clearedByRectangularCuts(a: Part, b: Part, boxA: AABB3D, boxB: AABB3D): boolean {
-  const cutsA = rectangularWorldCuts(a, boxA), cutsB = rectangularWorldCuts(b, boxB);
+  const cutsA = rectangularWorldCuts(a, boxA, b.shape?.kind === "round");
+  const cutsB = rectangularWorldCuts(b, boxB, a.shape?.kind === "round");
   if (!cutsA.length && !cutsB.length) return false;
   const min = { x: Math.max(boxA.min.x, boxB.min.x), y: Math.max(boxA.min.y, boxB.min.y), z: Math.max(boxA.min.z, boxB.min.z) };
   const max = { x: Math.min(boxA.max.x, boxB.max.x), y: Math.min(boxA.max.y, boxB.max.y), z: Math.min(boxA.max.z, boxB.max.z) };

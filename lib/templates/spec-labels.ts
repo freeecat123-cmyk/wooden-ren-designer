@@ -35,6 +35,8 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   materialStyle: "Material style",
   plyLegBuild: "Leg construction (plywood)",
   plyTopLayers: "Top layers (18mm plywood)",
+  tenonProud: "Shelf through-tenon proud",
+  withPanel: "Fit the 6mm plywood back",
   legLayers: "Leg layers (18mm plywood, laminated post)",
   lsLayers: "Lower stretcher layers (18mm plywood)",
   battenLayers: "Batten layers (18mm plywood)",
@@ -613,6 +615,8 @@ export const SPEC_HELP_EN: Record<string, string> = {
   // === workbench ===
   materialStyle: "Laminated plywood: top, legs and stretchers are stacked from 18mm plywood; stretchers / aprons sit in notches left in the leg lamination and are screwed — no tenons at all. Top thickness and leg size then come from the layer counts below.",
   plyLegBuild: "Slab legs: every layer is a full depth × leg-height sheet, laminated to the leg thickness. The slab is its own side stretcher, so side stretchers / side aprons are dropped; front/back rails and the centre rail sit in lap notches left in the slab. Leg vise and front-leg holes are not available on a slab.",
+  tenonProud: "The exam tenons pass through the 18mm side and stand 10mm proud (overall 320 = 300 + 10 + 10), ends chamfered 3×45°. Set 0 for a flush through tenon when practising.",
+  withPanel: "Required by the exam (materials list item 3, one sheet for this question). Untick only to see the frame; fit it on test day.",
   plyTopLayers: "18mm per layer. Top thickness = layers × 18; the material list shows one piece per layer.",
   legLayers: "Leg size = layers × 18. Aprons are 1–2 layers depending on the style; the notches are left while laminating.",
   lsLayers: "Stretcher thickness = layers × 18. The lap notch in the leg follows, but never deeper than one layer (18) — cutting deeper weakens the leg.",

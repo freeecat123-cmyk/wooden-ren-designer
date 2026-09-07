@@ -32,6 +32,7 @@ import { coatRack, coatRackOptions } from "./coat-rack";
 import { workbench, workbenchOptions } from "./workbench";
 import { bed, bedOptions } from "./bed";
 import { wallMountedToolStorage, wallMountedToolStorageOptions } from "./wall-mounted-tool-storage";
+import { certC1, certC1Options } from "./cert-c1";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -53,6 +54,12 @@ export interface FurnitureCatalogEntry {
   applyPresets?: (
     options: Record<string, string | number | boolean>,
   ) => Record<string, string | number | boolean>;
+  /**
+   * 只有榫接版、沒有組裝版：設計頁強制 joineryMode、不顯示「工法選擇」。
+   * 用途：技能檢定練習件——考的就是榫接，組裝版（拔掉榫頭改螺絲）對它沒有意義，
+   * 而且會把貫穿榫凸出的 20mm 拔掉、總寬從 320 變 300（2026-09-07）。
+   */
+  joineryOnly?: boolean;
 }
 
 /** Locale-aware accessor — Phase 2: callers 傳入 locale 拿正確語言名稱。 */
@@ -71,6 +78,20 @@ export function getEntryDescription(
 }
 
 export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
+  {
+    category: "cert-c1",
+    nameZh: "丙級檢定 第一題",
+    nameEn: "Trade test Class C — Q1",
+    description: "技術士技能檢定家具木工丙級 01200-100301：直角梯形側板＋貫穿榫＋6mm 夾板嵌槽，4 小時",
+    descriptionEn: "Taiwan Class C furniture-woodworking trade test Q1: right-trapezoid sides, through tenons, 6mm plywood panel — 4-hour piece",
+    difficulty: "beginner",
+    template: certC1,
+    // 試題尺寸是固定的（總寬 320 × 深 120 × 高 350），滑桿只是讓人放大練習用
+    defaults: { length: 320, width: 120, height: 350 },
+    limits: { length: 600, width: 300, height: 600 },
+    optionSchema: certC1Options,
+    joineryOnly: true,
+  },
   {
     category: "stool",
     nameZh: "方凳",

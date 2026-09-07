@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const ACCESSORY_SET = new Set([
   "pencil-holder",
+  "cert-c1",
   "bookend",
   "photo-frame",
   "tray",
@@ -87,7 +88,7 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
     const wr = wasteRate(design.category);
     const partVolByMat = new Map<string, { vol: number; count: number }>();
     for (const part of design.parts) {
-      if (part.visual === "glass") continue;
+      if (part.visual === "glass" || part.visual === "dowel") continue; // 玻璃另訂、木釘現成，都不是要買的板料
       const cut = calculateCutDimensions(part);
       const vol = cut.length * cut.width * cut.thickness;
       const mat = effectiveBillableMaterial(part);
