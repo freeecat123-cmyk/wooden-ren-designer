@@ -99,7 +99,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // /templates/[type]/* — bilingual when EN marketing exists; otherwise zh-only
   const enTemplateSet = new Set(FEATURED_TEMPLATE_CATEGORIES_EN as string[]);
-  const templateRoutes: MetadataRoute.Sitemap = FEATURED_TEMPLATE_CATEGORIES.flatMap((c) =>
+  // 開發中／暫不上架的款（DEV_CATEGORIES）介紹頁回 404，sitemap 也不能收（2026-09-09 乙級第一題「先不要上架」時漏了這裡）
+  const templateRoutes: MetadataRoute.Sitemap = FEATURED_TEMPLATE_CATEGORIES.filter((c) => !isDevCategory(c)).flatMap((c) =>
     enTemplateSet.has(c as string)
       ? biLocaleEntry(`/templates/${c}`, "monthly", 0.85, now)
       : [twOnlyEntry(`/templates/${c}`, "monthly", 0.85, now)],
