@@ -69,6 +69,8 @@ interface MobileShellProps {
   canUseDesignerMode?: boolean;
   /** 範例預覽鎖：免費版進付費模板時鎖尺寸/結構選項，只能換材料 */
   previewLocked?: boolean;
+  /** 考題套組沒買斷：三視圖／零件圖／材料單／工序整段換鎖卡（2026-09-08） */
+  examLocked?: boolean;
   /** 初始場景 ID（由 server 從 URL ?scene= 解析後傳入） */
   sceneId?: SceneThemeId;
   /** 掀蓋浮起 mm；正 = 抬起，-1 = 鉸鏈翻開。從 URL ?lidLift= 解析後傳入 */
@@ -133,6 +135,17 @@ export function MobileShell(props: MobileShellProps) {
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
   const previewLocked = props.previewLocked ?? false;
+  const examLocked = props.examLocked ?? false;
+  const examLockCard = (what: string) => (
+    <div className="m-3 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/60 px-4 py-6 text-center">
+      <div className="text-2xl" aria-hidden>🔒</div>
+      <p className="mt-2 text-sm font-bold text-amber-950">{t("examLock.title", { what })}</p>
+      <p className="mt-1 text-xs text-amber-900/80 leading-relaxed">{t("examLock.body")}</p>
+      <a href={`/pricing?locked=${props.entry.category}`} className="mt-3 inline-flex px-4 py-2 rounded-full bg-amber-700 text-white text-xs font-bold">
+        {t("examLock.cta")}
+      </a>
+    </div>
+  );
   // 範例預覽鎖：尺寸/選項包進 disabled fieldset（不進 FormData → 不送出），材料留外面可改。
   // 不用 pointer-events-none：使用者仍能打開「進階設定」瀏覽有哪些可調項目（看得到、改不了）。
   const lockCls = previewLocked
@@ -264,7 +277,7 @@ export function MobileShell(props: MobileShellProps) {
                   {t("previewLockTitle", { dims: formatDimensions(length, width, height, unit) })}
                 </p>
                 <p className="mt-1 text-xs text-amber-900/90 leading-relaxed">
-                  {t("previewLockBody")}
+                  {examLocked ? t("previewLockBodyExam") : t("previewLockBody")}
                 </p>
                 <a
                   href={pricingHref}
@@ -414,12 +427,12 @@ export function MobileShell(props: MobileShellProps) {
         </div>
 
         <CollapsibleSection title={t("section.threeView")} badge={t("section.threeViewBadge")}>
-          <ZoomableThreeViews design={design} joineryMode={props.joineryMode} />
+          {examLocked ? examLockCard(t("examLock.threeView")) : <ZoomableThreeViews design={design} joineryMode={props.joineryMode} />}
         </CollapsibleSection>
 
         {/* 零件圖：手機版上線（2026-06-08）。桌面版在 hidden md:block 區、手機版缺，
             補進 MobileShell。面板自身已響應式(grid-cols-2)、含 modal 全圖。 */}
-        <PartDrawingsPanel design={design} />
+        {examLocked ? examLockCard(t("examLock.partDrawings")) : <PartDrawingsPanel design={design} />}
 
         <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.filter((p) => p.visual === undefined).length })}>
           <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
@@ -433,7 +446,7 @@ export function MobileShell(props: MobileShellProps) {
               {t("section.cutPlan")}
             </a>
           </div>
-          <MaterialListWithSelection design={design} />
+          {examLocked ? examLockCard(t("examLock.materials")) : <MaterialListWithSelection design={design} />}
         </CollapsibleSection>
 
         {joineryUsages.length > 0 && (
@@ -461,7 +474,7 @@ export function MobileShell(props: MobileShellProps) {
         )}
 
         <CollapsibleSection title={t("section.buildSteps")}>
-          <BuildSteps design={design} locale={locale} />
+          {examLocked ? examLockCard(t("examLock.steps")) : <BuildSteps design={design} locale={locale} />}
         </CollapsibleSection>
 
         <CollapsibleSection title={t("section.toolList")}>

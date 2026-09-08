@@ -239,7 +239,7 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
     ],
   },
   "step-03-cut-stock": {
-    title: (design) => `Cut to length — ${design.parts.length} parts`,
+    title: (design) => `Cut to length — ${design.parts.filter((p) => p.visual === undefined).length} parts`,   // 跟中文 derive.ts 的 totalParts 同一個定義：五金／木釘不是切料
     description: () =>
       "Cut milled stock into individual parts per the cut list. **Note:** parts with tenons already include the tenon stock — don't add length. Mark each part on the side with its part-id (e.g., leg-l-f / apron-front) right after cutting so dry-fit doesn't turn into a guessing game.",
     bullets: () => [
@@ -455,6 +455,41 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
     title: () => "Third oil coat (recommended for tabletops / seats)",
     description: () =>
       "High-contact surfaces (dining table, desk, seat) want a third coat. Thin film wears through in months on daily-use surfaces — three coats lasts 2–3 years before re-oiling.",
+  },
+  "step-05-dowel-holes": {
+    title: (design) => {
+      const holes = design.parts.reduce((n, p) => n + p.mortises.filter((m) => m.shape === "round" && !m.cosmetic).length, 0);
+      const dowels = design.parts.filter((p) => p.visual === "dowel").length;
+      return `Drill ${holes} dowel holes (${dowels} dowels)`;
+    },
+    description: () =>
+      "Drill every dowel hole to the diameter and depth on the part drawing: end-grain holes in a dowelling jig so they run true, face holes measured from the reference edge. Tape the bit as a depth stop. Dry-insert each dowel to check the two parts line up before gluing. Pivot dowels (if any) are glued into the door stile only — the side-panel end stays dry so the door can turn.",
+    bullets: () => [
+      "Measure every hole from the same reference edge; mirror the layout for left/right pairs instead of copying the numbers.",
+      "End-grain holes always in a jig or on the drill press — a hand-held hole that wanders will not take the dowel.",
+      "Glue the hole wall only; too much glue hydraulic-locks the dowel short of the bottom.",
+    ],
+  },
+  "step-05-grooves": {
+    title: (design) => {
+      const n = design.parts.reduce((c, p) => c + p.mortises.filter((m) => m.cosmetic && m.shape !== "round" && /溝|槽|缺口|groove|rebate|rabbet|notch/i.test(m.label ?? "")).length, 0);
+      return `Cut ${n} panel grooves`;
+    },
+    description: () =>
+      "Grooves for the plywood panels: set the width to the actual plywood thickness (nominal 6 mm sheets are often 5.5–5.8 mm) and the depth per the part drawing. Use a plough plane or a router straight bit, fence against the same reference edge, and run the whole set in one setting so widths match.",
+    bullets: () => [
+      "Test with a plywood offcut first: it should push in by hand and not fall out.",
+      "A through groove shows at the end of the stile — fill it with a haunch on the tenon, or stop the groove before the mortise.",
+    ],
+  },
+  "step-18-pivot-door": {
+    title: () => "Fit the door on its dowel pivots",
+    description: () =>
+      "Assemble the door first (the panel must go into its groove before the second stile is fitted). Glue the two Ø8 pivot dowels into the holes in the stile edges, leave the protruding part dry, and when the second side panel goes on, line the dowels up with its holes and push home together. Swing the door a few times — it should drop closed under its own weight onto the board ends.",
+    bullets: () => [
+      "Leave 1 mm clearance each side of the door; if it binds, plane the stile edge, never the side panel.",
+      "If a pivot hole is tight, sand the exposed section of the dowel until it turns freely.",
+    ],
   },
   "step-18-hinges": {
     title: () => "Install hinges and door pulls",

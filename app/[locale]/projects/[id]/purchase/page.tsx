@@ -31,6 +31,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 const ACCESSORY_SET = new Set([
   "pencil-holder",
   "cert-c1",
+  "cert-c2",
+  "cert-c3",
   "bookend",
   "photo-frame",
   "tray",

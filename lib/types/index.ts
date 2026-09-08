@@ -10,6 +10,8 @@ export type Millimeters = number;
 export type FurnitureCategory =
   /** 技術士技能檢定 家具木工 丙級 第一題（01200-100301）練習範本 */
   | "cert-c1"
+  | "cert-c2"
+  | "cert-c3"
   | "stool"
   | "bench"
   | "tea-table"
@@ -386,7 +388,15 @@ export interface Part {
      *  沿 thickness(Y) 擠出。順序 (−x,−z)→(+x,−z)→(+x,+z)→(−x,+z)。
      *  用途：技能檢定側板（背緣垂直、上緣前傾、底緣前升、前緣收窄——四邊都不同）。
      *  算式在 lib/render/quad-profile.ts，3D／三視圖／輪廓取樣共用。 */
-    | { kind: "quad"; corners: [[number, number], [number, number], [number, number], [number, number]] }
+    | { kind: "quad"; corners: [[number, number], [number, number], [number, number], [number, number]];
+        /** 四角落在哪個面："xz"（預設）＝板面（length×width，沿厚度擠出）；
+         *  "yz"＝端面剖面（thickness×width，沿長度擠出），corners 改為 [y, z]——
+         *  板端斜切用（丙級第二題頂板／底板前端順著門的傾角切 2mm）。 */
+        plane?: "xz" | "yz";
+        /** 選配：−z 邊（頂邊）上多一個折點 [x, z]，落在 corner0 → corner1 之間——
+         *  頂邊「先平一段再斜下去」的五角側板（丙級第三題：背緣頂端平 18 再斜到前端）。
+         *  取樣／3D／三視圖都走同一個分段內插（quadPoint）。 */
+        topBreak?: [number, number] }
     /** Apron beveled: 牙條上下緣切斜面，配合外斜腳家具的 apron tilt。
      *  本體仍是矩形截面，但 local z 方向 shear 量 = -y × tan(bevelAngle)。
      *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。

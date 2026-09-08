@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { FURNITURE_CATALOG, getEntryName, type FurnitureCatalogEntry } from "@/lib/templates";
+import { FURNITURE_CATALOG, catalogForLocale, getEntryName, type FurnitureCatalogEntry } from "@/lib/templates";
 import { routing, type Locale } from "@/i18n/routing";
 import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
@@ -85,7 +85,8 @@ const CATEGORY_CHIPS: Array<{
     labelKey: "chipAccessories",
     match: (c) =>
       c === "pencil-holder" || c === "photo-frame" ||
-      c === "tray" || c === "dovetail-box" || c === "wine-rack",
+      c === "tray" || c === "dovetail-box" || c === "wine-rack" ||
+      c === "cert-c1" || c === "cert-c2" || c === "cert-c3",
   },
 ];
 
@@ -169,7 +170,7 @@ export default async function Home({
   const unlockedSet = new Set(unlockedCats);
   const unlockedToolSet = new Set<ToolId>(unlockedTools);
 
-  const filtered = filterByChip(FURNITURE_CATALOG, chip);
+  const filtered = filterByChip(catalogForLocale(locale), chip);
   // 自然排序(免費置頂 / 按難度) — 不在這層把已解鎖搬上去,否則會打亂工具卡插入點
   const furniture = chip === "all"
     ? sortAllFreeFirst(filtered)

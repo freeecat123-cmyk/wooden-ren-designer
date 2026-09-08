@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { findOverlaps } from "@/lib/geometry/overlap";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { FURNITURE_CATALOG } from "@/lib/templates";
+import type { Part } from "@/lib/types";
 
 const entry = FURNITURE_CATALOG.find((e) => e.category === "cert-c1")!;
 const build = () => entry.template!({ ...entry.defaults, material: "pine" });
@@ -36,5 +37,28 @@ describe("木釘零件 × 圓孔", () => {
     // 對照：拿掉旗標就會被拆
     const stripped = toBeginnerMode({ ...d, joineryOnly: undefined });
     expect(stripped.parts.find((p) => p.id === "shelf")!.tenons).toHaveLength(0);
+  });
+});
+
+describe("clearedByRoundHole 的邊界（審查員 2026-09-08）", () => {
+  const host = (m: Partial<Part["mortises"][number]>): Part => ({
+    id: "host", nameZh: "母件", material: "pine", grainDirection: "length",
+    visible: { length: 100, width: 50, thickness: 18 }, origin: { x: 0, y: 0, z: 0 }, tenons: [],
+    mortises: [{ origin: { x: 50, y: 9, z: 0 }, depth: 18, length: 8, width: 8, through: false, shape: "round", ...m }],
+  } as Part);
+  const rod = (dia: number, len = 30, x = 50 + len / 2 - 18): Part => ({
+    id: "rod", nameZh: "木釘", material: "pine", grainDirection: "length",
+    visible: { length: len, width: dia, thickness: dia }, origin: { x, y: 9 - dia / 2, z: 0 },
+    shape: { kind: "round", axis: "x" }, visual: "dowel", tenons: [], mortises: [],
+  } as Part);
+  it("Ø8 插 Ø8 盲孔 18 深 → 放行", () => expect(findOverlaps([host({}), rod(8)])).toHaveLength(0));
+  it("Ø9 插 Ø8 孔 → 報穿模（直徑差 1mm 不能放）", () => expect(findOverlaps([host({}), rod(9)]).length).toBe(1));
+  it("8×20 長孔（shape round）：Ø8 過、Ø20 不過", () => {
+    expect(findOverlaps([host({ length: 20, width: 8 }), rod(8)])).toHaveLength(0);
+    expect(findOverlaps([host({ length: 20, width: 8 }), rod(20, 30, 50 + 15 - 18)]).length).toBe(1);
+  });
+  it("通孔：圓棒穿出另一面也放行", () => {
+    const h = host({ through: true, depth: 100, origin: { x: 50, y: 9, z: 0 } });
+    expect(findOverlaps([h, rod(8, 120, 0)])).toHaveLength(0);
   });
 });

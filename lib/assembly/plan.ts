@@ -34,6 +34,32 @@
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { categorizePart, type PartCategory } from "@/lib/render/categorize-part";
 import { worldExtents } from "@/lib/render/geometry";
+import { worldAABB } from "@/lib/geometry/overlap";
+import { Euler, Vector3 } from "three";
+
+/**
+ * 溝的本地方盒（零件中心座標）。⛔ 不能用 svg-views 的 mortiseLocalBox——那是 "use client" 模組，
+ * plan.ts 在 server component 裡跑，呼叫客戶端函式會讓整個設計頁炸掉（2026-09-08 實際炸過一次）。
+ * 深度軸＝離哪個面最近（跟 joint-world 同一套啟發式）；另外兩軸：x 放 length、剩下那軸放 width。
+ */
+function grooveLocalBox(part: Part, m: Part["mortises"][number]): { c: Vec3; h: Vec3; depthAxis: "x" | "y" | "z" } | null {
+  const lx = part.visible.length, ly = part.visible.thickness, lz = part.visible.width;
+  const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
+  const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
+  const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
+  let depthAxis: "x" | "y" | "z";
+  if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
+  else if (xToFace <= zToFace) depthAxis = "x";
+  else depthAxis = "z";
+  const d = Math.max(0.1, m.depth);
+  const c: Vec3 = { x: m.origin.x, y: m.origin.y - ly / 2, z: m.origin.z };
+  const h: Vec3 = { x: 0, y: 0, z: 0 };
+  if (depthAxis === "y") { h.x = m.length / 2; h.z = m.width / 2; h.y = d / 2; c.y += m.origin.y >= ly / 2 ? -d / 2 : d / 2; }
+  else if (depthAxis === "z") { h.x = m.length / 2; h.y = m.width / 2; h.z = d / 2; c.z += m.origin.z >= 0 ? -d / 2 : d / 2; }
+  else { h.z = m.length / 2; h.y = m.width / 2; h.x = d / 2; c.x += m.origin.x >= 0 ? -d / 2 : d / 2; }
+  if (![c.x, c.y, c.z, h.x, h.y, h.z].every(Number.isFinite) || Math.min(h.x, h.y, h.z) <= 0) return null;
+  return { c, h, depthAxis };
+}
 import {
   buildWorldMortiseIndex,
   matchMortiseForTenon,
@@ -235,9 +261,12 @@ function boxContains(b: Box, pt: Vec3, tol: number): boolean {
  * - 滑蓋：`lid` + `wall-<side>-cap`（缺口在 cap 那一側）→ 從 cap 往盒內滑。
  * - 木釘（`visual: "dowel"` 的圓料）：兩端各落在哪一件的盒子裡就跟誰接，**只能沿自己的軸**進出
  *   （2026-09-07 丙級第一題：8 支 Ø8 木釘接橫檔與側板；沒登記的話會被當自由件從上面掉下來）。
+ * - 入溝的板（夾板背板、門鑲板）：母件上 cosmetic 的方形溝跟板的盒子有實質交集 → 板只能沿「溝的深度軸往外」
+ *   或「溝的長軸」進出（2026-09-08 丙級第二題：四邊入溝 9 的背板被當自由件從背面推進去、鑲板在第二支門梃合上後才進槽）。
+ *   母件可帶任意旋轉（溝盒取世界外接盒、方向取最近的世界軸）；滑蓋（lid-group）走既有的專用規則。
  */
 function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, Box>): Joint[] {
-  const out: Joint[] = [];
+  const out_: Joint[] = [];
   const seen = new Set<string>();
   for (const p of parts) {
     if (p.visual === "dowel" && p.shape?.kind === "round") {
@@ -253,7 +282,7 @@ function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, 
         const probe = add(c, scale(dir, dowelLen / 2 - 1));
         const q = parts.find((q) => q.id !== p.id && q.visual !== "dowel" && boxContains(box.get(q.id)!, probe, 0.5));
         if (!q) continue;
-        out.push({ kind: "tenon", child: p.id, mother: q.id, axes: [dir], out: dir, root: endPt, widthUnit: axisUnit, widthMm: 0 });
+        out_.push({ kind: "tenon", child: p.id, mother: q.id, axes: [dir], out: dir, root: endPt, widthUnit: axisUnit, widthMm: 0 });
       }
       continue;
     }
@@ -276,7 +305,7 @@ function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, 
         const axes = kind === "dovetail-ends"
           ? [towardQ]
           : [thickUnit, scale(thickUnit, -1), lengthUnit, scale(lengthUnit, -1)];
-        out.push({
+        out_.push({
           kind: kind === "dovetail-ends" ? "dovetail" : "finger",
           child: p.id, mother: q.id, axes, out: axes[0],
           root: endPt, widthUnit: thickUnit, widthMm: 0,
@@ -284,18 +313,81 @@ function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, 
       }
     }
   }
+  // 入溝板件
+  for (const host of parts) {
+    // 只認 label 寫明是溝／槽／缺口的 cosmetic 方孔（酒架的十字搭接缺口沒 label，不該被當入溝件；迴歸測試員 2026-09-08）
+    const grooves = host.mortises.filter((m) => m.cosmetic && m.shape !== "round" && !m.rotX && !m.rotY && !m.rotZ && /溝|槽|缺口|groove|rebate|rabbet|notch/i.test(m.label ?? ""));
+    if (!grooves.length) continue;
+    // 母件可以有非 quarter turn 的旋轉（丙級第二題傾斜 6.5° 的門框）：溝盒轉成世界後取外接盒、方向取最接近的世界軸
+    const angles = [host.rotation?.x ?? 0, host.rotation?.y ?? 0, host.rotation?.z ?? 0];
+    const euler = new Euler(angles[0], angles[1], angles[2], "ZYX");
+    const hc = center.get(host.id)!;
+    for (const m of grooves) {
+      const lb = grooveLocalBox(host, m);
+      if (!lb) continue;
+      const corners: Vector3[] = [];
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+        corners.push(new Vector3(lb.c.x + sx * lb.h.x, lb.c.y + sy * lb.h.y, lb.c.z + sz * lb.h.z).applyEuler(euler).add(new Vector3(hc.x, hc.y, hc.z)));
+      }
+      const gb: Box = {
+        min: { x: Math.min(...corners.map((c) => c.x)), y: Math.min(...corners.map((c) => c.y)), z: Math.min(...corners.map((c) => c.z)) },
+        max: { x: Math.max(...corners.map((c) => c.x)), y: Math.max(...corners.map((c) => c.y)), z: Math.max(...corners.map((c) => c.z)) },
+      };
+      // 溝的深度軸（世界）：從溝底指向開口＝離開母件的方向
+      const depthLocal = new Vector3(lb.depthAxis === "x" ? 1 : 0, lb.depthAxis === "y" ? 1 : 0, lb.depthAxis === "z" ? 1 : 0);
+      const dWorld = depthLocal.applyEuler(euler);
+      const outward = snapAxis({ x: dWorld.x, y: dWorld.y, z: dWorld.z });
+      // 開口在哪一側：溝盒中心相對母件中心，在深度軸上的符號
+      const gc = { x: (gb.min.x + gb.max.x) / 2, y: (gb.min.y + gb.max.y) / 2, z: (gb.min.z + gb.max.z) / 2 };
+      const side = dot(sub(gc, hc), outward) >= 0 ? 1 : -1;
+      const out = scale(outward, side);
+      // 溝的長軸：溝盒三軸裡（扣掉深度軸）較長的那個
+      const ext = { x: gb.max.x - gb.min.x, y: gb.max.y - gb.min.y, z: gb.max.z - gb.min.z };
+      const lenAxis = (["x", "y", "z"] as const).filter((a) => Math.abs((outward as Record<string, number>)[a]) < 0.5).sort((a, b) => ext[b] - ext[a])[0];
+      const along: Vec3 = { x: lenAxis === "x" ? 1 : 0, y: lenAxis === "y" ? 1 : 0, z: lenAxis === "z" ? 1 : 0 };
+      const grooveW = Math.min(m.length, m.width);
+      for (const p of parts) {
+        if (p.id === host.id || p.visual === "dowel") continue;
+        // 滑蓋（lid-group）另有專用的 slide 規則（缺口那側滑入），不在這裡重複登記
+        if (familyKey(p.id) === "lid-group") continue;
+        // 入溝的一定是薄板：厚度得塞得進溝（斜置門梃的溝盒取外接盒會變胖，18 厚的頂板曾被誤判入槽）
+        if (Math.min(p.visible.length, p.visible.width, p.visible.thickness) > grooveW + 1) continue;
+        if (!boxesOverlap(gb, box.get(p.id)!, 0.5)) continue;
+        const key = `${p.id}>${host.id}`;
+        if (seen.has(key)) continue;
+        // 已經有榫接／木釘接的不重複登記
+        if (out_.some((j) => (j.child === p.id && j.mother === host.id) || (j.child === host.id && j.mother === p.id))) continue;
+        seen.add(key);
+        const into = scale(out, -1);
+        out_.push({ kind: "slide", child: p.id, mother: host.id, axes: [into, along, scale(along, -1)], out: into, root: gc, widthUnit: along, widthMm: 0 });
+      }
+    }
+  }
   const lid = parts.find((p) => p.id === "lid");
   const cap = parts.find((p) => /^wall-(front|back|left|right)-cap$/.test(p.id));
   if (lid && cap) {
     const dir = snapAxis({ ...sub(center.get(lid.id)!, center.get(cap.id)!), y: 0 });
-    out.push({ kind: "slide", child: lid.id, mother: cap.id, axes: [dir], out: dir, root: center.get(lid.id)!, widthUnit: dir, widthMm: 0 });
+    out_.push({ kind: "slide", child: lid.id, mother: cap.id, axes: [dir], out: dir, root: center.get(lid.id)!, widthUnit: dir, widthMm: 0 });
   }
-  return out;
+  return out_;
 }
 
 export interface Box { min: Vec3; max: Vec3 }
 
+/**
+ * 零件的世界 AABB。🩸2026-09-08：原本用 `worldExtents`，對**非 quarter turn** 的零件是近似盒
+ * （丙級第二題傾斜 6.5° 的門梃算出來只有 18 厚、少了整個斜向投影），樞軸木釘的端點落在盒外
+ * → shapeJoints 沒登記 dowel↔stile 接合 → 門被當自由件從上面掉下來。改用 silhouette 算的 worldAABB。
+ */
 function partBox(p: Part): Box {
+  // ⚠️ 只對非 quarter turn 的零件走 silhouette（迴歸測試員 2026-09-08：全面改用 worldAABB 會讓 hoof 柱／face-rounded
+  // 的盒子變大，中式櫃的組裝順序整個重排）。quarter turn 的零件維持原本的 worldExtents 盒，29 款舊模板順序不變。
+  const angles = [p.rotation?.x ?? 0, p.rotation?.y ?? 0, p.rotation?.z ?? 0];
+  const quarter = angles.every((a) => Math.abs(a / (Math.PI / 2) - Math.round(a / (Math.PI / 2))) < 1e-8);
+  if (!quarter) {
+    const b = worldAABB(p);
+    return { min: { ...b.min }, max: { ...b.max } };
+  }
   const c = partWorldCenter(p);
   const { xExt, yExt, zExt } = worldExtents(p);
   return {

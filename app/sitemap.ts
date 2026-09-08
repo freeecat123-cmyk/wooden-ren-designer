@@ -93,7 +93,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // 開發中家具不收錄(名單見 lib/templates 的 DEV_CATEGORIES,單一真相來源)
   const designRoutes: MetadataRoute.Sitemap = FURNITURE_CATALOG
     .filter((e) => !isDevCategory(e.category))
-    .flatMap((e) => biLocaleEntry(`/design/${e.category}`, "monthly", 0.8, now));
+    .flatMap((e) => e.zhOnly
+      ? [twOnlyEntry(`/design/${e.category}`, "monthly", 0.8, now)]   // 丙級檢定題只做中文
+      : biLocaleEntry(`/design/${e.category}`, "monthly", 0.8, now));
 
   // /templates/[type]/* — bilingual when EN marketing exists; otherwise zh-only
   const enTemplateSet = new Set(FEATURED_TEMPLATE_CATEGORIES_EN as string[]);

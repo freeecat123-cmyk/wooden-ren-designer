@@ -33,6 +33,8 @@ import { workbench, workbenchOptions } from "./workbench";
 import { bed, bedOptions } from "./bed";
 import { wallMountedToolStorage, wallMountedToolStorageOptions } from "./wall-mounted-tool-storage";
 import { certC1, certC1Options } from "./cert-c1";
+import { certC2, certC2Options } from "./cert-c2";
+import { certC3, certC3Options } from "./cert-c3";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -60,6 +62,8 @@ export interface FurnitureCatalogEntry {
    * 而且會把貫穿榫凸出的 20mm 拔掉、總寬從 320 變 300（2026-09-07）。
    */
   joineryOnly?: boolean;
+  /** 只做中文（2026-09-08 木頭仁：「不需要英文版 國外沒有丙級」）：/en 的目錄、介紹頁、sitemap 都不列，英文網址導回中文頁 */
+  zhOnly?: boolean;
 }
 
 /** Locale-aware accessor — Phase 2: callers 傳入 locale 拿正確語言名稱。 */
@@ -80,6 +84,7 @@ export function getEntryDescription(
 export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   {
     category: "cert-c1",
+    zhOnly: true,
     nameZh: "丙級檢定 第一題",
     nameEn: "Trade test Class C — Q1",
     description: "技術士技能檢定家具木工丙級 01200-100301：直角梯形側板＋貫穿榫＋6mm 夾板嵌槽，4 小時",
@@ -90,6 +95,34 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 320, width: 120, height: 350 },
     limits: { length: 600, width: 300, height: 600 },
     optionSchema: certC1Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-c2",
+    zhOnly: true,
+    nameZh: "丙級檢定 第二題",
+    nameEn: "Trade test Class C — Q2",
+    description: "技術士技能檢定家具木工丙級 01200-100302：斜面上掀門小壁箱，木釘接＋框鑲板門＋木釘樞軸，4 小時",
+    descriptionEn: "Taiwan Class C furniture-woodworking trade test Q2: sloping-front wall box with a lift-up frame-and-panel door on dowel pivots — 4-hour piece",
+    difficulty: "beginner",
+    template: certC2,
+    defaults: { length: 300, width: 120, height: 350 },
+    limits: { length: 600, width: 300, height: 600 },
+    optionSchema: certC2Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-c3",
+    zhOnly: true,
+    nameZh: "丙級檢定 第三題",
+    nameEn: "Trade test Class C — Q3",
+    description: "技術士技能檢定家具木工丙級 01200-100303：前後兩截斜頂小架，側板留 10mm 縫用木釘連接，貫穿榫＋木釘＋夾板背板，4 小時",
+    descriptionEn: "Taiwan Class C furniture-woodworking trade test Q3: two-part sloping rack, side panels split with a 10 mm dowel-linked gap, through tenons, dowels, plywood back — 4-hour piece",
+    difficulty: "beginner",
+    template: certC3,
+    defaults: { length: 300, width: 240, height: 230 },
+    limits: { length: 600, width: 400, height: 500 },
+    optionSchema: certC3Options,
     joineryOnly: true,
   },
   {
@@ -443,6 +476,11 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     optionSchema: wallMountedToolStorageOptions,
   },
 ];
+
+/** 該語系看得到的目錄：英文站濾掉 zhOnly（丙級檢定題只做中文） */
+export function catalogForLocale(locale: string): FurnitureCatalogEntry[] {
+  return locale === "en" ? FURNITURE_CATALOG.filter((e) => !e.zhOnly) : FURNITURE_CATALOG;
+}
 
 export function getTemplate(category: FurnitureCategory): FurnitureCatalogEntry | undefined {
   return FURNITURE_CATALOG.find((e) => e.category === category);

@@ -148,8 +148,8 @@ console.log(
   `\nstats: ${totalTriggered}/${totalParts} parts trigger needsPartDrawing across ${FURNITURE_CATALOG.length} templates`,
 );
 expect(
-  totalTriggered > 100 && totalTriggered < 500,
-  `Total triggered parts: ${totalTriggered} (expected 100-500 per spec §1.2)`,
+  totalTriggered > 100 && totalTriggered < 600,
+  `Total triggered parts: ${totalTriggered} (expected 100-600 per spec §1.2；2026-09-08 加三題丙級模板後 514)`,
 );
 
 // ─── Test 4: identical parts collide, different parts diverge ──────────────

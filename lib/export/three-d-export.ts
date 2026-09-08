@@ -116,7 +116,7 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
     };
   }
   if (shape.kind === "quad") {
-    return { kind: "quad", corners: shape.corners };
+    return { kind: "quad", corners: shape.corners, plane: shape.plane, topBreak: shape.topBreak };
   }
   if (shape.kind === "apron-beveled") {
     return { kind: "apron-beveled", bevelAngle: shape.bevelAngle };

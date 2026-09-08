@@ -7,10 +7,11 @@ import { DesignDraftRecovery } from "@/components/design/DesignDraftRecovery";
 import { after } from "next/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
-import { getTemplate, getEntryName, getEntryDescription , isDevCategory } from "@/lib/templates";
+import { getTemplate, getEntryName, getEntryDescription, isDevCategory, catalogForLocale } from "@/lib/templates";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
+import { getBundleFor } from "@/lib/pricing/template-unlock";
 import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
@@ -179,6 +180,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) notFound();
+  // 只做中文的範本（丙級檢定題）：英文網址導回中文頁（中文是預設語系、網址沒有前綴）
+  if (entry.zhOnly && locale === "en") redirect(`/design/${type}`);
 
   // 付費門檻：免費版完整使用 FREE_UNLOCKED_CATEGORIES，其他模板走「範例預覽鎖」
   // （見下方 previewLocked）——給看但鎖客製，不再 redirect。
@@ -254,6 +257,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
   // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
   // 不小心讓非付費 user 繞過尺寸上限。
+  // 考題套組（丙級三題）：預設尺寸就是考題尺寸，「範例預覽」等於把答案全放出來
+  // （2026-09-08 木頭仁：「介紹頁不要把重點尺寸都放出來，不然別人就不用買了」）
+  // → 沒買斷的人只給 3D，三視圖／零件圖／材料單／工序整段換成鎖卡。
+  const examLocked = previewLocked && !!getBundleFor(type);
   const planAllowsDesigner = getPlanFeatures(profile).canUseDesignerMode;
   const canUseDesignerMode = isAdmin || planAllowsDesigner;
 
@@ -415,7 +422,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // HowTo JSON-LD — designer 產出的工序就是「製作教學」，HowTo schema 抓
   // 「{家具}怎麼做 / 製作步驟」這類搜尋意圖的 rich result。資料來自跟畫面
   // BuildSteps 同一份 deriveBuildSteps，保證 SEO 跟 UI 完全對齊。
-  const buildStepsForSchema = translateSteps(deriveBuildSteps(design), design, locale);
+  // 考題套組沒買斷：工序（含鑽孔位置等尺寸）不能經由 JSON-LD 留在 HTML 裡
+  const buildStepsForSchema = examLocked ? [] : translateSteps(deriveBuildSteps(design), design, locale);
   const totalMinutes = buildStepsForSchema.reduce(
     (sum, s) => sum + (s.estimatedMinutes ?? 0),
     0,
@@ -441,14 +449,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table", "workbench"],
     seating: ["stool", "bench", "dining-chair", "bar-stool", "round-stool"],
     cabinet: ["open-bookshelf", "chest-of-drawers", "chinese-cabinet", "shoe-cabinet", "display-cabinet", "media-console", "nightstand", "wardrobe"],
-    accessory: ["pencil-holder", "cert-c1", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
+    accessory: ["pencil-holder", "cert-c1", "cert-c2", "cert-c3", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
     bed: ["bed"],
   };
   const family = (Object.keys(FAMILY_MAP) as Array<keyof typeof FAMILY_MAP>).find(
     (k) => FAMILY_MAP[k].includes(entry.category),
   );
   const relatedTemplates = family
-    ? FURNITURE_CATALOG.filter(
+    ? catalogForLocale(locale).filter(
         (e) =>
           e.category !== entry.category &&
           FAMILY_MAP[family].includes(e.category) &&
@@ -524,7 +532,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             limits={designerMode ? undefined : entry.limits}
             optionSchema={optionSchema} optionValues={options} joineryMode={joineryMode}
             designerMode={designerMode} canUseDesignerMode={canUseDesignerMode}
-            previewLocked={previewLocked} allPartIds={design.parts.map(p => p.id)} locale={locale} unit={unit} />}
+            previewLocked={previewLocked} examLocked={examLocked} allPartIds={design.parts.map(p => p.id)} locale={locale} unit={unit} />}
           model={<div data-studio-model>
             <SceneThemeToggle current={sceneId} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode}
@@ -542,9 +550,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           drawings={<div className="space-y-6">
             <section data-section="threeview">
               <h2 className="mb-3 text-base font-semibold">{t("section.threeView")}</h2>
-              <ZoomableThreeViews design={design} joineryMode={joineryMode} />
+              {examLocked ? <ExamLockedCard type={type} what={t("examLock.threeView")} /> : <ZoomableThreeViews design={design} joineryMode={joineryMode} />}
             </section>
-            <PartDrawingsPanel design={design} />
+            {examLocked ? <ExamLockedCard type={type} what={t("examLock.partDrawings")} /> : <PartDrawingsPanel design={design} />}
             <section>
               <h2 className="mb-3 text-base font-semibold">{joineryMode ? t("section.joineryDetail") : t("section.joineryAssembly")}</h2>
               {joineryMode ? <JoinerySection design={design} locale={locale} /> : <div className="text-sm leading-relaxed text-zinc-700">
@@ -565,12 +573,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <Link data-studio-output href={cutPlanUrl} target="_blank"
                 className="inline-flex min-h-10 items-center rounded-md bg-emerald-700 px-3 text-sm text-white">{t("section.cutPlanBtn")}</Link>
             </div>
-            <MaterialListWithSelection design={design} />
+            {examLocked ? <ExamLockedCard type={type} what={t("examLock.materials")} /> : <MaterialListWithSelection design={design} />}
           </section>}
           build={<div className="space-y-8">
             <section data-section="steps">
               <h2 className="mb-4 text-base font-semibold">{t("section.buildSteps")}</h2>
-              <BuildSteps design={design} locale={locale} />
+              {examLocked ? <ExamLockedCard type={type} what={t("examLock.steps")} /> : <BuildSteps design={design} locale={locale} />}
             </section>
             <section>
               <h2 className="mb-4 text-base font-semibold">{t("section.toolList")}</h2>
@@ -742,6 +750,7 @@ async function ParameterForm({
   designerMode,
   canUseDesignerMode,
   previewLocked,
+  examLocked = false,
   allPartIds,
   locale,
   unit,
@@ -755,6 +764,7 @@ async function ParameterForm({
   designerMode: boolean;
   canUseDesignerMode: boolean;
   previewLocked: boolean;
+  examLocked?: boolean;
   allPartIds: string[];
   locale: string;
   unit: "mm" | "inch";
@@ -783,7 +793,7 @@ async function ParameterForm({
                 {t("previewLockTitle", { dims: formatDimensions(defaults.length, defaults.width, defaults.height, unit) })}
               </p>
               <p className="mt-1 text-xs text-amber-900/90 leading-relaxed">
-                {t("previewLockBody")}
+                {examLocked ? t("previewLockBodyExam") : t("previewLockBody")}
               </p>
               <Link
                 href={`/pricing?locked=${type}`}
@@ -1404,5 +1414,23 @@ function NumberInput({
         isLengthMm
       />
     </label>
+  );
+}
+
+/** 考題套組沒買斷時，取代三視圖／零件圖／材料單／工序的鎖卡 */
+async function ExamLockedCard({ type, what }: { type: string; what: string }) {
+  const t = await getTranslations("design");
+  return (
+    <div className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/60 px-5 py-8 text-center">
+      <div className="text-2xl" aria-hidden>🔒</div>
+      <p className="mt-2 text-sm font-bold text-amber-950">{t("examLock.title", { what })}</p>
+      <p className="mt-1 text-xs text-amber-900/80 leading-relaxed max-w-md mx-auto">{t("examLock.body")}</p>
+      <Link
+        href={`/pricing?locked=${type}`}
+        className="mt-4 inline-flex items-center gap-1 px-4 py-2 rounded-full bg-amber-700 text-white text-xs font-bold shadow hover:bg-amber-800"
+      >
+        {t("examLock.cta")}
+      </Link>
+    </div>
   );
 }

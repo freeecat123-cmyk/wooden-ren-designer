@@ -22,8 +22,14 @@ import {
   getAioUrl,
 } from "@/lib/ecpay/create-order";
 import { assertEcpayConfigured } from "@/lib/ecpay/config";
-import { getUnlockPrice, getDifficulty, DIFFICULTY_LABEL_ZH } from "@/lib/pricing/template-unlock";
-import { getCatalogEntry } from "@/lib/pricing/template-unlock";
+import {
+  getUnlockPrice,
+  getDifficulty,
+  DIFFICULTY_LABEL_ZH,
+  getCatalogEntry,
+  getBundleFor,
+  getUnlockCategories,
+} from "@/lib/pricing/template-unlock";
 import { isPaidCategory } from "@/lib/permissions";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import type { FurnitureCategory } from "@/lib/types";
@@ -72,13 +78,16 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // 已解鎖過 → 不要重複收錢
-  const { data: existing, error: existingErr } = await admin
+  // 已解鎖過 → 不要重複收錢（套組：任一支已解鎖就算買過）
+  const bundle = getBundleFor(category);
+  const unlockCategories = getUnlockCategories(category);
+  const { data: existingRows, error: existingErr } = await admin
     .from("template_unlocks")
     .select("id")
     .eq("user_id", user.id)
-    .eq("category", category)
-    .maybeSingle();
+    .in("category", unlockCategories)
+    .limit(1);
+  const existing = existingRows?.[0] ?? null;
   /**
    * ⛔ 原本只解構 data、把 error 丟掉。supabase-js 查詢失敗不會 throw,
    *    而是回 `{ data: null, error }` → existing 變成 null → 判定「還沒買過」
@@ -110,7 +119,9 @@ export async function POST(req: NextRequest) {
 
   const difficulty = getDifficulty(category);
   const orderId = generateOrderId();
-  const itemName = `${entry.nameZh}（${DIFFICULTY_LABEL_ZH[difficulty]}）永久買斷`;
+  const itemName = bundle
+    ? `${bundle.nameZh} 永久買斷`
+    : `${entry.nameZh}（${DIFFICULTY_LABEL_ZH[difficulty]}）永久買斷`;
 
   // 把 category + amount 寫進 pending payments,webhook 看 raw_response.kind 分流
   await admin.from("payments").insert({
@@ -121,6 +132,9 @@ export async function POST(req: NextRequest) {
       kind: "template_unlock",
       orderId,
       category,
+      // 套組：回呼時每一支各寫一列 template_unlocks
+      categories: unlockCategories,
+      bundleId: bundle?.id ?? null,
       amount,
       itemName,
     } as Record<string, unknown>,
@@ -130,7 +144,7 @@ export async function POST(req: NextRequest) {
     orderId,
     amount,
     itemName,
-    description: `${entry.nameZh} 工程圖永久使用`,
+    description: bundle ? `${bundle.nameZh} 工程圖永久使用` : `${entry.nameZh} 工程圖永久使用`,
     email: user.email ?? undefined,
   });
   const html = buildAutoSubmitHtml(getAioUrl(), params);

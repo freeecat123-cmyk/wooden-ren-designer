@@ -186,6 +186,8 @@ function wasteRateFor(category: string): number {
   const accessoryCategories = new Set([
     "pencil-holder",
     "cert-c1",
+    "cert-c2",
+    "cert-c3",
     "bookend",
     "photo-frame",
     "tray",

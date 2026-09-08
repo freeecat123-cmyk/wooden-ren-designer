@@ -83,27 +83,30 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(d.overall).toEqual({ length: 320, width: 120, thickness: 350 });
     expect(d.warnings ?? []).toEqual([]);
   });
-  it("側板：120×350×18，quad 形狀，背緣在 local +x（實測旋轉後 local x 鏡像到世界 z）", () => {
+  it("側板：120×350×18，quad 形狀，背緣在 local −x（旋轉後 local x 鏡像到世界 z → 背在世界 +z，app 慣例）", () => {
     const s = byId("side-left");
     expect(s.visible).toEqual({ length: 120, width: 350, thickness: 18 });
-    const want = sidePanelQuad({ lx: 120, lz: 350, bottomDepth: 95, topDropFront: 30, bottomRiseFront: 15, backSide: "max" });
+    const want = sidePanelQuad({ lx: 120, lz: 350, bottomDepth: 95, topDropFront: 30, bottomRiseFront: 15, backSide: "min" });
     expect(s.shape).toEqual({ kind: "quad", corners: want });
     expect(byId("side-right").shape).toEqual(s.shape);
-    // 背緣兩點都在 +60（垂直），前緣頂 −60 降 30、前緣底 −60+95=35 升 15
-    expect(want[1]).toEqual([60, -175]);
-    expect(want[2]).toEqual([60, 175]);
-    expect(want[0]).toEqual([-60, -145]);
-    expect(want[3]).toEqual([60 - 95, 160]);   // 前下角：背緣 +60 往前 95 → −35，底緣升 15 → 160
+    // 背緣兩點都在 −60（垂直），前緣頂 +60 降 30、前緣底 −60+95=35 升 15
+    expect(want[0]).toEqual([-60, -175]);
+    expect(want[3]).toEqual([-60, 175]);
+    expect(want[1]).toEqual([60, -145]);
+    expect(want[2]).toEqual([-60 + 95, 160]);   // 前下角：背緣 −60 往前 95 → 35，底緣升 15 → 160
+    // 世界座標：背板在 +z（3D「正視」從 −z 看得到前擋條，不是背板）
+    expect(byId("back-panel").origin.z).toBeGreaterThan(0);
+    expect(byId("front-lip").origin.z).toBeLessThan(0);
   });
   it("榫眼開在內面：左側板 local y=18、右側板 local y=0（旋轉後 local y→世界 x 同號）", () => {
     expect(byId("side-left").mortises.every((m) => m.origin.y === 18)).toBe(true);
     expect(byId("side-right").mortises.every((m) => m.origin.y === 0)).toBe(true);
   });
-  it("背橫檔 18×50、頂端離頂 15（底在 285）；木釘距頂 30、40", () => {
+  it("背橫檔 18×50、頂端離頂 15（底在 285）；木釘距頂 10、40（A-A 鏈 50｜30｜10）", () => {
     const r = byId("rail-back-top");
     expect(r.visible).toEqual({ length: 264, width: 50, thickness: 18 });
     expect(r.origin.y).toBe(350 - 15 - 50);
-    expect(r.origin.z).toBe(-60 + 9);
+    expect(r.origin.z).toBe(60 - 9);
     expect(r.mortises).toHaveLength(4);
   });
   it("上層板 18×100，頂面在 285（離頂 65）；每端雙貫穿榫 20 寬、長 18+10", () => {
@@ -116,31 +119,35 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
       expect(t.length).toBe(28);
       expect(t.width).toBe(20);
     }
-    // 雙榫頭中心：離背 30 與 80 → 世界 z −30、+20；層板中心 z=−10 → 偏移 −20、+30
+    // 雙榫頭中心：離背 30 與 80 → 世界 z +30、−20；層板中心 z=+10 → 偏移 +20、−30
     const offs = s.tenons.filter((t) => t.position === "start").map((t) => t.offsetWidth).sort((a, b) => (a ?? 0) - (b ?? 0));
-    expect(offs).toEqual([-20, 30]);
+    expect(offs).toEqual([-30, 20]);
   });
-  it("下橫檔 18×80，頂面離地 80；木釘離背 20、65", () => {
+  it("下橫檔 18×80，底面離地 80、頂面 98；木釘離背 20、65", () => {
     const r = byId("rail-lower");
     expect(r.visible).toEqual({ length: 264, width: 80, thickness: 18 });
-    expect(r.origin.y + 18).toBe(80);
-    expect(r.origin.z).toBe(-60 + 40);
-    const zs = r.mortises.filter((m) => m.origin.x < 0).map((m) => m.origin.z + r.origin.z + 60).sort((a, b) => a - b);
+    expect(r.origin.y).toBe(80);
+    expect(r.origin.y + 18).toBe(98);
+    expect(r.origin.z).toBe(60 - 40);
+    const zs = r.mortises.filter((m) => m.origin.x < 0).map((m) => 60 - (m.origin.z + r.origin.z)).sort((a, b) => a - b);
     expect(zs).toEqual([20, 65]);
   });
-  it("前擋條 12×18，底離地 15，前面離側板前緣 3", () => {
+  it("前擋條 12×18，離地 32–50，前面離背 80（與下橫檔前面齊平）；短榫 6 厚前後各 3 肩", () => {
     const l = byId("front-lip");
     expect(l.visible).toEqual({ length: 264, width: 12, thickness: 18 });
-    expect(l.origin.y).toBe(15);
-    expect(l.origin.z + 6).toBe(-60 + 95 - 3);
+    expect(l.origin.y).toBe(32);
+    expect(l.origin.z - 6).toBe(60 - 80);
+    expect(l.tenons[0].width).toBe(6); expect(l.tenons[0].thickness).toBe(18); expect(l.tenons[0].shoulderOn).toEqual(["left", "right"]);
     expect(l.tenons).toHaveLength(2);
   });
-  it("夾板背板 6mm：層板下緣 267 → 下橫檔上緣 80（187 高）、寬 264+6+6、貼背緣", () => {
+  it("夾板背板 6mm：四邊各嵌 12 → 86 到 279（193 高）、寬 264+12+12=288、貼背緣；層板與橫檔各有 6×12 rebate", () => {
     const p = byId("back-panel");
     expect(p.materialOverride).toBe("plywood");
-    expect(p.visible).toEqual({ length: 276, width: 187, thickness: 6 });
-    expect(p.origin.y).toBe(80);
-    expect(p.origin.z).toBe(-60 + 3);
+    expect(p.visible).toEqual({ length: 288, width: 193, thickness: 6 });
+    expect(p.origin.y).toBe(86);
+    expect(byId("shelf").mortises.filter((m) => m.cosmetic)).toHaveLength(1);
+    expect(byId("rail-lower").mortises.filter((m) => m.cosmetic)).toHaveLength(1);
+    expect(p.origin.z).toBe(60 - 3);
   });
   it("側板每片 8 個榫眼：木釘 2+2、貫穿榫眼 2、前擋條短榫眼 1、背板入溝 1（cosmetic）；貫穿的才 through", () => {
     const m = byId("side-left").mortises;
@@ -148,9 +155,9 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(m.filter((x) => x.through)).toHaveLength(2);
     expect(m.filter((x) => x.shape === "round")).toHaveLength(4);
     expect(m.filter((x) => x.cosmetic)).toHaveLength(1);
-    // 離背 d 的東西在 local x = 60 − d：背橫檔木釘在 60−9=51、貫穿榫眼中心在 60−30=30 與 60−80=−20
-    expect(m.find((x) => x.label?.includes("背橫檔"))!.origin.x).toBe(51);
-    expect(m.filter((x) => x.through).map((x) => x.origin.x).sort((a, b) => a - b)).toEqual([-20, 30]);
+    // 離背 d 的東西在 local x = −60 + d：背橫檔木釘在 −60+9=−51、貫穿榫眼中心在 −60+30=−30 與 −60+80=20
+    expect(m.find((x) => x.label?.includes("背橫檔"))!.origin.x).toBe(-51);
+    expect(m.filter((x) => x.through).map((x) => x.origin.x).sort((a, b) => a - b)).toEqual([-30, 20]);
   });
   it("榫頭凸出改 0 → 總寬還是滑桿值、榫長 18、並出聲；取消背板少一件", () => {
     const flush = build({ tenonProud: 0 });

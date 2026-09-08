@@ -28,8 +28,41 @@ export function getCatalogEntry(category: string): FurnitureCatalogEntry | null 
   return FURNITURE_CATALOG.find((e) => e.category === category) ?? null;
 }
 
-/** 取得單範本買斷價（找不到 category 時 null） */
+/**
+ * 套組買斷：幾支範本打包成一個商品，買一次全部解鎖。
+ * 2026-09-08 木頭仁：「丙級三個要打包成一個一起賣，一起買斷就是丙級的三個都有，價格是 290」。
+ * 結帳時 raw_response.categories 帶整組，綠界回呼對每一支各寫一列 template_unlocks，
+ * 權限判定（canAccessCategory）不用改。
+ */
+export interface TemplateBundle {
+  id: string;
+  nameZh: string;
+  categories: FurnitureCategory[];
+  price: number;
+}
+export const TEMPLATE_BUNDLES: TemplateBundle[] = [
+  {
+    id: "cert-bundle",
+    nameZh: "家具木工丙級檢定 三題套組",
+    categories: ["cert-c1", "cert-c2", "cert-c3"],
+    price: 290,
+  },
+];
+
+/** 這支範本屬於哪個套組（沒有就 null） */
+export function getBundleFor(category: string): TemplateBundle | null {
+  return TEMPLATE_BUNDLES.find((b) => b.categories.includes(category as FurnitureCategory)) ?? null;
+}
+
+/** 買這支範本實際會解鎖的 category 清單（套組＝整組，否則只有自己） */
+export function getUnlockCategories(category: string): string[] {
+  return getBundleFor(category)?.categories ?? [category];
+}
+
+/** 取得單範本買斷價（套組成員回套組價；找不到 category 時 null） */
 export function getUnlockPrice(category: string): number | null {
+  const bundle = getBundleFor(category);
+  if (bundle) return bundle.price;
   const entry = getCatalogEntry(category);
   if (!entry) return null;
   return TEMPLATE_UNLOCK_PRICES[entry.difficulty];

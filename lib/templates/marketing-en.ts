@@ -61,48 +61,6 @@ const M_EN = {
     ],
     related: ["round-stool", "bench", "side-table"],
   },
-  "cert-c1": {
-    category: "cert-c1",
-    seoTitle: "Taiwan Class C furniture-woodworking trade test, Q1 practice plans | 01200-100301 — Wooden Ren Blueprint",
-    seoDescription: "Practice template for Taiwan's Class C furniture-woodworking trade test question 01200-100301: four-sided side panels, twin through tenons, dowel joints, 6mm plywood back. Auto three-view, part drawings, cut list and 3D — drawn from the published dimensions.",
-    tagline: "Trade test question 1 — build it on screen before you build it in the exam room",
-    subTagline: "Drawn from the published dimensions (rev. 2025-06-18) · three-view / part drawings / cut list / 3D",
-    whatItDoes: "Taiwan's Class C furniture-woodworking trade test has three practical questions; you draw one on the day and have four hours. Question 1 (01200-100301) is a 320×120×350 mm rack: two side panels whose four edges are all different (back edge vertical, top edge dropping 30 toward the front, bottom edge rising 15, depth 120 → 95), a standing back rail, a shelf with twin through tenons standing 10 mm proud, a dowelled lower rail, a stub-tenoned front lip, and a 6 mm plywood back housed in a rebate.\n\nThis template draws all of that from the published dimensions: rotate the 3D to see which face every mortise is on, print the part drawings to check your marking-out, and use the cut list to confirm the official stock (one 750×125 board, two 650×110 boards, one sheet of 6 mm plywood) is enough. The tenon proud amount is adjustable (the exam is 10 mm) if you want to practise flush through tenons first.\n\n**Drawn from the published dimensions — not the official drawing. On test day follow the official paper from the Workforce Development Agency (owinform.wdasec.gov.tw).**",
-    keywords: ["Taiwan woodworking trade test", "furniture woodworking class C", "01200-100301", "through tenon practice piece", "woodworking exam practice"],
-    fitFor: {
-      good: ["Candidates for the Class C furniture-woodworking test", "Woodworking classrooms running exam practice", "Anyone wanting a small piece to practise through tenons and dowels"],
-      notFor: ["Using it as the official exam drawing (use the official paper)"],
-    },
-    parameters: [
-      { label: "Size", desc: "Default = exam size 320×120×350; sliders only scale it for practice, non-exam sizes are flagged" },
-      { label: "Side panels", desc: "Four different edges: back vertical 350, top drops 30, bottom rises 15, depth 120→95" },
-      { label: "Joinery", desc: "Shelf twin through tenons (proud adjustable, exam 10 mm); back and lower rails on Ø8×30 dowels; stub-tenoned front lip" },
-      { label: "Back", desc: "6 mm plywood between shelf and lower rail, housed 6 mm into the side panels" },
-    ],
-    scenarios: [
-      { tag: "The week before", body: "Learn which face every mortise sits on in 3D so you don't mirror the marking-out under pressure." },
-      { tag: "Classroom", body: "Project the cut list and let students work out the most economical cuts from the three official boards." },
-      { tag: "First through tenon", body: "Set the proud amount to 0 to practise a flush through tenon, then go back to the exam's 10 mm." },
-    ],
-    presets: [
-      { name: "Exam size", desc: "320×120×350, tenons 10 mm proud, plywood back fitted — the piece you make if you draw question 1" },
-      { name: "Flush tenon practice", desc: "Proud amount 0, everything else unchanged" },
-    ],
-    faqs: [
-      { q: "Is this the official drawing?", a: "No. It is a practice template drawn from the dimensions published by the Skill Evaluation Center. On test day follow the official reference paper (question set 01200-100301-3, latest revision 2025-06-18)." },
-      { q: "What stock does the exam supply?", a: "Per candidate: 750×125×18.5 ×1, 650×110×18.5 ×2, 6 mm plywood 300×260 (one sheet for this question), Ø8×30 dowels ×12, Ø2.4×15 wood screws ×10, PVA glue. Spruce, pine or lauan (or similar knot-free wood)." },
-      { q: "How long is the test?", a: "Four hours (official schedule: 3 hours, lunch, then 1 hour). All three questions share the same stock and tool lists." },
-      { q: "Why isn't the side panel a trapezoid?", a: "The back edge is vertical, but the top drops 30 toward the front, the bottom rises 15, and the front edge narrows from 120 to 95 — four different edges. That angled marking-out is exactly what the question tests." },
-    ],
-    howToSteps: [
-      { name: "Stock and marking", text: "Cut the two side blanks from the 750×125 board and the back rail, shelf, lower rail and front lip from the two 650×110 boards; plane four faces square." },
-      { name: "Side panel outline", text: "Mark the vertical back edge as the reference, then the three angled lines (top drops 30, bottom rises 15, front narrows to 95); saw and plane to the line." },
-      { name: "Mortises and dowel holes", text: "Twin through mortises (20×18) for the shelf, Ø8 dowel holes for the back and lower rails, and the stub mortise for the lip — all measured from the back edge, mirrored on the two panels." },
-      { name: "Tenons and ends", text: "Twin 20 mm tenons on the shelf, 18 + 10 long, chamfered 3×45° once through; a 12 mm stub tenon on the front lip." },
-      { name: "Back rebate and dry fit", text: "Rebate the back edges 6 mm for the plywood, dry-assemble to check sizes and squareness, then glue, dowel and screw." },
-    ],
-    related: ["dovetail-box", "pencil-holder", "workbench"],
-  },
   "pencil-holder": {
     category: "pencil-holder",
     seoTitle: "Pencil holder plans | Square / hex / octagonal auto-modeling — Wooden Ren Blueprint",

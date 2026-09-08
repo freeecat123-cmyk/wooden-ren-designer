@@ -88,7 +88,7 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
     c === "nightstand"
   ) return "cabinet";
   if (
-    c === "pencil-holder" || c === "cert-c1" || c === "bookend" || c === "photo-frame" ||
+    c === "pencil-holder" || c === "cert-c1" || c === "cert-c2" || c === "cert-c3" || c === "bookend" || c === "photo-frame" ||
     c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack"
   ) return "accessory";
   return "other";
@@ -521,6 +521,51 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 4c. 木釘孔與溝槽（2026-09-08 審查員：丙級檢定題 10 支木釘、7 條溝，工序表一個字都沒提）
+  // ---------------------------------------------------------------------------
+  const dowelParts = design.parts.filter((p) => p.visual === "dowel");
+  const dowelHoles = design.parts.reduce((n, p) => n + p.mortises.filter((m) => m.shape === "round" && !m.cosmetic).length, 0);
+  if (dowelParts.length > 0 && dowelHoles > 0) {
+    const pivotCount = dowelParts.filter((p) => /pivot/.test(p.id)).length;
+    steps.push({
+      id: "step-05-dowel-holes",
+      phase: "mark",
+      title: `鑽木釘孔 ${dowelHoles} 個（木釘 ${dowelParts.length} 支）`,
+      description:
+        `照零件圖上的 Ø 與深度鑽木釘孔：板端面的孔用木釘定位治具夾著鑽才會正、側板內面的孔從基準邊量距離。`
+        + `鑽頭貼膠帶做深度記號，鑽到記號就停。木釘先乾插一次確認兩件對得上再上膠。`
+        + (pivotCount ? `其中 ${pivotCount} 支是門樞軸：只膠門梃那一端，側板那一端不上膠、要能轉。` : ""),
+      toolIds: ["dowel-jig", "drill", "drill-bits", "tape-measure-5m"],
+      partIds: design.parts.filter((p) => p.mortises.some((m) => m.shape === "round" && !m.cosmetic)).map((p) => p.id),
+      estimatedMinutes: 4 * dowelHoles,
+      bullets: [
+        "孔位全部從同一條基準邊量，左右兩片對稱件要鏡射，不要抄同一組數字",
+        "端面鑽孔一定用治具或鑽台，手持一歪木釘就頂不進去",
+        pivotCount ? "樞軸木釘兩端不同：門梃端上膠、側板端不上膠" : "木釘上膠只塗孔壁，塗太多膠會頂住木釘進不到底",
+      ].filter(Boolean),
+    });
+  }
+  const grooveMortises = design.parts.flatMap((p) => p.mortises.filter((m) => m.cosmetic && m.shape !== "round" && /溝|槽|缺口|groove|rebate|rabbet|notch/i.test(m.label ?? "")).map((m) => ({ part: p, m })));
+  if (grooveMortises.length > 0) {
+    const grooveLen = Math.round(grooveMortises.reduce((n, g) => n + Math.max(g.m.length, g.m.width), 0));
+    steps.push({
+      id: "step-05-grooves",
+      phase: "mark",
+      title: `開溝槽 ${grooveMortises.length} 條（共約 ${grooveLen} mm）`,
+      description:
+        `零件圖上標的溝／槽／缺口（夾板入溝、鑲板槽、滑蓋槽…）：溝寬照要嵌進去那一片的實際厚度量（標稱 6mm 的夾板常只有 5.5–5.8），溝深照零件圖。`
+        + `用槽鉋或花鉋機直刀，靠板順同一條基準邊走，同一組零件一次開完寬度才會一致。`,
+      toolIds: ["groove-plane", "tape-measure-5m"],
+      partIds: [...new Set(grooveMortises.map((g) => g.part.id))],
+      estimatedMinutes: Math.max(10, Math.round(grooveLen / 60) * 5),
+      bullets: [
+        "先拿夾板廢料試插：要能用手推進去、不會自己掉出來",
+        "貫通的溝在端面會露出槽口，榫頭那一側要留 haunch 填掉，或把溝止在榫眼前",
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // 5. 試組 — 全件無膠 dry fit
   // ---------------------------------------------------------------------------
   steps.push({
@@ -878,7 +923,25 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   // ---------------------------------------------------------------------------
   // 11. 五金 / 配件
   // ---------------------------------------------------------------------------
-  if (hasDoor) {
+  // 木釘樞軸的門（丙級第二題）沒有鉸鏈：換成裝樞軸的工序
+  const hasPivotDoor = hasDoor && design.parts.some((p) => p.visual === "dowel" && /pivot/.test(p.id));
+  if (hasPivotDoor) {
+    steps.push({
+      id: "step-18-pivot-door",
+      phase: "fit",
+      title: "裝門樞軸木釘",
+      description:
+        `門先在外面組好（鑲板要在第二支門梃合上前入槽）。兩支 Ø8 樞軸木釘上膠插進門梃外緣的孔，露出的那一段不上膠；`
+        + `合第二片側板時把露出的木釘對準側板孔一起推到底。合上後試掀幾次，門要能自己靠重量關回板端上。`,
+      toolIds: ["drill", "drill-bits", "sandpaper-set"],
+      estimatedMinutes: 20,
+      bullets: [
+        "門每側留 1mm 活動縫，卡到就用刨刀修門梃外緣，不要修側板",
+        "樞軸孔若太緊，木釘露出段用砂紙輕磨到能轉即可",
+      ],
+    });
+  }
+  if (hasDoor && !hasPivotDoor) {
     steps.push({
       id: "step-18-hinges",
       phase: "fit",

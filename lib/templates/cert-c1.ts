@@ -19,19 +19,22 @@ import { sidePanelQuad } from "@/lib/render/quad-profile";
  * 側板（A-A 外形線）：背緣垂直 350；上緣往前**下降 30**；底緣往前**上升 15**；
  *   上緣深 120、底緣深 95 → 四邊各不相同的四邊形（不是梯形）。
  * 背橫檔（A-A 左上 18×50 剖面，兩個 Ø8 孔）：18 厚、50 高、立在背側，頂端離側板頂 15，
- *   木釘距頂 30 與 40。
+ *   木釘距頂 **10 與 40**（尺寸鏈 50｜30｜10；🩸第一版讀成 30/40，400dpi 像素量抓到）。
  * 上層板（A-A 18×100 橫向剖面）：18 厚、深 100，頂面離側板頂 65；
  *   兩端**貫穿榫**穿過側板再凸出 10（B-B 的 320＝300＋10＋10，端頭圓弧＝圖上 3×45°），
  *   剖面 20|20|30|20 中交叉線兩段＝**雙榫頭各 20 寬**（離背 20–40、70–90）。
- * 下橫檔（A-A 18×80 剖面，Ø8×30）：18 厚、深 80，頂面離地 80；木釘離背 20、65；
+ * 下橫檔（A-A 18×80 剖面，Ø8×30）：18 厚、深 80，**底面離地 80、頂面 98**（右側「80」量到橫檔底；
+ *   鏈 15｜17｜18｜30｜18＝80 到底、98 到頂；🩸第一版當成頂面 80、整支低了 18）；木釘離背 20、65；
  *   B-B 右側虛線 18|12 ＝ 木釘 30 長：18 在橫檔、12 在側板 → **木釘接（不是榫）**。
- * 前擋條（A-A 右下 12×18 R3）：12 深 × 18 高，底離地 15（正好是底緣斜線升到前端的高度），
- *   B-B 右下虛線＝插入側板的短榫。
- * 6mm 夾板（A-A 左側 6 寬直條）：在**背側**、上層板下緣到下橫檔上緣之間（B-B 虛線框 187 高），
- *   嵌進側板背緣 6 深的溝，Ø3×15 木螺釘 10 支固定（B-B 標註 cns1051＝10 支）。
- * 材料表對帳：側板 2×(350×120) ← 750×125 ✓；橫檔 4 支 ≤ 650×110 ×2 ✓；夾板 ≤ 300×260 ✓。
+ * 前擋條（A-A 右下 12×18 R3）：12 深 × 18 高，**離地 32–50**（頂到橫檔底差 30＝A-A 的「30」；「15」只是側板底緣升起量），
+ *   **離背 68–80**（前面與下橫檔前面齊平，不是離前緣 3）；A-A 的 3｜6｜3 是短榫 6 厚前後各 3 肩，插側板 12。
+ * 6mm 夾板（A-A 左側 6 寬直條、B-B 側板內虛線離外面 6）：在**背側**、**四邊各嵌 12**——側板 rebate 6 深×12 寬、
+ *   上進上層板 12（層板背下角 6×12）、下進下橫檔 12（橫檔背上角 6×12）→ 288 寬 × 193 高（86–279），
+ *   評審表「背板嵌槽 4 部位」＝兩側板＋層板＋橫檔。Ø3×15 木螺釘 10 支（B-B「+」：側板柱各 3 支離外面 12、高 273/182.5/92；
+ *   層板與橫檔各 2 支離側板外面 84、高 273/92）。
+ * 材料表對帳：側板 2×(350×120) ← 750×125 ✓；橫檔 4 支 ≤ 650×110 ×2 ✓；夾板 288×193 ≤ 300×260 ✓。
  * ⚠️ 木釘：圖上數到 8 支（背橫檔 4、下橫檔 4），材料表給 12，其餘 4 支圖面未標位置。
- * ⚠️ 下橫檔頂面「80」與 15+18+30+18＝81 差 1mm，取圖上直接標註的 80。
+ * ⚠️ 前擋條四角 R3、貫穿榫端頭 3×45° 未做成造型（說明提醒）。
  */
 
 /** 官方試題尺寸（mm）。預設值＝考題原尺寸；滑桿只是讓人放大練習用 */
@@ -47,24 +50,27 @@ const EXAM = {
   tenonProud: 10,
   backRailH: 50,
   backRailFromTop: 15,
-  backRailDowelsFromTop: [30, 40],
+  backRailDowelsFromTop: [10, 40],   // 🩸第一版讀成 30/40：A-A 尺寸鏈是 50｜30（兩孔間距）｜10（下孔到橫檔底）→ 離頂 10、40
   shelfDepth: 100,
   shelfTopFromTop: 65,
   shelfTenonW: 20,
   shelfTenonFromBack: [20, 70],   // 各 20 寬 → 20–40、70–90
   lowerRailDepth: 80,
-  lowerRailTopFromBottom: 80,
+  lowerRailBottomFromFloor: 80,   // 🩸第一版當成頂面離地 80：A-A 右側「80」是量到橫檔**底**，頂在 98（15｜17｜18｜30｜18 鏈）
   lowerRailDowelsFromBack: [20, 65],
   lipDepth: 12,
   lipH: 18,
-  lipBottomFromBottom: 15,
-  lipFrontSetback: 3,             // A-A 標 6 / 3：前擋條前面離側板前緣 3
+  lipBottomFromFloor: 32,         // 🩸第一版 15（那是側板底緣升起量）：擋條佔 32–50，頂到下橫檔底 80 差 30（A-A 的「30」）
+  lipFrontFromBack: 80,           // 前擋條前面離背 80（與下橫檔前面齊平），佔 68–80；不是「離前緣 3」
+  lipTenonT: 6,                   // A-A 的 3｜6｜3：短榫 6 厚（前後各 3 肩）× 18 高 × 12 長
   plyT: 6,
-  plyRebate: 6,
+  plyRebateDeep: 6,               // 側板背緣 rebate 6 深
+  plyRebateWide: 12,              // × 12 寬（B-B 夾板隱藏線離側板外面 6）→ 夾板 288 寬
+  plyIntoBoard: 12,               // 上端進上層板 12、下端進下橫檔 12（各開 6×12 rebate）→ 夾板 193 高
   dowelDia: 8,
   dowelLen: 30,
   dowelIntoPanel: 12,
-  screwSpec: "Ø3×15（CNS1051）×10",
+  screwSpec: "木螺釘 ×10（圖面標 Ø3×15、材料表寫 Ø2.4×15，同為 CNS1051，以現場發的為準）",
 } as const;
 
 export const certC1Options: OptionSpec[] = [
@@ -115,8 +121,9 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
   const shelfTenonFromBack: readonly [number, number] = [EXAM.shelfTenonFromBack[0], shelfDepth - (EXAM.shelfDepth - EXAM.shelfTenonFromBack[1])];
   const lowerRailDowelsFromBack: readonly [number, number] = [EXAM.lowerRailDowelsFromBack[0], lowerRailDepth - (EXAM.lowerRailDepth - EXAM.lowerRailDowelsFromBack[1])];
 
-  /** 世界座標：X 左右、Y 上（origin.y＝底）、Z 前後，**−Z＝背（垂直邊）** */
-  const zBack = -topDepth / 2;
+  /** 世界座標：X 左右、Y 上（origin.y＝底）、Z 前後，**+Z＝背（垂直邊）**——這個 app 的慣例是 +Z 背、3D「正視」從 −Z 看
+   *  （🩸第一版把背放在 −Z，三題都反了，按「正」看到背板；2026-09-08 下游檢查員抓到）。離背 d 的東西在 z = zBack − d。 */
+  const zBack = topDepth / 2;
   const parts: Part[] = [];
   const warnings: string[] = [];
 
@@ -125,18 +132,22 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
    *   local x（深度）**鏡像**到世界 z：local +60 → 世界 z=−60（背）
    *   local z（高度）→ 世界 y：local −175 → y=350（頂）
    *   local y（厚度）→ 世界 x：local y=18 那面在 origin.x+9
-   * 所以：背緣放 local +x（sidePanelQuad backSide="max"）、離背 d 的東西在 local x = +hx − d，
+   * 所以：背緣要在世界 +z 就放 local −x（sidePanelQuad backSide="min"）、離背 d 的東西在 local x = −hx + d，
    * 而榫眼要開在**內面**——左側板內面是 local y=18（origin.x+9=−132），右側板內面是 local y=0。
    * ⚠️ 這三條是量出來的，不是推的；改旋轉就要重量（scratchpad 探針 probe-c1-rot.ts）。
    */
-  const sideLocalX = (fromBack: number) => topDepth / 2 - fromBack;
+  const sideLocalX = (fromBack: number) => -topDepth / 2 + fromBack;
+  const shelfTopY = H - EXAM.shelfTopFromTop;
+  const lowerRailTopY = EXAM.lowerRailBottomFromFloor + T;                 // 98
+  const plyTop = shelfTopY - T + EXAM.plyIntoBoard;                         // 279
+  const plyBottom = lowerRailTopY - EXAM.plyIntoBoard;                      // 86
   const sideLocalZ = (fromTop: number) => -H / 2 + fromTop;
 
   // ── 側板 ×2：四邊各不相同的四邊形 ───────────────────────────────────
   const sideCorners = sidePanelQuad({
     lx: topDepth, lz: H, bottomDepth,
     topDropFront: EXAM.topDropFront, bottomRiseFront: EXAM.bottomRiseFront,
-    backSide: "max",
+    backSide: "min",
   });
   const sideMortises = (innerY: number): Mortise[] => {
     const m: Mortise[] = [];
@@ -154,22 +165,21 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     });
     // 下橫檔木釘 ×2
     for (const fb of lowerRailDowelsFromBack) m.push({
-      origin: { x: sideLocalX(fb), y: innerY, z: sideLocalZ(H - EXAM.lowerRailTopFromBottom + T / 2) },
+      origin: { x: sideLocalX(fb), y: innerY, z: sideLocalZ(H - EXAM.lowerRailBottomFromFloor - T / 2) },
       depth: EXAM.dowelIntoPanel, length: EXAM.dowelDia, width: EXAM.dowelDia, through: false, shape: "round",
       label: isEn ? "Ø8 dowel, lower rail" : "Ø8 木釘（下橫檔）",
     });
-    // 前擋條短榫眼（12 深 × 18 高，插入 12）
-    const lipFrontFromBack = bottomDepth - EXAM.lipFrontSetback;
+    // 前擋條短榫眼（榫 6 厚 × 18 高，插入 12；擋條佔離背 68–80、離地 32–50）
     m.push({
-      origin: { x: sideLocalX(lipFrontFromBack - EXAM.lipDepth / 2), y: innerY, z: sideLocalZ(H - EXAM.lipBottomFromBottom - EXAM.lipH / 2) },
-      depth: EXAM.lipDepth, length: EXAM.lipDepth, width: EXAM.lipH, through: false,
-      label: isEn ? "stub mortise, front lip" : "前擋條短榫眼",
+      origin: { x: sideLocalX(EXAM.lipFrontFromBack - EXAM.lipDepth / 2), y: innerY, z: sideLocalZ(H - EXAM.lipBottomFromFloor - EXAM.lipH / 2) },
+      depth: EXAM.lipDepth, length: EXAM.lipTenonT, width: EXAM.lipH, through: false,
+      label: isEn ? "stub mortise, front lip (6×18)" : "前擋條短榫眼（6×18）",
     });
-    // 夾板背板入溝（背緣 6 深 × 6 寬，層板下緣到下橫檔上緣）——cosmetic：零件圖要畫、CSG 不挖
+    // 夾板背板 rebate（背緣 6 深 × 12 寬，從內面量；夾板上進層板 12、下進橫檔 12）
     m.push({
-      origin: { x: sideLocalX(EXAM.plyT / 2), y: innerY, z: sideLocalZ(EXAM.shelfTopFromTop + T + (H - EXAM.shelfTopFromTop - T - EXAM.lowerRailTopFromBottom) / 2) },
-      depth: EXAM.plyRebate, length: EXAM.plyT, width: H - EXAM.shelfTopFromTop - T - EXAM.lowerRailTopFromBottom, through: false, cosmetic: true,
-      label: isEn ? "6mm rebate for plywood back" : "夾板背板入溝（6 深）",
+      origin: { x: sideLocalX(EXAM.plyRebateDeep / 2), y: innerY, z: sideLocalZ(H - (plyTop + plyBottom) / 2) },
+      depth: EXAM.plyRebateWide, length: EXAM.plyRebateDeep, width: plyTop - plyBottom, through: false, cosmetic: true,
+      label: isEn ? "rebate for plywood back, 6 deep × 12 wide" : "夾板背板 rebate（6 深 × 12 寬）",
     });
     return m;
   };
@@ -206,7 +216,7 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: span, width: EXAM.backRailH, thickness: T },
-    origin: { x: 0, y: backRailTop - EXAM.backRailH, z: zBack + T / 2 },
+    origin: { x: 0, y: backRailTop - EXAM.backRailH, z: zBack - T / 2 },
     rotation: { x: Math.PI / 2, y: 0, z: 0 },      // width 立成高度；local −z＝頂
     tenons: [],
     mortises: endDowels(span,
@@ -215,8 +225,7 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // ── 上層板：18 厚 × 深 100，頂面離側板頂 65，雙貫穿榫凸出 proud ────────
-  const shelfTopY = H - EXAM.shelfTopFromTop;
-  const shelfCenterZ = zBack + shelfDepth / 2;
+  const shelfCenterZ = zBack - shelfDepth / 2;
   parts.push({
     id: "shelf",
     nameZh: "上層板",
@@ -233,14 +242,18 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
         width: EXAM.shelfTenonW,
         thickness: T,
         shoulderOn: ["left", "right"] as Array<"left" | "right">,   // 上下齊平（榫頭＝整個板厚）
-        offsetWidth: (zBack + fb + EXAM.shelfTenonW / 2) - shelfCenterZ,
+        offsetWidth: (zBack - fb - EXAM.shelfTenonW / 2) - shelfCenterZ,
       })),
     ),
-    mortises: [],
+    // 背下角 6×12 rebate 給夾板進 12（cosmetic：零件圖畫、3D 挖）
+    mortises: withPanel ? [{
+      origin: { x: 0, y: 0, z: zBack - EXAM.plyT / 2 - shelfCenterZ }, depth: EXAM.plyIntoBoard, length: span, width: EXAM.plyT,
+      through: false, cosmetic: true, label: isEn ? "6×12 rebate for plywood back (back-bottom corner)" : "夾板背板 rebate（背下角 6×12）",
+    }] : [],
   });
 
   // ── 下橫檔：18 厚 × 深 80，頂面離地 80，木釘接 ─────────────────────────
-  const lowerRailCenterZ = zBack + lowerRailDepth / 2;
+  const lowerRailCenterZ = zBack - lowerRailDepth / 2;
   parts.push({
     id: "rail-lower",
     nameZh: "下橫檔",
@@ -248,19 +261,26 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: span, width: lowerRailDepth, thickness: T },
-    origin: { x: 0, y: EXAM.lowerRailTopFromBottom - T, z: lowerRailCenterZ },
+    origin: { x: 0, y: EXAM.lowerRailBottomFromFloor, z: lowerRailCenterZ },
     tenons: [],
-    mortises: endDowels(span,
-      lowerRailDowelsFromBack.map((fb) => ({ y: T / 2, z: (zBack + fb) - lowerRailCenterZ })),
-      isEn ? "Ø8 dowel" : "Ø8 木釘"),
+    mortises: [
+      ...endDowels(span,
+        lowerRailDowelsFromBack.map((fb) => ({ y: T / 2, z: (zBack - fb) - lowerRailCenterZ })),
+        isEn ? "Ø8 dowel" : "Ø8 木釘"),
+      // 背上角 6×12 rebate 給夾板進 12
+      ...(withPanel ? [{
+        origin: { x: 0, y: T, z: zBack - EXAM.plyT / 2 - lowerRailCenterZ }, depth: EXAM.plyIntoBoard, length: span, width: EXAM.plyT,
+        through: false, cosmetic: true, label: isEn ? "6×12 rebate for plywood back (back-top corner)" : "夾板背板 rebate（背上角 6×12）",
+      }] : []),
+    ],
   });
 
   // ── 木釘 ×8：Ø8×30 現成木釘，18 入橫檔端面、12 入側板內面（考場供料 12 支，圖上用 8 支）──
   // 真的做成零件插在孔裡（不是只挖孔）：3D 組裝看得到、材料單另列；不入裁切 / 零件圖。
   // 位置＝橫檔端面孔位的世界座標：x 跨過側板內面（span/2），朝外多 12（入側板）、朝內 18（入橫檔）。
   const dowelSpots: Array<{ y: number; z: number; rail: "back" | "lower" }> = [
-    ...EXAM.backRailDowelsFromTop.map((d) => ({ y: backRailTop - d, z: zBack + T / 2, rail: "back" as const })),
-    ...lowerRailDowelsFromBack.map((fb) => ({ y: EXAM.lowerRailTopFromBottom - T / 2, z: zBack + fb, rail: "lower" as const })),
+    ...EXAM.backRailDowelsFromTop.map((d) => ({ y: backRailTop - d, z: zBack - T / 2, rail: "back" as const })),
+    ...lowerRailDowelsFromBack.map((fb) => ({ y: EXAM.lowerRailBottomFromFloor + T / 2, z: zBack - fb, rail: "lower" as const })),
   ];
   for (const sx of [-1, 1] as const) {
     dowelSpots.forEach((s, i) => {
@@ -281,8 +301,8 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
-  // ── 前擋條：12 深 × 18 高，底離地 15，前面離側板前緣 3，短榫入側板 12 ──
-  const lipFrontZ = zBack + bottomDepth - EXAM.lipFrontSetback;
+  // ── 前擋條：12 深 × 18 高，離地 32–50，前面離背 80（與下橫檔前面齊平），短榫 6 厚入側板 12 ──
+  const lipFrontZ = zBack - EXAM.lipFrontFromBack;
   parts.push({
     id: "front-lip",
     nameZh: "前擋條",
@@ -290,23 +310,21 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: span, width: EXAM.lipDepth, thickness: EXAM.lipH },
-    origin: { x: 0, y: EXAM.lipBottomFromBottom, z: lipFrontZ - EXAM.lipDepth / 2 },
+    origin: { x: 0, y: EXAM.lipBottomFromFloor, z: lipFrontZ + EXAM.lipDepth / 2 },
     tenons: (["start", "end"] as const).map((position) => ({
       position,
       type: "blind-tenon" as const,
       length: EXAM.lipDepth,
-      width: EXAM.lipDepth,
-      thickness: EXAM.lipH,
-      shoulderOn: [] as Array<"top" | "bottom" | "left" | "right">,   // 整個斷面插入，無肩
+      width: EXAM.lipTenonT,          // 6 厚（沿深度）：A-A 的 3｜6｜3，前後各 3 肩
+      thickness: EXAM.lipH,           // 18 高＝整個擋條高，上下無肩
+      shoulderOn: ["left", "right"] as Array<"top" | "bottom" | "left" | "right">,
     })),
     mortises: [],
   });
 
-  // ── 6mm 夾板背板：上層板下緣 → 下橫檔上緣，嵌側板背緣 6 深溝，木螺釘固定 ──
+  // ── 6mm 夾板背板：四邊各嵌 12（側板 rebate 6×12、層板背下角／橫檔背上角 6×12），木螺釘固定 ──
   if (withPanel) {
-    const plyTop = shelfTopY - T;
-    const plyBottom = EXAM.lowerRailTopFromBottom;
-    const plyH = plyTop - plyBottom;
+    const plyH = plyTop - plyBottom;   // 279 − 86 = 193
     parts.push({
       id: "back-panel",
       nameZh: "夾板背板（6mm）",
@@ -314,8 +332,8 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       materialOverride: "plywood",
       grainDirection: "length",
-      visible: { length: span + 2 * EXAM.plyRebate, width: plyH, thickness: EXAM.plyT },
-      origin: { x: 0, y: plyBottom, z: zBack + EXAM.plyT / 2 },
+      visible: { length: span + 2 * EXAM.plyRebateWide, width: plyH, thickness: EXAM.plyT },
+      origin: { x: 0, y: plyBottom, z: zBack - EXAM.plyT / 2 },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
       mortises: [],
@@ -350,8 +368,8 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,                            // 沒有組裝版：toBeginnerMode 不得拆榫（木釘孔拆掉木釘就穿模）
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class C furniture-woodworking trade test, question 01200-100301 (4 hours: 3 h + 1 h). What it trains: **side panels with four different edges** (back edge vertical 350, top edge drops 30 toward the front, bottom edge rises 15, depth 120 → 95), **twin through tenons** on the shelf standing ${proud}mm proud with 3×45° chamfered ends, **dowel joints** (Ø8×30, 18 into the rail / 12 into the panel) on the back rail and lower rail, a stub-tenoned front lip (12×18, R3), and a **6mm plywood back** in a 6mm rebate fixed with ${EXAM.screwSpec}. Official stock per candidate: 750×125×18.5 ×1, 650×110×18.5 ×2, 6mm plywood 300×260, Ø8×30 dowels ×12, screws ×10, PVA glue; spruce / pine / lauan or similar knot-free wood, planed square on four faces. **Drawn from published dimensions — download the official paper from the Workforce Development Agency and follow that version on test day.**`
-      : `依技術士技能檢定家具木工丙級術科試題 01200-100301（4 小時：測試 3 小時＋1 小時）公開尺寸繪製的練習範本。這題練的是：**四邊各不相同的側板**（背緣垂直 350、上緣往前降 30、底緣往前升 15、深 120 收到 95）、上層板**雙貫穿榫**凸出 ${proud}mm 端頭倒 3×45°、背橫檔與下橫檔的**木釘接**（Ø8×30，入橫檔 18、入側板 12）、前擋條短榫（12×18、R3 圓角）、以及嵌進背緣 6mm 溝的**夾板背板**（${EXAM.screwSpec} 固定）。官方材料（每人份）：木料 750×125×18.5 ×1、650×110×18.5 ×2、夾板 300×260×6、Ø8×30 木釘 ×12、木螺釘 ×10、白膠；木材限雲杉／松木／柳安或同硬度無節木料，四面鉋光要求直角。**本圖依公開尺寸自行繪製，應檢請以技能檢定中心公布的官方版本為準。**`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class C furniture-woodworking trade test, question 01200-100301 (4 hours: 3 h + 1 h). What it trains: **side panels with four different edges** (back edge vertical 350, top edge drops 30 toward the front, bottom edge rises 15, depth 120 → 95), **twin through tenons** on the shelf standing ${proud}mm proud with 3×45° chamfered ends, **dowel joints** (Ø8×30, 18 into the rail / 12 into the panel) on the back rail (holes 10 and 40 below its top) and lower rail (80–98 off the floor), a stub-tenoned front lip (12×18 at 32–50 off the floor, flush with the lower rail front, 6 mm tenon with 3 mm shoulders, R3) and a **6mm plywood back** 288×193 housed 12 mm into all four members (6×12 rebates) fixed with ${EXAM.screwSpec}. Official stock per candidate: 750×125×18.5 ×1, 650×110×18.5 ×2, 6mm plywood 300×260, Ø8×30 dowels ×12, screws ×10, PVA glue; spruce / pine / lauan or similar knot-free wood, planed square on four faces. **Drawn from published dimensions — download the official paper from the Workforce Development Agency and follow that version on test day.**`
+      : `依技術士技能檢定家具木工丙級術科試題 01200-100301（4 小時：測試 3 小時＋1 小時）公開尺寸繪製的練習範本。這題練的是：**四邊各不相同的側板**（背緣垂直 350、上緣往前降 30、底緣往前升 15、深 120 收到 95）、上層板**雙貫穿榫**凸出 ${proud}mm 端頭倒 3×45°、背橫檔（木釘離頂 10、40）與下橫檔（離地 80–98）的**木釘接**（Ø8×30，入橫檔 18、入側板 12）、前擋條短榫（12×18、離地 32–50、前面與下橫檔齊平、榫 6 厚前後各 3 肩、R3 圓角）、以及**四邊各嵌 12 的夾板背板**（288×193：側板 rebate 6 深×12 寬、上層板背下角與下橫檔背上角各開 6×12；木螺釘位置：側板柱各 3 支離外面 12、高 273/182.5/92，層板與橫檔各 2 支離側板外面 84、高 273/92）（${EXAM.screwSpec} 固定）。官方材料（每人份）：木料 750×125×18.5 ×1、650×110×18.5 ×2、夾板 300×260×6、Ø8×30 木釘 ×12、木螺釘 ×10、白膠；木材限雲杉／松木／柳安或同硬度無節木料，四面鉋光要求直角。**本圖依公開尺寸自行繪製，應檢請以技能檢定中心公布的官方版本為準。**`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;

@@ -25,11 +25,13 @@ function tenonExt(part: Part): { L: number; W: number; T: number } {
   let L = 0;
   let W = 0;
   let T = 0;
-  for (const t of part.tenons) {
-    if (t.length <= 0) continue;
-    if (t.position === "start" || t.position === "end") L += t.length;
-    else if (t.position === "left" || t.position === "right") W += t.length;
-    else if (t.position === "top" || t.position === "bottom") T += t.length;
+  // 同一端多支榫頭只加該端最長那支一次（同 cut-dimensions.ts；2026-09-08 雙榫頭毛料曾加成兩倍）
+  const maxAt = new Map<string, number>();
+  for (const t of part.tenons) if (t.length > 0) maxAt.set(t.position, Math.max(maxAt.get(t.position) ?? 0, t.length));
+  for (const [pos, len] of maxAt) {
+    if (pos === "start" || pos === "end") L += len;
+    else if (pos === "left" || pos === "right") W += len;
+    else if (pos === "top" || pos === "bottom") T += len;
   }
   return { L, W, T };
 }

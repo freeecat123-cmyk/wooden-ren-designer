@@ -19,7 +19,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { trapAnchorOffset, type TrapAnchor } from "./trapezoid-anchor";
-import { quadPoint, type QuadCorners } from "./quad-profile";
+import { quadPoint, validTopBreak, type QuadCorners } from "./quad-profile";
 import { frenchCleatSection, edgeProfileOutline, topOutlinePoints } from "./geometry";
 
 /**
@@ -64,7 +64,7 @@ export type ShapeSpec =
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; taperSpanMm?: number; bevelAngle?: number; bevelMode?: "full" | "half"; anchor?: "center" | "min" | "max" }
-  | { kind: "quad"; corners: [[number, number], [number, number], [number, number], [number, number]] }
+  | { kind: "quad"; corners: [[number, number], [number, number], [number, number], [number, number]]; plane?: "xz" | "yz"; topBreak?: [number, number] }
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "apron-half-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
@@ -186,7 +186,9 @@ export function buildSplayedGeometry(
  * 自由四邊形板：四角在 X–Z 平面各自指定、沿 Y 擠出成 8 頂點 6 面。
  * corners 單位與 size 相同（呼叫端已 ×SCALE）。頂點順序沿用 apron-trapezoid 的慣例。
  */
-export function buildQuadGeometry(size: [number, number, number], corners: QuadCorners): BufferGeometry {
+export function buildQuadGeometry(size: [number, number, number], corners: QuadCorners, plane: "xz" | "yz" = "xz", topBreak?: [number, number]): BufferGeometry {
+  if (plane === "yz") return buildQuadGeometryYZ(size, corners);
+  if (topBreak && validTopBreak(corners, topBreak)) return buildPrismXZ([corners[0], topBreak, corners[1], corners[2], corners[3]], size[1] / 2);
   const hy = size[1] / 2;
   const [c00, c10, c11, c01] = corners;
   // 上圈 (−z 側 = c00→c10)、下圈 (+z 側 = c01→c11)；每圈 4 點：(−y,-side) (−y,+side) (+y,+side) (+y,-side)
@@ -208,6 +210,49 @@ export function buildQuadGeometry(size: [number, number, number], corners: QuadC
     ...f(2, 3, 7, 6), // +y
     ...f(1, 2, 6, 5), // +x（前緣，斜）
     ...f(3, 0, 4, 7), // −x（背緣）
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/** 任意凸多邊形（local x–z 面，繞向與 quad corners 一致）沿 y 擠出 ±hy：quad 帶頂邊折點時用 */
+function buildPrismXZ(poly: Array<[number, number]>, hy: number): BufferGeometry {
+  const n = poly.length;
+  const v: number[] = [];
+  for (const y of [-hy, hy]) for (const [x, z] of poly) v.push(x, y, z);
+  const idx: number[] = [];
+  // 🩸2026-09-08 第一版 16 個三角形法線全朝內（quad corners 的繞向從 +y 看是順時針）→ 正面剔除後
+  //   整片側板透明、看得到裡面的榫（木頭仁截圖回報「板子的表面消失了」）。繞向以下面這樣為準，
+  //   quad-topbreak.test.ts 用「每個三角形法線都朝離心方向」守著。
+  // 兩個端面（扇形三角化）
+  for (let i = 1; i < n - 1; i++) { idx.push(0, i, i + 1); idx.push(n, n + i + 1, n + i); }
+  // 側面
+  for (let i = 0; i < n; i++) { const j = (i + 1) % n; idx.push(i, n + j, j, i, n + i, n + j); }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/** quad plane="yz"：corners 是 [y, z]（厚度×寬度的端面剖面），沿 x 從 −hx 擠到 +hx */
+function buildQuadGeometryYZ(size: [number, number, number], corners: QuadCorners): BufferGeometry {
+  const hx = size[0] / 2;
+  const [c00, c10, c11, c01] = corners; // (−y,−z) (+y,−z) (+y,+z) (−y,+z)
+  const ring = [c00, c10, c11, c01];
+  const v: number[] = [];
+  for (const x of [-hx, hx]) for (const [y, z] of ring) v.push(x, y, z);
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1), // −x 端面
+    ...f(4, 5, 6, 7), // +x 端面
+    ...f(0, 1, 5, 4), // −z 邊（背）
+    ...f(2, 3, 7, 6), // +z 邊（前，斜）
+    ...f(1, 2, 6, 5), // +y 面
+    ...f(3, 0, 4, 7), // −y 面
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
@@ -2672,7 +2717,7 @@ export function buildShapeGeometry(
     return merged ?? new BoxGeometry(size[0], size[1], size[2]);
   }
   if (shape.kind === "quad") {
-    return buildQuadGeometry(size, shape.corners);
+    return buildQuadGeometry(size, shape.corners, shape.plane ?? "xz", shape.topBreak);
   }
   if (shape.kind === "apron-trapezoid") {
     return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full", shape.taperSpanMm, shape.anchor ?? "center");

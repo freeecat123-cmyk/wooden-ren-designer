@@ -44,7 +44,8 @@ export const FIT_W = DRAW_AREA_W - DIM_CHAIN_PAD_H; // 242
 export const FIT_H = DRAW_AREA_H - DIM_CHAIN_PAD_V; // 131
 
 // CNS 標準比例樹（denominator）
-const SCALE_CANDIDATES = [1, 2, 5, 10, 20] as const;
+// 1:2.5 是 CNS 3／JIS Z 8314 允許的縮尺：沒有它，350×120 的檢定側板在 A4 只能掉到 1:5（字 <2mm 看不清；2026-09-08 零件圖審查）
+const SCALE_CANDIDATES = [1, 2, 2.5, 5, 10, 20] as const;
 
 export type PartView = "front" | "top" | "side";
 

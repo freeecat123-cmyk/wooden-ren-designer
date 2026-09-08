@@ -766,7 +766,8 @@
       "legReadoutLabel": "計算後腳高",
       "legReadoutUnit": "·mm",
       "legReadoutClamped": "已夾到最低 30mm，請降低層高或加大總高",
-      "upperLimit": "上限 {max}"
+      "upperLimit": "上限 {max}",
+      "previewLockBodyExam": "這是丙級檢定的考題，尺寸就是考場要做的那件。免費版只能看 3D；三視圖、零件圖、材料單與工序要買斷三題套組（NT$290）才打開。"
     },
     "heightPreset": {
       "diningTable": "餐桌",
@@ -786,6 +787,15 @@
       "howToName": "如何製作{name}：{dims}",
       "howToDesc": "{name}（{length}×{width}×{height}mm，{material}）的製作工序，含選料、切料、榫接、組裝、塗裝完整步驟。",
       "shareText": "木頭仁設計：{name} {length}×{width}×{height}mm"
+    },
+    "examLock": {
+      "title": "{what}買斷後解鎖",
+      "body": "這是丙級檢定的考題，尺寸就是考場要做的那件。三題套組一次買斷 NT$290，第一、二、三題的三視圖、每個零件的加工尺寸與鑽孔位置、材料單、工序全部打開。",
+      "cta": "買斷三題套組 →",
+      "threeView": "三視圖",
+      "partDrawings": "零件圖",
+      "materials": "材料單",
+      "steps": "工序"
     }
   },
   "mobile": {
@@ -872,6 +882,16 @@
       "calcLegHeight": "計算後腳高",
       "clampedMin": "已夾到最低 30mm，請降低層高或加大總高",
       "maxLocked": "上限 {max}（鎖總高）"
+    },
+    "previewLockBodyExam": "這是丙級檢定的考題，尺寸就是考場要做的那件。免費版只能看 3D；三視圖、零件圖、材料單與工序要買斷三題套組（NT$290）才打開。",
+    "examLock": {
+      "title": "{what}買斷後解鎖",
+      "body": "這是丙級檢定的考題，尺寸就是考場要做的那件。三題套組一次買斷 NT$290，第一、二、三題的三視圖、每個零件的加工尺寸與鑽孔位置、材料單、工序全部打開。",
+      "cta": "買斷三題套組 →",
+      "threeView": "三視圖",
+      "partDrawings": "零件圖",
+      "materials": "材料單",
+      "steps": "工序"
     }
   },
   "cncMarketing": {
@@ -2685,6 +2705,11 @@
     "tierSingleFeature2": "不訂閱也能用",
     "tierSingleFeature3": "未來功能改進也自動拿到",
     "tierSingleCta": "立即購買",
+    "tierBundleBadge": "三題套組",
+    "tierBundleTitle": "丙級三題套組買斷",
+    "tierBundleFeature1": "第一、二、三題一次解鎖，永久使用",
+    "tierBundleFeature2": "不訂閱也能用，考前照著練",
+    "tierBundleFeature3": "題目資料修訂會自動更新",
     "tierPersonalBadge": "最多人選",
     "tierPersonalTitle": "個人版訂閱",
     "tierPersonalPrice": "NT$390",
@@ -4782,7 +4807,8 @@
     "filterAll": "全部",
     "loading": "載入中…",
     "owned": "✓ 已擁有",
-    "buyBtn": "買斷 →"
+    "buyBtn": "買斷 →",
+    "bundleNote": "一次買斷 {count} 題全部解鎖：第一題、第二題、第三題的 3D、三視圖、零件圖、材料單都有。"
   },
   "toolUnlock": {
     "h": "🔨 裝潢工具買斷",

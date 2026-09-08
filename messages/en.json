@@ -766,7 +766,8 @@
       "legReadoutLabel": "Computed leg height",
       "legReadoutUnit": "·mm",
       "legReadoutClamped": "Clamped to min 30mm — lower the zone heights or raise overall height",
-      "upperLimit": "Max {max}"
+      "upperLimit": "Max {max}",
+      "previewLockBodyExam": "This is a certification exam piece at exam size. Free preview shows the 3D only; buy the 3-piece bundle to open views, part drawings, materials and steps."
     },
     "heightPreset": {
       "diningTable": "Dining",
@@ -786,6 +787,15 @@
       "howToName": "How to build a {name}: {dims}",
       "howToDesc": "Full build steps for a {name} ({length}×{width}×{height} mm, {material}): stock selection, cutting, joinery, assembly, finishing.",
       "shareText": "Wooden Ren design: {name} {length}×{width}×{height} mm"
+    },
+    "examLock": {
+      "title": "{what} unlocks after purchase",
+      "body": "This is a certification exam piece; the default size is the exam size. The 3-piece bundle unlocks all views, part drawings, material lists and steps.",
+      "cta": "Buy the bundle →",
+      "threeView": "Three views",
+      "partDrawings": "Part drawings",
+      "materials": "Material list",
+      "steps": "Build steps"
     }
   },
   "mobile": {
@@ -872,6 +882,16 @@
       "calcLegHeight": "Calculated leg height",
       "clampedMin": "Clamped to 30 mm min — lower a tier or raise total height",
       "maxLocked": "Max {max} (height locked)"
+    },
+    "previewLockBodyExam": "This is a certification exam piece at exam size. Free preview shows the 3D only; buy the 3-piece bundle to open views, part drawings, materials and steps.",
+    "examLock": {
+      "title": "{what} unlocks after purchase",
+      "body": "This is a certification exam piece; the default size is the exam size. The 3-piece bundle unlocks all views, part drawings, material lists and steps.",
+      "cta": "Buy the bundle →",
+      "threeView": "Three views",
+      "partDrawings": "Part drawings",
+      "materials": "Material list",
+      "steps": "Build steps"
     }
   },
   "cncMarketing": {
@@ -2685,6 +2705,11 @@
     "tierSingleFeature2": "Use without subscribing",
     "tierSingleFeature3": "Future improvements auto-included",
     "tierSingleCta": "Buy now",
+    "tierBundleBadge": "Bundle",
+    "tierBundleTitle": "Exam 3-piece bundle",
+    "tierBundleFeature1": "Unlocks all three exam pieces forever",
+    "tierBundleFeature2": "No subscription needed",
+    "tierBundleFeature3": "Future revisions included",
     "tierPersonalBadge": "Most popular",
     "tierPersonalTitle": "Personal subscription",
     "tierPersonalPrice": "$9",

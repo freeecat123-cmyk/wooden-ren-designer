@@ -1233,6 +1233,8 @@ export function PerspectiveView({
             shape = {
               kind: "quad",
               corners: part.shape.corners.map(([x, z]) => [x * SCALE, z * SCALE]) as [[number, number], [number, number], [number, number], [number, number]],
+              plane: part.shape.plane,
+              ...(part.shape.topBreak ? { topBreak: [part.shape.topBreak[0] * SCALE, part.shape.topBreak[1] * SCALE] as [number, number] } : {}),
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };

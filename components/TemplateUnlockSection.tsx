@@ -7,6 +7,8 @@ import { track } from "@vercel/analytics";
 import { formatPrice } from "@/lib/units/fx";
 import {
   TEMPLATE_UNLOCK_PRICES,
+  TEMPLATE_BUNDLES,
+  getBundleFor,
   type Difficulty,
 } from "@/lib/pricing/template-unlock";
 
@@ -63,11 +65,25 @@ export function TemplateUnlockSection({
     };
   }, []);
 
+  // 套組（丙級三題 290）：三支合成一張卡，買一次整組解鎖；成員各自的卡不再列
   const items = useMemo(() => {
-    return catalog.filter((c) => (filter === "all" ? true : c.difficulty === filter));
+    const seenBundle = new Set<string>();
+    const out: Array<CatalogItem & { bundleId?: string; bundleCategories?: string[]; price: number }> = [];
+    for (const c of catalog) {
+      const b = getBundleFor(c.category);
+      if (b) {
+        if (seenBundle.has(b.id)) continue;
+        seenBundle.add(b.id);
+        out.push({ ...c, nameZh: b.nameZh, bundleId: b.id, bundleCategories: b.categories, price: b.price });
+      } else {
+        out.push({ ...c, price: TEMPLATE_UNLOCK_PRICES[c.difficulty] });
+      }
+    }
+    return out.filter((c) => (filter === "all" ? true : c.difficulty === filter));
   }, [catalog, filter]);
 
-  const templateName = (c: CatalogItem): string => {
+  const templateName = (c: CatalogItem & { bundleId?: string }): string => {
+    if (c.bundleId) return c.nameZh;
     try {
       return tFurn(c.category);
     } catch {
@@ -113,9 +129,10 @@ export function TemplateUnlockSection({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {items.map((item) => {
-            const isUnlocked = unlocked.has(item.category);
-            const isLockedHighlight = lockedCategory === item.category;
-            const price = TEMPLATE_UNLOCK_PRICES[item.difficulty];
+            const memberCats = item.bundleCategories ?? [item.category];
+            const isUnlocked = memberCats.some((c) => unlocked.has(c));
+            const isLockedHighlight = !!lockedCategory && memberCats.includes(lockedCategory);
+            const price = item.price;
             return (
               <div
                 key={item.category}
@@ -142,6 +159,11 @@ export function TemplateUnlockSection({
                     <div className="text-base font-bold text-amber-900">{formatPrice(price, currency)}</div>
                   </div>
                 </div>
+                {item.bundleCategories && (
+                  <p className="mt-2 text-[11px] leading-snug text-zinc-600">
+                    {t("bundleNote", { count: item.bundleCategories.length })}
+                  </p>
+                )}
                 {isUnlocked ? (
                   <button
                     type="button"

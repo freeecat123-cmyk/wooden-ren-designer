@@ -163,8 +163,9 @@ export function T1Dimensions({
   const HORIZ_OFFSET = hasVertTenon ? 30 : 18;
   // VERT_OFFSET 從 50 拉到 70：避開短料側視圖（寬/厚軸）的「厚 20 / 寬 60」
   // 撞到內側 tenon 標籤（user 2026-05-29 後牙條側視圖）
-  const VERT_OFFSET = 70;
-  const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
+  // 70 → 44：俯視的「厚 18」在 A4 卡上會推進右邊側視圖的區域（背橫檔卡側視旁出現兩個厚 18；2026-09-08 零件圖審查）
+  const VERT_OFFSET = 44;
+  const GROSS_GAP = 20; // SVG px；含榫總長 dim 距 T1 dim line（字高 11px，14 會跟「長 264」咬字；2026-09-08 零件圖審查）
 
   // 8 corners 投影
   const allCorners = [
@@ -320,15 +321,17 @@ export function T1Dimensions({
   const vertPartLocal = axisToLocal(vertAxisName as "L" | "W" | "T");
   let horizExt = 0;
   let vertExt = 0;
-  for (const t of part.tenons) {
-    if (t.length <= 0) continue;
-    const pos = t.position;
-    if (horizPartLocal === "x" && (pos === "start" || pos === "end")) horizExt += t.length;
-    if (horizPartLocal === "y" && (pos === "top" || pos === "bottom")) horizExt += t.length;
-    if (horizPartLocal === "z" && (pos === "left" || pos === "right")) horizExt += t.length;
-    if (vertPartLocal === "x" && (pos === "start" || pos === "end")) vertExt += t.length;
-    if (vertPartLocal === "y" && (pos === "top" || pos === "bottom")) vertExt += t.length;
-    if (vertPartLocal === "z" && (pos === "left" || pos === "right")) vertExt += t.length;
+  // 同一端多支榫頭（雙榫頭）只加該端最長那支一次（同 cut-dimensions.ts / drawing.tsx；
+  // 🩸2026-09-08 丙級第三題後底板每端兩支 18 長被加成 36 → 圖上「含榫 336」）
+  const maxAt = new Map<string, number>();
+  for (const t of part.tenons) if (t.length > 0) maxAt.set(t.position, Math.max(maxAt.get(t.position) ?? 0, t.length));
+  for (const [pos, len] of maxAt) {
+    if (horizPartLocal === "x" && (pos === "start" || pos === "end")) horizExt += len;
+    if (horizPartLocal === "y" && (pos === "top" || pos === "bottom")) horizExt += len;
+    if (horizPartLocal === "z" && (pos === "left" || pos === "right")) horizExt += len;
+    if (vertPartLocal === "x" && (pos === "start" || pos === "end")) vertExt += len;
+    if (vertPartLocal === "y" && (pos === "top" || pos === "bottom")) vertExt += len;
+    if (vertPartLocal === "z" && (pos === "left" || pos === "right")) vertExt += len;
   }
   const horizGross = round1(horiz + horizExt);
   const vertGross = round1(vert + vertExt);
@@ -372,8 +375,9 @@ export function T1Dimensions({
   const estLabelW = (s: string) =>
     [...s].reduce((acc, ch) => acc + (ch.charCodeAt(0) > 0x2000 ? 11 : 6.2), 0);
   const placeVertLabel = (startX: number, text: string) =>
-    startX + estLabelW(text) > vbRight - 2
-      ? { x: vbRight - 6, anchor: "end" as const }
+    // 留 12：內嵌 A4 時 viewBox 右緣外還有 10 的繪圖區虛線邊，字不要壓在虛線上（審查員 v3）
+    startX + estLabelW(text) > vbRight - 12
+      ? { x: vbRight - 12, anchor: "end" as const }
       : { x: startX, anchor: "start" as const };
   return (
     <g
@@ -486,17 +490,9 @@ export function T1Dimensions({
           線 + 箭頭仍貼 part 邊）。user 2026-06-02「厚 20 大字移到右邊空白 不要
           擋到圖」。textAnchor="end" 從右邊對齊、x = viewBox 右緣留 6px margin。
           其他 view 維持貼 dim 線右。 */}
-      {view === "side" ? (
-        <text
-          x={ctx.vbX + ctx.vbW - 6}
-          y={(vyLo + vyHi) / 2 + 4}
-          fontSize={11}
-          stroke="none"
-          textAnchor="end"
-        >
-          {`${vertLabel} ${vert}`}
-        </text>
-      ) : (() => {
+      {/* 2026-09-08：側視原本把「厚 18」貼到 viewBox 右緣，內嵌 A4 時 viewBox 右緣在紙外 →
+          20 張卡 19 張的側視厚度字落在紙外（零件圖審查員實測）。改跟其他視圖一樣貼 dim 線右側。 */}
+      {(() => {
         const txt = `${vertLabel} ${vert}`;
         const pl = placeVertLabel(vertX + 4, txt);
         return (
@@ -997,18 +993,21 @@ export function T2Annotations({
    */
   const holeSeries = new Map<number, string>(); // idx → 合併後的 dims（首孔）
   const holeSeriesMember = new Set<number>();
+  const holeSeriesOf = new Map<number, number>(); // idx → 首孔 idx（含首孔自己）
   {
+    // 2026-09-08 零件圖審查：原本只認 cosmetic+through（狗孔），盲木釘孔每顆各標「Ø8 深12」四次。
+    // 放寬到所有 round 孔；同孔徑＋同深度（或同穿）＋同 label 才併。
     type H = { idx: number; x: number; y: number; z: number; w: number; lb: string };
     const hs: H[] = [];
     part.mortises.forEach((m, idx) => {
-      if (m.shape === "round" && m.cosmetic && m.through && !m.rotX && !m.rotZ)
+      if (m.shape === "round" && !m.rotX && !m.rotZ)
         hs.push({
           idx,
           x: m.origin?.x ?? 0,
           y: m.origin?.y ?? 0,
           z: m.origin?.z ?? 0,
           w: round1(m.width ?? 0),
-          lb: m.label ?? "",
+          lb: `${m.label ?? ""}|${m.through ? "穿" : `深${round1(m.depth ?? 0)}`}`,
         });
     });
     type Axis = "x" | "y" | "z";
@@ -1030,6 +1029,10 @@ export function T2Annotations({
         list.sort((a, b) => a[axis] - b[axis]);
         const pitch = list[1][axis] - list[0][axis];
         if (pitch <= 0) continue;
+        // 板兩端的端面孔（x=±L/2）不是「一列」：pitch 等於料長沒意義（背橫檔曾標成 @264）。
+        // 留給投影去重標「兩端同」。
+        const partExtent = axis === "x" ? part.visible.length : axis === "y" ? part.visible.thickness : part.visible.width;
+        if (Math.abs(pitch - partExtent) < 1 || Math.abs(pitch - (partExtent - list[0].w)) < 1) continue;
         if (!list.every((h, i) => i === 0 || Math.abs(h[axis] - list[i - 1][axis] - pitch) <= 0.5)) continue;
         for (const h of list) claimed.add(h.idx);
         series.push({
@@ -1057,11 +1060,12 @@ export function T2Annotations({
       const group = isGrid ? grid : [r];
       for (const g of group) used.add(g);
       const first = group[0].members[0];
+      const depthWord = r.lb.split("|").pop() ?? "穿";   // 「穿」或「深12」
       const label = isGrid
-        ? `Ø${r.w} 穿 ${r.ps.length}×${group.length} @${r.pitch}${Math.abs(round1(rowPitch) - r.pitch) > 0.5 ? `/${round1(rowPitch)}` : ""}`
-        : `Ø${r.w} 穿 ×${r.ps.length} @${r.pitch}`;
+        ? `Ø${r.w} ${depthWord} ${r.ps.length}×${group.length} @${r.pitch}${Math.abs(round1(rowPitch) - r.pitch) > 0.5 ? `/${round1(rowPitch)}` : ""}`
+        : `Ø${r.w} ${depthWord} ×${r.ps.length} @${r.pitch}`;
       holeSeries.set(first.idx, label);
-      for (const g of group) for (const h of g.members) if (h.idx !== first.idx) holeSeriesMember.add(h.idx);
+      for (const g of group) for (const h of g.members) { holeSeriesOf.set(h.idx, first.idx); if (h.idx !== first.idx) holeSeriesMember.add(h.idx); }
     }
   }
 
@@ -1205,7 +1209,8 @@ export function T2Annotations({
   const hasMinusZ = zs.some((z) => z < -1);
   const symmetricX = hasPlusX && hasMinusX;
   const symmetricZ = hasPlusZ && hasMinusZ;
-  const isSymmetricPart = symmetricX || symmetricZ;
+  // quad 板（檢定側板）沒有中線可量，木匠從背緣／底緣量 → 不走「距中」（2026-09-08 零件圖審查）
+  const isSymmetricPart = (symmetricX || symmetricZ) && part.shape?.kind !== "quad";
 
   /** 依 view + 對稱性給出基準距字串。 */
   const baselineFor = (
@@ -1335,7 +1340,7 @@ export function T2Annotations({
   // mortise 在 bottom view 都投影到同 AABB,但 part-local origin/depthAxis 不同,
   // 不該 dedup(user 2026-05-27:仰視缺斜孔)。
   {
-    const seen = new Set<string>();
+    const seen = new Map<string, Item>();
     const unique: Item[] = [];
     for (const it of items) {
       let mortiseTag = "";
@@ -1351,8 +1356,17 @@ export function T2Annotations({
         mortiseTag = `|${lb.depthAxis}`;
       }
       const key = `${it.kind}|${Math.round(it.rect.x)}|${Math.round(it.rect.y)}|${Math.round(it.rect.w)}|${Math.round(it.rect.h)}|${it.dims}${mortiseTag}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      const prev = seen.get(key);
+      if (prev) {
+        // 投影疊在一起的同款孔（板兩端的木釘孔在側視疊成一顆）：留一顆但標 ×N（2026-09-08 零件圖審查）
+        if (it.kind === "m" && !prev.seriesMember) {
+          if (/@/.test(prev.dims)) { if (!/兩端同/.test(prev.dims)) prev.dims = `${prev.dims}，兩端同`; }   // 已是孔列：兩端各一列
+          else if (!/×\d/.test(prev.dims)) prev.dims = `${prev.dims} ×2`;
+          else prev.dims = prev.dims.replace(/×(\d+)$/, (_s, n) => `×${Number(n) + 1}`);
+        }
+        continue;
+      }
+      seen.set(key, it);
       unique.push(it);
     }
     items.length = 0;
@@ -1608,6 +1622,8 @@ export function T2Annotations({
   // 同 column 同值的 shoulder 只畫第一個,避免雙面 mortise(splay 腳 Z 面+X 面)的
   // 12.5 等 label 重複(user 2026-05-27:「先刪除一個 12.5」)
   const renderedShoulderKeys = new Set<string>();
+  /** 去重時記第一次畫的孔框：同值同邊但不同排的孔，不能算「已定位」（2026-09-08） */
+  const renderedShoulderRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   // 正視（annView=top）腿件 shoulderLft/Rgt label 撞行避撞：
   // splay 腿同側 outer mortise (solid box) + 旋轉 mortise (dashed box) 兩個 shoulder
   // dim label 會落在同一條 wDimY → 視覺上「279³⁰¹」「128¹⁰⁶」疊字。
@@ -1622,6 +1638,10 @@ export function T2Annotations({
   // 圓榫「Ø 深X」label 同位防撞：軸向視圖兩端圓榫同心（端面投影重疊）、
   // leader 落同一點 → 兩行字疊在一起（user 2026-06-11 邊柱側視卡回報）。
   const roundLabelSlots: Array<{ x: number; y: number }> = [];
+  /** 整張視圖所有水平肩距列（字的 y）：圓孔標籤要等全部孔畫完、放到最下一列之下 */
+  const allHDimRows: Array<{ y: number; x0: number; x1: number }> = [];
+  const lateLabels: Array<() => void> = [];
+  const lateEls: React.ReactNode[] = [];
   items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
@@ -2047,15 +2067,18 @@ export function T2Annotations({
 
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
     // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）
-    if (isRoundFeature && it.seriesMember) {
-      // 等距孔列成員：只畫圓（partEls 已含輪廓 + 十字線），字由首孔一次標完
-      elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
-      return;
-    }
-    if (isRoundFeature) {
-      // 同位 label 防撞：兩端圓榫端面同心時 leader/字會疊 → 第二顆往下推。
+    // 2026-09-08 零件圖審查：圓孔以前只有 leader＋「Ø8 深12」、完全沒有離邊的定位尺寸（三題 55 個孔
+    // 有 27 個看不出位置）。現在圓孔跟方榫眼一樣走下面的肩距鏈；等距孔列成員只是不重複標字。
+    // 圓孔標籤延後到肩距鏈畫完才放：合併標籤「Ø8 深18 ×2 @30，兩端同」原本跟
+    // 板下方的水平肩距鏈同高、字壓在尺寸線上（2026-09-08 零件圖審查 ③-1）
+    const placeRoundLabel = () => {
       // 基準再 +8：端面視圖（小截面）lblY=partBottom+16 會壓到圓輪廓下緣
-      let rlY = lblY + 8;
+      // 只避開跟標籤 x 範圍有交集的列（標籤約 5.4px/字）
+      const halfW = (it.dims.length * 5.4) / 2;
+      let rlY = Math.max(
+        lblY + 8,
+        ...allHDimRows.filter((r) => r.x1 > lblX - halfW && r.x0 < lblX + halfW).map((r) => r.y + 12),
+      );
       while (
         roundLabelSlots.some(
           (s) => Math.abs(s.x - lblX) < 40 && Math.abs(s.y - rlY) < 12,
@@ -2064,7 +2087,7 @@ export function T2Annotations({
         rlY += 14;
       }
       roundLabelSlots.push({ x: lblX, y: rlY });
-      partEls.push(
+      lateEls.push(
         <line
           key={`${it.kind}-${it.idx}-lead`}
           x1={box.x + box.w / 2}
@@ -2087,7 +2110,23 @@ export function T2Annotations({
           {it.dims}
         </text>,
       );
-    } else {
+    };
+    // 這顆孔在垂直／水平軸上是否已有肩距定位 → 有的話「距中」就是重複標註（2026-09-08 零件圖審查）
+    let vPositioned = false;
+    let hPositioned = false;
+    let cxAxis: "h" | "v" | "d" = "h";
+    // 寬 > 長 的板（側板 120×350／115×230）：svg-views isolate 對它加了 Ry=−π/2 把 local Z
+    // 轉到 world X。肩距鏈的 mm 計算原本只處理 Rz 的 tall 件，這種板 X/Z 整個對調 →
+    // 「5／102」畫成橫跨全長的水平線（2026-09-08 c3 側板卡）。把 local box 先轉進 world
+    // 座標系（world X = −local Z、world Z = local X），之後沿用「未旋轉」那套公式。
+    const wideRot = (() => {
+      const { length: L0, width: W0, thickness: T0 } = part.visible;
+      return W0 > L0 && W0 > T0 && !(T0 > L0 && T0 >= W0);
+    })();
+    const toWorld = <B extends { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number }>(b: B): B =>
+      wideRot ? { ...b, cx: -b.cz, cy: b.cy, cz: b.cx, hx: b.hz, hy: b.hy, hz: b.hx } : b;
+    const lbW = toWorld(lb);
+    {
       // 視圖軸 mapping：mortiseEntryBox / tenonLocalBox 都以 part-local 中心系
       //   front: 水平=X, 垂直=Y, 深(into page)=Z
       //   top:   水平=X, 垂直=Z, 深=Y
@@ -2135,15 +2174,16 @@ export function T2Annotations({
       // 25×20 而不是正確的 25×12）。(user 2026-05-28「側視圖榫頭尺寸應該是 25×12 才對」)
       const sideLegTenonOverride =
         view === "side" && isLegPart && !isMortise && tenonFeature;
+      // wideRot（寬>長的板）的 inline 尺寸也要走 world 座標，不然槽長 193 標在槽側、槽寬 6 標在槽長邊
       const hMm = sideLegTenonOverride
         ? round1(tenonFeature!.width)
         : splayMortiseLabel
           ? round1(mortiseFeature?.length ?? 0)
           : tallSwapLabel
-            ? round1(2 * lb.hy)
+            ? round1(2 * lbW.hy)
             : view === "side"
-              ? round1(2 * lb.hz)
-              : round1(2 * lb.hx);
+              ? round1(2 * lbW.hz)
+              : round1(2 * lbW.hx);
       const vMm = sideLegTenonOverride
         ? round1(tenonFeature!.thickness)
         : isFrontOrTopVisibleMortise
@@ -2151,10 +2191,10 @@ export function T2Annotations({
           : splayMortiseLabel
           ? round1(mortiseFeature?.depth ?? 0)
           : tallSwapLabel
-            ? round1(2 * lb.hx)
+            ? round1(2 * lbW.hx)
             : view === "top"
-              ? round1(2 * lb.hz)
-              : round1(2 * lb.hy);
+              ? round1(2 * lbW.hz)
+              : round1(2 * lbW.hy);
       // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
@@ -2201,8 +2241,19 @@ export function T2Annotations({
       const lDimX = computeLDimX({ x: box.x, w: box.w });
       // 預先偵測 lSiblings、prevLSibling、nextLSibling，給 wDimY 選方向參考
       const COL_TOL = 5;
+      const isCosmeticItemL = (o: Item) => o.kind === "m" && !!(part.mortises[o.idx] as Mortise).cosmetic;
+      // 同一排（垂直重疊）的孔是水平鄰孔、不是垂直鏈的上下家：同排兩顆孔互算會得到 0 間距，
+      // 兩顆都失去板緣定位；cosmetic 通長槽也不進鏈（2026-09-08 c3 側板卡「5」消失）
+      // 板件（非腳件）不做垂直疊鏈：每個孔每一軸只從較近的板緣量一條（2026-09-08 零件圖審查
+      // 建議①：c1 側板「222／173」跨件間距、書櫃側板 197／1561 成對噪音全是鏈出來的）
       const lSiblings = items
         .filter((other) => {
+          if (other !== it && !isLegPart) return false;
+          if (other !== it && (isCosmetic || isCosmeticItemL(other) || (other.rect.y < box.y + box.h && other.rect.y + other.rect.h > box.y))) return false;
+          // 板件（非腳件）的垂直鏈只接「同一欄」（水平重疊）的孔；腳件維持沿邊疊鏈（user 2026-05 已驗收）
+          if (other !== it && !isLegPart && !(other.rect.x < box.x + box.w && other.rect.x + other.rect.w > box.x)) return false;
+          // 從上下板緣進刀的孔（端面木釘孔的圓柱側影）不是定位基準：它把下一個榫眼的「距頂緣 20」吃成「距孔底 10」
+          if (other !== it && !isLegPart && (Math.abs(other.rect.y - partTopSvg) <= 0.5 || Math.abs(other.rect.y + other.rect.h - partBottomY) <= 0.5)) return false;
           const otherFeature =
             other.kind === "m"
               ? part.mortises[other.idx]
@@ -2252,9 +2303,11 @@ export function T2Annotations({
       const wLabelY = wDimBelow ? wDimY + 7 : wDimY - 2;
       // L label 同 col 撞：lStagger > 0 時往外推 STAGGER_GAP*lStagger
       const lStaggerOffset = myMeta.lStagger * STAGGER_GAP;
-      const lLabelX = outerLeft
+      // 梯形側板左側斜邊把 lDimX 往左推、字掉到繪圖區外（審查員 v3）→ 貼齊 viewBox 左緣留 10
+      const lLabelXRaw = outerLeft
         ? lDimX - 2 - lStaggerOffset
         : lDimX + 2 + lStaggerOffset;
+      const lLabelX = outerLeft ? Math.max(lLabelXRaw, ctx.vbX + 26) : Math.min(lLabelXRaw, ctx.vbX + ctx.vbW - 26);
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
 
       // 內向箭頭 dim line（box 兩端 tick → 中央 label）
@@ -2292,7 +2345,8 @@ export function T2Annotations({
       // (user 2026-05-26 多輪釐清：「12.5 上面沒用的箭頭可去掉」+「12.5/14.4 引線
       // 要留著」+「10/25 引線還留在右邊」→ 真因＝L-dim tics 是 12.5/14.4 的引線，
       // 不是 10/25 的；只刪 W/L 主線+箭頭、tics 全留。)
-      const skipTicsInSide = view === "side" && isLegPart;
+      // 圓孔（含在邊視圖投影成矩形的圓柱側影）不畫 W/L tics 與 inline 8/12：直徑與深度只在軸向視圖的 Ø 標籤出現一次
+      const skipTicsInSide = (view === "side" && isLegPart) || isRoundFeature || mortiseShapeIsRound;
       if (!skipTicsInSide) {
       partEls.push(
         // W-dim 列：box 兩側 vertical 延伸到 wDimY（mortise 接 chain dim 用）
@@ -2336,7 +2390,11 @@ export function T2Annotations({
         </g>,
       );
       }
-      partEls.push(
+      // inline 值＝T1 已標的長/寬/厚（貫穿整厚的榫眼、整厚的榫頭、通長的溝）→ 不重複（2026-09-08 零件圖審查）
+      const t1Vals = [L_local_label, W_local_label, T_local_label];
+      const skipV = t1Vals.some((v) => Math.abs(v - vMm) < 0.5);
+      const skipH = t1Vals.some((v) => Math.abs(v - hMm) < 0.5);
+      if (!isRoundFeature && !mortiseShapeIsRound) partEls.push(
         // vMm / hMm label 直接貼在 box 左/上邊（user 2026-05-26 14:17 要求
         // 「直接標在榫孔的左邊跟上方兩側」），不再跟 chain shoulder 共用
         // lLabelX/wLabelY 那個外推欄位，避免多 feature 同欄位疊字。
@@ -2372,7 +2430,7 @@ export function T2Annotations({
                     兩個 vMm 各坐成對 box 的外側空白，不擠中間（user 2026-05-28）
                   - 其他視圖 mortise：dashed 走右、visible 走左（原規則）
                   - tenon：outerLeft=true 走左、false 走右（凸出側） */}
-              {(!isMortise && !outerLeft) ||
+              {!skipV && ((!isMortise && !outerLeft) ||
               (isMortise && view === "top" && isVisibleFromView) ||
               (isMortise && view !== "top" && !isVisibleFromView) ? (
                 <text
@@ -2396,9 +2454,9 @@ export function T2Annotations({
                 >
                   {vMm}
                 </text>
-              )}
+              ))}
               {/* W dim label on box TOP side (side+leg+dashed: 推到底部) */}
-              <text
+              {!skipH && (<text
                 x={hMmX}
                 y={hMmY}
                 fontSize={7}
@@ -2407,7 +2465,7 @@ export function T2Annotations({
                 textAnchor="middle"
               >
                 {hMm}
-              </text>
+              </text>)}
             </g>
           );
         })(),
@@ -2434,8 +2492,8 @@ export function T2Annotations({
       // 為了讓 T2 shoulder chain 跟 T1「長 425」量同一個軸（user 2026-05-26
       // 回報「上面黑 vs 下面紅 方向不合」），偵測這個 case 並把 horiz/vert
       // 軸來源對調。
-      const L_local = part.visible.length;
-      const W_local = part.visible.width;
+      const L_local = wideRot ? part.visible.width : part.visible.length;
+      const W_local = wideRot ? part.visible.length : part.visible.width;
       const T_local = part.visible.thickness;
       // tall iso isolation rotation Rz=-π/2:part-local +Y → world -X、+X → world +Y、Z 不變。
       // 各 view 螢幕軸對應(tall iso):
@@ -2465,33 +2523,33 @@ export function T2Annotations({
           ? W_local / 2
           : T_local / 2;
       const featCh = swapForTallPart
-        ? lb.cy
+        ? lbW.cy
         : view === "side"
-          ? lb.cz
-          : lb.cx;
+          ? lbW.cz
+          : lbW.cx;
       const featHh = swapForTallPart
-        ? lb.hy
+        ? lbW.hy
         : view === "side"
-          ? lb.hz
-          : lb.hx;
+          ? lbW.hz
+          : lbW.hx;
       const featCv = swapForTallPart
         ? view === "side"
-          ? lb.cz
+          ? lbW.cz
           : view === "top"
-            ? lb.cz
-            : lb.cx
+            ? lbW.cz
+            : lbW.cx
         : view === "top"
-          ? lb.cz
-          : lb.cy;
+          ? lbW.cz
+          : lbW.cy;
       const featHv = swapForTallPart
         ? view === "side"
-          ? lb.hz
+          ? lbW.hz
           : view === "top"
-            ? lb.hz
-            : lb.hx
+            ? lbW.hz
+            : lbW.hx
         : view === "top"
-          ? lb.hz
-          : lb.hy;
+          ? lbW.hz
+          : lbW.hy;
 
       // feature 必須在 part body 那軸範圍內，才算 shoulder（榫頭凸出側不是
       // shoulder、是 part 外）；2mm 容差吸收 SVG 投影誤差
@@ -2513,7 +2571,7 @@ export function T2Annotations({
       const drawBotShoulder = !nextLSibling;
       // shoulder 線太長（> 60 svg unit）直接跳過，不管有沒有 sibling。
       // user:「拉到底下太遠了」「應該往上面拉」=> 把長線拿掉、相鄰 chain 保留。
-      const LONG_CHAIN_TH = 60; // SVG px；超過視為「太長」
+      const LONG_CHAIN_TH = 400; // SVG px；原 60 → 離邊遠的孔完全沒有定位尺寸（2026-09-08 零件圖審查），放寬到幾乎不跳
       const isLastSibling = !nextLSibling;
       const skipFirstShoulderTop =
         !prevLSibling && box.y - topBoundary > LONG_CHAIN_TH;
@@ -2528,32 +2586,66 @@ export function T2Annotations({
       const prevSibCv = prevLSibling
         ? swapForTallPart
           ? view === "top"
-            ? prevLSibling.lb.cz
-            : prevLSibling.lb.cx
+            ? toWorld(prevLSibling.lb).cz
+            : toWorld(prevLSibling.lb).cx
           : view === "top"
-            ? prevLSibling.lb.cz
-            : prevLSibling.lb.cy
+            ? toWorld(prevLSibling.lb).cz
+            : toWorld(prevLSibling.lb).cy
         : 0;
       const prevSibHv = prevLSibling
         ? swapForTallPart
           ? view === "top"
-            ? prevLSibling.lb.hz
-            : prevLSibling.lb.hx
+            ? toWorld(prevLSibling.lb).hz
+            : toWorld(prevLSibling.lb).hx
           : view === "top"
-            ? prevLSibling.lb.hz
-            : prevLSibling.lb.hy
+            ? toWorld(prevLSibling.lb).hz
+            : toWorld(prevLSibling.lb).hy
         : 0;
+      // 上家的「下緣」：svg 往下 = part-local 往負（svg y = −local），所以是 cv − hv。
+      // 原本寫 cv + hv（上家的上緣）→ 線畫邊到邊、字卻是中心距（凳座板 303 標成 315、
+      // c3 側板 56 標成 68）（2026-09-08 零件圖審查）
       const topBoundaryLocal = prevLSibling
-        ? prevSibCv + prevSibHv
+        ? prevSibCv - prevSibHv
         : partHalfV;
-      const shoulderTop =
+      const shoulderTopRaw =
         featureInsideY && !skipFirstShoulderTop
           ? round1(topBoundaryLocal - (featCv + featHv))
           : 0;
-      const shoulderBot =
+      const shoulderBotRaw =
         featureInsideY && drawBotShoulder && !skipLastShoulderBot
           ? round1((featCv - featHv) + partHalfV)
           : 0;
+      // 同欄沒有鄰孔、上下都是板緣 → 只量較近的一邊（2026-09-08 零件圖審查 ③-3）
+      const bothEdgesV = !prevLSibling && !nextLSibling && shoulderTopRaw > 2 && shoulderBotRaw > 2;
+      const seriesId = it.kind === "m" ? holeSeriesOf.get(it.idx) : undefined;
+      const seriesRectsV = seriesId !== undefined
+        ? items.filter((o) => o.kind === "m" && holeSeriesOf.get(o.idx) === seriesId).map((o) => o.rect)
+        : [];
+      const colMinY = Math.min(box.y, ...seriesRectsV.map((r) => r.y));
+      const colMaxY = Math.max(box.y + box.h, ...seriesRectsV.map((r) => r.y + r.h));
+      const seriesSpreadV = seriesRectsV.length > 1 && colMaxY - colMinY > box.h + 1;
+      const colGapT = colMinY - partTopY;
+      const colGapB = partBottomY - colMaxY;
+      // 垂直孔列：只有最靠近板緣那一端的那顆量到板緣
+      const dropTopSeries = seriesSpreadV && (Math.abs(box.y - colMinY) > 0.5 || colGapT > colGapB + 0.5);
+      const dropBotSeries = seriesSpreadV && (Math.abs(box.y + box.h - colMaxY) > 0.5 || colGapB > colGapT + 0.5);
+      // 貼邊進刀的孔（端面木釘孔：一邊肩距 0）另一邊只是「深度到對面」，深度已在標籤 → 不畫
+      const touchesTop = !prevLSibling && featureInsideY && Math.abs(shoulderTopRaw) <= 0.5;
+      const touchesBot = !nextLSibling && featureInsideY && Math.abs(shoulderBotRaw) <= 0.5;
+      // 沒上下家那一側若超過料的一半 → 是遠邊（近邊已定位）→ 不畫
+      const shoulderTop =
+        !isLegPart &&
+        ((bothEdgesV && shoulderTopRaw > shoulderBotRaw) || touchesBot || (!prevLSibling && shoulderTopRaw > partHalfV) || dropTopSeries)
+          ? 0
+          : shoulderTopRaw;
+      const shoulderBot =
+        !isLegPart &&
+        ((bothEdgesV && shoulderTopRaw <= shoulderBotRaw) || touchesTop || (!nextLSibling && shoulderBotRaw > partHalfV) || dropBotSeries)
+          ? 0
+          : shoulderBotRaw;
+      if (seriesSpreadV) vPositioned = true;
+      // 貼邊的孔（開口榫眼／端面孔）位置就是「貼邊」，算已定位
+      if (touchesTop || touchesBot) vPositioned = true;
       // swapForTallPart 把 horiz 軸對到 part-local Y，但 part-local +Y → screen
       // -X（Rz=-π/2 rotation）→ part-local Y 軸的「正向」對應 screen 的「左方」
       // → shoulderLft/Rgt 的「左右」對應跟 part-local Y 方向相反，需鏡像。
@@ -2590,9 +2682,20 @@ export function T2Annotations({
       // 10/392/279/301/128/106 這種跟木料長度搞混的數值,直接跳過。
       // (user 2026-05-28「側視圖很多尺寸數字都跟木料的長度搞混了」)
       const skipShoulderInSide = view === "side" && isLegPart;
-      const shTKey = `${shoulderTop}`;
+      // 去重 key 帶「哪一邊」：純值去重會把不同邊剛好同值的定位吃掉（2026-09-08 零件圖審查）
+      vPositioned = !skipShoulderInSide && !!nextLSibling;
+      cxAxis = view === "side" ? "d" : swapForTallPart ? "v" : "h";
+      const overlapV = (r: { y: number; h: number }) => r.y < box.y + box.h && r.y + r.h > box.y;
+      const overlapH = (r: { x: number; w: number }) => r.x < box.x + box.w && r.x + r.w > box.x;
+      const shTKey = `T|${shoulderTop}`;
+      if (shoulderTop > TH && !skipShoulderInSide && renderedShoulderKeys.has(shTKey)) {
+        const r0 = renderedShoulderRects.get(shTKey);
+        if (r0 && overlapH(r0)) vPositioned = true;
+      }
       if (shoulderTop > TH && !renderedShoulderKeys.has(shTKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shTKey);
+        renderedShoulderRects.set(shTKey, box);
+        vPositioned = true;
         const segMidY = (shoulderTopStartY + box.y) / 2;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
@@ -2626,9 +2729,15 @@ export function T2Annotations({
           </g>,
         );
       }
-      const shBKey = `${shoulderBot}`;
+      const shBKey = `B|${shoulderBot}`;
+      if (shoulderBot > TH && !skipShoulderInSide && renderedShoulderKeys.has(shBKey)) {
+        const r0 = renderedShoulderRects.get(shBKey);
+        if (r0 && overlapH(r0)) vPositioned = true;
+      }
       if (shoulderBot > TH && !renderedShoulderKeys.has(shBKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shBKey);
+        renderedShoulderRects.set(shBKey, box);
+        vPositioned = true;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shB`}>
             <line
@@ -2670,9 +2779,84 @@ export function T2Annotations({
       // (box.x+box.w → partRightX)；shoulderRgt 值（part-local 右肩）→ 線端要落在
       // SVG 左側 (partLeftX → box.x)。原本左右搞反，導致 user 2026-06-02「下面
       // 10 跟 315 接反了」。
-      const shLKey = `${shoulderLft}`;
-      if (shoulderLft > TH && !renderedShoulderKeys.has(shLKey) && !skipShoulderInSide) {
+      // 水平肩距線不跨過同一排的另一個孔：門梃兩端榫眼各自拉到遠端（284 疊 284）、
+      // 樞軸孔拉過榫眼（286 疊 284）→ 改量到鄰孔的間距、同一對只畫一次（2026-09-08 零件圖審查）
+      const hOfLb = (olb: { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number }) =>
+        swapForTallPart
+          ? { c: olb.cy, h: olb.hy }
+          : view === "side"
+            ? { c: olb.cz, h: olb.hz }
+            : { c: olb.cx, h: olb.hx };
+      // cosmetic 槽（通長鑲板槽／背板溝）不是孔：不當鄰孔、也不擋鄰孔間距線
+      const isCosmeticItem = (o: Item) => o.kind === "m" && !!(part.mortises[o.idx] as Mortise).cosmetic;
+      const touchesSideEdge = (r: { x: number; w: number }) =>
+        Math.abs(r.x - partLeftX) <= 0.5 || Math.abs(r.x + r.w - partRightX) <= 0.5;
+      // 板件不做鄰孔間距鏈（只量近邊）；腳件也不做（審查員 v3：凳腳「10/392」變成「10/4/219」木匠要加減才能用）
+      // → hSibs 目前恆為空，保留機制給日後需要「孔到孔」的件
+      const hSibs = items
+        .filter((o) => o !== it && false && !isCosmeticItem(o) && !touchesSideEdge(o.rect) && overlapV(o.rect))
+        .map((o) => {
+          const f = o.kind === "m" ? part.mortises[o.idx] : part.tenons[o.idx];
+          const olb =
+            o.kind === "m" ? mortiseEntryBox(f as Mortise) : tenonLocalBox(part, f as Tenon);
+          return { o, r: o.rect, ...hOfLb(toWorld(olb)) };
+        });
+      const sibSvgRight =
+        hSibs.filter((sb) => sb.r.x >= box.x + box.w - 1).sort((a, b) => a.r.x - b.r.x)[0] ?? null;
+      const sibSvgLeft =
+        hSibs
+          .filter((sb) => sb.r.x + sb.r.w <= box.x + 1)
+          .sort((a, b) => b.r.x + b.r.w - (a.r.x + a.r.w))[0] ?? null;
+      const gapMm = (sb: { c: number; h: number }) => round1(Math.abs(sb.c - featCh) - sb.h - featHh);
+      // 鄰孔間距線也不能跨過第三個孔（門梃樞軸孔跟端榫眼在長向重疊，量到遠端榫眼會壓過近端榫眼）
+      const crossesOther = (x0: number, x1: number, target: Item) =>
+        hSibs.some((sb) => sb.o !== target && sb.r.x < x1 - 1 && sb.r.x + sb.r.w > x0 + 1);
+      const gapBlockedR = sibSvgRight ? crossesOther(box.x + box.w, sibSvgRight.r.x, sibSvgRight.o) : false;
+      const gapBlockedL = sibSvgLeft ? crossesOther(sibSvgLeft.r.x + sibSvgLeft.r.w, box.x, sibSvgLeft.o) : false;
+      const gapKey = (sb: { o: Item }) =>
+        `G|${[`${it.kind}${it.idx}`, `${sb.o.kind}${sb.o.idx}`].sort().join("-")}`;
+      // 兩邊都是板緣（同排沒有鄰孔）時只從較近的那一邊量：遠邊那條動輒 250~300mm、
+      // 字被推到紙邊還跟別排重複（2026-09-08 零件圖審查 ③-3；書櫃側板 197／1561 成對噪音）
+      const bothEdgesH = !sibSvgRight && !sibSvgLeft && shoulderLft > TH && shoulderRgt > TH;
+      // 孔列的遠端：邊肩距超過料長一半＝是「遠邊」，近邊那一端已經定位整列 → 不畫
+      const halfH = partHalfH;
+      const touchesL = !sibSvgRight && featureInsideX && Math.abs(shoulderLft) <= 0.5;
+      const touchesR = !sibSvgLeft && featureInsideX && Math.abs(shoulderRgt) <= 0.5;
+      // 同一排孔列：只從離板緣較近的那一端量到板緣（97｜孔｜92｜孔｜25 → 只留 25）
+      // 等距孔列（Ø8 ×2 @100）：整列只由「離板緣較近的那一端那顆」量一次到板緣，其餘孔靠 @節距
+      const seriesRects = seriesId !== undefined
+        ? items.filter((o) => o.kind === "m" && holeSeriesOf.get(o.idx) === seriesId).map((o) => o.rect)
+        : [];
+      const rowRects = [box, ...hSibs.map((sb) => sb.r), ...seriesRects];
+      const rowMinX = Math.min(...rowRects.map((r) => r.x));
+      const rowMaxX = Math.max(...rowRects.map((r) => r.x + r.w));
+      const rowGapL = rowMinX - partLeftX;
+      const rowGapR = partRightX - rowMaxX;
+      const seriesSpreadH = seriesRects.length > 1 && rowMaxX - rowMinX > box.w + 1;
+      // shoulderLft 的線畫在 svg 右側（box→partRightX）、shoulderRgt 在 svg 左側
+      const farRowEndL = ((hSibs.length > 0 && !sibSvgRight) || seriesSpreadH) && rowGapR > rowGapL + 0.5;
+      const farRowEndR =
+        ((hSibs.length > 0 && !sibSvgLeft) && rowGapL > rowGapR + 0.5) ||
+        (seriesSpreadH && rowGapL >= rowGapR - 0.5); // 對稱孔列（6｜36｜6）平手時只留一端
+      // 孔列中不是最外側那顆 → 沿列方向不量板緣
+      const notRowEndL = seriesSpreadH && Math.abs(box.x + box.w - rowMaxX) > 0.5;
+      const notRowEndR = seriesSpreadH && Math.abs(box.x - rowMinX) > 0.5;
+      // 腳件維持舊行為（兩邊都標；user 2026-05 已驗收），板件才走「只量近邊」
+      const dropLft = !isLegPart && ((bothEdgesH && shoulderLft > shoulderRgt) || (!sibSvgRight && shoulderLft > halfH) || touchesR || farRowEndL || notRowEndL);
+      const dropRgt = !isLegPart && ((bothEdgesH && !dropLft) || (!sibSvgLeft && shoulderRgt > halfH) || touchesL || farRowEndR || notRowEndR);
+      if (seriesSpreadH) hPositioned = true; // 列方向由首孔＋@節距定位
+      if (touchesL || touchesR) hPositioned = true;
+      const shLVal = dropLft ? 0 : sibSvgRight ? (featureInsideX && !gapBlockedR ? gapMm(sibSvgRight) : 0) : shoulderLft;
+      const shLEndX = sibSvgRight ? sibSvgRight.r.x : partRightX;
+      const shLKey = sibSvgRight ? gapKey(sibSvgRight) : `L|${shoulderLft}`;
+      if (shLVal > TH && !skipShoulderInSide && renderedShoulderKeys.has(shLKey)) {
+        const r0 = renderedShoulderRects.get(shLKey);
+        if (r0 && overlapV(r0)) hPositioned = true;
+      }
+      if (shLVal > TH && !renderedShoulderKeys.has(shLKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shLKey);
+        renderedShoulderRects.set(shLKey, box);
+        hPositioned = true;
         const shLOffset =
           view === "top" && isLegPart
             ? shoulderHYUsed.L.filter((y) => Math.abs(y - wDimY) <= SHOULDER_Y_TOL).length *
@@ -2680,34 +2864,43 @@ export function T2Annotations({
             : 0;
         shoulderHYUsed.L.push(wDimY);
         const shLDimY = wDimY + shLOffset;
+        allHDimRows.push({ y: wLabelY + shLOffset, x0: box.x + box.w, x1: shLEndX });
         // 線段 = box.x+box.w → partRightX（短，對應 LEFT mortise 的 shoulderLft=10）
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shL`}>
             <line
               x1={box.x + box.w}
               y1={shLDimY}
-              x2={partRightX}
+              x2={shLEndX}
               y2={shLDimY}
               stroke={stroke}
               strokeWidth={0.5}
             />
-            {inwardArrowsH(box.x + box.w, partRightX, shLDimY)}
+            {inwardArrowsH(box.x + box.w, shLEndX, shLDimY)}
             <text
-              x={(box.x + box.w + partRightX) / 2}
+              x={(box.x + box.w + shLEndX) / 2}
               y={wLabelY + shLOffset}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"
               textAnchor="middle"
             >
-              {shoulderLft}
+              {shLVal}
             </text>
           </g>,
         );
       }
-      const shRKey = `${shoulderRgt}`;
-      if (shoulderRgt > TH && !renderedShoulderKeys.has(shRKey) && !skipShoulderInSide) {
+      const shRVal = dropRgt ? 0 : sibSvgLeft ? (featureInsideX && !gapBlockedL ? gapMm(sibSvgLeft) : 0) : shoulderRgt;
+      const shRStartX = sibSvgLeft ? sibSvgLeft.r.x + sibSvgLeft.r.w : partLeftX;
+      const shRKey = sibSvgLeft ? gapKey(sibSvgLeft) : `R|${shoulderRgt}`;
+      if (shRVal > TH && !skipShoulderInSide && renderedShoulderKeys.has(shRKey)) {
+        const r0 = renderedShoulderRects.get(shRKey);
+        if (r0 && overlapV(r0)) hPositioned = true;
+      }
+      if (shRVal > TH && !renderedShoulderKeys.has(shRKey) && !skipShoulderInSide) {
         renderedShoulderKeys.add(shRKey);
+        renderedShoulderRects.set(shRKey, box);
+        hPositioned = true;
         const shROffset =
           view === "top" && isLegPart
             ? shoulderHYUsed.R.filter((y) => Math.abs(y - wDimY) <= SHOULDER_Y_TOL).length *
@@ -2715,27 +2908,28 @@ export function T2Annotations({
             : 0;
         shoulderHYUsed.R.push(wDimY);
         const shRDimY = wDimY + shROffset;
+        allHDimRows.push({ y: wLabelY + shROffset, x0: shRStartX, x1: box.x });
         // 線段 = partLeftX → box.x（長，對應 LEFT mortise 的 shoulderRgt=315）
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shR`}>
             <line
-              x1={partLeftX}
+              x1={shRStartX}
               y1={shRDimY}
               x2={box.x}
               y2={shRDimY}
               stroke={stroke}
               strokeWidth={0.5}
             />
-            {inwardArrowsH(partLeftX, box.x, shRDimY)}
+            {inwardArrowsH(shRStartX, box.x, shRDimY)}
             <text
-              x={(partLeftX + box.x) / 2}
+              x={(shRStartX + box.x) / 2}
               y={wLabelY + shROffset}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"
               textAnchor="middle"
             >
-              {shoulderRgt}
+              {shRVal}
             </text>
           </g>,
         );
@@ -2751,8 +2945,8 @@ export function T2Annotations({
       // 距中 X：水平 dim line 從 centerline 到 mortise center。
       // 距中 = 0（孔就在中軸上）的 dim 無資訊量還畫一支「0」箭頭 →
       // 跳過（user 2026-06-11 托盤側壁卡「0」標回報）
-      const dxMm = round1(Math.abs(lb.cx));
-      const dzMm = round1(Math.abs(lb.cz));
+      const dxMm = round1(Math.abs(lbW.cx));
+      const dzMm = round1(Math.abs(lbW.cz));
       const xDimY =
         box.y < partCenterSvg.y
           ? box.y - offCenter
@@ -2761,7 +2955,8 @@ export function T2Annotations({
         box.x < partCenterSvg.x
           ? box.x - offCenter
           : box.x + box.w + offCenter;
-      if (dxMm >= 2) {
+      const xPositioned = cxAxis === "h" ? hPositioned : cxAxis === "v" ? vPositioned : false;
+      if (dxMm >= 2 && !xPositioned) {
         // 階梯：同側同 Y 的距中 dim 往外推 STAGGER_GAP*N，避免全疊一條線看不出標哪個
         const side = cx < partCenterSvg.x ? "L" : "R";
         const lvl = xDistYUsed[side].filter((y) => Math.abs(y - xDimY) <= 4).length;
@@ -2771,19 +2966,20 @@ export function T2Annotations({
           hDim(partCenterSvg.x, cx, stagY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
         );
       }
-      if (dzMm >= 2) {
+      if (dzMm >= 2 && !vPositioned) {
         partEls.push(
           vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
         );
       }
     } else if (view !== "top" && isSymmetricPart && !isCosmetic) {
       // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
-      const dxMm = round1(Math.abs(lb.cx));
+      const dxMm = round1(Math.abs(lbW.cx));
       const xDimY = box.y - offCenter;
       // 視線方向是 part-local X（viewDepthAxis="x"，如櫃側板 side view 沿高度看）時，
       // 「距中 X」是沿視線軸的高度位置、在此視圖collapse 看不到，畫了只會擠在中央、
       // 跟長/深尺寸疊（user 2026-06-14「這尺寸擠在一起」）→ 跳過。
-      if (dxMm >= 2 && viewDepthAxis !== "x") {
+      const xPositioned = cxAxis === "h" ? hPositioned : cxAxis === "v" ? vPositioned : false;
+      if (dxMm >= 2 && viewDepthAxis !== "x" && !xPositioned) {
         const side = cx < partCenterSvg.x ? "L" : "R";
         const lvl = xDistYUsed[side].filter((y) => Math.abs(y - xDimY) <= 4).length;
         xDistYUsed[side].push(xDimY);
@@ -2801,8 +2997,11 @@ export function T2Annotations({
       }
     }
 
+    if (isRoundFeature && !it.seriesMember) lateLabels.push(placeRoundLabel);
     elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
   });
+  lateLabels.forEach((f) => f());
+  elements.push(<g key="round-labels">{lateEls}</g>);
 
   return <g className="t2-overlay">{elements}</g>;
 }
@@ -2991,14 +3190,22 @@ export function FacingMark({
   //   X 軸面 → front（length 水平）/ top（length 水平）能看見
   //   Z 軸面 → side（width 水平）/ top（width 垂直）能看見
   //   Y 軸面（上/下）→ front / side 能看見；top 是俯視看不到上下面
+  // 只在一個視圖出現（原本 x 軸面在 front+top 都畫 → 兩個「外」；2026-09-08 零件圖審查）
   const showOn =
-    (facing.axis === "x" && (view === "front" || view === "top")) ||
-    (facing.axis === "z" && (view === "side" || view === "top")) ||
-    (facing.axis === "y" && view !== "top");
+    (facing.axis === "x" && view === "front") ||
+    (facing.axis === "z" && view === "side") ||
+    (facing.axis === "y" && view === "front");
   if (!showOn) return null;
 
-  const x0 = ctx.vbX + 14;
-  const y0 = ctx.vbY + 22;
+  // 錨到零件輪廓的左上角（不是 viewBox 角：內嵌 A4 時 viewBox 角可能在紙外、「外」字飄走）
+  const L = part.visible.length, T = part.visible.thickness, W = part.visible.width;
+  let minX = Infinity, minY = Infinity;
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+    const q = ctx.partLocalToSvg((sx * L) / 2, (sy * T) / 2, (sz * W) / 2);
+    if (q.x < minX) minX = q.x; if (q.y < minY) minY = q.y;
+  }
+  const x0 = Number.isFinite(minX) ? minX : ctx.vbX + 14;
+  const y0 = Number.isFinite(minY) ? minY - 6 : ctx.vbY + 22;
   return (
     <g className="facing-mark">
       <text x={x0} y={y0} fontSize={9} fill="#7c2d12" fontWeight="bold">
@@ -3070,6 +3277,7 @@ export function QuadCornerDims({
   view: PartView;
 }) {
   if (part.shape?.kind !== "quad") return null;
+  if (part.shape.plane === "yz") return null;   // 端面斜切（2mm 級）不標，圖上零件圖看側視就看得到
   const corners = part.shape.corners;
   const hx = part.visible.length / 2;
   const hz = part.visible.width / 2;
@@ -3114,6 +3322,13 @@ export function QuadCornerDims({
       </g>,
     );
   };
+  // 頂邊折點：標平段長（折點到那一側的角）
+  if (part.shape.topBreak) {
+    const [bx, bz] = part.shape.topBreak;
+    const [c00, c10] = corners;
+    const near = Math.abs(c10[0] - bx) <= Math.abs(bx - c00[0]) ? c10 : c00;   // 折點靠哪個角＝平段在那側
+    if (Math.abs(near[1] - bz) < 0.5) dim("tb", P(bx, bz), P(near[0], near[1]), `${round1(Math.abs(near[0] - bx))}`);
+  }
   corners.forEach(([x, z], i) => {
     const insetX = hx - Math.abs(x);
     const insetZ = hz - Math.abs(z);

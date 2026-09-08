@@ -22,13 +22,49 @@ export type QuadCorners = [
  * 把正規化座標 (ex, ez) ∈ [−1, 1]² 對到四邊形上的實際 local (x, z)。
  * 角點 ex=±1, ez=±1 剛好回傳四個 corner；中間值用雙線性內插（圓料等會取樣中間點）。
  */
-export function quadPoint(corners: QuadCorners, ex: number, ez: number): [number, number] {
+export function quadPoint(corners: QuadCorners, ex: number, ez: number, topBreak?: [number, number]): [number, number] {
   const [c00, c10, c11, c01] = corners; // (−,−) (+,−) (+,+) (−,+)
   const u = (ex + 1) / 2; // 0 = −x 邊, 1 = +x 邊
   const v = (ez + 1) / 2; // 0 = −z 邊, 1 = +z 邊
-  const x = (1 - u) * (1 - v) * c00[0] + u * (1 - v) * c10[0] + u * v * c11[0] + (1 - u) * v * c01[0];
-  const z = (1 - u) * (1 - v) * c00[1] + u * (1 - v) * c10[1] + u * v * c11[1] + (1 - u) * v * c01[1];
-  return [x, z];
+  // 頂邊（−z）可帶折點：c00 → topBreak → c10 分段線性；底邊照直線。中間用 v 線性混合（直紋面）
+  let tx: number, tz: number;
+  if (topBreak && !validTopBreak(corners, topBreak)) topBreak = undefined;   // 不合法就當沒有（會 warn 一次）
+  if (topBreak) {
+    const ub = topBreakU(corners, topBreak);
+    if (u <= ub) { const t = ub > 0 ? u / ub : 0; tx = c00[0] + (topBreak[0] - c00[0]) * t; tz = c00[1] + (topBreak[1] - c00[1]) * t; }
+    else { const t = ub < 1 ? (u - ub) / (1 - ub) : 1; tx = topBreak[0] + (c10[0] - topBreak[0]) * t; tz = topBreak[1] + (c10[1] - topBreak[1]) * t; }
+  } else {
+    tx = (1 - u) * c00[0] + u * c10[0]; tz = (1 - u) * c00[1] + u * c10[1];
+  }
+  const bx = (1 - u) * c01[0] + u * c11[0], bz = (1 - u) * c01[1] + u * c11[1];
+  return [(1 - v) * tx + v * bx, (1 - v) * tz + v * bz];
+}
+
+const warnedTopBreak = new Set<string>();
+/**
+ * 折點要落在頂邊兩角之間（x 嚴格介於）、而且不能凹進板內（z 不大於兩角連線在該 x 的 z；−z 是頂）。
+ * 不合法的折點三條路徑會各自解讀（hull 吃掉／3D 扇形三角化出錯面／零件圖不標），所以一律忽略並 warn 一次。
+ */
+export function validTopBreak(corners: QuadCorners, topBreak: [number, number]): boolean {
+  const [c00, c10] = corners;
+  const lo = Math.min(c00[0], c10[0]), hi = Math.max(c00[0], c10[0]);
+  const inside = topBreak[0] > lo + 1e-6 && topBreak[0] < hi - 1e-6;
+  const t = inside ? (topBreak[0] - c00[0]) / (c10[0] - c00[0]) : 0;
+  const lineZ = c00[1] + (c10[1] - c00[1]) * t;
+  const ok = inside && topBreak[1] <= lineZ + 1e-6;
+  if (!ok) {
+    const key = JSON.stringify([corners, topBreak]);
+    if (!warnedTopBreak.has(key)) { warnedTopBreak.add(key); console.warn(`[quad] topBreak ${JSON.stringify(topBreak)} 不在頂邊兩角之間或凹進板內，已忽略`); }
+  }
+  return ok;
+}
+
+/** 折點在頂邊上的正規化位置 u ∈ (0,1)（照 x 在 c00→c10 之間的比例） */
+export function topBreakU(corners: QuadCorners, topBreak: [number, number]): number {
+  const [c00, c10] = corners;
+  const span = c10[0] - c00[0];
+  if (Math.abs(span) < 1e-9) return 0.5;
+  return Math.min(1, Math.max(0, (topBreak[0] - c00[0]) / span));
 }
 
 /** 直角梯形＋上下緣各自傾斜的常見寫法（檢定側板）：由深度/高度直接算四角，少一次手算出錯 */

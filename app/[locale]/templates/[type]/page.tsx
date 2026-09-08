@@ -16,7 +16,7 @@ import { getHighlights } from "@/lib/templates/highlights";
 import { getGallery } from "@/lib/templates/gallery";
 import { ShareButtons } from "@/components/ShareButtons";
 import { TemplateSizingSection } from "@/components/TemplateSizingSection";
-import { getUnlockPrice } from "@/lib/pricing/template-unlock";
+import { getUnlockPrice, getBundleFor } from "@/lib/pricing/template-unlock";
 import type { FurnitureCategory } from "@/lib/types";
 import { routing } from "@/i18n/routing";
 import { getCurrencyFromCookies } from "@/lib/units/server-currency";
@@ -90,6 +90,7 @@ export default async function TemplateDetail({ params }: PageProps) {
   const highlights = getHighlights(entry.category, locale);
   const gallery = getGallery(entry.category, locale);
   const unlockPrice = isFree ? null : getUnlockPrice(entry.category);
+  const bundle = isFree ? null : getBundleFor(entry.category);
   const isEn = locale === "en";
   const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
   const difficultyKey =
@@ -649,8 +650,8 @@ export default async function TemplateDetail({ params }: PageProps) {
               {/* 單範本買斷 — 直接 POST 到 ECPay（未登入會 redirect 到 /login） */}
               {unlockPrice && (
                 <PricingOption
-                  badge={t("tierSingleBadge")}
-                  title={t("tierSingleTitle")}
+                  badge={bundle ? t("tierBundleBadge") : t("tierSingleBadge")}
+                  title={bundle ? t("tierBundleTitle") : t("tierSingleTitle")}
                   price={
                     isEn
                       ? entry.difficulty === "beginner"
@@ -661,11 +662,11 @@ export default async function TemplateDetail({ params }: PageProps) {
                       : `NT$${unlockPrice}`
                   }
                   unit={t("tierSingleUnit")}
-                  features={[
-                    t("tierSingleFeature1"),
-                    t("tierSingleFeature2"),
-                    t("tierSingleFeature3"),
-                  ]}
+                  features={
+                    bundle
+                      ? [t("tierBundleFeature1"), t("tierBundleFeature2"), t("tierBundleFeature3")]
+                      : [t("tierSingleFeature1"), t("tierSingleFeature2"), t("tierSingleFeature3")]
+                  }
                   cta={{
                     label: t("tierSingleCta"),
                     action: "/api/checkout/template",

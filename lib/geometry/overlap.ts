@@ -13,12 +13,7 @@ import { clearedByCabinetPanelGrooves } from "./cabinet-panel-clearance";
 const AXES = ["x", "y", "z"] as const;
 const CUT_EPSILON = 0.001;
 
-/**
- * @param roundRodInHole 對手是圓料（shape round）時，這件上的**圓孔**（shape "round"，不限 cosmetic）
- *   也算 cut：木釘 / 圓棒插在圓孔裡是接合不是穿模（2026-09-07 cert-c1 木釘做成零件）。
- *   圓孔用它的外接方盒近似——圓棒直徑＝孔徑，方盒剛好包住圓棒，不會多放行別的東西。
- */
-function rectangularWorldCuts(part: Part, bounds: AABB3D, roundRodInHole = false): AABB3D[] {
+function rectangularWorldCuts(part: Part, bounds: AABB3D): AABB3D[] {
   // Restrict to undeformed stock and quarter turns. Confirm the renderer's
   // transformed stock agrees with the audit bounds before trusting its cuts.
   // quad（技能檢定側板：四邊各不相同的外形）也算：cosmetic 溝槽是零件本地座標裡的方盒，
@@ -37,7 +32,7 @@ function rectangularWorldCuts(part: Part, bounds: AABB3D, roundRodInHole = false
     return Math.abs(center[axis] - extent - bounds.min[axis]) > CUT_EPSILON
       || Math.abs(center[axis] + extent - bounds.max[axis]) > CUT_EPSILON;
   })) return [];
-  return part.mortises.filter(m => (m.shape === "round" ? roundRodInHole : m.cosmetic)
+  return part.mortises.filter(m => m.cosmetic && m.shape !== "round"
     && !m.rotX && !m.rotY && !m.rotZ && !m.axis && !(m.label ?? "").startsWith("百葉槽")).flatMap(m => {
     const b = mortiseLocalBox(part, m);
     if (![b.cx, b.cy, b.cz, b.hx, b.hy, b.hz].every(Number.isFinite) || Math.min(b.hx, b.hy, b.hz) <= 0) return [];
@@ -53,8 +48,7 @@ function rectangularWorldCuts(part: Part, bounds: AABB3D, roundRodInHole = false
 }
 
 function clearedByRectangularCuts(a: Part, b: Part, boxA: AABB3D, boxB: AABB3D): boolean {
-  const cutsA = rectangularWorldCuts(a, boxA, b.shape?.kind === "round");
-  const cutsB = rectangularWorldCuts(b, boxB, a.shape?.kind === "round");
+  const cutsA = rectangularWorldCuts(a, boxA), cutsB = rectangularWorldCuts(b, boxB);
   if (!cutsA.length && !cutsB.length) return false;
   const min = { x: Math.max(boxA.min.x, boxB.min.x), y: Math.max(boxA.min.y, boxB.min.y), z: Math.max(boxA.min.z, boxB.min.z) };
   const max = { x: Math.min(boxA.max.x, boxB.max.x), y: Math.min(boxA.max.y, boxB.max.y), z: Math.min(boxA.max.z, boxB.max.z) };
@@ -73,6 +67,56 @@ function clearedByRectangularCuts(a: Part, b: Part, boxA: AABB3D, boxB: AABB3D):
     }
     return false;
   });
+}
+
+/**
+ * 圓棒插在圓孔裡＝接合不是穿模（2026-09-07 木釘做成零件；2026-09-08 門樞軸木釘插在傾斜 6.5° 的門梃裡）。
+ * 不靠方盒近似、也不要求母件是 quarter turn：把母件每個 round 榫眼轉成世界座標的圓柱（中心、軸、半徑、半深），
+ * 圓棒的軸要跟孔軸平行、軸線過孔心、半徑不大於孔、而且**不能插得比孔底深**——四條都成立才放行。
+ */
+function clearedByRoundHole(rod: Part, host: Part): boolean {
+  if (rod.shape?.kind !== "round") return false;
+  const holes = host.mortises.filter(m => m.shape === "round" && !m.rotX && !m.rotY && !m.rotZ);
+  if (!holes.length) return false;
+  const euler = (p: Part) => new Euler(p.rotation?.x ?? 0, p.rotation?.y ?? 0, p.rotation?.z ?? 0, "ZYX");
+  const centerOf = (p: Part) => new Vector3(p.origin.x, p.origin.y + worldExtents(p).yExt / 2, p.origin.z);
+  const rodAx = rod.shape.axis ?? "y";
+  const rodAxis = new Vector3(rodAx === "x" ? 1 : 0, rodAx === "y" ? 1 : 0, rodAx === "z" ? 1 : 0).applyEuler(euler(rod));
+  const rodHalfLen = (rodAx === "x" ? rod.visible.length : rodAx === "y" ? rod.visible.thickness : rod.visible.width) / 2;
+  const rodRadius = (rodAx === "x" ? Math.min(rod.visible.width, rod.visible.thickness)
+    : rodAx === "y" ? Math.min(rod.visible.length, rod.visible.width)
+    : Math.min(rod.visible.length, rod.visible.thickness)) / 2;
+  const rodC = centerOf(rod);
+  const hostE = euler(host), hostC = centerOf(host);
+  const hostHalf = { x: host.visible.length / 2, y: host.visible.thickness / 2, z: host.visible.width / 2 };
+  for (const m of holes) {
+    const b = mortiseLocalBox(host, m);
+    const ax = b.depthAxis ?? "y";
+    const half = { x: b.hx, y: b.hy, z: b.hz };
+    const holeHalfDepth = half[ax];
+    const radial = AXES.filter(a => a !== ax).map(a => half[a]);
+    const holeRadius = Math.min(...radial);   // 長孔（length≠width）取短邊，別讓 8×20 的槽放行 Ø20
+    // 入口在哪一側：孔盒哪一面貼在母件表面，孔底就在另一側
+    const c = { x: b.cx, y: b.cy, z: b.cz };
+    const entrySign = Math.abs(c[ax] + holeHalfDepth - hostHalf[ax]) < 0.01 ? 1 : Math.abs(c[ax] - holeHalfDepth + hostHalf[ax]) < 0.01 ? -1 : 0;
+    if (entrySign === 0) continue;
+    const holeC = new Vector3(b.cx, b.cy, b.cz).applyEuler(hostE).add(hostC);
+    const holeAxis = new Vector3(ax === "x" ? 1 : 0, ax === "y" ? 1 : 0, ax === "z" ? 1 : 0).applyEuler(hostE);
+    if (Math.abs(holeAxis.dot(rodAxis)) < 0.999) continue;
+    if (rodRadius > holeRadius + 0.1) continue;   // 直徑差 0.2 就不放（Ø9 插 Ø8 孔是錯的，要報）
+    const rel = rodC.clone().sub(holeC);
+    const along = rel.dot(holeAxis);
+    const perp = rel.clone().sub(holeAxis.clone().multiplyScalar(along)).length();
+    if (perp > 0.5) continue;
+    // 圓棒沿孔軸的區間 [along−L/2, along+L/2]；孔底在 −entrySign·holeHalfDepth
+    if (!m.through) {
+      const bottom = -entrySign * holeHalfDepth;
+      const rodBottomEnd = entrySign === 1 ? along - rodHalfLen : along + rodHalfLen;
+      if (entrySign === 1 ? rodBottomEnd < bottom - 0.5 : rodBottomEnd > bottom + 0.5) continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 function clearedByThroughCut(part: Part, obstacle: Part): boolean {
@@ -370,6 +414,7 @@ export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
         // Reject only when the actual rectangular through-cut covers the entire overlap.
         if (clearedByThroughCut(candidates[i], candidates[j]) || clearedByThroughCut(candidates[j], candidates[i])) continue;
         if (clearedByRectangularCuts(candidates[i], candidates[j], a.aabb, b.aabb)) continue;
+        if (clearedByRoundHole(candidates[i], candidates[j]) || clearedByRoundHole(candidates[j], candidates[i])) continue;
       }
       worstY = ySpan;
       const minDim = Math.min(worstX, worstY, worstZ);

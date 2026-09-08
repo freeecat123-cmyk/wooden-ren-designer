@@ -1,5 +1,5 @@
 import { trapAnchorOffset } from "./trapezoid-anchor";
-import { quadPoint } from "./quad-profile";
+import { quadPoint, topBreakU, validTopBreak } from "./quad-profile";
 import type { Part } from "@/lib/types";
 import { CURVED_TAPER_ARC_SEG, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 
@@ -770,7 +770,9 @@ export function projectPartSilhouette(
   // 對 arch-bent 沿 ex 軸額外切 N 片
   const xSlices: number[] = arch
     ? Array.from({ length: archSegments + 1 }, (_, i) => -1 + (2 * i) / archSegments)
-    : [-1, 1];
+    : quad?.topBreak && quad.plane !== "yz" && validTopBreak(quad.corners, quad.topBreak)
+      ? [-1, 2 * topBreakU(quad.corners, quad.topBreak) - 1, 1]   // 五角側板：頂邊折點也要取樣到
+      : [-1, 1];
   for (const exNorm of xSlices) {
     // exNorm ∈ [-1, 1]：-1 = X 左端，+1 = X 右端
     const tArch = exNorm; // arch bend 用 (1 - tArch²) 計算
@@ -850,7 +852,7 @@ export function projectPartSilhouette(
         const trapOff = trap ? trapAnchorOffset(lx / 2, xScaleTrap, trap.anchor ?? "center") : 0;
         let xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
           + trapOff + splayDx + miterInset;
-        const yLocal = (eyEff * ly) / 2;
+        let yLocal = (eyEff * ly) / 2;
         // half-bevel: 只有頂面（ezSamp < 0）vertex 套 shear，底面不動
         const halfBevContribution = halfBev && ezSamp < 0 ? -yLocal * halfBevShear : 0;
         // trapezoid + half-bevel: top 套 bevShear、bot 不套（蓋掉前面的 -yLocal * bevShear）
@@ -858,7 +860,10 @@ export function projectPartSilhouette(
         let zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
           + halfBevContribution + trapBevAdjust + splayDz;
         // quad：四角各自指定，直接用同一個雙線性算式蓋掉 x/z（不跟其他變形疊加）
-        if (quad) [xLocal, zLocal] = quadPoint(quad.corners, exNorm, ezSamp);
+        if (quad) {
+          if (quad.plane === "yz") [yLocal, zLocal] = quadPoint(quad.corners, eyEff, ezSamp);   // 端面剖面：蓋 y/z
+          else [xLocal, zLocal] = quadPoint(quad.corners, exNorm, ezSamp, quad.topBreak);
+        }
         // Mitered-corner：如果這個 sample 落在被削掉的角上，補兩個 inset 點代替原點。
         if (miterCorner) {
           const ax = miterCorner.axis;

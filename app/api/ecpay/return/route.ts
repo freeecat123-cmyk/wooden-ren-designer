@@ -149,31 +149,46 @@ export async function POST(req: NextRequest) {
        */
       const grantUnlock = async (): Promise<{ ok: boolean; detail?: string }> => {
         const table = kind === "template_unlock" ? "template_unlocks" : "tool_unlocks";
-        const row =
+        // 套組（丙級三題 290）：raw_response.categories 帶整組，每一支各寫一列；舊單只有 category
+        const templateCategories =
           kind === "template_unlock"
-            ? {
+            ? (Array.isArray(rawResp.categories) && rawResp.categories.length > 0
+                ? (rawResp.categories as string[])
+                : [rawResp.category as string])
+            : [];
+        const rows =
+          kind === "template_unlock"
+            ? templateCategories.map((category) => ({
                 user_id: tplPending.user_id,
-                category: rawResp.category as string,
+                category,
                 paid_amount: expectedAmount,
                 ecpay_merchant_trade_no: orderId,
-              }
-            : {
-                user_id: tplPending.user_id,
-                tool: rawResp.tool as string,
-                paid_amount: expectedAmount,
-                ecpay_merchant_trade_no: orderId,
-              };
+              }))
+            : [
+                {
+                  user_id: tplPending.user_id,
+                  tool: rawResp.tool as string,
+                  paid_amount: expectedAmount,
+                  ecpay_merchant_trade_no: orderId,
+                },
+              ];
         let last = "";
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const { error } = await admin.from(table).insert(row);
-          if (!error) return { ok: true };
-          // duplicate = 綠界重送、之前那次已經寫進去了,這是成功不是失敗
-          if (error.message?.includes("duplicate")) return { ok: true };
-          last = error.message ?? String(error);
-          console.error(`[ecpay/return/${kind}] 解鎖寫入失敗(第 ${attempt} 次)`, error);
-          if (attempt < 3) await new Promise((r) => setTimeout(r, 300 * attempt));
+        for (const row of rows) {
+          let done = false;
+          for (let attempt = 1; attempt <= 3 && !done; attempt++) {
+            const { error } = await admin.from(table).insert(row);
+            // duplicate = 綠界重送、之前那次已經寫進去了,這是成功不是失敗
+            if (!error || error.message?.includes("duplicate")) {
+              done = true;
+              break;
+            }
+            last = error.message ?? String(error);
+            console.error(`[ecpay/return/${kind}] 解鎖寫入失敗(第 ${attempt} 次)`, error);
+            if (attempt < 3) await new Promise((r) => setTimeout(r, 300 * attempt));
+          }
+          if (!done) return { ok: false, detail: last };
         }
-        return { ok: false, detail: last };
+        return { ok: true };
       };
 
       const unlockResult =

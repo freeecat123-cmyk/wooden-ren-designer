@@ -20,6 +20,7 @@ const CATEGORIES = [
   "chinese-cabinet", "pencil-holder", "bookend", "photo-frame", "tray",
   "dovetail-box", "wine-rack", "coat-rack",
   "workbench",
+  "cert-c1", "cert-c2", "cert-c3",
 ];
 
 // 視覺長相過近的家具用 query 參數差異化

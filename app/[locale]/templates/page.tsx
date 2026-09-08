@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import {
   FURNITURE_CATALOG,
+  catalogForLocale,
   type FurnitureCatalogEntry,
   getEntryName,
   getEntryDescription,
@@ -68,7 +69,8 @@ const CATEGORY_GROUPS: Array<{
     emoji: "🧰",
     match: (c) =>
       c === "pencil-holder" || c === "photo-frame" ||
-      c === "tray" || c === "dovetail-box" || c === "wine-rack",
+      c === "tray" || c === "dovetail-box" || c === "wine-rack" ||
+      c === "cert-c1" || c === "cert-c2" || c === "cert-c3",   // 檢定練習件：沒列進任何組就不會出現在索引頁（2026-09-08 審查員抓到）
   },
   {
     id: "large",
@@ -129,7 +131,7 @@ export default async function TemplatesIndex({ params, searchParams }: PageProps
     ? (sp.filter as FilterKey)
     : "all";
   const featuredSet = new Set<string>(FEATURED_TEMPLATE_CATEGORIES);
-  const filteredCatalog = FURNITURE_CATALOG.filter((e) =>
+  const filteredCatalog = catalogForLocale(locale).filter((e) =>
     matchFilter(e, activeFilter) && !DEV_SET.has(e.category),
   );
   const visibleCount = filteredCatalog.length;

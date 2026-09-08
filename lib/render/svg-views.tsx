@@ -2,6 +2,7 @@
 
 import { trapAnchorOffset } from "./trapezoid-anchor";
 import { quadPoint } from "./quad-profile";
+import { dowelDims } from "./dowel-dims";
 import { memo } from "react";
 import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
@@ -671,9 +672,14 @@ function projectFeaturePolygon(
     }
     // quad：四角各自指定 → 把 box 頂點的正規化 (x,z) 雙線性對到四邊形上（跟 3D 同一個算式）
     if (shape.kind === "quad") {
-      const exN = lx > 0 ? xL / (lx / 2) : 0;
       const ezN = lz > 0 ? zL / (lz / 2) : 0;
-      const [qx, qz] = quadPoint(shape.corners, exN, ezN);
+      if (shape.plane === "yz") {
+        const eyN = ly > 0 ? yL / (ly / 2) : 0;
+        const [qy, qz] = quadPoint(shape.corners, eyN, ezN);
+        return [xL, qy, qz];
+      }
+      const exN = lx > 0 ? xL / (lx / 2) : 0;
+      const [qx, qz] = quadPoint(shape.corners, exN, ezN, shape.topBreak);
       return [qx, yL, qz];
     }
     /**
@@ -2479,6 +2485,17 @@ function OrthoViewImpl({
             ];
             const fmt = (pts: typeof topCorners) =>
               pts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
+            // 🩸2026-09-08：這個「上面＋下面」畫法假設 local ±z 面在俯視看得到。丙級第二題的門梃
+            // rotation {x:π/2, y:φ, z:−π/2} 兩個 local z 面都是側立的 → 兩個 polygon 面積 0、門梃在俯視消失。
+            // 面積退化就改畫整件的 silhouette（單一輪廓），不要畫兩條線。
+            const area2 = (pts: typeof topCorners) => Math.abs(pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p.x * q.y - q.x * p.y; }, 0));
+            if (area2(topCorners) < 1 || area2(botCorners) < 1) {
+              const sil = projectTiltedBoxSilhouette(part, view);
+              const pts = sil.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
+              return (
+                <polygon key={part.id} data-part-id={part.id} points={pts} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              );
+            }
             // 傾斜橫撐俯視：top（接座面）實線、bot（接地面）虛線，跟 splayed-tapered
             // top view 同 convention，視覺上看得出哪面是頂哪面是底（user 2026-05-21
             // 回報 apron-beveled top view 兩條虛線重疊分不出 top/bot）。
@@ -5508,7 +5525,7 @@ export function MaterialList({
     const materialLabel = isGlass
       ? (isEn ? `${formatMm(cut.thickness, effectiveUnit)} tempered glass` : `${formatMm(cut.thickness, effectiveUnit)} 強化玻璃`)
       : isDowel
-        ? (isEn ? `Ø${fmt(part.visible.thickness)} hardwood dowel (off-the-shelf)` : `Ø${fmt(part.visible.thickness)} 現成木釘（${matName}或硬木）`)
+        ? (isEn ? `Ø${fmt(dowelDims(part).dia)} hardwood dowel (off-the-shelf)` : `Ø${fmt(dowelDims(part).dia)} 現成木釘（${matName}或硬木）`)
       : isMetal
         ? (isEn ? "Hardware (purchased, not in cut list)" : "五金（外購，不入料單）")
         : isBrass
@@ -5528,7 +5545,7 @@ export function MaterialList({
     const tenonNotes = isGlass
       ? (isEn ? "Order from glass shop; not in cut list" : "另向玻璃行訂製，不入裁切")
       : isDowel
-        ? (isEn ? `Ø${fmt(part.visible.thickness)} × ${fmt(part.visible.length)} dowel, bought ready-made; not in cut list` : `Ø${fmt(part.visible.thickness)}×${fmt(part.visible.length)} 現成木釘（考場供料／五金行買），不入裁切`)
+        ? (isEn ? `Ø${fmt(dowelDims(part).dia)} × ${fmt(dowelDims(part).len)} dowel, bought ready-made; not in cut list` : `Ø${fmt(dowelDims(part).dia)}×${fmt(dowelDims(part).len)} 現成木釘（考場供料／五金行買），不入裁切`)
       : isBrass
         ? (isEn ? "Purchased hardware; not in cut list" : "外購五金件，不入裁切")
         : part.tenons.length
@@ -5755,7 +5772,7 @@ export function MaterialList({
               <td className="p-2">{partName(part, locale)}</td>
               <td className="p-2">{materialLabel}</td>
               <td className="p-2 text-right">
-                Ø{fmt(part.visible.thickness)} × {fmt(part.visible.length)}
+                Ø{fmt(dowelDims(part).dia)} × {fmt(dowelDims(part).len)}
               </td>
               <td className="p-2 text-right font-semibold">—</td>
               <td className="p-2 text-right font-mono text-orange-600">—</td>
