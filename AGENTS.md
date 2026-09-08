@@ -248,6 +248,8 @@ fallback 到 base preset。
 - **`FEATURED_TEMPLATE_CATEGORIES`** — 同檔。加進去 → sitemap 收 `/templates/<category>` 介紹頁 + SEO 升權。
 - **`public/thumbs/v2/<category>.webp`** — 縮圖。沒這個 → `/app` `/templates` 卡片破圖。產法見其他家具 webp 對齊規格。
 - **`lib/permissions.ts:FREE_UNLOCKED_CATEGORIES`** — 免費家具加進去；付費家具不動。
+- **`lib/pricing/template-unlock.ts:TEMPLATE_BUNDLES`** — 幾支範本要打包成一個買斷商品（例：丙級三題 NT$290）就加一筆；結帳／綠界回呼／定價頁卡片／介紹頁文案都吃它。套組類範本沒買斷時設計頁只給 3D（`examLocked`），三視圖／零件圖／材料單／工序換鎖卡——預設尺寸就是答案的模板都要這樣鎖。
+- **`lib/templates/index.ts` entry 的 `zhOnly: true`** — 只賣台灣的範本（英文站目錄／sitemap 不列、/en/design 導回中文）。
 - **`app/sitemap.ts`** — `FURNITURE_CATALOG` 自動 loop 進 `/design/<c>`，但 `DEV_CATEGORIES` set 要審：開發中暫不收。
 - **`lib/render/svg-views.tsx`** — 加 shape kind / 新零件 visual 時要動。普通家具用既有 shape 不用改。
 - **`scripts/audit-overlaps.ts`** — `npx tsx scripts/audit-overlaps.ts` 必跑 0 overlap（butt-joint 迴歸防護，§A10）。
