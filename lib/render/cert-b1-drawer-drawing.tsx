@@ -3,8 +3,8 @@ import { mortiseLocalBox } from "@/lib/render/svg-views";
 
 export function certB1DrawerMachining() {
   const parts = certB1Assembly().parts;
-  const front = parts.find(p => p.id === "drawer-front")!;
-  const side = parts.find(p => p.id === "drawer-side-left")!;
+  const front = parts.find(p => p.id === "drawer-1-front")!;
+  const side = parts.find(p => p.id === "drawer-1-side-left")!;
   const hole = front.mortises.find(m => m.shape === "round")!;
   function groove(label: string) {
     const m = side.mortises.find(m => m.label?.includes(label))!;

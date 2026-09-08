@@ -90,6 +90,8 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 鳩尾盒：壁體間鳩尾齒互嵌、頂蓋邊條入槽——所有 overlap 都是 joint 結構性
   // 重疊（CSG subtract 重疊規範、見 feedback_csg_overlap_over_analytical_fit）
   "dovetail-box:default",
+  // 乙級第一題：抽屜側板鳩尾尾入面板／後板（CSG 挖出針）——結構性重疊，同鳩尾盒
+  "cert-b1:default",
   // Confirmed defect: notes specify a rebate, but rails have no rebate cuts.
   // Keep exact regression pairs while the conflicting glass placement is reviewed.
   "photo-frame:default",

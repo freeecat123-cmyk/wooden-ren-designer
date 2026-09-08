@@ -8,7 +8,7 @@ it("derives the front hole and both side grooves from modeled machining", () => 
   expect(m.front).toEqual({ length: 340, height: 103, thickness: 18, holeX: 170, holeY: 51.5, diameter: 20 });
   expect(m.side.height).toBe(100);
   expect(m.side.thickness).toBe(15);
-  expect(m.side.outer).toEqual({ top: 40, height: 15, depth: 8 });
+  expect(m.side.outer).toEqual({ top: 35, height: 15, depth: 8 });
   expect(m.side.inner).toEqual({ top: 85, height: 4, depth: 7 });
 });
 

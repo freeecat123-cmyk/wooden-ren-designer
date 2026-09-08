@@ -35,6 +35,7 @@ import { wallMountedToolStorage, wallMountedToolStorageOptions } from "./wall-mo
 import { certC1, certC1Options } from "./cert-c1";
 import { certC2, certC2Options } from "./cert-c2";
 import { certC3, certC3Options } from "./cert-c3";
+import { certB1, certB1Options } from "./cert-b1";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -123,6 +124,21 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 300, width: 240, height: 230 },
     limits: { length: 600, width: 400, height: 500 },
     optionSchema: certC3Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-b1",
+    zhOnly: true,
+    nameZh: "乙級檢定 第一題",
+    nameEn: "Trade test Class B — Q1",
+    description: "技術士技能檢定家具木工乙級 01200-100201：單抽小桌，木心板桌面封邊＋木釘接桌架＋壸門前橫檔榫接＋鳩尾榫側掛抽屜，7 小時",
+    descriptionEn: "Taiwan Class B furniture-woodworking trade test Q1: single-drawer side table — edged blockboard top, dowelled frame, tenoned curved rail, dovetailed side-hung drawer — 7-hour piece",
+    difficulty: "intermediate",
+    template: certB1,
+    // 試題尺寸固定 450×450×450，滑桿只是放大練習用
+    defaults: { length: 450, width: 450, height: 450 },
+    limits: { length: 800, width: 800, height: 800 },
+    optionSchema: certB1Options,
     joineryOnly: true,
   },
   {

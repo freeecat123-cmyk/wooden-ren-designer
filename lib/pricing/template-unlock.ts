@@ -47,6 +47,13 @@ export const TEMPLATE_BUNDLES: TemplateBundle[] = [
     categories: ["cert-c1", "cert-c2", "cert-c3"],
     price: 290,
   },
+  {
+    // ⚠️ 2026-09-09 先比照丙級套組定價，木頭仁還沒拍板乙級售價；之後乙級第二～六題做出來就加進同一組
+    id: "cert-b-bundle",
+    nameZh: "家具木工乙級檢定 第一題",
+    categories: ["cert-b1"],
+    price: 290,
+  },
 ];
 
 /** 這支範本屬於哪個套組（沒有就 null） */

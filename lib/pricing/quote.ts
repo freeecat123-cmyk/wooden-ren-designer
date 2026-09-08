@@ -188,6 +188,7 @@ function wasteRateFor(category: string): number {
     "cert-c1",
     "cert-c2",
     "cert-c3",
+    "cert-b1",
     "bookend",
     "photo-frame",
     "tray",

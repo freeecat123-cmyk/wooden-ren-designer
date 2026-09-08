@@ -86,7 +86,7 @@ const CATEGORY_CHIPS: Array<{
     match: (c) =>
       c === "pencil-holder" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack" ||
-      c === "cert-c1" || c === "cert-c2" || c === "cert-c3",
+      c === "cert-c1" || c === "cert-c2" || c === "cert-c3" || c === "cert-b1",
   },
 ];
 

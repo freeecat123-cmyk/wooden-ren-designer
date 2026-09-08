@@ -26,7 +26,7 @@ const CATEGORIES = [
   "open-bookshelf", "chest-of-drawers", "media-console",
   "wardrobe", "shoe-cabinet", "nightstand", "display-cabinet",
   "pencil-holder", "photo-frame", "tray", "dovetail-box", "wine-rack",
-  "cert-c1", "cert-c2", "cert-c3",
+  "cert-c1", "cert-c2", "cert-c3", "cert-b1",
 ];
 
 // 某些模板用預設尺寸時，cutplan 會出現「超過原料」警告而不畫排板圖。
@@ -37,7 +37,7 @@ const PARAM_OVERRIDES = {
 
 // 套組題（丙級檢定）：預設尺寸就是考題答案，介紹頁截圖要把所有帶數字的文字糊掉
 // （木頭仁 2026-09-08：「介紹頁不要把重點尺寸都放出來，不然別人就不用買了」）。線條／版面照舊，只糊字。
-const BLUR_DIGITS = new Set(["cert-c1", "cert-c2", "cert-c3"]);
+const BLUR_DIGITS = new Set(["cert-c1", "cert-c2", "cert-c3", "cert-b1"]);
 async function blurDigits(page) {
   await page.evaluate(() => {
     const hasDigit = (t) => /\d/.test(t || "");
