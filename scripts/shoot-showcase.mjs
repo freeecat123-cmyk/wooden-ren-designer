@@ -29,6 +29,7 @@ const CATEGORIES = [
   "open-bookshelf", "chest-of-drawers", "media-console",
   "wardrobe", "shoe-cabinet", "nightstand", "display-cabinet",
   "pencil-holder", "photo-frame", "tray", "dovetail-box", "wine-rack",
+  "cert-c1", "cert-c2", "cert-c3",
 ];
 
 // 每模板的 C 鏡頭（沒列的就只截 A + B）

@@ -26,6 +26,7 @@ const CATEGORIES = [
   "open-bookshelf", "chest-of-drawers", "media-console",
   "wardrobe", "shoe-cabinet", "nightstand", "display-cabinet",
   "pencil-holder", "photo-frame", "tray", "dovetail-box", "wine-rack",
+  "cert-c1", "cert-c2", "cert-c3",
 ];
 
 // 某些模板用預設尺寸時，cutplan 會出現「超過原料」警告而不畫排板圖。
@@ -38,6 +39,7 @@ const SHOTS = [
   {
     key: "threeview",
     path: (s) => `/design/${s}?_shoot=1`,
+    tab: "drawings",
     sel: '[data-section="threeview"]',
     extraWait: 500,
   },
@@ -51,12 +53,14 @@ const SHOTS = [
   {
     key: "cutlist",
     path: (s) => `/design/${s}?_shoot=1`,
+    tab: "materials",
     sel: '[data-section="cutlist"]',
     extraWait: 500,
   },
   {
     key: "steps",
     path: (s) => `/design/${s}?_shoot=1`,
+    tab: "build",
     sel: '[data-section="steps"]',
     extraWait: 500,
   },
@@ -81,6 +85,17 @@ async function shoot(slug, shot) {
   const url = baseUrl.toString();
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    // 2026-09 新版設計工作室把三視圖／材料／工序放進分頁（role=tab），沒點分頁區塊是 hidden、waitForSelector 會逾時
+    if (shot.tab) {
+      const tabSel = `[role="tab"][id$="-tab-${shot.tab}"]`;
+      await page.waitForSelector(tabSel, { timeout: 30000 });
+      // hydration 前點下去沒反應（SSR 的按鈕還沒掛 onClick）→ 點到 aria-selected=true 為止
+      for (let i = 0; i < 40; i++) {
+        await page.click(tabSel);
+        await page.waitForTimeout(500);
+        if ((await page.getAttribute(tabSel, "aria-selected")) === "true") break;
+      }
+    }
     await page.waitForSelector(shot.sel, { timeout: shot.selectorTimeout ?? 15000 });
     await page.waitForTimeout(shot.extraWait);
     const el = page.locator(shot.sel).first();
