@@ -22,7 +22,7 @@
 import React from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { OrthoView, mirrorYPart } from "@/lib/render/svg-views";
-import { L_LAYOUT_GAP, L_LAYOUT_CHAIN_PAD, getIsolatedExtents } from "./paper-fit";
+import { L_LAYOUT_GAP, L_LAYOUT_CHAIN_PAD, getIsolatedExtents, getIsolatedTenonProtrusion } from "./paper-fit";
 import {
   T1Dimensions,
   T2Annotations,
@@ -96,11 +96,28 @@ export function PartDrawingPaperSheet({
   // L 佈局 bbox（user 2026-05-28 移除俯視 TOP，剩 FRONT/SIDE/BOTTOM 三視）
   // 寬：左半 fW（front/bottom 對齊）+ 右半 sW（side） + 中間 gap
   // 高：front + bottom 兩層垂直堆疊（少一層 tH 跟一個 gap）
-  const lLayoutW = fW + sW + gap + padPaper * 4;
-  const lLayoutH = fH + tH + gap + padPaper * 4;
-  // 置中於 inner drawing area（不夠時 clamp 0）
-  const offX = Math.max(0, (innerW - lLayoutW) / 2);
-  const offY = Math.max(0, (innerH - lLayoutH) / 2);
+  const lLayoutW0 = fW + sW + gap + padPaper * 4;
+  const lLayoutH0 = fH + tH + gap + padPaper * 4;
+  // 先照舊置中（front／bottom 這一欄不動），再看右邊／下邊還有多少空位可以把 side／bottom 推開。
+  const offX = Math.max(0, (innerW - lLayoutW0) / 2);
+  const offY = Math.max(0, (innerH - lLayoutH0) / 2);
+  // 榫頭凸出補償（紙上 mm）：T1 垂直「厚／寬」標籤從**含榫**邊緣往外 VERT_OFFSET(44 svg px) 再放字（約 34 px），
+  // 而 chain pad 只按本體算 → 榫頭一長標籤就鑽進側視圖（c1 上層板／c2 門橫檔的「厚 18」；2026-09-08 零件圖審查 v3 遺留項）。
+  // 需要的中間淨空 = (44+34+6)/scale；現有 = 2 pad + gap − 兩視圖相對側的榫頭凸出；不夠的部分往右推 side view，
+  // 但只用右邊真正剩下的空位（扣掉 side view 自己右側標籤需要的量），推不動就照舊。不改 pickScaleForPaper 的比例決策。
+  const prot = getIsolatedTenonProtrusion(part);
+  const T1_VERT_NEED = (44 + 34 + 6) / scale;
+  const T1_HORIZ_NEED = (30 + 20 + 12) / scale;
+  const midX = padPaper * 2 + gap - (prot.x + prot.z) / scale;
+  const midY = padPaper * 2 + gap - (prot.y + prot.z) / scale;
+  const wantX = Math.max(0, T1_VERT_NEED - midX);
+  const wantY = Math.max(0, T1_HORIZ_NEED - midY);
+  const reserveRight = Math.max(0, T1_VERT_NEED + prot.z / scale - padPaper);
+  const reserveBottom = Math.max(0, 20 / scale + prot.z / scale - padPaper);
+  const slackX = innerW - (offX + lLayoutW0) - reserveRight;
+  const slackY = innerH - 5 - (offY + lLayoutH0) - reserveBottom;
+  const extraX = Math.max(0, Math.min(wantX, slackX));
+  const extraY = Math.max(0, Math.min(wantY, slackY));
   const baseX = innerX + offX + padPaper;
   const baseY = innerY + offY + padPaper;
 
@@ -113,7 +130,7 @@ export function PartDrawingPaperSheet({
     h: fH,
   };
   const sideVp = {
-    x: baseX + fW + padPaper + gap + padPaper,
+    x: baseX + fW + padPaper + gap + padPaper + extraX,
     y: frontVp.y,
     w: sW,
     h: fH,
@@ -122,7 +139,7 @@ export function PartDrawingPaperSheet({
   // 寬高 = fW × tH，X 對齊 frontVp 讓「長 425」與正視共用對位線
   const bottomVp = {
     x: baseX,
-    y: frontVp.y + fH + padPaper + gap + padPaper,
+    y: frontVp.y + fH + padPaper + gap + padPaper + extraY,
     w: fW,
     h: tH,
   };

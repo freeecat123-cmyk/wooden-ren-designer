@@ -107,6 +107,33 @@ export function getT1ForView(part: Part, view: PartView): {
  * 與 svg-views isolate 的 mitered-ends vertices 反烘對齊（user 2026-06-11
  * 外撇左壁卡：俯視斜 pill 突出薄板、側視斜孔）。
  */
+/**
+ * inline 尺寸「×N」合併（2026-09-08 零件圖審查 v3 遺留項；木頭仁：「零件圖太複雜、重複標註」）。
+ * 同一視圖內尺寸完全相同（同種類／同實虛線／同 hMm×vMm／同槽名）的榫頭／榫眼／槽，只在最左上那顆
+ * 標 inline 尺寸並加「×N」（N＝這個視圖裡看得到的顆數；投影疊在同一位置的只算一顆），其餘不標。
+ * 位置各自仍有肩距鏈，不受影響。腳件（leg-*）維持舊行為（user 2026-05 驗收過）。
+ * 判「是不是最左上」延後到 React render 時做（那時同視圖所有成員都已登記）。
+ */
+type InlineDimGroup = { members: { itemIdx: number; x: number; y: number }[] };
+function InlineDimsMerged({
+  group,
+  itemIdx,
+  render,
+}: {
+  group: InlineDimGroup | null;
+  itemIdx: number;
+  render: (suffix: string) => React.ReactNode;
+}) {
+  if (!group) return <>{render("")}</>;
+  const sorted = group.members.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  if (sorted[0].itemIdx !== itemIdx) return null;
+  const distinct: { x: number; y: number }[] = [];
+  for (const m of group.members) {
+    if (!distinct.some((d) => Math.abs(d.x - m.x) < 0.5 && Math.abs(d.y - m.y) < 0.5)) distinct.push(m);
+  }
+  return <>{render(distinct.length > 1 ? ` ×${distinct.length}` : "")}</>;
+}
+
 function normalizePartForDrawing(part: Part): Part {
   // 只反烘「貫穿」傾斜 cosmetic 孔（外撇牆/托盤手把＝平板鑽⊥孔再傾斜整片板）。
   // 非貫穿斜槽（百葉門 25° 斜鑿淺槽）保留斜度，零件圖才畫得出斜平行四邊形。
@@ -1642,6 +1669,7 @@ export function T2Annotations({
   const allHDimRows: Array<{ y: number; x0: number; x1: number }> = [];
   const lateLabels: Array<() => void> = [];
   const lateEls: React.ReactNode[] = [];
+  const inlineGroups = new Map<string, InlineDimGroup>();
   items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
@@ -2394,6 +2422,14 @@ export function T2Annotations({
       const t1Vals = [L_local_label, W_local_label, T_local_label];
       const skipV = t1Vals.some((v) => Math.abs(v - vMm) < 0.5);
       const skipH = t1Vals.some((v) => Math.abs(v - hMm) < 0.5);
+      // ×N 合併登記（見 InlineDimsMerged）；腳件、圓孔（另有 holeSeries）不併
+      let inlineGroup: InlineDimGroup | null = null;
+      if (!isLegPart && !isRoundFeature && !mortiseShapeIsRound) {
+        const sig = `${it.kind}|${isVisibleFromView ? 1 : 0}|${isCosmetic ? 1 : 0}|${hMm}|${vMm}|${it.labelText ?? ""}`;
+        inlineGroup = inlineGroups.get(sig) ?? { members: [] };
+        inlineGroups.set(sig, inlineGroup);
+        inlineGroup.members.push({ itemIdx, x: box.x, y: box.y });
+      }
       if (!isRoundFeature && !mortiseShapeIsRound) partEls.push(
         // vMm / hMm label 直接貼在 box 左/上邊（user 2026-05-26 14:17 要求
         // 「直接標在榫孔的左邊跟上方兩側」），不再跟 chain shoulder 共用
@@ -2424,7 +2460,8 @@ export function T2Annotations({
               ? box.y + box.h + 11
               : hMmClearedY;
           return (
-            <g key={`${it.kind}-${it.idx}-inline-dims`}>
+            <InlineDimsMerged key={`${it.kind}-${it.idx}-inline-dims`} group={inlineGroup} itemIdx={itemIdx} render={(suffix) => (
+            <g>
               {/* L dim label 規則：
                   - 仰視圖 (top view) mortise：dashed 走左、visible 走右
                     兩個 vMm 各坐成對 box 的外側空白，不擠中間（user 2026-05-28）
@@ -2456,17 +2493,51 @@ export function T2Annotations({
                 </text>
               ))}
               {/* W dim label on box TOP side (side+leg+dashed: 推到底部) */}
-              {!skipH && (<text
-                x={hMmX}
-                y={hMmY}
-                fontSize={7}
-                fill={stroke}
-                fontFamily="monospace"
-                textAnchor="middle"
-              >
-                {hMm}
-              </text>)}
+              {/* ×N 後綴：框夠大就寫在框內正中（不佔任何欄位）；不夠大就接在 hMm 後面往「離零件中心」那側延伸
+                  （數字位置盡量不動，免得撞鄰字）；hMm 被 T1 省略時單獨放「×N」 */}
+              {(() => {
+                const sfx = suffix.trim();
+                const sfxW = sfx.length * 4.2;
+                const inBox = !!sfx && box.w >= sfxW + 4 && box.h >= 9;
+                const hW = String(hMm).length * 4.2;
+                const extendLeft = box.x + box.w / 2 < partCenterSvg.x;
+                return (
+                  <>
+                    {!skipH && (
+                      <text
+                        x={sfx && !inBox ? (extendLeft ? hMmX + hW / 2 : hMmX - hW / 2) : hMmX}
+                        y={hMmY}
+                        fontSize={7}
+                        fill={stroke}
+                        fontFamily="monospace"
+                        textAnchor={sfx && !inBox ? (extendLeft ? "end" : "start") : "middle"}
+                      >
+                        {hMm}
+                        {sfx && !inBox ? suffix : ""}
+                      </text>
+                    )}
+                    {sfx && inBox && (
+                      <text
+                        x={box.x + box.w / 2}
+                        y={box.y + box.h / 2 + 2.5}
+                        fontSize={7}
+                        fill={stroke}
+                        fontFamily="monospace"
+                        textAnchor="middle"
+                      >
+                        {sfx}
+                      </text>
+                    )}
+                    {sfx && !inBox && skipH && (
+                      <text x={hMmX} y={hMmY} fontSize={7} fill={stroke} fontFamily="monospace" textAnchor="middle">
+                        {sfx}
+                      </text>
+                    )}
+                  </>
+                );
+              })()}
             </g>
+            )} />
           );
         })(),
       );

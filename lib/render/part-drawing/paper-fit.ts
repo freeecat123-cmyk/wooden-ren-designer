@@ -16,6 +16,7 @@
 
 import type { Part } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
+import { tenonLocalBox } from "@/lib/render/svg-views";
 
 // A4 横式紙面常數（mm）
 export const A4_PAPER = {
@@ -94,6 +95,45 @@ export function getIsolatedExtents(part: Part): { xExt: number; yExt: number; zE
   return { xExt, yExt, zExt };
 }
 
+/**
+ * Isolation 後，榫頭凸出零件本體的量（world 軸，mm；每軸取兩側較大者、不分正負）。
+ *
+ * T1 的「厚／寬」垂直標籤是從**含榫**邊緣往外 VERT_OFFSET 再放字，而 L 佈局的 chain pad
+ * 只按本體算 → 榫頭愈長、標籤愈往鄰居視圖裡鑽（c1 上層板／c2 門橫檔的「厚 18」壓進側視圖；
+ * 2026-09-08 零件圖審查 v3 遺留項）。paper-sheet 用這個把凸出量補進視圖間距。
+ * 軸對應同 getIsolatedExtents（thickness 最長 swap X↔Y、width 最長 swap X↔Z）。
+ */
+export function getIsolatedTenonProtrusion(part: Part): {
+  x: number; y: number; z: number;
+  /** 兩側凸出量相加（鏡射不變，給 pickScaleForPaper 算總寬高；單側有榫的件不會被多算一支） */
+  xTotal: number; yTotal: number; zTotal: number;
+} {
+  const L = part.visible.length;
+  const T = part.visible.thickness;
+  const W = part.visible.width;
+  // [neg, pos] 各側凸出量（part-local）
+  const px = [0, 0], py = [0, 0], pz = [0, 0];
+  for (const t of part.tenons ?? []) {
+    if (!(t.length > 0)) continue;
+    const lb = tenonLocalBox(part, t);
+    const side = (c: number, h: number, half: number, acc: number[]) => {
+      const lo = -(c - h) - half; // 往負側凸出
+      const hi = c + h - half; // 往正側凸出
+      acc[0] = Math.max(acc[0], lo);
+      acc[1] = Math.max(acc[1], hi);
+    };
+    side(lb.cx, lb.hx, L / 2, px);
+    side(lb.cy, lb.hy, T / 2, py);
+    side(lb.cz, lb.hz, W / 2, pz);
+  }
+  let ax = px, ay = py, az = pz;
+  if (T > L && T >= W) [ax, ay] = [ay, ax];
+  else if (W > L && W > T) [ax, az] = [az, ax];
+  const mx = (a: number[]) => Math.max(a[0], a[1]);
+  const tot = (a: number[]) => a[0] + a[1];
+  return { x: mx(ax), y: mx(ay), z: mx(az), xTotal: tot(ax), yTotal: tot(ay), zTotal: tot(az) };
+}
+
 /** 取某 view 在 isolation 旋轉後 part-local mm 下的水平/垂直 needed extent。 */
 export function projectExtentForView(part: Part, view: PartView): { w: number; h: number } {
   const we = getIsolatedExtents(part);
@@ -131,6 +171,9 @@ export function pickScaleForPaper(part: Part): PaperFitResult {
   };
   // L 佈局水平 = front 寬 + side 寬 + gap + chain pad 兩端
   // L 佈局垂直 = top 高 + front 高 + gap + chain pad 上下
+  // 榫頭凸出：T1 從含榫邊緣往外標，本體剛好塞滿紙面的件（c1 上層板 264 本體／320 含榫）會把「厚 18」
+  // 擠進側視圖、側視圖的「厚 18」擠出繪圖區 → 比例判斷把凸出量算進去（2026-09-08 零件圖審查 v3 遺留項）。
+  const prot = getIsolatedTenonProtrusion(part);
   for (const n of SCALE_CANDIDATES) {
     const fW = views.front.w / n;
     const fH = views.front.h / n;
@@ -138,8 +181,12 @@ export function pickScaleForPaper(part: Part): PaperFitResult {
     const sW = views.side.w / n;
     const padPaper = L_LAYOUT_CHAIN_PAD / n; // 紙上每邊 chain pad
     // L 佈局 bbox（跟 paper-sheet 一致：兩端+中間 view 邊界共 4 條 chain pad）
-    const lLayoutW = fW + sW + L_LAYOUT_GAP + padPaper * 4;
-    const lLayoutH = tH + fH + L_LAYOUT_GAP + padPaper * 4;
+    // 凸出量先吃掉半個 chain pad 才開始算（pad 本來就留給 dim 線）：不然本體剛好塞滿的大板
+    // （衣櫃側板 1:10 差 2mm、展示櫃頂板 1:5 差 2mm）會為了幾 mm 直接跳一級，字縮一半。
+    const protW = Math.max(0, (prot.xTotal + prot.zTotal) / n - padPaper / 2);
+    const protH = Math.max(0, (prot.yTotal + prot.zTotal) / n - padPaper / 2);
+    const lLayoutW = fW + sW + L_LAYOUT_GAP + padPaper * 4 + protW;
+    const lLayoutH = tH + fH + L_LAYOUT_GAP + padPaper * 4 + protH;
     // DRAW_AREA_H 扣 5mm 給比例尺+第三角法符號（y=178-185 區）
     if (lLayoutW <= DRAW_AREA_W && lLayoutH <= DRAW_AREA_H - 5) {
       return { scale: n, needBrokenView: false, views };
