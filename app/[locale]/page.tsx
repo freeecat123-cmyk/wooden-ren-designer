@@ -95,7 +95,19 @@ const SCENARIO_ICONS: Record<(typeof SCENARIO_KEYS)[number], string> = {
   kid: "🎂",
 };
 
-const FAQ_KEYS = ["free", "cad", "tier", "cancel", "cnc"] as const;
+// 2026-09-08 aiseo_fixer：source/autogen/cutlistFaq 三題是 scout 連續多天標記
+// 0 命中的搜尋缺口（「家具設計圖哪裡找/免費線上產生器」「三視圖怎麼畫/自動生成」
+// 「自己做家具要先畫圖嗎/裁切清單怎麼列」），放最前面優先讓 Google/AI 抓到。
+const FAQ_KEYS = [
+  "source",
+  "autogen",
+  "cutlistFaq",
+  "free",
+  "cad",
+  "tier",
+  "cancel",
+  "cnc",
+] as const;
 
 export default async function Landing({
   params,
@@ -118,8 +130,28 @@ export default async function Landing({
     FURNITURE_CATALOG.find((f) => f.category === tType),
   ).filter((e): e is NonNullable<typeof e> => Boolean(e));
 
+  // 2026-09-08 aiseo_fixer：首頁本來有可見的 FAQ 手風琴卻沒有 FAQPage schema
+  // （只有 layout.tsx 的 SoftwareApplication／Organization 是全站共用的）。
+  // 直接從同一份 FAQ_KEYS + t() 產生，確保 schema 內容跟畫面上看得到的逐字一致。
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_KEYS.map((key) => ({
+      "@type": "Question",
+      name: t(`faq.${key}Q`),
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: t(`faq.${key}A`),
+      },
+    })),
+  };
+
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       {/* ============ Hero ============ */}
       <section className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-white to-stone-100">
         <div
