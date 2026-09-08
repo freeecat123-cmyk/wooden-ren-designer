@@ -9,6 +9,7 @@ import {
   type FurnitureCatalogEntry,
   getEntryName,
   getEntryDescription,
+  DEV_CATEGORIES,
 } from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import {
@@ -70,7 +71,7 @@ const CATEGORY_GROUPS: Array<{
     match: (c) =>
       c === "pencil-holder" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack" ||
-      c === "cert-c1" || c === "cert-c2" || c === "cert-c3" || c === "cert-b1",   // 檢定練習件：沒列進任何組就不會出現在索引頁（2026-09-08 審查員抓到）
+      c === "cert-c1" || c === "cert-c2" || c === "cert-c3",   // 檢定練習件：沒列進任何組就不會出現在索引頁（2026-09-08 審查員抓到）
   },
   {
     id: "large",
@@ -80,9 +81,8 @@ const CATEGORY_GROUPS: Array<{
   },
 ];
 
-const DEV_SET = new Set<FurnitureCategory>([
-  "chinese-cabinet", "bed", "coat-rack", "wall-mounted-tool-storage",
-]);
+// 單一真相來源 lib/templates DEV_CATEGORIES（2026-09-09 之前這裡自己抄一份，乙級第一題「先不要上架」時差點漏）
+const DEV_SET = new Set<FurnitureCategory>([...DEV_CATEGORIES] as FurnitureCategory[]);
 
 interface InteriorTool {
   id: "ceiling" | "floor" | "raised-floor" | "cnc";

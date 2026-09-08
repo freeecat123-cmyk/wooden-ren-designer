@@ -519,6 +519,7 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
   "bed",
   "coat-rack",
   "wall-mounted-tool-storage",
+  "cert-b1",   // 2026-09-09 木頭仁：「先不要上架」——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
 ]);
 
 /** 這個分類還在開發中嗎(sitemap 不收、頁面加 noindex、目錄不列)。 */

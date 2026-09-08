@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { FURNITURE_CATALOG, getTemplate } from "@/lib/templates";
+import { FURNITURE_CATALOG, getTemplate, isDevCategory } from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import {
   FEATURED_TEMPLATE_CATEGORIES,
@@ -84,6 +84,7 @@ export default async function TemplateDetail({ params }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
 
   if (!marketing || !entry) notFound();
+  if (isDevCategory(entry.category)) notFound();   // 開發中／暫不上架的款（DEV_CATEGORIES）沒有介紹頁
 
   const t = await getTranslations({ locale, namespace: "templateDetail" });
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
