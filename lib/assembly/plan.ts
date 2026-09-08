@@ -233,11 +233,30 @@ function boxContains(b: Box, pt: Vec3, tol: number): boolean {
  *   插入方向 = 公榫板的板面法線、朝母板那一側（鳩尾只能從母板端面套上去）。
  * - `finger-joint-ends`：同上找母板，但四個方向都行（板面法線 ±、板長 ±）。
  * - 滑蓋：`lid` + `wall-<side>-cap`（缺口在 cap 那一側）→ 從 cap 往盒內滑。
+ * - 木釘（`visual: "dowel"` 的圓料）：兩端各落在哪一件的盒子裡就跟誰接，**只能沿自己的軸**進出
+ *   （2026-09-07 丙級第一題：8 支 Ø8 木釘接橫檔與側板；沒登記的話會被當自由件從上面掉下來）。
  */
 function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, Box>): Joint[] {
   const out: Joint[] = [];
   const seen = new Set<string>();
   for (const p of parts) {
+    if (p.visual === "dowel" && p.shape?.kind === "round") {
+      const rx = p.rotation?.x ?? 0, ry = p.rotation?.y ?? 0, rz = p.rotation?.z ?? 0;
+      const ax = p.shape.axis ?? "y";
+      const axisUnit = norm(ax === "x" ? rotateXYZ(rx, ry, rz, 1, 0, 0) : ax === "z" ? rotateXYZ(rx, ry, rz, 0, 0, 1) : rotateXYZ(rx, ry, rz, 0, 1, 0));
+      const dowelLen = ax === "x" ? p.visible.length : ax === "z" ? p.visible.width : p.visible.thickness;
+      const c = center.get(p.id)!;
+      for (const sgn of [-1, 1]) {
+        const dir = scale(axisUnit, sgn);
+        const endPt = add(c, scale(dir, dowelLen / 2));
+        // 端點往回退一點再找母件：端點剛好貼在孔底、盒子邊界的浮點誤差不該讓它配不到
+        const probe = add(c, scale(dir, dowelLen / 2 - 1));
+        const q = parts.find((q) => q.id !== p.id && q.visual !== "dowel" && boxContains(box.get(q.id)!, probe, 0.5));
+        if (!q) continue;
+        out.push({ kind: "tenon", child: p.id, mother: q.id, axes: [dir], out: dir, root: endPt, widthUnit: axisUnit, widthMm: 0 });
+      }
+      continue;
+    }
     const kind = p.shape?.kind;
     if (kind !== "dovetail-ends" && kind !== "finger-joint-ends") continue;
     const { lengthUnit, thickUnit } = partAxes(p);

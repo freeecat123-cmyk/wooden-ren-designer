@@ -1,5 +1,7 @@
 "use client";
 
+import { trapAnchorOffset } from "./trapezoid-anchor";
+import { quadPoint } from "./quad-profile";
 import { memo } from "react";
 import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
@@ -11,6 +13,7 @@ import { formatLengthBare, formatInchFraction, formatMm } from "@/lib/units/form
 import {
   MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
+  SHEET_GOOD_LABEL_EN,
   effectiveBillableMaterial,
 } from "@/lib/pricing/catalog";
 import {
@@ -662,7 +665,16 @@ function projectFeaturePolygon(
       const bevShear = Math.tan(bev);
       const applyShear = isFeature ? false : (halfMode ? zL < 0 : true);
       const zOut = zL - (applyShear ? yL * bevShear : 0);
-      return [xL * xScale, yL, zOut];
+      // 靠邊（直角梯形）：縮放後補位移。省略 anchor 時為 0＝既有對稱行為。
+      const xOff = trapAnchorOffset(lx / 2, xScale, shape.anchor ?? "center");
+      return [xL * xScale + xOff, yL, zOut];
+    }
+    // quad：四角各自指定 → 把 box 頂點的正規化 (x,z) 雙線性對到四邊形上（跟 3D 同一個算式）
+    if (shape.kind === "quad") {
+      const exN = lx > 0 ? xL / (lx / 2) : 0;
+      const ezN = lz > 0 ? zL / (lz / 2) : 0;
+      const [qx, qz] = quadPoint(shape.corners, exN, ezN);
+      return [qx, yL, qz];
     }
     /**
      * 錐形腳(tapered / round-tapered):腳寬沿 Y 線性縮,**榫眼也要跟著縮**。
@@ -2763,6 +2775,9 @@ function OrthoViewImpl({
             part.shape.kind !== "arch-bent" &&
             part.shape.kind !== "right-triangle" &&
             part.shape.kind !== "mitered-corner" &&
+            // quad（技能檢定側板）：看板面那個視圖就是俯視（零件圖橫躺），一定要走 shape path
+            // 才畫得出四條各自不同的邊；掉到 rect fallback 就變 120×350 矩形（2026-09-07）
+            part.shape.kind !== "quad" &&
             // pointed-ends：六角柱斜板（45° 旋轉），top view 也要走 silhouette
             // pipeline 才能正確投影旋轉後的尖角輪廓，不被 fallback rect 補方
             part.shape.kind !== "pointed-ends" &&
@@ -3763,7 +3778,7 @@ function OrthoViewImpl({
           料單同一支 panelSplitWorld()，不要各判一套。 */}
       <g pointerEvents="none">
         {renderDesign.parts.map((part) => {
-          if (part.visual === "glass" || part.visual === "metal") return null;
+          if (part.visual === "glass" || part.visual === "metal" || part.visual === "dowel") return null;
           const sp = panelSplitWorld(part);
           if (!sp) return null;
           // 這個視圖看不看得到分件線：分件方向跟視線同軸 = 看不到
@@ -5468,7 +5483,9 @@ export function MaterialList({
     //（2026-09-04 木頭仁：「虎鉗不該算進料單裡面，通常都是買金屬的」）
     const isMetal = part.visual === "metal";
     const isBrass = part.visual === "brass-antique" || isMetal;
-    const isHardware = isGlass || isBrass;
+    // 現成木釘 / 圓棒：是木頭但不是自己下的料——不計才、不入裁切，另列一區
+    const isDowel = part.visual === "dowel";
+    const isHardware = isGlass || isBrass || isDowel;
     // bdft 體積：bbox × thickness 是預設；對非方形截面（regular-polygon / round）改用實際面積。
     // 注意：cut 尺寸仍維持 bbox（下料需要方板），只是 bdft 計算用實際截面積避免高估。
     let crossSectionFactor = 1;
@@ -5490,24 +5507,28 @@ export function MaterialList({
     const matName = isEn ? (MATERIALS[part.material].nameEn ?? MATERIALS[part.material].nameZh) : MATERIALS[part.material].nameZh;
     const materialLabel = isGlass
       ? (isEn ? `${formatMm(cut.thickness, effectiveUnit)} tempered glass` : `${formatMm(cut.thickness, effectiveUnit)} 強化玻璃`)
+      : isDowel
+        ? (isEn ? `Ø${fmt(part.visible.thickness)} hardwood dowel (off-the-shelf)` : `Ø${fmt(part.visible.thickness)} 現成木釘（${matName}或硬木）`)
       : isMetal
         ? (isEn ? "Hardware (purchased, not in cut list)" : "五金（外購，不入料單）")
         : isBrass
         ? (isEn ? "Antiqued-brass hardware (purchased)" : "仿古銅五金（外購）")
         : billable === "plywood" || billable === "mdf"
-          ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
+          ? `${matName} / ${(isEn ? SHEET_GOOD_LABEL_EN : SHEET_GOOD_LABEL)[billable]}`
           : matName;
 
     if (!isHardware) {
       const groupKey =
         billable === "plywood" || billable === "mdf"
-          ? SHEET_GOOD_LABEL[billable]
+          ? (isEn ? SHEET_GOOD_LABEL_EN : SHEET_GOOD_LABEL)[billable]
           : matName;
       bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
     }
 
     const tenonNotes = isGlass
       ? (isEn ? "Order from glass shop; not in cut list" : "另向玻璃行訂製，不入裁切")
+      : isDowel
+        ? (isEn ? `Ø${fmt(part.visible.thickness)} × ${fmt(part.visible.length)} dowel, bought ready-made; not in cut list` : `Ø${fmt(part.visible.thickness)}×${fmt(part.visible.length)} 現成木釘（考場供料／五金行買），不入裁切`)
       : isBrass
         ? (isEn ? "Purchased hardware; not in cut list" : "外購五金件，不入裁切")
         : part.tenons.length
@@ -5521,7 +5542,7 @@ export function MaterialList({
 
     const category = categorizePart(part.id);
 
-    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass, isBrass, isHardware, pieces };
+    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass, isBrass, isDowel, isHardware, pieces };
   });
 
   // 依分類排序 + 每類內的原有順序（stable sort）
@@ -5529,6 +5550,7 @@ export function MaterialList({
   const byCategory = new Map<PartCategory, typeof rows>();
   const glassRows: typeof rows = [];
   const brassRows: typeof rows = [];
+  const dowelRows: typeof rows = [];
   for (const r of rows) {
     if (r.isGlass) {
       glassRows.push(r);
@@ -5536,6 +5558,10 @@ export function MaterialList({
     }
     if (r.isBrass) {
       brassRows.push(r);
+      continue;
+    }
+    if (r.isDowel) {
+      dowelRows.push(r);
       continue;
     }
     if (!byCategory.has(r.category)) byCategory.set(r.category, []);
@@ -5712,6 +5738,30 @@ export function MaterialList({
               </tr>
             );
           })}
+        </tbody>
+      )}
+      {dowelRows.length > 0 && (
+        <tbody className="border-t-2 border-orange-300 bg-orange-50/30">
+          <tr className="bg-orange-100/60">
+            <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-orange-900">
+              {isEn ? "🪵 Dowels (ready-made; not in cut list)" : "🪵 木釘／圓棒（現成品，不入裁切）"}
+              <span className="ml-2 font-normal text-orange-700">{isEn ? `· ${dowelRows.length} pcs` : `· ${dowelRows.length} 支`}</span>
+            </td>
+            <td className="px-2 py-1.5 text-right text-xs font-mono text-orange-700">—</td>
+            <td />
+          </tr>
+          {dowelRows.map(({ part, materialLabel, tenonNotes }) => (
+            <tr key={part.id} className="border-b border-orange-100">
+              <td className="p-2">{partName(part, locale)}</td>
+              <td className="p-2">{materialLabel}</td>
+              <td className="p-2 text-right">
+                Ø{fmt(part.visible.thickness)} × {fmt(part.visible.length)}
+              </td>
+              <td className="p-2 text-right font-semibold">—</td>
+              <td className="p-2 text-right font-mono text-orange-600">—</td>
+              <td className="p-2 text-xs text-orange-700">{tenonNotes}</td>
+            </tr>
+          ))}
         </tbody>
       )}
       <tfoot className="bg-zinc-100 border-t-2 border-zinc-400">

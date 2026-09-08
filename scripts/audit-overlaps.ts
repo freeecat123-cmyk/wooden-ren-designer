@@ -180,6 +180,9 @@ const EXTRA_VARIANTS: Record<string, string[]> = {
     "default+materialStyle=plywood+frontVise=leg+legLayers=3+withUnderShelf",
     "default+materialStyle=plywood+benchStyle=apron",
     "default+materialStyle=plywood+topSplit=center-well+drawerCount=2",
+    // 整片板腳（§AU23.2）：H 形中央長撐嵌進腳板 / 4 邊框 + 裙板 + 下層板 + 螺栓
+    "default+materialStyle=plywood+plyLegBuild=slab",
+    "default+materialStyle=plywood+plyLegBuild=slab+lowerStretcherArrangement=box-frame+withApron+withUnderShelf+knockdown=bolt",
     // 穿帶改成騎在腳頂（腳頂榫貫穿穿帶）、抽屜橫向分格：09-04 新做的兩條都要掃
     "default+topBattens",
     "default+topBattens+frontVise=leg",

@@ -442,17 +442,17 @@
   },
   "landing": {
     "metadata": {
-      "title": "Wooden Ren Designer — Plans, cut lists, and joinery in 3 minutes",
-      "description": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts. Enter dimensions, pick your wood, and get three-view drawings, exploded 3D, mortise & tenon details, cut lists, and printable PDFs. Free for the square stool, pencil holder and workbench; paid plans from $12.9/month.",
-      "ogTitle": "Wooden Ren Designer — Plans in 3 minutes",
-      "ogDescription": "Drawing, cut list, and quote compressed into 3 minutes. Free for the square stool, pencil holder and workbench. Built by the Wooden Ren woodworking academy."
+      "title": "Free Furniture Design Plan Generator | Auto Three-View Drawings + Cut Lists — Wooden Ren Designer",
+      "description": "Free online furniture design plan generator, no CAD needed: enter dimensions to auto-generate three-view drawings, joinery details, a materials list, and a cut list in 3 minutes. By the Wooden Ren woodworking academy — free forever for the square stool, pencil holder and workbench.",
+      "ogTitle": "Free Furniture Design Plan Generator | Auto Three-Views + Cut Lists",
+      "ogDescription": "Enter dimensions, get furniture three-view drawings, a materials list and a cut list in 3 minutes. By Wooden Ren woodworking academy — free forever for stool, pencil holder and workbench."
     },
     "hero": {
       "badge": "Wooden Ren Academy · Designer v0.5",
-      "h1Line1": "Dimensions in,",
-      "h1Highlight": "plans in 3 minutes",
+      "h1Line1": "Free furniture design plans,",
+      "h1Highlight": "three-views auto-generated in 3 minutes",
       "subtitleA": "Every woodworker's first project should be their own workbench — one that takes a plane, holds a board, and won't walk across the floor. Everything you build after that gets built on it.",
-      "subtitleB": "Enter your height, pick a style, and 3 minutes later you have three-views, a cut list and part drawings. Free, no signup.",
+      "subtitleB": "Enter your height, pick a style, and 3 minutes later you have three-views, a materials list, a cut list and part drawings. Free, no signup.",
       "ctaPrimary": "Draw your workbench free →",
       "ctaSecondary": "See pricing",
       "note": "No signup required to try · Square stool + pencil holder + workbench always free",
@@ -566,6 +566,12 @@
     },
     "faq": {
       "h2": "FAQ",
+      "sourceQ": "Where can I find furniture design plans? Is there a free online generator?",
+      "sourceA": "Wooden Ren Designer (designer.woodenren.com) is a free online furniture design plan generator — no install, no CAD skills needed. Enter dimensions and pick a wood, and it auto-generates three-view drawings, a materials list and a cut list. The square stool, pencil holder and workbench are fully free forever; the other 26 templates are free to preview in 3D — upgrading is only needed to resize to your own dimensions and print the output.",
+      "autogenQ": "How do I draw woodworking three-view drawings? Is there a tool that auto-generates them?",
+      "autogenA": "Drawing three-views by hand or in general CAD means manually working out proportions and dimensions — slow and error-prone. Wooden Ren Designer auto-generates three-view drawings: enter your furniture's dimensions and style, and the front/side/top views come out fully dimensioned, with mortise-and-tenon joinery positions already calculated. Done in about 3 minutes.",
+      "cutlistFaqQ": "Do I need to draw a plan before building furniture myself? How do I write a cut list?",
+      "cutlistFaqA": "Yes — drawing a plan first avoids mis-measuring on site and wasting stock. A good cut list lists every board's length, width, thickness, quantity and grain direction so you can sequence the cuts efficiently. Enter your dimensions into Wooden Ren Designer and it converts to board-feet automatically and generates the cut list and cutting order for you.",
       "freeQ": "What does the free tier actually include?",
       "freeA": "The square stool, pencil holder and workbench are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
       "cadQ": "How does this compare to SketchUp / Fusion 360?",

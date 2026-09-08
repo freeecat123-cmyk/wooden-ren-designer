@@ -93,8 +93,10 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
 | 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
 | 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
+| 工作桌整片板腳 / 夾板層疊腳板 | `"整片板腳\|slab leg\|plyLegBuild\|applyPlySlabLegs"` | §AU23.2 |
 | 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
 | 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 / 夾板木紋 / 穿帶 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers\|lsLayers\|battenLayers\|ply-layers"` | §AU23、§AU23.1 |
+| 技能檢定家具木工丙級練習件 / 自由四邊形側板 / 靠邊梯形 / 凸出貫穿榫 / 木釘接稽核 | `"cert-c1\|quad\|trapezoid-anchor\|anchor\|凸出\|木釘接\|dowelPartner"` | §AV |
 | 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞"` | §AU24 |
 | 穿帶騎腳頂 / 抽屜橫向分格 | `"穿帶\|batten\|drawerCols"` | §AU25 |
 | 穿帶尺寸可調 / 腳頂破口 / 疊層分層方向 | `"battenWidth\|apronTopShoulderMm\|BoardSplit\|疊層軸"` | §AU26 |
@@ -5425,6 +5427,23 @@ holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙�
 
 **工序**：`step-10f-ply-laminate`（`lib/steps/derive.ts`），工時 = 20 + 12 × 膠合面數 + 6 × 搭接槽數，英文在 `STEP_OVERRIDE_EN`。
 
+#### AU23.2 整片板腳（`plyLegBuild = slab`，2026-09-07 木頭仁）
+
+木頭仁：「夾板層疊這個選項要增加一個連腳都是整片板層疊（左右腳就是整塊板），不是層疊角柱。」
+
+- 選項只在 `materialStyle = plywood` 出現，預設 `post`（四支疊層方柱，舊行為一格不動）。
+- 腳板 = 左右各一片 **桌深 `workW` × 腳高 × (legLayers × 18)** 的 box；x 跟原角柱一樣 = ±(frameL/2 − legSize/2)、z 置中。
+  `panelPieces = legLayers`、`panelSplit = "thickness"`（3D 拆層切最小的那一維 = 腳厚，`ply-layers.ts` 不用改）。
+- 做法：ply 區塊照舊把四支腳的榫眼換成搭接槽、橫撐加槽深，**然後** `applyPlySlabLegs()` 合併：
+  - 原腳 **X 面**的槽（|x| > |z|：前後橫撐 / 前後裙板）照搬到腳板、z 加上原腳 z；
+  - **Z 面**的槽連 `ls-left / ls-right / apron-left / apron-right` 一起刪——腳板本身就是側撐；
+  - 槽深：算 `hasZ` 時板腳一律當成沒有左右向的料 → 兩帶都是一層 18（不會再被 (腳 − 料厚)/2 夾成 9）；
+  - H 形 `ls-center`：原本半搭在左右橫撐上，改成嵌進腳板：長 = 兩腳板內面距 + 2 × 18，腳板在 `y = lsY + lsW/2、z = 0` 補一個 18 深的槽；
+  - 搭接槽數 `plyNotchEnds` 合併後重數（左右向的槽沒了，6×80 螺絲數才對）。
+- 不能一起用的：腳鉗（螺桿要穿過整片桌深）→ 退回快速鉗並出聲；前腳 holdfast 孔列 → 略過並出聲；「只左右 2 根」排列 → 出聲不改值。
+- 下層板卡在兩片腳板之間（長 = frameL − 2 × 腳厚）、深度吃滿、不缺角。腳頂口袋孔螺絲 16 → 8（每片腳板內側 4 支）。
+- 螺栓可拆的 Ø11 孔改掃 `/^leg-(\d+|slab-(left|right))$/`；`PLY_PART_RE` 加 `leg-slab-(left|right)` 才會走夾板計價與張數。
+
 
 
 ### AU24. 09-04 木頭仁看 3D 回報的四條（孔軸、拼板顯示、中縫、中央槽端）
@@ -5982,3 +6001,84 @@ Upstash Redis 短碼分享:
 - 5 步施工步驟 collapsible(spec 文字硬編)放公式對照前
 - `app/page.tsx` 加「🔨 木作工具」section 在 catalog 第一個位置(永遠在最上)
 - 列印 PDF:`BrandedHeader`(wrd 共用 LOGO) + 客戶 TO + 案場短碼 + 日期 + 3 欄簽收
+
+
+## AV. 技術士技能檢定 家具木工丙級 練習件（cert-c1，2026-09-07）
+
+**AV1 來源與立場**：依勞動部勞動力發展署技能檢定中心公布的術科應檢參考資料（試題編號
+01200-100301-3，最新修訂 114/06/18）之**公開尺寸自行繪製**，不是官方圖面的重製；
+UI／行銷頁／notes 一律寫明「應檢以官方版本為準」。官方檔案在 owinform.wdasec.gov.tw
+（`/owInform/DLowFile/012003B15.pdf`，丙級術科）。工作圖是掃描影像、無向量層，
+尺寸是 600dpi 逐區放大讀的（判讀紀錄寫在 `lib/templates/cert-c1.ts` 檔頭）。
+
+**AV2 側板＝四邊各不相同的四邊形（新 shape `quad`）**：背緣垂直 350、上緣往前降 30、
+底緣往前升 15、深 120→95。梯形（含靠邊梯形）表達不出來 → `shape.kind="quad"`，
+四角在 length(X)×width(Z) 平面各自指定、沿 thickness(Y) 擠出；3D／兩條三視圖投影路徑／
+輪廓取樣共用 `lib/render/quad-profile.ts` 的雙線性內插。角點槽位固定 (−x,−z)(+x,−z)(+x,+z)(−x,+z)。
+
+**AV3 立板的本地座標（實測，改旋轉就要重量）**：rotation x=π/2,y=π/2 時
+local x **鏡像**到世界 z（local +60 → z=−60）、local z→世界 y（−175 → 頂）、
+local y→世界 x（y=18 那面在 origin.x+9）。所以背緣放 local +x（`sidePanelQuad({backSide:"max"})`），
+離背 d 的東西在 local x=+hx−d；榫眼開在**內面**：左側板 y=18、右側板 y=0。
+
+**AV4 靠邊梯形（`apron-trapezoid.anchor`）**：既有梯形一律對稱收窄；加 `anchor:"min"|"max"`
+＝縮放後補位移 `±hx·(1−s)`，數學等價於固定某一側邊，anchor 省略時 0＝既有 29 款一格不動
+（`lib/render/trapezoid-anchor.ts`）。
+
+**AV5 接合表示**：
+- 上層板**雙貫穿榫**（各 20 寬、18 厚）穿過側板再凸出 10（試題規定；總寬 320＝300＋10＋10），
+  端頭 3×45° 只寫在 notes 不建模。tenon.length＝母板厚＋凸出。
+- 背橫檔／下橫檔**木釘接**（Ø8×30：入橫檔 18、入側板 12）：兩件各開圓孔（`shape:"round"`），
+  沒有榫頭零件。
+- 前擋條短榫 12 深、整個斷面插入（`shoulderOn: []`）。
+- 6mm 夾板背板嵌側板背緣 6 深溝：溝是 **cosmetic mortise**（零件圖畫、CSG 不挖），
+  `audit-overlaps` 以 `cert-c1:default` 放行（結構性入溝，同相框背板）。
+
+**AV6 榫接稽核（`lib/joinery/audit-joints.ts`）兩條新規則**：
+1. 凸出的貫穿榫：`through-tenon` 穿過通孔後沒有第三件也算對到（盲榫比通孔長仍報錯）。
+2. 木釘接：兩件上同直徑、非通孔的圓孔互相配對；落單的照報。
+兩條都有變異測試（拿掉規則測試會紅）。
+
+**AV7 預設值＝考題原尺寸**：320×120×350、凸出 10、含夾板背板；滑桿只是放大練習用，
+非考題尺寸與非 10 凸出都會出警告。同一套判讀後續套到 100302／100303 兩題。
+
+**AV8 2026-09-07 深夜實做時追加的四件（全部有測試）**：
+- `FurnitureCatalogEntry.joineryOnly`：檢定件沒有組裝版——設計頁強制 joineryMode、桌機／手機都不顯示「工法選擇」。
+  否則組裝版會拔掉貫穿榫、凸出的 20mm 消失、總寬 320 變 300。
+- **雙榫頭切料長**：`calculateCutDimensions` / `tenonAllowance` / 零件圖毛料 三處改成「每端取最長榫頭一次」，
+  舊算法逐支相加把 264+28+28 算成 376。
+- **quad 的三視圖與零件圖**：`projectPartPolygon` 對 quad 走 silhouette；`svg-views` 的 `useShape` 俯視閘門加 quad
+  （零件圖橫躺後看板面的視圖就是俯視，掉到 rect fallback 會畫成 120×350 矩形、三條斜邊全消失）。
+- **穿模稽核 cut coverage 認 quad**：`overlap.ts` 的 `rectangularWorldCuts` 形狀白名單加 quad，
+  夾板入溝（cosmetic 6 深溝）才算得到，不需要 allowlist。
+- 零件圖目前只有通用標註（長 350／寬 120／孔位）；試題特有的 95／30／15 三個斜切尺寸**還沒**做成
+  ShapeSpecificAnnotation（待補，見 memory）。
+
+**AV9 木釘做成零件（2026-09-07，木頭仁：「是不是有木釘」「ㄎ沒有做出來」）**：
+- 原本木釘只有孔（側板內面 4 個 Ø8×12、橫檔端面 4 個 Ø8×18 的 round 榫眼），3D 看不到木釘、材料單也沒有。
+  改成 8 支真零件 `dowel-{l,r}-{back,lower}-{1,2}`：`visible 30×8×8`、`shape:{kind:"round",axis:"x"}`、
+  `visual:"dowel"`；中心 x = ±(span/2 − 3)（18 在橫檔內、12 在側板內），y/z ＝ 孔位。
+- `visual:"dowel"` 的語意（型別註解有）：**是木頭**（3D 照木紋畫，不是五金色）但**不是自己下的料**——
+  不入裁切（cutplan/parts-svg/quote 都靠 `visual !== undefined` 過濾）、不出零件圖（grouping.ts）、
+  不算件數、材料單另列「🪵 木釘／圓棒（現成品，不入裁切）」區、採購頁跳過。
+- **穿模稽核**：`overlap.ts` `rectangularWorldCuts(part, bounds, roundRodInHole)`——對手是圓料
+  （`shape.kind==="round"`）時，這件上的**圓孔**（round 榫眼，不限 cosmetic）也算 cut；圓孔用外接方盒近似，
+  直徑＝孔徑所以剛好包住木釘、不會多放行別的。變異：側板不鑽孔 → 4 組穿模；木釘外挪 5 → 1 組。
+- **`FurnitureDesign.joineryOnly`**：稽核預設跑組裝版、`toBeginnerMode` 會拆掉所有非 cosmetic 榫眼 →
+  孔沒了木釘立刻 16 組穿模。與其在每個入口各判（報價／列印／裁切／專案重建／兩支稽核都呼叫 toBeginnerMode），
+  改在 `toBeginnerMode` 開頭看 design 旗標原樣回傳。catalog 的 `joineryOnly`（AV8）管 UI 隱藏，同一款要一起設。
+- **組裝動畫**：`plan.ts` `shapeJoints` 對 `visual:"dowel"` 的圓料登記接合——兩端各往回 1mm 探，落在哪件的盒子裡
+  就跟誰接、`axes` 只有木釘軸向。沒登記時背橫檔那 4 支被當自由件從上方掉下來（from.y=140）。
+  現在順序：左側板 → 4 支木釘沿 x 插入 → 兩支橫檔套上 → 右邊木釘＋前擋條＋層板 → 右側板 → 夾板。
+- 測試：`lib/geometry/__tests__/overlap-dowel-rod.test.ts`（含 toBeginnerMode 守衛）、`lib/assembly/plan-dowel.test.ts`。
+- 木螺釘 Ø3×15 ×10 仍只寫在說明文字，沒做成零件（太小、且釘的是夾板背板，位置試題沒標）。
+- **檢查輪（09-08 凌晨）補的兩條**：①靠前那支層板榫／下橫檔木釘的位置跟著實際深度走
+  （層板：深−30；下橫檔：深−15；考題值 70／65 剛好符合），否則深度縮小時榫眼開到料外
+  （width=80 實測 rail-lower 木釘孔 z=42.5 超出 ±22.5）；②尺寸下限夾在讀值那一行並出聲：
+  寬 ≥ 60+2T+2proud、深 ≥ 90（下橫檔深−35 才放得下兩支相隔 ≥20 的木釘）、高 ≥ 200。
+  ③英文站材料單「松木 / 夾板」的「夾板」改吃 `SHEET_GOOD_LABEL_EN`（所有有板材的模板都受惠）。
+- **零件圖斜切標註**（`annotation.tsx` `QuadCornerDims`，接在 `ShapeSpecificAnnotation` 的 `quad` 分支）：
+  只在四角投影面積 > 0 的視圖標；每個不在外接矩形角上的角，垂直標內縮量（30／15）、
+  水平標「從參考邊量過來的深度」（95，不標 25 的內縮——木匠從背緣劃線）。真矩形不標。
+  測試 `lib/render/__tests__/quad-corner-dims.test.ts`（⭐測試檔要 .ts，vitest include 沒有 .tsx）。
+

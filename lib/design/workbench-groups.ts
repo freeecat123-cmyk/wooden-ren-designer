@@ -4,7 +4,7 @@ import { GROUP_META, type GroupMeta } from "./option-groups";
 export const WORKBENCH_GROUP_KEYS = {
   structure: ["benchStyle", "materialStyle", "heightMode", "userHeightCm", "sawTableHeightMm", "roomLengthCm", "roomWidthCm", "constructionVersion"],
   top: ["plyTopLayers", "topThickness", "topBuild", "topSplit", "gapWidth", "wellWidth", "wellDepth", "endOverhang", "frontOverhang", "topBattens", "battenWidth", "battenThickness", "battenLayers", "breadboardEnds"],
-  base: ["legLayers", "lsLayers", "legSize", "legDepth", "legTopJoint", "withApron", "apronWidth", "apronThickness", "withLowerStretchers", "lowerStretcherArrangement", "lowerStretcherWidth", "lowerStretcherThickness", "lowerStretcherHeight", "legPenetratingTenon", "knockdown"],
+  base: ["legLayers", "lsLayers", "plyLegBuild", "legSize", "legDepth", "legTopJoint", "withApron", "apronWidth", "apronThickness", "withLowerStretchers", "lowerStretcherArrangement", "lowerStretcherWidth", "lowerStretcherThickness", "lowerStretcherHeight", "legPenetratingTenon", "knockdown"],
   vises: ["frontVise", "frontViseSize", "viseInset", "viseSide", "endVise", "deadman", "doubleSided"],
   storage: ["withUnderShelf", "drawerCount", "drawerCols"],
   machining: ["legHoles", "dogHoles", "dogHoleDia", "dogHolePitch", "dogHoleFrontOffset", "holdfastHoles"],

@@ -46,7 +46,7 @@ export const WORKBENCH_PRESETS: Record<string, Record<string, PresetValue>> = {
 
 /** 所有流派會動到的 key 的 spec 預設值（切回別的流派時沒帶到的 key 要回這裡） */
 export const WORKBENCH_PRESET_DEFAULTS: Record<string, PresetValue> = {
-  materialStyle: "solid", plyTopLayers: "3", legLayers: "4",
+  materialStyle: "solid", plyTopLayers: "3", legLayers: "4", plyLegBuild: "post",
   topThickness: 75, topBuild: "plank",
   legSize: 100, legTopJoint: "blind",
   withApron: false, apronWidth: 250, apronThickness: 40,

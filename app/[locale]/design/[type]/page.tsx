@@ -287,7 +287,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     : sp;
   const frozen = previewLocked ? null : await loadModelSnapshot(type, sp);
   const parsed = parseDesignSearchParams(parseSp, entry);
-  const { material, options, joineryMode } = parsed;
+  const { material, options } = parsed;
+  // 只有榫接版的模板（技能檢定練習件）：不管網址帶什麼都走榫接版，
+  // 組裝版會把貫穿榫拔掉、凸出的 20mm 跟著消失（見 FurnitureCatalogEntry.joineryOnly）
+  const joineryMode = entry.joineryOnly ? true : parsed.joineryMode;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
   // 避免被分享連結繞過上限檢查。
   const designerMode = canUseDesignerMode && parsed.designerMode;
@@ -438,7 +441,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table", "workbench"],
     seating: ["stool", "bench", "dining-chair", "bar-stool", "round-stool"],
     cabinet: ["open-bookshelf", "chest-of-drawers", "chinese-cabinet", "shoe-cabinet", "display-cabinet", "media-console", "nightstand", "wardrobe"],
-    accessory: ["pencil-holder", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
+    accessory: ["pencil-holder", "cert-c1", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
     bed: ["bed"],
   };
   const family = (Object.keys(FAMILY_MAP) as Array<keyof typeof FAMILY_MAP>).find(
@@ -792,7 +795,7 @@ async function ParameterForm({
           </div>
         </div>
       )}
-      {type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (
+      {!FURNITURE_CATALOG.find((e) => e.category === type)?.joineryOnly && type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (
         <fieldset className="mb-4">
           <legend className="mb-2 text-sm font-semibold text-zinc-800">{t("joineryMethodLegend")}</legend>
           <div className="grid grid-cols-2 gap-2">

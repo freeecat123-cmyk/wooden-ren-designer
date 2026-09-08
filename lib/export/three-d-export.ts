@@ -112,7 +112,11 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
       bottomLengthScale: shape.bottomLengthScale,
       taperSpanMm: shape.taperSpanMm,
       bevelMode: shape.bevelMode,
+      anchor: shape.anchor,
     };
+  }
+  if (shape.kind === "quad") {
+    return { kind: "quad", corners: shape.corners };
   }
   if (shape.kind === "apron-beveled") {
     return { kind: "apron-beveled", bevelAngle: shape.bevelAngle };

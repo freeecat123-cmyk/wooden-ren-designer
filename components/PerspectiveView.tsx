@@ -164,6 +164,15 @@ type PartProps = {
 // reference；不寫自訂 equality React 預設 shallow compare 永遠 fail，memo
 // 等於沒掛。把 array/Euler/shape 改成元素比較，跳過 hover / select 等
 // 只動 1 件家具的場景（其他 29 件可以完全跳 render）。
+/** LocalBox 逐欄比較（9 個 number）；給 arePartPropsEqual 用，避免父元件每次 map 出新物件就重跑 CSG */
+function sameLocalBox(a: LocalBox, b: LocalBox): boolean {
+  return a === b || (
+    a.cx === b.cx && a.cy === b.cy && a.cz === b.cz &&
+    a.hx === b.hx && a.hy === b.hy && a.hz === b.hz &&
+    a.rotX === b.rotX && a.rotY === b.rotY && a.rotZ === b.rotZ
+  );
+}
+
 function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   if (a.color !== b.color) return false;
   if (a.isGlass !== b.isGlass || a.isBrass !== b.isBrass) return false;
@@ -182,16 +191,19 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   const sa = a.shape ? JSON.stringify(a.shape) : "";
   const sb = b.shape ? JSON.stringify(b.shape) : "";
   if (sa !== sb) return false;
-  // mortiseBoxes / mortiseShapes / dovetailCuts: 長度 + element ref 比較
+  // mortiseBoxes / holeDecals：父元件每次 render 都 map 出**新物件**（mortiseBoxesScaled），
+  // 比 ref 永遠不等 → Part 重 render → csgGeometry useMemo 重跑 CSG。組裝動畫每 100ms
+  // 回報一次進度（setAssemblyUiT）就把工作桌全部零件重挖一輪，實測 3 fps
+  // （2026-09-07 木頭仁：「播放到組合動畫時 3D 圖是 lag 的 頓頓的」）。改比 9 個數值。
   const ma = a.mortiseBoxes, mb = b.mortiseBoxes;
   if ((ma?.length ?? 0) !== (mb?.length ?? 0)) return false;
-  if (ma && mb) for (let i = 0; i < ma.length; i++) if (ma[i] !== mb[i]) return false;
+  if (ma && mb) for (let i = 0; i < ma.length; i++) if (!sameLocalBox(ma[i], mb[i])) return false;
   const msa = a.mortiseShapes, msb = b.mortiseShapes;
   if ((msa?.length ?? 0) !== (msb?.length ?? 0)) return false;
   if (msa && msb) for (let i = 0; i < msa.length; i++) if (msa[i] !== msb[i]) return false;
   const ha = a.holeDecals, hb = b.holeDecals;
   if ((ha?.length ?? 0) !== (hb?.length ?? 0)) return false;
-  if (ha && hb) for (let i = 0; i < ha.length; i++) if (ha[i] !== hb[i]) return false;
+  if (ha && hb) for (let i = 0; i < ha.length; i++) if (!sameLocalBox(ha[i], hb[i])) return false;
   const da = a.dovetailCuts, db = b.dovetailCuts;
   if ((da?.length ?? 0) !== (db?.length ?? 0)) return false;
   if (da && db) for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return false;
@@ -1214,7 +1226,13 @@ export function PerspectiveView({
               bevelAngle: part.shape.bevelAngle,
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
+              anchor: part.shape.anchor,
               ...(part.shape.taperSpanMm !== undefined ? { taperSpanMm: part.shape.taperSpanMm * SCALE } : {}),
+            };
+          } else if (part.shape?.kind === "quad") {
+            shape = {
+              kind: "quad",
+              corners: part.shape.corners.map(([x, z]) => [x * SCALE, z * SCALE]) as [[number, number], [number, number], [number, number], [number, number]],
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };

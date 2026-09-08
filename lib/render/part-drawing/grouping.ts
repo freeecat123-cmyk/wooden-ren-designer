@@ -33,6 +33,8 @@ import { partName } from "@/lib/templates/part-names";
 export function needsPartDrawing(part: Part): boolean {
   // 外購五金（visual="metal"：鑄鐵鉗身、螺桿、手輪…）不是自己做的，不出零件圖
   if (part.visual === "metal") return false;
+  // 現成木釘 / 圓棒（visual="dowel"）：買來就是那個尺寸，沒東西好畫
+  if (part.visual === "dowel") return false;
   if (part.tenons.length > 0) return true;
   if (part.mortises.length > 0) return true;
   if (part.shape !== undefined && part.shape.kind !== "box") return true;

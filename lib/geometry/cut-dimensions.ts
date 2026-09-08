@@ -20,19 +20,26 @@ export function calculateCutDimensions(part: Part): Dimensions {
   let width = phys.width;
   let thickness = phys.thickness;
 
+  // 同一端可能有多支榫頭（雙榫頭 / 三榫頭，2026-09-07 技能檢定上層板每端兩支 20 寬），
+  // 它們從同一個端面伸出去，切料只要加**那一端最長的那支**一次；逐支相加會把
+  // 264+28+28 的板算成 376（實際 320）。每個 position 取 max。
+  const maxByPosition = new Map<Tenon["position"], number>();
   for (const tenon of part.tenons) {
-    switch (tenon.position) {
+    maxByPosition.set(tenon.position, Math.max(maxByPosition.get(tenon.position) ?? 0, tenon.length));
+  }
+  for (const [position, len] of maxByPosition) {
+    switch (position) {
       case "start":
       case "end":
-        length += tenon.length;
+        length += len;
         break;
       case "left":
       case "right":
-        width += tenon.length;
+        width += len;
         break;
       case "top":
       case "bottom":
-        thickness += tenon.length;
+        thickness += len;
         break;
     }
   }
@@ -61,12 +68,13 @@ export function tenonAllowance(
         ? ["right"]
         : ["top"];
 
+  // 同一端多支榫頭（雙榫頭）從同一端面伸出，取最長的那支，不相加（同 calculateCutDimensions）
   const start = tenons
     .filter((t) => startPositions.includes(t.position))
-    .reduce((s, t) => s + t.length, 0);
+    .reduce((s, t) => Math.max(s, t.length), 0);
   const end = tenons
     .filter((t) => endPositions.includes(t.position))
-    .reduce((s, t) => s + t.length, 0);
+    .reduce((s, t) => Math.max(s, t.length), 0);
 
   return { start, end };
 }

@@ -18,7 +18,7 @@
 import type { FurnitureTemplate, FurnitureDesign, OptionSpec, Part, Mortise } from "@/lib/types";
 import { WORKBENCH_HEIGHT_COEF, workbenchHeightFor } from "@/lib/knowledge/ergonomics";
 import { getOption, opt } from "@/lib/types";
-import { simpleTable } from "./_builders/simple-table";
+import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
 import { WORKBENCH_PRESETS } from "./workbench-presets";
 import { caseFurniture } from "./_builders/case-furniture";
 import { applyLowerStretcherArrangement } from "./dining-table";
@@ -78,7 +78,7 @@ const PLY_NOTCH_MAX = PLY_T;
 /** 搭接槽的 label 前綴（螺栓可拆要靠它找槽心；步驟／稽核也用） */
 const PLY_NOTCH_TAG = "搭接槽";
 /** 疊層時要換成夾板計價（materialOverride）的零件 id */
-const PLY_PART_RE = /^(top|top-front|top-back|gap-stop|center-well-bottom|leg-\d+|apron-.+|ls-.+|top-batten-.+|under-shelf|well-.+)$/;
+const PLY_PART_RE = /^(top|top-front|top-back|gap-stop|center-well-bottom|leg-\d+|leg-slab-(left|right)|apron-.+|ls-.+|top-batten-.+|under-shelf|well-.+)$/;
 
 // ───────────────────────── 流派 preset ─────────────────────────
 // 值在 ./workbench-presets.ts（設計頁切流派時把整組寫進網址；模板不覆寫）。
@@ -113,6 +113,10 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "2", label: "2 層＝36mm：建議（刨削推力靠它擋）" },
     { value: "3", label: "3 層＝54mm：重型（大刨、常搬動）" },
   ], help: "橫撐厚＝層數 × 18。腳上的搭接槽深度跟著變，但最深只到一層 18（挖太深腳會弱）" },
+  { group: "preset", type: "select", key: "plyLegBuild", label: "桌腳做法", defaultValue: "post", dependsOn: { key: "materialStyle", equals: "plywood" }, choices: [
+    { value: "post", label: "疊成方柱（四支腳，腳粗＝層數 × 18）" },
+    { value: "slab", label: "整片板（左右各一整塊板當腳：寬＝桌深、厚＝層數 × 18）" },
+  ], help: "整片板腳：每一層都是「桌深 × 腳高」的整片夾板，疊成腳板厚。腳板本身就是側撐，所以左右下橫撐、左右裙板不用做；前後橫撐、中央長撐、前後裙板嵌進腳板上疊層時預留的搭接槽。腳鉗、前腳孔列裝不上整片板（要穿過整片桌深）" },
 
   // ───────────── 桌高怎麼定（只給建議，不動滑桿） ─────────────
   { group: "structure", type: "select", key: "heightMode", label: "桌高用途（會直接套用桌高）", defaultValue: "plane", choices: [
@@ -227,6 +231,63 @@ export const workbenchOptions: OptionSpec[] = [
   ], help: "可拆版榫頭不上膠，腳上會多穿孔；材料單另列螺栓" },
 ];
 
+/**
+ * 整片板腳（夾板疊層版 `plyLegBuild = slab`，§AU23.2）：把四支疊層方柱換成左右各一片
+ * 「桌深 × 腳高 × 腳厚」的腳板。呼叫時機：ply 區塊已把榫眼換成搭接槽、橫撐長度已加槽深之後。
+ *
+ * - 腳板 = box Part，`panelPieces = legLayers`、`panelSplit = "thickness"`（3D 拆層切最小的那一維 = 腳厚）。
+ * - 腳板上的搭接槽：原腳 **X 面**（|x| > |z|：前後橫撐 / 前後裙板）的槽照搬、z 加上原腳 z；
+ *   **Z 面**的槽（左右橫撐 / 左右裙板 / 前腳孔列）連 ls-left / ls-right / apron-left / apron-right 一起刪——腳板本身就是側撐。
+ * - H 形中央長撐原本半搭在左右橫撐上，改成直接嵌進腳板：長 = 兩腳板內面距 + 兩端各一層 18 的槽。
+ */
+function applyPlySlabLegs(design: FurnitureDesign, p: {
+  legSize: number; workW: number; legLayers: number; lsW: number; lsT: number; isEn: boolean;
+}) {
+  const legs = design.parts.filter((x) => /^leg-\d+$/.test(x.id));
+  if (legs.length === 0) return;
+  const firstLegIdx = design.parts.indexOf(legs[0]);
+  const slabs: Part[] = [];
+  for (const s of [1, -1] as const) {
+    const sideLegs = legs.filter((l) => Math.sign(l.origin.x) === s);
+    if (sideLegs.length === 0) continue;
+    const cx = sideLegs[0].origin.x;
+    const mortises = sideLegs.flatMap((l) => l.mortises
+      .filter((m) => Math.abs(m.origin.x) > Math.abs(m.origin.z))
+      .map((m) => ({ ...m, origin: { x: m.origin.x, y: m.origin.y, z: m.origin.z + l.origin.z } })));
+    // 「左」= 世界 +X（同檔頭註解）
+    slabs.push({
+      id: s > 0 ? "leg-slab-left" : "leg-slab-right",
+      nameZh: s > 0 ? "左腳板" : "右腳板",
+      nameEn: s > 0 ? "Left leg slab" : "Right leg slab",
+      material: sideLegs[0].material,
+      grainDirection: "length",
+      visible: { length: p.legSize, width: p.workW, thickness: sideLegs[0].visible.thickness },
+      origin: { x: cx, y: 0, z: 0 },
+      panelPieces: p.legLayers,
+      panelSplit: "thickness",
+      tenons: [],
+      mortises,
+    });
+  }
+  const drop = new Set<string>([...legs.map((l) => l.id), "ls-left", "ls-right", "apron-left", "apron-right"]);
+  design.parts = design.parts.filter((x) => !drop.has(x.id));
+  design.parts.splice(Math.min(firstLegIdx, design.parts.length), 0, ...slabs);
+
+  const center = design.parts.find((x) => x.id === "ls-center");
+  if (center && slabs.length === 2) {
+    const innerHalf = Math.abs(slabs[0].origin.x) - p.legSize / 2;
+    center.visible.length = 2 * innerHalf + 2 * PLY_NOTCH_MAX;
+    const cy = center.origin.y + p.lsW / 2;
+    for (const slab of slabs) {
+      slab.mortises.push({
+        origin: { x: slab.origin.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: cy, z: 0 },
+        depth: PLY_NOTCH_MAX, length: p.lsW, width: p.lsT, through: false, cosmetic: true,
+        label: p.isEn ? `lap notch ${p.lsW}×${p.lsT}, ${PLY_NOTCH_MAX} deep (left in the lamination)` : `${PLY_NOTCH_TAG} ${p.lsW}×${p.lsT}、深 ${PLY_NOTCH_MAX}（疊層時預留）`,
+      });
+    }
+  }
+}
+
 /** 桌面上的圓孔（狗孔 / holdfast 孔 / 螺桿孔）——一律 cosmetic round through */
 function roundHole(x: number, y: number, z: number, dia: number, depth: number): Mortise {
   return { origin: { x, y, z }, depth, length: dia, width: dia, through: true, shape: "round", cosmetic: true };
@@ -268,7 +329,11 @@ export const workbench: FurnitureTemplate = (input) => {
   };
   const plyTopLayers = ply ? pickLayers("plyTopLayers", 2, 4) : 0;
   const legLayersRaw = ply ? pickLayers("legLayers", 3, 5) : 0;
-  const frontViseEarly = pick<string>("frontVise");
+  // 整片板腳（§AU23.2）：只在夾板疊層版；腳鉗螺桿要前後穿過整片桌深的腳板 → 退回快速鉗並出聲
+  const plySlab = ply && pick<string>("plyLegBuild") === "slab";
+  const frontVisePicked = pick<string>("frontVise");
+  const frontViseEarly = plySlab && frontVisePicked === "leg" ? "quick" : frontVisePicked;
+  if (frontViseEarly !== frontVisePicked) warnings.push(isEn ? "A leg vise cannot go on a slab leg (the screw would have to pass through the whole slab); switched to a quick-release vise." : "整片板腳裝不了腳鉗（螺桿要穿過整片腳板），前鉗已改成快速鉗。");
   // 腳鉗木顎 64 厚，那支腳至少 64 → 3 層（54）提到 4 層（72）並出聲（跟實木版「腳提到 64」同一條規則）
   const legLayers = ply && frontViseEarly === "leg" ? Math.max(legLayersRaw, 4) : legLayersRaw;
   if (ply && legLayers !== legLayersRaw) warnings.push(isEn ? `Leg vise needs a leg ≥ ${LEG_VISE_CHOP_T}mm thick; plywood legs raised ${legLayersRaw} → ${legLayers} layers (${legLayers * PLY_T}mm).` : `腳鉗那支腳至少 ${LEG_VISE_CHOP_T}mm 厚，夾板腳已從 ${legLayersRaw} 層提到 ${legLayers} 層（${legLayers * PLY_T}mm）。`);
@@ -299,7 +364,7 @@ export const workbench: FurnitureTemplate = (input) => {
   const lowerStretcherHeightRaw = pick<number>("lowerStretcherHeight");
   const withUnderShelfRaw = pick<boolean>("withUnderShelf");
   const legPenetratingTenon = pick<boolean>("legPenetratingTenon");
-  const frontVise = pick<string>("frontVise");
+  const frontVise = frontViseEarly;
   const frontViseSize = pick<string>("frontViseSize");
   const viseSide = pick<string>("viseSide");
   const viseInsetRaw = pick<number>("viseInset");
@@ -514,7 +579,8 @@ export const workbench: FurnitureTemplate = (input) => {
       const t = band === "apron" ? apronThickness : lowerStretcherThickness;
       const ms = legs.flatMap((l) => l.mortises.filter((m) => isJoint(m) && bandOf(m) === band));
       const hasX = ms.some((m) => Math.abs(m.origin.x) > Math.abs(m.origin.z));
-      const hasZ = ms.some((m) => Math.abs(m.origin.z) > Math.abs(m.origin.x));
+      // 整片板腳：左右向的料（ls-left / ls-right / 左右裙板）不做，腳板上只剩前後向的槽 → 一層 18
+      const hasZ = !plySlab && ms.some((m) => Math.abs(m.origin.z) > Math.abs(m.origin.x));
       plyNotchDepth[band] = hasX && hasZ ? Math.max(0, Math.min(PLY_NOTCH_MAX, Math.floor((legSize - t) / 2))) : PLY_NOTCH_MAX;
       // ⭐夾板的缺口是「疊層時少疊幾層」做出來的 → 深度只能是 18 的倍數。
       //   兩個方向的橫撐都進同一支腳時，深度被 (腳寬 − 厚)/2 夾住，可能夾成 9mm 這種
@@ -561,6 +627,13 @@ export const workbench: FurnitureTemplate = (input) => {
     }
     const topPart = design.parts.find((p) => p.id === "top")!;
     topPart.mortises = topPart.mortises.filter((m) => m.cosmetic);
+    // ── 整片板腳（§AU23.2）：四支方柱合併成左右兩片「桌深 × 腳高 × 腳厚」的腳板 ──
+    if (plySlab) {
+      if (withLowerStretchers && lowerStretcherArrangement === "pair-z") warnings.push(isEn ? "Slab legs already act as the side stretchers, so the \"sides only\" layout leaves no stretcher at all; pick H-frame or front/back." : "整片板腳本身就是左右撐，「只左右 2 根」的排列會一根橫撐都不剩；請改 H 形或前後 2 根。");
+      applyPlySlabLegs(design, { legSize, workW, legLayers, lsW: lowerStretcherWidth, lsT: lowerStretcherThickness, isEn });
+      // 左右向的槽跟著左右料一起沒了，螺絲數重數一次
+      plyNotchEnds = design.parts.reduce((n, p) => n + p.mortises.filter((m) => m.cosmetic && m.shape !== "round" && (m.label ?? "").includes(isEn ? "lap notch" : PLY_NOTCH_TAG)).length, 0);
+    }
   }
 
   // ── 桌面拉長到全長（腳架比桌面短，桌面兩端懸出）；腳架依尾鉗懸出平移 ──
@@ -1307,7 +1380,9 @@ export const workbench: FurnitureTemplate = (input) => {
   }
 
   // ── 前腳 holdfast／插銷孔列：兩支前腳正面各一列 Ø19（Roubo：長料一端在前鉗、另一端靠腳用 holdfast 壓） ──
-  if (legHoles) {
+  // 整片板腳：孔要打穿整片桌深才會是「正面看得到」的孔列 → 不畫並出聲（長料另一端請用桌面 holdfast 孔）
+  if (legHoles && plySlab) warnings.push(isEn ? "Front-leg holdfast holes skipped on slab legs (they would have to go through the full bench depth); use the bench-top holdfast row instead." : "整片板腳沒有前腳 holdfast 孔列（要打穿整片桌深），長料另一端請用桌面後排 holdfast 孔。");
+  if (legHoles && !plySlab) {
     const frontLegs = design.parts.filter((p) => /^leg-\d$/.test(p.id) && p.origin.z < 0);
     for (const leg of frontLegs) {
       const yTop = legHeight - 120;
@@ -1453,9 +1528,10 @@ export const workbench: FurnitureTemplate = (input) => {
     const stretcherY = lowerStretcherHeight;
     const shelfY = stretcherY + lowerStretcherWidth;
     const lsT = lowerStretcherThickness;
-    const shelfLen = Math.max(50, frameL - legSize + lsT);
+    // 整片板腳：層板卡在兩片腳板之間、深度吃滿，不用缺角
+    const shelfLen = Math.max(50, plySlab ? frameL - 2 * legSize : frameL - legSize + lsT);
     // 長板靠板的脊條佔掉前緣 25。長方腳時深度方向要用腳厚，不然缺角挖不夠、層板會插進腳裡
-    const shelfWid = Math.max(50, workW - legDepth + lsT - (deadman ? 25 : 0));
+    const shelfWid = Math.max(50, (plySlab ? workW : workW - legDepth + lsT) - (deadman ? 25 : 0));
     const notchX = (legSize + lsT) / 2;
     const notchZ = (legDepth + lsT) / 2;
     if (shelfY < 150) warnings.push(isEn ? `Under-shelf sits ${shelfY}mm off the floor; ≥150 keeps it sweepable.` : `下層板離地 ${shelfY}mm，建議 ≥150 才掃得到地。`);
@@ -1467,7 +1543,7 @@ export const workbench: FurnitureTemplate = (input) => {
       grainDirection: "length",
       visible: { length: shelfLen, width: shelfWid, thickness: shelfT },
       origin: { x: frameDx, y: shelfY, z: deadman ? 12.5 : 0 },
-      shape: { kind: "notched-corners", notchLengthMm: notchX, notchWidthMm: notchZ },
+      shape: plySlab ? undefined : { kind: "notched-corners", notchLengthMm: notchX, notchWidthMm: notchZ },
       panelPieces: ply ? 1 : Math.max(1, Math.ceil(shelfWid / PLANK_MAX_W)),
       tenons: [],
       mortises: [],
@@ -1477,7 +1553,7 @@ export const workbench: FurnitureTemplate = (input) => {
   // ── 螺栓可拆：腳上每個橫撐 / 裙板榫眼中心再穿一個 Ø11 貫穿孔（床螺栓） ──
   let boltCount = 0;
   if (knockdown === "bolt") {
-    for (const leg of design.parts.filter((p) => /^leg-\d+$/.test(p.id))) {
+    for (const leg of design.parts.filter((p) => /^leg-(\d+|slab-(left|right))$/.test(p.id))) {
       const extra: Mortise[] = [];
       for (const m of leg.mortises) {
         // 夾板疊層：榫眼已改成搭接槽（cosmetic），螺栓照樣穿槽心
@@ -1502,7 +1578,7 @@ export const workbench: FurnitureTemplate = (input) => {
   // ── 夾板疊層：骨架零件改夾板計價（materialOverride，料單標「夾板」）、估 4×8 呎張數與螺絲數 ──
   let plySheets = 0;
   let plyLamScrews = 0;
-  const plyTopScrews = ply ? 16 : 0; // 每支腳內側兩面各 2 支口袋孔螺絲鎖桌面底
+  const plyTopScrews = ply ? (plySlab ? 8 : 16) : 0; // 每支腳內側兩面各 2 支口袋孔螺絲鎖桌面底；整片板腳每片內側 4 支
   if (ply) {
     let areaMm2 = 0;
     for (const p of design.parts) {
@@ -1583,12 +1659,12 @@ export const workbench: FurnitureTemplate = (input) => {
   const buildZh = ply ? `${topPanelPieces} 層 18mm 夾板疊合` : topBuild === "stave" ? `窄條側立拼 ${topPanelPieces} 條` : topBuild === "stack" ? `${topPanelPieces} 層疊合` : `寬板平拼 ${topPanelPieces} 片`;
   const buildEn = ply ? `${topPanelPieces} × 18mm plywood laminated` : topBuild === "stave" ? `${topPanelPieces} staves on edge` : topBuild === "stack" ? `${topPanelPieces} layers` : `${topPanelPieces} planks`;
   const plyNoteZh = ply
-    ? `夾板疊層版（免榫卯）：腳 ${legLayers} 層疊成 ${legSize} 方；橫撐 ${lsLayers} 層 ${lowerStretcherThickness}${withApron ? `、裙板 ${apronThickness === PLY_T ? "1 層 18" : "2 層 36"}` : ""}，嵌進腳上疊層時預留的搭接槽（${withApron ? `裙板槽深 ${plyNotchDepth.apron}、` : ""}橫撐槽深 ${plyNotchDepth.ls}）再上膠鎖螺絲；腳頂不接榫，從腳內側兩面各斜鑽 2 個口袋孔鎖進桌面底層。` +
+    ? `夾板疊層版（免榫卯）：${plySlab ? `左右各一整片腳板（${legLayers} 層疊成 ${legSize} 厚、寬 ＝ 桌深 ${workW}）` : `腳 ${legLayers} 層疊成 ${legSize} 方`}；橫撐 ${lsLayers} 層 ${lowerStretcherThickness}${withApron ? `、裙板 ${apronThickness === PLY_T ? "1 層 18" : "2 層 36"}` : ""}，嵌進腳上疊層時預留的搭接槽（${withApron ? `裙板槽深 ${plyNotchDepth.apron}、` : ""}橫撐槽深 ${plyNotchDepth.ls}）再上膠鎖螺絲；腳頂不接榫，從腳內側兩面各斜鑽 2 個口袋孔鎖進桌面底層。` +
       `夾板用量：18mm 4×8 呎（1220×2440）約 ${plySheets} 張（面積法 +15% 損耗）。` +
       `五金：疊層固定 4×40 皿頭木螺絲約 ${plyLamScrews} 支、搭接槽 6×80 螺絲 ${plyNotchEnds * 3} 支（每處 3 支）、腳頂口袋孔螺絲 6×63 ${plyTopScrews} 支＋ L 角鐵 4 片。`
     : "";
   const plyNoteEn = ply
-    ? `Laminated-plywood version (no joinery): legs ${legLayers} layers = ${legSize}mm square; stretchers ${lsLayers} layers (${lowerStretcherThickness})${withApron ? `, apron ${apronThickness === PLY_T ? "1 layer (18)" : "2 layers (36)"}` : ""} sit in lap notches left in the leg lamination (${withApron ? `apron notch ${plyNotchDepth.apron} deep, ` : ""}stretcher notch ${plyNotchDepth.ls} deep), glued and screwed; the top is pocket-screwed from the inside faces of each leg (2 per face). ` +
+    ? `Laminated-plywood version (no joinery): ${plySlab ? `one full-depth slab leg per end (${legLayers} layers = ${legSize}mm thick, ${workW}mm wide)` : `legs ${legLayers} layers = ${legSize}mm square`}; stretchers ${lsLayers} layers (${lowerStretcherThickness})${withApron ? `, apron ${apronThickness === PLY_T ? "1 layer (18)" : "2 layers (36)"}` : ""} sit in lap notches left in the leg lamination (${withApron ? `apron notch ${plyNotchDepth.apron} deep, ` : ""}stretcher notch ${plyNotchDepth.ls} deep), glued and screwed; the top is pocket-screwed from the inside faces of each leg (2 per face). ` +
       `Plywood: about ${plySheets} sheets of 18mm 4×8 ft (1220×2440), area method +15% waste. ` +
       `Hardware: ~${plyLamScrews} × 4×40 countersunk screws for the laminations, ${plyNotchEnds * 3} × 6×80 screws at the notches (3 each), ${plyTopScrews} × 6×63 pocket screws + 4 L-brackets for the top. `
     : "";

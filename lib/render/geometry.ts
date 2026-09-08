@@ -1,3 +1,5 @@
+import { trapAnchorOffset } from "./trapezoid-anchor";
+import { quadPoint } from "./quad-profile";
 import type { Part } from "@/lib/types";
 import { CURVED_TAPER_ARC_SEG, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 
@@ -347,6 +349,7 @@ export function projectPartSilhouette(
 
   // === Shape modifiers ===
   const trap = part.shape?.kind === "apron-trapezoid" ? part.shape : null;
+  const quad = part.shape?.kind === "quad" ? part.shape : null;
   const bev = part.shape?.kind === "apron-beveled" ? part.shape : null;
   const halfBev = part.shape?.kind === "apron-half-beveled" ? part.shape : null;
   const bevShear = Math.tan(bev?.bevelAngle ?? trap?.bevelAngle ?? 0);
@@ -448,8 +451,11 @@ export function projectPartSilhouette(
   if (trap?.taperSpanMm !== undefined && trap.taperSpanMm > 0 && trap.taperSpanMm < lz) {
     const hx = lx / 2, hy = ly / 2, hz = lz / 2;
     const topX = hx * trap.topLengthScale, botX = hx * trap.bottomLengthScale;
+    // 靠邊（直角梯形）：縮放後補位移，anchor 省略時為 0＝既有對稱行為
+    const tOff = trapAnchorOffset(hx, trap.topLengthScale, trap.anchor ?? "center");
+    const bOff = trapAnchorOffset(hx, trap.bottomLengthScale, trap.anchor ?? "center");
     const zB = -hz + trap.taperSpanMm;
-    const ring: Array<[number, number]> = [[-topX, -hz], [topX, -hz], [botX, zB], [botX, hz], [-botX, hz], [-botX, zB]];
+    const ring: Array<[number, number]> = [[-topX + tOff, -hz], [topX + tOff, -hz], [botX + bOff, zB], [botX + bOff, hz], [-botX + bOff, hz], [-botX + bOff, zB]];
     for (const [xL, zL] of ring) pushPoint(xL, hy, zL);
     const ordered = projected.slice();
     for (const [xL, zL] of ring) pushPoint(xL, -hy, zL);
@@ -840,15 +846,19 @@ export function projectPartSilhouette(
             miterInset = exNorm > 0 ? -mitered.insetEach : +mitered.insetEach;
           }
         }
-        const xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
-          + splayDx + miterInset;
+        // 靠邊（直角梯形）：縮放後補位移。anchor 省略時 0＝既有對稱行為
+        const trapOff = trap ? trapAnchorOffset(lx / 2, xScaleTrap, trap.anchor ?? "center") : 0;
+        let xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
+          + trapOff + splayDx + miterInset;
         const yLocal = (eyEff * ly) / 2;
         // half-bevel: 只有頂面（ezSamp < 0）vertex 套 shear，底面不動
         const halfBevContribution = halfBev && ezSamp < 0 ? -yLocal * halfBevShear : 0;
         // trapezoid + half-bevel: top 套 bevShear、bot 不套（蓋掉前面的 -yLocal * bevShear）
         const trapBevAdjust = trapHalfBevel && ezSamp > 0 ? yLocal * bevShear : 0;
-        const zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
+        let zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
           + halfBevContribution + trapBevAdjust + splayDz;
+        // quad：四角各自指定，直接用同一個雙線性算式蓋掉 x/z（不跟其他變形疊加）
+        if (quad) [xLocal, zLocal] = quadPoint(quad.corners, exNorm, ezSamp);
         // Mitered-corner：如果這個 sample 落在被削掉的角上，補兩個 inset 點代替原點。
         if (miterCorner) {
           const ax = miterCorner.axis;
@@ -1157,6 +1167,14 @@ export function projectPartPolygon(
 
   // 座板／桌面俯視輪廓：一律走 silhouette（俯視輸出有序輪廓、正/側視 hull 出矩形範圍）。
   if (part.shape.kind === "top-outline") {
+    return projectPartSilhouette(part, view);
+  }
+
+  // 自由四邊形（技能檢定側板：背緣垂直、上緣前降、底緣前升、前緣收窄）：
+  // 走 silhouette，取樣路徑已用 quadPoint 把四角對上，看板面的視圖會得到有序的四邊形，
+  // 看厚度的視圖是矩形。🩸2026-09-07 沒這條時三視圖把側板畫成 120×350 的矩形，
+  // 斜邊全部不見——而斜切正是那題的考點。
+  if (part.shape.kind === "quad") {
     return projectPartSilhouette(part, view);
   }
 
