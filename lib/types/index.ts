@@ -399,7 +399,9 @@ export interface Part {
      *  depthMm 內凹深度（自動 clamp ≤45% 高、double-arch 每邊 ≤35%）。 */
     | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number;
         /** 選配梯形補償（同 apron-trapezoid）：上/下緣長度縮放，與造型同時成立（斜腳/弧肩斜腳用）。 */
-        topLengthScale?: number; bottomLengthScale?: number }
+        topLengthScale?: number; bottomLengthScale?: number;
+        /** Explicit closed outline in local X/Z millimeters, shared by 2D and 3D. */
+        profilePoints?: Array<[number, number]> }
     /** Top-outline: 座板／桌面「俯視輪廓」造型——輪廓在 length(X) × width(Z) 大面上
      *  重塑、沿厚度（local Y）擠出。輪廓函式 lib/render/geometry.ts topOutlinePoints
      *  為 3D / silhouette / 零件 SVG 匯出共用（可直下 CNC）。

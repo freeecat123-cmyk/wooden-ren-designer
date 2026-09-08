@@ -51,3 +51,17 @@ it("retains the existing renderer for other furniture", () => {
   expect(render("table")).not.toContain("data-workbench-groups");
   expect(render("table")).toContain("Workholding");
 });
+
+it.each(["1", "2"])("keeps generic furniture version %s hidden without an empty structure group", version => {
+  const optionSchema = workbenchOptions.filter(spec => spec.key === "constructionVersion");
+  const html = renderToStaticMarkup(renderGroups({
+    category: "cabinet", optionSchema, optionValues: { constructionVersion: version }, joineryMode: false, locale: "en",
+  }));
+  expect(html).toBe(`<input type="hidden" name="constructionVersion" value="${version}"/>`);
+});
+
+it("does not add version metadata or an empty container to unversioned furniture", () => {
+  expect(renderToStaticMarkup(renderGroups({
+    category: "cabinet", optionSchema: [], optionValues: {}, joineryMode: false, locale: "en",
+  }))).toBe("");
+});

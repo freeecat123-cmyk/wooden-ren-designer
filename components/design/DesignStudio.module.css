@@ -37,6 +37,16 @@
 .modelPanel :global([data-studio-model]) > div { flex-shrink: 0; border-radius: 0; box-shadow: none; }
 .modelPanel :global([data-studio-model]) > div:has(canvas) { flex: 1 1 0%; height: auto !important; min-height: 260px; border: 0; }
 .modelPanel :global([data-studio-model]) > div:first-child { flex-wrap: wrap; background: #fff; border-color: var(--studio-border); }
+.materialsWorkspace { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
+.materialsWorkspace .modelPanel { height: 360px; border-bottom: 1px solid var(--studio-border); }
+.materialsWorkspace .viewPanel:not([hidden]) { max-height: 560px; overflow: auto; }
+.materialsWorkspace .viewPanel table { min-width: 800px; }
+.materialsWorkspace .viewPanel th { white-space: nowrap; }
+@media (min-width: 1280px) {
+  .materialsWorkspace { grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr); }
+  .materialsWorkspace .modelPanel { height: clamp(480px, calc(100svh - 230px), 900px); border-bottom: 0; border-right: 1px solid var(--studio-border); }
+  .materialsWorkspace .viewPanel:not([hidden]) { max-height: clamp(480px, calc(100svh - 230px), 900px); }
+}
 .sidePanel { position: static; flex-shrink: 0; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; color: inherit; background: #fff; overflow-wrap: anywhere; }
 .sidePanel:not([open]) { display: none; }
 .sidePanel[open] { display: flex; flex-direction: column; }

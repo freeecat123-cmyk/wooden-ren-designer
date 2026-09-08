@@ -1015,7 +1015,7 @@ function GroupedOptionFields({
 }) {
   // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
   const visibleSchema = optionSchema.filter(
-    (s) => isVisible(s, optionValues) && (joineryMode || s.key !== "legPenetratingTenon"),
+    (s) => s.key !== "constructionVersion" && isVisible(s, optionValues) && (joineryMode || s.key !== "legPenetratingTenon"),
   );
   if (category === "workbench") {
     const visibleKeys = new Set(visibleSchema.map((spec) => spec.key));
@@ -1054,8 +1054,15 @@ function GroupedOptionFields({
   const keysInOrder = GROUP_ORDER.filter((k) => grouped.has(k)).concat(
     Array.from(grouped.keys()).filter((k) => !GROUP_ORDER.includes(k)),
   );
+  // Keep legacy geometry metadata in submissions, never as an editable setting.
+  const versionSpec = optionSchema.find((spec) => spec.key === "constructionVersion");
+  const versionField = versionSpec ? (
+    <input type="hidden" name="constructionVersion" value={String(optionValues.constructionVersion ?? versionSpec.defaultValue)} />
+  ) : null;
+  if (keysInOrder.length === 0) return versionField;
   return (
     <div className="mb-4 rounded-xl border border-amber-200/60 bg-white shadow-sm divide-y divide-amber-100/70 overflow-hidden">
+      {versionField}
       {keysInOrder.map((g) => {
         const meta = GROUP_META[g] ?? GROUP_META.misc;
         const specs = grouped.get(g)!;

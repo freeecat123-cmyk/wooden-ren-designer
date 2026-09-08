@@ -261,10 +261,16 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
     <div className={styles.workspace}>
       <StudioPanel id={`${id}-parameters`} panel="parameters" title={text.parameters} closeLabel={text.closeParameters}
         visible={leftVisible} modal={leftModal} trigger={leftTrigger} onClose={closeLeft}>{parameters}</StudioPanel>
-      <div className={styles.views}>
-        {views.map(key => <div key={key} role="tabpanel" id={`${id}-view-${key}`} aria-labelledby={`${id}-tab-${key}`}
-          tabIndex={0} hidden={view !== key} inert={view !== key}
-          className={key === "design" ? styles.modelPanel : styles.viewPanel}>{slots[key]}</div>)}
+      <div className={`${styles.views} ${view === "materials" ? styles.materialsWorkspace : ""}`}>
+        {views.map(key => {
+          const sharedModel = key === "design" && view === "materials";
+          const visible = view === key || sharedModel;
+          return <div key={key} role={sharedModel ? "region" : "tabpanel"} id={`${id}-view-${key}`}
+            aria-labelledby={sharedModel ? undefined : `${id}-tab-${key}`}
+            aria-label={sharedModel ? (locale === "en" ? "3D model" : "3D 模型") : undefined}
+            tabIndex={0} hidden={!visible} inert={!visible}
+            className={key === "design" ? styles.modelPanel : styles.viewPanel}>{slots[key]}</div>;
+        })}
       </div>
       <StudioPanel id={`${id}-inspector`} panel="inspector" title={text.inspector} closeLabel={text.closeInspector}
         visible={rightVisible} modal={rightModal} trigger={rightTrigger} onClose={closeRight}>

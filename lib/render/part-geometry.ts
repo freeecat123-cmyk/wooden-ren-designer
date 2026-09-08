@@ -55,7 +55,7 @@ export type ShapeSpec =
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1; lowerCove?: CurvedTaperLowerCove; sCurve?: boolean }
-  | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number }
+  | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number; profilePoints?: Array<[number, number]> }
   | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number; sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
   | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
@@ -1240,10 +1240,11 @@ export function buildEdgeProfileGeometry(
   waveCount: number = 4,
   topLengthScale: number = 1,
   bottomLengthScale: number = 1,
+  profilePoints?: Array<[number, number]>,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hy = ly / 2;
-  const pts = edgeProfileOutline(lx, lz, style, depth, waveCount, topLengthScale, bottomLengthScale);
+  const pts = edgeProfileOutline(lx, lz, style, depth, waveCount, topLengthScale, bottomLengthScale, profilePoints);
   // CCW 校正（ExtrudeGeometry 側壁法線朝外）
   let area = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -2535,7 +2536,7 @@ export function buildShapeGeometry(
     return buildCurvedTaperGeometry(size, shape.blockHeightMm, shape.shoulderMm, shape.insetMm, shape.dir, shape.dxMm ?? 0, shape.dzMm ?? 0, shape.lowerCove, shape.sCurve);
   }
   if (shape.kind === "edge-profile") {
-    return buildEdgeProfileGeometry(size, shape.style, shape.depthMm, shape.waveCount ?? 4, shape.topLengthScale ?? 1, shape.bottomLengthScale ?? 1);
+    return buildEdgeProfileGeometry(size, shape.style, shape.depthMm, shape.waveCount ?? 4, shape.topLengthScale ?? 1, shape.bottomLengthScale ?? 1, shape.profilePoints);
   }
   if (shape.kind === "top-outline") {
     return buildTopOutlineGeometry(size, shape.style, shape.sizeMm, {
