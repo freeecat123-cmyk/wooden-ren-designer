@@ -75,3 +75,16 @@ describe("木釘接（圓孔對圓孔）", () => {
     expect(r.unmatchedMortises).toHaveLength(2);
   });
 });
+
+describe("木釘接配對先看開口位置（2026-09-09 乙級第一題）", () => {
+  // A 件孔在 P1、P2；B 件孔在 P1、P3；C 件孔在 P2、P3。只看直徑的貪婪法：A 的兩顆先把 B 的兩顆吃掉，C 兩顆落單。
+  const hole = (x: number, z: number) => ({ origin: { x, y: 18, z }, depth: 15, length: 8, width: 8, through: false, shape: "round" as const });
+  it("三件互相木釘接，每顆孔都配到同位置的伴", () => {
+    const r = auditJoints(design([
+      part("A", { origin: { x: 0, y: 0, z: 0 }, mortises: [hole(-40, 0), hole(40, 0)] }),
+      part("B", { origin: { x: 0, y: 18, z: 0 }, mortises: [{ ...hole(-40, 0), origin: { x: -40, y: 0, z: 0 } }, { ...hole(0, 20), origin: { x: 0, y: 0, z: 20 } }] }),
+      part("C", { origin: { x: 0, y: 18, z: 0 }, mortises: [{ ...hole(40, 0), origin: { x: 40, y: 0, z: 0 } }, hole(0, 20)] }),
+    ]));
+    expect(r.unmatchedMortises).toEqual([]);
+  });
+});

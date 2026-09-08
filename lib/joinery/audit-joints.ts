@@ -1,4 +1,5 @@
 import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
+import { partWorldCenter, rotateXYZ } from "@/lib/assembly/joint-world";
 
 /**
  * 榫接 audit：joineryMode 下檢查每個 tenon 找得到對應 mortise（dim 對位）。
@@ -46,6 +47,17 @@ export function auditJoints(design: FurnitureDesign): JointAuditResult {
   const unmatchedMortises: UnmatchedMortise[] = [];
   const allMortises = design.parts.flatMap((p) => p.mortises.map((m) => ({ partId: p.id, m })));
   const consumed = new Set<Mortise>();
+  /** 榫眼 origin 的世界座標（開口點）：木釘接的兩顆孔開口在同一個介面上，世界座標重合 */
+  const worldOrigin = new Map<Mortise, { x: number; y: number; z: number }>();
+  for (const p of design.parts) {
+    const c = partWorldCenter(p);
+    for (const m of p.mortises) {
+      const r = rotateXYZ(p.rotation?.x ?? 0, p.rotation?.y ?? 0, p.rotation?.z ?? 0, m.origin.x, m.origin.y - p.visible.thickness / 2, m.origin.z);
+      worldOrigin.set(m, { x: c.x + r.x, y: c.y + r.y, z: c.z + r.z });
+    }
+  }
+  const DOWEL_POS_TOL = 2;
+  const DOWEL_AXIS_TOL = 12;
 
   /**
    * 一支榫頭「用掉」哪些母榫：
@@ -88,11 +100,28 @@ export function auditJoints(design: FurnitureDesign): JointAuditResult {
    */
   const dowelPartner = (partId: string, m: Mortise): Mortise | null => {
     if (m.shape !== "round" || m.through) return null;
-    for (const { partId: pid, m: other } of allMortises) {
-      if (pid === partId || other === m || other.shape !== "round" || other.through || consumed.has(other)) continue;
-      if (Math.abs(other.length - m.length) < JOINT_DIM_TOL && Math.abs(other.width - m.width) < JOINT_DIM_TOL) return other;
+    const sameDia = (other: Mortise) => Math.abs(other.length - m.length) < JOINT_DIM_TOL && Math.abs(other.width - m.width) < JOINT_DIM_TOL;
+    const candidates = allMortises.filter(({ partId: pid, m: other }) =>
+      pid !== partId && other !== m && other.shape === "round" && !other.through && !consumed.has(other) && sameDia(other));
+    if (!candidates.length) return null;
+    // 先挑「同一支木釘兩端」的那顆：開口點同軸（兩個軸差 ≤2）、沿軸最多差 12（丙級第三題連接木釘跨 10mm 縫）。
+    // 只看直徑的貪婪配對會把 A 件的孔配給 B 件、留 C 件落單（2026-09-09 乙級第一題：50 顆 Ø8 孔配到後板剩 4 顆沒伴）；
+    // 找不到同軸的才退回只看直徑，而且優先配「自己也沒有同軸伴」的孔，不要搶走別人的伴。
+    const me = worldOrigin.get(m);
+    const coaxial = (a: Mortise, b: Mortise) => {
+      const o1 = worldOrigin.get(a), o2 = worldOrigin.get(b);
+      if (!o1 || !o2) return false;
+      const d = [Math.abs(o1.x - o2.x), Math.abs(o1.y - o2.y), Math.abs(o1.z - o2.z)].sort((p, q) => p - q);
+      return d[0] <= DOWEL_POS_TOL && d[1] <= DOWEL_POS_TOL && d[2] <= DOWEL_AXIS_TOL;
+    };
+    if (me) {
+      const near = candidates.find(({ m: other }) => coaxial(m, other));
+      if (near) return near.m;
     }
-    return null;
+    const hasOwnMate = (other: Mortise, pid: string) => allMortises.some(({ partId: p2, m: m2 }) =>
+      p2 !== pid && m2 !== other && m2.shape === "round" && !m2.through && !consumed.has(m2) && m2 !== m && coaxial(other, m2));
+    const orphan = candidates.find(({ partId: pid, m: other }) => !hasOwnMate(other, pid));
+    return (orphan ?? candidates[0]).m;
   };
 
   // 為每個 tenon 找 OTHER part 上的 mortise（dim 對位）
