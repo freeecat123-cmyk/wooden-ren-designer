@@ -35,6 +35,32 @@ const PARAM_OVERRIDES = {
   "open-bookshelf": { length: "600", width: "250", height: "1200" },
 };
 
+// 套組題（丙級檢定）：預設尺寸就是考題答案，介紹頁截圖要把所有帶數字的文字糊掉
+// （木頭仁 2026-09-08：「介紹頁不要把重點尺寸都放出來，不然別人就不用買了」）。線條／版面照舊，只糊字。
+const BLUR_DIGITS = new Set(["cert-c1", "cert-c2", "cert-c3"]);
+async function blurDigits(page) {
+  await page.evaluate(() => {
+    const hasDigit = (t) => /\d/.test(t || "");
+    // SVG <text>：整個元素糊
+    for (const el of document.querySelectorAll("svg text")) {
+      if (hasDigit(el.textContent)) el.style.filter = "blur(2.5px)";
+    }
+    // HTML 文字節點：含數字的整段包起來糊
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      if (n.parentElement && !n.parentElement.closest("svg") && hasDigit(n.nodeValue)) nodes.push(n);
+    }
+    for (const n of nodes) {
+      const span = document.createElement("span");
+      span.style.filter = "blur(4px)";
+      span.textContent = n.nodeValue;
+      n.parentNode.replaceChild(span, n);
+    }
+  });
+}
+
 const SHOTS = [
   {
     key: "threeview",
@@ -98,6 +124,7 @@ async function shoot(slug, shot) {
     }
     await page.waitForSelector(shot.sel, { timeout: shot.selectorTimeout ?? 15000 });
     await page.waitForTimeout(shot.extraWait);
+    if (BLUR_DIGITS.has(slug)) await blurDigits(page);
     const el = page.locator(shot.sel).first();
     await el.scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
