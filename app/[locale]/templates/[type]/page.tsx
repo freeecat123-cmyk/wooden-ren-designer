@@ -40,7 +40,8 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return FEATURED_TEMPLATE_CATEGORIES.map((c) => ({ type: c }));
+  // 開發中／暫不上架的款頁面回 404，不用預先產生（sitemap 也濾了同一份名單）
+  return FEATURED_TEMPLATE_CATEGORIES.filter((c) => !isDevCategory(c)).map((c) => ({ type: c }));
 }
 
 export async function generateMetadata({

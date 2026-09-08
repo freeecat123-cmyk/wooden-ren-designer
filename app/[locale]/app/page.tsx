@@ -4,7 +4,10 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { FURNITURE_CATALOG, catalogForLocale, getEntryName, type FurnitureCatalogEntry } from "@/lib/templates";
+import {
+  FURNITURE_CATALOG, catalogForLocale, getEntryName, type FurnitureCatalogEntry,
+  DEV_CATEGORIES,
+} from "@/lib/templates";
 import { routing, type Locale } from "@/i18n/routing";
 import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
@@ -112,9 +115,9 @@ const DIFFICULTY_DOT = {
 const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
 
 /** 開發中家具:卡片半透明、不可點、上覆「敬請期待」chip */
-const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
-  "chinese-cabinet", "bed", "coat-rack", "wall-mounted-tool-storage",
-]);
+// 單一真相來源 lib/templates DEV_CATEGORIES（2026-09-09：這裡自己抄了一份，乙級第一題「先不要上架」時漏掉，
+// 「全部」分頁照列、可點可買——同一份清單抄六份的老問題，見 lib/templates/index.ts DEV_CATEGORIES 的註解）
+const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([...DEV_CATEGORIES] as FurnitureCategory[]);
 
 function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
   if (chip === "dev") {
