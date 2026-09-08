@@ -552,6 +552,7 @@ export function PerspectiveView({
   selectedPartId = null,
   onPartSelect,
   compactMode = false,
+  initialFit = false,
   wireframeMode = false,
   hidePartIds = [],
   assemblyPlan: assemblyPlanProp = null,
@@ -585,12 +586,13 @@ export function PerspectiveView({
   onPartSelect?: (id: string | null) => void;
   /** 緊湊模式：外層 wrapper 用 w-full h-full 跟著父容器（PIP 用），不用預設 40vh / 520px */
   compactMode?: boolean;
+  initialFit?: boolean;
   /** 線框模式：所有零件渲染成骨架，看內部結構 */
   wireframeMode?: boolean;
   /** Debug：隱藏特定 part.id（用 URL ?hide=wall-front,wall-back 之類驗證 CSG/joint） */
   hidePartIds?: string[];
 }) {
-  const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
+  const [viewPreset, setViewPreset] = useState<ViewPreset | null>(initialFit ? "fit" : null);
   // Hover 高亮（Bot B：context 進來的 part id 集合，emissive 預覽用）
   // 沒 provider 也 fallback 空集合，hook 不會 throw
   const { hoveredPartIds } = useHoveredParts();
@@ -761,6 +763,7 @@ export function PerspectiveView({
     xrayMode,
     selectedPartId,
     compactMode,
+    initialFit,
     wireframeMode,
     hidePartIds.join(","),
     hoveredPartIds,

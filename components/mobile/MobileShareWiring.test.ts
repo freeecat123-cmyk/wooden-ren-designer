@@ -15,13 +15,17 @@ function propsAt(path: string, component: string) {
   return matches;
 }
 
-it("passes the same verified revision and dirty status to desktop and mobile sharing", () => {
+it("uses a single verified share control in the responsive studio", () => {
   const path = "app/[locale]/design/[type]/page.tsx";
-  const desktop = propsAt(path, "ShareDesignButton")[0];
-  const mobile = propsAt(path, "MobileShell")[0];
-  expect(mobile.savedRevision).toBe(desktop.savedRevision);
-  expect(mobile.hasUnsavedChanges).toBe(desktop.hasUnsavedChanges);
-  expect(mobile.currentDesignId).toBe(desktop.savedDesignId);
+  const shares = propsAt(path, "ShareDesignButton");
+  expect(shares).toHaveLength(1);
+  expect(propsAt(path, "MobileShell")).toHaveLength(0);
+  expect(propsAt(path, "DesignStudio")).toHaveLength(1);
+  expect(shares[0]).toMatchObject({
+    savedDesignId: "{currentDesignId}",
+    savedRevision: '{frozen && typeof sp.revision === "string" ? sp.revision : null}',
+    hasUnsavedChanges: "{!frozen}",
+  });
 });
 
 it("connects the mobile share entry to the received saved model identity", () => {

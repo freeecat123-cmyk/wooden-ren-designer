@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -26,6 +27,7 @@ export function SceneThemeToggle({ current }: { current: SceneThemeId }) {
     }
     const qs = params.toString();
     const path = pathname ?? "/";
+    announceDesignNavigation(qs ? `${path}?${qs}` : path);
     router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
   };
 

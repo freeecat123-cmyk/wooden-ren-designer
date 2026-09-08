@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -43,6 +44,7 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
     for (const m of mapping) {
       params.set(m.key, String(m.calc(cm)));
     }
+    announceDesignNavigation(`?${params.toString()}`);
     router.replace(`?${params.toString()}`, { scroll: false });
     setOpen(false);
   };

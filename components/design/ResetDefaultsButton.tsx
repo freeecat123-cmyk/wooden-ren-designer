@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -20,6 +21,7 @@ export function ResetDefaultsButton() {
 
   const handleReset = () => {
     if (window.confirm(t("confirm"))) {
+      announceDesignNavigation(pathname ?? "/");
       router.replace(pathname ?? "/", { scroll: false });
     }
   };

@@ -37,6 +37,7 @@ export function LazyPerspectiveView({
   xrayMode = "off",
   compactMode = false,
   noSync = false,
+  initialFit = false,
   wireframeMode = false,
   hidePartIds = [],
   assemblyPlan = null,
@@ -57,6 +58,7 @@ export function LazyPerspectiveView({
   compactMode?: boolean;
   /** 不同步 SelectedPartContext（頂端參數調整 3D 用，避免被零件 dim 干擾） */
   noSync?: boolean;
+  initialFit?: boolean;
   /** 線框模式：所有零件渲染骨架 */
   wireframeMode?: boolean;
   /** Debug：?hide=wall-front,wall-back URL param 隱藏特定 part */
@@ -68,6 +70,7 @@ export function LazyPerspectiveView({
   return (
     <PerspectiveViewLazy
       design={design}
+      initialFit={initialFit}
       sceneTheme={sceneTheme}
       joineryMode={joineryMode}
       auditMode={auditMode}

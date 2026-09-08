@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
@@ -46,6 +47,7 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
     params.set("length", String(l));
     params.set("width", String(w));
     params.set("height", String(h));
+    announceDesignNavigation(`?${params.toString()}`);
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 

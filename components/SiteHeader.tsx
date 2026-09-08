@@ -41,6 +41,9 @@ export function SiteHeader() {
     setOpen(false);
   }, [pathname]);
 
+  // The studio owns account and unit controls in its responsive toolbar.
+  if (/^\/design\/[^/]+\/?$/.test(pathname ?? "")) return null;
+
   // 設計頁（/design/[type]）跟列印頁不顯示頂部 nav，避免跟編輯器 UI 打架。
   // 但要保留右上角浮動 HeaderUser（設計頁編輯器佈局依賴它）。
   if (

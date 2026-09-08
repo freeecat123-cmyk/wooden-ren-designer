@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -143,6 +144,7 @@ export function DesignHistoryControls({
       const url = new URL(target, window.location.origin);
       const revision = new URLSearchParams(window.location.search).get("revision");
       if (revision) url.searchParams.set("revision", revision);
+      announceDesignNavigation(`${url.pathname}?${url.searchParams}`);
       router.replace(`${url.pathname}?${url.searchParams}`, { scroll: false });
     },
     [router, storageKey],

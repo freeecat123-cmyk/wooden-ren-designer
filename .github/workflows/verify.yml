@@ -35,6 +35,8 @@ jobs:
         run: npm test
         env:
           RUN_EXPORT_BROWSER: "1"
+          RUN_LIBRARY_BROWSER: "1"
+          RUN_STUDIO_QUOTE_BROWSER: "1"
 
       - name: 斷言腳本（tsx）
         run: npm run assert

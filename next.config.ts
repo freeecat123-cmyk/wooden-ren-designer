@@ -4,6 +4,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Allow independent local previews without sharing Next's development lock.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // WebGL Canvas (three.js/r3f) can't survive strict-mode double-mount:
   // the first mount's GL context gets lost, and Chromium refuses to
   // grant a new one to the second mount. Result: blank 透視圖 in dev.

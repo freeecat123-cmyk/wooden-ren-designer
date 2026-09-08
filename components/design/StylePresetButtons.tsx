@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -113,6 +114,7 @@ export function StylePresetButtons({
         next.set(k, String(v));
       }
     });
+    announceDesignNavigation(`${pathname}?${next.toString()}`);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
     // 強制 RSC 重新 fetch——預設 replace 在純 client 路徑可能 cache stale
     // server props，導致表單不重新拿 optionValues（看起來像「按了沒反應」）

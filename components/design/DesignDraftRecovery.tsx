@@ -1,4 +1,5 @@
 "use client";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -73,6 +74,7 @@ export function DesignDraftRecovery() {
         draft.delete("loadSaved");
         const id = searchParams.get("designId");
         if (id) draft.set("designId", id); else draft.delete("designId");
+        announceDesignNavigation(`${pathname}?${draft}`);
         router.replace(`${pathname}?${draft}`, { scroll: false });
         setRecovery(null);
       }}>{en ? "Restore draft" : "恢復草稿"}</button>

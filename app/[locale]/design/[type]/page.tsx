@@ -23,7 +23,13 @@ import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, 
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
 import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
-import { Material3dPip } from "@/components/Material3dPip";
+import { DesignStudio } from "@/components/design/DesignStudio";
+import { StudioActionGuard } from "@/components/design/StudioActionGuard";
+import { StudioQuote } from "@/components/quote/StudioQuote";
+import { FolderOpen, Printer } from "lucide-react";
+import { HeaderUser } from "@/components/auth/HeaderUser";
+import { UnitToggle } from "@/components/UnitToggle";
+import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
@@ -71,10 +77,6 @@ import {
   parseDesignSearchParams,
   designParamsToQuery,
 } from "@/lib/design/parse-search-params";
-import { MobileShell } from "@/components/mobile/MobileShell";
-import { calculateQuote } from "@/lib/pricing/quote";
-import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
-import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatMm, formatDimensions } from "@/lib/units/format";
 import { bilingualAlternates } from "@/i18n/metadata";
@@ -194,6 +196,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     redirect(`/${locale}/design/${saved.furniture_type.replace(/_/g, "-")}?${query}`);
   }
   let profile = null;
+  let savedName: string | null = null;
+  if (user && currentDesignId) {
+    const { data: ownedDesign } = await supabase.from("designs").select("name")
+      .eq("id", currentDesignId).eq("user_id", user.id).maybeSingle();
+    savedName = ownedDesign?.name ?? null;
+  }
   let unlockedCategories: string[] = [];
   if (user) {
     const { data } = await supabase
@@ -265,7 +273,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   // 2026-05-13 全面上線：mobile shell 預設啟用。`?ui=v1` 留作逃生口
   // （desktop ≥768px 永遠走舊版，由 md:hidden / hidden md:block CSS 控制，不靠這個 flag）
-  const uiV2 = (Array.isArray(sp.ui) ? sp.ui[0] : sp.ui) !== "v1";
 
   // 範例預覽鎖：丟掉 URL 的 length/width/height + 所有 option key，只留材料 / 視圖
   // 類參數，讓 parser 把尺寸與結構選項全部 fallback 到模板預設值（= 鎖在範例）。
@@ -384,31 +391,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const printQuery = preserveSavedReference(frozen ? savedDesignQuery(currentDesignId!, savedInputs) : designParamsToQuery(parsed, entry), sp);
 
-  // MobileShell 需要的 server 端計算
-  let mobileTotalPrice = 0;
-  let mobileWeight = 0;
-  if (uiV2) {
-    try {
-      const quote = calculateQuote(design, {
-        ...LABOR_DEFAULTS,
-        primaryMaterialPricePerBdft: MATERIAL_PRICE_PER_BDFT[material] ?? 300,
-      });
-      mobileTotalPrice = quote.total;
-    } catch (e) {
-      console.warn("[MobileShell] calculateQuote failed, falling back to 0", e);
-    }
-    mobileWeight = estimateWeight(design);
-  }
-
   const designUrl = `/design/${entry.category}`;
   // printQuery 已用 designParamsToQuery 序列化所有 optionValues（layoutMode / doorType / etc.）
   // 舊 baseQuoteParams 只帶 4 個基本參數，會讓報價頁全部 fallback 預設值，金額錯誤。
   const quoteUrl = `${designUrl}/quote?${printQuery.toString()}`;
   const cutPlanUrl = `${designUrl}/cut-plan?${printQuery.toString()}`;
-  const printUrl = `${quoteUrl}&print=1`;
   const entryName = getEntryName(entry, locale);
-  const entryDesc = getEntryDescription(entry, locale) ?? "";
-  const lineShareText = t("jsonLd.shareText", { name: entryName, length, width, height });
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
   const breadcrumbJsonLd = {
@@ -484,399 +472,120 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
     />
-    <div className={uiV2 ? "hidden md:block" : "block"}>
-    <main className="max-w-7xl mx-auto px-6 py-6">
-      <div className="flex items-center gap-4 flex-wrap">
-        <Link href="/app" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">
-          <span className="transition-transform group-hover:-translate-x-0.5">←</span> {t("back").replace(/^← ?/, "")}
-        </Link>
-        {/* /templates/[type] 只在 zh-TW 存在（marketing.ts 還沒翻），/en 不顯示這個連結 */}
-        {locale === routing.defaultLocale && FEATURED_TEMPLATE_CATEGORIES.includes(entry.category) && (
-          <Link href={`/templates/${entry.category}`} className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 transition-colors">
-            <span aria-hidden>📖</span>
-            {t("detailedIntro", { name: entryName })}
-          </Link>
-        )}
-      </div>
-
-      <header className="mt-3 mb-5 rounded-2xl border border-amber-200/70 bg-white/80 shadow-sm shadow-amber-900/5 px-5 py-4 flex items-center justify-between flex-wrap gap-4">
-        <div className="min-w-0">
-          <h1 className="font-serif-tc text-[1.7rem] leading-tight font-bold tracking-tight text-zinc-900">{entryName}</h1>
-          <p className="mt-1.5 text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span>{entryDesc}</span>
-            <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{formatDimensions(length, width, height, unit)}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{materialName(material, locale)}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{t("header.piecesCount", { count: design.parts.filter((p) => p.visual === undefined).length })}</span>
-            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title={t("header.weightTitle")}>{t("header.weightApprox", { kg: estimateWeight(design) })}</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* <AskMasterButton
-            category={type as FurnitureCategory}
-            defaults={{ length, width, height }}
-          /> */}
-          <ShareDesignButton
-            category={type as FurnitureCategory}
-            defaults={{ length, width, height }}
-            savedDesignId={currentDesignId}
-            savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
-            hasUnsavedChanges={!frozen}
-          />
-          <DesignHistoryControls />
-          {/* <PhotoToParamsButton /> */}
-          <SaveDesignButton
-            furnitureType={type}
-            defaultName={`${entryName} ${length}×${width}×${height}`}
-            currentDesignId={currentDesignId}
-            params={saveParams}
-          />
-          {previewLocked ? (
-            <>
-              <Link
-                href={`/pricing?locked=${type}`}
-                className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700/60 text-white rounded-lg text-xs font-medium shadow-sm hover:bg-emerald-700 transition-all"
-              >
-                🔒 {t("header.quoteBtn")}
-              </Link>
-              <Link
-                href={`/pricing?locked=${type}`}
-                className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900/60 text-white rounded-lg text-xs font-medium shadow-sm hover:bg-zinc-900 transition-all"
-              >
-                🔒 {t("header.printBtn")}
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                href={`/design/${type}/quote?${printQuery.toString()}`}
-                target="_blank"
-                className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-emerald-900/20 hover:bg-emerald-800 hover:shadow-md transition-all"
-              >
-                {t("header.quoteBtn")}
-              </Link>
-              <Link
-                href={`/design/${type}/print?${printQuery.toString()}`}
-                target="_blank"
-                className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-medium shadow-sm shadow-black/20 hover:bg-zinc-700 hover:shadow-md transition-all"
-              >
-                {t("header.printBtn")}
-              </Link>
-            </>
-          )}
-        </div>
-      </header>
-
-      {clampedDims.length > 0 && (
-        <div className="mb-4 rounded-lg border-2 border-rose-400 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-          <div className="flex items-start gap-2">
-            <span className="text-base leading-none mt-0.5">🔒</span>
-            <div className="flex-1">
-              <div className="font-semibold mb-1">{t("clamp.title")}</div>
-              <ul className="list-disc pl-5 space-y-0.5 text-xs">
-                {clampedDims.map((c) => (
-                  <li key={c.dim}>
-                    {c.dim}: {c.from} mm <span className="text-rose-500">→</span> {c.to} mm
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-2 text-xs">
-                {t("clamp.footer")}
-                <Link href="/pricing" className="font-semibold underline hover:text-rose-700">
-                  {t("clamp.upgrade")}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {design.warnings && design.warnings.length > 0 && (
-        <div className="mb-4 rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <div className="flex items-start gap-2">
-            <span className="text-base leading-none mt-0.5">⚠️</span>
-            <div className="flex-1">
-              <div className="font-semibold mb-1">{frozen
-                ? (locale === "en" ? "Saved model warnings (original geometry preserved)" : "儲存模型的提醒（保留原模型，未重新修正）")
-                : t("warnings.title")}</div>
-              <ul className="list-disc pl-5 space-y-0.5 text-xs">
-                {design.warnings.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <DeflectionHints parts={design.parts} />
-
-      {design.suggestions && design.suggestions.length > 0 && (
-        <SuggestionsBox suggestions={design.suggestions} />
-      )}
-
-      {/* 主視覺：
-          desktop = 左參數右 3D（3D sticky top-4）
-          mobile = 3D 黏頂端 sticky（高度 40vh），參數表單在下方捲動 */}
-      <SelectedPartProvider>
+    <SelectedPartProvider>
       <HoveredPartsProvider>
-      <section className="lg:grid lg:grid-cols-[5fr_7fr] gap-4">
-        {/* 3D 區塊：DOM 第一順位 → mobile 自動在上；desktop 用 grid 顯式放到右欄 row 1 */}
-        <div
-          className="
-            sticky top-0 z-20 -mx-6 px-6 pb-2 bg-[#fafaf7]
-            lg:relative lg:top-4 lg:mx-0 lg:px-0 lg:pb-0 lg:bg-transparent
-            lg:col-start-2 lg:row-start-1 lg:sticky lg:self-start
-          "
-        >
-          <div className="rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
-              <span className="w-1 h-4 bg-amber-500 rounded-full" />
-              {t("section.perspective")}
-              <span className="text-[10px] font-normal text-zinc-400">{t("section.perspectiveHint")}</span>
-            </div>
-            <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} noSync />
-            {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) && (
-              <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />
-            )}
-            {isAdmin || getPlanFeatures(profile).canDownloadPdf ? (
-              <TemplatePackButton design={design} />
-            ) : (
-              <Link
-                href={`/pricing?locked=${type}`}
-                className="block border-t border-zinc-100 px-4 py-2.5 text-[11px] text-zinc-500 hover:bg-zinc-50 hover:text-[#A47A64] transition-colors"
-              >
-                {t("templatePack.lockedCta")}
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* 參數表單：DOM 第二順位 → mobile 在 3D 下方；desktop grid 顯式放到左欄 row 1 */}
-        <div className="mt-3 lg:mt-0 lg:col-start-1 lg:row-start-1">
-          {/* 紅酒架 builder 忽略 URL 的 length/width/height、從 bw/bt/bd 推導 overall。
-             把「整體尺寸」三欄綁到 design.overall 而非 URL 值，這樣拉 bw/bt 上面寬/深/高
-             即時跟著變、UI 不會說謊。其他模板 overall 多半 === input，但少數 derive
-             (coat-rack/pencil-holder/dovetail-box/bookend/photo-frame)，避免 regression
-             僅白名單 wine-rack。 */}
-          <ParameterForm
-            type={type}
-            defaults={
-              type === "wine-rack"
-                ? {
-                    length: design.overall.length,
-                    width: design.overall.width,
-                    height: design.overall.thickness,
-                    material,
-                  }
-                : { length, width, height, material }
-            }
-            limits={designerMode ? undefined : entry.limits}
-            optionSchema={optionSchema}
-            optionValues={options}
-            joineryMode={joineryMode}
-            designerMode={designerMode}
-            canUseDesignerMode={canUseDesignerMode}
-            previewLocked={previewLocked}
-            allPartIds={design.parts.map((p) => p.id)}
-            locale={locale}
-            unit={unit}
-          />
-        </div>
-      </section>
-
-      <section data-section="threeview" className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
-          <span className="w-1 h-4 bg-amber-500 rounded-full" />
-          {t("section.threeView")}
-          <span className="ml-auto text-[10px] font-normal text-zinc-400">
-            {t("section.threeViewHint")}
-          </span>
-        </div>
-        <div className="p-3">
-          <ZoomableThreeViews design={design} joineryMode={joineryMode} />
-        </div>
-      </section>
-
-      {/* 零件圖（Phase 1 Task 7）：榫接 / 非方料 零件出獨立工程圖卡，卡片 → modal
-          一律走榫接版（applyEdgeProtection），不吃 toBeginnerMode strip——零件圖
-          是給師傅看的製作圖，組裝版 strip 會把腳 / 牙條的 tenon/mortise 砍掉，
-          導致 needsPartDrawing 全 false 只剩 shape 件出現。
-          全模板零件圖已上線（2026-06-05）。 */}
-      <PartDrawingsPanel design={design} />
-
-      {/* 下半：施工備料（按需展開） */}
-      {/* 注意：此 details 不能用 overflow-hidden —— 內含 sticky 3D，
-          overflow!=visible 的祖先會讓 position:sticky 失效。圓角靠 summary
-          的 rounded-t + 材料單欄的 rounded-b 各自處理。 */}
-      <details data-section="cutlist" className="group/d mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5" open>
-        <summary className="cursor-pointer list-none rounded-t-2xl px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
-          <span className="font-semibold text-zinc-800 flex items-center gap-2">
-            <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {t("section.cutList")}
-            <span className="text-[10px] font-normal text-zinc-400">{t("section.cutListHint", { count: design.parts.filter((p) => p.visual === undefined).length })}</span>
-          </span>
-          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
-        </summary>
-        <div className="border-t border-amber-100">
-          <div className="px-4 py-2.5 bg-amber-50/40 border-b border-amber-100 flex items-center justify-between text-[11px] text-zinc-500">
-            <span>{t("section.cutListNotice")}</span>
-            <Link
-              href={`/design/${type}/cut-plan?${printQuery.toString()}`}
-              target="_blank"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 text-white rounded-lg text-[11px] font-medium shadow-sm shadow-amber-900/20 hover:bg-amber-700 hover:shadow-md transition-all"
-            >
-              {t("section.cutPlanBtn")}
+        <StudioActionGuard key={type} locale={locale} resolvedSearch={new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
+          value === undefined ? [] : (Array.isArray(value) ? value : [value]).map(item => [key, item] as [string, string]))).toString()}>
+        <DesignStudio
+          locale={locale}
+          unit={unit}
+          design={design}
+          title={savedName || entryName}
+          toolbar={<>
+            <Link href="/account/designs" className="inline-flex min-h-10 items-center gap-2 px-2 text-sm">
+              <FolderOpen size={16} aria-hidden />{locale === "en" ? "My designs" : "我的設計"}
             </Link>
-          </div>
-          {/* desktop 雙欄：左清單右 sticky 3D；mobile 單欄 + Material3dPip 浮窗 */}
-          <div className="lg:grid lg:grid-cols-[7fr_5fr] lg:gap-4">
-            <div data-pip-area className="lg:col-start-1 lg:row-start-1 min-w-0 rounded-b-2xl overflow-hidden">
-              <MaterialListWithSelection design={design} />
+            <DesignHistoryControls />
+            <div data-studio-persistence><SaveDesignButton furnitureType={type} defaultName={savedName || `${entryName} ${length}×${width}×${height}`}
+              currentDesignId={currentDesignId} params={saveParams} /></div>
+            <ShareDesignButton category={type as FurnitureCategory} defaults={{ length, width, height }}
+              savedDesignId={currentDesignId} savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
+              hasUnsavedChanges={!frozen} />
+            <Link data-studio-output href={previewLocked ? `/pricing?locked=${type}` : `/design/${type}/print?${printQuery}`}
+              target="_blank" className="inline-flex min-h-10 items-center gap-2 rounded-md bg-zinc-900 px-3 text-sm text-white">
+              <Printer size={16} aria-hidden />{locale === "en" ? "Print" : "列印"}
+            </Link>
+            <UnitToggle />
+            <CurrencyToggle />
+            <HeaderUser />
+          </>}
+          notices={<>
+            {clampedDims.length > 0 && <div role="status" className="border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              <strong>{t("clamp.title")}</strong>
+              <ul>{clampedDims.map(c => <li key={c.dim}>{c.dim}: {c.from} → {c.to} mm</li>)}</ul>
+              <Link href="/pricing" className="underline">{t("clamp.upgrade")}</Link>
+            </div>}
+            {!!design.warnings?.length && <details className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <summary className="cursor-pointer font-medium">{frozen
+                ? (locale === "en" ? "Saved model warnings" : "儲存模型的提醒")
+                : t("warnings.title")} ({design.warnings.length})</summary>
+              <ul className="mt-2 list-disc space-y-1 pl-5">{design.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            </details>}
+            <DeflectionHints parts={design.parts} />
+            {!!design.suggestions?.length && <SuggestionsBox suggestions={design.suggestions} />}
+          </>}
+          parameters={<ParameterForm type={type}
+            defaults={type === "wine-rack"
+              ? { length: design.overall.length, width: design.overall.width, height: design.overall.thickness, material }
+              : { length, width, height, material }}
+            limits={designerMode ? undefined : entry.limits}
+            optionSchema={optionSchema} optionValues={options} joineryMode={joineryMode}
+            designerMode={designerMode} canUseDesignerMode={canUseDesignerMode}
+            previewLocked={previewLocked} allPartIds={design.parts.map(p => p.id)} locale={locale} unit={unit} />}
+          model={<div data-studio-model>
+            <SceneThemeToggle current={sceneId} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode}
+              initialFit
+              auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode}
+              wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />
+            <div className="flex flex-wrap items-center gap-2 border-t border-zinc-200 bg-white p-2" data-studio-exports data-studio-output>
+              {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) &&
+                <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />}
+              {isAdmin || getPlanFeatures(profile).canDownloadPdf
+                ? <TemplatePackButton design={design} />
+                : <Link href={`/pricing?locked=${type}`} className="px-3 py-2 text-xs text-zinc-600">{t("templatePack.lockedCta")}</Link>}
             </div>
-            {/* 外層 grid 格子撐滿（= 材料單高度），內層 sticky wrapper 才黏得住整段捲動 */}
-            <div className="hidden lg:block lg:col-start-2 lg:row-start-1">
-              <div className="lg:sticky lg:top-4 lg:px-3 lg:py-3">
-                <div className="rounded-xl border border-amber-200/70 bg-white shadow-sm overflow-hidden">
-                  <div className="px-3 py-2 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-[11px] font-semibold text-zinc-700 flex items-center gap-2">
-                    <span className="w-1 h-3.5 bg-amber-500 rounded-full" />
-                    {t("section.preview3d")}
-                  </div>
-                  <SceneThemeToggle current={sceneId} />
-                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />
-                </div>
-              </div>
+          </div>}
+          drawings={<div className="space-y-6">
+            <section data-section="threeview">
+              <h2 className="mb-3 text-base font-semibold">{t("section.threeView")}</h2>
+              <ZoomableThreeViews design={design} joineryMode={joineryMode} />
+            </section>
+            <PartDrawingsPanel design={design} />
+            <section>
+              <h2 className="mb-3 text-base font-semibold">{joineryMode ? t("section.joineryDetail") : t("section.joineryAssembly")}</h2>
+              {joineryMode ? <JoinerySection design={design} locale={locale} /> : <div className="text-sm leading-relaxed text-zinc-700">
+                <p className="mb-2 font-medium">{t("noJoinery.h")}</p>
+                <ul className="list-disc space-y-2 pl-5">
+                  <li><b>{t("noJoinery.row1Lead")}</b>{t("noJoinery.row1Body")}</li>
+                  <li><b>{t("noJoinery.row2Lead")}</b>{t("noJoinery.row2Body")}</li>
+                  <li><b>{t("noJoinery.row3Lead")}</b>{t("noJoinery.row3Body")}</li>
+                  <li><b>{t("noJoinery.row4Lead")}</b>{t("noJoinery.row4Body")}</li>
+                  <li><b>{t("noJoinery.row5Lead")}</b>{t("noJoinery.row5Body")}</li>
+                </ul>
+              </div>}
+            </section>
+          </div>}
+          materials={<section data-section="cutlist">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">{t("section.cutList")}</h2>
+              <Link data-studio-output href={cutPlanUrl} target="_blank"
+                className="inline-flex min-h-10 items-center rounded-md bg-emerald-700 px-3 text-sm text-white">{t("section.cutPlanBtn")}</Link>
             </div>
-          </div>
-          {/* mobile only：scroll 進材料區出現頂端 banner */}
-          <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} compactMode />
-          </Material3dPip>
-        </div>
-      </details>
-      </HoveredPartsProvider>
-      </SelectedPartProvider>
-
-      <details className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
-          <span className="font-semibold text-zinc-800 flex items-center gap-2">
-            <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {joineryMode ? t("section.joineryDetail") : t("section.joineryAssembly")}
-          </span>
-          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
-        </summary>
-        <div className="border-t border-amber-100 p-4">
-          {joineryMode ? (
-            <JoinerySection design={design} locale={locale} />
-          ) : (
-            <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
-              <p className="font-semibold mb-2">{t("noJoinery.h")}</p>
-              <ul className="space-y-1.5 list-disc list-inside ml-1">
-                <li><b>{t("noJoinery.row1Lead")}</b>{t("noJoinery.row1Body")}</li>
-                <li><b>{t("noJoinery.row2Lead")}</b>{t("noJoinery.row2Body")}</li>
-                <li><b>{t("noJoinery.row3Lead")}</b>{t("noJoinery.row3Body")}</li>
-                <li><b>{t("noJoinery.row4Lead")}</b>{t("noJoinery.row4Body")}</li>
-                <li><b>{t("noJoinery.row5Lead")}</b>{t("noJoinery.row5Body")}</li>
-              </ul>
-              <p className="mt-3 text-xs text-emerald-700">
-                {t("noJoinery.tools")}
-              </p>
-              <p className="mt-2 text-xs text-emerald-600">
-                {t("noJoinery.switchHint")}
-              </p>
-            </div>
-          )}
-        </div>
-      </details>
-
-      <details className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
-          <span className="font-semibold text-zinc-800 flex items-center gap-2">
-            <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {t("section.toolList")}
-          </span>
-          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
-        </summary>
-        <div className="border-t border-amber-100 p-4">
-          <ToolList design={design} locale={locale} />
-        </div>
-      </details>
-
-      <details data-section="steps" open className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
-          <span className="font-semibold text-zinc-800 flex items-center gap-2">
-            <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {t("section.buildSteps")}
-          </span>
-          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
-        </summary>
-        <div className="border-t border-amber-100 p-4">
-          <BuildSteps design={design} locale={locale} />
-        </div>
-      </details>
-
-      {/* 相關範本 — 同類別其他家具，內部連結提權 + UX「也想做這些嗎」入口 */}
-      {relatedTemplates.length > 0 && (
-        <section className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/40 px-5 py-4">
-          <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2 mb-3">
-            <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {t("section.related")}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {relatedTemplates.map((r) => (
-              <Link
-                key={r.category}
-                href={`/design/${r.category}`}
-                target="_blank"
-                rel="noopener"
-                className="group rounded-xl bg-white ring-1 ring-amber-900/10 px-4 py-3 hover:ring-amber-400 hover:shadow-md transition"
-              >
-                <div className="font-semibold text-zinc-900 group-hover:text-amber-800 transition">
-                  {getEntryName(r, locale)} {t("related.linkSuffix")}
-                </div>
-                <div className="mt-1 text-xs text-zinc-500 line-clamp-2">
-                  {getEntryDescription(r, locale) ?? ""}
-                </div>
+            <MaterialListWithSelection design={design} />
+          </section>}
+          build={<div className="space-y-8">
+            <section data-section="steps">
+              <h2 className="mb-4 text-base font-semibold">{t("section.buildSteps")}</h2>
+              <BuildSteps design={design} locale={locale} />
+            </section>
+            <section>
+              <h2 className="mb-4 text-base font-semibold">{t("section.toolList")}</h2>
+              <ToolList design={design} locale={locale} />
+            </section>
+          </div>}
+          quote={isAdmin || getPlanFeatures(profile).canUseQuoteSystem
+            ? <StudioQuote design={design} locale={locale} quoteHref={localePath(quoteUrl, locale)} allowed />
+            : <div className="py-8">
+              <h2 className="mb-3 text-base font-semibold">{locale === "en" ? "Quote" : "報價"}</h2>
+              <Link href={`/pricing?locked=${type}`} className="inline-flex min-h-11 items-center rounded-md bg-emerald-700 px-4 text-sm text-white">
+                {locale === "en" ? "View quote plans" : "查看報價方案"}
               </Link>
-            ))}
-          </div>
-        </section>
-      )}
-    </main>
-    </div>
-    {uiV2 && (
-      <MobileShell
-        entry={{ category: entry.category, nameZh: entry.nameZh, nameEn: entry.nameEn, description: entry.description, descriptionEn: entry.descriptionEn, difficulty: entry.difficulty, defaults: entry.defaults, limits: entry.limits, optionSchema: entry.optionSchema }}
-        design={design}
-        length={length}
-        width={width}
-        height={height}
-        material={material}
-        optionValues={options}
-        totalPrice={mobileTotalPrice}
-        weight={mobileWeight}
-        designUrl={designUrl}
-        quoteUrl={quoteUrl}
-        cutPlanUrl={cutPlanUrl}
-        printUrl={printUrl}
-        lineShareText={lineShareText}
-        formAction={`/${locale}/design/${entry.category}`}
-        currentDesignId={currentDesignId}
-        savedRevision={frozen && typeof sp.revision === "string" ? sp.revision : null}
-        hasUnsavedChanges={!frozen}
-        saveParams={saveParams}
-        wireframeMode={wireframeMode}
-        joineryMode={joineryMode}
-        designerMode={designerMode}
-        canUseDesignerMode={canUseDesignerMode}
-        previewLocked={previewLocked}
-        sceneId={sceneId}
-        lidLiftMm={lidLiftMm}
-        explodeMm={explodeMm}
-        xrayMode={xrayMode}
-        assemblyPlan={assemblyPlan}
-      />
-    )}
+            </div>}
+        />
+        </StudioActionGuard>
+      </HoveredPartsProvider>
+    </SelectedPartProvider>
     </>
   );
 }
@@ -1059,7 +768,8 @@ async function ParameterForm({
   return (
     <DesignFormShell
       action={localePath(`/design/${type}`, locale)}
-      className="p-5 rounded-2xl border border-amber-200/70 bg-amber-50/50 shadow-md shadow-amber-900/5"
+      expectedValues={{ ...optionValues, ...defaults, joineryMode, designerMode }}
+      className="studio-parameter-form space-y-4 p-3 text-sm"
     >
       {previewLocked && (
         <div className="mb-5 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100/60 p-4">
@@ -1083,102 +793,29 @@ async function ParameterForm({
         </div>
       )}
       {type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (
-        <fieldset className="mb-5">
-          <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
-            <span className="w-1 h-4 bg-amber-500 rounded-full" />
-            {t("joineryMethodLegend")}
-            <span className="text-[10px] font-normal text-zinc-400">{t("joineryMethodHint")}</span>
-          </legend>
-          <div className="grid grid-cols-2 gap-2.5">
-            <label
-              className={`flex flex-col gap-1 p-3 rounded-xl cursor-pointer ring-2 transition-all ${
-                !joineryMode
-                  ? "ring-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-900/10"
-                  : "ring-zinc-200 bg-white hover:ring-emerald-300 hover:bg-emerald-50/40"
-              }`}
-            >
-              <input
-                type="radio"
-                name="joineryMode"
-                value=""
-                defaultChecked={!joineryMode}
-                className="sr-only"
-              />
-              <div className="text-sm font-semibold text-emerald-900 flex items-center gap-1">
-                {t("modeAssemblyLabel")}
-                <span className="text-[10px] font-normal text-emerald-700 ml-auto">{t("modeAssemblyBadge")}</span>
-              </div>
-              <div className="text-[11px] text-emerald-800 leading-relaxed">
-                {t("modeAssemblyDesc")}
-              </div>
+        <fieldset className="mb-4">
+          <legend className="mb-2 text-sm font-semibold text-zinc-800">{t("joineryMethodLegend")}</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <label className={`flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm ${!joineryMode ? "border-emerald-600 bg-emerald-50 text-emerald-900" : "border-zinc-200"}`}>
+              <input type="radio" name="joineryMode" value="" defaultChecked={!joineryMode} className="accent-emerald-700" />
+              {locale === "en" ? "Assembly" : "組裝"}
             </label>
-            <label
-              className={`flex flex-col gap-1 p-3 rounded-xl cursor-pointer ring-2 transition-all ${
-                joineryMode
-                  ? "ring-amber-500 bg-amber-100/70 shadow-sm shadow-amber-900/10"
-                  : "ring-zinc-200 bg-white hover:ring-amber-300 hover:bg-amber-50/50"
-              }`}
-            >
-              <input
-                type="radio"
-                name="joineryMode"
-                value="true"
-                defaultChecked={joineryMode}
-                className="sr-only"
-              />
-              <div className="text-sm font-semibold text-amber-900 flex items-center gap-1">
-                {t("modeJoineryLabel")}
-                <span className="text-[10px] font-normal text-amber-700 ml-auto">{t("modeJoineryBadge")}</span>
-              </div>
-              <div className="text-[11px] text-amber-800 leading-relaxed">
-                {t("modeJoineryDesc")}
-              </div>
+            <label className={`flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm ${joineryMode ? "border-emerald-600 bg-emerald-50 text-emerald-900" : "border-zinc-200"}`}>
+              <input type="radio" name="joineryMode" value="true" defaultChecked={joineryMode} className="accent-emerald-700" />
+              {locale === "en" ? "Joinery" : "榫接"}
             </label>
           </div>
         </fieldset>
       )}
-      <fieldset className="mb-5 rounded-xl border border-amber-300/70 bg-white/70 p-3.5 shadow-sm shadow-amber-900/5">
-        <legend className="text-xs text-amber-900 px-2 font-semibold bg-amber-100 rounded-md py-0.5">
-          {t("designerLegend")}
-        </legend>
-        {canUseDesignerMode ? (
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              name="designerMode"
-              value="true"
-              defaultChecked={designerMode}
-              className="mt-0.5 h-4 w-4 accent-amber-600 shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-amber-900 leading-relaxed">
-                {t("designerOnDesc")}
-              </div>
-              {designerMode && (
-                <div className="mt-1.5 text-[10px] text-amber-700 leading-relaxed">
-                  {t("designerOnWarning")}
-                </div>
-              )}
-            </div>
-          </label>
-        ) : (
-          <div className="flex items-start gap-2">
-            <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-amber-300 bg-white flex items-center justify-center text-[10px] text-amber-600">
-              🔒
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-amber-900 leading-relaxed">
-                {t("designerLockedDesc")}
-              </div>
-              <div className="mt-1.5 text-[11px] text-amber-800">
-                {t("designerProPrefix")}<span className="font-semibold">{t("designerProName")}</span>{t("designerProSuffix")}
-                <Link href="/pricing" className="ml-1 underline font-medium hover:text-amber-900">
-                  {t("designerProLink")}
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
+      <fieldset className="mb-4">
+        {canUseDesignerMode ? <label className="flex min-h-10 items-center gap-2 text-sm">
+          <input type="checkbox" name="designerMode" value="true" defaultChecked={designerMode} className="accent-emerald-700" />
+          {locale === "en" ? "Custom dimensions" : "自由尺寸"}
+        </label> : <div className="flex items-center justify-between gap-2 text-xs text-zinc-600">
+          <span>{locale === "en" ? "Custom dimensions" : "自由尺寸"}</span>
+          <Link href="/pricing" className="py-2 text-emerald-700 underline">{t("designerProLink")}</Link>
+        </div>}
+        {designerMode && <p className="mt-1 text-xs text-zinc-600">{t("designerOnWarning")}</p>}
       </fieldset>
       <fieldset disabled={previewLocked} className={lockCls}>
       <div className="mb-4 pb-3 border-b border-amber-200/60 flex items-center justify-between gap-2">
@@ -1240,8 +877,8 @@ async function ParameterForm({
       })()}
       </fieldset>
       <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
-        <label className="flex items-center gap-1.5 shrink-0">
-          <span className="text-zinc-600 font-medium">{t("wood")}</span>
+        <label className="flex w-full items-center gap-2">
+          <span className="shrink-0 text-zinc-600 font-medium">{t("wood")}</span>
           <select
             key={`material-${defaults.material}`}
             name="material"

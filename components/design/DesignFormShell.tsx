@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { workbenchPresetValues } from "@/lib/templates/workbench-presets";
 import { workbenchHeightFor } from "@/lib/knowledge/ergonomics";
+import { announceDesignNavigation } from "@/lib/design/navigation-pending";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
  *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset。
@@ -64,10 +65,12 @@ export function DesignFormShell({
   action,
   children,
   className,
+  expectedValues,
 }: {
   action: string;
   children: React.ReactNode;
   className?: string;
+  expectedValues?: Record<string, string | number | boolean>;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -128,8 +131,16 @@ export function DesignFormShell({
       });
     // scroll: false 防止 Next.js 預設行為——router.replace 會把頁面捲回最上面，
     // 改參數時就會「跳掉看不到剛編輯的欄位」，嚴重影響操作。
+    announceDesignNavigation(`${action}?${params.toString()}`);
     router.replace(`${action}?${params.toString()}`, { scroll: false });
   }, [action, router, sp]);
+
+  useEffect(() => {
+    const form = formRef.current;
+    const flush = () => { clearTimeout(timerRef.current); pushURL(); };
+    form?.addEventListener("wooden-ren:flush-design", flush);
+    return () => form?.removeEventListener("wooden-ren:flush-design", flush);
+  }, [pushURL]);
 
   const isInputFocused = (target: EventTarget | null): target is HTMLInputElement | HTMLTextAreaElement => {
     if (!(target instanceof HTMLElement)) return false;
@@ -273,6 +284,7 @@ export function DesignFormShell({
   return (
     <form
       data-design-form
+      data-design-baseline={expectedValues ? JSON.stringify(expectedValues) : undefined}
       ref={formRef}
       method="get"
       action={action}

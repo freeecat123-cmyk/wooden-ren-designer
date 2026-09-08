@@ -1,229 +1,164 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { FolderOpen, LayoutGrid, List, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { createClient } from "@/lib/supabase/client";
-import { getTemplate } from "@/lib/templates";
-import type { FurnitureCategory } from "@/lib/types";
 import { useUnit } from "@/hooks/useUnit";
 import { formatDimensions } from "@/lib/units/format";
-
-interface DesignRow {
-  id: string;
-  furniture_type: string;
-  name: string | null;
-  params: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function buildEditHref(row: DesignRow): string {
-  const slug = row.furniture_type.replace(/_/g, "-");
-  return `/design/${slug}?designId=${encodeURIComponent(row.id)}&loadSaved=1`;
-}
+import { buildEditHref, categoryImage, categoryName, designName, fetchAllDesigns, normalizeCategory, selectDesigns, type DesignRow, type DesignSort } from "./design-library/library";
+import { libraryCopy } from "./design-library/copy";
+import styles from "./design-library/Library.module.css";
 
 export function MyDesignsClient() {
+  const locale = useLocale();
   const t = useTranslations("myDesignsPage");
-  const tFurn = useTranslations("furniture");
+  const copy = locale === "en" ? libraryCopy.en : libraryCopy["zh-TW"];
   const unit = useUnit();
   const { isLoading: planLoading, isLoggedIn, userId } = useUserPlan();
-  const [rows, setRows] = useState<DesignRow[] | null>(null);
+  const owner = isLoggedIn ? userId : null;
+  const ownerRef = useRef(owner);
+  ownerRef.current = owner;
+  const [result, setResult] = useState<{ owner: string; rows: DesignRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-
-  const categoryLabel = (type: string): string => {
-    const normalized = type.replace(/_/g, "-") as FurnitureCategory;
-    try {
-      return tFurn(normalized);
-    } catch {
-      return getTemplate(normalized)?.nameZh ?? type;
-    }
-  };
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [sort, setSort] = useState<DesignSort>("updated");
+  const [mode, setMode] = useState<"grid" | "list">("grid");
+  const [operation, setOperation] = useState<{ kind: "rename" | "delete"; row: DesignRow } | null>(null);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [mutationError, setMutationError] = useState("");
+  const mutationGeneration = useRef(0);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLElement | null>(null);
+  const rows = result?.owner === owner ? result.rows : [];
+  const filtered = selectDesigns(rows, search, category, sort, locale);
+  const categories = [...new Set(rows.map(row => normalizeCategory(row.furniture_type)))].sort();
+  const recent = selectDesigns(rows, "", "", "updated", locale)[0];
 
   useEffect(() => {
-    if (planLoading) return;
-    if (!isLoggedIn || !userId) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("designs")
-          .select("id, furniture_type, name, params, created_at, updated_at")
-          .eq("user_id", userId)
-          .order("updated_at", { ascending: false });
-        if (error) throw error;
-        if (!cancelled) setRows((data ?? []) as DesignRow[]);
-      } catch (e) {
-        if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [planLoading, isLoggedIn, userId]);
+    setResult(null);
+    setError("");
+    setOperation(null);
+    mutationGeneration.current += 1;
+    setBusy(false);
+    setSearch("");
+    setCategory("");
+    if (planLoading || !owner) { setLoading(planLoading); return; }
+    const controller = new AbortController();
+    setLoading(true);
+    const supabase = createClient();
+    void fetchAllDesigns((from, to) => supabase.from("designs")
+      .select("id, furniture_type, name, params, created_at, updated_at")
+      .eq("user_id", owner).order("updated_at", { ascending: false }).order("id", { ascending: true })
+      .abortSignal(controller.signal).range(from, to), controller.signal)
+      .then(data => { if (!controller.signal.aborted) setResult({ owner, rows: data }); })
+      .catch(err => { if (!controller.signal.aborted) setError(err instanceof Error ? err.message : String(err)); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [owner, planLoading, retry]);
 
-  const handleRename = async (row: DesignRow) => {
-    const current = row.name ?? "";
-    const next = window.prompt(t("promptRename"), current);
-    if (next === null) return;
-    const trimmed = next.trim();
-    if (!trimmed || trimmed === current) return;
-    setRenamingId(row.id);
+  useEffect(() => {
+    if (!operation) return;
+    dialog.current?.showModal();
+    return () => { dialog.current?.close(); trigger.current?.focus(); };
+  }, [operation]);
+
+  function openOperation(kind: "rename" | "delete", row: DesignRow, opener: HTMLElement) {
+    trigger.current = opener;
+    setName(row.name ?? "");
+    setMutationError("");
+    setOperation({ kind, row });
+  }
+
+  async function mutate() {
+    if (!operation || busy || !owner) return;
+    const requestOwner = owner;
+    const requestGeneration = ++mutationGeneration.current;
+    const { kind, row } = operation;
+    const trimmed = name.trim();
+    if (kind === "rename" && (!trimmed || trimmed.length > 100)) { setMutationError(copy.invalid); return; }
+    setBusy(true);
+    setMutationError("");
     try {
-      const res = await fetch(`/api/designs/${row.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+      const response = await fetch(`/api/designs/${encodeURIComponent(row.id)}`, kind === "delete"
+        ? { method: "DELETE" }
+        : { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: trimmed }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message ?? data.error ?? copy.failure);
+      if (ownerRef.current !== requestOwner || mutationGeneration.current !== requestGeneration) return;
+      setResult(current => current?.owner !== requestOwner ? current : {
+        owner: requestOwner,
+        rows: kind === "delete" ? current.rows.filter(item => item.id !== row.id)
+          : current.rows.map(item => item.id === row.id ? { ...item, name: trimmed, updated_at: data.updated_at ?? item.updated_at } : item),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? data.error ?? t("alertRenameFail"));
-      setRows((prev) =>
-        prev ? prev.map((r) => (r.id === row.id ? { ...r, name: trimmed } : r)) : prev,
-      );
-    } catch (e) {
-      window.alert(t("alertRenameFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
-    } finally {
-      setRenamingId(null);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t("confirmDelete"))) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/designs/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? data.error ?? t("alertDeleteFail"));
-      setRows((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
-    } catch (e) {
-      window.alert(t("alertDeleteFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  if (planLoading || loading) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-sm text-zinc-500">
-        {t("loading")}
-      </main>
-    );
+      setOperation(null);
+    } catch (err) {
+      if (ownerRef.current === requestOwner && mutationGeneration.current === requestGeneration) setMutationError(err instanceof Error ? err.message : copy.failure);
+    } finally { if (mutationGeneration.current === requestGeneration) setBusy(false); }
   }
 
-  if (!isLoggedIn) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-4">{t("h1")}</h1>
-        <p className="text-zinc-600 text-sm">{t("loginRequired")}</p>
-      </main>
-    );
-  }
-
-  return (
-    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <Link href="/" className="text-sm text-zinc-500 hover:underline">
-        {t("backHome")}
-      </Link>
-      <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 mt-3 mb-2">
-        {t("h1")}
-      </h1>
-      <p className="text-sm text-zinc-500 mb-6">
-        {t("countTpl", { n: rows?.length ?? 0 })}
-      </p>
-
-      {err && (
-        <div className="rounded-lg border-2 border-red-200 bg-red-50 text-red-700 text-sm p-4 mb-6">
-          {t("loadFailTpl", { msg: err })}
+  return <main className={styles.library}>
+    <header className={styles.header}>
+      <div><h1>{t("h1")}</h1><p>{locale === "en" ? `${rows.length} saved designs` : `${rows.length} 份設計`}</p></div>
+      <Link href="/app" className={styles.primary}><Plus size={17} aria-hidden />{locale === "en" ? "New design" : "新增設計"}</Link>
+    </header>
+    {!planLoading && !isLoggedIn ? <p className={styles.empty}>{t("loginRequired")}</p> : <>
+      {recent && <Link href={buildEditHref(recent)} className={styles.recent}>
+        <FolderOpen size={19} aria-hidden /><span>{copy.continue}<strong>{designName(recent, locale)}</strong></span>
+      </Link>}
+      <div className={styles.filters}>
+        <label className={styles.search}><Search size={17} aria-hidden /><input type="search" aria-label={copy.search} placeholder={copy.search} value={search} onChange={e => setSearch(e.target.value)} /></label>
+        <label><span>{copy.category}</span><select value={category} onChange={e => setCategory(e.target.value)}>
+          <option value="">{copy.all}</option>{categories.map(key => <option key={key} value={key}>{categoryName(key, locale)}</option>)}
+        </select></label>
+        <label><span>{copy.sort}</span><select value={sort} onChange={e => setSort(e.target.value as DesignSort)}><option value="updated">{copy.updated}</option><option value="name">{copy.name}</option></select></label>
+        <div className={styles.modes}>
+          <button type="button" aria-label={copy.grid} title={copy.grid} aria-pressed={mode === "grid"} onClick={() => setMode("grid")}><LayoutGrid size={18} aria-hidden /></button>
+          <button type="button" aria-label={copy.list} title={copy.list} aria-pressed={mode === "list"} onClick={() => setMode("list")}><List size={18} aria-hidden /></button>
         </div>
-      )}
-
-      {rows && rows.length === 0 && (
-        <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-8 text-center">
-          <p className="text-zinc-600 text-sm mb-4">{t("emptyBody")}</p>
-          <Link
-            href="/"
-            className="inline-block px-4 py-2 rounded-lg bg-[#8b4513] text-white text-sm font-medium hover:bg-[#6f370f]"
-          >
-            {t("goCatalog")}
-          </Link>
-        </div>
-      )}
-
-      {rows && rows.length > 0 && (
-        <ul className="space-y-3">
-          {rows.map((row) => {
-            const p = row.params ?? {};
-            const length = (p as Record<string, unknown>).length;
-            const width = (p as Record<string, unknown>).width;
-            const height = (p as Record<string, unknown>).height;
-            const material = (p as Record<string, unknown>).material;
-            return (
-              <li
-                key={row.id}
-                className="rounded-2xl border-2 border-zinc-200 bg-white p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <h2 className="font-semibold text-zinc-900 truncate">
-                      {row.name?.trim() || categoryLabel(row.furniture_type)}
-                    </h2>
-                    <span className="text-xs text-zinc-500">
-                      {categoryLabel(row.furniture_type)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    {[length, width, height].every((v) => typeof v === "number")
-                      ? formatDimensions(length as number, width as number, height as number, unit)
-                      : t("noDim")}
-                    {material ? ` · ${String(material)}` : ""}
-                    <span className="ml-2">{t("updatedTpl", { date: formatDate(row.updated_at) })}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link
-                    href={buildEditHref(row)}
-                    prefetch={false}
-                    className="px-3 py-1.5 rounded-lg bg-[#8b4513] text-white text-xs font-medium hover:bg-[#6f370f]"
-                  >
-                    {t("editBtn")}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => handleRename(row)}
-                    disabled={renamingId === row.id}
-                    className="px-3 py-1.5 rounded-lg border border-zinc-300 text-zinc-600 text-xs hover:bg-zinc-50 disabled:opacity-50"
-                  >
-                    {renamingId === row.id ? t("renaming") : t("renameBtn")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(row.id)}
-                    disabled={deletingId === row.id}
-                    className="px-3 py-1.5 rounded-lg border border-zinc-300 text-zinc-600 text-xs hover:bg-zinc-50 disabled:opacity-50"
-                  >
-                    {deletingId === row.id ? t("deleting") : t("deleteBtn")}
-                  </button>
-                </div>
-              </li>
-            );
+      </div>
+      {loading || planLoading ? <p role="status" className={styles.empty}>{t("loading")}</p> : error ? <div role="alert" className={styles.empty}>
+        <p>{t("loadFailTpl", { msg: error })}</p><button type="button" onClick={() => setRetry(value => value + 1)}>{copy.retry}</button>
+      </div> : rows.length === 0 ? <div className={styles.empty}><p>{locale === "en" ? "You haven't saved any designs yet." : "尚未儲存任何設計。"}</p><Link href="/app">{t("goCatalog")}</Link></div>
+        : filtered.length === 0 ? <div className={styles.empty}><p>{copy.noMatches}</p><button type="button" onClick={() => { setSearch(""); setCategory(""); }}>{copy.clear}</button></div>
+        : <ul className={mode === "grid" ? styles.grid : styles.list}>
+          {filtered.map(row => {
+            const title = designName(row, locale);
+            const src = categoryImage(row.furniture_type);
+            const values = [row.params.length, row.params.width, row.params.height];
+            const dims = values.every(value => typeof value === "number" && Number.isFinite(value))
+              ? formatDimensions(values[0] as number, values[1] as number, values[2] as number, unit) : null;
+            return <li key={row.id}>
+              <Link href={buildEditHref(row)} className={styles.preview} aria-label={title}>
+                {src ? <img src={src} alt={categoryName(row.furniture_type, locale)} loading="lazy" width={480} height={320} /> : <FolderOpen size={40} aria-hidden />}
+                <span>{copy.sample}</span>
+              </Link>
+              <div className={styles.record}>
+                <Link href={buildEditHref(row)}><h2>{title}</h2></Link>
+                <p>{categoryName(row.furniture_type, locale)}{dims ? ` · ${dims}` : ""}</p>
+                <time dateTime={row.updated_at}>{t("updatedTpl", { date: new Date(row.updated_at).toLocaleDateString(locale) })}</time>
+              </div>
+              <div className={styles.actions}>
+                <button type="button" aria-label={`${copy.rename} ${title}`} title={copy.rename} onClick={e => openOperation("rename", row, e.currentTarget)}><Pencil size={16} aria-hidden /></button>
+                <button type="button" aria-label={`${copy.delete} ${title}`} title={copy.delete} onClick={e => openOperation("delete", row, e.currentTarget)}><Trash2 size={16} aria-hidden /></button>
+              </div>
+            </li>;
           })}
-        </ul>
-      )}
-    </main>
-  );
+        </ul>}
+    </>}
+    <dialog ref={dialog} className={styles.dialog} aria-labelledby="library-dialog-title" onCancel={event => { if (busy) event.preventDefault(); else setOperation(null); }}>
+      <div className={styles.dialogHeader}><h2 id="library-dialog-title">{operation?.kind === "delete" ? copy.delete : copy.rename}</h2>
+        <button type="button" aria-label={copy.cancel} disabled={busy} onClick={() => setOperation(null)}><X size={18} aria-hidden /></button></div>
+      {operation?.kind === "rename" ? <label>{copy.designName}<input value={name} maxLength={100} onChange={e => setName(e.target.value)} autoFocus /></label> : <p>{t("confirmDelete")}</p>}
+      {mutationError && <p role="alert">{mutationError}</p>}
+      <div className={styles.dialogActions}><button type="button" disabled={busy} onClick={() => setOperation(null)}>{copy.cancel}</button>
+        <button type="button" disabled={busy} className={styles.primary} onClick={() => void mutate()}>{busy ? copy.progress : operation?.kind === "delete" ? copy.delete : copy.save}</button></div>
+    </dialog>
+  </main>;
 }

@@ -1,6 +1,6 @@
 # Design Studio Renewal
 
-Status: user approved the overall scope and desktop/mobile layout; written specification awaiting review.
+Status: approved, implemented and locally verified on codex/design-studio-renewal; not deployed.
 
 ## Objective
 

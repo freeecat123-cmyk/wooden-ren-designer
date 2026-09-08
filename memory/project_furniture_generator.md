@@ -1,6 +1,6 @@
 # Furniture Generator Memory
 
-## 2026-09-07 Design Studio Renewal (Specification)
+## 2026-09-08 Design Studio Renewal (Local Implementation)
 
 - User approved a full interface/workflow renewal: large central model,
   collapsible desktop side panels, mobile bottom sheets, design management,
@@ -8,7 +8,30 @@
 - Preserve existing geometry, old designs, URLs, entitlements and explicit cloud
   saves. This is separate from the already released integrated upgrade below.
 - Written scope: docs/superpowers/specs/2026-09-07-design-studio-renewal.md.
-  Specification awaiting review; implementation and deployment not yet performed.
+  Implementation is on codex/design-studio-renewal; not pushed or deployed.
+- One responsive DesignStudio replaces duplicate desktop/mobile editors. It keeps
+  one form/canvas mounted across five views, with modal mobile panels and an
+  inspector connected to actual model selection and cut dimensions.
+- My Designs adds complete paginated owned retrieval, search/category/sort,
+  grid/list, recent continuation and accessible mutation dialogs. Category images
+  are explicitly samples, not captured private design thumbnails.
+- Embedded quote reuses existing calculations. English stays material-only DIY;
+  Chinese retains labor, margin and tax. Entitlements remain server-authoritative.
+- StudioActionGuard compares live form values against resolved server baselines
+  and blocks stale saves/exports while preset/history/form navigation is pending.
+  Clear the pending target when resolved, or later save revisions will deadlock it.
+- Review fixes also isolate old-account mutation responses by generation; never
+  let an old request clear or block the new account's mutation state.
+- Parameter input width rules must exclude sr-only fields. English RangeInput
+  uses an off-screen numeric field for millimeter submission; stretching it to
+  100% created horizontal page overflow. Browser regression verifies 1px width.
+- Latest full suite: 117 files / 1528 tests passed with library/quote/export browser
+  coverage enabled. Typecheck, audit and isolated production build passed.
+  Desktop/mobile editing fixture verified repeat save, Save As, in-flight edits,
+  undo and draft cleanup without touching cloud customer records.
+- Final built-site acceptance passed zh/en at 1440/1280/768/390/360px: one retained
+  canvas/form, visible and rotating model, five tabs, edits, focus restoration,
+  no horizontal overflow or browser errors. Preview: http://127.0.0.1:3120/design/workbench.
 
 ## 2026-09-07 Integrated Upgrade (Released)
 
