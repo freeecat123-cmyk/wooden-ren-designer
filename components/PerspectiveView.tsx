@@ -1173,6 +1173,7 @@ export function PerspectiveView({
           } else if (part.shape?.kind === "edge-profile") {
             shape = {
               kind: "edge-profile",
+              profilePoints: part.shape.profilePoints?.map(([x, z]) => [x * SCALE, z * SCALE]),
               style: part.shape.style,
               depthMm: part.shape.depthMm * SCALE,
               waveCount: part.shape.waveCount,

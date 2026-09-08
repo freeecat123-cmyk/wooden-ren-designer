@@ -93,7 +93,7 @@ it("keeps all view inputs and one model mounted, with inactive content hidden an
     for (const tab of ["Drawings", "Materials", "Build", "Quote"]) {
       await page.getByRole("tab", { name: tab, exact: true }).click();
       expect(await page.getByRole("tabpanel").count()).toBe(1);
-      expect(await page.locator('[role="tabpanel"][hidden][inert]').count()).toBe(4);
+      expect(await page.locator('[role="tabpanel"][hidden][inert]').count()).toBe(tab === "Materials" ? 3 : 4);
       expect(await page.getByRole("textbox", { name: "Width", exact: true }).isVisible()).toBe(false);
       expect(await page.locator('input[name="width"]').isDisabled()).toBe(false);
       expect(await page.locator("canvas").count()).toBe(1);
@@ -104,6 +104,23 @@ it("keeps all view inputs and one model mounted, with inactive content hidden an
     await page.getByRole("tab", { name: "Quote", exact: true }).click();
     expect(await page.getByRole("textbox", { name: "Quote amount" }).inputValue()).toBe("995");
     expect(await page.evaluate(() => (window as unknown as { submits?: number }).submits ?? 0)).toBe(0);
+    expect(await canvas!.evaluate(node => node === document.querySelector("canvas"))).toBe(true);
+  } finally { await page.close(); }
+});
+
+it.each([390, 1440])("keeps the same interactive model beside materials at %spx", async width => {
+  const page = await open(width);
+  try {
+    const canvas = await page.locator("canvas").elementHandle();
+    await page.getByRole("tab", { name: "Materials", exact: true }).click();
+    expect(await page.locator("canvas").isVisible()).toBe(true);
+    expect(await page.getByRole("button", { name: "Material rail", exact: true }).isVisible()).toBe(true);
+    await page.getByRole("button", { name: "Material rail", exact: true }).click();
+    expect(await page.locator('[data-selection]').textContent()).toBe("rail");
+    expect(await page.locator("canvas").evaluate(node => Boolean(node.closest('[inert]')))).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/studio-materials-${width}.png`, fullPage: true });
+    await page.getByRole("tab", { name: "Design", exact: true }).click();
     expect(await canvas!.evaluate(node => node === document.querySelector("canvas"))).toBe(true);
   } finally { await page.close(); }
 });

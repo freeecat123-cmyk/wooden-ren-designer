@@ -102,7 +102,9 @@ export function edgeProfileOutline(
    *  輪廓 x 依 u 位置線性插值縮放 → 造型與斜腳/弧肩斜腳的牙板梯形補償可同時成立。 */
   topLengthScale: number = 1,
   bottomLengthScale: number = 1,
+  profilePoints?: Array<[number, number]>,
 ): Array<[number, number]> {
+  if (profilePoints && profilePoints.length >= 3) return profilePoints.map(([x, z]) => [x, z]);
   const hx = lx / 2;
   const hu = w / 2;
   // u → x 縮放：-hu(上緣)=topLengthScale、+hu(下緣)=bottomLengthScale
@@ -569,7 +571,7 @@ export function projectPartSilhouette(
   // 對著大面法線（旋轉後的 local Y）的視角 → 輸出有序輪廓（保留內凹弧，不跑 hull）；
   // 其他視角 → 兩端（y=±hy）採樣 hull（側看本來就是矩形/傾斜四邊形）。
   if (part.shape?.kind === "edge-profile") {
-    const prof = edgeProfileOutline(lx, lz, part.shape.style, part.shape.depthMm, part.shape.waveCount ?? 4, part.shape.topLengthScale ?? 1, part.shape.bottomLengthScale ?? 1);
+    const prof = edgeProfileOutline(lx, lz, part.shape.style, part.shape.depthMm, part.shape.waveCount ?? 4, part.shape.topLengthScale ?? 1, part.shape.bottomLengthScale ?? 1, part.shape.profilePoints);
     // n = R·(0,1,0)（Rx→Ry→Rz，與 pushPoint 同序）
     const nZ = sx * cy;                       // → front
     const nX = sx * sy * cz - cx * sz;        // → side

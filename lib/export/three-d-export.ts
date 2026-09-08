@@ -227,6 +227,7 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
   if (shape.kind === "edge-profile") {
     return {
       kind: "edge-profile",
+      profilePoints: shape.profilePoints,
       style: shape.style,
       depthMm: shape.depthMm,
       waveCount: shape.waveCount,

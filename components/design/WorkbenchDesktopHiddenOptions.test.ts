@@ -76,6 +76,17 @@ async function choose(page: Page, key: string, value: string) {
   return page.evaluate(() => (window as unknown as { submitted: string }).submitted);
 }
 
+it.each(["1", "2"])("hides internal construction version %s without changing it on edits", async version => {
+  const page = await mount();
+  try {
+    await page.evaluate(version => (window as unknown as { renderOptions: (q: string) => void }).renderOptions(`?constructionVersion=${version}`), version);
+    expect(await page.locator('select[name="constructionVersion"]').count()).toBe(0);
+    expect(await page.locator('input[type="hidden"][name="constructionVersion"]').inputValue()).toBe(version);
+    const query = await choose(page, "frontVise", "none");
+    expect(new URL(query, "http://fixture.test").searchParams.getAll("constructionVersion")).toEqual([version]);
+  } finally { await page.close(); }
+});
+
 it.each(Object.keys(WORKBENCH_PRESETS))("desktop %s preset serializes every preset field, including hidden dependencies", async style => {
   const page = await mount();
   try {
