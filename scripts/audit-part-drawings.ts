@@ -240,10 +240,18 @@ expect(
       );
       expect(html.includes("比例"), "PartDrawing renders title bar with 比例");
       expect(html.includes("P-01"), "PartDrawing renders P-01 sequence");
-      // Phase 2.5: 3 ortho views + 1 install-hint mini = 4 SVGs
+      // 2026-09-05：原本數 `<svg` 標籤要等於 4。版面後來改成三張視圖包在同一個
+      // 外層 <svg> 裡（實測 223 張卡一律是 2 個 <svg>、5 個 viewBox），
+      // 數標籤等於在數實作細節、而且永遠紅。改成直接驗「該有的東西在不在」：
+      // 三張正投影 + 安裝位置小圖，這才是使用者印出來會看到的。
+      const missingViews = ["正視", "側視", "俯視"].filter((v) => !html.includes(v));
       expect(
-        (html.match(/<svg/g) ?? []).length === 4,
-        `PartDrawing renders 3 ortho + 1 install-hint = 4 SVGs (got ${(html.match(/<svg/g) ?? []).length})`,
+        missingViews.length === 0,
+        `PartDrawing 三張正投影都在（缺：${missingViews.join("、") || "無"}）`,
+      );
+      expect(
+        html.includes("install-hint-mini"),
+        "PartDrawing 有安裝位置小圖（install-hint-mini）",
       );
       // Phase 2.5: title block 改 grid，材料 label 改成「材料 」(no colon)
       expect(html.includes("材料 "), "PartDrawing renders 材料 in title block");
@@ -265,14 +273,14 @@ expect(
         html.includes("t1-dim-overlay"),
         "T1: t1-dim-overlay SVG class present in output",
       );
-      // Phase 2 Task 4: GrainArrow 應在每張 view 右下角輸出 順紋 字 + grain-arrow class
+      // 2026-09-05：這裡原本斷言「零件圖右下角要有順紋箭頭」，但那個功能在
+      // 2026-05-29 已被木頭仁要求拿掉（annotation.tsx GrainArrow 直接 return null，
+      // 理由：箭頭常跟右下角的榫頭／尺寸標籤疊在一起，順紋資訊材料表本來就有）。
+      // 舊斷言等於在斷言一個已經撤掉的功能 → 永遠紅 → 這支稽核失去迴歸保護。
+      // 改成反向斷言：確認它「維持隱藏」。哪天有人把 return null 拿掉，這裡會紅。
       expect(
-        html.includes("順紋"),
-        "GrainArrow: 順紋 text present in output",
-      );
-      expect(
-        html.includes("grain-arrow"),
-        "GrainArrow: grain-arrow SVG class present in output",
+        !html.includes("grain-arrow"),
+        "GrainArrow: 零件圖維持不畫順紋箭頭（2026-05-29 使用者決定）",
       );
     }
   }
@@ -617,9 +625,10 @@ console.log("\n--- Phase 2 element smoke (28 templates) ---");
     `  P2 stats: total=${totalCards} t2-box=${p2t2} grain-arrow=${p2grain} pair=${p2pair} crashes=${p2crashes}`,
   );
   expect(p2crashes === 0, `Phase 2 smoke: ${p2crashes} crash(es)`);
+  // 見上面 GrainArrow 那段：順紋箭頭 2026-05-29 已撤，這裡同步改成反向斷言。
   expect(
-    p2grain === totalCards,
-    `Phase 2 grain-arrow on every card (${p2grain}/${totalCards})`,
+    p2grain === 0,
+    `Phase 2 全部 ${totalCards} 張卡都不畫順紋箭頭（實際畫了 ${p2grain} 張）`,
   );
   expect(p2t2 > 50, `Phase 2 T2 box appears on >50 cards (${p2t2})`);
   expect(p2pair > 0, `Phase 2 pair ID appears at least once (${p2pair})`);
