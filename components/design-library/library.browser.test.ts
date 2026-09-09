@@ -112,7 +112,11 @@ it.skipIf(process.env.RUN_LIBRARY_BROWSER !== "1")("library interactions, accoun
 
     // A slow request must not repopulate a new account or a logged-out screen.
     await page.evaluate(() => { (window as any).account=null; (window as any).renderLibrary(); });
-    await page.locator("li").waitFor({ state: "detached" });
+    // 🩸 2026-09-09 CI 紅：`locator("li").waitFor({state:"detached"})` 在畫面上還剩 **2 筆以上**時
+    // 會先踩到 Playwright 的 strict mode（"resolved to 2 elements"）而不是繼續等——
+    // 等於「還沒清乾淨」變成直接爆錯。清空是漸進的（React 重繪 + in-flight 請求），
+    // 要用會自己重試到 0 的等法。本機在忙的時候 6 次紅 5 次，CI 是綠了四次才踩到。
+    await page.waitForFunction(() => document.querySelectorAll("li").length === 0);
     await page.evaluate(() => { (window as any).delay=200; (window as any).account='a'; (window as any).renderLibrary(); });
     await page.getByRole("status").waitFor();
     await page.evaluate(() => { (window as any).account='b'; (window as any).renderLibrary(); });
