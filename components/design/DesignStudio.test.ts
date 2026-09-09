@@ -235,3 +235,69 @@ for (const locale of ["en", "zh"]) {
     } finally { await page.close(); }
   });
 }
+
+it("shows the preview strip only on the design tab and jumps to the matching tab", async () => {
+  const page = await open();
+  try {
+    const cards = page.locator('button[class*="previewCard"]');
+    expect(await cards.count()).toBe(4);
+    expect(await cards.allInnerTexts()).toEqual([
+      "Engineering views\n400 × 300 × 450 mm",
+      "Cut list\n1 parts · Hard Maple",
+      "Build steps\nEvery step with its tools and time",
+      "Quote\nPriced by wood and labour hours",
+    ]);
+    // 每張卡都要真的把分頁換過去（不是只有樣式）
+    for (const [name, tab] of [["Engineering views", "Drawings"], ["Cut list", "Materials"],
+      ["Build steps", "Build"], ["Quote", "Quote"]]) {
+      await page.getByRole("tab", { name: "Design", exact: true }).click();
+      await page.getByRole("button", { name: new RegExp(`^${name} —`) }).click();
+      expect(await page.getByRole("tab", { name: tab, exact: true }).getAttribute("aria-selected")).toBe("true");
+      expect(await cards.first().isVisible()).toBe(false);
+    }
+  } finally { await page.close(); }
+});
+
+it("keeps the model interactive and the page unscrolled with the preview strip", async () => {
+  for (const width of [390, 1440]) {
+    const page = await open(width);
+    try {
+      const canvas = await page.locator("canvas").elementHandle();
+      expect(await page.locator('button[class*="previewCard"]').first().isVisible()).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      // 四張卡都要在畫面裡（手機改成 2×2，別讓「報價」被推到看不見的地方）
+      expect(await page.evaluate(() => [...document.querySelectorAll('button[class*="previewCard"]')]
+        .every(node => node.getBoundingClientRect().right <= innerWidth + 1))).toBe(true);
+      expect(await page.locator("canvas").evaluate(node => Boolean(node.closest("[inert]")))).toBe(false);
+      expect(await page.locator("canvas").evaluate(node => node.getBoundingClientRect().height > 100)).toBe(true);
+      // 預覽帶必須擠得進設計分頁裡，不能被模型頂到框外（模型要縮，不是預覽帶溢出）
+      expect(await page.evaluate(() => {
+        const strip = document.querySelector('[class*="preview"]:not([class*="previewCard"]):not([class*="previewHeading"]):not([class*="previewLabel"]):not([class*="previewDetail"])')!;
+        const panel = strip.parentElement!;
+        return Math.round(strip.getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
+      })).toBeLessThanOrEqual(1);
+      for (const tab of ["Materials", "Export"]) {
+        await page.getByRole("tab", { name: tab, exact: true }).click();
+        expect(await page.locator('button[class*="previewCard"]').first().isVisible()).toBe(false);
+        // 材料分頁跟設計分頁共用同一個 3D，輸出分頁沒有
+        expect(await page.locator("canvas").isVisible()).toBe(tab === "Materials");
+      }
+      await page.getByRole("tab", { name: "Design", exact: true }).click();
+      expect(await canvas!.evaluate(node => node === document.querySelector("canvas"))).toBe(true);
+    } finally { await page.close(); }
+  }
+});
+
+it("labels the preview strip in Chinese", async () => {
+  const page = await open(1440, "zh-TW");
+  try {
+    expect(await page.locator('button[class*="previewCard"]').allInnerTexts()).toEqual([
+      "工程三視圖\n400 × 300 × 450 mm",
+      "材料單\n1 個零件 · 楓木",
+      "製作工序\n每一步標了工具和時間",
+      "報價\n依木材與工時估算",
+    ]);
+    await page.getByRole("button", { name: /^材料單 —/ }).click();
+    expect(await page.getByRole("tab", { name: "材料", exact: true }).getAttribute("aria-selected")).toBe("true");
+  } finally { await page.close(); }
+});

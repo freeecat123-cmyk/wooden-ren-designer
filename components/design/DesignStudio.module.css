@@ -157,3 +157,21 @@
   .studio:has(.sidePanel[data-modal="true"][open]) .sidePanel[data-modal="true"] { height: 52dvh; max-height: 52dvh; }
   .sidePanel[data-modal="true"]::backdrop { background: transparent; }
 }
+
+/* 設計分頁底部的預覽帶：讓三視圖／材料單／報價在不點分頁時也看得到一角 */
+.preview { flex: 0 0 auto; padding: 10px 16px 12px; border-top: 1px solid var(--studio-border); background: #fafafa; }
+.previewHeading { margin: 0 0 8px; color: #71717a; font-size: 12px; }
+.previewCards { display: flex; gap: 10px; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+.previewCard { display: flex; flex: 1 1 0%; min-width: 148px; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border: 1px solid var(--studio-border); border-radius: 6px; background: #fff; color: #3f3f46; font: inherit; text-align: left; cursor: pointer; }
+.previewCard:hover { border-color: #047857; color: #047857; }
+.previewCard svg { margin-bottom: 4px; color: #a1a1aa; }
+.previewCard:hover svg { color: #047857; }
+.previewLabel { font-weight: 600; }
+.previewDetail { color: #71717a; font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (width < 768px) {
+  .preview { padding: 8px 12px 10px; }
+  .previewCards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-x: visible; }
+  .previewCard { min-width: 0; padding: 8px; }
+  .previewCard svg { width: 44px; height: 30px; }
+  .previewDetail { font-size: 11px; }
+}

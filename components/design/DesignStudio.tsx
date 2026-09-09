@@ -43,6 +43,11 @@ const copy = {
     cut: "Cut dimensions", axes: "Length × width × thickness", overall: "Overall dimensions",
     joints: "Joinery", tenons: "Tenons", mortises: "Mortises", none: "None",
     plywood: "Plywood", mdf: "MDF",
+    previewHeading: "Already worked out for this design",
+    previewDrawings: "Engineering views", previewMaterials: "Cut list",
+    previewBuild: "Build steps", previewBuildHint: "Every step with its tools and time", previewQuote: "Quote",
+    previewQuoteHint: "Priced by wood and labour hours", previewParts: "{n} parts",
+    previewGo: "Open the {tab} tab",
   },
   zh: {
     design: "設計", drawings: "圖面", materials: "材料", build: "製作", quote: "報價", exports: "輸出",
@@ -54,6 +59,11 @@ const copy = {
     cut: "切料尺寸", axes: "長 × 寬 × 厚", overall: "整體尺寸",
     joints: "榫卯", tenons: "公榫", mortises: "榫孔", none: "無",
     plywood: "夾板", mdf: "中纖板（MDF）",
+    previewHeading: "這張設計已經幫你算好了",
+    previewDrawings: "工程三視圖", previewMaterials: "材料單",
+    previewBuild: "製作工序", previewBuildHint: "每一步標了工具和時間", previewQuote: "報價",
+    previewQuoteHint: "依木材與工時估算", previewParts: "{n} 個零件",
+    previewGo: "切換到「{tab}」分頁",
   },
 };
 
@@ -65,6 +75,51 @@ const jointNames: Record<JoineryType, readonly [string, string]> = {
   dowel: ["Dowel", "木釘"], "mitered-spline": ["Mitered spline", "斜接插片榫"],
   mitered: ["Miter joint", "斜接"], "pocket-hole": ["Pocket hole", "斜孔"], screw: ["Screw", "螺絲"],
 };
+
+// 設計分頁底部的預覽帶：把藏在分頁後面的三視圖／材料單／報價露一角出來，
+// 點一下就跳到那個分頁。純導覽用，不重算也不重繪那些分頁的內容。
+function PreviewGlyph({ kind }: { kind: View }) {
+  const common = { width: 56, height: 40, viewBox: "0 0 56 40", "aria-hidden": true, fill: "none",
+    stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (kind === "drawings") return <svg {...common}>
+    <rect x="3" y="4" width="24" height="16" /><rect x="31" y="4" width="22" height="16" />
+    <rect x="3" y="24" width="24" height="12" />
+    <path d="M3 22h24M31 22v-2M53 22v-2M31 21h22" strokeDasharray="2 2" />
+  </svg>;
+  if (kind === "build") return <svg {...common}>
+    <path d="M6 9l3 3 5-6" /><path d="M6 21l3 3 5-6" /><path d="M6 33h4" />
+    <path d="M20 11h30M20 23h30M20 33h20" />
+  </svg>;
+  if (kind === "materials") return <svg {...common}>
+    <rect x="4" y="6" width="48" height="7" /><rect x="4" y="16" width="30" height="7" />
+    <rect x="38" y="16" width="14" height="7" /><rect x="4" y="26" width="20" height="7" />
+    <rect x="28" y="26" width="24" height="7" />
+  </svg>;
+  return <svg {...common}>
+    <path d="M10 3h30v34l-5-3-5 3-5-3-5 3-5-3-5 3z" />
+    <path d="M16 13h18M16 20h18M16 27h10" />
+  </svg>;
+}
+
+function PreviewStrip({ text, cards, onSelect }: {
+  text: (typeof copy)["zh"];
+  cards: ReadonlyArray<{ view: View; label: string; detail: string }>;
+  onSelect: (view: View) => void;
+}) {
+  return <div className={styles.preview}>
+    <p className={styles.previewHeading}>{text.previewHeading}</p>
+    <div className={styles.previewCards}>
+      {cards.map(card => <button key={card.view} type="button" className={styles.previewCard}
+        title={text.previewGo.replace("{tab}", text[card.view])}
+        aria-label={`${card.label} — ${text.previewGo.replace("{tab}", text[card.view])}`}
+        onClick={() => onSelect(card.view)}>
+        <PreviewGlyph kind={card.view} />
+        <span className={styles.previewLabel}>{card.label}</span>
+        <span className={styles.previewDetail}>{card.detail}</span>
+      </button>)}
+    </div>
+  </div>;
+}
 
 function subscribeLayout(notify: () => void) {
   const queries = [window.matchMedia("(min-width: 768px)"), window.matchMedia("(min-width: 1280px)")];
@@ -233,6 +288,13 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
   }
 
   const slots = { design: model, drawings, materials, build, quote, exports };
+  const previewCards = [
+    { view: "drawings" as const, label: text.previewDrawings, detail: dimensions(design.overall, displayUnit) },
+    { view: "materials" as const, label: text.previewMaterials,
+      detail: `${text.previewParts.replace("{n}", String(design.parts.length))} · ${materialName(design.primaryMaterial, locale)}` },
+    { view: "build" as const, label: text.previewBuild, detail: text.previewBuildHint },
+    { view: "quote" as const, label: text.previewQuote, detail: text.previewQuoteHint },
+  ];
   const joints = selected ? [...new Set(selected.tenons.map(tenon => tenon.type))] : [];
   const selectedMaterial = selected?.materialOverride ? text[selected.materialOverride]
     : materialName(selected?.material ?? design.primaryMaterial, locale);
@@ -295,7 +357,10 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
               onClick={() => setOverlay(overlay === "parameters" ? null : "parameters")}>
               <SlidersHorizontal size={16} aria-hidden="true" />{text.adjustParameters}
             </button>}
-            {slots[key]}</div>;
+            {slots[key]}
+            {key === "design" && view === "design"
+              && <PreviewStrip text={text} cards={previewCards} onSelect={selectView} />}
+          </div>;
         })}
       </div>
       <StudioPanel id={`${id}-inspector`} panel="inspector" title={text.inspector} closeLabel={text.closeInspector}
