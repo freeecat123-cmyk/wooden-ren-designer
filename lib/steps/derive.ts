@@ -431,18 +431,26 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     const dovetailPart = design.parts.find((p) => p.shape?.kind === "dovetail-ends");
     const segs = (dovetailPart?.shape?.kind === "dovetail-ends") ? dovetailPart.shape.segmentCount : 5;
     const angleDeg = (dovetailPart?.shape?.kind === "dovetail-ends") ? dovetailPart.shape.angleDeg : 10;
+    // 🩸 2026-09-09：角數以前寫死 4。乙級第二題的抽屜後角是木螺釘不是鳩尾（官方圖 ø3.5×30），
+    //    只有前面兩角是鳩尾 → 工時整整多算一倍（56 分鐘）。改成數「真的有鳩尾的角」。
+    const dovetailDonors = design.parts.filter((p) => p.shape?.kind === "dovetail-ends");
+    const corners = Math.max(1, dovetailDonors.reduce(
+      (n, p) => n + (p.shape?.kind === "dovetail-ends" && (p.shape.ends ?? "both") !== "both" ? 1 : 2), 0));
     steps.push({
       id: "step-05-corner-dovetail",
       phase: "cut-joinery",
-      title: `鋸製鳩尾榫（dovetail，4 角 × ${segs} 段，${angleDeg}° 鳩尾角）`,
+      title: `鋸製鳩尾榫（dovetail，${corners} 角 × ${segs} 段，${angleDeg}° 鳩尾角）`,
       description:
-        `4 壁兩端交錯 pin / tail 梯形段、互鎖機械咬合（**不上膠都能拉緊**）。`
-        + `鳩尾角 ${angleDeg}°（硬木 7-9°、軟木 10-14°），段高 = 壁高 / ${segs}，`
-        + `兩端為半 pin 不破角。**先做尾後做榫**，配合度最高。`,
+        `交錯 pin / tail 梯形段、互鎖機械咬合（**不上膠都能拉緊**）。`
+        // 斜度以斜率講才不會跟教科書打架：1:6 ≈ 9.5°、1:8 ≈ 7.1°（技能檢定學科的標準答案就是 1:6～1:8）
+        + `鳩尾角 ${angleDeg}°（≈ 1:${(1 / Math.tan((angleDeg * Math.PI) / 180)).toFixed(1)}；一般取 1:6～1:8，軟木偏 1:8），`
+        + `段高 = 壁高 / ${segs}，兩端為半 pin 不破角。**先做尾後做榫**，配合度最高。`,
       toolIds: ["dovetail-saw", "dovetail-marker", "chisel-set-3-6-12", "marking-gauge", "mallet"],
-      estimatedMinutes: 8 * segs * 4,  // 鳩尾比指接慢 ~2 倍：每段 ~8 分鐘 × 4 角
+      estimatedMinutes: 8 * segs * corners,  // 鳩尾比指接慢 ~2 倍：每段 ~8 分鐘 × 實際角數
       bullets: [
         `用鳩尾劃線規 + ${angleDeg}° 角度尺先在尾板劃線（梯形：外寬內窄）`,
+        ...(dovetailDonors.length && design.parts.some((p) => /-\d+-back$/.test(p.id) && !p.shape)
+          ? ["抽屜後角若圖上是木螺釘就不要做鳩尾——照圖走，別自己加工序"] : []),
         "鋸尾——鋸線留廢料側 0.3mm，沿斜線鋸下，到肩線停",
         "「尾為母劃榫」：用做好的尾板對齊榫板端面、鉛筆轉描出榫線（最準確的配合）",
         "鋸榫——同樣沿斜線鋸（榫的斜線跟尾相反：外窄內寬，互鎖）",
@@ -1148,6 +1156,18 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       });
     }
   }
+  /**
+   * 技能檢定術科作品**不上塗裝**。
+   * 官方應檢人須知第六條只寫「成品可砂光，砂紙請自備」，評審表「表面處理」評的是
+   * 平滑／完整性／圓弧與倒角三項，沒有塗裝項；時間配當表也只有 7 小時（上午 3.5 + 下午 3.5）。
+   * 掛著護木油三層 + 鋼絲絨會把估時灌水 106 分鐘，考生照著排時間一定來不及。
+   * （目前只套用在有官方文件在手的乙級；丙級要不要一起套，等拿到丙級題本再說。）
+   */
+  if (/^cert-b\d$/.test(design.category)) {
+    const coating = new Set(["step-14-finish-coat-1", "step-15-burnish", "step-16-finish-coat-2", "step-17-finish-coat-3"]);
+    return steps.filter((st) => !coating.has(st.id));
+  }
+
   return steps;
 }
 
