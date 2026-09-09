@@ -54,7 +54,36 @@ try {
       await canvas.waitFor({ state: "visible" });
       assert(await primary.evaluate(node => node === document.querySelector("canvas")));
       const trigger = page.getByRole("button", { name: locale === "en" ? "Toggle parameters" : "切換參數面板", exact: true });
-      if (width < 768) await trigger.click();
+      let sheetBand = null, bandBefore = null;
+      if (width < 768) {
+        await trigger.click();
+        /*
+         * 🩸 手機版:參數面板一打開,3D 整片被蓋掉(實測看得到的高度 444px → 0px），
+         *    改個尺寸完全看不到結果 —— 木頭仁 2026-09-09 回報。
+         *
+         * ⚠️ 不可以用 elementFromPoint 判「有沒有被蓋住」：面板是 modal <dialog>，
+         *    開著時整頁 inert，那個 API 對**整個畫面**都回傳 dialog，即使該處看得到 3D。
+         *    要用幾何：畫布頂 → 面板頂 之間才是真的看得到的帶。
+         */
+        await page.waitForTimeout(400);
+        sheetBand = await page.evaluate(() => {
+          const c = document.querySelector("canvas");
+          const d = document.querySelector('dialog[data-studio-panel="parameters"]');
+          const cb = c.getBoundingClientRect();
+          const db = d && d.hasAttribute("open") ? d.getBoundingClientRect() : null;
+          const vh = window.innerHeight;
+          const top = Math.max(0, cb.top);
+          const bottom = Math.min(db ? db.top : vh, cb.bottom, vh);
+          return { vh, band: Math.max(0, Math.round(bottom - top)),
+            left: Math.round(cb.left), width: Math.round(cb.width), top: Math.round(top),
+            backdrop: d ? getComputedStyle(d, "::backdrop").backgroundColor : "none" };
+        });
+        assert(sheetBand.band >= sheetBand.vh * 0.25,
+          `${locale}/${width}: 參數面板打開時只看得到 ${sheetBand.band}px 的 3D（視窗 ${sheetBand.vh}），要 ≥ 25%`);
+        assert(/rgba\(0, 0, 0, 0\)|transparent/.test(sheetBand.backdrop),
+          `${locale}/${width}: 面板的背景幕不是透明的（${sheetBand.backdrop}）→ 上面那條 3D 會被灰幕蓋住`);
+        bandBefore = await page.screenshot({ clip: { x: sheetBand.left, y: sheetBand.top, width: sheetBand.width, height: sheetBand.band } });
+      }
       const parameterPanel = page.locator('[data-studio-panel="parameters"]');
       assert(await parameterPanel.isVisible());
       if (locale === "zh-TW") {
@@ -63,6 +92,15 @@ try {
         await length.blur();
         await page.waitForFunction(() => JSON.parse(document.querySelector('form[data-design-form]').dataset.designBaseline).length === 1700);
         assert.equal(await length.inputValue(), "1700");
+        /* ⭐ 他要的是「即時看到改變」——所以還要證明改完之後那條 3D 真的重畫了。 */
+        if (width < 768 && bandBefore) {
+          await page.waitForTimeout(1500);
+          const bandAfter = await page.screenshot({ clip: { x: sheetBand.left, y: sheetBand.top, width: sheetBand.width, height: sheetBand.band } });
+          const [A, B] = await Promise.all([sharp(bandBefore).raw().toBuffer(), sharp(bandAfter).raw().toBuffer()]);
+          let moved = 0;
+          for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - B[i]) > 8 || Math.abs(A[i + 1] - B[i + 1]) > 8) moved++;
+          assert(moved > 500, `${locale}/${width}: 改了尺寸但看得到的那條 3D 只有 ${moved} 個像素變動 → 沒有即時更新`);
+        }
       }
       if (width < 768) {
         await page.keyboard.press("Escape");

@@ -106,4 +106,31 @@
   .modelPanel { height: clamp(360px, calc(100svh - 220px), 720px); }
   .viewPanel { padding: 16px 12px; }
   .sidePanel[data-modal="true"] { inset: auto 0 0; width: 100%; height: min(76dvh, 720px); max-height: 85dvh; border-radius: 8px 8px 0 0; box-shadow: 0 -8px 32px rgb(24 24 27 / 12%); }
+
+  /*
+   * 🩸 手機版:參數面板一打開,3D 就完全看不到了(實測**可見高度 444px → 0px**),
+   *    改個尺寸沒辦法即時看到結果 —— 木頭仁 2026-09-09 回報。
+   *
+   * 底部彈出的面板本身只有 76dvh,但它從 y=159 就開始蓋 —— 因為上面還有
+   * 211px 的頁首/公告/分頁,3D 被夾在中間整條吃掉。
+   * ⇒ 面板打開時,把**上半部整個讓給 3D**:公告與分頁收起來、頁首壓扁、
+   *   3D 縮成一條看得到的帶,面板降到 56dvh。
+   *
+   * ⚠️ `::backdrop` 也要透明 —— 不然上面那條 3D 會被灰幕蓋住,等於還是看不到。
+   */
+  .studio:has(.sidePanel[data-modal="true"][open]) .notices,
+  .studio:has(.sidePanel[data-modal="true"][open]) .navigation { display: none; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .header { padding: 6px 12px; gap: 6px; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .title { font-size: 14px; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .workspace { min-height: 0; }
+  /*
+   * 模型面板裡有兩條 3D 自己的控制列(視角鈕、提示)共約 93px,而中間那格畫布
+   * 還帶 `min-height: 260px` —— 面板一縮小,畫布就溢出到彈出面板底下,等於白縮。
+   * 面板開著時整頁是 inert、那些鈕本來就按不動 ⇒ 收起來,把高度全給畫布。
+   */
+  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:not(:has(canvas)) { display: none; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:has(canvas) { min-height: 0; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel { height: calc(100dvh - 52dvh - 56px); }
+  .studio:has(.sidePanel[data-modal="true"][open]) .sidePanel[data-modal="true"] { height: 52dvh; max-height: 52dvh; }
+  .sidePanel[data-modal="true"]::backdrop { background: transparent; }
 }
