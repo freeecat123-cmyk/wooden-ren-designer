@@ -16,6 +16,7 @@ import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { planAssembly } from "@/lib/assembly/plan";
+import CollapsibleExports from "@/components/design/CollapsibleExports";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
@@ -539,13 +540,25 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               initialFit
               auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode}
               wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />
-            <div className="flex flex-wrap items-center gap-2 border-t border-zinc-200 bg-white p-2" data-studio-exports data-studio-output>
-              {(isAdmin || getPlanFeatures(profile).canUseQuoteSystem) &&
-                <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />}
-              {isAdmin || getPlanFeatures(profile).canDownloadPdf
-                ? <TemplatePackButton design={design} />
-                : <Link href={`/pricing?locked=${type}`} className="px-3 py-2 text-xs text-zinc-600">{t("templatePack.lockedCta")}</Link>}
-            </div>
+            {(() => {
+              const features = getPlanFeatures(profile);
+              const canExport3D = isAdmin || features.canUseQuoteSystem;
+              const canExportPack = isAdmin || features.canDownloadPdf;
+              const body = <>
+                {canExport3D && <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />}
+                {canExportPack
+                  ? <TemplatePackButton design={design} />
+                  : <Link href={`/pricing?locked=${type}`} className="px-3 py-2 text-xs text-zinc-600">{t("templatePack.lockedCta")}</Link>}
+              </>;
+              /*
+               * 沒有任何輸出權限時只有一條「升級後可下載」的連結 —— 折起來等於把
+               * 升級入口藏掉，維持原本攤開的樣子。
+               */
+              if (!canExport3D && !canExportPack) return <div
+                className="flex flex-wrap items-center gap-2 border-t border-zinc-200 bg-white p-2"
+                data-studio-exports data-studio-output>{body}</div>;
+              return <CollapsibleExports label={locale === "en" ? "Export files" : "輸出檔案"}>{body}</CollapsibleExports>;
+            })()}
           </div>}
           drawings={<div className="space-y-6">
             <section data-section="threeview">

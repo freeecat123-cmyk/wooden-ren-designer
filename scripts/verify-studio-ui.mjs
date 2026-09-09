@@ -67,6 +67,8 @@ try {
         const exports = document.querySelector("[data-studio-exports]");
         const panel = exports && exports.closest("[class*=modelPanel]");
         if (!exports || !panel) return { skipped: true };
+        /* 折疊起來的話高度不計，撐不撐得開就測不出來 ⇒ 先展開。 */
+        if (exports.tagName === "DETAILS") exports.open = true;
         const probe = document.createElement("div");
         probe.style.height = "220px";
         probe.dataset.spillProbe = "1";
@@ -77,6 +79,24 @@ try {
       });
       assert(spill.skipped || spill.value <= 2,
         `${locale}/${width}: 匯出區多 220px 內容就溢出 3D 面板 ${spill.value}px → 會壓在材料表上，兩層互相透出`);
+      /*
+       * ⚠️ 有輸出權限時那塊是 <details>（可折疊），沒權限時是 <div>。探針沒登入 ⇒
+       *    永遠只看得到 div 版本，details 那條路等於沒守到。所以直接塞一個假的
+       *    <details> 進去，驗依賴的兩條 CSS 是不是真的用 `> *` 而不是 `> div`：
+       *    寫成 `> div` 的話 details 不會 flex-shrink:0，參數面板打開時也不會被收起來。
+       */
+      const detailsRules = await page.evaluate(() => {
+        const host = document.querySelector("[data-studio-model]");
+        if (!host) return { skipped: true };
+        const probe = document.createElement("details");
+        probe.innerHTML = "<summary>probe</summary><p>x</p>";
+        host.appendChild(probe);
+        const shrink = getComputedStyle(probe).flexShrink;
+        probe.remove();
+        return { skipped: false, shrink };
+      });
+      assert(detailsRules.skipped || detailsRules.shrink === "0",
+        `${locale}/${width}: <details> 版的輸出區沒被 flex 規則涵蓋（flex-shrink=${detailsRules.shrink}）→ 那兩條 CSS 還寫成 \`> div\``);
       await page.getByRole("tab", { name: locale === "en" ? "Design" : "設計", exact: true }).click();
       await page.waitForTimeout(400);
 
