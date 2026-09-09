@@ -18,6 +18,7 @@ import { MATERIALS } from "@/lib/materials";
 import {
   T1Dimensions,
   T2Annotations,
+  T2LabelList,
   LouverLayoutDims,
   FacingMark,
   ShapeSpecificAnnotation,
@@ -509,6 +510,10 @@ export function PartDrawing({
             mm
           </div>
         )}
+        {/* 榫眼／榫頭尺寸清單（2026-09-09 接上）：annotation.tsx 的 T2LabelList
+            一直寫好了卻沒有任何地方 import，等於木匠拿到的零件圖只有虛線框、
+            沒有「哪個榫眼、多大、離底多高」的數字。中文卡才給，英文站不列。 */}
+        {!isEn && <T2LabelList part={part} design={design} />}
         {/* Phase 4 Task 2: 加工順序建議 */}
         <div className="text-[9px] text-zinc-700 mt-0.5">
           <span className="text-zinc-500">{isEn ? "Process " : "工序 "}</span>
