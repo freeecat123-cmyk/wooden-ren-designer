@@ -31,6 +31,7 @@ import {
   getUnlockCategories,
 } from "@/lib/pricing/template-unlock";
 import { isPaidCategory } from "@/lib/permissions";
+import { isDevCategory } from "@/lib/templates";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import type { FurnitureCategory } from "@/lib/types";
 
@@ -57,6 +58,24 @@ export async function POST(req: NextRequest) {
   if (!entry) {
     return NextResponse.json({ error: "category-not-found" }, { status: 400 });
   }
+  /**
+   * ⛔ 開發中／暫不上架的範本不准開單。
+   *
+   * 🩸 2026-09-09：木頭仁說乙級「先不要上架」，DEV_CATEGORIES 加了 cert-b1/cert-b2，
+   *    /templates、/app、sitemap、定價頁、介紹頁七個 UI 入口都擋乾淨了，
+   *    **但這支 API 從來沒問過 isDevCategory** → 登入後手打一個 POST 帶 category=cert-b2
+   *    就能對「先不要上架」的半成品開出真的綠界付款單（實測 cert-b1 290、cert-b2 299）。
+   *    UI 擋得再乾淨也蓋不到直接打 API 這條路；擋在這裡才是根因。
+   *
+   * 套組也一起檢查：混了開發中成員的套組不能拿已上架的那支當幌子整組解鎖。
+   */
+  if (getUnlockCategories(category).some(isDevCategory)) {
+    return NextResponse.json(
+      { error: "template-not-released", message: "這個範本還沒上架，暫時無法購買" },
+      { status: 400 },
+    );
+  }
+
   if (!isPaidCategory(category as FurnitureCategory)) {
     return NextResponse.json({ error: "free-template-no-purchase" }, { status: 400 });
   }
