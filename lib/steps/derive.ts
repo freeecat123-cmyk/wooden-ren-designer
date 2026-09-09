@@ -346,7 +346,11 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     steps.push({
       id: `step-05-${i + 1}-${u.type}`,
       phase: "cut-joinery",
-      title: `製作 ${JOINERY_LABEL[u.type]}（${u.count} 處）`,
+      // 同一款有多批同型榫時（例如乙級第三題的上橫檔 44×12 與下橫桿 35×10），
+      // 只寫「半榫/盲榫（4 處）」兩批標題完全一樣，考生分不出哪批是哪支。帶上斷面就分得開。
+      title: joineryUsages.filter((x) => x.type === u.type).length > 1
+        ? `製作 ${JOINERY_LABEL[u.type]}（${u.count} 處，榫 ${u.tenon.width}×${u.tenon.thickness}）`
+        : `製作 ${JOINERY_LABEL[u.type]}（${u.count} 處）`,
       description:
         `榫頭 ${u.tenon.length} × ${u.tenon.width} × ${u.tenon.thickness}mm，`
         + `對應母件厚約 ${u.estimatedMotherThickness}mm。**先做榫頭再做榫眼**，最後試插。`,
@@ -1156,6 +1160,9 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       });
     }
   }
+  /** 技能檢定術科題（目前只有乙級有官方文件在手；丙級要不要一起套等拿到題本再說） */
+  const isTradeTestB = /^cert-b\d$/.test(design.category);
+
   /**
    * 技能檢定術科作品**不上塗裝**。
    * 官方應檢人須知第六條只寫「成品可砂光，砂紙請自備」，評審表「表面處理」評的是
@@ -1163,9 +1170,82 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
    * 掛著護木油三層 + 鋼絲絨會把估時灌水 106 分鐘，考生照著排時間一定來不及。
    * （目前只套用在有官方文件在手的乙級；丙級要不要一起套，等拿到丙級題本再說。）
    */
-  if (/^cert-b\d$/.test(design.category)) {
+  if (isTradeTestB) {
     const coating = new Set(["step-14-finish-coat-1", "step-15-burnish", "step-16-finish-coat-2", "step-17-finish-coat-3"]);
-    return steps.filter((st) => !coating.has(st.id));
+    const out = steps.filter((st) => !coating.has(st.id))
+      /**
+       * ⭐ 檢定現場的料**已經四面鉋光、尺寸接近成品**（材料表註 2：「木材部分須四面鉋光，並要求直角」），
+       * 所以「平刨＋厚刨整平」整步不該存在，「切料」也不該用一般毛料的 18 分／件。
+       * 官方測驗時間只有 7 小時（須知第十條），一般節奏的估時會讓考生把時間全押在切料上。
+       */
+      .filter((st) => st.id !== "step-02-jointer-planer")
+      .map((st) => st.id === "step-03-cut-stock"
+        ? {
+            ...st,
+            estimatedMinutes: Math.round((st.estimatedMinutes ?? 0) / 3),
+            description: st.description
+              + `\n\n**檢定現場**：材料表註 2 已註明「木材部分須四面鉋光，並要求直角」，`
+              + `所以這一步只是截長與剖寬，用場地的圓鋸機一件約 2–3 分鐘（不是一般毛料的 9 分鐘）。`,
+          }
+        : st);
+
+    // 官方有評分、通用工序表沒有的三道
+    const legs = design.parts.filter((p) => /^leg[-_]|^leg$/.test(p.id)).length;
+    const chamfer = design.parts.find((p) => p.shape?.kind === "splayed" && p.shape.footChamferMm);
+    const chamferMm = chamfer?.shape?.kind === "splayed" ? chamfer.shape.footChamferMm : undefined;
+    const pilotHoles = design.parts.flatMap((p) => p.mortises.filter((m) => (m.label ?? "").includes("導引孔"))).length;
+    const extra: BuildStep[] = [];
+    if (legs > 0 && chamferMm) extra.push({
+      id: "step-05-9-foot-chamfer",
+      phase: "cut-joinery",
+      title: `腳底 ${chamferMm}×45° 倒角（${legs} 支）`,
+      description: `每支腳的底端四周削 ${chamferMm}mm 的 45° 倒角。**官方工作圖有標、評審表「表面處理－圓弧與倒角」有配分**，漏做直接扣。`,
+      toolIds: ["chisel-set-3-6-12", "sandpaper-set"],
+      estimatedMinutes: 4 * legs,
+      bullets: [
+        "先在四面各劃一道距底端 " + chamferMm + "mm 的線，再劃底面內縮 " + chamferMm + "mm 的框，兩線之間就是要削掉的",
+        "用鉋刀順著削，最後砂紙帶順；別用鑿刀敲，端面木口容易崩",
+        "四支要一致——監評是四支一起看的",
+      ],
+    });
+    if (pilotHoles > 0) extra.push({
+      id: "step-08-2-screws",
+      phase: "glue",
+      title: `鎖木螺釘 ${pilotHoles} 支`,
+      description: `依零件圖上的導引孔位置鑽孔、鎖上木螺釘。**評審表「五金裝配」評的是平整與釘頭完整**，釘頭要沉到與木面齊或略低，不可外凸、不可滑牙。`,
+      toolIds: ["drill", "drill-bits", "screwdriver"],
+      estimatedMinutes: Math.max(10, 2 * pilotHoles),
+      bullets: [
+        "導引孔一定要鑽——實木直接鎖會裂，尤其靠近端面的位置",
+        "沉頭孔用沉頭鑽或 90° 鑽頭修口，釘頭才平",
+        "數量與規格照材料表，用錯規格算五金裝配失分",
+      ],
+    });
+    extra.push({
+      id: "step-06-2-inspect",
+      phase: "fit",
+      title: "⚠️ 上膠前送監評人員檢查內部接榫",
+      description: `**應檢人須知第十一條：「上膠組合前，須將零件送交監評人員檢查內部接榫。」** 這是強制程序，不是建議——`
+        + `乾組試裝確認無誤後，先送檢，通過才可以上膠。內部榫接（評審表「榫孔與榫頭」）就是在這個時間點評的，上膠後看不到。`,
+      toolIds: [],
+      estimatedMinutes: 10,
+      bullets: ["送檢前把每個接合都拆到看得見榫頭榫眼", "記號（△）別擦掉，方便自己與監評對位"],
+    });
+    // 插到對的位置：倒角在乾組之前、送監評緊接乾組之後、鎖螺釘在最終膠合之後
+    const insertBefore = (id: string, st: BuildStep) => {
+      const i = out.findIndex((x) => x.id === id);
+      out.splice(i >= 0 ? i : out.length, 0, st);
+    };
+    const insertAfter = (id: string, st: BuildStep) => {
+      const i = out.findIndex((x) => x.id === id);
+      out.splice(i >= 0 ? i + 1 : out.length, 0, st);
+    };
+    const byId = Object.fromEntries(extra.map((st) => [st.id, st]));
+    if (byId["step-05-9-foot-chamfer"]) insertBefore("step-06-dry-fit", byId["step-05-9-foot-chamfer"]);
+    insertAfter("step-06-dry-fit", byId["step-06-2-inspect"]);
+    if (byId["step-08-2-screws"]) insertAfter("step-08-glue-final", byId["step-08-2-screws"]);
+    // 「完工檢查與驗收」的 phase 留在 finish 會被 UI 顯示成「塗裝」，但檢定不塗裝 → 改掛 fit
+    return out.map((st) => st.id === "step-99-final-check" ? { ...st, phase: "fit" as const } : st);
   }
 
   return steps;

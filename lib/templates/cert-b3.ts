@@ -85,13 +85,18 @@ import { getOption, opt } from "@/lib/types";
  * §05-30「插榫厚度不小於材厚 1/3」→ 上橫檔 32 厚取榫厚 12（自備工具表只發 ø12／ø6 直刀，12 開得出來）
  * §05-58「抽屜組裝結構，結合方式為面與端」→ 抽屜四角木釘打在側板端面
  *
- * ── 未做成造型（列為已知缺口）──────────────────────────────────
- * ① 腳底 3×45° 倒角（工作圖 A-A 下段明標，評審表「圓弧與倒角」有配分）。
- * ② 木螺釘本體 15 支（評審表「五金裝配」4.5 分；位置與規格已寫進 notes）。
- * ③ **上橫檔兩端的 8.33° 斜肩**：實際頂肩距 150、底肩距 167.6。共用層的 apron-trapezoid
- *    在「長度轉到世界 Z」的旋轉下投影不會收斂（實測逐層 Z 都不變），硬掛上去會讓腳與
- *    橫檔判成穿模；為了不動已上架的 bar-stool／床／長凳，這裡先做成方料取**頂肩距 150**，
- *    兩端再依 8.33° 往下放樣到 167.6。兩個數字都寫在 notes 裡給木匠。
+ * ── ✅ 2026-09-10 三個缺口都補完了 ────────────────────────────────
+ * ① **上橫檔 8.33° 斜肩**：`apron-trapezoid` 沿 local z（＝`visible.width`）收，
+ *    第一版把「檔高」放在 `thickness` 才會看起來不生效。改回全站慣例後每個高度都貼著腳的內面（實測間隙 0），
+ *    `visible.length` 取底肩距 167.6（切料寧可長不可短，不再讓考生切短 17.6mm）。
+ * ② **腳底 3×45° 倒角**：共用層原本只有「四條長邊倒角」（會把 45×32 變成八邊形、破壞腳柱尺寸），
+ *    新增 `splayed.footChamferMm` 端面倒角。實測底面內縮 3、原底緣抬高 3，斷面尺寸不變。
+ * ③ **木螺釘 15 支**：做成零件上的 **cosmetic 導引孔**（零件圖標得出位置），
+ *    6 支 Ø3.5×30（側板→腳柱／上橫檔）＋6 支 Ø3×25（側板→滑條）＋3 支 Ø2.4×15（底板→抽屜後板），
+ *    剛好對上評審表「五金裝配 15 部位」。螺釘本體是現成五金、不建模。
+ * ④ **工時** 10.4 → **8.3 小時**：拿掉「平刨＋厚刨整平」整步、切料從 9 分／件降到 3 分／件
+ *    （材料表註 2：料已四面鉋光、要求直角），另補三道官方有評分卻沒有的工序
+ *    （腳底倒角、鎖木螺釘、**上膠前送監評檢查內部接榫**＝須知第十一條）。
  */
 
 /** 官方試題尺寸（mm）。座標：X 0~450 由面板左緣、Y 0~450 由地面、Z 0~360 由正面 */
@@ -151,6 +156,12 @@ const EXAM = {
   backSideDowelZ: 327,                        // 官方未標精確 Z；取 327 讓 Ø8 孔完全落在側板木心板內（核心後端 332）
   drawerFrontDowelFromTop: [27, 103],         // 抽屜前板↔側板 2 支：由前板頂 430 起 27｜76｜27 ＝ 130
   drawerBackDowelFromTop: [30, 77],           // 抽屜後板↔側板 2 支：由後板頂 422 起 30｜47｜30 ＝ 107
+  screwDiaSide: 3.5, screwDiaRunner: 3, screwDiaBottom: 2.4,
+  screwSideY: 396,                            // 側板→腳柱／上橫檔那 3 支的高度
+  screwSideZ: [82, 180, 278],                 // 前腳／上橫檔／後腳
+  screwRunnerY: 379,                          // 側板→滑條那 3 支的高度
+  screwRunnerZ: [82, 180, 273],
+  screwBottomX: [130, 225, 320],              // 底板→抽屜後板 3 支（Ø2.4×15）
   screwSide: "Ø3.5×30 木螺釘（CNS1051）",       // 側板→腳柱／上橫檔，每側 3 支
   screwRunner: "Ø3×25 木螺釘（CNS1051）",       // 側板→滑條，每側 3 支
   screwBottom: "Ø2.4×15 木螺釘（CNS1051）",     // 抽屜底板→抽屜後板，3 支
@@ -293,7 +304,7 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
       {   // 上橫檔的榫（開在朝另一支腳的 Z 面）
         origin: { x: 0, y: topRailCy, z: (sz === 0 ? 1 : -1) * E.legD / 2 },
         // mortise.length ↔ tenon.width（沿橫檔 visible.width＝32 的那軸）、mortise.width ↔ tenon.thickness
-        depth: E.topRailTenonLen, length: E.topRailTenonT, width: E.topRailH - 16, through: false,
+        depth: E.topRailTenonLen, length: E.topRailH - 16, width: E.topRailTenonT, through: false,
         label: isEn ? "mortise, trestle top rail" : "上橫檔榫眼（12 厚 × 44 高）",
       },
       {   // 下橫桿的榫（開在朝櫃內的 X 面）
@@ -310,7 +321,8 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: E.legW, width: E.legD, thickness: E.legH },
       origin: { x: wx(cx), y: 0, z: wz(topCz) },
-      shape: { kind: "splayed", dxMm: 0, dzMm: dz },
+      // 腳底 3×45° 端面倒角（工作圖 A-A 下段明標；評審表「表面處理－圓弧與倒角」有配分）
+      shape: { kind: "splayed", dxMm: 0, dzMm: dz, footChamferMm: E.legChamfer },
       tenons: [],
       mortises: legM,
     });
@@ -322,14 +334,12 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
   const shoulderTop = shoulderAt(E.topRailTopY);                // 150
   const shoulderBot = shoulderAt(topRailBotY);                  // 167.6
   /**
-   * 上橫檔的榫。⚠️ `tenonWorld()` 的定義：`width` 沿零件的 `visible.width`、`thickness` 沿 `visible.thickness`。
-   * 這支橫檔 `visible = { length: 肩距, width: 32(厚), thickness: 60(高) }`
-   * ⇒ 榫厚 12 要放 **width**、榫高 44 要放 **thickness**。
-   * 🩸 第一版寫反了 → 44 被放到 32 寬那軸，榫頭每邊比料本身多凸 6mm，切不出來。
+   * 上橫檔的榫：`width` 沿 `visible.width`（＝檔高 60）、`thickness` 沿 `visible.thickness`（＝檔厚 32），
+   * 跟同檔的下橫桿（35/10）與 cert-b1/b2 的橫檔同一套慣例。
    */
   const topRailTenon = (position: "start" | "end"): Tenon => ({
     position, type: "blind-tenon",
-    length: E.topRailTenonLen, width: E.topRailTenonT, thickness: E.topRailH - 2 * 8,
+    length: E.topRailTenonLen, width: E.topRailH - 2 * 8, thickness: E.topRailTenonT,
     shoulderOn: ["top", "bottom", "left", "right"],
   });
   for (const sx of [0, 1] as const) {
@@ -340,14 +350,19 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
       nameEn: `Trestle top rail (${sx === 0 ? "left" : "right"})`,
       material,
       grainDirection: "length",
-      // ⚠️ 實際兩端隨腳 8.33° 斜切：頂肩距 150、底肩距 167.6。共用層的 apron-trapezoid
-      //    在「長度轉到世界 Z」的旋轉下投影不會收斂（實測逐層 Z 都不變），硬掛上去會讓
-      //    腳與橫檔判成穿模。這裡先做成方料取**頂肩距 150**（照這個長度切、兩端再依 8.33°
-      //    往下放樣到 167.6），斜肩列為已知未做成造型，數字寫在 notes 裡給木匠。
-      visible: { length: shoulderTop, width: E.legW, thickness: E.topRailH },
+      /**
+       * 兩端隨腳 **8.33° 斜切**（斜肩榫）：頂肩距 150、底肩距 **167.6**
+       *（C-C 高 350 的虛線由判讀員直接量到 96.2→263.8）。
+       * `visible.length` 取**底肩距**（長的那個）＝切料寧可長不可短，`topLengthScale` 把頂端收回 150。
+       * ⭐ 慣例：檔高放 `visible.width`、檔厚放 `visible.thickness`（同下橫桿與 cert-b1/b2 的橫檔）。
+       * 🩸 第一版把高放在 `thickness`、厚放在 `width`，跟全站相反 —— 而
+       *    `projectPartSilhouette` 的梯形是沿 local z（＝`visible.width`）收的，
+       *    軸對不上就看起來像「apron-trapezoid 在這個旋轉下不生效」，其實是我把 visible 寫反了。
+       */
+      visible: { length: shoulderBot, width: E.topRailH, thickness: E.legW },
       origin: { x: wx(cx), y: topRailBotY, z: 0 },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
-      // 兩端隨腳斜切：底邊長（貼腳的下方，腳已外撇）比頂邊長
+      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      shape: { kind: "apron-trapezoid", topLengthScale: shoulderTop / shoulderBot, bottomLengthScale: 1 },
       tenons: [topRailTenon("start"), topRailTenon("end")],
       mortises: [],
     });
@@ -429,6 +444,21 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
         tenons: [], mortises: [],
       });
     }
+    /**
+     * 木螺釘導引孔（評審表「五金裝配」15 支 × 0.3 ＝ 4.5 分）。
+     * 做成 cosmetic 貫穿孔，零件圖才標得出位置；螺釘本體是現成五金、不建模。
+     * 側板每側 6 支：3 支 ${E.screwSide} 由外面鎖進腳柱／上橫檔、3 支 ${E.screwRunner} 由外面鎖進滑條。
+     */
+    for (const z of E.screwSideZ) m.push({
+      origin: { x: -(z - sideCz), y: E.sidePanelT / 2, z: -(E.screwSideY - sideCy) },
+      depth: E.sidePanelT, length: E.screwDiaSide, width: E.screwDiaSide, through: true, shape: "round", cosmetic: true,
+      label: isEn ? "pilot hole, Ø3.5×30 to leg/rail" : "Ø3.5×30 導引孔（鎖腳柱／上橫檔）",
+    });
+    for (const z of E.screwRunnerZ) m.push({
+      origin: { x: -(z - sideCz), y: E.sidePanelT / 2, z: -(E.screwRunnerY - sideCy) },
+      depth: E.sidePanelT, length: E.screwDiaRunner, width: E.screwDiaRunner, through: true, shape: "round", cosmetic: true,
+      label: isEn ? "pilot hole, Ø3×25 to runner" : "Ø3×25 導引孔（鎖滑條）",
+    });
     // 滑條（實木 11×14，鎖在側板內面）
     const runnerCx = sx === 0 ? sideL1 + E.runnerW / 2 : sideR0 - E.runnerW / 2;
     parts.push({
@@ -631,7 +661,13 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
         thickness: E.bottomT,
       },
       origin: { x: 0, y: grooveTopY - E.bottomT, z: wz((drawerFrontZ1 - E.grooveD + drawerBackZ1) / 2 + dz) },
-      tenons: [], mortises: [],
+      tenons: [],
+      // 底板由下往上鎖 3 支 Ø2.4×15 進抽屜後板底緣（評審表「抽屜底板接合 4 部位」＝3 條槽 ＋ 這一排螺釘）
+      mortises: E.screwBottomX.map((x): Mortise => ({
+        origin: { x: wx(x), y: 0, z: (drawerBackZ0 + E.drawerBackT / 2) - (drawerFrontZ1 - E.grooveD + drawerBackZ1) / 2 },
+        depth: E.bottomT, length: E.screwDiaBottom, width: E.screwDiaBottom, through: true, shape: "round", cosmetic: true,
+        label: isEn ? "pilot hole, Ø2.4×15 to drawer back" : "Ø2.4×15 導引孔（鎖抽屜後板）",
+      })),
     });
     // D 抽屜前板↔側板 ×4、E 抽屜後板↔側板 ×4（沿 z；入抽屜側板 18／入前後板 12）
     for (const [i, cx] of drawerSideX.entries()) {
@@ -680,12 +716,12 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
 
 **與官方部位數對帳**（四項完全吻合）：木釘 **21 支**、木釘接合 9 處×2＝**18**、抽屜底板槽 **3 條**、木螺釘 **15 支**（側板→腳柱／上橫檔 ${E.screwSide} 每側 3 支、側板→滑條 ${E.screwRunner} 每側 3 支、底板→抽屜後板 ${E.screwBottom} 3 支）。
 
-**工時**：官方測驗時間 **7 小時**（應檢須知第十條）。工序表估時是照一般木工節奏算的，會比 7 小時多——檢定現場的料已依材料表註 2「四面鉋光、要求直角」備妥，而且**應檢不做塗裝**——須知第六條只寫「成品可砂光，砂紙請自備」，全份沒有禁止塗裝的明文，但沒發塗料、自備工具表沒有塗裝工具、評審表「表面處理」只評平滑／完整性／圓弧與倒角，三者一致指向不塗裝。
+**工時**：官方測驗時間 **7 小時**（應檢須知第十條）。本範本估 **8.3 小時**：工序表已依檢定現場調整——材料表註 2「木材部分須四面鉋光，並要求直角」⇒ 拿掉「平刨＋厚刨整平」、切料只算截長剖寬，而且**應檢不做塗裝**——須知第六條只寫「成品可砂光，砂紙請自備」，全份沒有禁止塗裝的明文，但沒發塗料、自備工具表沒有塗裝工具、評審表「表面處理」只評平滑／完整性／圓弧與倒角，三者一致指向不塗裝。
 
 ⚠️ **唯一對不起來的官方數字**：評審表「榫接密合 60」。照第一、二題驗證過的「榫頭數×4 面肩」該有 15 個榫頭，但圖上只數得到 8 個（上橫檔 2 支×2 端＋下橫桿 2 支×2 端）。依應檢須知第七條「各部尺寸應以圖上所標示數字為準」，本範本以圖面 8 榫為準。
 
 **本圖依公開尺寸自行繪製，不含官方圖檔；應檢請以技能檢定中心公布的官方版本為準。**
-**上橫檔要斜肩**：兩端隨腳 8.33° 斜切，**頂肩距 150、底肩距 167.6**（本範本的 3D 先做成方料 150，斜肩沒做成造型，切料時請照這兩個數字放樣）。腳底 3×45° 倒角同樣沒做成造型，但官方圖有標、評審表「圓弧與倒角」有配分，別漏。
+**上橫檔要斜肩**：兩端隨腳 8.33° 斜切，**頂肩距 150、底肩距 167.6**。切料長照 **167.6** 下料（寧可長不可短），兩端再依 8.33° 修到貼著腳面。**腳底 3×45° 倒角**四支都要做（官方圖有標、評審表「圓弧與倒角」有配分）。
 
 **抽屜四角一次上膠**：前角木釘沿深度方向（穿側板端面入前板）、後角沿寬度方向（穿側板面入後板端面），兩個方向互相咬住，不能一片一片裝——乾組試裝確認後，四角一次上膠夾緊。
 

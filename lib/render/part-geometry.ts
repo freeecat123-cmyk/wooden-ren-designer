@@ -52,7 +52,7 @@ export const LATHE_TURNED_SEGMENTS: Array<[number, number, number]> = [
 export type ShapeSpec =
   | { kind: "box" }
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
-  | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
+  | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded"; footChamferMm?: number }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1; dxMm?: number; dzMm?: number; twoWay?: boolean; dirZ?: -1 | 0 | 1; lowerCove?: CurvedTaperLowerCove; sCurve?: boolean }
   | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number; topLengthScale?: number; bottomLengthScale?: number; profilePoints?: Array<[number, number]> }
@@ -148,11 +148,50 @@ export function buildSplayedGeometry(
   size: [number, number, number],
   dx: number,
   dz: number,
+  /**
+   * 腳底 **端面** 45° 倒角（mm）。跟 `chamferMm` 不一樣：`chamferMm` 倒的是四條**長邊**
+   * （斷面會變八邊形），端面倒角只削掉底端四周的一圈 45°，斷面尺寸不受影響。
+   * 技能檢定的腳底 `3*45°` 就是這種（評審表「表面處理－圓弧與倒角」有配分）。
+   */
+  footChamfer = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
   const hy = ly / 2;
   const hz = lz / 2;
+  const c = Math.max(0, Math.min(footChamfer, Math.min(hx, hz) * 0.9, ly * 0.45));
+  if (c > 0) {
+    // 底面往內縮 c、原本的底緣抬高 c，中間用 45° 斜面接起來
+    const v2: number[] = [
+      // 0-3：真正的底面（內縮 c）
+      -hx + c + dx, -hy, -hz + c + dz,
+      hx - c + dx, -hy, -hz + c + dz,
+      hx - c + dx, -hy, hz - c + dz,
+      -hx + c + dx, -hy, hz - c + dz,
+      // 4-7：倒角上緣（滿尺寸，抬高 c）
+      -hx + dx * (1 - c / ly), -hy + c, -hz + dz * (1 - c / ly),
+      hx + dx * (1 - c / ly), -hy + c, -hz + dz * (1 - c / ly),
+      hx + dx * (1 - c / ly), -hy + c, hz + dz * (1 - c / ly),
+      -hx + dx * (1 - c / ly), -hy + c, hz + dz * (1 - c / ly),
+      // 8-11：頂面
+      -hx, hy, -hz,
+      hx, hy, -hz,
+      hx, hy, hz,
+      -hx, hy, hz,
+    ];
+    const f2 = (a: number, b: number, cc: number, d: number) => [a, b, cc, a, cc, d];
+    const idx2 = [
+      ...f2(0, 1, 2, 3),               // 底面
+      ...f2(8, 11, 10, 9),             // 頂面
+      ...f2(0, 4, 5, 1), ...f2(1, 5, 6, 2), ...f2(2, 6, 7, 3), ...f2(3, 7, 4, 0),   // 45° 斜面一圈
+      ...f2(4, 8, 9, 5), ...f2(5, 9, 10, 6), ...f2(6, 10, 11, 7), ...f2(7, 11, 8, 4), // 四個側面
+    ];
+    const g2 = new BufferGeometry();
+    g2.setAttribute("position", new Float32BufferAttribute(v2, 3));
+    g2.setIndex(idx2);
+    g2.computeVertexNormals();
+    return g2;
+  }
   const v: number[] = [
     // bottom (y = -hy), shifted by (dx, dz)
     -hx + dx, -hy, -hz + dz,
@@ -165,7 +204,7 @@ export function buildSplayedGeometry(
     hx, hy, hz,
     -hx, hy, hz,
   ];
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const f = (a: number, b: number, c2: number, d: number) => [a, b, c2, a, c2, d];
   const idx = [
     ...f(0, 1, 2, 3),
     ...f(4, 7, 6, 5),
@@ -2577,7 +2616,7 @@ export function buildShapeGeometry(
         shape.dz,
       );
     }
-    return buildSplayedGeometry(size, shape.dx, shape.dz);
+    return buildSplayedGeometry(size, shape.dx, shape.dz, shape.footChamferMm ?? 0);
   }
   if (shape.kind === "hoof") {
     return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale, shape.dirX, shape.dirZ);

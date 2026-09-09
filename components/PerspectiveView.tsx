@@ -1132,6 +1132,7 @@ export function PerspectiveView({
               dz: part.shape.dzMm * SCALE,
               chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
               chamferStyle: part.shape.chamferStyle,
+              footChamferMm: part.shape.footChamferMm ? part.shape.footChamferMm * SCALE : undefined,
             };
           } else if (part.shape?.kind === "hoof") {
             shape = {

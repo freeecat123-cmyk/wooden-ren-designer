@@ -13,6 +13,8 @@ import { auditJoints } from "@/lib/joinery/audit-joints";
 import { planAssembly } from "@/lib/assembly/plan";
 import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld } from "@/lib/assembly/joint-world";
 import { mortiseLocalBox } from "@/lib/render/svg-views";
+import { projectPartSilhouette } from "@/lib/render/geometry";
+import { deriveBuildSteps } from "@/lib/steps/derive";
 
 const entry = FURNITURE_CATALOG.find((e) => e.category === "cert-b3")!;
 const base = Object.fromEntries((entry.optionSchema ?? []).map((s) => [s.key, s.defaultValue])) as Record<string, string | number | boolean>;
@@ -83,6 +85,11 @@ describe("cert-b3 官方尺寸", () => {
     const dbY = [...new Set(d.parts.filter((p) => p.id.startsWith("dowel-drawer-back-0"))
       .map((p) => r1((worldAABB(p).min.y + worldAABB(p).max.y) / 2)))].sort((a, b) => b - a);
     expect(chain([422, ...dbY, 315]), "C-C 107 鏈").toEqual([30, 47, 30]);
+    // ⭐ 斜肩榫：兩端隨腳 8.33° 斜切，頂肩距 150、底肩距 167.6，每個高度都貼著腳的內面
+    const rail = worldAABB(part("top-rail-left"));
+    expect(r1(rail.max.z - rail.min.z), "底肩距 167.6").toBeCloseTo(167.6, 1);
+    expect((part("top-rail-left").shape as { kind: string; topLengthScale: number }).topLengthScale)
+      .toBeCloseTo(150 / 167.56, 3);
     // C-C：面板 18｜間隙 2｜抽屜前板 130 ＝ 150（面板頂 450 → 抽屜前板底 300）
     expect(chain([450, 432, 430, 300])).toEqual([18, 2, 130]);
     // C-C：側板頂→後板頂 5｜**後板本身 107**｜底板頂→側板底 15 ＝ 127（＝抽屜側板高）
@@ -141,7 +148,8 @@ describe("cert-b3 官方尺寸", () => {
 
   it("零件關鍵位置（世界座標換算回圖面）", () => {
     expect(g("top-core")).toEqual([8, 442, 432, 450, 8, 352]);            // 木心板心材 434×344×18
-    expect(g("top-rail-left")).toEqual([8, 40, 350, 410, 105, 255]);      // 60 高、頂面與腳頂齊
+    // 60 高、頂面與腳頂齊；兩端隨腳 8.33° 斜切 ⇒ AABB 取底肩距 167.6（Z 96.2~263.8）
+    expect(g("top-rail-left")).toEqual([8, 40, 350, 410, 96.2, 263.8]);
     expect(g("rail-front")).toEqual([40, 410, 255, 300, 51.1, 75.1]);     // 前檔頂＝盒底 300
     expect(g("rail-back")).toEqual([40, 410, 55, 100, 314.2, 338.2]);     // 後檔頂離地 100
     expect(g("side-panel-left")).toEqual([40, 58, 300, 432, 36, 332]);
@@ -173,9 +181,9 @@ describe("cert-b3 官方尺寸", () => {
 
   it("⭐ 接合尺寸（榫頭斷面、木釘入料深、槽）——變異測試證明過這些以前全都沒被守住", () => {
     const t = (id: string) => part(id).tenons.map((x) => [x.width, x.thickness, x.length]);
-    // 上橫檔：榫厚 12（A-A 腳斷面鏈 10｜12｜10＝32）× 榫高 44 × 榫長 20
-    // width 沿 visible.width(32)、thickness 沿 visible.thickness(60) —— 對調就切不出來
-    expect(t("top-rail-left")).toEqual([[12, 44, 20], [12, 44, 20]]);
+    // 上橫檔 visible = { width: 60(高), thickness: 32(厚) } ⇒ 榫高 44 放 width、榫厚 12 放 thickness
+    // 榫厚 12 是圖上標的（A-A 腳斷面鏈 10｜12｜10＝32）
+    expect(t("top-rail-left")).toEqual([[44, 12, 20], [44, 12, 20]]);
     expect(10 + 12 + 10).toBe(32);
     // 下橫桿 visible = { width: 45(高), thickness: 24(厚) } ⇒ 榫高 35 放 width、榫厚 10 放 thickness
     // （圖上 7｜10｜7＝24 是厚度方向的鏈）
@@ -187,7 +195,8 @@ describe("cert-b3 官方尺寸", () => {
       expect(x.thickness, `${p.id} 榫厚 ${x.thickness} > 料厚 ${p.visible.thickness}`).toBeLessThanOrEqual(p.visible.thickness);
     }
     // 木釘孔：入被面接的那件 12、入端面那件 18（B-B「12｜18」＝30）；孔徑一律 Ø8
-    const holes = d.parts.flatMap((p) => p.mortises.filter((m) => m.shape === "round").map((m) => [m.depth, m.length, m.width]));
+    // 只算木釘孔；木螺釘的導引孔是 cosmetic，另外驗
+    const holes = d.parts.flatMap((p) => p.mortises.filter((m) => m.shape === "round" && !m.cosmetic).map((m) => [m.depth, m.length, m.width]));
     expect(holes).toHaveLength(42);                                   // 21 支木釘 × 2 個孔
     expect([...new Set(holes.map((h) => h[0]))].sort((a, b) => a - b), "孔深只有 12 與 18").toEqual([12, 18]);
     expect([...new Set(holes.flatMap((h) => [h[1], h[2]]))], "孔徑一律 Ø8").toEqual([8]);
@@ -215,6 +224,51 @@ describe("cert-b3 官方尺寸", () => {
       if (m.depth > host + 0.01) bad.push(`${p.id} ${m.label ?? ""} 深 ${m.depth} > ${box.depthAxis} 軸料厚 ${host}`);
     }
     expect(bad, bad.join("\n")).toEqual([]);
+  });
+
+  it("⭐ 官方有評分的三件都做出來了：斜肩榫、腳底 3×45° 倒角、木螺釘 15 支", () => {
+    // ① 斜肩：兩端隨腳 8.33° 斜切 —— 每個高度上橫檔的端面都貼著腳的內面
+    const legFrontCz = (y: number) => 82.5 - 60 * (1 - y / 410);
+    for (const y of [352, 380, 408]) {
+      const poly = projectPartSilhouette(part("top-rail-left"), "side");
+      const zs: number[] = [];
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i], b = poly[(i + 1) % poly.length];
+        if ((a.y - y) * (b.y - y) > 0) continue;
+        const t = Math.abs(b.y - a.y) < 1e-9 ? 0 : (y - a.y) / (b.y - a.y);
+        zs.push(-(a.x + t * (b.x - a.x)) + 180);
+      }
+      expect(r1(Math.min(...zs) - (legFrontCz(y) + 22.5)), `Y=${y} 斜肩沒貼到腳面`).toBe(0);
+    }
+    // ② 腳底倒角：四支腳都要有 3×45° 端面倒角（不是四條長邊倒角——那會破壞腳柱 45×32）
+    const legs = d.parts.filter((p) => /^leg-/.test(p.id));
+    expect(legs).toHaveLength(4);
+    for (const p of legs) {
+      expect(p.shape?.kind).toBe("splayed");
+      expect((p.shape as { footChamferMm?: number }).footChamferMm, `${p.id} 沒做腳底倒角`).toBe(3);
+      expect((p.shape as { chamferMm?: number }).chamferMm, "不可以用長邊倒角（會把 45×32 變八邊形）").toBeUndefined();
+    }
+    // ③ 木螺釘 15 支＝評審表「五金裝配 15 部位」：導引孔要標得出位置
+    const pilots = d.parts.flatMap((p) => p.mortises.filter((m) => (m.label ?? "").includes("導引孔")));
+    expect(pilots).toHaveLength(15);
+    expect(pilots.filter((m) => (m.label ?? "").includes("Ø3.5×30"))).toHaveLength(6);
+    expect(pilots.filter((m) => (m.label ?? "").includes("Ø3×25"))).toHaveLength(6);
+    expect(pilots.filter((m) => (m.label ?? "").includes("Ø2.4×15"))).toHaveLength(3);
+    expect(pilots.every((m) => m.cosmetic && m.through), "導引孔要 cosmetic + 貫穿才畫得出來").toBe(true);
+  });
+
+  it("⭐ 工序：檢定不塗裝、料已四面鉋光、官方有評分的三道工序都在", () => {
+    const steps = deriveBuildSteps(d);
+    expect(steps.some((s) => s.id === "step-02-jointer-planer"), "檢定料已四面鉋光，不該有平刨厚刨").toBe(false);
+    expect(steps.filter((s) => s.phase === "finish"), "檢定不塗裝").toEqual([]);
+    for (const id of ["step-05-9-foot-chamfer", "step-08-2-screws", "step-06-2-inspect"]) {
+      expect(steps.some((s) => s.id === id), `缺工序 ${id}`).toBe(true);
+    }
+    // 同型多批的榫卯步驟標題要分得開（不然兩批都叫「半榫/盲榫（4 處）」）
+    const titles = steps.filter((s) => s.phase === "cut-joinery" && s.title.includes("半榫")).map((s) => s.title);
+    expect(new Set(titles).size, "同型榫卯的步驟標題重複").toBe(titles.length);
+    const hours = steps.reduce((a, s) => a + (s.estimatedMinutes ?? 0), 0) / 60;
+    expect(hours, "工時應落在官方 7 小時附近（原本 10.4）").toBeLessThan(9);
   });
 
   it("0 穿模（含各選項）、榫接 0 落單、組裝順序算得出來", () => {
