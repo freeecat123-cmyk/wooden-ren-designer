@@ -356,8 +356,25 @@ describe("全目錄預設值掃描（每一款都要排得出來）", () => {
         expect(Number.isFinite(m.from.x + m.from.y + m.from.z)).toBe(true);
         expect(Math.hypot(m.from.x, m.from.y, m.from.z)).toBeCloseTo(m.kind === "screw" ? 40 : travel, 6);
       }
-      // 沒有互鎖硬拆
-      expect(plan.moves.filter((m) => m.kind === "forced")).toEqual([]);
+      /**
+       * 沒有互鎖硬拆。
+       *
+       * ⚠️ cert-b3（乙級第三題）的兩片抽屜側板是**真的互鎖**，不是模型錯：
+       * 本題抽屜四角全部用木釘（六題唯一沒有鳩尾的），前角木釘沿 z（穿側板端面入前板）、
+       * 後角木釘沿 x（穿側板面入後板端面，因為後板 294 夾在兩側板之間）。
+       * 兩個軸向同時約束一片板 → 逐件插入排不出來。而後板非內縮不可：
+       * 側掛滑條走在抽屜外側面的槽裡，後板做到抽屜外寬 324 就會在拉出時撞到滑條（實測過）。
+       * 木工實務上這種抽屜就是**四角一次上膠夾緊**（乾組試裝→上膠→一次夾），
+       * 不是一片一片裝上去的，所以這裡如實豁免而不是去改幾何遷就規劃器。
+       */
+      const interlockedGlueUp: Record<string, string[]> = {
+        "cert-b3": ["drawer-1-side-left", "drawer-1-side-right"],
+      };
+      const allowForced = new Set(interlockedGlueUp[e.category] ?? []);
+      expect(
+        plan.moves.filter((m) => m.kind === "forced" && !m.partIds.every((id) => allowForced.has(id))),
+        "非預期的互鎖硬拆",
+      ).toEqual([]);
       expect(plan.totalMs).toBeLessThanOrEqual(60000);
       expect(offsetsAt(plan, 0).size).toBe(ids.length + plan.screws.length);
       expect(offsetsAt(plan, plan.totalMs).size).toBe(0);

@@ -37,6 +37,7 @@ import { certC2, certC2Options } from "./cert-c2";
 import { certC3, certC3Options } from "./cert-c3";
 import { certB1, certB1Options } from "./cert-b1";
 import { certB2, certB2Options } from "./cert-b2";
+import { certB3, certB3Options } from "./cert-b3";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -154,6 +155,21 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 482, width: 400, height: 420 },
     limits: { length: 800, width: 800, height: 800 },
     optionSchema: certB2Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-b3",
+    zhOnly: true,
+    nameZh: "乙級檢定 第三題",
+    nameEn: "Trade test Class B — Q3",
+    description: "技術士技能檢定家具木工乙級 01200-100203：斜腳單抽小邊桌，腳只在深度方向外撇、上橫檔斜肩榫，抽屜全木釘無鳩尾，7 小時",
+    descriptionEn: "Taiwan Class B furniture-woodworking trade test Q3: splay-legged single-drawer side table — legs splayed in depth only, shoulder-cut trestle rails, fully dowelled drawer with no dovetails — 7-hour piece",
+    difficulty: "intermediate",
+    template: certB3,
+    defaults: { length: 450, width: 360, height: 450 },
+    // 尺寸鎖死：斜度 8.33° 由「腳頂 240、腳底 360、腳高 410」三個官方數字同時決定，動一個其他兩個就不對
+    limits: { length: 450, width: 360, height: 450 },
+    optionSchema: certB3Options,
     joineryOnly: true,
   },
   {
@@ -535,6 +551,7 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
   "coat-rack",
   "wall-mounted-tool-storage",
   "cert-b1",   // 2026-09-09 木頭仁：「先不要上架」
+  "cert-b3",   // 同上（乙級第三題）
   "cert-b2",   // 同上，乙級整組先不公開——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
 ]);
 
