@@ -201,10 +201,15 @@ function extractFurnitureDims(design: FurnitureDesign) {
           const maxX = Math.max(...xs);
           const minZ = Math.min(...zs);
           const maxZ = Math.max(...zs);
-          // 用第一根腳的「橫切面」當作腳粗（visible.length 通常 = legSize）
+          // 腳的橫切面：以**世界軸**的實際佔寬為準（worldExtents 已把 rotation 算進去）。
+          // 🩸2026-09-09 以前寫 `min(visible.length, visible.width)` 當成正方形腳
+          // → 乙級第一題腳柱 32(x)×45(z) 被標成「腳 32×32」，側視腳外距也少算 13mm（397 應為 410）。
           const sample = legs[0];
-          const legSize = Math.min(sample.visible.length, sample.visible.width);
-          return { minX, maxX, minZ, maxZ, legSize, count: legs.length };
+          const we = worldExtents(sample);
+          const legSizeX = Math.round(we.xExt * 10) / 10;
+          const legSizeZ = Math.round(we.zExt * 10) / 10;
+          const legSize = Math.min(legSizeX, legSizeZ);   // 舊欄位保留給只需要單一值的消費端
+          return { minX, maxX, minZ, maxZ, legSize, legSizeX, legSizeZ, count: legs.length };
         })()
       : null;
 
@@ -4384,11 +4389,11 @@ function OrthoViewImpl({
           if (view === "top") {
             // 俯視圖：腳粗 + 桌面外伸（4 角到腳外面距離）+ 對角線（檢查方正度）
             if (!legFootprint) return null;
-            const { minX, maxX, minZ, maxZ, legSize } = legFootprint;
-            const overhangXr = w / 2 - (maxX + legSize / 2);  // 右側外伸
-            const overhangXl = -w / 2 - (minX - legSize / 2); // 左側 (負值取 abs)
-            const overhangZb = h / 2 - (maxZ + legSize / 2);  // 後側 (z>0)
-            const overhangZf = -h / 2 - (minZ - legSize / 2); // 前側 (negative)
+            const { minX, maxX, minZ, maxZ, legSize, legSizeX, legSizeZ } = legFootprint;
+            const overhangXr = w / 2 - (maxX + legSizeX / 2);  // 右側外伸
+            const overhangXl = -w / 2 - (minX - legSizeX / 2); // 左側 (負值取 abs)
+            const overhangZb = h / 2 - (maxZ + legSizeZ / 2);  // 後側 (z>0)
+            const overhangZf = -h / 2 - (minZ - legSizeZ / 2); // 前側 (negative)
             const showOverhang = Math.abs(overhangXr) > 1; // > 1mm 才標
             return (
               <>
@@ -4400,7 +4405,7 @@ function OrthoViewImpl({
                   fill="#444"
                   fontFamily="sans-serif"
                 >
-                  {`${isEn ? "Leg " : "腳 "}${useInch ? `${formatLengthBare(legSize, "inch")}×${formatLengthBare(legSize, "inch")}` : `${legSize}×${legSize}`}`}
+                  {`${isEn ? "Leg " : "腳 "}${useInch ? `${formatLengthBare(legSizeX, "inch")}×${formatLengthBare(legSizeZ, "inch")}` : `${legSizeX}×${legSizeZ}`}`}
                 </text>
                 {/* 桌面外伸——只在右上角標一個（4 邊對稱所以只標 1 處夠用）*/}
                 {showOverhang && (
@@ -4638,7 +4643,7 @@ function OrthoViewImpl({
                 const lo = isSideV ? legFootprint.minZ : legFootprint.minX;
                 const hi = isSideV ? legFootprint.maxZ : legFootprint.maxX;
                 const splay = isSideV ? maxSplayDz : maxSplayDx;
-                const half = legFootprint.legSize / 2;
+                const half = (isSideV ? legFootprint.legSizeZ : legFootprint.legSizeX) / 2;
                 const a = lo - half - splay;
                 const b = hi + half + splay;
                 if (b - a <= legFootprint.legSize + 1) return null; // 單柱腳無跨距
@@ -4671,7 +4676,7 @@ function OrthoViewImpl({
                     : `${pre}Ø${fmt(t)}`
                   : tapered
                     ? `${pre}${isEn ? "top " : "上"}${fmt(t)}/${isEn ? "btm " : "下"}${fmt(bSize)}`
-                    : `${pre}${fmt(t)}×${fmt(t)}`;
+                    : `${pre}${fmt(legFootprint.legSizeX)}×${fmt(legFootprint.legSizeZ)}`;
                 return (
                   <text
                     x={0}
