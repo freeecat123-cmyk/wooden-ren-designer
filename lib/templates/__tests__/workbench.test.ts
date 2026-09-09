@@ -160,7 +160,7 @@ describe("桌面中縫", () => {
     const b = d.parts.find((p) => p.id === "top-back")!;
     expect(f.visible.width).toBe(277.5);
     expect(b.visible.width).toBe(277.5);
-    expect(d.parts.find((p) => p.id === "gap-stop")!.visible.width).toBe(45);
+    expect(d.parts.find((p) => p.id === "gap-stop-1")!.visible.width).toBe(45);
     expect(f.mortises.filter((m) => !m.cosmetic && m.length !== 64)).toHaveLength(2);
     expect(b.mortises.filter((m) => !m.cosmetic)).toHaveLength(2);
     expect(d.parts.find((p) => p.id === "top")).toBeUndefined();
@@ -289,7 +289,7 @@ describe("專業做法：中央凹槽、前腳孔列", () => {
     expect(tray.origin.y + 24).toBe(830 - 45);
     expect(tray.origin.y).toBeGreaterThanOrEqual(830 - 75); // 底板底面不低於桌面底面 → 不會撞裙板 / 穿帶
     expect(d.parts.some((p) => p.id.startsWith("center-well-cleat"))).toBe(false);
-    expect(d.parts.find((p) => p.id === "gap-stop")).toBeUndefined();
+    expect(d.parts.some((p) => p.id.startsWith("gap-stop") || p.id.startsWith("gap-end"))).toBe(false);
   });
   it("中央凹槽 + 裙板桌（桌面 65）：槽深 45 收到 41（65 − 24）、底板底面 = 桌面底面", () => {
     const d = build({ benchStyle: "apron", topSplit: "center-well" });
@@ -632,18 +632,89 @@ describe("09-04 木頭仁看 3D 回報的三條（孔軸、中縫、中央槽端
     expect(rounds("leg-4")).toBe(0);
     expect(build({ legHoles: false }).parts.find((p) => p.id === "leg-1")!.mortises.filter((m) => m.shape === "round").length).toBe(0);
   });
-  it("中縫擋條是一小塊、不把縫塞滿（夾具要伸得進去），且擺在鉗那一端", () => {
+  // 2026-09-09 木頭仁：「中間留縫＋擋條不太對，應該是兩端都有，然後中間 2-4 塊，可以自己決定」
+  // 期望值全部手算（桌長 1800）：
+  //   端塞 endLen = clamp(round(1800/12/10)*10, 100, 200) = 150
+  //   內跨 innerSpan = 1800 − 2×150 = 1500
+  //   2 塊：fit = floor((1500 − 3×150)/2) = 525 → stopLen = min(360, 520) = 360
+  //         開口 = (1500 − 2×360)/3 = 260；中心 x = ∓310
+  //   4 塊：fit = floor((1500 − 5×150)/4) = 187 → stopLen = min(360, 180) = 180
+  //         開口 = (1500 − 4×180)/5 = 156（≥150，夾頭穿得過）
+  describe("中縫：兩端固定端塞 + 中間 N 塊可移動擋條", () => {
     const d = build({ topSplit: "gap" });
-    const stop = d.parts.find((p) => p.id === "gap-stop")!;
-    const top = d.parts.find((p) => p.id === "top-front")!;
-    expect(stop.visible.length).toBeLessThan(top.visible.length / 2);
-    expect(stop.visible.length).toBeGreaterThanOrEqual(200);
-    expect(stop.visible.width).toBe(45); // 中縫寬預設
-    // 鉗預設在左（世界 +X）
-    expect(stop.origin.x).toBeGreaterThan(0);
-    // 擋條兩端都還在桌面長度內
-    expect(Math.abs(stop.origin.x) + stop.visible.length / 2).toBeLessThanOrEqual(top.visible.length / 2);
+    const ref = d.parts.find((p) => p.id === "top-front")!;
+    const ends = d.parts.filter((p) => p.id.startsWith("gap-end-"));
+    const stops = d.parts.filter((p) => /^gap-stop-\d+$/.test(p.id));
+
+    it("兩端各一塊固定端塞，跟桌面同厚、寬 = 中縫，貼在桌面兩端", () => {
+      expect(ends).toHaveLength(2);
+      for (const e of ends) {
+        expect(e.visible).toEqual({ length: 150, width: 45, thickness: 75 });
+        // 端塞外緣切齊桌端：|x| + 長/2 = 桌長/2
+        expect(Math.abs(e.origin.x - ref.origin.x) + 150 / 2).toBe(1800 / 2);
+      }
+      // 木紋橫過中縫（跟中央槽端塞同理，長向纖維擋不住扭轉）
+      expect(ends.every((e) => e.grainDirection === "width")).toBe(true);
+    });
+
+    it("預設 2 塊，長 360、開口 260，左右對稱", () => {
+      expect(stops).toHaveLength(2);
+      expect(stops.every((p) => p.visible.length === 360)).toBe(true);
+      const xs = stops.map((p) => p.origin.x - ref.origin.x).sort((a, b) => a - b);
+      expect(xs).toEqual([-310, 310]);
+    });
+
+    it("整條縫從頭到尾剛好排滿：端塞 + 擋條 + 開口 = 桌長，且開口都 ≥ 150", () => {
+      const blocks = [...ends, ...stops]
+        .map((p) => ({ a: p.origin.x - ref.origin.x - p.visible.length / 2, b: p.origin.x - ref.origin.x + p.visible.length / 2 }))
+        .sort((x, y) => x.a - y.a);
+      expect(blocks[0].a).toBe(-900);
+      expect(blocks[blocks.length - 1].b).toBe(900);
+      for (let i = 1; i < blocks.length; i += 1) {
+        const opening = blocks[i].a - blocks[i - 1].b;
+        expect(opening).toBeGreaterThanOrEqual(150); // F 夾夾頭穿得過去 ← 這個選項的賣點
+      }
+    });
+
+    it("選 4 塊：真的變 4 塊，長度自動縮到 180，開口仍 ≥ 150", () => {
+      const four = build({ topSplit: "gap", gapStopCount: 4 });
+      const s4 = four.parts.filter((p) => /^gap-stop-\d+$/.test(p.id));
+      expect(s4).toHaveLength(4);
+      expect(s4.every((p) => p.visible.length === 180)).toBe(true);
+      const r = four.parts.find((p) => p.id === "top-front")!;
+      const xs = s4.map((p) => p.origin.x - r.origin.x).sort((a, b) => a - b);
+      // 開口 156：中心間距 = 180 + 156 = 336
+      expect(xs.map((x, i) => (i === 0 ? 0 : Math.round(x - xs[i - 1])))).toEqual([0, 336, 336, 336]);
+      expect(four.warnings ?? []).not.toContain(expect.stringContaining("已減成"));
+    });
+
+    it("短桌排不下 4 塊 → 自動減少並出聲（不靜默改掉使用者的值）", () => {
+      const short = build({ topSplit: "gap", gapStopCount: 4 }, { length: 900, width: 600, height: 830 });
+      const s = short.parts.filter((p) => /^gap-stop-\d+$/.test(p.id));
+      expect(s.length).toBeLessThan(4);
+      expect(s.length).toBeGreaterThanOrEqual(1);
+      expect((short.warnings ?? []).some((w) => w.includes("擋條") && w.includes("減成"))).toBe(true);
+    });
+
+    it("沒選留縫就完全沒有這些零件", () => {
+      const none = build();
+      expect(none.parts.some((p) => p.id.startsWith("gap-"))).toBe(false);
+    });
+
+    it("夾板疊層模式：端塞與擋條都要算進夾板張數（PLY_PART_RE 要認得新 id）", () => {
+      const d = build({ materialStyle: "plywood", topSplit: "gap", gapStopCount: 3 });
+      const gapParts = d.parts.filter((p) => p.id.startsWith("gap-"));
+      expect(gapParts.map((p) => p.id).sort()).toEqual(["gap-end-l", "gap-end-r", "gap-stop-1", "gap-stop-2", "gap-stop-3"]);
+      for (const p of gapParts) expect(p.materialOverride).toBe("plywood");
+      expect(d.parts.find((p) => p.id === "top-front")!.materialOverride).toBe("plywood");
+    });
+
+    it("實木模式不會被誤標成夾板（反向）", () => {
+      const d = build({ topSplit: "gap" });
+      for (const p of d.parts.filter((x) => x.id.startsWith("gap-"))) expect(p.materialOverride).toBeUndefined();
+    });
   });
+
   it("中央凹槽兩端要補實木端塞（跟桌面同厚齊平），槽底板縮在兩端塞之間", () => {
     const d = build({ topSplit: "center-well" });
     const top = d.parts.find((p) => p.id === "top-front")!;

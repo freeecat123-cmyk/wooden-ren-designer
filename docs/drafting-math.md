@@ -98,7 +98,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 / 夾板木紋 / 穿帶 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers\|lsLayers\|battenLayers\|ply-layers"` | §AU23、§AU23.1 |
 | 技能檢定家具木工丙級練習件 / 自由四邊形側板 / 靠邊梯形 / 凸出貫穿榫 / 木釘接稽核 | `"cert-c1\|quad\|trapezoid-anchor\|anchor\|凸出\|木釘接\|dowelPartner"` | §AV |
 | 丙級第二題 / 斜面上掀門 / 門樞軸木釘 / 板端斜切 quad yz / 圓孔放行 clearedByRoundHole / 開門角度 | `"cert-c2\|plane.*yz\|clearedByRoundHole\|doorOpen\|樞軸"` | §AW |
-| 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞"` | §AU24 |
+| 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞\|gapStopCount\|gap-end"` | §AU24 |
 | 穿帶騎腳頂 / 抽屜橫向分格 | `"穿帶\|batten\|drawerCols"` | §AU25 |
 | 穿帶尺寸可調 / 腳頂破口 / 疊層分層方向 | `"battenWidth\|apronTopShoulderMm\|BoardSplit\|疊層軸"` | §AU26 |
 | 長方腳（腳寬≠腳厚）/ 桌高用途自動套用 | `"legDepthMm\|depthRatio\|workbenchHeightFor"` | §AU27 |
@@ -5465,6 +5465,19 @@ holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙�
    ⭐膠合線寬度 1.6mm 不是寫實值：0.7mm 在預覽縮放下不到一個像素＝等於沒畫。
 3. **中縫擋條**以前做成整條桌長又跟桌面齊平 → 看起來就是一整片，縫也失去意義。
    改成 Benchcrafted 作法：一小塊（桌長/5，夾在 200~360）擺在鉗那一端，其餘留空給夾具穿過。
+   **2026-09-09 再修（木頭仁：「應該是兩端都有，然後中間 2-4 塊，可以自己決定」）**：
+   - **兩端補固定端塞** `gap-end-l` / `gap-end-r`，長 = 桌長/12（夾 100~200，與下面第 4 條中央槽端塞同式）、
+     寬 = 中縫寬、厚 = 桌面厚、木紋橫向，外緣切齊桌端。理由同第 4 條：只靠底下腳架連著會扭開。
+   - **中間改成 N 塊可移動擋條** `gap-stop-1..N`，N 由新選項 `gapStopCount`（2~4，預設 2）決定。
+   - 排法：`innerSpan = 桌長 − 2×endLen`，N 塊切出 N+1 個等寬開口，整串置中：
+     `opening = (innerSpan − N×stopLen) / (N+1)`。
+   - 夾制：**開口 ≥ 150**（F 夾夾頭要穿得過去，這是這個選項存在的理由）、單塊 ≥ 120。
+     `stopLen = min(桌長/5 夾 200~360, floor((innerSpan − (N+1)×150) / N / 10) × 10)`。
+     排不下就一塊一塊減 N 並出聲；連一塊都排不下就只留兩端塞並出聲。
+   - ⚠️ **stopLen 只能無條件捨去**。四捨五入會往上進位（N=4 時 187→190），多出來的長度是從開口偷的，
+     開口掉到 148 < 150。這條有測試守著（`workbench.test.ts`「選 4 塊」那則）。
+   - 手算（桌長 1800）：endLen 150、innerSpan 1500；N=2 → stopLen 360、開口 260、中心 x = ∓310；
+     N=4 → stopLen 180、開口 156。
 4. **中央凹槽兩端要補實木端塞**：以前槽通到兩個端面，兩片桌面只剩底下腳架連著（木頭仁：「這樣很弱」）。
    端塞跟桌面同厚、頂面齊平、長 = 桌長/12（夾在 100~200），把凹槽做成「不通到端面的口袋」；
    槽底板長度縮成 `topLen − 2 × endLen` 卡在兩端塞之間（不然會疊在端塞上，overlap 稽核會紅）。
