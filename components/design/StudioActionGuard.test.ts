@@ -8,6 +8,8 @@ beforeAll(async () => {
   const result = await build({ stdin: { resolveDir: process.cwd(), loader: "tsx", contents: `
     import React from 'react'; import {createRoot} from 'react-dom/client';
     import {StudioActionGuard} from './components/design/StudioActionGuard';
+    import {announceDesignNavigation} from './lib/design/navigation-pending';
+    window.announceDesignNavigation = announceDesignNavigation;
     const root = createRoot(document.getElementById('root'));
     window.renderGuard = (resolvedSearch='') => root.render(<StudioActionGuard locale="en" resolvedSearch={resolvedSearch}>
       <form data-design-form data-design-baseline={JSON.stringify({length:100, checked:true, style:'b'})}><input name="length" defaultValue="100"/><input name="checked" type="checkbox" defaultChecked />
@@ -66,5 +68,32 @@ it("clears completed preset navigation before a later save changes only the revi
     await page.evaluate(() => (window as any).renderGuard("length=300&revision=new"));
     await page.getByRole("button", { name: "Export" }).click();
     expect(await page.evaluate(() => (window as any).executed)).toBe(2);
+  } finally { await page.close(); }
+});
+
+/**
+ * 回歸：2026-09-09「裁切計算器按了沒反應」。
+ *
+ * Next 的 server searchParams **會丟掉空值參數**（正式站實測：`?joineryMode=&length=350`
+ * 到 server 手上只剩 `length=350`）。而設計表單的「組裝版」radio value 就是空字串，
+ * 每次推 URL 都會帶一個 `joineryMode=`。
+ *
+ * 兩邊的鍵因此永遠對不起來 → navigationPending 卡在 true → 材料單 / 裁切計算器 /
+ * 列印 / 報價 / 儲存的點擊全部被 preventDefault，而且不會自己好。
+ */
+it("survives Next dropping blank search params: blank joineryMode must not wedge the guard", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.setContent('<div id="root"></div>');
+    await page.addScriptTag({ content: bundle });
+    await page.getByRole("button", { name: "Export" }).waitFor();
+    // client 推出去的網址帶著空值的 joineryMode（組裝版 radio）
+    await page.evaluate(() => (window as any).announceDesignNavigation("https://studio.test/design/stool?joineryMode=&length=300"));
+    await page.getByRole("button", { name: "Export" }).click();
+    expect(await page.evaluate(() => (window as any).executed)).toBeUndefined();
+    // server 重新 render，但它收到的 searchParams 已經沒有 joineryMode 了
+    await page.evaluate(() => (window as any).renderGuard("length=300"));
+    await page.getByRole("button", { name: "Export" }).click();
+    expect(await page.evaluate(() => (window as any).executed)).toBe(1);
   } finally { await page.close(); }
 });
