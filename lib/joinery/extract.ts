@@ -1,4 +1,5 @@
 import type { FurnitureDesign, JoineryType, Tenon } from "@/lib/types";
+import { stripInstanceNumbers } from "@/lib/cutplan/piece-spec";
 import { partName } from "@/lib/templates/part-names";
 
 export interface JoineryUsage {
@@ -96,16 +97,10 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
             // Strip instance numbers anywhere (椅腳 1 → 椅腳, 抽屜1 左側板 →
             // 抽屜 左側板) and collapse double spaces. With 4 identical legs
             // or 4 drawers this keeps the display compact.
-            const displayName = part.nameZh
-              .replace(/\d+/g, "")
-              .replace(/\s+/g, " ")
-              .trim();
+            const displayName = stripInstanceNumbers(part.nameZh);
             if (!motherNamesByKey.has(k)) motherNamesByKey.set(k, new Set());
             motherNamesByKey.get(k)!.add(displayName);
-            const displayNameEn = partName(part, "en")
-              .replace(/\d+/g, "")
-              .replace(/\s+/g, " ")
-              .trim();
+            const displayNameEn = stripInstanceNumbers(partName(part, "en"));
             if (!motherNamesEnByKey.has(k)) motherNamesEnByKey.set(k, new Set());
             motherNamesEnByKey.get(k)!.add(displayNameEn);
           }

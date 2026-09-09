@@ -239,10 +239,16 @@ export function subtractMortisesFromGeometry(
     // local Y，但腳 / 靠板的孔是往側面鑽、深度落在 local Z。以前一律當 Y 軸做圓柱
     // → 半徑拿到的是「半個孔深」（50）、長度拿到的是孔半徑（19），等於拿一塊餅去挖，
     // 挖出來根本不是孔。rotX≠0（外撇牆斜孔）維持原本的 Y 軸 slice 數學不動。
-    const holeAxis: "x" | "y" | "z" = absRot ? "y" : (options.strict ? m.depthAxis : undefined) ?? holeAxisOf(m.hx, m.hy, m.hz);
+    // 🩸2026-09-09：孔軸一律用 mortiseLocalBox 算出來的 depthAxis（＝範本宣告的入孔面），
+    // 只有它缺席才退回 holeAxisOf 的「half-extent 最大那軸」猜測。
+    // 以前只有 strict（匯出路徑）才吃 depthAxis，3D 預覽吃猜測 →「孔徑 ≥ 板厚」的貫穿孔一律挖錯軸：
+    // 乙級第一題抽屜面板 Ø20 指孔（板厚 18）挖成橫躺圓柱、與正反兩面相切只留 0.04mm 皮，畫面上完全看不出有孔。
+    // 全 catalog 掃過共 15 個圓孔中這個 case（托盤兩片側牆手把孔、木盒蓋指孔、工具牆鑿刀孔 ×6、虎鉗顎孔 ×3），
+    // 每一個都是「孔比板厚」→ 全部本來就是壞的，改吃 depthAxis 是全面修正。
+    const holeAxis: "x" | "y" | "z" = absRot ? "y" : m.depthAxis ?? holeAxisOf(m.hx, m.hy, m.hz);
     if (isRound) {
       const halfLen = holeAxis === "x" ? m.hx : holeAxis === "z" ? m.hz : hyExt;
-      const radius = absRot ? m.hz : options.strict && m.depthAxis
+      const radius = absRot ? m.hz : m.depthAxis
         ? (holeAxis === "x" ? Math.min(m.hy, m.hz) : holeAxis === "z" ? Math.min(m.hx, m.hy) : Math.min(m.hx, m.hz))
         : holeRadiusOf(m.hx, m.hy, m.hz);
       // 圓孔 cross-section 預壓 ellipse：x-radius radius、z-radius radius·c

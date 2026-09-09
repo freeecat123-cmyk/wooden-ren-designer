@@ -27,16 +27,26 @@ export interface PieceSpec {
  * 把設計匯入的 CutPiece 陣列合併成 PieceSpec：
  * 以 (name 去數字+billable+長寬厚) 為 key 群聚，每個 key 的 qty = 出現次數
  */
+/**
+ * 零件名去掉「第幾個」的流水號（椅腳 1 → 椅腳、抽屜1 左側板 → 抽屜 左側板），
+ * 但**保留規格數字**：🩸2026-09-09 裁切計算器把「抽屜底板（4mm 合板）」印成「抽屜底板（mm 合板）」，
+ * 因為以前是 `.replace(/\d+/g, "")` 一律吃掉。規則改成：數字後面接單位（mm／cm／公厘／分／吋／"）就留著。
+ */
+export function stripInstanceNumbers(name: string): string {
+  return name
+    // 保留：接單位的（4mm）、規格串裡的（Ø8×30 的 8 與 30）、小數
+    .replace(/(?<![Øø×xX.\d])\d+(?:\.\d+)?(?![\d.]*\s*(?:mm|cm|公厘|公分|分|吋|"|”|×|x|X))/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function collapseIntoSpecs(pieces: CutPiece[], locale: string = "zh-TW"): PieceSpec[] {
   const map = new Map<string, PieceSpec>();
   const isEn = locale === "en";
   for (const p of pieces) {
     // 跟 extract.ts 同規則：去掉所有數字、合併空白（「下層抽屜1 面板」→「下層抽屜 面板」）
     const sourceName = isEn ? p.partNameEn : p.partNameZh;
-    const nameBase = sourceName
-      .replace(/\d+/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+    const nameBase = stripInstanceNumbers(sourceName);
     const key = `${nameBase}|${p.billable}|${p.material}|${p.length}|${p.width}|${p.thickness}`;
     if (!map.has(key)) {
       map.set(key, {

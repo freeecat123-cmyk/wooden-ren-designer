@@ -81,7 +81,10 @@ const TITLE_BAR_H = 32;
  * - shelves = 任何 id 含 "shelf" 或 "under-shelf" 的板（茶几下層、書櫃內層）
  */
 function extractFurnitureDims(design: FurnitureDesign) {
-  const topPart = design.parts.find((p) => p.id === "top");
+  // id 慣例不只 "top"：檢定範本的桌面是木心板＋封邊，主板叫 "top-core"
+  //（🩸2026-09-09 乙級第一題：main 找不到 → 整個標註層 return null，三視圖只剩「寬 450／高 450」兩個總尺寸，
+  //  腳架 410、抽屜面板 340、橫檔 60 全都沒標。丙級三題也一樣沒有主板 id → 同樣光禿）
+  const topPart = design.parts.find((p) => p.id === "top") ?? design.parts.find((p) => p.id === "top-core");
   const seatPart = design.parts.find((p) => p.id === "seat");
   const bottomPart = design.parts.find((p) => p.id === "bottom");
   const main = topPart ?? seatPart;
@@ -169,7 +172,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
 
   // 腳：取所有 id 開頭為 leg- 的件（俯視圖用來標腳跨距 / 腳粗）
   // id 兩種慣例：leg-1..4（simple-table 系）與 leg-lf/lb/rf/rb（case/圓件系）
-  const legs = design.parts.filter((p) => /^leg(?:-\d+|-[lr][fb])?$/.test(p.id));
+  // 第三種慣例：leg-left-front / leg-right-back（2026-09-09 乙級第一題；只寫 -[lr][fb] 吃不到全名）
+  const legs = design.parts.filter((p) => /^leg(?:-\d+|-[lr][fb]|-(?:left|right)-(?:front|back))?$/.test(p.id));
   // 外斜腳的最大落地點偏移（splayed shape 的 dxMm / dzMm 絕對值最大者）
   // 用來算落地點 X / Z 範圍 vs 椅面邊距
   const maxSplayDx = Math.max(
@@ -2798,6 +2802,12 @@ function OrthoViewImpl({
             // pointed-ends：六角柱斜板（45° 旋轉），top view 也要走 silhouette
             // pipeline 才能正確投影旋轉後的尖角輪廓，不被 fallback rect 補方
             part.shape.kind !== "pointed-ends" &&
+            // edge-profile（牙板／橫檔的壸門、弧、波浪造型邊）與 top-outline（桌面俯視造型）：
+            // 🩸2026-09-09 零件卡 isolate 時 rotation 歸零，造型從 front 投影搬到 top 投影，
+            // 卡片「正視 FRONT」面板實際跟渲染器要的就是 top → 撞上這道白名單、退回畫四條直線。
+            // 乙級第一題前橫檔的壸門曲線整條不見；茶几／餐椅／吧台椅／方凳牙板選壸門的也一樣（11+ 件）。
+            part.shape.kind !== "edge-profile" &&
+            part.shape.kind !== "top-outline" &&
             // chamfered-edges：腳 / 橫撐 4 條長邊倒角，在「沿最長軸看過去」
             // 的視圖畫八邊形截面（geometry.ts projectPartPolygon §730 處理）；
             // top view 對腳（最長軸=Y）正好是 cross-section view，必須走
