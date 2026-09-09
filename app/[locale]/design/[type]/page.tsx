@@ -7,11 +7,10 @@ import { DesignDraftRecovery } from "@/components/design/DesignDraftRecovery";
 import { after } from "next/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, type Locale } from "@/i18n/routing";
-import { getTemplate, getEntryName, getEntryDescription, isDevCategory, catalogForLocale } from "@/lib/templates";
+import { getTemplate, getEntryName, getEntryDescription, isDevCategory, isExamCategory, catalogForLocale } from "@/lib/templates";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
-import { getBundleFor } from "@/lib/pricing/template-unlock";
 import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
@@ -257,10 +256,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
   // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
   // 不小心讓非付費 user 繞過尺寸上限。
-  // 考題套組（丙級三題）：預設尺寸就是考題尺寸，「範例預覽」等於把答案全放出來
+  // 檢定考題：預設尺寸就是考題答案，「範例預覽」等於把答案全放出來
   // （2026-09-08 木頭仁：「介紹頁不要把重點尺寸都放出來，不然別人就不用買了」）
   // → 沒買斷的人只給 3D，三視圖／零件圖／材料單／工序整段換成鎖卡。
-  const examLocked = previewLocked && !!getBundleFor(type);
+  // 🩸 原本寫成 `!!getBundleFor(type)`（有沒有在套組裡）。丙級三題與乙級第一題剛好都在套組，
+  //    看起來對；但乙級第二、三題沒進任何套組 → 未登入訪客的 HTML 裡讀得到整條官方尺寸鏈。
+  //    判準要問「是不是考題」，不是「賣不賣」→ 改吃 EXAM_CATEGORIES 單一真相來源。
+  const examLocked = previewLocked && isExamCategory(type);
   const planAllowsDesigner = getPlanFeatures(profile).canUseDesignerMode;
   const canUseDesignerMode = isAdmin || planAllowsDesigner;
 

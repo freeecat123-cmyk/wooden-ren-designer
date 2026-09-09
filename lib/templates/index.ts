@@ -559,3 +559,28 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
 export function isDevCategory(category: string): boolean {
   return DEV_CATEGORIES.has(category);
 }
+
+/**
+ * 技能檢定考題範本：**預設尺寸就是考題答案**。
+ *
+ * 沒買斷的人只給 3D，三視圖／零件圖／材料單／工序整段換成鎖卡
+ * （2026-09-08 木頭仁：「介紹頁不要把重點尺寸都放出來，不然別人就不用買了」）。
+ *
+ * 🩸 2026-09-09：這個判斷原本寫在 `app/[locale]/design/[type]/page.tsx` 裡、
+ *    用「有沒有在 TEMPLATE_BUNDLES 裡」代替「是不是考題」。丙級三題與乙級第一題
+ *    剛好都在套組裡所以看起來對，但**乙級第二、三題沒進任何套組 → examLocked 變 false**，
+ *    未登入訪客直接在 HTML 裡讀得到整條官方尺寸鏈（實測 `>450<`×6、`>434<`×2、`>324<`×2…）。
+ *    「先不要上架」擋住了買、沒擋住看。判準要問「是不是考題」，不是「賣不賣」。
+ *
+ * ⚠️ 新增檢定題目**只改這裡**；`__tests__/exam-categories.test.ts` 會檢查
+ *    每個 `joineryOnly` 的目錄項都在名單內，漏加會紅。
+ */
+export const EXAM_CATEGORIES: ReadonlySet<string> = new Set([
+  "cert-c1", "cert-c2", "cert-c3",
+  "cert-b1", "cert-b2", "cert-b3",
+]);
+
+/** 這是技能檢定考題範本嗎（預設尺寸＝答案，沒買斷就不給圖面）。 */
+export function isExamCategory(category: string): boolean {
+  return EXAM_CATEGORIES.has(category);
+}
