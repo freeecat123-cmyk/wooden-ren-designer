@@ -34,23 +34,37 @@ import { getOption, opt } from "@/lib/types";
  * 總高 450±1｜總寬 **434**±1（量腳柱跨距，面板比它兩側各多懸挑 8 到 450）｜總深 360±1
  * 腳座上端寬度 240±1｜抽屜外側 324×300±1｜腳柱 45×32±0.5｜下橫桿 45×24±0.5｜抽屜前板寬 130±0.5
  *
- * ── 官方部位數 vs 本模型實體數（⭐四項完全吻合，是這份判讀最強的自我驗證）──────
- * | 評審表 | 官方 | 本模型 |
- * | 木釘（內部） | 21 | **21 支** ✔ |
- * | 木釘密合（外部） | 18 | 9 處接合 × 2 ＝ **18** ✔ |
- * | 抽屜底板槽 | 3 | 前板＋兩側板 ＝ **3 條** ✔ |
- * | 木螺釘 | 15 | 6＋6＋3 ＝ **15 支** ✔ |
+ * ── 官方部位數 vs 本模型實體數 ──────────────────────────────────
+ * | 評審表 | 官方 | 本模型 | 證據力 |
+ * | 木釘（內部） | 21 | **21 支** ✔ | ⭐**強**：圖上獨立數得出來 3＋6＋4＋4＋4＝21 |
+ * | 抽屜底板槽 | 3 | **3 條** ✔ | 弱：六題全部都是 3，是區塊常數 |
+ * | 木釘密合（外部） | 18 | 9 處 × 2 ＝ **18** ✔ | 弱：第一~三題都是 18、第四~六題都是 22，是區塊常數 |
+ * | 木螺釘 | 15 | 6＋6＋3 ＝ **15** ✔ | 弱：圖上只標三種規格沒標支數，配置是自訂 |
  *
- * ⚠️ **唯一對不起來的官方數字：「榫接密合 60」**。
- *    第一、二題驗證過的規則是「榫接密合＝榫頭數 × 4 面肩」（第一題 2×4＝8 ✔、第二題 8×4＝32 ✔），
- *    照此本題應有 15 個榫頭，但圖上只數得到 **8 個**（上橫檔 2 支 × 2 端 ＋ 下橫桿 2 支 × 2 端）。
- *    15 是奇數、對稱家具不合理，而本題其餘四項部位數與圖面實體數完全吻合
- *    → 依應檢須知第七條「各部尺寸應以圖上所標示數字為準」，**以圖面 8 榫為準**，
- *      並判斷「×4」這條規則在本題不成立（本題每部位扣分 0.15，是六題最低，像是權重而非實數）。
+ * ⭐ **真正最強的獨立驗證是材料表**（評審表與工作圖之外的第三份文件）：
+ *    項次 3（抽屜前板）、5（封邊）、6（面板木心板）、7（側板＋背板木心板）、8（底板合板）、10（Ø2.4×15 螺釘）
+ *    **六項同時「剛好用完、一片不多一片不少」**。六項一起剛好不可能是巧合。
+ *
+ * ⚠️ **「榫接密合 60」對不上 —— 以圖面 8 個榫頭為準**。四條互相獨立的依據：
+ *    ① **評審表自己就說了只有 8 個榫**：尺寸列「腳柱 8 部位」＝4 腳×2 尺寸、「下橫桿 4 部位」＝**2 支**×2 尺寸、
+ *       「腳座上端寬度 2 部位」＝左右 2 組腳座 ⇒ 2 支上橫檔×2 端 ＋ 2 支下橫桿×2 端 ＝ **8**。
+ *    ② 60 ÷ 8 ＝ 7.5 非整數，任何「每榫 N 部位」的規則都產不出 60；60 ÷ 4 ＝ 15 是奇數，左右對稱的家具不可能。
+ *    ③ **「×4 面肩」本來就不是通則**：六題套一遍，第一題 2 ✔、第二題 8 ✔，但第三題 15、第四題 3、第六題 9 全是奇數。
+ *       這條規則只在 n＝2 的樣本上成立過。
+ *    ④ **部位數是為了把配分湊成整數挑的**：第四題木螺釘 12×0.3＝3.6 但配分寫 3.5、
+ *       第五題 22×0.3＝6.6 寫 6.5、17×0.3＝5.1 寫 5 —— 三處乘不出來，證明「每部位扣分」是配分÷部位數反推的。
+ *    ⇒ 依應檢須知第七條「各部尺寸應以圖上所標示數字為準」。
+ *
+ * ⭐ **規則的正確版本（做第四~六題請用這條）**：
+ *    「**尺寸**」區塊的部位數＝實數（件數 × 量測尺寸數），可以反推支數。
+ *    「**內部榫接／外部接合**」區塊的部位數 **有時是實數、有時是權重，一律逐題用圖面與材料表驗證，不可反推幾何**。
+ *    反例：第一題「木釘 30 部位」> 材料表全六題只發 29 支，物理上不可能；第三題「木釘 21」卻與圖面一字不差。
  *
  * ── 官方未規定、本範本自訂（依新標準逐條列出，不隱藏）──────────────
- * 上橫檔的榫厚／榫長、下橫桿的榫高／榫長（圖上只標了下橫桿**榫厚 10**，來自 7｜10｜7＝24）、
- * 抽屜底板槽深（取 5，依學科 §05-11「12mm 抽屜側板鉋溝，槽深 5mm 最佳」）、
+ * 上橫檔的**榫長**、下橫桿的榫高／榫長。
+ *   （⚠️ 榫厚**兩支都有標**：上橫檔 12 出自 A-A 腳斷面鏈 10｜12｜10＝32、下橫桿 10 出自 7｜10｜7＝24。
+ *    第一版誤把上橫檔榫厚寫成「官方未標、自訂」，付費範本這樣寫等於告訴考生可以自選，實際不能。）
+
  * 滑條長度（取 Z 28~295，後端收在關閉時抽屜後板的正面）、
  * 面板封邊四角接法（本範本前後封邊通長、左右封邊夾在中間）。
  *
@@ -69,7 +83,6 @@ import { getOption, opt } from "@/lib/types";
  *
  * ── 依官方學科參考資料（012002A12.pdf）定的 ──────────────────────
  * §05-30「插榫厚度不小於材厚 1/3」→ 上橫檔 32 厚取榫厚 12（自備工具表只發 ø12／ø6 直刀，12 開得出來）
- * §05-11「12mm 抽屜側板鉋溝嵌底板，槽深 5mm 最佳」→ 底板槽深 5
  * §05-58「抽屜組裝結構，結合方式為面與端」→ 抽屜四角木釘打在側板端面
  *
  * ── 未做成造型（列為已知缺口）──────────────────────────────────
@@ -89,24 +102,47 @@ const EXAM = {
   legW: 32, legD: 45, legH: 410, legChamfer: 3,
   legTopSpread: 240, legBottomSpread: 360,    // 腳頂 240 → 腳底 360（每邊撇 60）
   topRailH: 60, topRailTopY: 410,             // 上橫檔 60 高，頂面與腳頂齊
-  topRailTenonT: 12, topRailTenonLen: 20,     // 官方未標；§05-30 + 自備 ø12 直刀
+  topRailTenonT: 12, topRailTenonLen: 20,     // 榫厚 12 **圖上有標**（A-A 腳斷面鏈 10｜12｜10＝32）；榫長 20 官方未標
   botRailH: 45, botRailT: 24,                 // 下橫桿 45×24（評審表）
   botRailTenonT: 10, botRailTenonH: 35, botRailTenonLen: 20,  // 榫厚 10 出自圖上 7｜10｜7＝24；高與長官方未標
   botRailFrontTopY: 300, botRailBackTopY: 100,   // 前檔頂＝盒底 300；後檔頂離地 100（圖上「100」）
-  legInsetInRail: 10.5,                       // 下橫桿在腳 45 深裡置中：10.5｜24｜10.5
+  legInsetInRail: 10.5,                       // 下橫桿在腳 45 深裡置中：圖上鏈 10.5｜24｜10.5＝45
   carcaseBottomY: 300, carcaseTopY: 432,      // 盒體 Y 300~432（132 高）
   sidePanelT: 18, sidePanelEdge: 8,           // 側板木心板 18，前後端各 8 實木封邊
   sidePanelZ0: 28, sidePanelZ1: 340,          // 側板全長 312（含兩端封邊）
   backPanelT: 18, backPanelZ1: 340,           // 背板後面與側板後端齊
   drawerGap: 5,                               // 側板內面↔抽屜側板外面
-  drawerW: 324, drawerD: 300,                 // 評審表「抽屜外側寬、深度 324×300」
+  drawerW: 324, drawerD: 300,                 // 評審表「抽屜外側寬、深度 324×300」——量的是**箱體**（兩側板外面）
+  /**
+   * 抽屜前板是**面付式 370 寬**（兩端與腳內面齊），不是跟箱體同寬的 324。
+   * 🩸 第一版做成 324 ⇒ 前板（X 63~387）與側板前封邊（X 40~58／392~410）在 X 上零重疊，
+   *    **關到底沒有任何擋塊**，抽屜會多推 12mm 直到後板撞背板；而評審表「抽屜前板之密合」有 5 分。
+   * 判讀證據（對照員 A 回頭專判）：
+   *   ① `370` 這條標註屬於 **B-B（俯視）**，左端刻線 x=570.5 ⇒ 離中心 185.2；
+   *   ② B-B 前半段前板那條帶**從 ±185 一路畫到中心線不斷**——後板那條帶在 ±167／±162／±147 都有斷點（294 夾在兩側板之間）；
+   *   ③ 1:10 正視圖抽屜高度帶內**只有 3 條垂直線**（左腳內面 X40、中心線、右腳內面 X410），
+   *      X 58／63／387／392 一個像素都沒有（32mm 的腳在這張圖都解析成兩條線了，18mm 側板不可能看不到）；
+   *   ④ 側視圖前板整片凸在腳前面 32mm。材料表項次 3（440×132×18.5）給 370 剛好、給 324 要丟 116。
+   * ⇒ 前板背面 Z=28 貼上側板前封邊的正面 Z=28，關到底剛好貼平＝擋塊。
+   */
+  drawerFrontW: 370,
   drawerFrontH: 130, drawerFrontT: 18, drawerFrontZ0: 10, drawerTopGap: 2,
   drawerSideH: 127, drawerSideT: 15, drawerSideBelowTop: 5,
-  drawerBackH: 122, drawerBackT: 15, drawerBackBelowTop: 10,
-  drawerBackBottomToTop: 107,                 // C-C「107｜15」＝122：後板頂→底板頂 107、底板頂→後板底 15
+  /**
+   * 抽屜後板 **107 高**（Y 315~422），**坐在 4mm 合板底板上面**。
+   * 🩸 第一版讀成 122（把「107｜15」當成「後板頂→底板頂 107、再往下 15 才是後板底」），
+   *    結果後板底緣比底板還低 11mm ⇒ 合板裝不進去、3 支 ø2.4×15 也鎖不到後板，
+   *    跟本檔自己 notes 寫的「底板→抽屜後板 3 支」自相矛盾。
+   * 三條證據：① C-C 的實木斜線剖面**在合板那條帶就停住**，底下是空的；
+   *   ② `ø2.4*15` 的引線正好指在後板與合板的交會處（由下往上鎖進後板底緣）；
+   *   ③ 後板的木釘鏈 **30｜47｜30 ＝ 107** 剛好等於板高——若是 122 這條鏈封不起來。
+   * 正確的鏈是 **5｜107｜15 ＝ 127**（＝抽屜側板高）：側板頂→後板頂 5、後板 107、底板頂→側板底 15。
+   * 對照組：cert-b1 本來就是這樣做的（後板底緣＝底板頂、底板延到後板後面）。
+   */
+  drawerBackH: 107, drawerBackT: 15, drawerBackBelowTop: 10,
   runnerW: 11, runnerH: 14, slotD: 7, slotH: 15,
   slotTopBelowSideTop: 40,                    // 槽頂 387 ＝ 抽屜側板頂 427 − 40（圖上 35 是由後板頂 422 起算）
-  grooveD: 5, bottomT: 4,                     // 底板槽深官方未標，取學科 §05-11 的 5
+  grooveD: 7, bottomT: 4,                     // 底板槽深 **圖上有標 7**（A-A 下方那個 7，自抽屜側板內面往內量）
   dowelDia: 8, dowelLen: 30,
   dowelIntoPanel: 12, dowelIntoBoard: 18,     // 木釘一律「入被接的面板／前後板 12、入板端 18」（圖上 12｜18）
   backDowelX: [25, 142, 142],                 // 背板↔面板 3 支：由背板左端 25｜142｜142｜25 ＝ 334
@@ -147,7 +183,9 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
   const { material } = input;
   const isEn = (input.locale ?? "zh-TW") === "en";
   const o = certB3Options;
-  const pull = getOption<number>(input, opt(o, "drawerPull"));
+  const pullRaw = getOption<number>(input, opt(o, "drawerPull"));
+  // 夾在讀選項那一行（§A10.11）。網址帶負值會讓抽屜往櫃體裡面倒退 → 撞滑條／背板。
+  const pull = Math.min(250, Math.max(0, Number.isFinite(pullRaw) ? pullRaw : 0));
   const withDrawer = getOption<boolean>(input, opt(o, "withDrawer"));
 
   const E = EXAM;
@@ -240,17 +278,28 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
     const cx = sx === 0 ? legL0 + E.legW / 2 : legR0 + E.legW / 2;
     const topCz = sz === 0 ? legTopFrontCz : legTopBackCz;
     const dz = (sz === 0 ? -1 : 1) * splay;                    // buildSplayedGeometry：頂端不動、底端位移
-    // 腳的榫眼：origin.y ∈ [0, 410] 由**頂**往下量；origin.x ±16（32 寬）、origin.z ±22.5（45 深）
+    /**
+     * 腳的榫眼。
+     * ⭐ `origin.y` 是 **from-bottom**（共用層 `mortiseLocalBox` 的慣例：
+     *    `lib/render/svg-views.tsx` 的 `oyC = m.origin.y - ly/2`，註解寫明「Y 是 from-bottom」），
+     *    這支腳沒有 rotation、`visible.thickness` 就是 410 的垂直高，所以 origin.y ＝ 離地高度。
+     * 🩸 2026-09-09 第一版寫成 `E.legH - 高度`（誤以為由頂往下量）→ 四支腳的榫眼全部畫在錯的高度
+     *    （差 145~350mm），8 支榫頭 100% 配不到榫眼，而 `auditJoints`（只比尺寸不比位置）、
+     *    `findOverlaps`（非 cosmetic 榫眼不參與）、`warnInvalidMortiseSpec`（只檢查有沒有超出料件）
+     *    三道閘全部沒攔下來。零件卡上的 1:1 樣板會把孔標在腳的另一端。
+     * `origin.x` ±16（32 寬）、`origin.z` ±22.5（45 深）都是 ±half。
+     */
     const legM: Mortise[] = [
       {   // 上橫檔的榫（開在朝另一支腳的 Z 面）
-        origin: { x: 0, y: E.legH - topRailCy, z: (sz === 0 ? 1 : -1) * E.legD / 2 },
-        depth: E.topRailTenonLen, length: E.topRailH - 16, width: E.topRailTenonT, through: false,
-        label: isEn ? "mortise, trestle top rail" : "上橫檔榫眼（12 厚）",
+        origin: { x: 0, y: topRailCy, z: (sz === 0 ? 1 : -1) * E.legD / 2 },
+        // mortise.length ↔ tenon.width（沿橫檔 visible.width＝32 的那軸）、mortise.width ↔ tenon.thickness
+        depth: E.topRailTenonLen, length: E.topRailTenonT, width: E.topRailH - 16, through: false,
+        label: isEn ? "mortise, trestle top rail" : "上橫檔榫眼（12 厚 × 44 高）",
       },
       {   // 下橫桿的榫（開在朝櫃內的 X 面）
-        origin: { x: (sx === 0 ? 1 : -1) * E.legW / 2, y: E.legH - botRailCy(sz === 0 ? E.botRailFrontTopY : E.botRailBackTopY), z: 0 },
+        origin: { x: (sx === 0 ? 1 : -1) * E.legW / 2, y: botRailCy(sz === 0 ? E.botRailFrontTopY : E.botRailBackTopY), z: 0 },
         depth: E.botRailTenonLen, length: E.botRailTenonH, width: E.botRailTenonT, through: false,
-        label: isEn ? "mortise, bottom rail" : "下橫桿榫眼（10 厚）",
+        label: isEn ? "mortise, bottom rail" : "下橫桿榫眼（10 厚 × 35 高）",
       },
     ];
     parts.push({
@@ -272,9 +321,15 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
   const shoulderAt = (y: number) => legCzAt(y, true) - E.legD / 2 - (legCzAt(y, false) + E.legD / 2);
   const shoulderTop = shoulderAt(E.topRailTopY);                // 150
   const shoulderBot = shoulderAt(topRailBotY);                  // 167.6
+  /**
+   * 上橫檔的榫。⚠️ `tenonWorld()` 的定義：`width` 沿零件的 `visible.width`、`thickness` 沿 `visible.thickness`。
+   * 這支橫檔 `visible = { length: 肩距, width: 32(厚), thickness: 60(高) }`
+   * ⇒ 榫厚 12 要放 **width**、榫高 44 要放 **thickness**。
+   * 🩸 第一版寫反了 → 44 被放到 32 寬那軸，榫頭每邊比料本身多凸 6mm，切不出來。
+   */
   const topRailTenon = (position: "start" | "end"): Tenon => ({
     position, type: "blind-tenon",
-    length: E.topRailTenonLen, width: E.topRailH - 2 * 8, thickness: E.topRailTenonT,
+    length: E.topRailTenonLen, width: E.topRailTenonT, thickness: E.topRailH - 2 * 8,
     shoulderOn: ["top", "bottom", "left", "right"],
   });
   for (const sx of [0, 1] as const) {
@@ -310,7 +365,8 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   for (const r of botRails) {
     const cy = r.topY - E.botRailH / 2;
-    const cz = legCzAt(cy, r.back);                             // 下橫桿在腳 45 深裡置中
+    // 由腳的前面往內 10.5（圖上鏈 10.5｜24｜10.5＝45），而不是「置中」——同值但吃得到官方數字
+    const cz = legCzAt(cy, r.back) - E.legD / 2 + E.legInsetInRail + E.botRailT / 2;
     parts.push({
       id: r.id,
       nameZh: r.back ? "後下橫桿" : "前下橫桿",
@@ -486,14 +542,14 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
   const drawerSideZ1 = drawerBackZ1;                             // 側板與後板後面齊
   const drawerSideX = [drawerX0 + E.drawerSideT / 2, drawerX1 - E.drawerSideT / 2];
   // 底板頂 315：C-C 抽屜後板內部鏈「107｜15」＝122，由後板頂 422 往下 107
-  const grooveTopY = drawerBackTopY - E.drawerBackBottomToTop;
+  const grooveTopY = drawerBackTopY - E.drawerBackH;              // 315＝後板底＝底板頂
   if (withDrawer) {
     const dz = -pull;
     parts.push({
       id: "drawer-1-front",
       nameZh: "抽屜前板", nameEn: "Drawer front",
       material, grainDirection: "length",
-      visible: { length: E.drawerW, width: E.drawerFrontH, thickness: E.drawerFrontT },
+      visible: { length: E.drawerFrontW, width: E.drawerFrontH, thickness: E.drawerFrontT },
       origin: { x: 0, y: drawerFrontBottomY, z: wz(E.drawerFrontZ0 + E.drawerFrontT / 2 + dz) },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
@@ -502,7 +558,7 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
           origin: { x: 0, y: E.drawerFrontT, z: -((grooveTopY - E.bottomT / 2) - (drawerFrontBottomY + E.drawerFrontH / 2)) },
           // 槽長 304 ＝ 底板寬（底板兩側各再進側板的槽 5），不是側板內距 294
           depth: E.grooveD, length: E.drawerW - 2 * (E.drawerSideT - E.grooveD), width: E.bottomT, through: false,
-          label: isEn ? "drawer bottom groove" : "抽屜底板槽（4 寬 × 5 深）", cosmetic: true,
+          label: isEn ? "drawer bottom groove" : "抽屜底板槽（4 寬 × 7 深）", cosmetic: true,
         },
         // 側板木釘孔 ×4（沿 z，開在背面；入前板 12）— rotation {x:π/2}：local y(厚)→世界 z、local z(寬)→世界 −y
         ...drawerSideX.flatMap((cx) => E.drawerFrontDowelFromTop.map((dTop): Mortise => ({
@@ -543,7 +599,7 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
           {   // 內面的底板槽
             origin: { x: 0, y: i === 0 ? E.drawerSideT : 0, z: -((grooveTopY - E.bottomT / 2) - (drawerSideTopY - E.drawerSideH / 2)) },
             depth: E.grooveD, length: drawerSideZ1 - drawerFrontZ1, width: E.bottomT, through: false,
-            label: isEn ? "drawer bottom groove" : "抽屜底板槽（4 寬 × 5 深）", cosmetic: true,
+            label: isEn ? "drawer bottom groove" : "抽屜底板槽（4 寬 × 7 深）", cosmetic: true,
           },
         ],
       });
@@ -570,10 +626,11 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: {
         length: drawerX1 - drawerX0 - 2 * E.drawerSideT + 2 * E.grooveD,
-        width: drawerBackZ0 - drawerFrontZ1 + E.grooveD,
+        // 後緣延到**後板後面**（Z 310）：底板從後方推入、穿過後板下方，再由下往上鎖 3 支 ø2.4×15
+        width: drawerBackZ1 - drawerFrontZ1 + E.grooveD,
         thickness: E.bottomT,
       },
-      origin: { x: 0, y: grooveTopY - E.bottomT, z: wz((drawerFrontZ1 - E.grooveD + drawerBackZ0) / 2 + dz) },
+      origin: { x: 0, y: grooveTopY - E.bottomT, z: wz((drawerFrontZ1 - E.grooveD + drawerBackZ1) / 2 + dz) },
       tenons: [], mortises: [],
     });
     // D 抽屜前板↔側板 ×4、E 抽屜後板↔側板 ×4（沿 z；入抽屜側板 18／入前後板 12）
@@ -596,6 +653,9 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
       ? `Exam piece is fixed at ${W}×${D}×${H} mm — the sliders do not apply to this template.`
       : `本題尺寸固定 ${W}×${D}×${H}mm：腳的斜度由「腳頂 240、腳底 360、腳高 410」三個官方數字同時決定，改任何一個其他兩個就不對了，所以滑桿對這款不作用。`);
   }
+  if (pull !== pullRaw) warnings.push(isEn
+    ? `Drawer pull clamped to ${pull} mm (0–250).`
+    : `抽屜拉出量夾到 ${pull}mm（可用範圍 0~250；負值會讓抽屜往櫃體裡倒退、撞到滑條與背板）。`);
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
 
   const design: FurnitureDesign = {
@@ -616,11 +676,11 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
 
 **本題是六題中唯一沒有鳩尾榫的**（評審表把「鳩尾榫頭榫孔」與「鳩尾榫密合」兩列整個拿掉），抽屜四角全部用木釘，打在側板端面（學科 §05-58「抽屜組裝＝面與端」）。
 
-零件：木心板面板 434×344×18、四周包 8 實木封邊 → 450×360；木心板側板（前後端各 8 封邊、全長 312）與背板 334×132×18；腳柱 45×32×410 四支、腳底 3×45° 倒角；上橫檔 60×32 兩支榫接入腳；下橫桿 45×24 兩支（前檔頂緊貼盒底 300、後檔頂離地 100，榫厚 10 出自圖上 7｜10｜7＝24）；抽屜外 324×300、前板 130 高 18 厚、側板 127 高 15 厚、後板 122 高 15 厚、4mm 合板底板入 5 深槽；滑條 11×14 以 ${E.screwRunner} 鎖在側板內面、入抽屜側板 15 高 7 深的槽。
+零件：木心板面板 434×344×18、四周包 8 實木封邊 → 450×360；木心板側板（前後端各 8 封邊、全長 312）與背板 334×132×18；腳柱 45×32×410 四支、腳底 3×45° 倒角；上橫檔 60×32 兩支榫接入腳；下橫桿 45×24 兩支（前檔頂緊貼盒底 300、後檔頂離地 100，榫厚 10 出自圖上 7｜10｜7＝24）；抽屜**箱體**外 324×300（評審表）、**前板是面付式 370×130×18**（兩端與腳內面齊、背面貼側板前緣當擋塊）、側板 127 高 15 厚、後板 107 高 15 厚（坐在底板上）、4mm 合板底板入 5 深槽；滑條 11×14 以 ${E.screwRunner} 鎖在側板內面、入抽屜側板 15 高 7 深的槽。
 
 **與官方部位數對帳**（四項完全吻合）：木釘 **21 支**、木釘接合 9 處×2＝**18**、抽屜底板槽 **3 條**、木螺釘 **15 支**（側板→腳柱／上橫檔 ${E.screwSide} 每側 3 支、側板→滑條 ${E.screwRunner} 每側 3 支、底板→抽屜後板 ${E.screwBottom} 3 支）。
 
-**工時**：官方測驗時間 **7 小時**（應檢須知第十條）。工序表估時是照一般木工節奏算的，會比 7 小時多——檢定現場的料已依材料表註 2「四面鉋光、要求直角」備妥，而且**應檢不做塗裝**（須知第六條只准砂光）。
+**工時**：官方測驗時間 **7 小時**（應檢須知第十條）。工序表估時是照一般木工節奏算的，會比 7 小時多——檢定現場的料已依材料表註 2「四面鉋光、要求直角」備妥，而且**應檢不做塗裝**——須知第六條只寫「成品可砂光，砂紙請自備」，全份沒有禁止塗裝的明文，但沒發塗料、自備工具表沒有塗裝工具、評審表「表面處理」只評平滑／完整性／圓弧與倒角，三者一致指向不塗裝。
 
 ⚠️ **唯一對不起來的官方數字**：評審表「榫接密合 60」。照第一、二題驗證過的「榫頭數×4 面肩」該有 15 個榫頭，但圖上只數得到 8 個（上橫檔 2 支×2 端＋下橫桿 2 支×2 端）。依應檢須知第七條「各部尺寸應以圖上所標示數字為準」，本範本以圖面 8 榫為準。
 
@@ -629,7 +689,11 @@ export const certB3: FurnitureTemplate = (input): FurnitureDesign => {
 
 **抽屜四角一次上膠**：前角木釘沿深度方向（穿側板端面入前板）、後角沿寬度方向（穿側板面入後板端面），兩個方向互相咬住，不能一片一片裝——乾組試裝確認後，四角一次上膠夾緊。
 
-**官方未規定、本範本自訂**：上橫檔的榫厚（取 12，§05-30 插榫厚 ≥ 材厚 1/3、自備工具只發 ø12／ø6 直刀）與榫長、下橫桿的榫高與榫長、抽屜底板槽深（取 5，§05-11）、滑條長度（Z 28~295）、面板封邊四角接法。`,
+**榫厚兩支都是官方標的**：上橫檔 12（A-A 腳斷面鏈 10｜12｜10＝32）、下橫桿 10（7｜10｜7＝24）。剛好都開得出來——自備工具表只發 ø12、ø6 兩支直刀。
+
+**官方未規定、本範本自訂**：兩支橫檔的**榫長**（取 20）、下橫桿的榫高（取 35）、滑條長度（Z 28~295）、面板封邊四角接法。
+
+**滑條的料要自己想**：11×14×267 兩支，材料表項次 4 的三片 400×130×15.5 已被抽屜三片用完（餘料最長 118、直剖也不夠寬），只能從項次 1 的 1050×95×32.5 餘料鉋到 11 厚。切料時別以為缺料。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;

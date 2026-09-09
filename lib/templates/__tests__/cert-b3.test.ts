@@ -11,6 +11,8 @@ import { FURNITURE_CATALOG } from "@/lib/templates";
 import { findOverlaps, worldAABB } from "@/lib/geometry/overlap";
 import { auditJoints } from "@/lib/joinery/audit-joints";
 import { planAssembly } from "@/lib/assembly/plan";
+import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld } from "@/lib/assembly/joint-world";
+import { mortiseLocalBox } from "@/lib/render/svg-views";
 
 const entry = FURNITURE_CATALOG.find((e) => e.category === "cert-b3")!;
 const base = Object.fromEntries((entry.optionSchema ?? []).map((s) => [s.key, s.defaultValue])) as Record<string, string | number | boolean>;
@@ -47,9 +49,16 @@ describe("cert-b3 官方尺寸", () => {
     expect(nodes).toEqual([8, 40, 58, 63, 387, 392, 410, 442, 450]);
     expect(g("leg-left-front").slice(0, 2)).toEqual([nodes[0], nodes[1]]);
     expect(g("side-panel-left").slice(0, 2)).toEqual([nodes[1], nodes[2]]);
-    expect(g("drawer-1-front").slice(0, 2)).toEqual([nodes[3], nodes[4]]);
     expect(g("leg-right-back").slice(0, 2)).toEqual([nodes[6], nodes[7]]);
-    expect(r1(g("drawer-1-front")[1] - g("drawer-1-front")[0]), "抽屜外側寬 324").toBe(324);
+    // 抽屜**箱體**外寬 324（評審表量的是這個）＝兩片側板外面
+    expect(r1(g("drawer-1-side-right")[1] - g("drawer-1-side-left")[0]), "抽屜箱體外寬 324").toBe(324);
+    expect([g("drawer-1-side-left")[0], g("drawer-1-side-right")[1]]).toEqual([nodes[3], nodes[4]]);
+    // 抽屜**前板**是面付式 370（兩端與腳內面齊），背面貼側板前緣當擋塊
+    expect(g("drawer-1-front").slice(0, 2), "前板 370 面付").toEqual([nodes[1], nodes[6]]);
+    expect(r1(g("drawer-1-front")[1] - g("drawer-1-front")[0])).toBe(370);
+    // 擋塊：前板背面 Z=28 ＝ 側板前封邊正面
+    expect(g("drawer-1-front")[5]).toBe(28);
+    expect(g("side-edge-left-front")[4]).toBe(28);
   });
 
   it("尺寸鏈全部加得起來（讀錯圖就會紅）", () => {
@@ -76,8 +85,12 @@ describe("cert-b3 官方尺寸", () => {
     expect(chain([422, ...dbY, 315]), "C-C 107 鏈").toEqual([30, 47, 30]);
     // C-C：面板 18｜間隙 2｜抽屜前板 130 ＝ 150（面板頂 450 → 抽屜前板底 300）
     expect(chain([450, 432, 430, 300])).toEqual([18, 2, 130]);
-    // C-C：抽屜後板 5（側板頂→後板頂）｜107｜15 ＝ 122
+    // C-C：側板頂→後板頂 5｜**後板本身 107**｜底板頂→側板底 15 ＝ 127（＝抽屜側板高）
     expect(chain([427, 422, 315, 300])).toEqual([5, 107, 15]);
+    expect(5 + 107 + 15).toBe(127);
+    // 後板的木釘鏈 30｜47｜30 ＝ 107 剛好等於板高（後板若是 122 這條鏈封不起來）
+    expect(30 + 47 + 30).toBe(107);
+    expect(r1(g("drawer-1-back")[3] - g("drawer-1-back")[2]), "後板高 107").toBe(107);
     // 側視：面板頂→腳頂 40｜腳高 410 ＝ 450
     expect(chain([450, 410, 0])).toEqual([40, 410]);
     // 木釘 Ø8×30：入面 12｜入端 18 ＝ 30
@@ -133,15 +146,75 @@ describe("cert-b3 官方尺寸", () => {
     expect(g("rail-back")).toEqual([40, 410, 55, 100, 314.2, 338.2]);     // 後檔頂離地 100
     expect(g("side-panel-left")).toEqual([40, 58, 300, 432, 36, 332]);
     expect(g("back-panel")).toEqual([58, 392, 300, 432, 322, 340]);
-    expect(g("drawer-1-front")).toEqual([63, 387, 300, 430, 10, 28]);
+    expect(g("drawer-1-front")).toEqual([40, 410, 300, 430, 10, 28]);   // 面付式 370 寬
     expect(g("drawer-1-side-left")).toEqual([63, 78, 300, 427, 28, 310]); // 抽屜外深 300 ＝ 10 → 310
-    expect(g("drawer-1-back")).toEqual([78, 372, 300, 422, 295, 310]);
+    // 後板 107 高、坐在合板底板上面（Y 315~422）——不是一路到 300
+    expect(g("drawer-1-back")).toEqual([78, 372, 315, 422, 295, 310]);
+    // 底板 308×289×4：兩側各入側板槽 7、前端入前板槽 7、後緣延到後板後面 310（螺釘才鎖得到）
+    expect(g("drawer-1-bottom")).toEqual([71, 379, 311, 315, 21, 310]);
     expect(g("runner-left")).toEqual([58, 69, 373, 387, 28, 295]);        // 滑條 11 寬 × 14 高，後端收在抽屜後板正面
-    // 底板 304×272×4：兩側各入側板槽 5、前端入前板槽 5（槽深 5 出自學科 §05-11，官方圖未標）
-    expect(g("drawer-1-bottom")).toEqual([73, 377, 311, 315, 23, 295]);
+
     expect(part("top-core").material).toBe("blockboard-primary");
     expect(part("side-panel-left").material).toBe("blockboard-primary");
     expect(part("rail-front").material).toBe("pine");                     // 下橫桿是實木
+  });
+
+  it("⭐ 每支榫頭都要真的配到榫眼（位置＋軸向，不是只比尺寸）", () => {
+    // 🩸 2026-09-09：腳的榫眼 origin.y 用了 from-top（正確是 from-bottom），四支腳的孔全部差 145~350mm；
+    //    上橫檔的榫 width/thickness 對調，榫頭比自己的料還寬 6mm/邊。
+    //    測試 9 條全綠、auditJoints 0/0、npm run audit exit 0 —— 三道閘都沒攔，因為它們只比尺寸不比位置。
+    const idx = buildWorldMortiseIndex(d.parts);
+    const unfit: string[] = [];
+    for (const p of d.parts) for (const t of p.tenons) {
+      if (!matchMortiseForTenon(p, t, tenonWorld(p, t), idx)) unfit.push(`${p.id}:${t.position}`);
+    }
+    expect(unfit, `這些榫頭找不到位置／軸向相符的榫眼：${unfit.join(", ")}`).toEqual([]);
+  });
+
+  it("⭐ 接合尺寸（榫頭斷面、木釘入料深、槽）——變異測試證明過這些以前全都沒被守住", () => {
+    const t = (id: string) => part(id).tenons.map((x) => [x.width, x.thickness, x.length]);
+    // 上橫檔：榫厚 12（A-A 腳斷面鏈 10｜12｜10＝32）× 榫高 44 × 榫長 20
+    // width 沿 visible.width(32)、thickness 沿 visible.thickness(60) —— 對調就切不出來
+    expect(t("top-rail-left")).toEqual([[12, 44, 20], [12, 44, 20]]);
+    expect(10 + 12 + 10).toBe(32);
+    // 下橫桿 visible = { width: 45(高), thickness: 24(厚) } ⇒ 榫高 35 放 width、榫厚 10 放 thickness
+    // （圖上 7｜10｜7＝24 是厚度方向的鏈）
+    expect(t("rail-front")).toEqual([[35, 10, 20], [35, 10, 20]]);
+    expect(7 + 10 + 7).toBe(24);
+    // 榫頭斷面不可以比自己的料還大
+    for (const p of d.parts) for (const x of p.tenons) {
+      expect(x.width, `${p.id} 榫寬 ${x.width} > 料寬 ${p.visible.width}`).toBeLessThanOrEqual(p.visible.width);
+      expect(x.thickness, `${p.id} 榫厚 ${x.thickness} > 料厚 ${p.visible.thickness}`).toBeLessThanOrEqual(p.visible.thickness);
+    }
+    // 木釘孔：入被面接的那件 12、入端面那件 18（B-B「12｜18」＝30）；孔徑一律 Ø8
+    const holes = d.parts.flatMap((p) => p.mortises.filter((m) => m.shape === "round").map((m) => [m.depth, m.length, m.width]));
+    expect(holes).toHaveLength(42);                                   // 21 支木釘 × 2 個孔
+    expect([...new Set(holes.map((h) => h[0]))].sort((a, b) => a - b), "孔深只有 12 與 18").toEqual([12, 18]);
+    expect([...new Set(holes.flatMap((h) => [h[1], h[2]]))], "孔徑一律 Ø8").toEqual([8]);
+    expect(holes.filter((h) => h[0] === 12)).toHaveLength(21);
+    expect(holes.filter((h) => h[0] === 18)).toHaveLength(21);
+    // 槽：滑條槽 15 高 × 7 深、底板槽 4 寬 × 5 深
+    const slot = part("drawer-1-side-left").mortises.find((m) => (m.label ?? "").includes("滑條"))!;
+    expect([slot.width, slot.depth]).toEqual([15, 7]);
+    for (const id of ["drawer-1-front", "drawer-1-side-left", "drawer-1-side-right"]) {
+      const g = part(id).mortises.find((m) => (m.label ?? "").includes("底板槽"))!;
+      expect([g.width, g.depth], id).toEqual([4, 7]);
+    }
+    // 滑條 11×14 入槽 6 留 1（槽 7 深）
+    expect([part("runner-left").visible.width, part("runner-left").visible.thickness]).toEqual([14, 11]);
+  });
+
+  it("⭐ 非通孔的深度不可以超過料件在那個軸的厚度（＝不可以鑽穿）", () => {
+    // 🩸 變異測試發現：`dowelIntoPanel` 12→25（在 18mm 木心板上鑽 25 深＝鑽穿桌面）
+    //    全套 1776 條測試 ＋ npm run audit 全鏈都是綠的。這條把那個洞補上。
+    const bad: string[] = [];
+    for (const p of d.parts) for (const m of p.mortises) {
+      if (m.through) continue;
+      const box = mortiseLocalBox(p, m);
+      const host = { x: p.visible.length, y: p.visible.thickness, z: p.visible.width }[box.depthAxis ?? "y"];
+      if (m.depth > host + 0.01) bad.push(`${p.id} ${m.label ?? ""} 深 ${m.depth} > ${box.depthAxis} 軸料厚 ${host}`);
+    }
+    expect(bad, bad.join("\n")).toEqual([]);
   });
 
   it("0 穿模（含各選項）、榫接 0 落單、組裝順序算得出來", () => {

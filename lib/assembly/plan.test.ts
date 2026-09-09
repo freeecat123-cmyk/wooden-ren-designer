@@ -370,11 +370,19 @@ describe("全目錄預設值掃描（每一款都要排得出來）", () => {
       const interlockedGlueUp: Record<string, string[]> = {
         "cert-b3": ["drawer-1-side-left", "drawer-1-side-right"],
       };
-      const allowForced = new Set(interlockedGlueUp[e.category] ?? []);
+      const allowForced = interlockedGlueUp[e.category] ?? [];
+      const allowSet = new Set(allowForced);
+      const forced = plan.moves.filter((m) => m.kind === "forced");
       expect(
-        plan.moves.filter((m) => m.kind === "forced" && !m.partIds.every((id) => allowForced.has(id))),
+        forced.filter((m) => m.partIds.length === 0 || !m.partIds.every((id) => allowSet.has(id))),
         "非預期的互鎖硬拆",
       ).toEqual([]);
+      // ⭐ 白名單要是**契約**不是免死金牌：名單裡的零件必須真的還在硬拆。
+      //    哪天幾何改到不再互鎖，這條會紅，提醒把豁免拿掉，不要留死條文。
+      expect(
+        [...new Set(forced.flatMap((m) => m.partIds))].sort(),
+        `${e.category} 的互鎖豁免名單跟實際 forced 對不上——不再互鎖就該把豁免刪掉`,
+      ).toEqual([...allowForced].sort());
       expect(plan.totalMs).toBeLessThanOrEqual(60000);
       expect(offsetsAt(plan, 0).size).toBe(ids.length + plan.screws.length);
       expect(offsetsAt(plan, plan.totalMs).size).toBe(0);
