@@ -189,10 +189,28 @@ const mirrorRight: any = {
     { position: "top", offsetWidth: 10, length: 30, width: 12, depth: 25 },
   ],
 };
+// FX3（user 2026-06-02「前後牙條一樣」）之後，鏡像對故意合併成同一張圖：
+// mortise origin.x 取絕對值（見 lib/render/part-drawing/grouping.ts hashPart 註解）。
+// 這裡改成驗「合併」——這才是現行規格，同時仍守住「非鏡像差異必須分開」。
 expect(
-  hashPart(mirrorLeft) !== hashPart(mirrorRight),
-  "Mirror pair → different hashes",
+  hashPart(mirrorLeft) === hashPart(mirrorRight),
+  "Mirror pair（左右只差 offset 正負）→ 同一個 hash（FX3 合併）",
 );
+{
+  // 負向對照：高度不同（origin.y）不是鏡像，是真的兩張圖，必須分開。
+  const higherMortise: any = {
+    ...mirrorLeft,
+    id: "leg-fl-high",
+    mortises: [
+      { position: "top", offsetWidth: -10, length: 30, width: 12, depth: 25,
+        origin: { x: -10, y: 120, z: 0 } },
+    ],
+  };
+  expect(
+    hashPart(mirrorLeft) !== hashPart(higherMortise),
+    "榫眼高度不同 → 不同 hash（不可被 FX3 鏡像合併吃掉）",
+  );
+}
 
 // ─── Test 6: grouping across templates produces reasonable count ───────────
 let totalGroups = 0;
@@ -240,10 +258,16 @@ expect(
       );
       expect(html.includes("比例"), "PartDrawing renders title bar with 比例");
       expect(html.includes("P-01"), "PartDrawing renders P-01 sequence");
-      // Phase 2.5: 3 ortho views + 1 install-hint mini = 4 SVGs
+      // 版面已改成「1 張 A4 + L 型三視圖」（drawing.tsx row 模式走
+      // PartDrawingPaperSheet），三個 view 畫在同一張 SVG 裡，
+      // 加上右上角的安裝位置小圖 = 2 個 <svg>。
       expect(
-        (html.match(/<svg/g) ?? []).length === 4,
-        `PartDrawing renders 3 ortho + 1 install-hint = 4 SVGs (got ${(html.match(/<svg/g) ?? []).length})`,
+        (html.match(/<svg/g) ?? []).length === 2,
+        `PartDrawing（A4 單張 L 型三視）應輸出 2 個 SVG（實得 ${(html.match(/<svg/g) ?? []).length}）`,
+      );
+      expect(
+        html.includes("install-hint-mini"),
+        "PartDrawing: 安裝位置小圖仍在",
       );
       // Phase 2.5: title block 改 grid，材料 label 改成「材料 」(no colon)
       expect(html.includes("材料 "), "PartDrawing renders 材料 in title block");
@@ -265,14 +289,12 @@ expect(
         html.includes("t1-dim-overlay"),
         "T1: t1-dim-overlay SVG class present in output",
       );
-      // Phase 2 Task 4: GrainArrow 應在每張 view 右下角輸出 順紋 字 + grain-arrow class
+      // GrainArrow 已於 2026-05-29 依使用者要求停畫（會跟右下角榫頭／尺寸標籤
+      // 重疊，順紋資訊改由材料表/spec 欄位呈現；見 annotation.tsx GrainArrow 註解）。
+      // 這裡改成負向斷言，防止哪天有人把它默默打開又蓋住標註。
       expect(
-        html.includes("順紋"),
-        "GrainArrow: 順紋 text present in output",
-      );
-      expect(
-        html.includes("grain-arrow"),
-        "GrainArrow: grain-arrow SVG class present in output",
+        !html.includes("grain-arrow"),
+        "GrainArrow: 零件圖不應再畫順紋箭頭（2026-05-29 使用者要求關閉）",
       );
     }
   }
@@ -617,9 +639,10 @@ console.log("\n--- Phase 2 element smoke (28 templates) ---");
     `  P2 stats: total=${totalCards} t2-box=${p2t2} grain-arrow=${p2grain} pair=${p2pair} crashes=${p2crashes}`,
   );
   expect(p2crashes === 0, `Phase 2 smoke: ${p2crashes} crash(es)`);
+  // 同上：順紋箭頭已停畫，覆蓋率必須是 0（不是全覆蓋）。
   expect(
-    p2grain === totalCards,
-    `Phase 2 grain-arrow on every card (${p2grain}/${totalCards})`,
+    p2grain === 0,
+    `Phase 2 grain-arrow 應為 0 張（實得 ${p2grain}/${totalCards}）`,
   );
   expect(p2t2 > 50, `Phase 2 T2 box appears on >50 cards (${p2t2})`);
   expect(p2pair > 0, `Phase 2 pair ID appears at least once (${p2pair})`);
