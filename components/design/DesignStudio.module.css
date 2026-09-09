@@ -32,19 +32,28 @@
 .views { flex: 1 1 0%; min-width: 0; }
 .viewPanel { min-width: 0; padding: 20px; overflow-x: auto; overflow-wrap: anywhere; }
 .viewPanel[hidden], .modelPanel[hidden] { display: none; }
-.modelPanel { min-width: 0; height: clamp(480px, calc(100svh - 230px), 900px); padding: 0; }
-.modelPanel :global([data-studio-model]) { display: flex; flex-direction: column; height: 100%; min-width: 0; }
+/*
+ * 🩸 面板高度不可以寫死 —— 裡面的匯出區（[data-studio-exports]）高度會變：
+ *    免費版只有一行連結，有權限時多出「3D 列印檔 / STL / OBJ / 3MF / 零件輪廓 ZIP
+ *    ／樣板列印」兩三排，實測撐到 317px。面板死高 360px ⇒ 匯出區溢出 260px、
+ *    跟下面的材料表重疊 244px，兩層互相透出（木頭仁 2026-09-09 回報「背景是破的」）。
+ * ⇒ 死高度給「畫布那一格」，面板本身讓內容撐開。
+ */
+.modelPanel { min-width: 0; height: auto; padding: 0; }
+.modelPanel :global([data-studio-model]) { display: flex; flex-direction: column; min-width: 0; }
 .modelPanel :global([data-studio-model]) > div { flex-shrink: 0; border-radius: 0; box-shadow: none; }
-.modelPanel :global([data-studio-model]) > div:has(canvas) { flex: 1 1 0%; height: auto !important; min-height: 260px; border: 0; }
+.modelPanel :global([data-studio-model]) > div:has(canvas) { flex: 0 0 auto; height: clamp(320px, calc(100svh - 380px), 720px) !important; min-height: 260px; border: 0; }
 .modelPanel :global([data-studio-model]) > div:first-child { flex-wrap: wrap; background: #fff; border-color: var(--studio-border); }
 .materialsWorkspace { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
-.materialsWorkspace .modelPanel { height: 360px; border-bottom: 1px solid var(--studio-border); }
+.materialsWorkspace .modelPanel { height: auto; border-bottom: 1px solid var(--studio-border); }
+.materialsWorkspace .modelPanel :global([data-studio-model]) > div:has(canvas) { height: 300px !important; }
 .materialsWorkspace .viewPanel:not([hidden]) { max-height: 560px; overflow: auto; }
 .materialsWorkspace .viewPanel table { min-width: 800px; }
 .materialsWorkspace .viewPanel th { white-space: nowrap; }
 @media (min-width: 1280px) {
   .materialsWorkspace { grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr); }
-  .materialsWorkspace .modelPanel { height: clamp(480px, calc(100svh - 230px), 900px); border-bottom: 0; border-right: 1px solid var(--studio-border); }
+  .materialsWorkspace .modelPanel { height: auto; border-bottom: 0; border-right: 1px solid var(--studio-border); }
+  .materialsWorkspace .modelPanel :global([data-studio-model]) > div:has(canvas) { height: clamp(400px, calc(100svh - 420px), 760px) !important; }
   .materialsWorkspace .viewPanel:not([hidden]) { max-height: clamp(480px, calc(100svh - 230px), 900px); }
 }
 .sidePanel { position: static; flex-shrink: 0; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; color: inherit; background: #fff; overflow-wrap: anywhere; }
@@ -103,7 +112,7 @@
   .tab { flex: 1 1 0%; padding: 10px 2px; font-size: 12px; }
   .navigation > .iconButton { flex-basis: 44px; width: 44px; }
   .workspace { min-height: 360px; }
-  .modelPanel { height: clamp(360px, calc(100svh - 220px), 720px); }
+  .modelPanel :global([data-studio-model]) > div:has(canvas) { height: clamp(300px, calc(100svh - 340px), 640px) !important; }
   .viewPanel { padding: 16px 12px; }
   .sidePanel[data-modal="true"] { inset: auto 0 0; width: 100%; height: min(76dvh, 720px); max-height: 85dvh; border-radius: 8px 8px 0 0; box-shadow: 0 -8px 32px rgb(24 24 27 / 12%); }
 
@@ -130,7 +139,13 @@
    */
   .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:not(:has(canvas)) { display: none; }
   .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:has(canvas) { min-height: 0; }
-  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel { height: calc(100dvh - 52dvh - 56px); }
+  /*
+   * ⚠️ 這裡只准改「畫布那一格的高度」，不可以把它從固定高換成 flex：
+   *    切換 sizing 模式會讓 R3F 重新量測，實測畫布被推出容器 125px、
+   *    看得到的 3D 從 323px 掉到 198px（連跑多個寬度時才會現形）。
+   */
+  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel { height: auto; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:has(canvas) { height: calc(100dvh - 52dvh - 56px) !important; min-height: 0; }
   .studio:has(.sidePanel[data-modal="true"][open]) .sidePanel[data-modal="true"] { height: 52dvh; max-height: 52dvh; }
   .sidePanel[data-modal="true"]::backdrop { background: transparent; }
 }

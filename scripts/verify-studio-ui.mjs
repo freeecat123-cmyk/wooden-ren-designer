@@ -53,6 +53,33 @@ try {
       }
       await canvas.waitFor({ state: "visible" });
       assert(await primary.evaluate(node => node === document.querySelector("canvas")));
+      /*
+       * 🩸 材料頁的匯出區壓穿到材料表上，兩層互相透出（木頭仁 2026-09-09「背景是破的」）。
+       *    根因：`.modelPanel` 寫死高度，但它裡面的 [data-studio-exports] 高度會變 ——
+       *    免費版只有一行升級連結，有權限時多出 STL / OBJ / 3MF / 零件輪廓 ZIP／樣板列印
+       *    兩三排，實測 317px，面板死高 360px ⇒ 溢出 260px、跟材料表疊 244px。
+       * ⚠️ 這支探針沒有登入，看不到那幾排按鈕 ⇒ 直接**注入 220px 假內容**，
+       *    測的是「匯出區長高時面板會不會被撐開」，比驗現況嚴格。
+       */
+      await page.getByRole("tab", { name: locale === "en" ? "Materials" : "材料", exact: true }).click();
+      await page.waitForTimeout(600);
+      const spill = await page.evaluate(() => {
+        const exports = document.querySelector("[data-studio-exports]");
+        const panel = exports && exports.closest("[class*=modelPanel]");
+        if (!exports || !panel) return { skipped: true };
+        const probe = document.createElement("div");
+        probe.style.height = "220px";
+        probe.dataset.spillProbe = "1";
+        exports.appendChild(probe);
+        const value = Math.round(exports.getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
+        probe.remove();
+        return { skipped: false, value };
+      });
+      assert(spill.skipped || spill.value <= 2,
+        `${locale}/${width}: 匯出區多 220px 內容就溢出 3D 面板 ${spill.value}px → 會壓在材料表上，兩層互相透出`);
+      await page.getByRole("tab", { name: locale === "en" ? "Design" : "設計", exact: true }).click();
+      await page.waitForTimeout(400);
+
       const trigger = page.getByRole("button", { name: locale === "en" ? "Toggle parameters" : "切換參數面板", exact: true });
       let sheetBand = null, bandBefore = null;
       if (width < 768) {
@@ -74,7 +101,8 @@ try {
           const vh = window.innerHeight;
           const top = Math.max(0, cb.top);
           const bottom = Math.min(db ? db.top : vh, cb.bottom, vh);
-          return { vh, band: Math.max(0, Math.round(bottom - top)),
+          return { vh,
+            band: Math.max(0, Math.round(bottom - top)),
             left: Math.round(cb.left), width: Math.round(cb.width), top: Math.round(top),
             backdrop: d ? getComputedStyle(d, "::backdrop").backgroundColor : "none" };
         });

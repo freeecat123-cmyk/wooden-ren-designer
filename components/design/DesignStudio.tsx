@@ -108,6 +108,16 @@ function StudioPanel({ id, panel, title, closeLabel, visible, modal, trigger, on
       else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     }
     const previousOverflow = document.body.style.overflow;
+    /*
+     * 🩸 手機版彈出面板時，studio 上面還有網站頁首。頁面沒捲到頂的話，3D 被頁首和
+     *    面板上下夾掉——實測看得到的高度從 323px 掉到 198px。body 一旦 overflow:hidden
+     *    就再也捲不動，所以要**先捲再鎖**。
+     */
+    if (modal) {
+      const studio = dialog.closest("main");
+      const offset = studio ? studio.getBoundingClientRect().top + window.scrollY : 0;
+      window.scrollTo({ top: Math.max(0, offset), behavior: "instant" as ScrollBehavior });
+    }
     if (modal) document.body.style.overflow = "hidden";
     const opener = trigger.current;
     return () => {
