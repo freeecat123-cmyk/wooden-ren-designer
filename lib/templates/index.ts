@@ -36,6 +36,7 @@ import { certC1, certC1Options } from "./cert-c1";
 import { certC2, certC2Options } from "./cert-c2";
 import { certC3, certC3Options } from "./cert-c3";
 import { certB1, certB1Options } from "./cert-b1";
+import { certB2, certB2Options } from "./cert-b2";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -139,6 +140,20 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 450, width: 450, height: 450 },
     limits: { length: 800, width: 800, height: 800 },
     optionSchema: certB1Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-b2",
+    zhOnly: true,
+    nameZh: "乙級檢定 第二題",
+    nameEn: "Trade test Class B — Q2",
+    description: "技術士技能檢定家具木工乙級 01200-100202：四腳單抽小櫃，木心板側板／背板木釘接＋下橫檔榫接＋鳩尾抽屜，7 小時",
+    descriptionEn: "Taiwan Class B furniture-woodworking trade test Q2: four-legged nightstand — dowelled blockboard panels, tenoned base rails, dovetailed drawer — 7-hour piece",
+    difficulty: "intermediate",
+    template: certB2,
+    defaults: { length: 482, width: 400, height: 420 },
+    limits: { length: 800, width: 800, height: 800 },
+    optionSchema: certB2Options,
     joineryOnly: true,
   },
   {
@@ -519,7 +534,8 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
   "bed",
   "coat-rack",
   "wall-mounted-tool-storage",
-  "cert-b1",   // 2026-09-09 木頭仁：「先不要上架」——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
+  "cert-b1",   // 2026-09-09 木頭仁：「先不要上架」
+  "cert-b2",   // 同上，乙級整組先不公開——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
 ]);
 
 /** 這個分類還在開發中嗎(sitemap 不收、頁面加 noindex、目錄不列)。 */

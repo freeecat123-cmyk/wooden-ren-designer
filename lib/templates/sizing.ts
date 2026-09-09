@@ -33,7 +33,8 @@ export const ROUND_CATEGORIES: ReadonlySet<string> = new Set([
 /** 每款要放進表格的關鍵子尺寸（schema 沒有的自動略過） */
 export const SIZING_SUB_KEYS: Partial<Record<FurnitureCategory, string[]>> = {
   "cert-c1": ["tenonProud"],
-  "cert-b1": ["drawerPull"],   // 同 cert-c2：拉出量是 3D 示意，測試契約要求每款至少一個數字子尺寸
+  "cert-b1": ["drawerPull"],
+  "cert-b2": ["drawerPull"],   // 同 cert-c2：拉出量是 3D 示意，測試契約要求每款至少一個數字子尺寸
   "cert-c3": ["sideGap"],
   "cert-c2": ["doorOpen"],   // 測試要求每個數字選項都要列；門開啟角度雖是 3D 示意，仍照契約列
   stool: ["seatThickness", "legSize"],
