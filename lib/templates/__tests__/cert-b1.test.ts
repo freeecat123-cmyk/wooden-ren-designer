@@ -59,17 +59,22 @@ describe("cert-b1 評審表尺寸", () => {
     expect([f.min.x, f.max.x, f.min.y, f.max.y, f.min.z, f.max.z]).toEqual([-170, 170, 327, 430, -195, -177]);
     expect([s.min.x, s.max.x, s.min.y, s.max.y]).toEqual([-170, -155, 327, 427]);
     expect(r1(s.max.z - (-195))).toBe(350);                    // 外深 350
+    // 面板端半隱鳩尾：榫孔深 12、面皮 6（C-C 面板剖面的虛線離正面 6）→ 側板 −189..155、長 344
+    expect([s.min.z, s.max.z, r1(s.max.z - s.min.z)]).toEqual([-189, 155, 344]);
+    const dt = part("drawer-1-side-left").shape!;
+    expect(dt.kind).toBe("dovetail-ends");
+    expect([(dt as { segmentCount: number }).segmentCount, (dt as { pinDepth: number }).pinDepth]).toEqual([7, 12]);
     expect([b.min.y, b.max.y, b.min.z, b.max.z]).toEqual([342, 422, 140, 155]);
     expect([bt.min.x, bt.max.x, r1(bt.max.z - bt.min.z), bt.min.y, bt.max.y]).toEqual([-162, 162, 339, 338, 342]);
     const hole = part("drawer-1-front").mortises.find((m) => m.shape === "round")!;
     expect([hole.length, hole.through, hole.origin.x, hole.origin.z]).toEqual([20, true, 0, 0]);   // 正中央 Ø20
   });
-  it("滑條 15×14×320 鎖在側板內面，頂在桌面下 40；抽屜側板槽 15 高 8 深、底板槽 4×7 槽頂離底 15", () => {
+  it("滑條 15×14×320 鎖在側板內面，頂在桌面下 45；抽屜側板槽 15 高 8 深、底板槽 4×7 槽頂離底 15", () => {
     const r = box("runner-left");
-    expect([r.min.x, r.max.x, r.min.y, r.max.y, r.min.z, r.max.z]).toEqual([-178, -163, 378, 392, -160, 160]);
+    expect([r.min.x, r.max.x, r.min.y, r.max.y, r.min.z, r.max.z]).toEqual([-178, -163, 373, 387, -160, 160]);
     const idx = buildWorldMortiseIndex(d.parts).filter((m) => m.partId === "drawer-1-side-left");
     const groove = idx.find((m) => m.depth === 8 && m.axis === "x")!, bottom = idx.find((m) => m.depth === 7 && m.axis === "x")!;
-    expect([groove.entryX, groove.entryY]).toEqual([-170, 384.5]);   // 外面、槽中心 = 392 − 7.5
+    expect([groove.entryX, groove.entryY]).toEqual([-170, 379.5]);   // 外面、槽中心 = 387 − 7.5（槽頂離桌面底 45）
     expect([bottom.entryX, bottom.entryY]).toEqual([-155, 340]);     // 內面、槽 338–342 → 頂離底 15
   });
   it("木釘 25 支 Ø8×30：桌面 13（腳 4＋每板 3，離腳內面 31/173/315）、側板端 8、後板端 4；入桌面 12、入腳 15", () => {
@@ -78,15 +83,26 @@ describe("cert-b1 評審表尺寸", () => {
     const top = dowels.filter((p) => p.id.startsWith("dowel-top-")).map((p) => worldAABB(p));
     expect(top).toHaveLength(13);
     for (const b of top) expect([b.min.y, b.max.y]).toEqual([414, 444]);
+    // 側板那三支沿深度走，腳沿深度是 45 → 離腳內面 18／160／302，世界 −142／0／+142（跟後板同位）
     const sideZ = top.filter((b) => Math.abs((b.min.x + b.max.x) / 2) === 187).map((b) => (b.min.z + b.max.z) / 2).sort((a, b) => a - b);
-    expect(sideZ).toEqual([-129, -129, 13, 13, 155, 155]);      // −160 + 31 / 173 / 315
+    expect(sideZ).toEqual([-142, -142, 0, 0, 142, 142]);
+    const backX = top.filter((b) => Math.abs((b.min.z + b.max.z) / 2 - 186) < 1).map((b) => (b.min.x + b.max.x) / 2).sort((a, b) => a - b);
+    expect(backX).toEqual([-142, 0, 142]);                      // −173 + 31 / 173 / 315
+    // 板端入腳木釘：入腳 15（B-B 的 15｜15，兩段加起來＝木釘全長 30）
+    const legHole = buildWorldMortiseIndex(d.parts).find((m) => m.partId === "leg-left-front" && m.axis === "z" && m.depth === 15);
+    expect(legHole, "腳上要有深 15 的側板木釘孔").toBeDefined();
     const side = dowels.filter((p) => p.id.startsWith("dowel-side-")).map((p) => worldAABB(p));
     expect(side).toHaveLength(8);
     expect(side.map((b) => [b.min.z, b.max.z]).every(([a, b]) => Math.abs(a) === 145 && Math.abs(b) === 175 || Math.abs(a) === 175 && Math.abs(b) === 145)).toBe(true);
     expect(dowels.filter((p) => p.id.startsWith("dowel-back-"))).toHaveLength(4);
   });
-  it("0 穿模、組裝順序算得出來", () => {
+  it("0 穿模（多組尺寸）、組裝順序算得出來", () => {
     expect(findOverlaps(d.parts)).toEqual([]);
+    // 只在預設尺寸驗一次會漏掉「抽屜與木釘列不跟著跨距縮」那類錯（程式審查員 2026-09-09）
+    for (const size of [{ length: 450, width: 450, height: 300 }, { length: 600, width: 450, height: 450 },
+                        { length: 450, width: 600, height: 600 }, { length: 800, width: 800, height: 800 }]) {
+      expect(findOverlaps(build({}, size).parts), `${size.length}×${size.width}×${size.height}`).toEqual([]);
+    }
     const plan = planAssembly(d);
     expect(plan.steps.length).toBeGreaterThan(5);
   });
@@ -99,8 +115,10 @@ describe("cert-b1 評審表尺寸", () => {
   });
   it("非考題尺寸出聲；太小夾住", () => {
     expect(build({}, { length: 500, width: 450, height: 450 }).warnings?.some((w) => w.includes("不是考題尺寸"))).toBe(true);
+    // 長寬夾在考題尺寸 450（低於它抽屜就塞不進兩支腳、桌面木釘會跑到料外）；高度下限 300
     const tiny = build({}, { length: 100, width: 100, height: 100 });
-    expect(tiny.overall).toEqual({ length: 300, width: 300, thickness: 300 });
+    expect(tiny.overall).toEqual({ length: 450, width: 450, thickness: 300 });
     expect(tiny.warnings?.some((w) => w.includes("夾到"))).toBe(true);
+    expect(findOverlaps(tiny.parts)).toEqual([]);
   });
 });

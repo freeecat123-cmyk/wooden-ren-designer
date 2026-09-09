@@ -21,8 +21,9 @@ import { getOption, opt } from "@/lib/types";
  * 側板／後板：木心板 18 厚 × 105 高（評審表「側、後板寬度 105」；A-A／C-C「105」），頂面貼桌面底。
  *   後板背面離腳背面 10（C-C「20｜10」）；側板內面離腳內面 5（A-A 尺寸鏈 18｜5｜3｜15 → 側板外面離腳外面 9）。
  *   兩端各 2 支 Ø8×30 木釘入腳（A-A／C-C 的 ⊕ 離桌面底 25、75；B-B 上圖「15｜15」＝入腳 15、入板 15）。
- * 桌面木釘：Ø8×30，入桌面 12、入板 18（C-C「12｜18」）；每支側板／後板 3 支，離腳內面 31、173、315
- *   （C-C 上方 83｜142｜142｜83：83＝20 懸出＋32 腳＋31）；每支腳頂 1 支入腳（材料表 29 支＝4＋9＋12＋前橫檔 4 支未標位置）。
+ * 桌面木釘：Ø8×30，入桌面 12、入板 18（C-C「12｜18」）；每支側板／後板 3 支，鏈都是「83｜142｜142｜83」（總 450）
+ *   → 世界座標一律 −142／0／+142。離腳內面兩邊不同（腳沿深度 45、沿寬度 32）：後板 31／173／315、側板 18／160／302。
+ *   🩸 第一版兩邊都用 31／173／315，側板那三支整組偏 13mm。
  * 前曲線橫檔：18 厚 × 60 高，正面與抽屜面板齊平（離腳正面 10）；頂在桌面下 125、底 185（C-C 右側 18｜2｜103｜2｜60＝185 到底）；
  *   下緣壸門：兩端各 70 平段、R15／R15 反向相切升高 20（A-A「70」「R15」「20」）；正面頂緣 6×4 缺口（C-C 右下「4」「6｜6」）；
  *   兩端榫頭 6 厚（C-C「6｜6｜6」隱藏線＝厚度三等分居中）入腳 21（B-B 平剖右腳「21」）。
@@ -30,14 +31,24 @@ import { getOption, opt } from "@/lib/types";
  *   正面離腳正面 10，正中央 Ø20 貫穿指孔（圖面文字＋C-C「Ø20」）；側板 15 厚 × 100 高（C-C「100」），頂離桌面底 5（A-A「5」），
  *   底與面板底齊（327）；後板 15 厚 × 80 高（C-C「80」），底板 4mm 合板從後板底下穿過、Ø2.4×15 木螺釘鎖入後板（C-C 螺釘）；
  *   底板槽 4 寬 × 7 深（A-A「7」）開在面板與兩側板（評審表「抽屜底板槽 3 部位」），槽頂離抽屜底 15（C-C「15」）；
- *   側板外面滑條槽 15 高 × 8 深（A-A「15」「8」），槽頂離桌面底 40（A-A 5｜35｜15＝55 到槽底）。
+ *   側板外面滑條槽 15 高 × 8 深（A-A「15」「8」），**槽頂離桌面底 45**——A-A 右鏈是「5｜5｜35｜15」兩個獨立的 5：
+ *   桌面底→側板頂 5、側板頂→抽屜後板頂 5（＝桌面底下 10，與 C-C「80」上箭頭同線）、再 35 到槽頂。
  * 滑條：15 寬（B-B 上圖「15」）× 14 高（A-A「14」）× 320（腳與腳之間），鎖在側板內面，Ø3.5×30 木螺釘（A-A／B-B），
  *   入抽屜側板槽 7（側板內面到抽屜側板 8＝5＋3，槽深 8 留 1）。
- * 鳩尾榫：評審表「鳩尾榫頭、榫孔 30 部位／密合 28 部位」→ 四角 × 7 段＝28 密合；圖面沒畫齒形，本範本每角 7 段（3 尾 4 針含兩端半針）。
- *   ⚠️ 面板端半隱鳩尾：範本齒深＝側板厚 15（面板 18 厚留 3 面皮）；官方 C-C 隱藏線在離背面 6 處，實作應留 6。
- * 材料表對帳（每人份第 1 題）：木料 1050×95×32.5 ×1（四支腳 432×45×32）、600×92×21.5 ×1（前橫檔 388×60×18＋滑條）、
- *   440×132×18.5（封邊 8×18 四條）、400×130×15.5 ×3（抽屜側板 347×100×15 ×2、後板 340×80×15）、550×19×8.5 ×5、
- *   木心板 480×450×18（桌面 434×434）、426×178×18 ×3（側板 320×105 ×2、後板 346×105、面板 340×103）、合板 408×350×4（底板 339×324）。
+ * 鳩尾榫：評審表「鳩尾榫頭、榫孔 30 部位／密合 28 部位」→ 四角 × 7 段＝28 密合；圖面沒畫齒形也沒標齒數／角度，本範本每角 7 段 10°（自訂）。
+ *   面板端半隱鳩尾：C-C 面板剖面那條貫穿全高的虛線離**正面** 6 → 榫孔深 12、面皮 6（範本 dovetailPinDepth=12、側板長 344）。
+ * 材料表對帳（PDF 第 6 頁是**六題共用一張**，第 1 題那欄）：
+ *   木料 1050×95×32.5 ×1 → 四支腳 432×45×32（1050 切 2 段 ×95 排 2 支）
+ *   木料 600×92×21.5 ×1 → 前橫檔 388×60×18 ＋ 滑條 320×15×14 ×2
+ *   木料 440×132×18.5 ×1 → **抽屜面板 340×103×18（實木，不是木心板）**
+ *   木料 400×130×15.5 ×3 → 抽屜側板 344×100×15 ×2、後板 340×80×15
+ *   木材 550×19×8.5 ×5 → 桌面封邊 8×18，四條（450 ×2、434 ×2）
+ *   木心板 480×450×18 ×1 → 桌面 434×434；木心板 426×178×18 ×3 → 側板 320×105 ×2、後板 346×105
+ *   合板 408×350×4 ×1 → 抽屜底板 339×324
+ *   木釘 Ø8×30 ×29、木螺釘 Ø2.4×15 ×3／Ø3×25 ×14／Ø3.5×30 ×14、白膠
+ *   ⚠️ 圖上畫得出位置的木釘只有 21 支（桌面 9＋板端入腳 12）；範本做 25 支（多了腳頂 4 支），
+ *      而 C-C 前端腳正上方的桌面剖面裡並沒有畫木釘——腳頂那 4 支待與評審表「木釘 30 部位／密合 18」的計數口徑一起確認。
+ *   ⚠️ Ø3×25 木螺釘 ×14 全圖沒有引線，位置不明。
  * ⚠️ 未做成造型：腳底 3mm 斜角、木螺釘本體（Ø3.5×30 滑條、Ø2.4×15 底板）——說明與工序提醒。
  */
 
@@ -58,7 +69,13 @@ const EXAM = {
   dowelLen: 30,
   railDowelIntoLeg: 15,  // B-B「15｜15」
   topDowelIntoTop: 12,   // C-C「12｜18」
-  topDowelsFromLegInner: [31, 173, 315],
+  // 桌面木釘沿長寬各 3 支，圖上鏈都是「83｜142｜142｜83」（總 450）→ 世界座標一律 −142／0／+142。
+  // 離腳內面的距離兩邊不同，因為腳沿深度是 45、沿寬度是 32：
+  //   後板（沿 x，腳 32）：83 = 20 懸出 + 32 + 31 → 31／173／315
+  //   側板（沿 z，腳 45）：83 = 20 懸出 + 45 + 18 → 18／160／302
+  // 🩸 2026-09-09 第一版兩邊都用 31／173／315，側板那三支整組偏了 13mm，最外一支只離側板端 5mm。
+  backRailDowelsFromLegInner: [31, 173, 315],
+  sideRailDowelsFromLegInner: [18, 160, 302],
   frontRailH: 60,
   frontRailBottomFromTop: 185,      // 桌面頂到橫檔底
   frontRailFlat: 70,     // 壸門兩端平段
@@ -88,10 +105,17 @@ const EXAM = {
   runnerH: 14,           // A-A「14」
   runnerGrooveH: 15,     // A-A「15」
   runnerGrooveD: 8,      // A-A「8」
-  runnerGrooveTopFromTop: 40,       // 桌面底到槽頂（5＋35）
+  // 桌面底到槽頂 45：A-A 右鏈是「5｜5｜35｜15」兩個獨立的 5——
+  // 第一個 5＝桌面底→抽屜側板頂；第二個 5＝側板頂→抽屜後板頂（＝桌面底下 10，與 C-C「80」上箭頭同線）；
+  // 35 從那裡量到槽頂。🩸 第一版讀成「5｜35｜15」＝40，整組滑條高了 5mm。
+  runnerGrooveTopFromTop: 45,
   runnerIntoGroove: 7,   // 8 深槽留 1
   dovetailSegments: 7,   // 四角 × 7 段＝評審表 28 密合部位
   dovetailAngleDeg: 10,
+  // 面板端半隱鳩尾：C-C 面板剖面那條貫穿全高的虛線離**正面** 6 → 榫孔深 12、面皮 6（🩸 第一版取側板厚 15、面皮只剩 3）。
+  // ⚠️ dovetail-ends 只有單一 pinDepth，後板端本來是貫穿（15）→ 這裡統一取 12，後板端的肩會差 3mm；
+  //    面板端是看得到、要評分的半隱接合，正確性優先。
+  dovetailPinDepth: 12,
   runnerScrew: "Ø3.5×30 木螺釘（CNS1051）",
   bottomScrew: "Ø2.4×15 木螺釘（CNS1051）",
 } as const;
@@ -154,7 +178,10 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
   const T = E.railT;
   // 主尺寸跟著滑桿走（預設＝考題）；下限夾在讀值這一行（§A10.11），夾了要出聲。
   // 長×深至少要放得下腳架（腳 + 側板 + 抽屜淨空）；高至少要放得下桌面 + 側板 + 前橫檔。
-  const MIN_LEN = 300, MIN_DEPTH = 300, MIN_H = 300;
+  // 🩸 2026-09-09：下限本來寫 300，但抽屜（340×350）與桌面木釘列是考題常數、不跟著跨距縮，
+  // L 或 D 一低於 450 就整組穿模（實測 L=400 有 40 對、D=300 有 9 對，還有榫眼開到料外）。
+  // 幾何真正的下限就是考題尺寸，長寬直接夾在 450；高度 300~800 實測乾淨，維持 300。
+  const MIN_LEN = EXAM.overall, MIN_DEPTH = EXAM.overall, MIN_H = 300;
   const L = Math.max(MIN_LEN, input.length);
   const D = Math.max(MIN_DEPTH, input.width);
   const H = Math.max(MIN_H, input.height);
@@ -187,8 +214,8 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
   // 桌面底面的木釘孔（Ø8，深 12）：4 支腳頂 + 每支側板／後板 3 支
   const topHoles: Array<{ x: number; z: number; label: string }> = [];
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) topHoles.push({ x: sx * legCx, z: sz * legCz, label: isEn ? "Ø8 dowel, leg top" : "Ø8 木釘（腳頂）" });
-  const sideRailDowelZ = E.topDowelsFromLegInner.map((d) => -legInnerZ + d);   // −129, 13, 155
-  const backRailDowelX = E.topDowelsFromLegInner.map((d) => -legInnerX + d);   // −142, 0, 142
+  const sideRailDowelZ = E.sideRailDowelsFromLegInner.map((d) => -legInnerZ + d);   // −129, 13, 155
+  const backRailDowelX = E.backRailDowelsFromLegInner.map((d) => -legInnerX + d);   // −142, 0, 142
   for (const sx of [-1, 1]) for (const z of sideRailDowelZ) topHoles.push({ x: sx * sideRailCx, z, label: isEn ? "Ø8 dowel, side rail" : "Ø8 木釘（側板）" });
   for (const x of backRailDowelX) topHoles.push({ x, z: backRailCz, label: isEn ? "Ø8 dowel, back rail" : "Ø8 木釘（後板）" });
   parts.push({
@@ -408,8 +435,8 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
     const bottomY = sideBottomY + E.bottomGrooveTopFromBottom - E.bottomT;   // 338
     const backBottomY = bottomY + E.bottomT;                                 // 342
     const sideCx = E.drawerW / 2 - E.drawerSideT / 2;                        // 162.5
-    // 側板長：從面板背面往前再進 15（半隱鳩尾齒深＝側板厚，面板留 3）到後板背面
-    const sideZ0 = frontFaceZ + E.drawerFrontT - E.drawerSideT + zShift;     // −192
+    // 側板長：從面板正面往後 6（半隱鳩尾面皮）＝榫孔底，一路到後板背面
+    const sideZ0 = frontFaceZ + (E.drawerFrontT - E.dovetailPinDepth) + zShift;   // −189
     const sideLen = backZ1 - sideZ0;                                         // 347
     const sideCz = (sideZ0 + backZ1) / 2;
     const runnerGrooveCy = runnerTopY - E.runnerGrooveH / 2;                 // 384.5
@@ -445,7 +472,7 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: sideLen, width: E.drawerSideH, thickness: E.drawerSideT },
         origin: { x: sx * sideCx, y: sideBottomY, z: sideCz },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        shape: { kind: "dovetail-ends", segmentCount: E.dovetailSegments, phase: 0, angleDeg: E.dovetailAngleDeg, pinDepth: E.drawerSideT, halfPin: true },
+        shape: { kind: "dovetail-ends", segmentCount: E.dovetailSegments, phase: 0, angleDeg: E.dovetailAngleDeg, pinDepth: E.dovetailPinDepth, halfPin: true },
         tenons: [],
         mortises: [
           { origin: { x: 0, y: outerY, z: -(runnerGrooveCy - sideCy) }, depth: E.runnerGrooveD, length: sideLen, width: E.runnerGrooveH,

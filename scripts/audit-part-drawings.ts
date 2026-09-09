@@ -217,8 +217,8 @@ console.log(
   `\nstats: ${totalGroups} total groups across ${FURNITURE_CATALOG.length} templates`,
 );
 expect(
-  totalGroups > 50 && totalGroups < 250,
-  `Total groups across 28 templates: ${totalGroups} (expected 50-250)`,
+  totalGroups > 50 && totalGroups < 400,
+  `Total groups across all templates: ${totalGroups} (expected 50-400；2026-09-08 丙級三題後 244、09-09 乙級第一題後 255)`,
 );
 
 // ─── Test 7: <PartDrawing> renders 3-view layout without crash ─────────────

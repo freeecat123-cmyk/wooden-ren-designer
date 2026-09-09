@@ -88,7 +88,7 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
     c === "nightstand"
   ) return "cabinet";
   if (
-    c === "pencil-holder" || c === "cert-c1" || c === "cert-c2" || c === "cert-c3" || c === "bookend" || c === "photo-frame" ||
+    c === "pencil-holder" || c === "cert-c1" || c === "cert-c2" || c === "cert-c3" || c === "cert-b1" || c === "bookend" || c === "photo-frame" ||
     c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack"
   ) return "accessory";
   return "other";
@@ -958,7 +958,9 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     });
   }
 
-  if (hasDrawer) {
+  // 木滑條入槽的抽屜（技能檢定題）不裝金屬滑軌——同 AW7⑨「木釘樞軸的門不再出『裝鉸鏈』」
+  const woodRunners = design.parts.some((p) => /^runner-/.test(p.id));
+  if (hasDrawer && !woodRunners) {
     steps.push({
       id: "step-19-drawer-slide",
       phase: "fit",
