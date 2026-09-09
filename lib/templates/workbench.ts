@@ -78,7 +78,7 @@ const PLY_NOTCH_MAX = PLY_T;
 /** 搭接槽的 label 前綴（螺栓可拆要靠它找槽心；步驟／稽核也用） */
 const PLY_NOTCH_TAG = "搭接槽";
 /** 疊層時要換成夾板計價（materialOverride）的零件 id */
-const PLY_PART_RE = /^(top|top-front|top-back|gap-stop|center-well-bottom|leg-\d+|leg-slab-(left|right)|apron-.+|ls-.+|top-batten-.+|under-shelf|well-.+)$/;
+const PLY_PART_RE = /^(top|top-front|top-back|gap-stop-\d+|gap-end-(l|r)|center-well-bottom|leg-\d+|leg-slab-(left|right)|apron-.+|ls-.+|top-batten-.+|under-shelf|well-.+)$/;
 
 // ───────────────────────── 流派 preset ─────────────────────────
 // 值在 ./workbench-presets.ts（設計頁切流派時把整組寫進網址；模板不覆寫）。
@@ -146,6 +146,7 @@ export const workbenchOptions: OptionSpec[] = [
     { value: "center-well", label: "中央凹槽放工具（兩片桌面中間低一層，歐式／教室桌常見）" },
   ] },
   { group: "top", type: "number", key: "gapWidth", label: "中縫寬", defaultValue: 45, unit: "mm", min: 25, max: 80, step: 5, dependsOn: { key: "topSplit", equals: "gap" }, help: "F 夾的夾頭要塞得進去；擋條做成跟桌面齊平，翻面可當刨擋" },
+  { group: "top", type: "number", key: "gapStopCount", label: "中間擋條數", defaultValue: 2, unit: "塊", min: 2, max: 4, step: 1, dependsOn: { key: "topSplit", equals: "gap" }, help: "兩端另有固定端塞（防兩片桌面扭開），這裡指中間可移動的幾塊。塊與塊之間留 150 以上的開口讓夾具穿過；桌短排不下會自動減少並出聲" },
   { group: "top", type: "number", key: "wellWidth", label: "工具槽寬", defaultValue: 150, unit: "mm", min: 80, max: 320, step: 10, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "後側槽：從桌深扣掉，桌腳只在工作面下；中央槽：夾在兩片桌面之間，兩片各要蓋得住腳" },
   { group: "top", type: "number", key: "wellDepth", label: "工具槽深", defaultValue: 45, unit: "mm", min: 20, max: 80, step: 5, dependsOn: { key: "topSplit", oneOf: ["well", "center-well"] }, help: "槽底板厚 24；後側槽深 ≤ 桌面厚 −10，中央槽深 ≤ 桌面厚 −24（底板嵌在兩片桌面內側的溝裡，桌底維持平的）" },
   { group: "top", type: "number", key: "endOverhang", label: "桌端懸出（腳距桌端）", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 ＝ 自動 ＝ 桌長 ÷ 5（Roubo 原版比例）。懸出夠長，鉗才裝得進腳外側；裝尾鉗那端會自動拉到 470" },
@@ -344,6 +345,7 @@ export const workbench: FurnitureTemplate = (input) => {
   const topLayers = ply ? plyTopLayers : 1;
   const topSplitRaw = pick<string>("topSplit");
   const gapWidth = pick<number>("gapWidth");
+  const gapStopCountRaw = pick<number>("gapStopCount");
   const wellWidthRaw = pick<number>("wellWidth");
   const wellDepthRaw = pick<number>("wellDepth");
   const endOverhangRaw = pick<number>("endOverhang");
@@ -687,20 +689,73 @@ export const workbench: FurnitureTemplate = (input) => {
       // 可沿縫移動、翻起來當刨擋，其餘的縫要留空夾具才伸得進去（這個選項的賣點）。
       // 🩸2026-09-04 木頭仁回報「桌面分割中間留縫 但畫面看不出來」＝擋條做成
       // 1800 長又跟桌面齊平，看起來就是一整片、縫也沒用了。
-      const stopLen = Math.max(200, Math.min(360, Math.round(topLen / 5 / 10) * 10));
-      const stop: Part = {
-        id: "gap-stop",
-        nameZh: "中縫擋條",
-        nameEn: "Gap stop",
+      // 🩸2026-09-09 木頭仁：「應該是兩端都有，然後中間 2-4 塊」＝
+      //   ①兩端補固定端塞（跟中央槽 §AU24.4 同一個理由：只靠底下腳架連著會扭開）
+      //   ②中間改成 N 塊可移動擋條，數量使用者決定
+      const endLen = Math.max(100, Math.min(200, Math.round(topLen / 12 / 10) * 10));
+      const ends: Part[] = ([-1, 1] as const).map((sx) => ({
+        id: `gap-end-${sx < 0 ? "r" : "l"}`,
+        nameZh: sx < 0 ? "中縫右端塞" : "中縫左端塞",
+        nameEn: sx < 0 ? "Gap right end block" : "Gap left end block",
         material: input.material,
-        grainDirection: "length",
-        visible: { length: stopLen, width: gap, thickness: topT },
-        // 擺在前鉗那一端（刨料時抵著它），離桌端 200；桌短就往中間收
-        origin: { x: topOriginX + sideSign * Math.max(0, topLen / 2 - stopLen / 2 - 200), y: top.origin.y, z: 0 },
+        grainDirection: "width" as const,
+        visible: { length: endLen, width: gap, thickness: topT },
+        origin: { x: topOriginX + sx * (topLen / 2 - endLen / 2), y: top.origin.y, z: 0 },
         tenons: [],
         mortises: [],
-      };
-      design.parts.splice(idx, 1, front, back, stop);
+      }));
+
+      // 兩端塞之間的可用長度，中間擋條只能排在這裡面
+      const innerSpan = topLen - 2 * endLen;
+      // 開口至少 150：F 夾的夾頭要穿得過去，這是這個選項存在的理由，不能被擋條吃光
+      const MIN_OPENING = 150;
+      const MIN_STOP = 120;
+      const wantLen = Math.max(200, Math.min(360, Math.round(topLen / 5 / 10) * 10));
+
+      // N 塊擋條會切出 N+1 個開口。先試使用者要的數量，排不下就一塊一塊減。
+      let count = Math.max(2, Math.min(4, Math.round(gapStopCountRaw)));
+      let stopLen = 0;
+      for (; count >= 1; count -= 1) {
+        const fit = Math.floor((innerSpan - (count + 1) * MIN_OPENING) / count);
+        if (fit >= MIN_STOP) {
+          // ⚠️ 這裡只能無條件捨去。四捨五入會往上進位（4 塊時 187→190），
+          // 多出來的長度是從開口偷的，開口就掉到 148 < MIN_OPENING。
+          stopLen = Math.min(wantLen, Math.floor(fit / 10) * 10);
+          break;
+        }
+      }
+
+      if (stopLen <= 0) {
+        // 連一塊都排不下（極短桌）：只留兩端塞，中間全空
+        count = 0;
+        warnings.push(isEn
+          ? `Bench too short for movable gap stops; only the two fixed end blocks are drawn.`
+          : `桌長 ${topLen} 排不下可移動擋條（每個開口要留 ${MIN_OPENING}），只畫兩端固定端塞。`);
+      } else if (count < Math.max(2, Math.min(4, Math.round(gapStopCountRaw)))) {
+        warnings.push(isEn
+          ? `Movable gap stops reduced to ${count} so each opening still clears ${MIN_OPENING}mm for a clamp head.`
+          : `中間擋條 ${Math.round(gapStopCountRaw)} 塊排不下，已減成 ${count} 塊，讓每個開口都留得住 ${MIN_OPENING} 給夾頭穿過。`);
+      }
+
+      // 均分：N 塊擋條、N+1 個等寬開口，整串置中在兩端塞之間
+      const opening = count > 0 ? (innerSpan - count * stopLen) / (count + 1) : 0;
+      const stops: Part[] = Array.from({ length: count }, (_, i) => ({
+        id: `gap-stop-${i + 1}`,
+        nameZh: count > 1 ? `中縫擋條 ${i + 1}` : "中縫擋條",
+        nameEn: count > 1 ? `Gap stop ${i + 1}` : "Gap stop",
+        material: input.material,
+        grainDirection: "length" as const,
+        visible: { length: stopLen, width: gap, thickness: topT },
+        origin: {
+          x: topOriginX - innerSpan / 2 + (i + 1) * opening + (i + 0.5) * stopLen,
+          y: top.origin.y,
+          z: 0,
+        },
+        tenons: [],
+        mortises: [],
+      }));
+
+      design.parts.splice(idx, 1, front, back, ...ends, ...stops);
     } else {
       // 中央凹槽：槽底板 24 厚，頂面比桌面低 wellDepth，嵌在兩片桌面內側各 10 深的溝裡（整片都在桌面厚度內，桌底維持平的，不擋裙板／穿帶）
       const trayT = 24;
