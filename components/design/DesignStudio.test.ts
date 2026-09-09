@@ -46,6 +46,7 @@ beforeAll(async () => {
           materials={<button onClick={() => setSelectedPartId('rail')}>Material rail</button>}
           build={<input aria-label="Build notes" defaultValue="" />}
           quote={<input aria-label="Quote amount" defaultValue="120" />}
+          exports={<button data-studio-exports data-studio-output>Download STL</button>}
           notices={<p role="status">Unsaved changes</p>} />;
       }
       createRoot(document.getElementById('root')).render(
@@ -87,13 +88,15 @@ it("keeps screen-reader-only numeric fields one pixel wide", async () => {
 it("keeps all view inputs and one model mounted, with inactive content hidden and inert", async () => {
   const page = await open();
   try {
-    expect(await page.getByRole("tab").allTextContents()).toEqual(["Design", "Drawings", "Materials", "Build", "Quote"]);
+    expect(await page.getByRole("tab").allTextContents()).toEqual(["Design", "Drawings", "Materials", "Build", "Quote", "Export"]);
     await page.getByRole("textbox", { name: "Width", exact: true }).fill("457");
     const canvas = await page.locator("canvas").elementHandle();
-    for (const tab of ["Drawings", "Materials", "Build", "Quote"]) {
+    /* 「Export」排在中段：迴圈結束要停在 Quote，後面才填得到報價欄位（別的分頁是 inert）。 */
+    for (const tab of ["Drawings", "Materials", "Build", "Export", "Quote"]) {
       await page.getByRole("tab", { name: tab, exact: true }).click();
       expect(await page.getByRole("tabpanel").count()).toBe(1);
-      expect(await page.locator('[role="tabpanel"][hidden][inert]').count()).toBe(tab === "Materials" ? 3 : 4);
+      /* 6 個分頁：看的那個之外都要 hidden+inert；材料頁少一個是因為 3D 面板跟它共用（role=region 不是 tabpanel）。 */
+      expect(await page.locator('[role="tabpanel"][hidden][inert]').count()).toBe(tab === "Materials" ? 4 : 5);
       expect(await page.getByRole("textbox", { name: "Width", exact: true }).isVisible()).toBe(false);
       expect(await page.locator('input[name="width"]').isDisabled()).toBe(false);
       expect(await page.locator("canvas").count()).toBe(1);
@@ -106,7 +109,7 @@ it("keeps all view inputs and one model mounted, with inactive content hidden an
     expect(await page.evaluate(() => (window as unknown as { submits?: number }).submits ?? 0)).toBe(0);
     expect(await canvas!.evaluate(node => node === document.querySelector("canvas"))).toBe(true);
   } finally { await page.close(); }
-});
+}, 15000); // 6 個分頁要逐一點過，預設 5 秒不夠
 
 it.each([390, 1440])("keeps the same interactive model beside materials at %spx", async width => {
   const page = await open(width);
@@ -132,7 +135,8 @@ it("supports roving keyboard tabs and independent desktop panel collapse", async
     await page.keyboard.press("ArrowRight");
     expect(await page.getByRole("tab", { name: "Drawings", exact: true }).getAttribute("aria-selected")).toBe("true");
     await page.keyboard.press("End");
-    expect(await page.getByRole("tab", { name: "Quote", exact: true }).getAttribute("aria-selected")).toBe("true");
+    /* End 跳到最後一個分頁 —— 輸出區搬出 3D 面板後，最後一個是「輸出」不是「報價」。 */
+    expect(await page.getByRole("tab", { name: "Export", exact: true }).getAttribute("aria-selected")).toBe("true");
     await page.keyboard.press("Home");
     await page.getByRole("button", { name: "Toggle parameters", exact: true }).click();
     expect(await page.getByRole("textbox", { name: "Width", exact: true }).isVisible()).toBe(false);

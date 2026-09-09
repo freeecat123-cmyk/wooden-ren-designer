@@ -16,7 +16,6 @@ import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { planAssembly } from "@/lib/assembly/plan";
-import CollapsibleExports from "@/components/design/CollapsibleExports";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
@@ -540,25 +539,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               initialFit
               auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode}
               wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />
-            {(() => {
-              const features = getPlanFeatures(profile);
-              const canExport3D = isAdmin || features.canUseQuoteSystem;
-              const canExportPack = isAdmin || features.canDownloadPdf;
-              const body = <>
-                {canExport3D && <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />}
-                {canExportPack
-                  ? <TemplatePackButton design={design} />
-                  : <Link href={`/pricing?locked=${type}`} className="px-3 py-2 text-xs text-zinc-600">{t("templatePack.lockedCta")}</Link>}
-              </>;
-              /*
-               * 沒有任何輸出權限時只有一條「升級後可下載」的連結 —— 折起來等於把
-               * 升級入口藏掉，維持原本攤開的樣子。
-               */
-              if (!canExport3D && !canExportPack) return <div
-                className="flex flex-wrap items-center gap-2 border-t border-zinc-200 bg-white p-2"
-                data-studio-exports data-studio-output>{body}</div>;
-              return <CollapsibleExports label={locale === "en" ? "Export files" : "輸出檔案"}>{body}</CollapsibleExports>;
-            })()}
           </div>}
           drawings={<div className="space-y-6">
             <section data-section="threeview">
@@ -598,6 +578,26 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <ToolList design={design} locale={locale} />
             </section>
           </div>}
+          exports={(() => {
+            const features = getPlanFeatures(profile);
+            const canExport3D = isAdmin || features.canUseQuoteSystem;
+            const canExportPack = isAdmin || features.canDownloadPdf;
+            return <section data-section="exports" className="space-y-4">
+              <h2 className="text-base font-semibold">{locale === "en" ? "Export files" : "輸出檔案"}</h2>
+              <div className="flex flex-wrap items-center gap-2" data-studio-exports data-studio-output>
+                {canExport3D && <ThreeDExportButton design={design} machiningDesign={applyEdgeProtection(rawDesign)} />}
+                {canExportPack
+                  ? <TemplatePackButton design={design} />
+                  : <Link href={`/pricing?locked=${type}`} className="px-3 py-2 text-xs text-zinc-600">{t("templatePack.lockedCta")}</Link>}
+              </div>
+              {/* 沒有輸出權限時整頁只有一條連結會很空 —— 補一句解鎖後拿得到什麼。 */}
+              {!canExport3D && !canExportPack && <p className="text-xs leading-relaxed text-zinc-500">
+                {locale === "en"
+                  ? "Unlocking gives you: STL / OBJ / 3MF for 3D printing, part outline and nesting SVG for CNC, mortise machining faces, and 1:1 full-size A4 templates."
+                  : "解鎖後可以下載:3D 列印用的 STL / OBJ / 3MF、CNC 用的零件輪廓 ZIP 與套料 SVG、榫孔加工面,以及 1:1 實尺樣板(A4 拼接)。"}
+              </p>}
+            </section>;
+          })()}
           quote={isAdmin || getPlanFeatures(profile).canUseQuoteSystem
             ? <StudioQuote design={design} locale={locale} quoteHref={localePath(quoteUrl, locale)} allowed />
             : <div className="py-8">

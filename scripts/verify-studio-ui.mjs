@@ -45,7 +45,7 @@ try {
       const primary = await canvas.elementHandle();
       assert.equal(await canvas.count(), 1);
       assert.equal(await page.locator("form[data-design-form]").count(), 1);
-      for (const name of locale === "en" ? ["Drawings", "Materials", "Build", "Quote", "Design"] : ["圖面", "材料", "製作", "報價", "設計"]) {
+      for (const name of locale === "en" ? ["Drawings", "Materials", "Build", "Quote", "Export", "Design"] : ["圖面", "材料", "製作", "報價", "輸出", "設計"]) {
         console.error(`${locale}/${width}: opening ${name}`);
         await page.getByRole("tab", { name, exact: true }).click();
         await page.waitForFunction(label => Array.from(document.querySelectorAll('[role="tab"]'))
@@ -54,49 +54,29 @@ try {
       await canvas.waitFor({ state: "visible" });
       assert(await primary.evaluate(node => node === document.querySelector("canvas")));
       /*
-       * 🩸 材料頁的匯出區壓穿到材料表上，兩層互相透出（木頭仁 2026-09-09「背景是破的」）。
-       *    根因：`.modelPanel` 寫死高度，但它裡面的 [data-studio-exports] 高度會變 ——
-       *    免費版只有一行升級連結，有權限時多出 STL / OBJ / 3MF / 零件輪廓 ZIP／樣板列印
-       *    兩三排，實測 317px，面板死高 360px ⇒ 溢出 260px、跟材料表疊 244px。
-       * ⚠️ 這支探針沒有登入，看不到那幾排按鈕 ⇒ 直接**注入 220px 假內容**，
-       *    測的是「匯出區長高時面板會不會被撐開」，比驗現況嚴格。
+       * 🩸 輸出區原本掛在 3D 面板裡，而面板高度是寫死的 ⇒ 有輸出權限時那幾排按鈕
+       *    溢出 260px、壓在材料表上，兩層互相透出（木頭仁 2026-09-09「背景是破的」）。
+       *    現在它搬到自己的「輸出」分頁了 ⇒ 守的是「不准再搬回 3D 面板裡」，
+       *    這比守面板高度更根本：只要不在裡面，面板高度怎麼變都壓不到別人。
        */
-      await page.getByRole("tab", { name: locale === "en" ? "Materials" : "材料", exact: true }).click();
+      await page.getByRole("tab", { name: locale === "en" ? "Export" : "輸出", exact: true }).click();
       await page.waitForTimeout(600);
-      const spill = await page.evaluate(() => {
-        const exports = document.querySelector("[data-studio-exports]");
-        const panel = exports && exports.closest("[class*=modelPanel]");
-        if (!exports || !panel) return { skipped: true };
-        /* 折疊起來的話高度不計，撐不撐得開就測不出來 ⇒ 先展開。 */
-        if (exports.tagName === "DETAILS") exports.open = true;
-        const probe = document.createElement("div");
-        probe.style.height = "220px";
-        probe.dataset.spillProbe = "1";
-        exports.appendChild(probe);
-        const value = Math.round(exports.getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
-        probe.remove();
-        return { skipped: false, value };
+      const exportsHome = await page.evaluate(() => {
+        const node = document.querySelector("[data-studio-exports]");
+        if (!node) return { missing: true };
+        return {
+          missing: false,
+          inModelPanel: !!node.closest("[class*=modelPanel]"),
+          inOwnTab: !!node.closest('[id$="-view-exports"]'),
+          guardHook: !!node.closest("[data-studio-output]"),
+        };
       });
-      assert(spill.skipped || spill.value <= 2,
-        `${locale}/${width}: 匯出區多 220px 內容就溢出 3D 面板 ${spill.value}px → 會壓在材料表上，兩層互相透出`);
-      /*
-       * ⚠️ 有輸出權限時那塊是 <details>（可折疊），沒權限時是 <div>。探針沒登入 ⇒
-       *    永遠只看得到 div 版本，details 那條路等於沒守到。所以直接塞一個假的
-       *    <details> 進去，驗依賴的兩條 CSS 是不是真的用 `> *` 而不是 `> div`：
-       *    寫成 `> div` 的話 details 不會 flex-shrink:0，參數面板打開時也不會被收起來。
-       */
-      const detailsRules = await page.evaluate(() => {
-        const host = document.querySelector("[data-studio-model]");
-        if (!host) return { skipped: true };
-        const probe = document.createElement("details");
-        probe.innerHTML = "<summary>probe</summary><p>x</p>";
-        host.appendChild(probe);
-        const shrink = getComputedStyle(probe).flexShrink;
-        probe.remove();
-        return { skipped: false, shrink };
-      });
-      assert(detailsRules.skipped || detailsRules.shrink === "0",
-        `${locale}/${width}: <details> 版的輸出區沒被 flex 規則涵蓋（flex-shrink=${detailsRules.shrink}）→ 那兩條 CSS 還寫成 \`> div\``);
+      assert(!exportsHome.missing, `${locale}/${width}: 「輸出」分頁裡找不到輸出區`);
+      assert(!exportsHome.inModelPanel,
+        `${locale}/${width}: 輸出區又被放回 3D 面板裡了 → 面板高度一寫死就會壓穿材料表`);
+      assert(exportsHome.inOwnTab, `${locale}/${width}: 輸出區不在「輸出」分頁的面板內`);
+      /* StudioActionGuard 靠這個屬性攔「改完參數還沒套用就點輸出」，搬家時不能弄丟。 */
+      assert(exportsHome.guardHook, `${locale}/${width}: 輸出區掉了 data-studio-output → 未套用的改動攔不住`);
       await page.getByRole("tab", { name: locale === "en" ? "Design" : "設計", exact: true }).click();
       await page.waitForTimeout(400);
 

@@ -22,18 +22,19 @@ export interface DesignStudioProps {
   materials: ReactNode;
   build: ReactNode;
   quote: ReactNode;
+  exports: ReactNode;
   notices?: ReactNode;
   unit?: "mm" | "inch";
 }
 
-const views = ["design", "drawings", "materials", "build", "quote"] as const;
+const views = ["design", "drawings", "materials", "build", "quote", "exports"] as const;
 type View = typeof views[number];
 type Panel = "parameters" | "inspector";
 type Layout = "mobile" | "tablet" | "desktop";
 
 const copy = {
   en: {
-    design: "Design", drawings: "Drawings", materials: "Materials", build: "Build", quote: "Quote",
+    design: "Design", drawings: "Drawings", materials: "Materials", build: "Build", quote: "Quote", exports: "Export",
     workspace: "Design workspace", views: "Workspace views", parameters: "Parameters", inspector: "Inspector",
     toggleParameters: "Toggle parameters", toggleInspector: "Toggle inspector",
     closeParameters: "Close parameters", closeInspector: "Close inspector", clear: "Clear selection",
@@ -43,7 +44,7 @@ const copy = {
     plywood: "Plywood", mdf: "MDF",
   },
   zh: {
-    design: "設計", drawings: "圖面", materials: "材料", build: "製作", quote: "報價",
+    design: "設計", drawings: "圖面", materials: "材料", build: "製作", quote: "報價", exports: "輸出",
     workspace: "設計工作區", views: "工作區檢視", parameters: "參數", inspector: "零件檢視",
     toggleParameters: "切換參數面板", toggleInspector: "切換零件檢視",
     closeParameters: "關閉參數面板", closeInspector: "關閉零件檢視", clear: "清除選取",
@@ -164,7 +165,7 @@ function StudioPanel({ id, panel, title, closeLabel, visible, modal, trigger, on
   </dialog>;
 }
 
-export function DesignStudio({ locale, design, title, toolbar, parameters, model, drawings, materials, build, quote, notices, unit = "mm" }: DesignStudioProps) {
+export function DesignStudio({ locale, design, title, toolbar, parameters, model, drawings, materials, build, quote, exports, notices, unit = "mm" }: DesignStudioProps) {
   const text = locale === "en" ? copy.en : copy.zh;
   const displayUnit = useSyncExternalStore(subscribeUnit, () => {
     if (locale !== "en") return "mm";
@@ -229,7 +230,7 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
     tabRefs.current[next]?.focus();
   }
 
-  const slots = { design: model, drawings, materials, build, quote };
+  const slots = { design: model, drawings, materials, build, quote, exports };
   const joints = selected ? [...new Set(selected.tenons.map(tenon => tenon.type))] : [];
   const selectedMaterial = selected?.materialOverride ? text[selected.materialOverride]
     : materialName(selected?.material ?? design.primaryMaterial, locale);

@@ -41,7 +41,7 @@
  */
 .modelPanel { min-width: 0; height: auto; padding: 0; }
 .modelPanel :global([data-studio-model]) { display: flex; flex-direction: column; min-width: 0; }
-.modelPanel :global([data-studio-model]) > * { flex-shrink: 0; border-radius: 0; box-shadow: none; }
+.modelPanel :global([data-studio-model]) > div { flex-shrink: 0; border-radius: 0; box-shadow: none; }
 .modelPanel :global([data-studio-model]) > div:has(canvas) { flex: 0 0 auto; height: clamp(320px, calc(100svh - 380px), 720px) !important; min-height: 260px; border: 0; }
 .modelPanel :global([data-studio-model]) > div:first-child { flex-wrap: wrap; background: #fff; border-color: var(--studio-border); }
 .materialsWorkspace { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
@@ -137,7 +137,7 @@
    * 還帶 `min-height: 260px` —— 面板一縮小,畫布就溢出到彈出面板底下,等於白縮。
    * 面板開著時整頁是 inert、那些鈕本來就按不動 ⇒ 收起來,把高度全給畫布。
    */
-  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > *:not(:has(canvas)) { display: none; }
+  .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:not(:has(canvas)) { display: none; }
   .studio:has(.sidePanel[data-modal="true"][open]) .modelPanel :global([data-studio-model]) > div:has(canvas) { min-height: 0; }
   /*
    * ⚠️ 這裡只准改「畫布那一格的高度」，不可以把它從固定高換成 flex：
