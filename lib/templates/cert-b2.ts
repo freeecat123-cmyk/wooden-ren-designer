@@ -21,7 +21,7 @@ import { getOption, opt } from "@/lib/types";
  * 這是一個 482×400×420 的四腳單抽小櫃（床頭櫃）：
  * - 腳柱 32(寬)×45(深)×420，腳底 3×45° 倒角；**腳頂比天板高 10、比側板高 5**，形成淺盤邊。
  * - 左右側板是**木心板實心板** 18 厚 × 155 高 × 310 長：內面與腳內面齊、外面比腳外面縮 14；
- *   上緣包 8mm 實木封邊（155＝147 板身＋8 封邊）。每端 3 支 Ø8×30 木釘入腳（入腳 15／入板 15），
+ *   上緣包 8mm 實木封邊（155＝147 板身＋8 封邊）。每端 3 支 Ø8×30 木釘入腳（**入實木腳 12／入木心板 18**，B-B 上段「12｜18」），
  *   高度由板頂起 38｜39.5｜39.5｜38（＝155 自我驗證）→ 離地 377／337.5／298。
  * - 天板木心板 418×368×18，頂面離地 410（腳頂下 10）；前後緣各包 8 封邊（C-C「8｜64｜128｜128｜64｜8」＝400 對稱）。
  *   天板↔側板 3 支水平木釘（沿寬度方向），z＝72／200／328（就是那條鏈的節點）。
@@ -34,11 +34,21 @@ import { getOption, opt } from "@/lib/types";
  *   側板 320×110×15、後板 378×90×15、4mm 合板底板入槽（槽深 7、外肉 8）；
  *   側板外面 15 高 × 8 深滑條槽，木滑條 12 寬 × 14 高（入槽 7、留 1 間隙），Ø3×25 螺釘鎖在側板內面。
  *
- * ⚠️ 圖上沒標、本範本自訂：下橫檔榫長（取 25，B-B 虛線量到 ≈25~26）、45×24 檔的榫高、30×18 檔的榫厚與榫長、
- *    鳩尾齒數（取 7 段 10°）、滑條的 z 起訖與螺釘顆數。
+ * ⚠️ **官方未規定、本範本自訂**：30×18 檔的榫厚（取 10）與榫長（取 12）、滑條的 z 起訖、滑條螺釘顆數。
+ * ⚠️ **依官方學科參考資料（012002A12.pdf）定的**：
+ *    鳩尾斜度 §01-19「一般為 1:6」＋§05-4「1/6～1/8」→ 9.46°（原本寫 10° 已超出官方範圍）；
+ *    半隱鳩尾榫深 §05-10「板厚的 2/3」→ 18×2/3 ＝ 12 ✅；Ø8 木釘配 18 木心板 §05-24 ✅；
+ *    鳩尾齒數由評審表「鳩尾榫密合 18 部位」÷ 2 個角 ＝ 每角 9 個元素（同一規則在第一題是 28÷4 角＝7）。
  * ⚠️ 未做成造型：腳底 3×45° 倒角、木螺釘本體。
- * ⚠️ 判讀員標為待確認：A-A 上段最上面那格是 5（本範本採用；155 鏈與「側板下緣 260＝抽屜前板下緣＝背板下緣」三者互相驗證）
- *    還是 8.5；後角（抽屜側板↔後板）是純螺釘還是鳩尾＋螺釘（本範本做螺釘、不做鳩尾）。
+ * ✅ 2026-09-09 四位檢查員複核後定案（原本兩處待確認都已結案）：
+ *    ① A-A 上段最上面**是 5 不是 8.5** —— 放大後那是上下兩格「5」（腳頂→側板頂）與「8」（實木封邊厚），
+ *       旋轉文字被誤讀成一個 8.5；155 鏈與「側板下緣 260＝抽屜前板下緣＝背板下緣」互相驗證。
+ *    ② 後角（抽屜側板↔後板）**是純螺釘、不做鳩尾** —— B-B 上段 ø3.5×30 引線直指該處，
+ *       C-C 又給了「20｜50｜20」＝每邊 2 支的位置；評審表「鳩尾榫密合 18」÷ 9 ＝ 2 個角，也只有前面兩角。
+ *
+ * ⚠️ **已知未解**：評審表「榫接密合 32 部位」。若照「榫頭數 × 4 面肩」（此規則在第一題驗證成立：2 榫 ×4＝8），
+ *    本題 45×24 檔是貫穿榫、滿 45 高只有 2 個肩（4×2＝8）＋中間檔 4 個肩（4×4＝16）＝24 ≠ 32。
+ *    但應檢須知第七條明訂「各部尺寸應以圖上所標示數字為準」，圖面三處證據都指向貫穿榫，故以圖為準。
  */
 
 /** 官方試題尺寸（mm）。座標：X 0~482 由左、Y 0~420 由地面、Z 0~400 由**正面**；程式內再平移到世界座標 */
@@ -55,22 +65,24 @@ const EXAM = {
   sideDowelFromTop: [38, 77.5, 117],         // 由板頂起 38｜39.5｜39.5 → 離地 377／337.5／298
   backPanelH: 132, backPanelT: 18,
   backPanelFromRear: 15,                     // 背板背面離背 15（考題 385；板 367~385）——從**背面**量，深度變大時要跟著往後
-  backDowelFromTopBottom: [27, 104.5],       // 背板兩端入腳木釘離天板底 27｜再 78（C-C「27｜78｜27」＝132）
-  dowelDia: 8, dowelLen: 30, dowelPen: 15,   // Ø8×30，入腳 15／入板 15
+  backDowelFromTopBottom: [27, 105],         // 背板兩端入腳木釘離天板底 27｜再 78（C-C「27｜78｜27」＝132；27+78=105）
+  dowelDia: 8, dowelLen: 30,
+  dowelIntoLeg: 12, dowelIntoPanel: 18,      // Ø8×30 入實木腳 12／入木心板 18（B-B 上段「12｜18」，12+18=30）
+  dowelIntoBoard: 15,                        // 板↔板（天板↔側板／天板↔背板）圖上沒標入料深，取對半
   railFbH: 45, railFbT: 24, railFbTopY: 120, railFbZ0: 10.5,   // 前後下橫檔
-  railFbTenonT: 12, railFbTenonH: 30, railTenonLen: 25,        // 榫 6｜12｜6；榫高與榫長圖上沒標
+  railFbTenonT: 12, railFbTenonH: 45, railTenonLen: 32,        // 榫 6｜12｜6（C-C）；**貫穿榫**：滿 45 高 × 穿透腳柱 32
   railMidH: 30, railMidT: 18, railMidFromLegInner: 110, railMidDropFromFb: 7.5,
   railMidTenonH: 10, railMidTenonT: 10, railMidTenonLen: 12,   // 榫 10｜10｜10；厚與長圖上沒標
   drawerGap: 5,                              // 抽屜側面與腳的間隙（B-B 鏈的 5）
   drawerD: 320,
   drawerFrontH: 130, drawerFrontT: 18, drawerFrontZ: 15, drawerTopGap: 2,
   drawerSideH: 110, drawerSideT: 15, drawerSideBelowFront: 8,     // 側板頂比前板頂低 8（382 vs 390）
-  drawerBackH: 90, drawerBackT: 15, drawerBackBelowSide: 4.5,     // 後板頂比側板頂低 4.5（377.5）
-  slotBelowSideTop: 54.5,                                          // 滑條槽頂比抽屜側板頂低 54.5（327.5）
+  drawerBackH: 90, drawerBackT: 15, drawerBackBelowSide: 5,       // 後板頂比側板頂低 5（A-A「5」；C-C 5+90+15＝110）→ 377
+  slotBelowSideTop: 55,                                            // 滑條槽頂比抽屜側板頂低 55（55｜15｜40＝110）→ 327
   grooveD: 7, bottomT: 4,                    // 底板槽深 7（外肉 8）
   slotH: 15, slotD: 8,                       // 滑條槽 15 高 8 深（考題 312.5~327.5）
   runnerW: 12, runnerH: 14,                  // 滑條 12 寬 × 14 高（入槽 7）
-  dovetailSegments: 7, dovetailAngleDeg: 10, dovetailPinDepth: 12,   // 半隱：18 厚前板留 6 面皮
+  dovetailSegments: 9, dovetailAngleDeg: 9.46, dovetailPinDepth: 12,   // 見檔頭「鳩尾」段：9 段／1:6／板厚 2/3
   runnerScrew: "Ø3×25 木螺釘（CNS1051）",
   bottomScrew: "Ø2.4×15 木螺釘（CNS1051）×3",
   backScrew: "Ø3.5×30 木螺釘（CNS1051）",
@@ -149,18 +161,18 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
     // 側板端木釘 ×3（沿 z 進腳的內側 z 面）
     for (const d of E.sideDowelFromTop) m.push({
       origin: { x: innerSignX * (E.legW / 2 - E.sidePanelT / 2), y: sz === 0 ? E.legD : 0, z: localZ(sidePanelTopY - d) },
-      depth: E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, side panel" : "Ø8 木釘（側板）",
+      depth: E.dowelIntoLeg, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, side panel" : "Ø8 木釘（側板）",
     });
     // 背板端木釘 ×2（只有後腳；沿 x 進腳的內側 x 面）
     if (sz === 1) for (const y of backDowelY) m.push({
       origin: { x: innerSignX * E.legW / 2, y: localY(backPanelZ + E.backPanelT / 2), z: localZ(y) },
-      depth: E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, back panel" : "Ø8 木釘（背板）",
+      depth: E.dowelIntoLeg, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, back panel" : "Ø8 木釘（背板）",
     });
-    // 前／後下橫檔榫眼（沿 x 進內側 x 面，12 厚 × 30 高 × 深 25）
+    // 前／後下橫檔榫眼（沿 x 貫穿整支腳，12 厚 × 45 高）
     m.push({
       origin: { x: innerSignX * E.legW / 2, y: localY(legZ0 + E.railFbZ0 + E.railFbT / 2), z: localZ(E.railFbTopY - E.railFbH / 2) },
-      depth: E.railTenonLen, length: E.railFbTenonH, width: E.railFbTenonT, through: false,
-      label: isEn ? "mortise, bottom rail tenon" : "下橫檔榫眼（12×30）",
+      depth: E.railTenonLen, length: E.railFbTenonH, width: E.railFbTenonT, through: true,
+      label: isEn ? "through mortise, bottom rail" : "下橫檔貫穿榫眼（12×45）",
     });
     void innerSignZ;
     parts.push({
@@ -190,12 +202,12 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
     // 兩端木釘孔（沿 z，開在端面）
     for (const d of E.sideDowelFromTop) for (const ez of [-1, 1]) m.push({
       origin: { x: ez * spanZ / 2, y: E.sidePanelT / 2, z: -((sidePanelTopY - d) - panelCy) },
-      depth: E.dowelLen - E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, leg" : "Ø8 木釘（入腳）",
+      depth: E.dowelIntoPanel, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, leg" : "Ø8 木釘（入腳）",
     });
     // 天板木釘孔 ×3（沿 x，開在內面）
     for (const z of E.topDowelZ) m.push({
       origin: { x: -(z - D / 2), y: innerY, z: -((topBottomY + E.topT / 2) - panelCy) },
-      depth: E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, top" : "Ø8 木釘（天板）",
+      depth: E.dowelIntoBoard, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, top" : "Ø8 木釘（天板）",
     });
     parts.push({
       id: sx === 0 ? "side-panel-left" : "side-panel-right",
@@ -229,11 +241,11 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
     const m: Mortise[] = [];
     for (const y of backDowelY) for (const ex of [-1, 1]) m.push({
       origin: { x: ex * spanX / 2, y: E.backPanelT / 2, z: -(y - backCy) },
-      depth: E.dowelLen - E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, leg" : "Ø8 木釘（入腳）",
+      depth: E.dowelIntoPanel, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, leg" : "Ø8 木釘（入腳）",
     });
     for (const x of [70, 241, 412]) m.push({
       origin: { x: wx(x), y: E.backPanelT / 2, z: -(E.backPanelH / 2) },
-      depth: E.dowelLen - E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, top" : "Ø8 木釘（天板）",
+      depth: E.dowelIntoBoard, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, top" : "Ø8 木釘（天板）",
     });
     parts.push({
       id: "back-panel",
@@ -257,12 +269,12 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
     // 天板↔側板水平木釘（沿 x，開在天板左右端面）
     for (const z of E.topDowelZ) for (const ex of [-1, 1]) m.push({
       origin: { x: ex * spanX / 2, y: E.topT / 2, z: wz(z) - wz((coreZ0 + coreZ1) / 2) },
-      depth: E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, side panel" : "Ø8 木釘（側板）",
+      depth: E.dowelIntoBoard, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, side panel" : "Ø8 木釘（側板）",
     });
     // 天板↔背板垂直木釘（沿 y，開在天板底面）
     for (const x of [70, 241, 412]) m.push({
       origin: { x: wx(x), y: 0, z: wz(backPanelZ + E.backPanelT / 2) - wz((coreZ0 + coreZ1) / 2) },
-      depth: E.dowelPen, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, back panel" : "Ø8 木釘（背板）",
+      depth: E.dowelIntoBoard, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, back panel" : "Ø8 木釘（背板）",
     });
     parts.push({
       id: "top-core",
@@ -293,9 +305,15 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
 
   // ── 下橫檔：前後 45×24 ×2、中間 30×18 ×2（全部榫接）──────────────────
   const railFbCy = E.railFbTopY - E.railFbH / 2;
-  const railTenon = (position: "start" | "end", width: number, thickness: number): Tenon => ({
-    position, type: "blind-tenon", length: E.railTenonLen, width, thickness,
-    shoulderOn: ["top", "bottom", "left", "right"],
+  const railTenon = (
+    position: "start" | "end", width: number, thickness: number,
+    kind: "through" | "blind" = "blind",
+  ): Tenon => ({
+    position,
+    type: kind === "through" ? "through-tenon" : "blind-tenon",
+    length: E.railTenonLen, width, thickness,
+    // 貫穿榫是滿 45 高（width 軸 = 檔高），只有厚度方向（top/bottom）有肩
+    shoulderOn: kind === "through" ? ["top", "bottom"] : ["top", "bottom", "left", "right"],
   });
   for (const sz of [0, 1] as const) {
     const z0 = sz === 0 ? E.railFbZ0 : D - E.legD + E.railFbZ0;
@@ -309,7 +327,7 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: spanX, width: E.railFbH, thickness: E.railFbT },
       origin: { x: 0, y: E.railFbTopY - E.railFbH, z: wz(railCz) },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [railTenon("start", E.railFbTenonH, E.railFbTenonT), railTenon("end", E.railFbTenonH, E.railFbTenonT)],
+      tenons: [railTenon("start", E.railFbTenonH, E.railFbTenonT, "through"), railTenon("end", E.railFbTenonH, E.railFbTenonT, "through")],
       // 中間兩支 30×18 橫檔的榫眼（開在朝櫃內那一面）
       mortises: [-1, 1].map((ex) => ({
         origin: {
@@ -349,8 +367,23 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // ── 木釘 ×25（Ø8×30 現成品，做成零件；不入裁切／零件圖）────────────────
-  const dowel = (id: string, nameZh: string, nameEn: string, axis: "x" | "y" | "z", c: { x: number; y: number; z: number }): Part => ({
-    id, nameZh, nameEn, material, grainDirection: "length",
+  /**
+   * `c` ＝**接合面**上的圓心；`intoPanel` 給板側的入料深（預設 15＝對半）。
+   * 入腳 12／入板 18 時圓心不在接合面上，要往板側偏 (intoPanel − dowelLen/2)＝3。
+   * `panelDir` ＝板在哪一側（沿 axis 的 +1／−1）。
+   */
+  const dowel = (
+    id: string, nameZh: string, nameEn: string, axis: "x" | "y" | "z",
+    c: { x: number; y: number; z: number },
+    intoPanel: number = E.dowelLen / 2, panelDir: 1 | -1 = 1,
+  ): Part => {
+    const shift = (intoPanel - E.dowelLen / 2) * panelDir;
+    c = { x: axis === "x" ? c.x + shift : c.x, y: axis === "y" ? c.y + shift : c.y, z: axis === "z" ? c.z + shift : c.z };
+    return {
+    id, nameZh, nameEn, material,
+    // 圓棒的順紋一定沿軸向。沿 x → length 欄、沿 z → width 欄，都表達得出來；
+    // 沿 y 時長度落在 thickness 欄，而 GrainDirection 只有 length/width 兩種，無法表達 → 留 length。
+    grainDirection: axis === "z" ? "width" : "length",
     visible: axis === "x"
       ? { length: E.dowelLen, width: E.dowelDia, thickness: E.dowelDia }
       : axis === "z"
@@ -361,17 +394,20 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
     visual: "dowel",
     tenons: [],
     mortises: [],
-  });
+    };
+  };
   // 側板↔腳 12 支（沿 z，中心在腳內面）
   for (const sx of [0, 1] as const) for (const sz of [0, 1] as const) for (const d of E.sideDowelFromTop) {
     const px = sx === 0 ? E.sidePanelInset + E.sidePanelT / 2 : W - E.sidePanelInset - E.sidePanelT / 2;
     parts.push(dowel(`dowel-side-${sx}${sz}-${d}`, "木釘 Ø8×30（側板）", "Dowel Ø8×30 (side panel)", "z",
-      { x: wx(px), y: sidePanelTopY - d, z: wz(sz === 0 ? legBackFrontZ : legBackInnerZ) }));
+      { x: wx(px), y: sidePanelTopY - d, z: wz(sz === 0 ? legBackFrontZ : legBackInnerZ) },
+      E.dowelIntoPanel, sz === 0 ? 1 : -1));
   }
   // 背板↔腳 4 支（沿 x，中心在腳內面）
   for (const ex of [0, 1] as const) for (const y of backDowelY) {
     parts.push(dowel(`dowel-back-${ex}-${y}`, "木釘 Ø8×30（背板）", "Dowel Ø8×30 (back panel)", "x",
-      { x: wx(ex === 0 ? legInnerX : legRightInnerX), y, z: wz(backPanelZ + E.backPanelT / 2) }));
+      { x: wx(ex === 0 ? legInnerX : legRightInnerX), y, z: wz(backPanelZ + E.backPanelT / 2) },
+      E.dowelIntoPanel, ex === 0 ? 1 : -1));
   }
   // 天板↔側板 6 支（沿 x，中心在側板內面＝天板端面）
   for (const ex of [0, 1] as const) for (const z of E.topDowelZ) {
@@ -437,7 +473,9 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: sideLen, width: E.drawerSideH, thickness: E.drawerSideT },
         origin: { x: wx(cx), y: sideBottomY, z: wz(sideCz) },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        shape: { kind: "dovetail-ends", segmentCount: E.dovetailSegments, phase: 0, angleDeg: E.dovetailAngleDeg, pinDepth: E.dovetailPinDepth, halfPin: true },
+        // ends:"plus" ＝只有**前端**做鳩尾。local +x → 世界 −z ＝正面。
+        // 後端（接抽屜後板）官方是 ø3.5×30 木螺釘（工作圖 B-B 引線＋C-C「20｜50｜20」每邊 2 支）。
+        shape: { kind: "dovetail-ends", segmentCount: E.dovetailSegments, phase: 0, angleDeg: E.dovetailAngleDeg, pinDepth: E.dovetailPinDepth, halfPin: true, ends: "plus" },
         tenons: [],
         mortises: [
           { origin: { x: 0, y: outerY, z: -(slotCy - sideCy) }, depth: E.slotD, length: sideLen, width: E.slotH,
@@ -514,9 +552,12 @@ export const certB2: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100202 (7 hours). A 482×400×420 mm four-legged nightstand with one drawer: legs 32×45 standing 10 mm proud of the top and 5 mm proud of the side panels; blockboard side panels 18×155×310 dowelled to the legs with three Ø8×30 dowels per end (15 into the leg, 15 into the panel) and edged with 8 mm solid wood on top; blockboard top 418×368×18 with 8 mm solid edging front and back, dowelled sideways into the side panels at z = 72/200/328; blockboard back panel 418×132×18; a base frame of two 45×24 front/back rails (top 120 off the floor, 12 mm tenons) and two 30×18 front-to-back rails (110 in from the leg faces, 10 mm tenons) — no rails on the left and right; a side-hung drawer 408×320 with a half-blind dovetailed front (12 mm sockets, 6 mm lap), 15 mm sides in 15×8 runner slots, wooden runners 12×14, a 90 mm back and a 4 mm plywood bottom in 7 mm grooves. **Drawn from published dimensions — download the official paper and follow that version on test day.**`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100202（7 小時）公開尺寸繪製的練習範本。482×400×420 的四腳單抽小櫃：腳柱 32×45，腳頂比天板高 10、比側板高 5；木心板側板 18×155×310（含上緣 8 實木封邊），每端 3 支 Ø8×30 木釘入腳（入腳 15／入板 15、由板頂 38｜39.5｜39.5）；木心板天板 418×368×18、前後各包 8 封邊，以 3 支水平木釘（z＝72／200／328）接側板；木心板背板 418×132×18，頂緣 3 支垂直木釘入天板、兩端各 2 支入腳；腳架是**前後兩支 45×24**（上緣離地 120、榫 6｜12｜6）＋**中間兩支 30×18**（離腳內面 110、比 45 檔低 7.5、榫 10｜10｜10）**，左右不設橫檔**；側掛抽屜 408×320：前板 130 高 18 厚（頂離天板底 2、正面比腳前面縮 15）與側板半隱鳩尾（榫孔深 12、留 6 面皮），側板 320×110×15 外面開 15 高 × 8 深滑條槽，木滑條 12×14 以 ${E.runnerScrew} 鎖在側板內面（入槽 7、留 1 間隙），後板 378×90×15 以 ${E.backScrew} 從側板鎖入，4mm 合板底板入 7 深槽、以 ${E.bottomScrew} 鎖住後板底緣。官方材料表為 1~6 題共用一張。**本圖依公開尺寸自行繪製，不含官方圖檔；應檢請以技能檢定中心公布的官方版本為準。**
-本範本未做成造型、只寫在說明裡的：腳底 3×45° 倒角、木螺釘本體。圖上沒標而自訂的：下橫檔榫長 25、45×24 檔的榫高、30×18 檔的榫厚與榫長、鳩尾齒數 7 段 10°、滑條的前後起訖。`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100202 (7 hours). A 482×400×420 mm four-legged nightstand with one drawer: legs 32×45 standing 10 mm proud of the top and 5 mm proud of the side panels; blockboard side panels 18×155×310 dowelled to the legs with three Ø8×30 dowels per end (12 into the solid-wood leg, 18 into the blockboard) and edged with 8 mm solid wood on top; blockboard top 418×368×18 with 8 mm solid edging front and back, dowelled sideways into the side panels at z = 72/200/328; blockboard back panel 418×132×18; a base frame of two 45×24 front/back rails (top 120 off the floor, 12 mm through tenons, 45 high, right through the 32 mm leg) and two 30×18 front-to-back rails (110 in from the leg faces, 10 mm tenons) — no rails on the left and right; a side-hung drawer 408×320 with a half-blind dovetailed front (12 mm sockets, 6 mm lap), 15 mm sides (cut length 314) in 15×8 runner slots, wooden runners 12×14, a 90 mm back and a 4 mm plywood bottom in 7 mm grooves. **Drawn from published dimensions — download the official paper and follow that version on test day.**`
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100202（7 小時）公開尺寸繪製的練習範本。482×400×420 的四腳單抽小櫃：腳柱 32×45，腳頂比天板高 10、比側板高 5；木心板側板 18×155×310（含上緣 8 實木封邊），每端 3 支 Ø8×30 木釘入腳（**入實木腳 12／入木心板 18**、由板頂 38｜39.5｜39.5）；木心板天板 418×368×18、前後各包 8 封邊，以 3 支水平木釘（z＝72／200／328）接側板；木心板背板 418×132×18，頂緣 3 支垂直木釘入天板、兩端各 2 支入腳；腳架是**前後兩支 45×24**（上緣離地 120、**貫穿榫**：滿 45 高 × 12 厚 × 穿透腳柱 32，厚度方向 6｜12｜6）＋**中間兩支 30×18**（離腳內面 110、比 45 檔低 7.5、榫 10｜10｜10）**，左右不設橫檔**；側掛抽屜 408×320：前板 130 高 18 厚（頂離天板底 2、正面比腳前面縮 15）與側板半隱鳩尾（榫孔深 12、留 6 面皮），側板切料長 **314**×110×15（＝抽屜外深 320 − 前板 18 + 入前板 12）外面開 15 高 × 8 深滑條槽，木滑條 12×14 以 ${E.runnerScrew} 鎖在側板內面（入槽 7、留 1 間隙），後板 378×90×15（頂比側板頂低 5）以 ${E.backScrew} 從側板鎖入、**後角不做鳩尾**（工作圖 B-B 只畫螺釘），4mm 合板底板入 7 深槽、以 ${E.bottomScrew} 鎖住後板底緣。官方材料表為 1~6 題共用一張。**本圖依公開尺寸自行繪製，不含官方圖檔；應檢請以技能檢定中心公布的官方版本為準。**
+**官方有規定、本範本未做成造型**（只寫在說明裡）：腳底 3×45° 倒角（工作圖 C-C 有標，評審表「圓弧與倒角」有配分）、木螺釘本體（三種規格共 12 部位，評審表「五金裝配」有配分）。
+**官方未規定、由本範本自訂**：30×18 檔的榫厚（取 10）與榫長（取 12）、鳩尾齒數（取 9 段）、滑條的前後起訖（取滿側板長）、抽屜側板切料長（隨鳩尾榫深浮動）。
+**工時**：官方測驗時間 **7 小時**（應檢須知第十條；時間配當表上午 3.5 ＋ 下午 3.5）。工序表的估時是照一般木工節奏算的，會比 7 小時多——檢定現場的料已依材料表註 2「四面鉋光、要求直角」備妥、尺寸也接近成品，實際加工會快很多，而且**應檢不做塗裝**（須知第六條只准砂光）。
+**依官方學科參考資料定的**：鳩尾斜度 1:6（§01-19、§05-4「1/6～1/8」）＝9.46°；半隱鳩尾榫深 12＝板厚 18 的 2/3（§05-10）；Ø8 木釘配 18 木心板（§05-24）。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;
