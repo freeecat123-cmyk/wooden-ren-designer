@@ -32,6 +32,7 @@ import {
   GrainArrow,
   ChamferRoundAnnotation,
   SawSetupTable,
+  DetailCallout,
 } from "./annotation";
 
 export interface PaperSheetProps {
@@ -170,6 +171,10 @@ export function PartDrawingPaperSheet({
         <ShapeSpecificAnnotation ctx={ctx} part={annPart} view={annView} />
         <CompoundMiterAnnotation ctx={ctx} part={annPart} view={annView} />
         <SawSetupTable ctx={ctx} part={annPart} view={annView} />
+        {/* 榫卯密集的件（≥2 個榫眼、或長榫頭）的局部放大詳圖（2026-09-09 接上）：
+            DetailCallout 跟 T2LabelList 一樣寫好了卻沒人 import。只在正視圖畫，
+            自己會判斷要不要出現、放哪個角落。 */}
+        <DetailCallout ctx={ctx} part={t2Part} view={annView} />
       </>
     );
   };

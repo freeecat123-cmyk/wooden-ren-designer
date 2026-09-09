@@ -198,6 +198,24 @@ expect(
   "Mirror pair → same hash (FX3：鏡像件合併成同一張圖)",
 );
 
+// 負向對照（來自 robot/2026-09-09）：FX3 只該把「左右鏡像」合併，
+// 榫眼**高度**不同是真的兩支不同的件，不可以被一起吃掉。
+// 沒有這條，上面那句「合併成同一張圖」過度合併也不會紅。
+{
+  const higherMortise: any = {
+    ...mirrorLeft,
+    id: "leg-fl-high",
+    mortises: [
+      { position: "top", offsetWidth: -10, length: 30, width: 12, depth: 25,
+        origin: { x: -10, y: 120, z: 0 } },
+    ],
+  };
+  expect(
+    hashPart(mirrorLeft) !== hashPart(higherMortise),
+    "榫眼高度不同 → 不同 hash（不可被 FX3 鏡像合併吃掉）",
+  );
+}
+
 // ─── Test 6: grouping across templates produces reasonable count ───────────
 let totalGroups = 0;
 for (const entry of FURNITURE_CATALOG) {
@@ -391,10 +409,14 @@ expect(
           html.includes("t2-overlay"),
           "T2: t2-overlay SVG class present in output",
         );
-        // Phase 2: mortise 用 stroke-dasharray="2 2" 細虛線
+        // ⚠️ 2026-09-09 修正過期斷言：原本要求 mortise 虛線是 "2 2"，但 2026-05-27
+        // commit 2ab6a353 已刻意改掉——"2 2"/"3 2" 在 paper-fit 1:5 比例下幾乎看不見，
+        // 改成 "6 3" 才接近正規 hidden line；而且**看得到的面畫實線、看不到的才畫虛線**
+        // （工程圖慣例）。舊斷言在要求一個被撤掉的行為 → 永遠紅。
+        // 改成斷言現行規格：至少要有一個隱藏榫眼用 "6 3" 虛線畫出來。
         expect(
-          html.includes('stroke-dasharray="2 2"'),
-          "T2: mortise dashed box (dash 2 2) renders",
+          html.includes('stroke-dasharray="6 3"'),
+          "T2: 隱藏榫眼用 6 3 虛線（2026-05-27 起的工程圖慣例）",
         );
       } else {
         // Fallback: try any template with a mortise-bearing part
@@ -435,11 +457,32 @@ expect(
           }),
         );
         expect(html.includes("榫頭"), "T2: 榫頭 label appears");
-        // Phase 2: tenon 用 stroke-dasharray="3 1.5"，跟 mortise 視覺區分
-        expect(
-          html.includes('stroke-dasharray="3 1.5"'),
-          "T2: tenon dashed box (dash 3 1.5) renders",
-        );
+        // 同上：tenon 現行是 "4 2"（跟 mortise 的 "6 3" 視覺仍分得出來）。
+        // 這裡改成驗「兩者用不同的虛線樣式」＝原始意圖（公榫母榫一眼分得出），
+        // 而不是釘死某一組數字，之後再調比例也不會假紅。
+        // 榫頭的隱藏虛線是 "4 2"，跟榫眼的 "6 3" 不同 → 木匠一眼分得出公榫母榫。
+        // 這張卡不見得同時有隱藏榫頭，所以掃全 catalog 找一張有的；真的一張都沒有
+        // 才 soft skip（跟上面通榫那條同樣的處理），不要假裝通過。
+        {
+          let tenonDashTemplate = "";
+          for (const e of FURNITURE_CATALOG) {
+            if (!e.template || tenonDashTemplate) continue;
+            const d = buildDesign(e);
+            if (!d) continue;
+            for (const g of groupPartsForDrawing(d)) {
+              if (!g.representative.tenons?.length) continue;
+              const h = renderPartDrawing(
+                React.createElement(PartDrawing, { group: g, design: d, index: 0 }),
+              );
+              if (h.includes('stroke-dasharray="4 2"')) { tenonDashTemplate = e.category; break; }
+            }
+          }
+          if (tenonDashTemplate) {
+            expect(true, `T2: 隱藏榫頭用 4 2 虛線，與榫眼 6 3 區分（${tenonDashTemplate}）`);
+          } else {
+            console.log("⚠ T2: 全 catalog 找不到「隱藏榫頭」的卡，虛線區分無法驗（soft skip）");
+          }
+        }
       } else {
         console.log("⚠ stool has no tenon group — 榫頭 assertion skipped");
       }
