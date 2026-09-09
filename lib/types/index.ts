@@ -498,7 +498,11 @@ export interface Part {
      *  Tail（拉力承載端）：local -X 方向頂視為梯形——「外寬內窄」（沿 length 軸內凹處兩側
      *  按 angleDeg 收斂）。Pin（被拉端）：local -X 方向頂視為「外窄內寬」梯形（互嵌）。
      *  視 phase 對偶決定段順序。*/
-    | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
+    | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean; ends?: "both" | "plus" | "minus"; combSpanMm?: number; combOffsetMm?: number }
+    /** `ends`：哪一端要做鳩尾（沿零件 local x 軸）。預設 "both"。
+     *  🩸 2026-09-09 乙級第二題：抽屜後角官方是 ø3.5×30 木螺釘（工作圖 B-B 引線），
+     *     但 dovetail-ends 以前一律兩端都切 → 後板被當成鳩尾母件，而且後板 90 高
+     *     vs 側板 110 高，齒距 12.857 vs 15.714 根本嵌不進去。只做前端就用 "plus"／"minus"。 */
     /** 正多邊形板（六/八角筆筒底板、托盤底）：N 個邊均勻分布、沿 thickness 軸擠出。
      *  outerRadius = 外接圓半徑；angleOffsetDeg 預設 90°+180°/N。 */
     | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }

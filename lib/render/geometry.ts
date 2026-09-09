@@ -1,6 +1,7 @@
 import { trapAnchorOffset } from "./trapezoid-anchor";
 import { quadPoint, topBreakU, validTopBreak } from "./quad-profile";
 import type { Part } from "@/lib/types";
+import { worldAABB } from "@/lib/geometry/overlap";
 import { CURVED_TAPER_ARC_SEG, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
 
 /**
@@ -1123,7 +1124,20 @@ export function projectPartPolygon(
       allParts.find(
         (p) => p.shape?.kind === "dovetail-ends" && p.id !== part.id,
       );
-    if (donor && donor.shape?.kind === "dovetail-ends") {
+    // donor 只做單端鳩尾時，另一端的受件不是鳩尾母件（乙級第二題抽屜後角是木螺釘）
+    const donorEnds = donor?.shape?.kind === "dovetail-ends" ? donor.shape.ends ?? "both" : "both";
+    const receiverIsDovetailed =
+      donorEnds === "both" ||
+      /^wall-(left|right)$/.test(part.id) ||             // tray/box 的側牆兩端都算
+      (donorEnds === "plus" ? /-front$/.test(part.id) : /-back$/.test(part.id));
+    if (donor && donor.shape?.kind === "dovetail-ends" && receiverIsDovetailed) {
+      // 齒攤在兩塊板共有的高度窗口：donor 的高度就是窗口，受件要按自己的頂面偏移對齊。
+      // （兩塊等高時 span = 受件全高、offset = 0，行為與舊版完全相同。）
+      const dw = worldAABB(donor), pw = worldAABB(part);
+      const top = Math.min(dw.max.y, pw.max.y);
+      const bot = Math.max(dw.min.y, pw.min.y);
+      const span = top - bot;
+      const ok = span > 1 && Math.abs(pw.max.y - pw.min.y - part.visible.width) < 0.51;
       part = {
         ...part,
         shape: {
@@ -1133,6 +1147,7 @@ export function projectPartPolygon(
           angleDeg: donor.shape.angleDeg,
           pinDepth: donor.shape.pinDepth,
           halfPin: donor.shape.halfPin,
+          ...(ok ? { combSpanMm: span, combOffsetMm: pw.max.y - top } : {}),
         },
       };
     }
@@ -1819,6 +1834,14 @@ export function projectPartPolygon(
     // 零件圖 isolatePartId reset rotation=0 後、broad face 在 top 視圖，不再
     // hardcode `view==="top"` 切掉 polygon
     const W = part.visible.width;
+    /**
+     * 齒要攤在**兩塊板共有的接合窗口**上，不是各自的全高。
+     * 🩸 2026-09-09 乙級第二題：抽屜前板 130 高、側板 110 高，各自把 9 段攤在自己身上
+     *    → 齒距 14.444 vs 12.222，九組齒沒有一組對得上，實體嵌不進去。
+     *    `combSpanMm` ＝窗口高、`combOffsetMm` ＝窗口頂距零件頂多少（沿 width 軸）。
+     */
+    const spanMm = Math.min(W, part.shape.combSpanMm ?? W);
+    const offMm = Math.max(0, Math.min(W - spanMm, part.shape.combOffsetMm ?? 0));
     let combAxis: "w" | "h" | null = null;
     if (Math.abs(r.w - L) < eps && Math.abs(r.h - W) < eps) combAxis = "w";
     else if (Math.abs(r.h - L) < eps && Math.abs(r.w - W) < eps) combAxis = "h";
@@ -1826,12 +1849,14 @@ export function projectPartPolygon(
     const pts: Array<{ x: number; y: number }> = [];
     if (combAxis === "w") {
       // length 軸 = r.w（水平），高度沿 r.h
-      const segH = r.h / N;
+      const pxPerMm = r.h / W;
+      const segH = (spanMm * pxPerMm) / N;
+      const yWindowTop = r.y + r.h - offMm * pxPerMm;
       const d = Math.min(depth, r.w * 0.45);
       const slantY = Math.min(segH * 0.45, d * Math.tan(angleRad));
       // 各段邊界 y（s=0 段 = top 還是 bottom？跟 finger 一致：s=0 → top）
-      const yTopOf = (s: number) => r.y + r.h - s * segH;
-      const yBotOf = (s: number) => r.y + r.h - (s + 1) * segH;
+      const yTopOf = (s: number) => yWindowTop - s * segH;
+      const yBotOf = (s: number) => yWindowTop - (s + 1) * segH;
       // 右邊 X：xR_tip = r.x + r.w；xR_base = r.x + r.w - d
       const xRTip = r.x + r.w;
       const xRBase = r.x + r.w - d;
@@ -1902,15 +1927,17 @@ export function projectPartPolygon(
       }
     } else {
       // combAxis === "h"：length 軸垂直 r.h；comb 在 r.y/r.y+r.h 兩端，segments 沿 r.w 切
-      const segW = r.w / N;
+      const pxPerMmH = r.w / W;
+      const segW = (spanMm * pxPerMmH) / N;
+      const xWindowLeft = r.x + offMm * pxPerMmH;
       const d = Math.min(depth, r.h * 0.45);
       const slantX = Math.min(segW * 0.45, d * Math.tan(angleRad));
       const yTipTop = r.y + r.h;
       const yBaseTop = r.y + r.h - d;
       const yTipBot = r.y;
       const yBaseBot = r.y + d;
-      const xLeftOf = (s: number) => r.x + s * segW;
-      const xRightOf = (s: number) => r.x + (s + 1) * segW;
+      const xLeftOf = (s: number) => xWindowLeft + s * segW;
+      const xRightOf = (s: number) => xWindowLeft + (s + 1) * segW;
       const push = (x: number, y: number) => {
         const last = pts[pts.length - 1];
         if (!last || Math.abs(last.x - x) > 1e-3 || Math.abs(last.y - y) > 1e-3) {

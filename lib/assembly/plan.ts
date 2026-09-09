@@ -291,7 +291,11 @@ function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, 
     const { lengthUnit, thickUnit } = partAxes(p);
     const c = center.get(p.id)!;
     const tol = Math.max(2, p.visible.thickness / 2);
+    // 只做單端鳩尾的板（乙級第二題抽屜側板：前端鳩尾、後端木螺釘）另一端不配母板
+    const dtEnds = p.shape?.kind === "dovetail-ends" ? p.shape.ends ?? "both" : "both";
     for (const sgn of [-1, 1]) {
+      if (dtEnds === "plus" && sgn !== 1) continue;
+      if (dtEnds === "minus" && sgn !== -1) continue;
       const endPt = add(c, scale(lengthUnit, sgn * p.visible.length / 2));
       for (const q of parts) {
         if (q.id === p.id) continue;

@@ -82,7 +82,11 @@ export type ShapeSpec =
       vertices?: [number, number, number][];
     }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
-  | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
+  | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean; ends?: "both" | "plus" | "minus"; combSpanMm?: number; combOffsetMm?: number }
+    /** `ends`：哪一端要做鳩尾（沿零件 local x 軸）。預設 "both"。
+     *  🩸 2026-09-09 乙級第二題：抽屜後角官方是 ø3.5×30 木螺釘（工作圖 B-B 引線），
+     *     但 dovetail-ends 以前一律兩端都切 → 後板被當成鳩尾母件，而且後板 90 高
+     *     vs 側板 110 高，齒距 12.857 vs 15.714 根本嵌不進去。只做前端就用 "plus"／"minus"。 */
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
   | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number }
@@ -1424,6 +1428,7 @@ export function buildDovetailEndsGeometry(
   angleDeg: number,
   pinDepth: number,
   halfPin: boolean = true,
+  ends: "both" | "plus" | "minus" = "both",
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1467,7 +1472,11 @@ export function buildDovetailEndsGeometry(
     }
   };
 
-  // 右邊：sweep s=0..N-1，每段依 pin/gap 推不同邊形
+  // 右邊（local +x 端）：不做鳩尾時直接走一條直邊
+  if (ends === "minus") {
+    push(xRTip, -hz);
+    push(xRTip, +hz);
+  } else
   for (let s = 0; s < N; s++) {
     const yB = -hz + s * segH;
     const yT = yB + segH;
@@ -1505,7 +1514,11 @@ export function buildDovetailEndsGeometry(
     }
   }
 
-  // 左邊：sweep s=N-1..0（top→bot），對稱推（左邊 pin 凸出到 xLTip = -hx）
+  // 左邊（local −x 端）：sweep s=N-1..0（top→bot），對稱推（左邊 pin 凸出到 xLTip = -hx）
+  if (ends === "plus") {
+    push(xLTip, +hz);
+    push(xLTip, -hz);
+  } else
   for (let s = N - 1; s >= 0; s--) {
     const yB = -hz + s * segH;
     const yT = yB + segH;
@@ -2763,7 +2776,7 @@ export function buildShapeGeometry(
     return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
   }
   if (shape.kind === "dovetail-ends") {
-    return buildDovetailEndsGeometry(size, shape.segmentCount, shape.phase, shape.angleDeg, shape.pinDepth, shape.halfPin ?? true);
+    return buildDovetailEndsGeometry(size, shape.segmentCount, shape.phase, shape.angleDeg, shape.pinDepth, shape.halfPin ?? true, shape.ends ?? "both");
   }
   if (shape.kind === "regular-polygon") {
     return buildRegularPolygonGeometry(size, shape.sides, shape.outerRadius, shape.angleOffsetDeg ?? (90 + 180 / shape.sides));

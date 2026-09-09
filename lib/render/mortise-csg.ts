@@ -56,7 +56,7 @@ export function buildDovetailCutBrushes(parts: readonly Part[], unitsPerMm = 0.0
     const s = part.shape;
     const geo = buildDovetailEndsGeometry(
       [part.visible.length * unitsPerMm, part.visible.thickness * unitsPerMm, part.visible.width * unitsPerMm],
-      s.segmentCount, s.phase, s.angleDeg, s.pinDepth * unitsPerMm, s.halfPin ?? true,
+      s.segmentCount, s.phase, s.angleDeg, s.pinDepth * unitsPerMm, s.halfPin ?? true, s.ends ?? "both",
     );
     geo.deleteAttribute("uv");
     if (!geo.attributes.normal) geo.computeVertexNormals();
