@@ -123,9 +123,13 @@ function extractFurnitureDims(design: FurnitureDesign) {
     .sort((a, b) => a.bottomY - b.bottomY);
 
   // 橫向構件：牙板 / 橫撐 / 椅背料 / footrest 等（Y 位置 = origin.y, yExt 用 worldExtents）
+  // 🩸 2026-09-09：`rail-` 前綴原本只認得 `back-rail`／`back-top-rail`，
+  //    檢定範本的下橫檔叫 `rail-front`／`rail-back`／`rail-mid-*`／`rail-lower` → 一條都沒 match，
+  //    三視圖上完全沒有下橫檔的位置標註。乙級評審表第 6 項就是在量下橫檔（45×24、30×18），
+  //    丙級 cert-c1／c3 同樣中招。影響範圍實測只有 cert-c1(+2)／cert-c3(+1)／cert-b2(+4)。
   const crossPieces = design.parts
     .filter((p) =>
-      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
+      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|rail-|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
         p.id,
       ),
     )
@@ -4059,8 +4063,18 @@ function OrthoViewImpl({
         // 櫃類（cabinet 非 null）只有內高 / 腳高，師傅看不到整件家具
         // 實際總高，必須保留此右側總高標線（解法 C）。
         const dims0 = extractFurnitureDims(renderDesign);
+        /**
+         * ⚠️ 只有「主面頂＝整件最高點」時，左側那疊才真的等價於總高。
+         *
+         * 🩸 2026-09-09 乙級第二題：腳頂比天板高 10mm（考題 420，天板頂 410）。
+         *    左側只標「桌下淨高 392 + 桌面 18」，右側總高標又被這個分支跳掉
+         *    → 整張圖沒有 420，師傅照著加只會得到 410，而總高 420±1 是評審表第一項。
+         *    椅背高過座面的椅子同理（總高從來沒標出來過）。
+         */
+        const mainTopIsOverallTop =
+          dims0 !== null && Math.abs(dims0.mainTopY - h) <= 1;
         const hasFlatTopLeftLabel =
-          view !== "top" && dims0 !== null && dims0.cabinet === null;
+          view !== "top" && dims0 !== null && dims0.cabinet === null && mainTopIsOverallTop;
         if (hasFlatTopLeftLabel) return null;
         // 圓面家具俯視：寬=深=Ø，底部已標 Ø，右側同值冗餘跳過（§I6 冗餘刪一）
         if (
