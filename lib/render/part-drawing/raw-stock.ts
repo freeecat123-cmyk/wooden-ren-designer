@@ -11,7 +11,7 @@
  * - hoof: 徑向 × hoofScale（含腳趾外撇段）
  * - round / round-tapered / splayed-round-tapered: 徑 +6mm（雙面車削）
  * - arch-bent: 弦長 ×1.1（外接矩形）
- * - splayed-tapered: L = √(L² + dx² + dz²) + 12（傾斜後真長加餘量）
+ * - splayed / splayed-tapered: T = √(T² + dx² + dz²) + 12（傾斜後真長加餘量；只補長軸，斷面不動）
  *
  * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-5-design.md §2
  */
@@ -75,7 +75,7 @@ export function rawStockSize(part: Part): { L: number; W: number; T: number } {
     L = L * 1.1;
     // 弧線在 W 軸延伸 bendMm（矢高）→ 毛料寬要含弧高才切得出弧形
     W = (v.width ?? 0) + ext.W + (s.bendMm ?? 0) + 4;
-  } else if (s?.kind === "splayed-tapered") {
+  } else if (s?.kind === "splayed-tapered" || s?.kind === "splayed") {
     /**
      * 外斜腳的「真長」補償要加在**垂直長軸**上。
      *
@@ -93,6 +93,10 @@ export function rawStockSize(part: Part): { L: number; W: number; T: number } {
      *
      * ✅ 正確:斷面(L / W)維持原尺寸 + 一般餘量,只有 T 走真長。
      *    (2026-08-21 稽核發現。)
+     *
+     * 🩸 2026-09-10:這個分支原本只認 `splayed-tapered`,**純 `splayed`（不收錐的方外斜腳）沒補**。
+     *    乙級第三題的腳 visible 32×45×410、dz=±60 → 沿軸真長 414.4,毛料卻算成 412 ⇒ **少 2.4mm、不夠料**。
+     *    同一張零件卡的備註欄還印著「真長 414.4 mm／傾角 8.3°」,跟標題欄的 410 自己打架。
      */
     const dx = s.dxMm ?? 0;
     const dz = s.dzMm ?? 0;

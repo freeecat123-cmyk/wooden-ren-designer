@@ -129,7 +129,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
   //    丙級 cert-c1／c3 同樣中招。影響範圍實測只有 cert-c1(+2)／cert-c3(+1)／cert-b2(+4)。
   const crossPieces = design.parts
     .filter((p) =>
-      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|rail-|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
+      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|rail-|top-rail-|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
         p.id,
       ),
     )
@@ -4486,8 +4486,13 @@ function OrthoViewImpl({
                   const footColor = "#c63d3d";
                   const stretcherColor = "#c63d3d";
                   const lowerStretcherColor = "#1e3a8a";
-                  const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
-                  const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
+                  // ⭐ 腳的斷面不一定是正方形：X 方向要用 legSizeX、Z 方向要用 legSizeZ。
+                  // 🩸 2026-09-10：兩行都用 `legSize`（＝min(legSizeX, legSizeZ)），乙級第三題腳是
+                  //    32(x)×45(z)，Z 方向少算 (45−32)/2=6.5 → 俯視圖印出「落地內縮 7 mm」，
+                  //    但實測腳底最外緣正好與面板後緣齊平（0）。而「腳底展開 360＝總深」正是這題的重點尺寸。
+                  //    同 834b61b1「腳的斷面用世界軸實際佔寬」那次沒掃到的一處。
+                  const footProtrudeX = maxX + maxSplayDx + legSizeX / 2 - w / 2;
+                  const footProtrudeZ = maxZ + maxSplayDz + legSizeZ / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
                     isEn
                       ? (mm > 0 ? `Footprint past seat ${dimMm(mm)}` : `Foot inset ${dimMm(-mm)}`)
