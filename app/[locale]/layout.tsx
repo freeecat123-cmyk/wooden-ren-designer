@@ -13,6 +13,7 @@ import { StudentExpiryNotice } from "@/components/StudentExpiryNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { RscFetchRetry } from "@/components/RscFetchRetry";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
 import { WebInstallBanner } from "@/components/WebInstallBanner";
 import { pickClientMessages } from "@/lib/i18n/client-namespaces";
@@ -278,6 +279,9 @@ export default async function LocaleLayout({
             <SignupTracker />
             <StudentWelcomeModal />
             <ServiceWorkerRegister />
+            {/* RSC 請求失敗 → Next 會整頁硬導航（使用者眼中的「畫面自己重整」）。
+                行動網路打嗝一次就會發生，先重試再說。 */}
+            <RscFetchRetry />
             <IOSInstallBanner />
             <WebInstallBanner />
           </AuthProvider>

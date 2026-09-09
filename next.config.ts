@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
   // grant a new one to the second mount. Result: blank 透視圖 in dev.
   // Production builds don't double-mount, so this is dev-only.
   reactStrictMode: false,
+  // Skew Protection：把 build 的 deployment id 烙進 client bundle,client 發出的
+  // RSC / chunk 請求會帶著它,Vercel 就把請求路由回「這個使用者當初載入的那一版」。
+  //
+  // 沒有它的話:使用者手機開著設計頁,期間推了新版 → 他下一次動滑桿發的 RSC 請求
+  // 打到新版、client 還是舊版 → payload 對不上 → Next 退回**整頁硬導航**,
+  // 也就是「用到一半畫面自己重整」。部署越頻繁踩到的人越多。
+  // (同症狀的另一半是網路打嗝,那個由 components/RscFetchRetry.tsx 處理。)
+  //
+  // ⚠️ 這行只是把 id 帶上;真正的路由由 Vercel 專案設定的 Skew Protection 開關決定
+  //    (Settings → Advanced → Skew Protection)。本機/非 Vercel 環境沒有這個環境變數,
+  //    值是 undefined,行為與現在完全相同。
+  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
   // subset-font / harfbuzzjs 的 .wasm 在 `next dev --webpack` 下打包會壞
   // （Module parse failed: WebAssembly module not flagged），導致
   // /api/pdf-font 在本機 dev 回 500。標記為外部套件、runtime 用原生
