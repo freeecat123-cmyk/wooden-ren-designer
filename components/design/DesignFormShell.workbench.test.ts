@@ -153,8 +153,16 @@ it("mobile radio preset updates collapsed radios and version remains reachable",
   const page = await mount(true);
   try {
     await page.locator('input[name="constructionVersion"][value="2"]').check();
+    // 🩸2026-09-07：這裡本來直接接 submitted()，但上一行的 check 已經送出一次 replace()，
+    // submitted() 只等 navigationResult「存在」→ 拿到的是還沒切流派的舊網址（benchStyle=roubo），
+    // 於是 dogHoles 讀到 row 而不是 mft preset 的 grid。全檔跑必紅、單獨跑會過。
+    // 修法：切流派前先清掉上一次的結果，再等到網址真的帶上 benchStyle=mft 才讀。
+    await page.evaluate(() => { delete (window as unknown as { navigationResult?: unknown }).navigationResult; });
     await page.locator('input[name="benchStyle"][value="mft"]').check();
+    await page.waitForFunction(() =>
+      String((window as unknown as { navigationResult?: { url: string } }).navigationResult?.url ?? "").includes("benchStyle=mft"));
     const params = new URL((await submitted(page)).url, "http://local").searchParams;
+    expect(params.get("benchStyle")).toBe("mft");
     expect(params.get("constructionVersion")).toBe("2");
     expect(params.get("dogHoles")).toBe("grid");
     expect(params.get("dogHoleDia")).toBe("20");
