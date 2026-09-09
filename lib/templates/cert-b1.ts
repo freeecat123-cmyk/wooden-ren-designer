@@ -212,8 +212,10 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
   // ── 桌面：木心板 434×434×18 ＋ 四周 8mm 實木封邊 ─────────────────────
   const coreL = L - 2 * E.edgeBand, coreD = D - 2 * E.edgeBand;
   // 桌面底面的木釘孔（Ø8，深 12）：4 支腳頂 + 每支側板／後板 3 支
+  // ⚠️ 腳頂**沒有**木釘：C-C 前端腳正上方的桌面剖面裡只有木心板芯條的梳狀線，沒有任何孔；
+  // 兩位對照員各自量過都確認。圖上畫得出位置的木釘＝桌面 9（每板 3 支 × 3 板）＋板端入腳 12 ＝ 21 支。
+  // （材料表的 29 支是六題共用一張表的上限，不是第一題用量。）
   const topHoles: Array<{ x: number; z: number; label: string }> = [];
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) topHoles.push({ x: sx * legCx, z: sz * legCz, label: isEn ? "Ø8 dowel, leg top" : "Ø8 木釘（腳頂）" });
   const sideRailDowelZ = E.sideRailDowelsFromLegInner.map((d) => -legInnerZ + d);   // −129, 13, 155
   const backRailDowelX = E.backRailDowelsFromLegInner.map((d) => -legInnerX + d);   // −142, 0, 142
   for (const sx of [-1, 1]) for (const z of sideRailDowelZ) topHoles.push({ x: sx * sideRailCx, z, label: isEn ? "Ø8 dowel, side rail" : "Ø8 木釘（側板）" });
@@ -262,8 +264,6 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
   const tenonW = E.frontRailH - 2 * E.frontRailTenonShoulder;            // 52
   for (const sx of [-1, 1] as const) for (const sz of [-1, 1] as const) {
     const m: Mortise[] = [];
-    // 腳頂木釘孔（Ø8 深 18，開在頂端面＝local −z 端）
-    m.push({ origin: { x: 0, y: E.legD / 2, z: -legH / 2 }, depth: E.dowelLen - E.topDowelIntoTop, ...round(E.dowelDia), label: isEn ? "Ø8 dowel, top" : "Ø8 木釘（桌面）" });
     // 側板端木釘孔 ×2：開在朝向側板那一面（前腳背面 / 後腳正面），離桌面底 25、75，x 對齊側板中心
     for (const d of E.railEndDowelsFromTop) m.push({
       origin: { x: -sx * (legCx - sideRailCx), y: sz < 0 ? E.legD : 0, z: -((topBottomY - d) - legCy) },
@@ -407,7 +407,7 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [],
     mortises: [],
   });
-  // 桌面木釘（直立）：入桌面 12、入板／腳 18 → 中心在桌面底下 3
+  // 桌面木釘（直立）：入桌面 12、入板 18 → 中心在桌面底下 3
   const topDowelCy = topBottomY - (E.dowelLen - E.topDowelIntoTop) + E.dowelLen / 2;   // 429
   let n = 0;
   for (const h of topHoles) parts.push(dowel(`dowel-top-${++n}`, `木釘 Ø8×30（桌面）`, "Dowel Ø8×30 (top)", "y", { x: h.x, y: topDowelCy, z: h.z }));
@@ -541,7 +541,8 @@ export const certB1: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: isEn
       ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100201 (7 hours). A 450×450×450 mm side table with one drawer: blockboard top 434×434 with 8 mm solid edging, four 45×32 legs on a 410×410 footprint (3 mm chamfer at the foot), blockboard side/back rails 105 high dowelled into the legs (Ø8×30, 15/15) and to the top (Ø8×30, 12 into the top / 18 into the rail, at 31/173/315 from the leg), a curved front rail 60 high with 70 mm flats and tangent R15/R15 rising 20, 6 mm tenons 21 into the legs and a 6×4 notch on the front top edge, and a side-hung drawer 340×350: front 340×103×18 with a Ø20 finger hole, sides 15×100 with a 15×8 runner groove (top 40 below the tabletop) and a 4×7 bottom groove (top 15 above the drawer bottom), back 15×80, 4 mm plywood bottom screwed to the back with ${E.bottomScrew}; runners 15×14×320 screwed to the side rails with ${E.runnerScrew}. Dovetails: 7 segments per corner (28 mating faces, as scored); the front is half-blind with a 3 mm lap in this model (official section shows 6). **Drawn from published dimensions — download the official paper and follow that version on test day.**`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100201（7 小時）公開尺寸繪製的練習範本。450×450×450 的單抽小桌：木心板桌面 434×434 四周貼 8mm 實木封邊；四支 45×32 腳柱、腳架 410×410、腳底 3mm 斜角；側板／後板木心板 105 高，兩端各 2 支 Ø8×30 木釘入腳（入腳 15、入板 15，離桌面底 25、75），桌面每板 3 支木釘（入桌面 12、入板 18，離腳內面 31、173、315）；前曲線橫檔 60 高、兩端各 70 平段、R15／R15 相切升高 20，6 厚榫入腳 21，正面頂緣 6×4 缺口；側掛式抽屜 340×350：面板 340×103×18 正中央 Ø20 指孔、頂離桌面底 2；側板 15×100，外面滑條槽 15 高 × 8 深（槽頂離桌面底 40）、內面底板槽 4×7（槽頂離抽屜底 15）；後板 15×80；4mm 合板底板從後板底下穿過、用 ${E.bottomScrew} 鎖入後板；滑條 15×14×320 以 ${E.runnerScrew} 鎖在側板內面、入槽 7。鳩尾榫每角 7 段（評審表 28 個密合部位）；面板端為半隱鳩尾，本範本齒深 15 留 3 面皮（官方剖面隱藏線在離背面 6 處）。官方材料（每人份）：木料 1050×95×32.5、600×92×21.5、440×132×18.5、400×130×15.5 ×3、550×19×8.5 ×5，木心板 480×450×18、426×178×18 ×3，合板 408×350×4，Ø8×30 木釘 29 支，木螺釘 Ø2.4×15 ×3、Ø3×25 ×14、Ø3.5×30 ×14，白膠。**本圖依公開尺寸自行繪製，不含官方圖檔；應檢請以技能檢定中心公布的官方版本為準。**`,
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100201（7 小時）公開尺寸繪製的練習範本。450×450×450 的單抽小桌：木心板桌面 434×434 四周貼 8mm 實木封邊；四支 45×32 腳柱、腳架 410×410、腳底 3mm 斜角；側板／後板木心板 105 高，兩端各 2 支 Ø8×30 木釘入腳（入腳 15、入板 15，離桌面底 25、75），桌面每板 3 支木釘（入桌面 12、入板 18，離腳內面 31、173、315）；前曲線橫檔 60 高、兩端各 70 平段、R15／R15 相切升高 20，6 厚榫入腳 21，正面頂緣 6×4 缺口；側掛式抽屜 340×350：面板 340×103×18 正中央 Ø20 指孔、頂離桌面底 2；側板 15×100，外面滑條槽 15 高 × 8 深（槽頂離桌面底 40）、內面底板槽 4×7（槽頂離抽屜底 15）；後板 15×80；4mm 合板底板從後板底下穿過、用 ${E.bottomScrew} 鎖入後板；滑條 15×14×320 以 ${E.runnerScrew} 固定——**從桌子外面穿過 18 厚側板再進滑條 12**（18＋12＝30，沉頭露在側板外面，評審表「木螺釘 平整、釘頭完整 12 部位」看的就是這 12 顆），滑條入抽屜側板槽 7。鳩尾榫每角 7 段（評審表 28 個密合部位）；面板端為半隱鳩尾，本範本齒深 15 留 3 面皮（官方剖面隱藏線在離背面 6 處）。官方材料表是**六題共用一張**（每人份）：木料 1050×95×32.5（第一題 1 支＝四支腳）、600×92×21.5（前橫檔＋兩支滑條）、440×132×18.5（**抽屜面板，實木**）、400×130×15.5 ×3（抽屜側板 ×2＋後板）、550×19×8.5 ×5（桌面四條封邊），木心板 480×450×18（桌面芯）、426×178×18 ×3（側板 ×2＋後板），合板 408×350×4（抽屜底板），木釘與三種木螺釘、白膠。木釘 29 支與 Ø3×25 ×14 是六題的上限：**本題圖上的木釘是 21 支，Ø3×25 沒有用到**。
+本範本未做成造型、只寫在工序裡的：腳底 3mm 斜角、木螺釘本體；桌面封邊四角用對接（實務常用 45° 斜接，材料也夠，兩種都可以）。抽屜關到底圖上沒畫止擋（後板前面還有 22mm 餘裕），實作要在桌架後板前面加止擋塊。**本圖依公開尺寸自行繪製，不含官方圖檔；應檢請以技能檢定中心公布的官方版本為準。**`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;

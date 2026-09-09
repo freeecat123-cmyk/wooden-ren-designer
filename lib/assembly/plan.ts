@@ -298,6 +298,14 @@ function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, 
         // 指接是雙方都有指，只登記一次（id 小的當公板）
         if (kind === "finger-joint-ends" && q.shape?.kind === "finger-joint-ends" && q.id < p.id) continue;
         if (!boxContains(box.get(q.id)!, endPt, tol)) continue;
+        // 母板必須是「厚度方向對著榫尾」的板：榫尾插進去的那一維，一定是母板最薄的一維。
+        // 🩸2026-09-09 乙級第一題：抽屜側板後端剛好落在**滑條**的盒子裡（滑條沿 z 跑 320、與側板平行），
+        // 滑條被判成鳩尾母板 → 組裝把兩支滑條掛在抽屜上一起推進桌架，但滑條與前腳重疊 5mm、
+        // 與兩腳之間零間隙，實際塞不進去。加這道判準後滑條被排除，母板回到抽屜後板。
+        const qb = box.get(q.id)!;
+        const qExt = { x: qb.max.x - qb.min.x, y: qb.max.y - qb.min.y, z: qb.max.z - qb.min.z };
+        const alongLen = Math.abs(lengthUnit.x) * qExt.x + Math.abs(lengthUnit.y) * qExt.y + Math.abs(lengthUnit.z) * qExt.z;
+        if (alongLen > Math.min(qExt.x, qExt.y, qExt.z) + 1) continue;
         const key = `${p.id}>${q.id}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -350,6 +358,11 @@ function shapeJoints(parts: Part[], center: Map<string, Vec3>, box: Map<string, 
         if (p.id === host.id || p.visual === "dowel") continue;
         // 滑蓋（lid-group）另有專用的 slide 規則（缺口那側滑入），不在這裡重複登記
         if (familyKey(p.id) === "lid-group") continue;
+        // 🩸2026-09-09 乙級第一題：抽屜側板外面的滑條槽把**滑條**登記成抽屜的子件
+        // → 組裝把兩支滑條掛在抽屜上一起推進桌架，但滑條與前腳重疊、與兩腳之間零間隙，塞不進去。
+        // 側掛抽屜的真實關係相反：滑條先鎖在桌架側板上，抽屜再滑上去。
+        // 判準＝「母件是抽屜家族、子件不是」→ 不登記（動的是抽屜不是滑條）。
+        if (familyKey(host.id) && !familyKey(p.id)) continue;
         // 入溝的一定是薄板：厚度得塞得進溝（斜置門梃的溝盒取外接盒會變胖，18 厚的頂板曾被誤判入槽）
         if (Math.min(p.visible.length, p.visible.width, p.visible.thickness) > grooveW + 1) continue;
         if (!boxesOverlap(gb, box.get(p.id)!, 0.5)) continue;

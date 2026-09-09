@@ -77,11 +77,15 @@ describe("cert-b1 評審表尺寸", () => {
     expect([groove.entryX, groove.entryY]).toEqual([-170, 379.5]);   // 外面、槽中心 = 387 − 7.5（槽頂離桌面底 45）
     expect([bottom.entryX, bottom.entryY]).toEqual([-155, 340]);     // 內面、槽 338–342 → 頂離底 15
   });
-  it("木釘 25 支 Ø8×30：桌面 13（腳 4＋每板 3，離腳內面 31/173/315）、側板端 8、後板端 4；入桌面 12、入腳 15", () => {
+  it("木釘 21 支 Ø8×30：桌面 9（每板 3 支，腳頂沒有）、側板端 8、後板端 4；入桌面 12、入腳 15", () => {
+    // 腳頂沒有木釘：C-C 前端腳正上方的桌面剖面只有木心板芯條的梳狀線，沒有孔（兩位對照員各自量過）。
+    // 材料表的 29 支是六題共用表的上限，不是本題用量。
     const dowels = d.parts.filter((p) => p.visual === "dowel");
-    expect(dowels).toHaveLength(25);
+    expect(dowels).toHaveLength(21);
+    expect(d.parts.some((p) => p.id.startsWith("dowel-top-") && Math.abs(Math.abs((worldAABB(p).min.z + worldAABB(p).max.z) / 2) - 182.5) < 1),
+      "腳頂不該有木釘").toBe(false);
     const top = dowels.filter((p) => p.id.startsWith("dowel-top-")).map((p) => worldAABB(p));
-    expect(top).toHaveLength(13);
+    expect(top).toHaveLength(9);
     for (const b of top) expect([b.min.y, b.max.y]).toEqual([414, 444]);
     // 側板那三支沿深度走，腳沿深度是 45 → 離腳內面 18／160／302，世界 −142／0／+142（跟後板同位）
     const sideZ = top.filter((b) => Math.abs((b.min.x + b.max.x) / 2) === 187).map((b) => (b.min.z + b.max.z) / 2).sort((a, b) => a - b);
