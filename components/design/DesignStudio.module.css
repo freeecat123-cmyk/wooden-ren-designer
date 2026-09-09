@@ -44,6 +44,12 @@
 .modelPanel :global([data-studio-model]) > div { flex-shrink: 0; border-radius: 0; box-shadow: none; }
 .modelPanel :global([data-studio-model]) > div:has(canvas) { flex: 0 0 auto; height: clamp(320px, calc(100svh - 380px), 720px) !important; min-height: 260px; border: 0; }
 .modelPanel :global([data-studio-model]) > div:first-child { flex-wrap: wrap; background: #fff; border-color: var(--studio-border); }
+/*
+ * 手機版的參數入口。原本在分頁列最左邊，跟隔壁的「設計」分頁看起來是同一件事
+ * （木頭仁 2026-09-09），移進設計分頁裡：一眼看得到、也不再跟分頁搶位置。
+ */
+.parameterCta { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--studio-border); background: #f4f4f5; color: #27272a; font: inherit; font-weight: 600; cursor: pointer; }
+.parameterCta:hover { background: #e4e4e7; }
 .materialsWorkspace { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
 .materialsWorkspace .modelPanel { height: auto; border-bottom: 1px solid var(--studio-border); }
 .materialsWorkspace .modelPanel :global([data-studio-model]) > div:has(canvas) { height: 300px !important; }
@@ -128,6 +134,8 @@
    * ⚠️ `::backdrop` 也要透明 —— 不然上面那條 3D 會被灰幕蓋住,等於還是看不到。
    */
   .studio:has(.sidePanel[data-modal="true"][open]) .notices,
+  /* 面板開著時整頁 inert，參數入口按不動 ⇒ 收起來，那 44px 讓給 3D。 */
+  .studio:has(.sidePanel[data-modal="true"][open]) .parameterCta,
   .studio:has(.sidePanel[data-modal="true"][open]) .navigation { display: none; }
   .studio:has(.sidePanel[data-modal="true"][open]) .header { padding: 6px 12px; gap: 6px; }
   .studio:has(.sidePanel[data-modal="true"][open]) .title { font-size: 14px; }

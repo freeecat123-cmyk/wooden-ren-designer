@@ -80,7 +80,22 @@ try {
       await page.getByRole("tab", { name: locale === "en" ? "Design" : "設計", exact: true }).click();
       await page.waitForTimeout(400);
 
-      const trigger = page.getByRole("button", { name: locale === "en" ? "Toggle parameters" : "切換參數面板", exact: true });
+      /*
+       * 🩸 分頁列最左邊那顆「切換參數面板」的第一件事是 setView("design")，等於
+       *    「切到設計分頁 + 開參數」，跟緊鄰的「設計」分頁看起來在做同一件事 ——
+       *    木頭仁 2026-09-09「設計跟這個按鈕感覺重疊了,左邊的按鈕根本沒必要」。
+       * ⇒ 手機不放它，參數入口改成設計分頁裡的「調整參數」。桌機保留（那裡是折疊側欄）。
+       */
+      const paletteButtons = await page.evaluate(() =>
+        [...document.querySelectorAll("[class*=navigation] > button")].map(node => node.getAttribute("aria-label")));
+      const toggleName = locale === "en" ? "Toggle parameters" : "切換參數面板";
+      if (width < 768) assert(!paletteButtons.includes(toggleName),
+        `${locale}/${width}: 手機分頁列又放回參數鈕了 → 跟隔壁的「設計」分頁重疊（${paletteButtons.join(" / ")}）`);
+      else assert(paletteButtons.includes(toggleName),
+        `${locale}/${width}: 桌機分頁列少了折疊參數側欄的按鈕（${paletteButtons.join(" / ")}）`);
+      const trigger = width < 768
+        ? page.getByRole("button", { name: locale === "en" ? "Adjust parameters" : "調整參數", exact: true })
+        : page.getByRole("button", { name: toggleName, exact: true });
       let sheetBand = null, bandBefore = null;
       if (width < 768) {
         await trigger.click();

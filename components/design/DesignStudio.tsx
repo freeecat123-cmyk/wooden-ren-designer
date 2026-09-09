@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode, type RefObject } from "react";
-import { Ellipsis, PanelLeft, PanelRight, X } from "lucide-react";
+import { Ellipsis, PanelLeft, PanelRight, SlidersHorizontal, X } from "lucide-react";
 import type { Dimensions, FurnitureDesign, JoineryType } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { materialName } from "@/lib/materials";
@@ -36,6 +36,7 @@ const copy = {
   en: {
     design: "Design", drawings: "Drawings", materials: "Materials", build: "Build", quote: "Quote", exports: "Export",
     workspace: "Design workspace", views: "Workspace views", parameters: "Parameters", inspector: "Inspector",
+    adjustParameters: "Adjust parameters",
     toggleParameters: "Toggle parameters", toggleInspector: "Toggle inspector",
     closeParameters: "Close parameters", closeInspector: "Close inspector", clear: "Clear selection",
     overview: "Overview", partCount: "Parts", material: "Material", visible: "Visible dimensions",
@@ -46,6 +47,7 @@ const copy = {
   zh: {
     design: "設計", drawings: "圖面", materials: "材料", build: "製作", quote: "報價", exports: "輸出",
     workspace: "設計工作區", views: "工作區檢視", parameters: "參數", inspector: "零件檢視",
+    adjustParameters: "調整參數",
     toggleParameters: "切換參數面板", toggleInspector: "切換零件檢視",
     closeParameters: "關閉參數面板", closeInspector: "關閉零件檢視", clear: "清除選取",
     overview: "設計概覽", partCount: "零件數", material: "材質", visible: "可見尺寸",
@@ -248,14 +250,20 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
     </header>
     {notices != null && <div className={styles.notices}>{notices}</div>}
     <div className={styles.navigation}>
-      <button ref={leftTrigger} type="button" className={styles.iconButton}
+      {/*
+        * 🩸 手機上這顆按鈕的第一件事就是 setView("design")，等於「切到設計分頁 + 開參數」，
+        *    跟緊鄰的「設計」分頁看起來在做同一件事 —— 木頭仁 2026-09-09
+        *    「設計跟這個按鈕感覺重疊了,左邊的按鈕根本沒必要」。
+        * ⇒ 手機不放它，參數入口改放進「設計」分頁裡（見下方 parameterCta）。
+        *    桌機保留：那裡參數是固定側欄，這顆是折疊/展開，跟分頁不重疊。
+        */}
+      {!leftModal && <button ref={leftTrigger} type="button" className={styles.iconButton}
         aria-label={text.toggleParameters} title={text.toggleParameters} aria-controls={`${id}-parameters`}
-        aria-expanded={leftVisible} aria-haspopup={leftModal ? "dialog" : undefined}
+        aria-expanded={leftVisible} aria-haspopup={undefined}
         onClick={() => {
           setView("design");
-          if (leftModal) setOverlay(overlay === "parameters" ? null : "parameters");
-          else setLeftOpen(view === "design" ? !leftOpen : true);
-        }}><PanelLeft size={18} aria-hidden="true" /></button>
+          setLeftOpen(view === "design" ? !leftOpen : true);
+        }}><PanelLeft size={18} aria-hidden="true" /></button>}
       <div className={styles.tabs} role="tablist" aria-label={text.views}>
         {views.map((key, index) => <button key={key} ref={node => { tabRefs.current[index] = node; }}
           type="button" role="tab" id={`${id}-tab-${key}`} aria-controls={`${id}-view-${key}`}
@@ -280,7 +288,14 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
             aria-labelledby={sharedModel ? undefined : `${id}-tab-${key}`}
             aria-label={sharedModel ? (locale === "en" ? "3D model" : "3D 模型") : undefined}
             tabIndex={0} hidden={!visible} inert={!visible}
-            className={key === "design" ? styles.modelPanel : styles.viewPanel}>{slots[key]}</div>;
+            className={key === "design" ? styles.modelPanel : styles.viewPanel}>
+            {key === "design" && leftModal && view === "design" && <button ref={leftTrigger} type="button"
+              className={styles.parameterCta} data-parameter-cta aria-controls={`${id}-parameters`}
+              aria-expanded={leftVisible} aria-haspopup="dialog"
+              onClick={() => setOverlay(overlay === "parameters" ? null : "parameters")}>
+              <SlidersHorizontal size={16} aria-hidden="true" />{text.adjustParameters}
+            </button>}
+            {slots[key]}</div>;
         })}
       </div>
       <StudioPanel id={`${id}-inspector`} panel="inspector" title={text.inspector} closeLabel={text.closeInspector}

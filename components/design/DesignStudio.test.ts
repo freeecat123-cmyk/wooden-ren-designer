@@ -170,7 +170,8 @@ it("uses parent selection, physical cut dimensions and material override, and cl
 it("contains mobile sheet focus, closes on Escape and restores focus without losing input", async () => {
   const page = await open(390);
   try {
-    const trigger = page.getByRole("button", { name: "Toggle parameters", exact: true });
+    /* 手機的參數入口在設計分頁裡（分頁列那顆跟「設計」分頁重疊，已拿掉）。 */
+    const trigger = page.getByRole("button", { name: "Adjust parameters", exact: true });
     await trigger.click();
     const dialog = page.getByRole("dialog", { name: "Parameters", exact: true });
     await dialog.waitFor();
@@ -183,7 +184,7 @@ it("contains mobile sheet focus, closes on Escape and restores focus without los
     expect(await activeIs(page, 'button[type="submit"]')).toBe(true);
     await page.keyboard.press("Escape");
     expect(await dialog.isVisible()).toBe(false);
-    expect(await activeIs(page, '[aria-label="Toggle parameters"]')).toBe(true);
+    expect(await activeIs(page, '[data-parameter-cta]')).toBe(true);
     await trigger.click();
     expect(await page.getByRole("textbox", { name: "Width", exact: true }).inputValue()).toBe("512");
     await page.getByRole("button", { name: "Close parameters", exact: true }).click();
