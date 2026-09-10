@@ -1247,6 +1247,7 @@ async function OptionField({
             step={spec.step ?? 1}
             className="border border-zinc-300 rounded-md px-1.5 py-1 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
+            showPlusMinus
             isLengthMm={spec.unit === "mm"}
           />
         )}

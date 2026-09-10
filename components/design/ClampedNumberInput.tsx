@@ -42,7 +42,13 @@ interface Props {
   label?: string;
   /** chip 旁邊的可點預設值 */
   presetPoints?: PresetPoint[];
-  /** 桌面 ±按鈕（手機強制 false） */
+  /**
+   * −／+ 步進按鈕。
+   * 🩸 手機上打數字會叫出鍵盤，鍵盤蓋掉 3D 就看不到改了什麼 —— 木頭仁 2026-09-10
+   *    「還是之前的做法比較好:左右增加按鈕,可以加跟減」。
+   *    這兩顆鈕本來就寫好了，只是被 `hidden md:flex` 藏起來，手機一律看不到。
+   *    現在手機也顯示，而且放大到 44×44（手指按得到）。
+   */
   showPlusMinus?: boolean;
   /** 動態 max 提示小字 */
   dynamicMaxHint?: string;
@@ -156,6 +162,11 @@ export function ClampedNumberInput({
     requestAnimationFrame(fireNativeChange);
   }, [fireNativeChange]);
 
+  /*
+   * 🩸 一定要用 Pointer Events，不可以 onMouseDown + onTouchStart 兩個都綁：
+   *    觸控裝置上 tap 會先發 touchstart、再發模擬的 mousedown ⇒ 走兩步。
+   *    實測 step=10 的欄位，手機點一下從 1800 跳到 1820。
+   */
   const startRepeat = useCallback(
     (delta: number) => {
       setValue((v) => {
@@ -393,12 +404,11 @@ export function ClampedNumberInput({
           <button
             type="button"
             aria-label={t("decrease")}
-            onMouseDown={() => startRepeat(-stepDelta)}
-            onMouseUp={stopRepeat}
-            onMouseLeave={stopRepeat}
-            onTouchStart={() => startRepeat(-stepDelta)}
-            onTouchEnd={stopRepeat}
-            className="hidden md:flex shrink-0 w-6 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-sm leading-none"
+            onPointerDown={event => { event.preventDefault(); startRepeat(-stepDelta); }}
+            onPointerUp={stopRepeat}
+            onPointerLeave={stopRepeat}
+            onPointerCancel={stopRepeat}
+            className="flex shrink-0 w-11 h-11 md:w-6 md:h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700 font-semibold text-base md:text-sm leading-none"
           >
             −
           </button>
@@ -435,12 +445,11 @@ export function ClampedNumberInput({
           <button
             type="button"
             aria-label={t("increase")}
-            onMouseDown={() => startRepeat(stepDelta)}
-            onMouseUp={stopRepeat}
-            onMouseLeave={stopRepeat}
-            onTouchStart={() => startRepeat(stepDelta)}
-            onTouchEnd={stopRepeat}
-            className="hidden md:flex shrink-0 w-6 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-sm leading-none"
+            onPointerDown={event => { event.preventDefault(); startRepeat(stepDelta); }}
+            onPointerUp={stopRepeat}
+            onPointerLeave={stopRepeat}
+            onPointerCancel={stopRepeat}
+            className="flex shrink-0 w-11 h-11 md:w-6 md:h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700 font-semibold text-base md:text-sm leading-none"
           >
             +
           </button>

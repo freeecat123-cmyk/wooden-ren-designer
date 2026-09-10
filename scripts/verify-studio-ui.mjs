@@ -161,5 +161,62 @@ try {
     }
     await context.close();
   }
+  /*
+   * 🩸 手機上改尺寸只能打字，一打字鍵盤就彈出來蓋掉 3D，等於看不到改了什麼 ——
+   *    木頭仁 2026-09-10「還是之前的做法比較好:左右增加按鈕,可以加跟減」。
+   *    兩顆鈕本來就寫好了，只是 (a) 一般數字欄位沒開 showPlusMinus、
+   *    (b) 開了的也被 `hidden md:flex` 藏起來，手機一律看不到。
+   * ⚠️ 要用「有觸控」的 context 才測得出雙觸發：onMouseDown + onTouchStart 兩個都綁的話，
+   *    tap 一次會走兩步（實測 step=10 的欄位從 1800 跳到 1820）。
+   */
+  const touch = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const tp = await touch.newPage();
+  tp.setDefaultTimeout(60000);
+  await tp.goto(`${base}/design/workbench`, { waitUntil: "domcontentloaded", timeout: 60000 });
+  await tp.locator("canvas").first().waitFor({ timeout: 60000 });
+  await tp.waitForTimeout(3000);
+  await tp.locator("[data-parameter-cta]").click();
+  await tp.waitForTimeout(800);
+  const panel = 'dialog[data-studio-panel="parameters"]';
+  /*
+   * ⚠️ 面板裡的分組是收合的 <details>，收合組裡的按鈕 checkVisibility() 本來就是 false。
+   *    所以不能整包數，要逐欄位比：**每個看得到的數字欄位，都要有兩顆看得到的 ±**。
+   */
+  const steppers = await tp.evaluate(sel => {
+    const labels = ["減", "加", "Decrease", "Increase"];
+    const fields = [...document.querySelectorAll(`${sel} input[type=number]`)]
+      .filter(i => !i.classList.contains("sr-only") && i.checkVisibility());
+    let withoutPair = 0, small = 0;
+    for (const input of fields) {
+      const row = input.closest("label") ?? input.parentElement;
+      const pair = [...row.querySelectorAll("button[aria-label]")]
+        .filter(b => labels.includes(b.getAttribute("aria-label")) && b.checkVisibility());
+      if (pair.length !== 2) withoutPair++;
+      for (const b of pair) {
+        const r = b.getBoundingClientRect();
+        if (r.width < 40 || r.height < 40) small++;
+      }
+    }
+    return { fields: fields.length, withoutPair, small };
+  }, panel);
+  assert(steppers.fields > 0, "手機參數面板裡找不到看得見的數字欄位");
+  assert(steppers.withoutPair === 0,
+    `手機上 ${steppers.fields} 個數字欄位裡有 ${steppers.withoutPair} 個沒有一對看得到的 ± → 沒開 showPlusMinus，或又被 hidden md: 藏起來了`);
+  assert(steppers.small === 0, `有 ${steppers.small} 顆 ± 小於 44×44，手指按不準`);
+
+  const lengthInput = tp.locator(`${panel} input[name="length"]`).first();
+  const step = Number(await lengthInput.getAttribute("step"));
+  const before = Number(await lengthInput.inputValue());
+  await tp.locator(`${panel} button[aria-label="加"]`).first().tap();
+  await tp.waitForTimeout(1200);
+  const after = Number(await lengthInput.inputValue());
+  assert(after - before === step,
+    `tap 一次 + 走了 ${after - before}（step 是 ${step}）→ mouse 跟 touch 事件雙觸發，要改用 Pointer Events`);
+  /* 重點是「不用叫鍵盤」⇒ 按 ± 不可以讓數字框拿到焦點。 */
+  assert(!(await tp.evaluate(() => document.activeElement?.tagName === "INPUT" && document.activeElement?.type === "number")),
+    "按 ± 之後數字框拿到焦點了 → 手機會彈出鍵盤，又把 3D 蓋掉");
+  console.error("stepper: passed");
+  await touch.close();
+
   console.log(JSON.stringify(report, null, 2));
 } finally { await browser.close(); }
