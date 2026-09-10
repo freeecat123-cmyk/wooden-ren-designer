@@ -215,6 +215,49 @@ try {
   /* 重點是「不用叫鍵盤」⇒ 按 ± 不可以讓數字框拿到焦點。 */
   assert(!(await tp.evaluate(() => document.activeElement?.tagName === "INPUT" && document.activeElement?.type === "number")),
     "按 ± 之後數字框拿到焦點了 → 手機會彈出鍵盤，又把 3D 蓋掉");
+
+  /*
+   * 🩸 長按 ± 時 iOS Safari 把鈕上的「−」當文字選取，跳出「拷貝／查詢／翻譯／搜尋網頁」
+   *    那排系統選單、還帶藍色選取控制點，連發整個被打斷 —— 木頭仁 2026-09-10 回報。
+   * ⚠️ `-webkit-touch-callout` 只在真 iOS 有意義，連 Playwright 的 WebKit 桌面版
+   *    getPropertyValue 都回空字串 ⇒ 驗不到「生效」，只能驗「有寫」。
+   *    真正擋住選字的是 user-select:none，那個驗得到，而且可以用「雙擊選不選得到字」實測。
+   */
+  const selection = await tp.evaluate(sel => {
+    const btns = [...document.querySelectorAll(`${sel} button[aria-label]`)]
+      .filter(b => ["減", "加", "Decrease", "Increase"].includes(b.getAttribute("aria-label")) && b.checkVisibility());
+    return {
+      selectable: btns.filter(b => getComputedStyle(b).userSelect !== "none").length,
+      noCallout: btns.filter(b => !b.className.includes("[-webkit-touch-callout:none]")).length,
+      count: btns.length,
+    };
+  }, panel);
+  assert(selection.selectable === 0,
+    `${selection.count} 顆 ± 裡有 ${selection.selectable} 顆沒有 user-select:none → iOS 長按會跳出拷貝／查詢那排系統選單`);
+  assert(selection.noCallout === 0,
+    `${selection.count} 顆 ± 裡有 ${selection.noCallout} 顆少了 [-webkit-touch-callout:none] → iOS 長按仍會跳系統選單`);
+  await tp.locator(`${panel} button[aria-label="減"]`).first().dblclick();
+  await tp.waitForTimeout(300);
+  assert((await tp.evaluate(() => window.getSelection()?.toString() ?? "")) === "",
+    "雙擊 ± 選得到文字 → user-select:none 沒生效，iOS 長按會跳系統選單");
+
+  /*
+   * 長按要連發。⚠️ 「按住期間就送出」會壞掉：送出 → URL push → server rerender →
+   *    整個參數表單被重建 → 這個元件 unmount → cleanup 把連發計時器清掉，
+   *    實測長按 1.5 秒只加一格。送出只能發生在放開之後。
+   */
+  await tp.waitForTimeout(1500);
+  const rapidInput = tp.locator(`${panel} input[name="length"]`).first();
+  const rapidStep = Number(await rapidInput.getAttribute("step"));
+  const holdBefore = Number(await rapidInput.inputValue());
+  const holdButton = tp.locator(`${panel} button[aria-label="加"]`).first();
+  await holdButton.dispatchEvent("pointerdown");
+  await tp.waitForTimeout(1500);
+  await holdButton.dispatchEvent("pointerup");
+  await tp.waitForTimeout(1200);
+  const holdAfter = Number(await rapidInput.inputValue());
+  assert(holdAfter - holdBefore >= rapidStep * 5,
+    `長按 1.5 秒只加了 ${holdAfter - holdBefore}（一格是 ${rapidStep}）→ 連發沒跑，多半是送出時機害元件被重建`);
   console.error("stepper: passed");
   await touch.close();
 

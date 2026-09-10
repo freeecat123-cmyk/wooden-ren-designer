@@ -48,6 +48,9 @@ interface Props {
    *    「還是之前的做法比較好:左右增加按鈕,可以加跟減」。
    *    這兩顆鈕本來就寫好了，只是被 `hidden md:flex` 藏起來，手機一律看不到。
    *    現在手機也顯示，而且放大到 44×44（手指按得到）。
+   * 🩸 一定要 select-none + -webkit-touch-callout:none：長按時 iOS Safari 會把鈕上的
+   *    「−」當文字選取，跳出「拷貝／查詢／翻譯／搜尋網頁」那排系統選單、還帶藍色選取
+   *    控制點，長按連發整個被打斷 —— 木頭仁 2026-09-10 回報。
    */
   showPlusMinus?: boolean;
   /** 動態 max 提示小字 */
@@ -276,7 +279,7 @@ export function ClampedNumberInput({
           aria-label={t("decrease")}
           disabled={atMin || editing}
           onClick={() => inchStep(-1)}
-          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200 select-none touch-manipulation [-webkit-touch-callout:none]"
         >
           −
         </button>
@@ -324,7 +327,7 @@ export function ClampedNumberInput({
           aria-label={t("increase")}
           disabled={atMax || editing}
           onClick={() => inchStep(1)}
-          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200 select-none touch-manipulation [-webkit-touch-callout:none]"
         >
           +
         </button>
@@ -408,7 +411,7 @@ export function ClampedNumberInput({
             onPointerUp={stopRepeat}
             onPointerLeave={stopRepeat}
             onPointerCancel={stopRepeat}
-            className="flex shrink-0 w-11 h-11 md:w-6 md:h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700 font-semibold text-base md:text-sm leading-none"
+            className="flex shrink-0 w-11 h-11 md:w-6 md:h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700 font-semibold text-base md:text-sm leading-none select-none touch-manipulation [-webkit-touch-callout:none]"
           >
             −
           </button>
@@ -449,7 +452,7 @@ export function ClampedNumberInput({
             onPointerUp={stopRepeat}
             onPointerLeave={stopRepeat}
             onPointerCancel={stopRepeat}
-            className="flex shrink-0 w-11 h-11 md:w-6 md:h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700 font-semibold text-base md:text-sm leading-none"
+            className="flex shrink-0 w-11 h-11 md:w-6 md:h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700 font-semibold text-base md:text-sm leading-none select-none touch-manipulation [-webkit-touch-callout:none]"
           >
             +
           </button>
