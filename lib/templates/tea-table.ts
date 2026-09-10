@@ -78,7 +78,7 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "upperApronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, help: "弧肩斜腳時上限＝「接撐段高 − 弧肩內收 − 牙條下移量」；弧肩斜腳時上限＝「接撐段高」−「牙條距桌面」（牙板要整片落在腳全寬的那一段內，否則榫眼會露出腳面）；要更高請先調大接撐段高" },
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙條厚", defaultValue: 22, unit: "mm", min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "牙條頂緣往下退離桌面下緣的距離。0 = 貼齊" },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
   // 選了牙條造型時隱藏倒角欄（同 square-stool）

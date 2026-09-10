@@ -53,7 +53,7 @@ export const sideTableOptions: OptionSpec[] = [
   ...stretcherProfileOptions("stretcher", { key: "withLowerStretchers", equals: true }),
   apronSetbackOption("apron"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, dependsOn: { key: "withDrawer", equals: false } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "邊桌總高約 600，5–10 比例適中", dependsOn: { key: "withDrawer", equals: false } },

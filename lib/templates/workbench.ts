@@ -164,7 +164,7 @@ export const workbenchOptions: OptionSpec[] = [
   // ───────────── 腳 ─────────────
   { group: "leg", type: "number", key: "legSize", label: "腳寬（沿桌長方向）", defaultValue: 100, unit: "mm", min: 60, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "厚板桌 100~125；裙板桌 75~90。腳鉗那支腳至少 64" },
   { group: "leg", type: "number", key: "legDepth", label: "腳厚（沿桌深方向，0 ＝ 方腳）", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, dependsOn: { key: "materialStyle", equals: "solid" }, help: "0 ＝ 跟腳寬一樣（方料）。長方腳可以省料又不減抗晃：抗晃靠的是沿桌長那一面，所以腳寬留厚、腳厚可以薄一點（別低於 60）。夾板疊層版不能調，厚度一定是 18 的倍數（由層數決定）" },
-  { group: "leg", type: "select", key: "legTopJoint", label: "腳接桌面", defaultValue: "blind", choices: [
+  { group: "leg", type: "select", key: "legTopJoint", joineryOnly: true, label: "腳接桌面", defaultValue: "blind", choices: [
     { value: "blind", label: "暗榫（桌面看不到榫，預設）" },
     { value: "through", label: "貫穿榫（榫頭端面露在桌面上，Roubo 原版作法）" },
   ], dependsOn: { key: "materialStyle", equals: "solid" }, help: "貫穿榫最強，但榫頭端面會露在工作面上、也比較難做得準；預設走暗榫" },
@@ -188,7 +188,7 @@ export const workbenchOptions: OptionSpec[] = [
   { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "下層置物板", defaultValue: false, dependsOn: { key: "withLowerStretchers", equals: true }, help: "架在下橫撐上；增重又能放工具箱，但別塞滿桌底（夾具要伸得進去）" },
   { group: "stretcher", type: "number", key: "drawerCount", label: "桌下抽屜層數（0 ＝ 無）", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "withLowerStretchers", equals: true }, { key: "deadman", notIn: [true] }] }, help: "抽屜櫃坐在下橫撐上，櫃頂離桌底自動留 210mm 給 holdfast 桿；跟裙板同時用夾具會沒地方夾" },
   { group: "stretcher", type: "number", key: "drawerCols", label: "每層橫向幾格", defaultValue: 1, min: 1, max: 3, step: 1, dependsOn: { all: [{ key: "withLowerStretchers", equals: true }, { key: "drawerCount", notIn: [0] }] }, help: "一層切成幾個並排的抽屜（中間加分隔板）。2 層 × 2 格 ＝ 4 個抽屜；鑿子、刨刀分開放比一個大抽屜好用" },
-  { group: "stretcher", type: "checkbox", key: "legPenetratingTenon", label: "橫撐 / 裙板通榫露出腳外", defaultValue: true, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { any: [{ key: "withLowerStretchers", equals: true }, { key: "withApron", equals: true }] }] }, help: "Roubo 標配；未勾依母件厚度自動決定盲榫或通榫" },
+  { group: "stretcher", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "橫撐 / 裙板通榫露出腳外", defaultValue: true, dependsOn: { all: [{ key: "materialStyle", equals: "solid" }, { any: [{ key: "withLowerStretchers", equals: true }, { key: "withApron", equals: true }] }] }, help: "Roubo 標配；未勾依母件厚度自動決定盲榫或通榫" },
 
   // ───────────── 工件固定 ─────────────
   { group: "workholding", type: "select", key: "frontVise", label: "前鉗", defaultValue: "quick", choices: [

@@ -398,7 +398,7 @@ export const roundTableOptions: OptionSpec[] = [
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "apronEdge", notIn: [0] }] } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },

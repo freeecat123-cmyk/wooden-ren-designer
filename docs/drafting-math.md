@@ -97,6 +97,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
 | 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 / 夾板木紋 / 穿帶 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers\|lsLayers\|battenLayers\|ply-layers"` | §AU23、§AU23.1 |
 | 技能檢定家具木工丙級練習件 / 自由四邊形側板 / 靠邊梯形 / 凸出貫穿榫 / 木釘接稽核 | `"cert-c1\|quad\|trapezoid-anchor\|anchor\|凸出\|木釘接\|dowelPartner"` | §AV |
+| 組裝版選了沒作用的選項 / 貫穿榫選項藏起來 / joineryOnly | `"joineryOnly\|A10.6b\|組裝版.*沒作用"` | §A10.6b |
 | 丙級第二題 / 斜面上掀門 / 門樞軸木釘 / 板端斜切 quad yz / 圓孔放行 clearedByRoundHole / 開門角度 | `"cert-c2\|plane.*yz\|clearedByRoundHole\|doorOpen\|樞軸"` | §AW |
 | 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞\|gapStopCount\|gap-end"` | §AU24 |
 | 穿帶騎腳頂 / 抽屜橫向分格 | `"穿帶\|batten\|drawerCols"` | §AU25 |
@@ -591,6 +592,21 @@ butt-joint 模式下**會過度縮窄**（每端少 legSize/2 的權重）。
 
 新模板**一律設 `true`**。舊模板還沒遷移完的繼續用 `false`，但已知會有 12mm 縫
 等問題（見 A10.1）。
+
+**A10.6b 只在榫接工法有作用的選項（`OptionSpec.joineryOnly`）**（2026-09-10）：
+
+`toBeginnerMode()` 拔掉全部 `tenons` 與非 cosmetic `mortises` ⇒ 只改榫頭榫眼的選項（貫穿榫、
+腳頂接法、露明榫…）在組裝版**選了沒有任何變化**。這類選項標 `joineryOnly: true`，
+組裝模式下表單不顯示，並在「工法選擇」下提示「要切到榫接才會出現」。
+
+- 🩸 以前表單寫死 `s.key !== "legPenetratingTenon"`，工作桌 `legTopJoint`、方凳
+  `seatPenetratingTenon`、中式櫃 `postEndStyle` 沒被加進名單 ⇒ 顯示著、選了沒作用
+  （木頭仁：「桌角的貫穿榫沒有作用，從桌面看不到貫穿」；實測組裝版俯視 blind/through 差 0 像素）。
+- ⛔ **不要**在組裝版畫貫穿榫端面：組裝版的定義就是不含榫卯（螺絲／木釘），材料單與工序
+  都照這個算，畫出工序做不出來的東西等於說謊。榫接模式本來就把端面畫出來（紅色＝榫頭）。
+- 判準是「榫接版有差、組裝版沒差」⇒ 必須標；反向「標了卻在組裝版有作用」⇒ 不准標（會藏掉有用的選項）。
+  `lib/templates/__tests__/joinery-only-options.test.ts` 掃全目錄兩個方向都守，新選項漏標就紅。
+- 已知另案：`round-stool.legPenetratingTenon` 連榫接版都沒作用（開關零件完全一樣）。
 
 **A10.7 Audit 工具**：
 

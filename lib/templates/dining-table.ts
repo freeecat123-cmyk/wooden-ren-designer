@@ -69,7 +69,7 @@ export const diningTableOptions: OptionSpec[] = [
   ...apronProfileOptions("apron", { key: "legShape", notIn: ["trestle"] }),
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
   { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   // 中央/下橫撐 (stretchers)
   { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "明式 / 工業風款才用；現代北歐 / 日式風格不加。長桌（>1500mm）建議加防扭。注意：若下橫撐選 H 形，已自帶下層中央牙條、不需再勾此項" },
   { group: "apron", type: "number", key: "centerStretcherWidth", label: "中央牙條高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, dependsOn: { key: "withCenterStretcher" } },

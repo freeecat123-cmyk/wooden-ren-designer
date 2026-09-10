@@ -57,8 +57,8 @@ export const squareStoolOptions: OptionSpec[] = [
     { value: "double-arch", label: "上下內凹弧（束腰）" },
   ], help: "牙板下緣（束腰款含上緣）的造型。兩端自動留腳肩不吃榫。選造型後牙條倒角不套用（一件一種造型）" },
   { group: "apron", type: "number", key: "apronProfileDepth", label: "牙條造型深度", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "0 = 自動（牙條高的 40%）", dependsOn: { key: "apronProfile", notIn: ["none"] } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
-  { group: "top", type: "checkbox", key: "seatPenetratingTenon", label: "椅面通透（腳頂穿透）", defaultValue: false, help: "勾選：腳頂榫穿透座板上面（明式装饰）；未勾：盲榫，深度上限座板厚 × 4/5、不穿透" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "top", type: "checkbox", key: "seatPenetratingTenon", joineryOnly: true, label: "椅面通透（腳頂穿透）", defaultValue: false, help: "勾選：腳頂榫穿透座板上面（明式装饰）；未勾：盲榫，深度上限座板厚 × 4/5、不穿透" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: true, help: "在腳下方 1/4 高加一圈橫撐，結構更穩；傳統方凳必備（取消勾選 = 簡約款）" },
   { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
     { value: "h-frame", label: "H 字形（4 條繞 1 圈，最穩）" },

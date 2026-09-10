@@ -694,6 +694,14 @@ export type OptionSpec =
       help?: string;
       group?: OptionGroup;
       dependsOn?: OptionDependency;
+      /**
+       * 只在「榫接」工法有作用的選項（貫穿榫、腳頂接法…）。組裝版 `toBeginnerMode()` 會把
+       * 榫頭榫眼全部拔掉，這類選項選了也沒任何變化 ⇒ 組裝模式下不顯示。
+       * 🩸 以前是在表單裡寫死 `s.key !== "legPenetratingTenon"`，工作桌的 `legTopJoint`
+       *    沒被加進去，選了貫穿榫完全沒作用 —— 木頭仁 2026-09-10。
+       *    `joinery-only-options.test.ts` 會掃全目錄，漏標就紅。
+       */
+      joineryOnly?: boolean;
     }
   | {
       type: "select";
@@ -706,6 +714,14 @@ export type OptionSpec =
       help?: string;
       group?: OptionGroup;
       dependsOn?: OptionDependency;
+      /**
+       * 只在「榫接」工法有作用的選項（貫穿榫、腳頂接法…）。組裝版 `toBeginnerMode()` 會把
+       * 榫頭榫眼全部拔掉，這類選項選了也沒任何變化 ⇒ 組裝模式下不顯示。
+       * 🩸 以前是在表單裡寫死 `s.key !== "legPenetratingTenon"`，工作桌的 `legTopJoint`
+       *    沒被加進去，選了貫穿榫完全沒作用 —— 木頭仁 2026-09-10。
+       *    `joinery-only-options.test.ts` 會掃全目錄，漏標就紅。
+       */
+      joineryOnly?: boolean;
       /** 佔整行寬度（不擠 grid 欄位）— 適合 choices 較多或 label 較長的選項 */
       wide?: boolean;
     }
@@ -717,6 +733,14 @@ export type OptionSpec =
       help?: string;
       group?: OptionGroup;
       dependsOn?: OptionDependency;
+      /**
+       * 只在「榫接」工法有作用的選項（貫穿榫、腳頂接法…）。組裝版 `toBeginnerMode()` 會把
+       * 榫頭榫眼全部拔掉，這類選項選了也沒任何變化 ⇒ 組裝模式下不顯示。
+       * 🩸 以前是在表單裡寫死 `s.key !== "legPenetratingTenon"`，工作桌的 `legTopJoint`
+       *    沒被加進去，選了貫穿榫完全沒作用 —— 木頭仁 2026-09-10。
+       *    `joinery-only-options.test.ts` 會掃全目錄，漏標就紅。
+       */
+      joineryOnly?: boolean;
       /** 佔整行寬度（不擠 grid 欄位）— 適合 help 文字較長的選項 */
       wide?: boolean;
     };

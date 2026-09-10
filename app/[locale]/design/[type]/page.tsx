@@ -833,6 +833,15 @@ async function ParameterForm({
               {locale === "en" ? "Joinery" : "榫接"}
             </label>
           </div>
+          {/* 組裝版會把只跟榫接有關的選項藏起來（spec.joineryOnly）——講一聲去哪找，
+              不然選過貫穿榫的人會以為選項不見了 */}
+          {!joineryMode && optionSchema.some((s) => s.joineryOnly) && (
+            <p className="mt-2 text-xs text-zinc-500" data-joinery-only-hint>
+              {locale === "en"
+                ? "Through tenons and other joinery options appear when you switch to Joinery."
+                : "貫穿榫這類榫接選項，要切到「榫接」才會出現。"}
+            </p>
+          )}
         </fieldset>
       )}
       <fieldset className="mb-4">
@@ -1038,9 +1047,11 @@ function GroupedOptionFields({
   allPartIds?: string[];
   locale: string;
 }) {
-  // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
+  // 只在榫接工法有作用的選項（spec.joineryOnly）組裝版一律隱藏：組裝版會把榫頭榫眼全拔掉，
+  // 選了也沒任何變化。🩸 以前這裡寫死 `s.key !== "legPenetratingTenon"`，工作桌的
+  // `legTopJoint` 沒被加進名單 ⇒ 選了貫穿榫完全沒作用（木頭仁 2026-09-10）。
   const visibleSchema = optionSchema.filter(
-    (s) => s.key !== "constructionVersion" && isVisible(s, optionValues) && (joineryMode || s.key !== "legPenetratingTenon"),
+    (s) => s.key !== "constructionVersion" && isVisible(s, optionValues) && (joineryMode || !s.joineryOnly),
   );
   if (category === "workbench") {
     const visibleKeys = new Set(visibleSchema.map((spec) => spec.key));

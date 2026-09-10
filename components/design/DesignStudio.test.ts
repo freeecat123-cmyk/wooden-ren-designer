@@ -185,7 +185,7 @@ it("contains mobile sheet focus, closes on Escape and restores focus without los
       return node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + 10));
     })).toBe(true);
     expect(await page.evaluate(() => {
-      const c = document.querySelector("canvas");
+      const c = document.querySelector("canvas")!;
       const r = c.getBoundingClientRect();
       return document.elementFromPoint(r.left + r.width / 2, Math.max(2, r.top + 5))?.tagName;
     })).not.toBe("DIALOG");

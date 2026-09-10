@@ -121,7 +121,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
   ], help: "明式瘦高典雅、清式矮寬厚實。自訂 = 你輸入的寬深高比例" },
   // 立柱
   { group: "leg", type: "number", key: "postSize", label: "立柱粗", defaultValue: 40, min: 30, max: 60, step: 1, unit: "mm" },
-  { group: "leg", type: "select", key: "postEndStyle", label: "立柱頂端", defaultValue: "flush", choices: [
+  { group: "leg", type: "select", key: "postEndStyle", joineryOnly: true, label: "立柱頂端", defaultValue: "flush", choices: [
     { value: "flush", label: "平頂（隱藏）" },
     { value: "exposedTenon", label: "露明榫（裝飾）" },
   ], help: "露明榫 = 立柱頂榫頭穿透頂蓋凸出，明清炫技做法" },

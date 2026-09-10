@@ -138,7 +138,7 @@ export const bedOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "sideRailWidth", label: "側板高", defaultValue: 180, min: 120, max: 300, step: 10, unit: "mm", help: "側板上下方向的高度（= 牙條高度）。床承重大，建議 150mm 起跳" },
   { group: "apron", type: "number", key: "sideRailThickness", label: "側板厚", defaultValue: 30, min: 20, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "mattressClearanceMm", label: "床板距地高", defaultValue: 250, min: 150, max: 500, step: 10, unit: "mm", help: "從地板到床板頂面的高度；mattress 上緣 = 此值 + 床墊厚（約 200~300mm）" },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：側板/床頭板進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：側板/床頭板進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
 
   // ---------- 床板條 ----------
   { group: "stretcher", type: "number", key: "slatGapMm", label: "床板條間距", defaultValue: 80, min: 30, max: 100, step: 5, unit: "mm", help: "相鄰 slats 中心距減去 slat 寬。≤100mm 才能護腰避免床墊塌陷" },

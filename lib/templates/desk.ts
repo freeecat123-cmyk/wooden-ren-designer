@@ -86,7 +86,7 @@ export const deskOptions: OptionSpec[] = [
   ...apronProfileOptions("apron", { all: [{ key: "withApron", equals: true }, { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] }] }),
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
   { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", joineryOnly: true, label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
 
   // ───────────── ④ 橫撐 ─────────────
   { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙條。pedestal 中央抽屜跟牙條抽屜會跟中央牙條衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
