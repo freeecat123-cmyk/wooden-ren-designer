@@ -470,6 +470,20 @@ const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
       "Glue the hole wall only; too much glue hydraulic-locks the dowel short of the bottom.",
     ],
   },
+  "step-05-8-edging": {
+    title: (design) => {
+      const parts = design.parts.filter((x) => /(^|-)edge(-|$)|edging/.test(x.id));
+      const mm = Math.round(parts.reduce((a, x) => a + Math.max(x.visible.length, x.visible.width, x.visible.thickness), 0));
+      return `Glue on ${parts.length} solid-wood edging strips (${mm} mm total) and trim flush`;
+    },
+    description: () =>
+      "The exposed edges of the blockboard get solid-wood edging. Cut each strip 5–10 mm long, spread PVA and hold it with tape or clamps; once cured, trim the overhang with a flush-cut saw and level the proud face with a plane or sandpaper — always working from the strip toward the middle of the panel, or you will tear the edging off.",
+    bullets: () => [
+      "**Edge first, then cut the joinery and bore the dowel holes** — hole positions often straddle the glue line between edging and core, and boring them together keeps the strip from blowing out.",
+      "Leave 0.2 mm proud and sand it off; planing straight to flush easily dishes the core.",
+      "On test day, glue the edging just before the lunch break — that is a free hour of cure time, and you only get four clamps.",
+    ],
+  },
   "step-05-grooves": {
     title: (design) => {
       const n = design.parts.reduce((c, p) => c + p.mortises.filter((m) => m.cosmetic && m.shape !== "round" && /溝|槽|缺口|groove|rebate|rabbet|notch/i.test(m.label ?? "")).length, 0);

@@ -129,7 +129,9 @@ function extractFurnitureDims(design: FurnitureDesign) {
   //    丙級 cert-c1／c3 同樣中招。影響範圍實測只有 cert-c1(+2)／cert-c3(+1)／cert-b2(+4)。
   const crossPieces = design.parts
     .filter((p) =>
-      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|rail-|top-rail-|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
+      // 2026-09-10：再補 `top-rail` / `mid-rail`（乙級第四題的上、中橫檔沒有後綴，
+      // `top-rail-` 那條要求後面還要接東西 → 兩支都漏掉）。同樣實測只影響 cert-b4。
+      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|rail-|top-rail|mid-rail|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
         p.id,
       ),
     )
@@ -177,7 +179,13 @@ function extractFurnitureDims(design: FurnitureDesign) {
   // 腳：取所有 id 開頭為 leg- 的件（俯視圖用來標腳跨距 / 腳粗）
   // id 兩種慣例：leg-1..4（simple-table 系）與 leg-lf/lb/rf/rb（case/圓件系）
   // 第三種慣例：leg-left-front / leg-right-back（2026-09-09 乙級第一題；只寫 -[lr][fb] 吃不到全名）
-  const legs = design.parts.filter((p) => /^leg(?:-\d+|-[lr][fb]|-(?:left|right)-(?:front|back))?$/.test(p.id));
+  // 🩸 2026-09-10 第四種：**只有左右兩片的板腳** leg-left / leg-right（乙級第四題）——
+  //    上面那條要求 left/right 後面一定要接 front/back，兩片板腳一片都沒 match ⇒
+  //    三視圖沒有「腳 90×21」也沒有「腳外距 472」，而評審表第 5、2 項量的正是這兩個。
+  //    跟 09-09 `rail-` 那次同一種病：**id 白名單擋住了新命名**。
+  //    實測放寬後全 catalog 只有 cert-b4 多認出零件、0 個被踢掉（36 款 × 3050 個選項變體掃過，
+  //    含負向對照），已上架的一款都沒動。
+  const legs = design.parts.filter((p) => /^leg(?:-\d+|-[lr][fb]|-(?:left|right|front|back)(?:-(?:front|back))?)?$/.test(p.id));
   // 外斜腳的最大落地點偏移（splayed shape 的 dxMm / dzMm 絕對值最大者）
   // 用來算落地點 X / Z 範圍 vs 椅面邊距
   const maxSplayDx = Math.max(

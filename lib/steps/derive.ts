@@ -87,8 +87,16 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
     c === "display-cabinet" || c === "wardrobe" || c === "media-console" ||
     c === "nightstand"
   ) return "cabinet";
+  /**
+   * 🩸 2026-09-10：檢定考題原本是一個一個列（cert-c1…cert-b3），加第四題時漏掉，
+   *    cert-b4 掉進 "other" → 少了 accessory 的 ×0.3／×0.5 折減，工時 8.5h 變 15.9h，
+   *    而且六種輸出全都不會紅（工時沒有任何稽核在守）。改成規則式，之後加第五、六題不用再記。
+   *    名單的單一真相在 `lib/templates/index.ts` 的 EXAM_CATEGORIES；這裡不 import 是為了
+   *    不讓 steps 反向依賴整包 templates（會繞成循環）。
+   */
+  if (/^cert-[bc]\d$/.test(c)) return "accessory";
   if (
-    c === "pencil-holder" || c === "cert-c1" || c === "cert-c2" || c === "cert-c3" || c === "cert-b1" || c === "cert-b2" || c === "cert-b3" || c === "bookend" || c === "photo-frame" ||
+    c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
     c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack"
   ) return "accessory";
   return "other";
@@ -573,6 +581,38 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       bullets: [
         "先拿夾板廢料試插：要能用手推進去、不會自己掉出來",
         "貫通的溝在端面會露出槽口，榫頭那一側要留 haunch 填掉，或把溝止在榫眼前",
+      ],
+    });
+  }
+
+  /**
+   * 貼實木封邊條 + 修齊。
+   *
+   * 🩸 2026-09-10（乙級第四題木工檢查員抓到）：木心板家具的封邊條**本來就是獨立零件**
+   *    （材料表發 550×19×8.5 的實木條、成品要貼滿四周），但工序表從頭到尾沒有這一步 ——
+   *    切料表切得出來、組裝步驟卻跳過去，考生照著做會漏掉整整 40 分鐘的工。
+   *    實測全 catalog 只有 5 款有封邊零件（cert-b1~b4 ＋ bed），**全部都還沒上架**，
+   *    所以補這一步不會動到任何已上架模板的工時與報價。
+   * ⭐ 排在乾組之前：封邊要先貼好、修齊、砂平，木心板的端面才不會外露。
+   */
+  const edgingParts = design.parts.filter((p) => /(^|-)edge(-|$)|edging/.test(p.id));
+  if (edgingParts.length > 0) {
+    const edgingMm = Math.round(edgingParts.reduce((a, p) => a + Math.max(p.visible.length, p.visible.width, p.visible.thickness), 0));
+    steps.push({
+      id: "step-05-8-edging",
+      phase: "glue",
+      title: `貼實木封邊條 ${edgingParts.length} 條（共約 ${edgingMm} mm）並修齊`,
+      description:
+        `木心板的端面要用實木條封起來。條子鋸得比板長 5~10mm，塗 PVA 後用膠帶或夾具壓住，`
+        + `固化後先用齊平鋸切掉兩端多出來的，再用鉋刀／砂紙把高出板面的那一點修平——`
+        + `修的時候刀要順著實木條往板中央走，逆著走會把封邊條撕起來。`,
+      toolIds: ["pva-glue", "f-clamp-x4", "flush-cut-saw", "sandpaper-set"],
+      partIds: edgingParts.map((p) => p.id),
+      estimatedMinutes: Math.max(15, Math.round(edgingMm / 100) * 2),
+      bullets: [
+        "**先貼再開榫孔／鑽木釘孔**：孔位常常跨在封邊條與板心的接縫上，貼好一起鑽才不會把封邊條頂爆",
+        "修齊留 0.2mm 再砂，一次鉋到平很容易鉋凹板心",
+        "檢定場：封邊排在午休前上膠，等於白賺一小時固化時間（自備夾具只有 4 支）",
       ],
     });
   }

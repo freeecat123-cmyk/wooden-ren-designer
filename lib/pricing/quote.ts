@@ -183,14 +183,18 @@ const WASTE_RATES: Record<"accessory" | "default", number> = {
 };
 
 function wasteRateFor(category: string): number {
+  /**
+   * 🩸 2026-09-10：檢定考題原本在這裡也是一個一個列（cert-c1…cert-b3），
+   *    加乙級第四題時漏掉 → cert-b4 的切料損耗吃 10% 而不是 25%，
+   *    同一份幾何只換 category 實測材料費差 NT$138、總價差 NT$180。
+   *    ⚠️ 這跟 `lib/steps/derive.ts` 的 `categoryFamily()` 是**同一個病**，
+   *       那邊修了、這邊沒修 ＝ 只修一半。兩處都改成規則式了。
+   *    名單的單一真相在 `lib/templates/index.ts` 的 EXAM_CATEGORIES；
+   *    這裡不 import 是為了不讓 pricing 反向依賴整包 templates。
+   */
+  if (/^cert-[bc]\d$/.test(category)) return WASTE_RATES.accessory;
   const accessoryCategories = new Set([
     "pencil-holder",
-    "cert-c1",
-    "cert-c2",
-    "cert-c3",
-    "cert-b1",
-    "cert-b2",
-    "cert-b3",
     "bookend",
     "photo-frame",
     "tray",

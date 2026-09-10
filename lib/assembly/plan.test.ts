@@ -367,8 +367,15 @@ describe("全目錄預設值掃描（每一款都要排得出來）", () => {
        * 木工實務上這種抽屜就是**四角一次上膠夾緊**（乾組試裝→上膠→一次夾），
        * 不是一片一片裝上去的，所以這裡如實豁免而不是去改幾何遷就規劃器。
        */
+      /**
+       * cert-b4（乙級第四題）也是同一回事，只是前角換成**半隱鳩尾**：
+       * 前角鳩尾沿 z 卡住、後角木釘沿 x 卡住（後板 354 夾在兩側板之間），
+       * 一片側板同時被兩個軸向約束 → 逐件插入排不出來。
+       * 鳩尾抽屜本來就沒有「一片一片裝上去」這種裝法，四角一次上膠夾緊，如實豁免。
+       */
       const interlockedGlueUp: Record<string, string[]> = {
         "cert-b3": ["drawer-1-side-left", "drawer-1-side-right"],
+        "cert-b4": ["drawer-1-side-left", "drawer-1-side-right"],
       };
       const allowForced = interlockedGlueUp[e.category] ?? [];
       const allowSet = new Set(allowForced);

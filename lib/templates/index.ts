@@ -38,6 +38,7 @@ import { certC3, certC3Options } from "./cert-c3";
 import { certB1, certB1Options } from "./cert-b1";
 import { certB2, certB2Options } from "./cert-b2";
 import { certB3, certB3Options } from "./cert-b3";
+import { certB4, certB4Options } from "./cert-b4";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -170,6 +171,21 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     // 尺寸鎖死：斜度 8.33° 由「腳頂 240、腳底 360、腳高 410」三個官方數字同時決定，動一個其他兩個就不對
     limits: { length: 450, width: 360, height: 450 },
     optionSchema: certB3Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-b4",
+    zhOnly: true,
+    nameZh: "乙級檢定 第四題",
+    nameEn: "Trade test Class B — Q4",
+    description: "技術士技能檢定家具木工乙級 01200-100204：板腳單抽邊桌，六題唯一的板腳題——90×21 實木板腳插進 45×32 腳座、中橫檔貫穿榫，抽屜前板底緣有手掛槽，7 小時",
+    descriptionEn: "Taiwan Class B furniture-woodworking trade test Q4: board-leg single-drawer side table — the only board-leg question of the six, 90x21 legs tenoned into 45x32 foot rails, a through-tenoned middle rail and a finger-pull recess in the drawer front — 7-hour piece",
+    difficulty: "intermediate",
+    template: certB4,
+    defaults: { length: 472, width: 380, height: 370 },
+    // 尺寸鎖死：木釘列、抽屜、腳柱在腳座上的 145｜90｜145 全是考題常數，動一個其他全錯
+    limits: { length: 472, width: 380, height: 370 },
+    optionSchema: certB4Options,
     joineryOnly: true,
   },
   {
@@ -552,6 +568,7 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
   "wall-mounted-tool-storage",
   "cert-b1",   // 2026-09-09 木頭仁：「先不要上架」
   "cert-b3",   // 同上（乙級第三題）
+  "cert-b4",   // 同上（乙級第四題）
   "cert-b2",   // 同上，乙級整組先不公開——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
 ]);
 
@@ -577,7 +594,7 @@ export function isDevCategory(category: string): boolean {
  */
 export const EXAM_CATEGORIES: ReadonlySet<string> = new Set([
   "cert-c1", "cert-c2", "cert-c3",
-  "cert-b1", "cert-b2", "cert-b3",
+  "cert-b1", "cert-b2", "cert-b3", "cert-b4",
 ]);
 
 /** 這是技能檢定考題範本嗎（預設尺寸＝答案，沒買斷就不給圖面）。 */

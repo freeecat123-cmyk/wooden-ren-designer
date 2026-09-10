@@ -16,6 +16,9 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FURNITURE_CATALOG, EXAM_CATEGORIES, isExamCategory } from "@/lib/templates";
+import { deriveBuildSteps } from "@/lib/steps/derive";
+import { calculateQuote } from "@/lib/pricing/quote";
+import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { getBundleFor } from "@/lib/pricing/template-unlock";
 
 const ROOT = process.cwd();
@@ -49,6 +52,45 @@ describe("檢定考題不可以把答案放出來", () => {
     expect(examLine, "examLocked 要吃 isExamCategory").toContain("isExamCategory");
     expect(examLine, "examLocked 不可以再看套組").not.toContain("getBundleFor");
     expect(examLine, "examLocked 不可以看價格").not.toContain("getUnlockPrice");
+  });
+
+  /**
+   * 🩸 2026-09-10：檢定題原本在兩個地方被**一個一個列**——
+   *   `lib/steps/derive.ts` 的 `categoryFamily()`（工時折減）與
+   *   `lib/pricing/quote.ts` 的 `wasteRateFor()`（切料損耗 25% vs 10%）。
+   * 加乙級第四題時兩處都漏掉：工時 8.1h 被算成 15.7h、材料費少算 NT$138。
+   * **六種輸出沒有一種會紅**——工時與報價本來就沒有任何稽核在守。
+   * 這兩條就是那個機器閘門：下一題（第五、六題）漏加一定會紅。
+   */
+  const buildExam = (category: string) => {
+    const e = FURNITURE_CATALOG.find((x) => x.category === category);
+    if (!e?.template) return null;
+    const o = Object.fromEntries((e.optionSchema ?? []).map((s) => [s.key, s.defaultValue])) as Record<string, string | number | boolean>;
+    return e.template({ length: e.defaults.length, width: e.defaults.width, height: e.defaults.height, material: "pine", options: o });
+  };
+
+  it("⭐ 每一題檢定範本都要吃到 accessory 的工時折減（漏加會變成兩倍工時）", () => {
+    for (const c of EXAM_CATEGORIES) {
+      const d = buildExam(c);
+      if (!d) continue;
+      const hours = deriveBuildSteps(d).reduce((a, s) => a + (s.estimatedMinutes ?? 0), 0) / 60;
+      // 六題官方測驗時間都是 7 小時（丙級 4 小時），套上 accessory 折減後實測落在 5.6~9.2h。
+      // 門檻取 12：沒吃到折減的話會直接跳到 15h 以上（cert-b4 實測 8.45 vs 15.77），兩邊都有餘裕。
+      // ⚠️ 之後再往 deriveBuildSteps 加工序時，這個數字要跟著看一眼。
+      expect(hours, `${c} 工時 ${hours.toFixed(1)}h 太高——categoryFamily() 沒把它算成 accessory`).toBeLessThan(12);
+    }
+  });
+
+  it("⭐ 每一題檢定範本的切料損耗都要吃 accessory 的 25%（不是一般家具的 10%）", () => {
+    const opts = { ...LABOR_DEFAULTS, primaryMaterialPricePerBdft: 300 };
+    for (const c of EXAM_CATEGORIES) {
+      const d = buildExam(c);
+      if (!d) continue;
+      const asExam = calculateQuote(d, opts).materialCost;
+      // 同一份幾何只換 category → 損耗率是唯一的差別；25% vs 10% 差 13.6%
+      const asOrdinary = calculateQuote({ ...d, category: "stool" }, opts).materialCost;
+      expect(asExam / asOrdinary, `${c} 沒吃到 accessory 損耗率（wasteRateFor 漏加）`).toBeCloseTo(1.25 / 1.1, 2);
+    }
   });
 
   it("被鎖的那幾段真的都掛上 examLocked（三視圖／零件圖／材料單／工序）", () => {
