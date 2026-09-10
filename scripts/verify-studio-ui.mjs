@@ -145,6 +145,69 @@ try {
           assert(moved > 500, `${locale}/${width}: 改了尺寸但看得到的那條 3D 只有 ${moved} 個像素變動 → 沒有即時更新`);
         }
       }
+      /*
+       * 🩸 參數面板原本用 showModal() 開，modal <dialog> 會把**整個畫面**的點擊判定
+       *    都攔走（3D 那一條的 elementFromPoint 回傳 DIALOG），面板一開就拖不動 3D，
+       *    改個尺寸想轉角度看都不行 —— 木頭仁 2026-09-10 回報。改用 show()。
+       * ⚠️ 一定要有負向對照：不拖也量一次，不然「有像素變動」可能只是重繪的噪音。
+       */
+      if (width < 768) {
+        const canvas3d = page.locator("canvas").first();
+        const dragBand = async () => {
+          const box = await canvas3d.boundingBox();
+          const y = box.y + Math.min(box.height * 0.5, box.height - 20);
+          await page.mouse.move(box.x + box.width * 0.3, y);
+          await page.mouse.down();
+          await page.mouse.move(box.x + box.width * 0.7, y, { steps: 15 });
+          await page.mouse.up();
+          await page.waitForTimeout(800);
+        };
+        const pixelDiff = async (a, b) => {
+          const [A, B] = await Promise.all([sharp(a).raw().toBuffer(), sharp(b).raw().toBuffer()]);
+          let n = 0;
+          for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - B[i]) > 8) n++;
+          return n;
+        };
+        const idleBefore = await canvas3d.screenshot();
+        await page.waitForTimeout(800);
+        const idleAfter = await canvas3d.screenshot();
+        const noise = await pixelDiff(idleBefore, idleAfter);
+        const dragBefore = await canvas3d.screenshot();
+        await dragBand();
+        const dragAfter = await canvas3d.screenshot();
+        const moved = await pixelDiff(dragBefore, dragAfter);
+        assert(noise < 500, `${locale}/${width}: 面板開著、沒動它就有 ${noise} 個像素在變 → 這個量測不可信`);
+        assert(moved > 5000, `${locale}/${width}: 參數面板開著時拖 3D 只有 ${moved} 個像素變動（靜置噪音 ${noise}）→ 拖不動，多半又用回 showModal()`);
+        const topmost = await page.evaluate(() => {
+          const c = document.querySelector("canvas");
+          const r = c.getBoundingClientRect();
+          return document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, r.height - 10))?.tagName ?? null;
+        });
+        assert(topmost !== "DIALOG",
+          `${locale}/${width}: 3D 上面蓋著 DIALOG → 面板是 modal，整個畫面的點擊判定都被它攔走`);
+        /*
+         * 🩸 反過來也要守：non-modal 不進 top layer，沒給 z-index 的話面板**底部**
+         *    會被「加到主畫面」那條 fixed z-[70] 的提示蓋住，下半的 ± 全部點不到。
+         *    只驗中間看不出來，要驗四個角。
+         */
+        const blocked = await page.evaluate(() => {
+          const d = document.querySelector('dialog[data-studio-panel="parameters"]');
+          const r = d.getBoundingClientRect();
+          const points = [
+            ["頂部中央", r.left + r.width / 2, r.top + 10],
+            ["左下角", r.left + 40, r.bottom - 40],
+            ["右下角", r.right - 40, r.bottom - 40],
+          ];
+          return points.filter(([, x, y]) => !d.contains(document.elementFromPoint(x, y)))
+            .map(([label, x, y]) => {
+              const el = document.elementFromPoint(x, y);
+              return `${label}→${el ? `${el.tagName}.${(el.className + "").slice(0, 24)}` : "null"}`;
+            });
+        });
+        assert(blocked.length === 0,
+          `${locale}/${width}: 面板有 ${blocked.length} 個角被別的東西蓋住（${blocked.join(" / ")}）→ non-modal 的 z-index 不夠高`);
+      }
+
       if (width < 768) {
         await page.keyboard.press("Escape");
         assert(await trigger.evaluate(node => node === document.activeElement));

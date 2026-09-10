@@ -175,7 +175,20 @@ it("contains mobile sheet focus, closes on Escape and restores focus without los
     await trigger.click();
     const dialog = page.getByRole("dialog", { name: "Parameters", exact: true });
     await dialog.waitFor();
-    expect(await dialog.evaluate(node => node.matches(':modal'))).toBe(true);
+    /*
+     * 刻意不是 modal：modal <dialog> 會攔掉整個畫面的點擊判定，面板一開就拖不動 3D。
+     * 但面板自己仍要在最上層（non-modal 不進 top layer，靠 z-index）。
+     */
+    expect(await dialog.evaluate(node => node.matches(':modal'))).toBe(false);
+    expect(await dialog.evaluate(node => {
+      const r = node.getBoundingClientRect();
+      return node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + 10));
+    })).toBe(true);
+    expect(await page.evaluate(() => {
+      const c = document.querySelector("canvas");
+      const r = c.getBoundingClientRect();
+      return document.elementFromPoint(r.left + r.width / 2, Math.max(2, r.top + 5))?.tagName;
+    })).not.toBe("DIALOG");
     await page.getByRole("textbox", { name: "Width", exact: true }).fill("512");
     await dialog.getByRole("button", { name: "Apply", exact: true }).focus();
     await page.keyboard.press("Tab");
@@ -205,7 +218,11 @@ it("uses a tablet inspector drawer and preserves the same form and canvas throug
     await page.getByRole("button", { name: "Toggle inspector", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Inspector", exact: true });
     await dialog.waitFor();
-    expect(await dialog.evaluate(node => node.matches(':modal'))).toBe(true);
+    expect(await dialog.evaluate(node => node.matches(':modal'))).toBe(false);
+    expect(await dialog.evaluate(node => {
+      const r = node.getBoundingClientRect();
+      return node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + 10));
+    })).toBe(true);
     await page.keyboard.press("Escape");
     for (const width of [360, 390, 768, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });

@@ -158,13 +158,17 @@ function StudioPanel({ id, panel, title, closeLabel, visible, modal, trigger, on
     const dialog = ref.current;
     if (!dialog || !visible) return;
     const focused = document.activeElement;
-    // Promote the same DOM subtree to the top layer; never duplicate the form.
-    if (modal) dialog.showModal();
-    else {
-      dialog.show();
-      if (focused instanceof HTMLElement && focused !== document.body) focused.focus({ preventScroll: true });
-      else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    }
+    /*
+     * 🩸 不可以用 showModal()：modal <dialog> 會把**整個畫面**的點擊判定都攔走
+     *    （實測 3D 那一條的 elementFromPoint 回傳的是 DIALOG），面板一開就拖不動 3D，
+     *    改個尺寸想轉個角度看都不行 —— 木頭仁 2026-09-10 回報。
+     *    改用 show()：背景照樣可以互動，代價是 Escape 不再自動關、焦點不會自動進面板，
+     *    兩件都在下面自己補。
+     */
+    dialog.show();
+    if (modal) dialog.focus({ preventScroll: true });
+    else if (focused instanceof HTMLElement && focused !== document.body) focused.focus({ preventScroll: true });
+    else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     const previousOverflow = document.body.style.overflow;
     /*
      * 🩸 手機版彈出面板時，studio 上面還有網站頁首。頁面沒捲到頂的話，3D 被頁首和
@@ -186,6 +190,21 @@ function StudioPanel({ id, panel, title, closeLabel, visible, modal, trigger, on
       }
     };
   }, [visible, modal, trigger]);
+
+  /*
+   * show() 開的 dialog 不會發 cancel，Escape 要自己接。⚠️ 不能只綁在 dialog 上：
+   * 焦點一離開面板（例如填完欄位 blur）就再也關不掉了 —— 要綁在 document。
+   */
+  useEffect(() => {
+    if (!visible || !modal) return;
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [visible, modal, onClose]);
 
   function containFocus(event: KeyboardEvent<HTMLDialogElement>) {
     if (!modal || event.key !== "Tab") return;
@@ -209,7 +228,7 @@ function StudioPanel({ id, panel, title, closeLabel, visible, modal, trigger, on
 
   return <dialog ref={ref} id={id} className={`${styles.sidePanel} ${styles[panel]}`}
     data-studio-panel={panel} data-modal={modal} role={modal ? "dialog" : "complementary"}
-    aria-labelledby={`${id}-title`} aria-modal={modal && visible ? true : undefined}
+    aria-labelledby={`${id}-title`}
     inert={!visible} tabIndex={-1} onKeyDown={containFocus}
     onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={styles.panelHeading}>

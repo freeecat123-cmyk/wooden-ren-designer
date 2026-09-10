@@ -80,7 +80,14 @@
 .joints { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--studio-border); }
 .joints ul { margin: 12px 0; padding-left: 20px; }
 .sidePanel::backdrop { background: rgb(24 24 27 / 36%); }
-.sidePanel[data-modal="true"] { position: fixed; inset: 0 0 0 auto; width: min(360px, 100%); height: 100dvh; max-height: 100dvh; margin: 0; border: 0; box-shadow: -8px 0 32px rgb(24 24 27 / 12%); }
+/*
+ * ⚠️ 這個面板是用 show() 開的（不是 showModal）—— modal 會攔掉整個畫面的點擊判定，
+ *    面板一開就拖不動 3D。non-modal 不進 top layer ⇒ 一定要自己給 z-index。
+ * 🩸 實測沒給的話，面板**底部**會被「加到主畫面」那條 fixed z-[70] 的提示蓋住，
+ *    面板下半的控制項全部點不到（右下角的 elementFromPoint 是那條提示的按鈕）。
+ *    所以要壓過它 ⇒ 80。
+ */
+.sidePanel[data-modal="true"] { position: fixed; z-index: 80; inset: 0 0 0 auto; width: min(360px, 100%); height: 100dvh; max-height: 100dvh; margin: 0; border: 0; box-shadow: -8px 0 32px rgb(24 24 27 / 12%); }
 .sidePanel[data-modal="true"] .panelContent { flex: 1; max-height: none; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 .parameters .panelContent { padding: 0; }
 .parameters :global(.studio-parameter-form) { margin: 0; padding: 14px; }
