@@ -91,8 +91,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     zhOnly: true,
     nameZh: "丙級檢定 第一題",
     nameEn: "Trade test Class C — Q1",
-    description: "技術士技能檢定家具木工丙級 01200-100301：直角梯形側板＋貫穿榫＋6mm 夾板嵌槽，4 小時",
-    descriptionEn: "Taiwan Class C furniture-woodworking trade test Q1: right-trapezoid sides, through tenons, 6mm plywood panel — 4-hour piece",
+    description: "技術士技能檢定家具木工丙級 01200-100301：斜切四邊形側板＋貫穿榫＋6mm 夾板嵌槽，4 小時",
+    descriptionEn: "Taiwan Class C furniture-woodworking trade test Q1: irregular quadrilateral sides, through tenons, 6mm plywood panel — 4-hour piece",
     difficulty: "beginner",
     template: certC1,
     // 試題尺寸是固定的（總寬 320 × 深 120 × 高 350），滑桿只是讓人放大練習用

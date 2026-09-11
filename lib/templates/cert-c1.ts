@@ -19,7 +19,7 @@ import { sidePanelQuad } from "@/lib/render/quad-profile";
  * 側板（A-A 外形線）：背緣垂直 350；上緣往前**下降 30**；底緣往前**上升 15**；
  *   上緣深 120、底緣深 95 → 四邊各不相同的四邊形（不是梯形）。
  * 背橫檔（A-A 左上 18×50 剖面，兩個 Ø8 孔）：18 厚、50 高、立在背側，頂端離側板頂 15，
- *   木釘距頂 **10 與 40**（尺寸鏈 50｜30｜10；🩸第一版讀成 30/40，400dpi 像素量抓到）。
+ *   兩孔中心距 30、下孔距底 10，故木釘距頂 10 與 40。
  * 上層板（A-A 18×100 橫向剖面）：18 厚、深 100，頂面離側板頂 65；
  *   兩端**貫穿榫**穿過側板再凸出 10（B-B 的 320＝300＋10＋10，端頭圓弧＝圖上 3×45°），
  *   剖面 20|20|30|20 中交叉線兩段＝**雙榫頭各 20 寬**（離背 20–40、70–90）。
@@ -34,7 +34,7 @@ import { sidePanelQuad } from "@/lib/render/quad-profile";
  *   層板與橫檔各 2 支離側板外面 84、高 273/92）。
  * 材料表對帳：側板 2×(350×120) ← 750×125 ✓；橫檔 4 支 ≤ 650×110 ×2 ✓；夾板 288×193 ≤ 300×260 ✓。
  * ⚠️ 木釘：圖上數到 8 支（背橫檔 4、下橫檔 4），材料表給 12，其餘 4 支圖面未標位置。
- * ⚠️ 前擋條四角 R3、貫穿榫端頭 3×45° 未做成造型（說明提醒）。
+ * 前擋條四角 R3、貫穿榫端頭 3×45° 同步產出造型與加工標註。
  */
 
 /** 官方試題尺寸（mm）。預設值＝考題原尺寸；滑桿只是讓人放大練習用 */
@@ -50,7 +50,7 @@ const EXAM = {
   tenonProud: 10,
   backRailH: 50,
   backRailFromTop: 15,
-  backRailDowelsFromTop: [10, 40],   // 🩸第一版讀成 30/40：A-A 尺寸鏈是 50｜30（兩孔間距）｜10（下孔到橫檔底）→ 離頂 10、40
+  backRailDowelsFromTop: [10, 40],
   shelfDepth: 100,
   shelfTopFromTop: 65,
   shelfTenonW: 20,
@@ -239,6 +239,7 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
         position,
         type: "through-tenon" as const,
         length: T + proud,
+        endChamferMm: Math.min(3, Math.max(0, proud)),
         width: EXAM.shelfTenonW,
         thickness: T,
         shoulderOn: ["left", "right"] as Array<"left" | "right">,   // 上下齊平（榫頭＝整個板厚）
@@ -310,6 +311,7 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: span, width: EXAM.lipDepth, thickness: EXAM.lipH },
+    shape: { kind: "chamfered-edges", chamferMm: 3, style: "rounded" },
     origin: { x: 0, y: EXAM.lipBottomFromFloor, z: lipFrontZ + EXAM.lipDepth / 2 },
     tenons: (["start", "end"] as const).map((position) => ({
       position,
@@ -341,6 +343,11 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // ── 非考題尺寸就出聲 ───────────────────────────────────────────────
+  if (!withPanel) {
+    warnings.push(isEn
+      ? "Plywood back removed: this is an open-frame practice view, not the complete exam piece."
+      : "已移除夾板背板：目前僅為骨架練習檢視，不是完整考題成品。");
+  }
   if (H !== input.height || topDepth !== input.width || overallW !== input.length) {
     warnings.push(isEn
       ? `Too small to build: clamped to ${overallW}×${topDepth}×${H} mm (minimum ${minLength}×${MIN_DEPTH}×${MIN_HEIGHT}).`
@@ -371,6 +378,9 @@ export const certC1: FurnitureTemplate = (input): FurnitureDesign => {
       ? `Practice piece drawn from the published dimensions of Taiwan's Class C furniture-woodworking trade test, question 01200-100301 (4 hours: 3 h + 1 h). What it trains: **side panels with four different edges** (back edge vertical 350, top edge drops 30 toward the front, bottom edge rises 15, depth 120 → 95), **twin through tenons** on the shelf standing ${proud}mm proud with 3×45° chamfered ends, **dowel joints** (Ø8×30, 18 into the rail / 12 into the panel) on the back rail (holes 10 and 40 below its top) and lower rail (80–98 off the floor), a stub-tenoned front lip (12×18 at 32–50 off the floor, flush with the lower rail front, 6 mm tenon with 3 mm shoulders, R3) and a **6mm plywood back** 288×193 housed 12 mm into all four members (6×12 rebates) fixed with ${EXAM.screwSpec}. Official stock per candidate: 750×125×18.5 ×1, 650×110×18.5 ×2, 6mm plywood 300×260, Ø8×30 dowels ×12, screws ×10, PVA glue; spruce / pine / lauan or similar knot-free wood, planed square on four faces. **Drawn from published dimensions — download the official paper from the Workforce Development Agency and follow that version on test day.**`
       : `依技術士技能檢定家具木工丙級術科試題 01200-100301（4 小時：測試 3 小時＋1 小時）公開尺寸繪製的練習範本。這題練的是：**四邊各不相同的側板**（背緣垂直 350、上緣往前降 30、底緣往前升 15、深 120 收到 95）、上層板**雙貫穿榫**凸出 ${proud}mm 端頭倒 3×45°、背橫檔（木釘離頂 10、40）與下橫檔（離地 80–98）的**木釘接**（Ø8×30，入橫檔 18、入側板 12）、前擋條短榫（12×18、離地 32–50、前面與下橫檔齊平、榫 6 厚前後各 3 肩、R3 圓角）、以及**四邊各嵌 12 的夾板背板**（288×193：側板 rebate 6 深×12 寬、上層板背下角與下橫檔背上角各開 6×12；木螺釘位置：側板柱各 3 支離外面 12、高 273/182.5/92，層板與橫檔各 2 支離側板外面 84、高 273/92）（${EXAM.screwSpec} 固定）。官方材料（每人份）：木料 750×125×18.5 ×1、650×110×18.5 ×2、夾板 300×260×6、Ø8×30 木釘 ×12、木螺釘 ×10、白膠；木材限雲杉／松木／柳安或同硬度無節木料，四面鉋光要求直角。**本圖依公開尺寸自行繪製，應檢請以技能檢定中心公布的官方版本為準。**`,
   };
+  design.notes += isEn
+    ? " Source discrepancy: the stock list specifies Ø2.4×15 screws, while the drawing specifies Ø3×15 (10 pieces). Confirm the required screw specification against the current examination instructions."
+    : " 原始資料差異：供料表寫 Ø2.4×15 木螺釘，題圖寫 Ø3×15（皆 10 支）。螺釘規格應核對當期應檢說明。";
   if (warnings.length) design.warnings = warnings;
   return design;
 };

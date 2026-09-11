@@ -35,6 +35,17 @@ import {
   WIDE_BOARD_THRESHOLD_MM,
 } from "@/components/wood-shader";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
+import { buildOrdinaryTenonGeometry } from "@/lib/render/mortise-csg";
+import type { TenonPosition } from "@/lib/types";
+
+function ChamferedTenonGeometry({ position, hx, hy, hz, chamfer }: {
+  position: TenonPosition; hx: number; hy: number; hz: number; chamfer: number;
+}) {
+  const geometry = useMemo(() => buildOrdinaryTenonGeometry(position, { hx, hy, hz }, false, 0.01, 0.5, chamfer),
+    [position, hx, hy, hz, chamfer]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return <primitive attach="geometry" object={geometry} />;
+}
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
@@ -1746,6 +1757,7 @@ export function PerspectiveView({
                           </bufferGeometry>
                         );
                       }
+                      if (t.endChamferMm) return <ChamferedTenonGeometry position={t.position} hx={hx} hy={hy} hz={hz} chamfer={t.endChamferMm} />;
                       return <boxGeometry args={primitive.args} />;
                     })()}
                     <meshStandardMaterial

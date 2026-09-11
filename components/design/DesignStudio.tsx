@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode, type RefObject } from "react";
-import { Ellipsis, PanelLeft, PanelRight, SlidersHorizontal, X } from "lucide-react";
+import { Ellipsis, PanelLeft, PanelRight, SlidersHorizontal, X, List, FileText } from "lucide-react";
 import type { Dimensions, FurnitureDesign, JoineryType } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { materialName } from "@/lib/materials";
@@ -48,6 +48,7 @@ const copy = {
     previewBuild: "Build steps", previewBuildHint: "Every step with its tools and time", previewQuote: "Quote",
     previewQuoteHint: "Priced by wood and labour hours", previewParts: "{n} parts",
     previewGo: "Open the {tab} tab",
+    selection: "Selected part", locateMaterial: "Locate material", locateDrawing: "Locate drawing", unavailable: "No corresponding entry for this part",
   },
   zh: {
     design: "設計", drawings: "圖面", materials: "材料", build: "製作", quote: "報價", exports: "輸出",
@@ -64,6 +65,7 @@ const copy = {
     previewBuild: "製作工序", previewBuildHint: "每一步標了工具和時間", previewQuote: "報價",
     previewQuoteHint: "依木材與工時估算", previewParts: "{n} 個零件",
     previewGo: "切換到「{tab}」分頁",
+    selection: "已選取零件", locateMaterial: "定位材料列", locateDrawing: "定位零件圖", unavailable: "此零件沒有對應項目",
   },
 };
 
@@ -249,6 +251,9 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
     catch { return unit; }
   }, () => unit);
   const id = useId();
+  const root = useRef<HTMLElement>(null);
+  const [targets, setTargets] = useState({ materials: false, drawings: false });
+  const [jump, setJump] = useState<{ view: "materials" | "drawings"; partId: string } | null>(null);
   const [view, setView] = useState<View>("design");
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
@@ -265,6 +270,32 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
   const rightModal = layout !== "desktop";
   const leftVisible = view === "design" && (leftModal ? overlay === "parameters" : leftOpen);
   const rightVisible = rightModal ? overlay === "inspector" : rightOpen;
+
+  const findTarget = useCallback((destination: "materials" | "drawings", partId: string) => {
+    const panel = root.current?.querySelector(`[id="${id}-view-${destination}"]`);
+    if (!panel) return null;
+    if (destination === "materials") return Array.from(panel.querySelectorAll<HTMLElement>("[data-part-id]"))
+      .find(node => node.dataset.partId === partId) ?? null;
+    return Array.from(panel.querySelectorAll<HTMLElement>("[data-part-drawing-ids]"))
+      .find(node => {
+        try { return (JSON.parse(node.dataset.partDrawingIds ?? "[]") as string[]).includes(partId); }
+        catch { return false; }
+      }) ?? null;
+  }, [id]);
+  useEffect(() => {
+    setTargets({ materials: !!selectedPartId && !!findTarget("materials", selectedPartId),
+      drawings: !!selectedPartId && !!findTarget("drawings", selectedPartId) });
+  }, [selectedPartId, materials, drawings, findTarget]);
+  useEffect(() => {
+    if (!jump || view !== jump.view || selectedPartId !== jump.partId) return;
+    const target = findTarget(jump.view, jump.partId);
+    if (target) {
+      target.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+      if (!target.hasAttribute("tabindex") && target.tagName !== "BUTTON") target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    }
+    setJump(null);
+  }, [jump, view, selectedPartId, findTarget]);
 
   useEffect(() => { setOverlay(null); }, [layout]);
   useEffect(() => {
@@ -318,7 +349,7 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
   const selectedMaterial = selected?.materialOverride ? text[selected.materialOverride]
     : materialName(selected?.material ?? design.primaryMaterial, locale);
 
-  return <main className={styles.studio} aria-label={text.workspace}>
+  return <main ref={root} className={styles.studio} aria-label={text.workspace}>
     <header className={styles.header}>
       <h1 className={styles.title}>{title}</h1>
       <details ref={toolbarRef} className={styles.toolbarMenu} open={layout === "desktop" || toolbarOpen}
@@ -358,6 +389,23 @@ export function DesignStudio({ locale, design, title, toolbar, parameters, model
         <PanelRight size={18} aria-hidden="true" />
       </button>
     </div>
+    {selected && <section className={styles.selectionBar} aria-label={text.selection}>
+      <div className={styles.selectionFacts} aria-live="polite">
+        <strong>{partName(selected, locale)}</strong>
+        <span>{selectedMaterial}</span>
+        <span>{text.cut}: {dimensions(calculateCutDimensions(selected), displayUnit)}</span>
+      </div>
+      <div className={styles.selectionActions}>
+        {(["materials", "drawings"] as const).map(destination => <button key={destination} type="button"
+          disabled={!targets[destination]} title={targets[destination] ? undefined : text.unavailable}
+          onClick={() => { selectView(destination); setJump({ view: destination, partId: selected.id }); }}>
+          {destination === "materials" ? <List size={16} aria-hidden /> : <FileText size={16} aria-hidden />}
+          {destination === "materials" ? text.locateMaterial : text.locateDrawing}
+        </button>)}
+        <button type="button" className={styles.iconButton} aria-label={text.clear} title={text.clear}
+          onClick={() => setSelectedPartId(null)}><X size={16} aria-hidden /></button>
+      </div>
+    </section>}
     <div className={styles.workspace}>
       <StudioPanel id={`${id}-parameters`} panel="parameters" title={text.parameters} closeLabel={text.closeParameters}
         visible={leftVisible} modal={leftModal} trigger={leftTrigger} onClose={closeLeft}>{parameters}</StudioPanel>

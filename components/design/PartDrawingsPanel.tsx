@@ -87,6 +87,7 @@ export function PartDrawingsPanel({ design }: Props) {
           <li key={g.hash}>
             <button
               type="button"
+              data-part-drawing-ids={JSON.stringify(g.parts.map(part => part.id))}
               className="w-full text-left border border-zinc-200 rounded-xl p-2.5 hover:border-amber-300 hover:bg-amber-50/50 hover:shadow-sm transition-all"
               onClick={() => setOpenIdx(idx)}
             >

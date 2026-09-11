@@ -108,6 +108,12 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(r.origin.y).toBe(350 - 15 - 50);
     expect(r.origin.z).toBe(60 - 9);
     expect(r.mortises).toHaveLength(4);
+    expect(r.mortises.filter(m => m.origin.x < 0).map(m => 310 - m.origin.z)).toEqual([325, 295]);
+    for (const side of ["left", "right"]) {
+      const holes = byId(`side-${side}`).mortises.filter(m => m.label?.includes("背橫檔"));
+      expect(holes.map(m => 175 - m.origin.z)).toEqual([325, 295]);
+    }
+    expect(d.parts.filter(p => p.visual === "dowel" && p.id.includes("-back-")).map(p => p.origin.y + 4)).toEqual([325, 295, 325, 295]);
   });
   it("上層板 18×100，頂面在 285（離頂 65）；每端雙貫穿榫 20 寬、長 18+10", () => {
     const s = byId("shelf");
@@ -118,6 +124,7 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
       expect(t.type).toBe("through-tenon");
       expect(t.length).toBe(28);
       expect(t.width).toBe(20);
+      expect(t.endChamferMm).toBe(3);
     }
     // 雙榫頭中心：離背 30 與 80 → 世界 z +30、−20；層板中心 z=+10 → 偏移 +20、−30
     const offs = s.tenons.filter((t) => t.position === "start").map((t) => t.offsetWidth).sort((a, b) => (a ?? 0) - (b ?? 0));
@@ -139,6 +146,7 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(l.origin.z - 6).toBe(60 - 80);
     expect(l.tenons[0].width).toBe(6); expect(l.tenons[0].thickness).toBe(18); expect(l.tenons[0].shoulderOn).toEqual(["left", "right"]);
     expect(l.tenons).toHaveLength(2);
+    expect(l.shape).toEqual({ kind: "chamfered-edges", chamferMm: 3, style: "rounded" });
   });
   it("夾板背板 6mm：四邊各嵌 12 → 86 到 279（193 高）、寬 264+12+12=288、貼背緣；層板與橫檔各有 6×12 rebate", () => {
     const p = byId("back-panel");
@@ -164,5 +172,6 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(flush.parts.find((p) => p.id === "shelf")!.tenons[0].length).toBe(18);
     expect((flush.warnings ?? []).some((w) => w.includes("凸出"))).toBe(true);
     expect(build({ withPanel: false }).parts.some((p) => p.id === "back-panel")).toBe(false);
+    expect(build({ withPanel: false }).warnings?.some(w => w.includes("背板"))).toBe(true);
   });
 });

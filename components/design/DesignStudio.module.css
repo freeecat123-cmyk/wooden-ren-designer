@@ -29,6 +29,13 @@
 .iconButton[aria-expanded="true"] { color: #047857; background: #ecfdf5; }
 .studio :is(button, [tabindex], input, select, textarea):focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
 .workspace { display: flex; align-items: stretch; min-width: 0; min-height: 480px; }
+.selectionBar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 16px; border-bottom: 1px solid var(--studio-border); background: #f8faf9; }
+.selectionFacts { display: flex; flex: 1 1 280px; flex-wrap: wrap; gap: 4px 16px; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+.selectionFacts strong { width: 100%; font-size: 14px; }
+.selectionActions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.selectionActions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px; border: 0; border-radius: 4px; background: transparent; color: #047857; font: inherit; font-size: 13px; cursor: pointer; }
+.selectionActions button:hover { background: #ecfdf5; }
+.selectionActions button:disabled { color: #71717a; cursor: default; }
 .views { flex: 1 1 0%; min-width: 0; }
 .viewPanel { min-width: 0; padding: 20px; overflow-x: auto; overflow-wrap: anywhere; }
 .viewPanel[hidden], .modelPanel[hidden] { display: none; }

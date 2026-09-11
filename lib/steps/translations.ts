@@ -118,6 +118,10 @@ const JOINERY_STEP_BULLETS_EN: Record<JoineryType, string[]> = {
 };
 
 const STEP_OVERRIDE_EN: Record<string, OverrideEntry> = {
+  "exposed-tenon-tip-chamfer": {
+    title: d => `Bevel exposed tenon tips (${d.parts.flatMap(p => p.tenons.filter(t => (t.endChamferMm ?? 0) > 0)).length})`,
+    description: d => `Apply the ${[...new Set(d.parts.flatMap(p => p.tenons.map(t => t.endChamferMm).filter(c => c && c > 0)))].map(c => `${c}×45°`).join(", ")} tip bevels shown on the part drawings. Preserve shoulders, mating surfaces inside the mortises, and total cut length.`,
+  },
   "cabinet-shelf-reliefs": {
     title: () => "Cut shelf-to-post clearance notches",
     description: () => "Mark each shelf notch from the part drawing, remove waste in shallow cuts and pare the seat. Retain the shown clearance and dry-fit each shelf height against the inward-splayed posts.",

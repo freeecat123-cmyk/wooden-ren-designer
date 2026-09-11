@@ -33,12 +33,9 @@ import type {
  */
 // 2026-05-06：commit 0c369fd（邊桌抽屜系統）引入後 baseline 就有的 pre-existing
 // mismatch，hook 之前沒擋到，這次 commit lib/templates/ 才被觸發。Phase 4+ 修。
-//   - low-table: center-stretcher start/end blind-tenon 對應 apron-front/back
-//     母榫，dim 軸序不一致（tenon W=23 T=25 vs mortise L=25 W=23）
 //   - dining-chair: back-top-rail tenon W=10 T=23 vs back-post mortise L=23 W=10，
 //     軸序對調 audit 算 unmatched（3D / 三視圖視覺正確）
 const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory>([
-  "low-table",
   "dining-chair",
   // dovetail-box: 鳩尾齒互嵌不是傳統 mortise/tenon 對位、audit 抓不到正確配對
   "dovetail-box",
@@ -70,10 +67,6 @@ const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
   // 方腳基準（dining-chair:box 也是 2 個未匹配）一致，屬既有問題不是腳型造成的。
   // 註：dining-chair 整個 category 已在 EXPECTED_FAILS 豁免（椅背相關的既有問題），
   // 這裡不用另外列。
-  // shoe-cabinet plinth/panel-side：門內層板 tongue-and-groove 對不上 mortise
-  // （待 zone-helpers 修腳款變化時門內 dado 寬度公式），先豁免不擋 commit
-  "shoe-cabinet:plinth",
-  "shoe-cabinet:panel-side",
 ]);
 
 interface Row {

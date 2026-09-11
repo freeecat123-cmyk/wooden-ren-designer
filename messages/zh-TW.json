@@ -4380,6 +4380,9 @@
   },
   "saveDesign": {
     "unsaved": "尚未儲存到雲端",
+    "autoPending": "尚未同步，停止修改 3 秒後自動儲存",
+    "autoPaused": "自動儲存已暫停，請查看原因並手動儲存重試",
+    "invalidSaveResponse": "伺服器未回傳儲存版本，無法確認同步完成",
     "saved": "已儲存到雲端",
     "conflict": "雲端設計已有更新，這次未覆蓋。請另存新設計保留修改，或從我的設計重新開啟。",
     "btnLoading": "💾 載入中…",

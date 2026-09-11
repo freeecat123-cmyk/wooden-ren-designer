@@ -162,3 +162,21 @@
 - Saved design UX decision: "Save design" updates the currently opened cloud design when the URL has `designId`; "Save as new" creates a separate design record. Repeatedly pressing save on the same design must not create duplicates.
 - Opening a design from "My Designs" should preserve the full saved params, including nested template `options`, and include `designId` in the URL so later saves update the same row.
 - Undo/redo phase 1 decision: add page-local parameter history only. "Undo" and "Redo" navigate URL parameter snapshots in the current tab/session; they do not create saved design records or database versions.
+## 2026-09-09 Device Build Progress
+
+- User approved device-only completion tracking on the existing build steps.
+  Implemented checkboxes, completion ratio and next-unfinished-step focus/scroll.
+- Storage is isolated by account, category and saved design ID; unsaved designs
+  have one slot per category. Save As starts separate progress. Changed generated
+  designs require explicit retain/reset confirmation. Storage failures are shown.
+- Original instructions and warnings remain visible. No geometry changes.
+- Desktop/mobile localhost reload and navigation verified; local only, not deployed.
+- Details: `docs/build-progress.md`.
+## 2026-09-09 Print Preflight
+
+- Approved print/PDF confirmation implemented locally: model size, owned design
+  name, parameter comparison to cloud save, existing warnings and 1:1 distinction.
+- Shared print button waits for images/fonts and rechecks before printing; failed
+  resources show retry. Existing quote callers remain direct print after readiness.
+- No geometry, diagram scale or entitlement changes. No production deployment.
+- Details and verification boundaries: `docs/print-preflight.md`.

@@ -332,7 +332,10 @@ function partJoineryGeometry(part: Part, context?: readonly Part[]): BufferGeome
       const round = part.shape?.kind === "round" && !part.shape.chamferMm && !part.shape.bottomChamferMm && topBottom &&
         (part.shape.axis === "y" || (!part.shape.axis && part.visible.thickness >= Math.max(part.visible.length, part.visible.width)));
       const boxStock = !part.shape || part.shape.kind === "box";
-      if (tenon.axis || (!boxStock && !round) || !["through-tenon", "blind-tenon", "shouldered-tenon", "stub-joint", "tongue-and-groove"].includes(tenon.type)) {
+      const longitudinalEdgeStock = part.shape?.kind === "chamfered-edges"
+        && part.visible.length > Math.max(part.visible.width, part.visible.thickness)
+        && (tenon.position === "start" || tenon.position === "end");
+      if (tenon.axis || (!boxStock && !round && !longitudinalEdgeStock) || !["through-tenon", "blind-tenon", "shouldered-tenon", "stub-joint", "tongue-and-groove"].includes(tenon.type)) {
         throw new Error(`${part.id}: unsupported tenon profile/axis/type`);
       }
       if (![tenon.length, tenon.width, tenon.thickness].every(n => Number.isFinite(n) && n >= 0.1)
@@ -348,7 +351,7 @@ function partJoineryGeometry(part: Part, context?: readonly Part[]): BufferGeome
         if (axis !== long && Math.abs(box[`c${axis}`]) + box[`h${axis}`] > half[axis] + 1e-6) throw new Error(`${part.id}: tenon extends outside shoulder`);
       }
       if (round && (tenon.offsetWidth || tenon.offsetThickness)) throw new Error(`${part.id}: unsupported offset round tenon`);
-      const extra = buildOrdinaryTenonGeometry(tenon.position, box, round, 1, 0);
+      const extra = buildOrdinaryTenonGeometry(tenon.position, box, round, 1, 0, tenon.endChamferMm);
       extra.translate(box.cx, box.cy, box.cz);
       try {
         const joined = evaluateJoineryGeometry(geometry, [extra], "add", 1);

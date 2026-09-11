@@ -95,6 +95,8 @@ export interface Dimensions {
 }
 
 export interface Tenon {
+  /** 45-degree bevel on the exposed tip of a start/end rectangular tenon. */
+  endChamferMm?: Millimeters;
   position: TenonPosition;
   type: JoineryType;
   length: Millimeters;

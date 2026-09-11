@@ -1135,6 +1135,18 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     }
   }
 
+  const chamferedTips = design.parts.flatMap(p => p.tenons.filter(t => (t.endChamferMm ?? 0) > 0));
+  if (chamferedTips.length) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "exposed-tenon-tip-chamfer", phase: "cut-joinery",
+      title: `外露榫端倒角（${chamferedTips.length} 個）`,
+      description: `依零件圖處理外露端頭 ${[...new Set(chamferedTips.map(t => t.endChamferMm))].map(c => `${c}×45°`).join("、")} 倒角；保留榫肩、孔內配合面與切料總長，不將端頭倒角延伸到整支榫頭。`,
+      toolIds: ["chisel-set-3-6-12", "sandpaper-set"],
+      partIds: design.parts.filter(p => p.tenons.some(t => (t.endChamferMm ?? 0) > 0)).map(p => p.id),
+      estimatedMinutes: 5 * chamferedTips.length,
+    });
+  }
   const clearanceCuts = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.label === "避腳缺角" || m.label === "Leg clearance notch").length, 0);
   if (clearanceCuts > 0) {
     const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));

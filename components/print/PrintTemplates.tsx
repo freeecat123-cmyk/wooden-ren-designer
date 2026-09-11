@@ -35,6 +35,10 @@ function isCurvedPart(g: PartDrawingGroup): boolean {
   return !!(shape && CURVED_SHAPES.has(shape.kind));
 }
 
+export function hasPrintTemplates(design: FurnitureDesign): boolean {
+  return groupPartsForDrawing(design).some(isCurvedPart);
+}
+
 /**
  * Print section: 1:1 真實尺寸樣板列印頁（Phase 4 Task 4）。
  *

@@ -23,7 +23,8 @@ import {
 import { PrintToolList } from "@/components/print/PrintToolList";
 import { PrintPartDrawings } from "@/components/print/PrintPartDrawings";
 import { PartDrawingsIndex } from "@/components/print/PartDrawingsIndex";
-import { PrintTemplates } from "@/components/print/PrintTemplates";
+import { PrintTemplates, hasPrintTemplates } from "@/components/print/PrintTemplates";
+import { getPrintSavedState } from "@/lib/design/print-preflight";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatDimensions } from "@/lib/units/format";
 import { PrintAccessGate, PrintWatermarkLayer } from "@/components/PrintAccessGate";
@@ -120,6 +121,16 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const totalHours = totalEstimatedHours(steps);
   const today = taipeiIsoDate();
   const totalVolumeM3 = estimateTotalVolume(design);
+  const savedId = spStr("designId");
+  let saved = null;
+  if (savedId && /^[0-9a-f-]{36}$/i.test(savedId)) {
+    const result = await supabase.from("designs").select("name, params, furniture_type, updated_at")
+      .eq("id", savedId).eq("user_id", user.id).maybeSingle();
+    if (!result.error && result.data?.furniture_type.replace(/_/g, "-") === type) saved = result.data;
+  }
+  const savedState = getPrintSavedState(type, sp, saved, (entry.optionSchema ?? []).map(spec => spec.key),
+    { ...entry.defaults, material: "pine", ...Object.fromEntries((entry.optionSchema ?? []).map(spec => [spec.key, spec.defaultValue])) });
+  const outputName = saved?.name || getEntryName(entry, locale);
 
   return (
     <main className="max-w-[210mm] mx-auto bg-white text-zinc-900 relative">
@@ -138,7 +149,11 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             ? "Print preview (A4 portrait) — choose 'Save as PDF' in the system dialog"
             : "列印預覽（A4 直式）— 按下按鈕後在系統對話框選擇「另存為 PDF」"}
         </p>
-        <PrintAccessGate />
+        <PrintAccessGate suggestedFilename={`${outputName}_${today}`} preflight={{
+          name: outputName,
+          size: formatDimensions(design.overall.length, design.overall.width, design.overall.thickness, unit),
+          savedState, warnings: design.warnings ?? [], hasTemplates: hasPrintTemplates(design),
+        }} />
       </div>
 
       {/* ================= Page 1: Cover ================= */}

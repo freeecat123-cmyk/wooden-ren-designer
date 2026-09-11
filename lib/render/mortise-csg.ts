@@ -4,6 +4,8 @@ import type { Part, TenonPosition } from "@/lib/types";
 import type { LocalBox } from "./svg-views";
 import { buildDovetailEndsGeometry, holeAxisOf, holeRadiusOf } from "./part-geometry";
 import { worldExtents } from "./geometry";
+import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
+import { tenonEndChamferPoints } from "./tenon-end-chamfer";
 
 export function partForJoineryView(part: Part): Part {
   return part.joineryView ? {
@@ -32,8 +34,13 @@ export function ordinaryTenonPrimitive(position: TenonPosition, box: Pick<LocalB
 }
 
 export function buildOrdinaryTenonGeometry(position: TenonPosition, box: Pick<LocalBox, "hx" | "hy" | "hz">,
-  round: boolean, unitsPerMm = 0.01, shrinkMm = 0.5): BufferGeometry {
+  round: boolean, unitsPerMm = 0.01, shrinkMm = 0.5, endChamferMm = 0): BufferGeometry {
   const primitive = ordinaryTenonPrimitive(position, box, round, unitsPerMm, shrinkMm);
+  if (primitive.kind === "rect") {
+    const [x, y, z] = primitive.args;
+    const points = tenonEndChamferPoints(position, { hx: x / 2, hy: y / 2, hz: z / 2 }, endChamferMm * unitsPerMm);
+    if (points) return new ConvexGeometry(points.map(p => new Vector3(...p)));
+  }
   return primitive.kind === "round" ? new CylinderGeometry(...primitive.args) : new BoxGeometry(...primitive.args);
 }
 

@@ -15,6 +15,7 @@
 
 import React from "react";
 import { constructionCutBox } from "@/lib/geometry/construction-cuts";
+import { tenonAllowance } from "@/lib/geometry/cut-dimensions";
 import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
 import {
   DimensionLine,
@@ -346,20 +347,13 @@ export function T1Dimensions({
     a === "L" ? "x" : a === "W" ? "z" : "y";
   const horizPartLocal = axisToLocal(horizAxisName as "L" | "W" | "T");
   const vertPartLocal = axisToLocal(vertAxisName as "L" | "W" | "T");
-  let horizExt = 0;
-  let vertExt = 0;
-  // 同一端多支榫頭（雙榫頭）只加該端最長那支一次（同 cut-dimensions.ts / drawing.tsx；
-  // 🩸2026-09-08 丙級第三題後底板每端兩支 18 長被加成 36 → 圖上「含榫 336」）
-  const maxAt = new Map<string, number>();
-  for (const t of part.tenons) if (t.length > 0) maxAt.set(t.position, Math.max(maxAt.get(t.position) ?? 0, t.length));
-  for (const [pos, len] of maxAt) {
-    if (horizPartLocal === "x" && (pos === "start" || pos === "end")) horizExt += len;
-    if (horizPartLocal === "y" && (pos === "top" || pos === "bottom")) horizExt += len;
-    if (horizPartLocal === "z" && (pos === "left" || pos === "right")) horizExt += len;
-    if (vertPartLocal === "x" && (pos === "start" || pos === "end")) vertExt += len;
-    if (vertPartLocal === "y" && (pos === "top" || pos === "bottom")) vertExt += len;
-    if (vertPartLocal === "z" && (pos === "left" || pos === "right")) vertExt += len;
-  }
+  const extension = (axis: "x" | "y" | "z") => {
+    const { start, end } = tenonAllowance(part.tenons,
+      axis === "x" ? "length" : axis === "y" ? "thickness" : "width");
+    return start + end;
+  };
+  const horizExt = extension(horizPartLocal);
+  const vertExt = extension(vertPartLocal);
   const horizGross = round1(horiz + horizExt);
   const vertGross = round1(vert + vertExt);
   const showHorizGross = horizGross - horiz > 0.5;
