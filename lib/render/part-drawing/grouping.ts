@@ -142,6 +142,7 @@ export function hashPart(part: Part): string {
         `w:${Math.abs(t.offsetWidth ?? 0)}`,
         `th:${Math.abs(t.offsetThickness ?? 0)}`,
         `L:${t.length ?? 0}`,
+        ...(t.endChamferMm ? [`endChamfer:${t.endChamferMm}`] : []),
         `W:${t.width ?? 0}`,
         // tenons 的厚度欄位是 thickness（不是 depth）；test data 用 depth 也支援
         `D:${t.thickness ?? t.depth ?? 0}`,

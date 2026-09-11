@@ -99,12 +99,18 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(byId("side-left").mortises.every((m) => m.origin.y === 18)).toBe(true);
     expect(byId("side-right").mortises.every((m) => m.origin.y === 0)).toBe(true);
   });
-  it("背橫檔 18×50、頂端離頂 15（底在 285）；木釘距頂 30、40", () => {
+  it("背橫檔兩孔相距 30、下孔離底 10：世界高度 325、295", () => {
     const r = byId("rail-back-top");
     expect(r.visible).toEqual({ length: 264, width: 50, thickness: 18 });
     expect(r.origin.y).toBe(350 - 15 - 50);
     expect(r.origin.z).toBe(-60 + 9);
     expect(r.mortises).toHaveLength(4);
+    expect(r.mortises.filter(m => m.origin.x < 0).map(m => 310 - m.origin.z)).toEqual([325, 295]);
+    for (const side of ["left", "right"]) {
+      const holes = byId(`side-${side}`).mortises.filter(m => m.label?.includes("背橫檔"));
+      expect(holes.map(m => 175 - m.origin.z)).toEqual([325, 295]);
+    }
+    expect(d.parts.filter(p => p.visual === "dowel" && p.id.includes("-back-")).map(p => p.origin.y + 4)).toEqual([325, 295, 325, 295]);
   });
   it("上層板 18×100，頂面在 285（離頂 65）；每端雙貫穿榫 20 寬、長 18+10", () => {
     const s = byId("shelf");
@@ -115,6 +121,7 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
       expect(t.type).toBe("through-tenon");
       expect(t.length).toBe(28);
       expect(t.width).toBe(20);
+      expect(t.endChamferMm).toBe(3);
     }
     // 雙榫頭中心：離背 30 與 80 → 世界 z −30、+20；層板中心 z=−10 → 偏移 −20、+30
     const offs = s.tenons.filter((t) => t.position === "start").map((t) => t.offsetWidth).sort((a, b) => (a ?? 0) - (b ?? 0));
@@ -134,6 +141,7 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(l.origin.y).toBe(15);
     expect(l.origin.z + 6).toBe(-60 + 95 - 3);
     expect(l.tenons).toHaveLength(2);
+    expect(l.shape).toEqual({ kind: "chamfered-edges", chamferMm: 3, style: "rounded" });
   });
   it("夾板背板 6mm：層板下緣 267 → 下橫檔上緣 80（187 高）、寬 264+6+6、貼背緣", () => {
     const p = byId("back-panel");
@@ -157,5 +165,6 @@ describe("cert-c1 範本：預設值＝考題原尺寸，且圖面判讀的數�
     expect(flush.parts.find((p) => p.id === "shelf")!.tenons[0].length).toBe(18);
     expect((flush.warnings ?? []).some((w) => w.includes("凸出"))).toBe(true);
     expect(build({ withPanel: false }).parts.some((p) => p.id === "back-panel")).toBe(false);
+    expect(build({ withPanel: false }).warnings?.some(w => w.includes("背板"))).toBe(true);
   });
 });

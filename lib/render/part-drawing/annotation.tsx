@@ -15,6 +15,7 @@
 
 import React from "react";
 import { constructionCutBox } from "@/lib/geometry/construction-cuts";
+import { tenonAllowance } from "@/lib/geometry/cut-dimensions";
 import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
 import {
   DimensionLine,
@@ -318,18 +319,13 @@ export function T1Dimensions({
     a === "L" ? "x" : a === "W" ? "z" : "y";
   const horizPartLocal = axisToLocal(horizAxisName as "L" | "W" | "T");
   const vertPartLocal = axisToLocal(vertAxisName as "L" | "W" | "T");
-  let horizExt = 0;
-  let vertExt = 0;
-  for (const t of part.tenons) {
-    if (t.length <= 0) continue;
-    const pos = t.position;
-    if (horizPartLocal === "x" && (pos === "start" || pos === "end")) horizExt += t.length;
-    if (horizPartLocal === "y" && (pos === "top" || pos === "bottom")) horizExt += t.length;
-    if (horizPartLocal === "z" && (pos === "left" || pos === "right")) horizExt += t.length;
-    if (vertPartLocal === "x" && (pos === "start" || pos === "end")) vertExt += t.length;
-    if (vertPartLocal === "y" && (pos === "top" || pos === "bottom")) vertExt += t.length;
-    if (vertPartLocal === "z" && (pos === "left" || pos === "right")) vertExt += t.length;
-  }
+  const extension = (axis: "x" | "y" | "z") => {
+    const { start, end } = tenonAllowance(part.tenons,
+      axis === "x" ? "length" : axis === "y" ? "thickness" : "width");
+    return start + end;
+  };
+  const horizExt = extension(horizPartLocal);
+  const vertExt = extension(vertPartLocal);
   const horizGross = round1(horiz + horizExt);
   const vertGross = round1(vert + vertExt);
   const showHorizGross = horizGross - horiz > 0.5;

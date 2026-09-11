@@ -187,8 +187,9 @@ function buildTrestleDiningTable(input: {
       // top-rail rotation y=π/2：part-local X (length) → 世界 Z；part-local Z (width) → 世界 X
       // 接 2 腳：腳在世界 Z = ±frameLegSpacing/2 → part-local x = ∓frameLegSpacing/2
       mortises: [
-        { origin: { x: -frameLegSpacing / 2, y: -frameRailThickness / 2 + LEG_FACE_INSET, z: 0 }, depth: legTopTenonLen, length: legTenonW, width: legTenonThick, through: false },
-        { origin: { x: +frameLegSpacing / 2, y: -frameRailThickness / 2 + LEG_FACE_INSET, z: 0 }, depth: legTopTenonLen, length: legTenonW, width: legTenonThick, through: false },
+        // Mortise Y is measured from the bottom, not the centered mesh origin.
+        { origin: { x: -frameLegSpacing / 2, y: legTopTenonLen / 2, z: 0 }, depth: legTopTenonLen, length: legTenonW, width: legTenonThick, through: false },
+        { origin: { x: +frameLegSpacing / 2, y: legTopTenonLen / 2, z: 0 }, depth: legTopTenonLen, length: legTenonW, width: legTenonThick, through: false },
       ],
     });
     // 底足（沿 Z 軸，含中央橫木 mortise + 2 腳 bottom 榫眼）

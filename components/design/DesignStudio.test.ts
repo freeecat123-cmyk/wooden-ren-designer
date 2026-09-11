@@ -42,8 +42,8 @@ beforeAll(async () => {
             <button type="submit">Apply</button></form>}
           model={<div data-studio-model><div style={{height: 450}}><canvas aria-label="Furniture model" />
             <button onClick={() => setSelectedPartId('rail')}>Select rail</button></div></div>}
-          drawings={<input aria-label="Drawing scale" defaultValue="1:10" />}
-          materials={<button onClick={() => setSelectedPartId('rail')}>Material rail</button>}
+          drawings={<><input aria-label="Drawing scale" defaultValue="1:10" /><button data-part-drawing-ids={JSON.stringify(['mirror-rail', 'rail'])}>Rail drawing</button></>}
+          materials={<button data-part-id="rail" onClick={() => setSelectedPartId('rail')}>Material rail</button>}
           build={<input aria-label="Build notes" defaultValue="" />}
           quote={<input aria-label="Quote amount" defaultValue="120" />}
           notices={<p role="status">Unsaved changes</p>} />;
@@ -76,6 +76,44 @@ async function open(width = 1440, locale = "en") {
 async function activeIs(page: Page, selector: string) {
   return page.evaluate(selector => document.activeElement?.matches(selector), selector);
 }
+
+it("shows mobile selection facts and locates the material and grouped drawing without losing selection", async () => {
+  const page = await open(390);
+  try {
+    await page.getByRole('button', { name: 'Select rail', exact: true }).click();
+    const summary = page.getByRole('region', { name: 'Selected part', exact: true });
+    await summary.waitFor();
+    expect(await summary.textContent()).toContain('Rail');
+    expect(await summary.textContent()).toContain('Plywood');
+    expect(await summary.textContent()).toContain('325 × 40 × 20 mm');
+    const summaryBox = (await summary.boundingBox())!;
+    const modelBox = (await page.locator('[data-studio-model]').boundingBox())!;
+    expect(summaryBox.y + summaryBox.height).toBeLessThanOrEqual(modelBox.y);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: '/tmp/woodenren-selection-mobile.png' });
+    await summary.getByRole('button', { name: 'Locate material', exact: true }).click();
+    await page.waitForFunction(() => document.activeElement?.getAttribute('data-part-id') === 'rail');
+    await summary.getByRole('button', { name: 'Locate drawing', exact: true }).click();
+    await page.waitForFunction(() => document.activeElement?.hasAttribute('data-part-drawing-ids'));
+    expect(await page.locator('[data-selection]').textContent()).toBe('rail');
+    await page.getByRole('tab', { name: 'Design', exact: true }).click();
+    await summary.getByRole('button', { name: 'Clear selection', exact: true }).click();
+    expect(await summary.count()).toBe(0);
+  } finally { await page.close(); }
+});
+
+it("disables a missing drawing destination and preserves material selection", async () => {
+  const page = await open();
+  try {
+    await page.locator('[data-part-drawing-ids]').evaluate(node => node.removeAttribute('data-part-drawing-ids'));
+    await page.getByRole('tab', { name: 'Materials', exact: true }).click();
+    await page.getByRole('button', { name: 'Material rail', exact: true }).click();
+    const summary = page.getByRole('region', { name: 'Selected part', exact: true });
+    await expect.poll(() => summary.getByRole('button', { name: 'Locate material' }).isEnabled()).toBe(true);
+    expect(await summary.getByRole('button', { name: 'Locate drawing' }).isDisabled()).toBe(true);
+    await page.screenshot({ path: '/tmp/woodenren-selection-desktop.png' });
+  } finally { await page.close(); }
+});
 
 it("keeps screen-reader-only numeric fields one pixel wide", async () => {
   const page = await open();
@@ -154,7 +192,7 @@ it("uses parent selection, physical cut dimensions and material override, and cl
     expect(await inspector.textContent()).toContain("300 × 40 × 20 mm");
     expect(await inspector.textContent()).toContain("325 × 40 × 20 mm");
     expect(await inspector.textContent()).toContain("Blind tenon");
-    await page.getByRole("button", { name: "Clear selection", exact: true }).click();
+    await inspector.getByRole("button", { name: "Clear selection", exact: true }).click();
     expect(await page.locator('[data-selection]').textContent()).toBe("none");
     await page.getByRole("button", { name: "Select rail", exact: true }).click();
     await page.getByRole("button", { name: "Remove part", exact: true }).click();

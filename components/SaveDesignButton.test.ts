@@ -66,6 +66,104 @@ async function mount(id?: string, mobile = false) {
   return page;
 }
 
+it("autosaves an existing design after three idle seconds, not every keystroke", async () => {
+  const page = await mount("old-id");
+  try {
+    await page.clock.install();
+    await page.evaluate(() => { (window as any).props.params = { ...(window as any).props.params, length: 400 }; (window as any).render(); });
+    await page.waitForTimeout(50);
+    await page.clock.runFor(2000);
+    expect(await page.evaluate(() => (window as any).requests.length)).toBe(0);
+    await page.evaluate(() => { (window as any).props.params = { ...(window as any).props.params, length: 450 }; (window as any).render(); });
+    await page.waitForTimeout(50);
+    await page.clock.runFor(3100);
+    expect(await page.evaluate(() => (window as any).requests.map((r: any) => r.body.params.length))).toEqual([450]);
+    await page.evaluate(() => (window as any).resolveSave());
+    await page.clock.runFor(5000);
+    expect(await page.evaluate(() => (window as any).requests.length)).toBe(1);
+  } finally { await page.close(); }
+});
+
+it("does not auto-create an unnamed design", async () => {
+  const page = await mount();
+  try {
+    await page.clock.install();
+    await page.evaluate(() => { (window as any).props.params = { ...(window as any).props.params, length: 400 }; (window as any).render(); });
+    await page.clock.runFor(10000);
+    expect(await page.evaluate(() => (window as any).requests.length)).toBe(0);
+  } finally { await page.close(); }
+});
+
+for (const failure of ["design_conflict", "offline"]) {
+  it(`pauses autosave after ${failure} and does not silently retry later edits`, async () => {
+    const page = await mount("old-id");
+    try {
+      await page.clock.install();
+      await page.evaluate(failure => {
+        const w = window as any;
+        w.fetch = async (url: string, init: any) => {
+          w.requests.push({ url, body: JSON.parse(init.body) });
+          if (failure === "offline") throw new TypeError("Failed to fetch");
+          return { ok: false, json: async () => ({ error: failure }) };
+        };
+        w.props.params = { ...w.props.params, length: 450 }; w.render();
+      }, failure);
+      await page.waitForTimeout(50);
+      await page.clock.runFor(3100);
+      await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === "autoPaused");
+      await page.evaluate(() => { const w = window as any; w.props.params = { ...w.props.params, length: 500 }; w.render(); });
+      await page.clock.runFor(15000);
+      expect(await page.evaluate(() => (window as any).requests.length)).toBe(1);
+      expect(await page.evaluate(() => (window as any).savedEvents.length)).toBe(0);
+      await page.getByRole("button", { name: "btnSave", exact: true }).click();
+      expect(await page.evaluate(() => (window as any).requests.length)).toBe(2);
+    } finally { await page.close(); }
+  });
+}
+
+it("queues newer edits only after the current save finishes with its new revision", async () => {
+  const page = await mount("old-id");
+  try {
+    await page.clock.install();
+    await page.evaluate(() => { const w = window as any; w.props.params = { ...w.props.params, length: 400 }; w.render(); });
+    await page.waitForTimeout(50); await page.clock.runFor(3100);
+    await page.evaluate(() => { const w = window as any; w.props.params = { ...w.props.params, length: 500 }; w.render(); });
+    await page.clock.runFor(5000);
+    expect(await page.evaluate(() => (window as any).requests.length)).toBe(1);
+    await page.evaluate(() => (window as any).resolveSave());
+    await page.waitForTimeout(50); await page.clock.runFor(3100);
+    expect(await page.evaluate(() => (window as any).requests[1].body.params.length)).toBe(500);
+    expect(await page.evaluate(() => (window as any).requests[1].body.expectedUpdatedAt)).toBe("revision-2");
+  } finally { await page.close(); }
+});
+
+it("cancels autosave while a newer form navigation is still rendering", async () => {
+  const page = await mount("old-id");
+  try {
+    await page.clock.install();
+    await page.evaluate(() => { const w = window as any; w.props.params = { ...w.props.params, length: 400 }; w.render(); });
+    await page.waitForTimeout(50); await page.clock.runFor(2000);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent("wooden-ren:design-navigation", { detail: { search: "length=500" } })));
+    await page.clock.runFor(5000);
+    expect(await page.evaluate(() => (window as any).requests.length)).toBe(0);
+    await page.evaluate(() => { const w = window as any; w.props.params = { ...w.props.params, length: 500 }; w.render(); });
+    await page.waitForTimeout(50); await page.clock.runFor(3100);
+    expect(await page.evaluate(() => (window as any).requests[0].body.params.length)).toBe(500);
+  } finally { await page.close(); }
+});
+
+it("shows the cloud confirmation time only after a successful response", async () => {
+  const page = await mount("old-id");
+  try {
+    await page.evaluate(() => {
+      (window as any).fetch = async () => ({ ok: true, json: async () => ({ updated_at: "2026-09-09T12:00:00.000Z" }) });
+    });
+    await page.getByRole("button", { name: "btnSave", exact: true }).click();
+    await page.locator("time").waitFor();
+    expect(await page.locator("time").getAttribute("datetime")).toBe("2026-09-09T12:00:00.000Z");
+  } finally { await page.close(); }
+});
+
 for (const mode of ["create", "update", "saveAs", "mobile-create"]) {
   it(`canonicalizes actual saved parameters without losing visual state: ${mode}`, async () => {
     const id = mode === "update" || mode === "saveAs" ? "old-id" : undefined;
@@ -115,7 +213,7 @@ it("does not overwrite edits made while a save is in flight", async () => {
     await page.waitForFunction(() => (window as any).navigations.length === 1);
     expect(new URL(page.url()).searchParams.get("length")).toBe("444");
     expect(new URL(page.url()).searchParams.get("scene")).toBe("dark");
-    await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === "unsaved");
+    await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === "autoPending");
     expect(await page.evaluate(() => (window as any).requests.length)).toBe(1);
   } finally { await page.close(); }
 });
@@ -192,7 +290,7 @@ it(`does not restore URL keys deleted by Reset before new props arrive: ${resetQ
     await page.evaluate(params => {
       const w = window as any; w.props.params = params; w.render();
     }, params);
-    await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === 'unsaved');
+    await page.waitForFunction(() => document.querySelector('[role="status"]')?.textContent === 'autoPending');
   } finally { await page.close(); }
 });
 }

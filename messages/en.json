@@ -4355,6 +4355,9 @@
   },
   "saveDesign": {
     "unsaved": "Unsaved cloud changes",
+    "autoPending": "Unsynced changes; autosaving after 3 idle seconds",
+    "autoPaused": "Autosave paused. Check the error and save manually to retry.",
+    "invalidSaveResponse": "The server did not return a saved revision; sync could not be confirmed.",
     "saved": "Saved to cloud",
     "conflict": "This design has changed in the cloud. Nothing was overwritten. Save as new to keep your edits, or reopen it from My Designs.",
     "btnLoading": "💾 Loading…",

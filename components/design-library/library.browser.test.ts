@@ -112,7 +112,7 @@ it.skipIf(process.env.RUN_LIBRARY_BROWSER !== "1")("library interactions, accoun
 
     // A slow request must not repopulate a new account or a logged-out screen.
     await page.evaluate(() => { (window as any).account=null; (window as any).renderLibrary(); });
-    await page.locator("li").waitFor({ state: "detached" });
+    await expect.poll(() => page.locator("li").count()).toBe(0);
     await page.evaluate(() => { (window as any).delay=200; (window as any).account='a'; (window as any).renderLibrary(); });
     await page.getByRole("status").waitFor();
     await page.evaluate(() => { (window as any).account='b'; (window as any).renderLibrary(); });

@@ -2,6 +2,7 @@
 
 import { trapAnchorOffset } from "./trapezoid-anchor";
 import { quadPoint } from "./quad-profile";
+import { tenonEndChamferPoints } from "./tenon-end-chamfer";
 import { memo } from "react";
 import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
@@ -620,6 +621,7 @@ function projectFeaturePolygon(
   view: OrthoViewKind,
   /** true = box 是 tenon/mortise 之類 feature（強制走 full bevel，不套 half-bevel 的 top-only 邏輯） */
   isFeature = false,
+  localPoints?: Array<[number, number, number]>,
 ): Array<{ x: number; y: number }> {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
@@ -749,6 +751,13 @@ function projectFeaturePolygon(
   };
 
   const corners: Array<{ x: number; y: number }> = [];
+  if (localPoints) {
+    for (const p of localPoints) {
+      const [ox, oy, oz] = rotateBoxCorner(...p);
+      corners.push(project(box.cx + ox, box.cy + oy, box.cz + oz));
+    }
+    return convexHull2DLocal(corners);
+  }
   for (const sx of [-1, 1])
     for (const sy of [-1, 1])
       for (const sz of [-1, 1]) {
@@ -3614,7 +3623,8 @@ function OrthoViewImpl({
                 // beveled）變形——apron 斜的話榫頭也跟著斜。
                 // 俯視 用 axis-aligned rect——避免 apron-trapezoid 讓 top/bot
                 // 端 length scale 差距產生疊影 mess。
-                if (view === "top") {
+                const chamferPoints = tenonEndChamferPoints(t.position, lb, t.endChamferMm ?? 0);
+                if (view === "top" && !chamferPoints) {
                   elements.push(
                     <rect
                       key={`${part.id}-t${i}`}
@@ -3629,7 +3639,7 @@ function OrthoViewImpl({
                     />,
                   );
                 } else {
-                  const tPoly = projectFeaturePolygon(part, lb, view, true);
+                  const tPoly = projectFeaturePolygon(part, lb, view, true, chamferPoints);
                   const tPoints = tPoly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
                   elements.push(
                     <polygon
@@ -3642,8 +3652,13 @@ function OrthoViewImpl({
                     />,
                   );
                 }
-                // 指接榫加 zigzag 平行線：在 r 內部沿較長軸畫 3-5 條等距線，
-                // 暗示 finger 切口（drafting-math §B2 指數 n = 板高/板厚）
+                if (chamferPoints && tipFaceView) {
+                  const tip = projectFeaturePolygon(part, lb, view, true, chamferPoints.slice(8));
+                  elements.push(<polygon key={`${part.id}-t${i}-chamfer`} data-tenon-end-chamfer={t.endChamferMm}
+                    points={tip.map(p => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ")}
+                    fill="none" stroke="#2980b9" strokeWidth={0.6} />);
+                }
+                // 指接榫加平行線暗示 finger 切口（drafting-math §B2）。
                 if (t.type === "finger-joint") {
                   const longAxis = r.w >= r.h ? "x" : "y";
                   const N = 4; // 4 條暗示分區
@@ -5690,7 +5705,7 @@ export function MaterialList({
             );
             const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
             return (
-              <tr key={part.id} className="border-b border-sky-100">
+              <tr key={part.id} data-part-id={part.id} className="border-b border-sky-100">
                 <td className="p-2">{partName(part, locale)}</td>
                 <td className="p-2">{materialLabel}</td>
                 <td className="p-2 text-right">
@@ -5724,7 +5739,7 @@ export function MaterialList({
             );
             const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
             return (
-              <tr key={part.id} className="border-b border-amber-100">
+              <tr key={part.id} data-part-id={part.id} className="border-b border-amber-100">
                 <td className="p-2">{partName(part, locale)}</td>
                 <td className="p-2">{materialLabel}</td>
                 <td className="p-2 text-right">
@@ -5751,7 +5766,7 @@ export function MaterialList({
             <td />
           </tr>
           {dowelRows.map(({ part, materialLabel, tenonNotes }) => (
-            <tr key={part.id} className="border-b border-orange-100">
+            <tr key={part.id} data-part-id={part.id} className="border-b border-orange-100">
               <td className="p-2">{partName(part, locale)}</td>
               <td className="p-2">{materialLabel}</td>
               <td className="p-2 text-right">

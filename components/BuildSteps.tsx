@@ -7,6 +7,7 @@ import {
 } from "@/lib/steps/derive";
 import { translateSteps } from "@/lib/steps/translations";
 import { TOOL_CATALOG, toolName } from "@/lib/tools/catalog";
+import { BuildProgress } from "@/components/design/BuildProgress";
 
 const PHASE_COLOR: Record<StepPhase, string> = {
   prepare: "bg-zinc-100 text-zinc-700",
@@ -70,11 +71,11 @@ export function BuildSteps({ design, locale = "zh-TW" }: BuildStepsProps) {
           </div>
         </div>
       )}
-      <ol className="space-y-3">
+      <BuildProgress category={design.category} fingerprint={JSON.stringify(design)} steps={steps.map(step => ({ id: step.id, title: step.title }))} locale={locale}>
         {steps.map((step, i) => (
-          <li
+          <div
             key={step.id}
-            className="rounded-lg border border-zinc-200 bg-white p-4"
+            className="p-4"
           >
             <div className="flex items-baseline gap-3 mb-2 flex-wrap">
               <span className="text-xs font-mono text-zinc-400 tabular-nums">
@@ -138,14 +139,9 @@ export function BuildSteps({ design, locale = "zh-TW" }: BuildStepsProps) {
                 ))}
               </ul>
             )}
-          </li>
+          </div>
         ))}
-      </ol>
-      <p className="text-xs text-zinc-500">
-        {isEn
-          ? "Above is the auto-generated standard build sequence. A future version will offer “AI deep-dive / YT script” buttons where Claude adds practitioner tips and filming notes."
-          : "以上為依設計自動產出的標準工序。下一版將提供「AI 加強說明 / YT 腳本」按鈕，由 Claude 補上經驗談與拍攝重點。"}
-      </p>
+      </BuildProgress>
     </div>
   );
 }

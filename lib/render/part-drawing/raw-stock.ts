@@ -16,26 +16,23 @@
  * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-5-design.md §2
  */
 import type { Part } from "@/lib/types";
+import { tenonAllowance } from "@/lib/geometry/cut-dimensions";
 
 /**
  * 三軸 tenon 延伸量（butt-joint 慣例：visible.length 不含榫，maker 切料要加）。
  * 跟 drawing.tsx 的 grossPartDims 對齊。
  */
 function tenonExt(part: Part): { L: number; W: number; T: number } {
-  let L = 0;
-  let W = 0;
-  let T = 0;
-  for (const t of part.tenons) {
-    if (t.length <= 0) continue;
-    if (t.position === "start" || t.position === "end") L += t.length;
-    else if (t.position === "left" || t.position === "right") W += t.length;
-    else if (t.position === "top" || t.position === "bottom") T += t.length;
-  }
-  return { L, W, T };
+  const total = (axis: "length" | "width" | "thickness") => {
+    const { start, end } = tenonAllowance(part.tenons, axis);
+    return start + end;
+  };
+  return { L: total("length"), W: total("width"), T: total("thickness") };
 }
 
 export function rawStockSize(part: Part): { L: number; W: number; T: number } {
-  const v = part.visible;
+  // Match the material list: assembly geometry can be shorter than miter stock.
+  const v = part.joineryView?.visible ?? part.visible;
   const s = part.shape as any;
   const ext = tenonExt(part);
 

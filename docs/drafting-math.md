@@ -1173,6 +1173,22 @@ round-table `rtBottomScale` 傳給 `legProfileScaleAt(…, override)`）。腳�
 | **半搭 half-lap** | 搭接深 | `T/2` |
 | **鳩尾搭** | 側壁斜度 | 1:8 |
 
+#### B2a. Exposed tenon tip bevel (2026-09-09)
+
+`Tenon.endChamferMm` is optional and defaults to no bevel. It applies only to
+rectangular start/end tenons, never to the shoulder or the mortise. In code axes
+(Y up), the centered rings are X = -L/2, L/2-c, L/2; only the last ring reduces
+Y/Z half-widths by c. Mirror X for start tenons. 2D projection, preview mesh and
+dimensional export consume the same rings. Stock and cut lengths remain unchanged.
+Class C Q1 has c=min(3, exposed protrusion), so flush practice variants do not
+remove material inside the side panel. The front lip uses the existing rounded
+longitudinal-edge profile R3 on its 12 x 18 section.
+
+Class C Q1 source cross-check: 50-high back rail, holes 30 apart and lower hole
+10 above bottom => top offsets 10/40, world Y 325/295 at the default height.
+The stock-list screw diameter (2.4) conflicts with the drawing (3); retain this
+discrepancy explicitly instead of inferring screw locations or changing geometry.
+
 ### B3. 配合公差（細節圖渲染示意值）
 - 一般手作：母榫 = 公榫 + 0.1mm
 - CNC 緊配：母榫 = 公榫 + 0
@@ -6047,8 +6063,17 @@ local y→世界 x（y=18 那面在 origin.x+9）。所以背緣放 local +x（`
 **AV8 2026-09-07 深夜實做時追加的四件（全部有測試）**：
 - `FurnitureCatalogEntry.joineryOnly`：檢定件沒有組裝版——設計頁強制 joineryMode、桌機／手機都不顯示「工法選擇」。
   否則組裝版會拔掉貫穿榫、凸出的 20mm 消失、總寬 320 變 300。
-- **雙榫頭切料長**：`calculateCutDimensions` / `tenonAllowance` / 零件圖毛料 三處改成「每端取最長榫頭一次」，
-  舊算法逐支相加把 264+28+28 算成 376。
+- **雙榫頭切料長**：`calculateCutDimensions` / `tenonAllowance` 改成「每端取最長榫頭一次」。
+  2026-09-11 重複檢測發現零件圖 T1 標註與 `rawStockSize` 仍逐支相加，現已改用
+  `tenonAllowance`：264+28+28 = 320；原本錯加四支榫頭為 376，毛料也誤列 388。
+  修正後毛料沿用一般修整餘量，長度為 320+12 = 332（不是考場供料規格）。
+  `multi-tenon-dimensions.test.ts` 覆蓋實際上層板、正／俯視標註與三軸多榫長度。
+  本機列印頁已核對含榫 320 與毛料 332；未改榫頭幾何或雲端設計。
+- **2026-09-11 毛料物理尺寸補正**：`rawStockSize` 與材料單一致，優先採用
+  `joineryView.visible`，而非僅用組裝顯示的 `visible`。400×300×70、外撇 15°
+  的斜接托盤前後壁下料長為 433.2 mm，毛料含原有 12 mm 修整餘量後取整為
+  445 mm；舊估算 412 mm 甚至短於下料長。測試先重現兩次再修改，覆蓋
+  0°／15°／30°、三軸覆寫與無覆寫回退。未更動模板幾何或修整餘量規則。
 - **quad 的三視圖與零件圖**：`projectPartPolygon` 對 quad 走 silhouette；`svg-views` 的 `useShape` 俯視閘門加 quad
   （零件圖橫躺後看板面的視圖就是俯視，掉到 rect fallback 會畫成 120×350 矩形、三條斜邊全消失）。
 - **穿模稽核 cut coverage 認 quad**：`overlap.ts` 的 `rectangularWorldCuts` 形狀白名單加 quad，

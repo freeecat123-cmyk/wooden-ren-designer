@@ -445,6 +445,13 @@ export function PartDrawing({
       })()}
 
       {/* Phase 2.5 Task 3: title block 底列 — 編號 / 材料 / 比例 / 公差 */}
+      {part.tenons.some(t => (t.endChamferMm ?? 0) > 0) && (
+        <div className="text-xs text-zinc-700 mt-2">
+          {isEn ? "Exposed tenon tips: " : "外露榫端倒角："}
+          {[...new Set(part.tenons.map(t => t.endChamferMm).filter(c => c && c > 0))].map(c => `${c}×45°`).join(", ")}
+          {isEn ? " (shoulders and cut length unchanged)" : "（不改榫肩與切料長度）"}
+        </div>
+      )}
       <div className="border-t border-zinc-300 mt-2 pt-1 text-[9px] text-zinc-700 font-mono tabular-nums">
         <div className="grid grid-cols-4 gap-1">
           <div>

@@ -51,11 +51,31 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
   const revisionRef = useRef(searchParams?.get("revision") ?? undefined);
   const inFlight = useRef(false);
   const completedSave = useRef<{ id: string; fingerprint: string } | null>(null);
-  const editingContext = `${pathname}:${currentDesignId ?? "new"}`;
+  const editingContext = `${userId ?? "guest"}:${pathname}:${currentDesignId ?? "new"}`;
   const contextRef = useRef(editingContext);
   contextRef.current = editingContext;
   const hasChanges = savedFingerprint !== fingerprint;
   const dirty = !activeDesignId || hasChanges;
+  const [autoPaused, setAutoPaused] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | undefined>();
+  const saveAction = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    if (isLoading || !isLoggedIn || !userId || !activeDesignId || !hasChanges || busy || autoPaused) return;
+    const timer = window.setTimeout(() => { void saveAction.current(); }, 3000);
+    // Cancel a pending save while a form navigation is ahead of its server render.
+    const cancel = () => window.clearTimeout(timer);
+    const editing = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest("form[data-design-form]")) cancel();
+    };
+    window.addEventListener("wooden-ren:design-navigation", cancel);
+    window.addEventListener("input", editing);
+    window.addEventListener("change", editing);
+    return () => {
+      cancel(); window.removeEventListener("wooden-ren:design-navigation", cancel);
+      window.removeEventListener("input", editing); window.removeEventListener("change", editing);
+    };
+  }, [fingerprint, activeDesignId, hasChanges, busy, autoPaused, isLoading, isLoggedIn, userId, pathname]);
 
   useEffect(() => {
     const sync = (event: Event) => {
@@ -64,6 +84,8 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       setActiveDesignId(detail.id);
       setSavedFingerprint(detail.fingerprint);
       revisionRef.current = detail.revision;
+      setSavedAt(detail.revision);
+      setAutoPaused(false);
     };
     window.addEventListener("wooden-ren:design-saved", sync);
     return () => window.removeEventListener("wooden-ren:design-saved", sync);
@@ -82,9 +104,11 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
     revisionRef.current = searchParams?.get("revision") ?? undefined;
     setSavedFingerprint(completedSave.current && completedSave.current.id === currentDesignId ? completedSave.current.fingerprint : fingerprint);
     setMsg(null);
+    setAutoPaused(false);
+    setSavedAt(searchParams?.get("revision") ?? undefined);
     // Reset the baseline only when switching designs, not while editing parameters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDesignId]);
+  }, [currentDesignId, userId]);
 
   useEffect(() => {
     if (!hasChanges) return;
@@ -218,6 +242,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       }
 
       if (!revisionRef.current) {
+        setAutoPaused(true);
         setMsg({ kind: "warn", text: t("conflict") });
         return;
       }
@@ -229,6 +254,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       const json = (await res.json()) as { error?: string; message?: string; updated_at?: string };
       if (contextRef.current !== requestContext) return;
       if (!res.ok) {
+        setAutoPaused(true);
         if (json.error === "design_conflict") {
           setMsg({ kind: "warn", text: t("conflict") });
           return;
@@ -240,10 +266,13 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
         throw new Error(json.message ?? json.error ?? `HTTP ${res.status}`);
       }
 
+      if (!json.updated_at) throw new Error(t("invalidSaveResponse"));
       revisionRef.current = json.updated_at;
       markSaved(activeDesignId, attachDesignIdToUrl(activeDesignId));
       setMsg({ kind: "ok", text: t("okUpdated") });
     } catch (e) {
+      if (contextRef.current !== requestContext) return;
+      setAutoPaused(true);
       setMsg({
         kind: "err",
         text: t("errSaveFailTpl", { msg: e instanceof Error ? e.message : String(e) }),
@@ -253,6 +282,8 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       setBusy(null);
     }
   };
+
+  saveAction.current = handleSave;
 
   const handleSaveAs = async () => {
     if (inFlight.current) return;
@@ -321,7 +352,8 @@ export function SaveDesignButton({ furnitureType, defaultName, params, currentDe
       </div>
       {isLoggedIn && activeDesignId && <DesignVersions key={activeDesignId} designId={activeDesignId} revision={revisionRef.current} disabled={busy !== null} hasChanges={hasChanges} />}
       <p role="status" aria-live="polite" className="text-xs text-zinc-600">
-        {busy ? t("btnSaving") : dirty ? t("unsaved") : t("saved")}
+        {busy ? t("btnSaving") : autoPaused ? t("autoPaused") : dirty ? (activeDesignId && isLoggedIn ? t("autoPending") : t("unsaved")) : t("saved")}
+        {!busy && !dirty && savedAt && /^\d{4}-\d{2}-\d{2}T/.test(savedAt) && Number.isFinite(Date.parse(savedAt)) && <time className="ml-1" dateTime={savedAt}>{new Date(savedAt).toLocaleTimeString()}</time>}
       </p>
       {msg && !(msg.kind === "ok" && dirty) && (
         <p

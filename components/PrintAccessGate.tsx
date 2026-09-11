@@ -2,14 +2,16 @@
 
 import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
-import { PrintButton } from "@/components/print/PrintButton";
+import { PrintButton, type PrintPreflight } from "@/components/print/PrintButton";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { TrialWatermark } from "@/components/TrialWatermark";
 
 export function PrintAccessGate({
   suggestedFilename,
+  preflight,
 }: {
   suggestedFilename?: string;
+  preflight?: PrintPreflight;
 }) {
   const t = useTranslations("printGate");
   const { features, isLoading } = useUserPlan();
@@ -27,7 +29,7 @@ export function PrintAccessGate({
   }
 
   if (features.canDownloadPdf) {
-    return <PrintButton suggestedFilename={suggestedFilename} />;
+    return <PrintButton suggestedFilename={suggestedFilename} preflight={preflight} />;
   }
 
   return (
