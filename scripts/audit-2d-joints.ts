@@ -12,6 +12,8 @@
  * 2026-09-02 首跑抓到 7 款 314 條：吧檯椅兩向弧肩腳踏短 13mm、俯視圖只畫腳頂面、衣帽架掛鉤浮在柱頂、
  * 餐椅椅背條榫頭插在座板裡、床倒錐腳楔形縫、錐腳橫撐 0.55/0.6 不一致。依賴 svg-views 每個零件的 <g data-part-id>。
  * 剩下的 7 條＝衣帽架底爪 vs 車旋柱的收腰（1.7mm，共用 LATHE_SEG 不能動，見 §A12）。
+ * 2026-09-11：那 7 條收進 KNOWN_GAPS（有天花板 1.8mm），這支從「永遠紅」變成真閘門——
+ * 綠燈＝除了已知那條縫以外全接得上；那條縫變大也會紅。
  */
 import React from "react";
 import { renderToString } from "react-dom/server";
@@ -21,6 +23,15 @@ import { OrthoView } from "../lib/render/svg-views";
 import { buildWorldMortiseIndex, tenonWorld, matchMortiseForTenon } from "../lib/assembly/joint-world";
 
 const TOL = 0.5;
+// 已知例外（§A12）：造型本來就讓圖上有縫、3D 是對的。每條都有天花板 maxMm ——
+// 縫 ≤ maxMm 只列成 ℹ️ 不算紅；> maxMm 照樣紅（代表縫變大了，不是原本那條）。
+// 沒有天花板的例外＝整條關掉，那種不准加。
+const KNOWN_GAPS: { category: string; view: string; parts: [string, string]; maxMm: number; why: string }[] = [
+  { category: "coat-rack", view: "front", parts: ["foot-1", "column"], maxMm: 1.8,
+    why: "車旋柱底段收腰（LATHE_SEG 0.8，共用資料不能動），底爪榫進柱心，3D 上縫在造型裡" },
+];
+const knownGap = (cat: string, view: string, a: string, b: string) =>
+  KNOWN_GAPS.find((k) => k.category === cat && k.view === view && [a, b].sort().join("|") === [...k.parts].sort().join("|"));
 const NEG = !!process.env.NEG_CTL;
 const ONLY = process.env.ONLY; // 逗號分隔 category
 type Pt = { x: number; y: number };
@@ -200,7 +211,8 @@ function variantsFor(e: any): [string, any][] {
   return out;
 }
 // ─── 主程式 ──────────────────────────────────────────────────────────────────
-const gaps: string[] = []; const missing: string[] = []; const errors: string[] = [];
+const gaps: string[] = []; const missing: string[] = []; const errors: string[] = []; const known: string[] = [];
+const knownHit = new Set<(typeof KNOWN_GAPS)[number]>();
 let pairsChecked = 0, designs = 0;
 const VIEWS = ["front", "side", "top"] as const;
 for (const e of FURNITURE_CATALOG as any[]) {
@@ -235,7 +247,12 @@ for (const e of FURNITURE_CATALOG as any[]) {
         pairsChecked++;
         const dist = setDist(A, B);
         if (dist > TOL && process.env.DEBUG) { const ba = bbox(A), bb = bbox(B); console.log(`DBG ${e.category} [${tag}] ${view} ${a} bbox=${[ba.x0,ba.y0,ba.x1,ba.y1].map(v=>v.toFixed(1))} (${A.length}段) | ${b} bbox=${[bb.x0,bb.y0,bb.x1,bb.y1].map(v=>v.toFixed(1))} (${B.length}段)`); }
-        if (dist > TOL) gaps.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm`);
+        if (dist > TOL) {
+          const k = knownGap(e.category, view, a, b);
+          if (k) knownHit.add(k);
+          if (k && dist <= k.maxMm) known.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(2)}mm（上限 ${k.maxMm}：${k.why}）`);
+          else gaps.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm${k ? `（已知例外但超過上限 ${k.maxMm}mm）` : ""}`);
+        }
       }
     }
   }
@@ -243,6 +260,9 @@ for (const e of FURNITURE_CATALOG as any[]) {
 console.log(`掃了 ${designs} 個設計 / ${pairsChecked} 個接合×視圖`);
 const uniq = (arr: string[]) => [...new Set(arr)];
 console.log(`\n圖上接不上（> ${TOL}mm）：${uniq(gaps).length}`); for (const g of uniq(gaps)) console.log("  ❌ " + g);
+console.log(`\n已知例外（在上限內，不算紅）：${uniq(known).length}`); for (const g of uniq(known)) console.log("  ℹ️ " + g);
+// 例外沒被觸發＝那條縫已經修好了，表要跟著刪，不然它會一直替之後的回歸開門
+for (const k of KNOWN_GAPS) if (!knownHit.has(k) && (!ONLY || ONLY.split(",").includes(k.category))) console.log(`  ⚠️ 例外沒觸發（縫已消失，請從 KNOWN_GAPS 刪掉）：${k.category} ${k.view} ${k.parts.join(" ↔ ")}`);
 console.log(`\n零件沒畫出來：${uniq(missing).length}`); for (const g of uniq(missing).slice(0, 60)) console.log("  ⚠️ " + g);
 if (uniq(missing).length > 60) console.log(`  …還有 ${uniq(missing).length - 60} 條`);
 console.log(`\n炸掉：${errors.length}`); for (const g of errors) console.log("  💥 " + g);

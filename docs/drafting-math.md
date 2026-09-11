@@ -52,6 +52,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 椅背條穿座板 / 通孔再入母件 / 榫頭 = 板厚 + 15 | `"backBottomTenonLen\|seatBackSlots\|consumeFor"` | §A10.13 |
 | 掛鉤浮在柱頂 / 圓料 origin.y 是底面 | `"hookCenterY\|HOOK_TOP_INSET"` | §A10.14 |
 | 三視圖實畫稽核（量畫出來的 SVG 不是量 3D） | `"audit-2d-joints\|data-part-id"` | §A12 |
+| 稽核的已知例外（要有天花板） | `"KNOWN_GAPS\|maxMm"` | §A12 |
 | 弧肩斜腳左右下橫撐凸出腳外 / 外挪量 | `"ctZShift\|ctStretcherOutwardShift\|外挪"` | §A11.9 |
 | 腿與牙條交界的「肩」/ 夾頭榫 / 插肩榫 | `"夾頭榫\|插肩榫\|I_剩"` | §JT1–JT3 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
@@ -1163,6 +1164,10 @@ round-table `rtBottomScale` 傳給 `legProfileScaleAt(…, override)`）。腳�
 - 會誤判的兩個坑：①橫撐端面藏在腳後面＝整個被包住 → 用 hull 包含判定（否則 7.5mm 假縫）；
   ②楔形縫（一角碰到、另一角開口）正／側視最短距離＝0 抓不到，只有俯視抓得到 → 楔形要另外量兩個角。
 - 首跑 314 條 → 修完剩 7 條：衣帽架底爪 vs 車旋柱收腰 1.7mm（`LATHE_SEG` 底段 0.8，共用資料不能動；底爪榫進柱心，3D 上是縫在造型裡）。
+- **已知例外一律要有天花板（2026-09-11）**：上面那 7 條收進腳本的 `KNOWN_GAPS`（實量 1.67mm，上限 1.8mm），
+  這支才從「永遠紅」變回真閘門。規則：①縫 ≤ `maxMm` 列 ℹ️ 不算紅，> `maxMm` 照紅（縫變大＝新問題）；
+  ②例外沒觸發會印 ⚠️ 叫你刪掉（縫修好了，表不刪就等於替之後的回歸開門）；③不准加沒上限的例外。
+  變異驗過：上限改 1.0 → 7 紅；例外 key 錯 view → 7 紅＋⚠️；`NEG_CTL=1` 照樣紅。
 - 零件圖：`npm run audit:iso-ct-legs`（弧肩腳在新設定下的榫眼標記不出輪廓）。
 
 ### B1. 渲染慣例
