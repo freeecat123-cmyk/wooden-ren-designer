@@ -25,7 +25,7 @@ import { roundTeaTable, roundTeaTableOptions } from "./round-tea-table";
 import { roundTable, roundTableOptions } from "./round-table";
 import { pencilHolder, pencilHolderOptions, applyPencilHolderPresets } from "./pencil-holder";
 import { photoFrame, photoFrameOptions } from "./photo-frame";
-import { tray, trayOptions } from "./tray";
+import { tray, trayOptions, TRAY_LIMITS } from "./tray";
 import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
 import { wineRack, wineRackOptions } from "./wine-rack";
 import { coatRack, coatRackOptions } from "./coat-rack";
@@ -475,7 +475,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: tray,
     defaults: { length: 400, width: 280, height: 60 },
-    limits: { length: 600, width: 450, height: 120 },
+    limits: TRAY_LIMITS,
     optionSchema: trayOptions,
   },
   {

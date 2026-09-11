@@ -9,6 +9,8 @@ import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
 import { formatMm } from "@/lib/units/format";
 
+export const TRAY_LIMITS = { length: 600, width: 450, height: 120 };
+
 /** 使用情境 preset */
 interface TrayPresetConfig {
   wallThickness?: number;
@@ -980,11 +982,11 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   }
   // 結構檢查 + max bounds
   const warnings: string[] = [];
-  if (outerL > 200 || outerW > 200 || outerH > 250) {
+  if (outerL > TRAY_LIMITS.length || outerW > TRAY_LIMITS.width || outerH > TRAY_LIMITS.height) {
     warnings.push(
       isEn
-        ? `Tray ${outerL}×${outerW}×${outerH} mm exceeds reasonable range (max 200×200×250 mm). At this size consider the dovetail box template.`
-        : `托盤 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 200×200×250mm）。再大就比較像鳩尾盒——考慮改用鳩尾盒模板`,
+        ? `Tray ${outerL}×${outerW}×${outerH} mm exceeds the template range (max ${TRAY_LIMITS.length}×${TRAY_LIMITS.width}×${TRAY_LIMITS.height} mm). Review the dimensions and construction before building.`
+        : `托盤 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max ${TRAY_LIMITS.length}×${TRAY_LIMITS.width}×${TRAY_LIMITS.height}mm）。製作前請重新確認尺寸與結構。`,
     );
     design.suggestions = [{
       text: isEn
