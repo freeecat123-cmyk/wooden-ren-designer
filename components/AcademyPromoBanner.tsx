@@ -57,7 +57,7 @@ export async function AcademyPromoBanner() {
             </Link>
           </div>
           <p className="mt-6 text-xs text-amber-200/60">
-            ※ 報名學院任一課程即享，2 年內藍圖全 26 模板無限次使用
+            ※ 報名學院任一課程即享，2 年內藍圖全 25 模板無限次使用
           </p>
         </div>
       </div>

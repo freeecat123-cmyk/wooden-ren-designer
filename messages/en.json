@@ -430,7 +430,7 @@
       },
       "customTitle": "🪵 Not subscribing? Buy a single template",
       "customBody": "Want to build just one chair? Buy that blueprint once and own it forever. No subscription required.",
-      "customSeeAll": "→ See lifetime prices for all 26 templates",
+      "customSeeAll": "→ See lifetime prices for all 25 templates",
       "perkNoCC": "No credit card for free tier",
       "perkCancel": "Monthly cancels anytime",
       "perkRetention": "Cancel keeps access until period end",
@@ -493,7 +493,7 @@
       }
     },
     "templates": {
-      "h2": "26 furniture templates",
+      "h2": "25 furniture templates",
       "subtitle": "Click any to see what it can do for you — design notes, real output, fit-for-purpose.",
       "seeAll": "See all templates →",
       "freeBadge": "Free",
@@ -541,7 +541,7 @@
       },
       "personal": {
         "tier": "Personal",
-        "f1": "All 26 furniture templates",
+        "f1": "All 25 furniture templates",
         "f2": "Ceiling frame + flooring + raised platform tools",
         "f3": "Unlimited PDF print + cloud save",
         "f4": "For DIYers, home reno, weekend furniture builders",
@@ -561,13 +561,13 @@
       "custom": {
         "title": "🪵 Not subscribing? Buy a single template",
         "body": "Just want to build one chair? Buy that blueprint once, own it forever. No subscription required.",
-        "seeAll": "→ See lifetime prices for all 26"
+        "seeAll": "→ See lifetime prices for all 25"
       }
     },
     "faq": {
       "h2": "FAQ",
       "sourceQ": "Where can I find furniture design plans? Is there a free online generator?",
-      "sourceA": "Wooden Ren Designer (designer.woodenren.com) is a free online furniture design plan generator — no install, no CAD skills needed. Enter dimensions and pick a wood, and it auto-generates three-view drawings, a materials list and a cut list. The square stool, pencil holder and workbench are fully free forever; the other 26 templates are free to preview in 3D — upgrading is only needed to resize to your own dimensions and print the output.",
+      "sourceA": "Wooden Ren Designer (designer.woodenren.com) is a free online furniture design plan generator — no install, no CAD skills needed. Enter dimensions and pick a wood, and it auto-generates three-view drawings, a materials list and a cut list. The square stool, pencil holder and workbench are fully free forever; the other 22 templates are free to preview in 3D — upgrading is only needed to resize to your own dimensions and print the output.",
       "autogenQ": "How do I draw woodworking three-view drawings? Is there a tool that auto-generates them?",
       "autogenA": "Drawing three-views by hand or in general CAD means manually working out proportions and dimensions — slow and error-prone. Wooden Ren Designer auto-generates three-view drawings: enter your furniture's dimensions and style, and the front/side/top views come out fully dimensioned, with mortise-and-tenon joinery positions already calculated. Done in about 3 minutes.",
       "cutlistFaqQ": "Do I need to draw a plan before building furniture myself? How do I write a cut list?",
@@ -577,7 +577,7 @@
       "cadQ": "How does this compare to SketchUp / Fusion 360?",
       "cadA": "Designer is for woodworkers who want to build, not learn CAD. Five-minute learning curve, automatic joinery / three-view / cut list / cutting plan. Not trying to replace professional CAD.",
       "tierQ": "Personal vs Pro — what's the difference?",
-      "tierA": "Hobby use: Personal (full 26 templates + reno tools). Earning a living from woodworking: Pro (adds customer quote system, CNC export, unlimited size).",
+      "tierA": "Hobby use: Personal (full 25 templates + reno tools). Earning a living from woodworking: Pro (adds customer quote system, CNC export, unlimited size).",
       "cancelQ": "Can I cancel anytime?",
       "cancelA": "Yes. Monthly cancels anytime, keeps access through the current period. Yearly: 7-day no-questions full refund.",
       "cncQ": "Can I take the output to CNC?",
@@ -594,8 +594,8 @@
   },
   "templates": {
     "metadata": {
-      "title": "26 Furniture Templates · Full Guide | Wooden Ren Blueprint",
-      "description": "From square stools, pencil holders and side tables to wardrobes, desks and dining chairs — full overview of 26 parameterizable furniture templates. Each entry shows what it builds, who it suits, what tools you need, and how to vary it."
+      "title": "25 Furniture Templates · Full Guide | Wooden Ren Blueprint",
+      "description": "From square stools, pencil holders and side tables to wardrobes, desks and dining chairs — full overview of 25 parameterizable furniture templates. Each entry shows what it builds, who it suits, what tools you need, and how to vary it."
     },
     "filter": {
       "label": "Filter",
@@ -609,8 +609,8 @@
     "jumpTo": "Jump to",
     "header": {
       "badge": "Full template guide · use cases + FAQ",
-      "h1": "26 Furniture Templates + 3 Interior Tools",
-      "h1En": "26 Furniture Templates",
+      "h1": "25 Furniture Templates + 3 Interior Tools",
+      "h1En": "25 Furniture Templates",
       "subtitle1": "Every piece has its joinery, its use case, its variations.",
       "subtitle2": "Ceiling framing, flooring and tatami platform tools live here too.",
       "subtitle3": "Read the guide first, then decide whether to build it.",
@@ -1078,7 +1078,7 @@
         "unit": "/mo",
         "features": [
           "Includes the CNC toolpath generator",
-          "+ all 26 furniture design templates",
+          "+ all 25 furniture design templates",
           "+ ceiling / floor / raised-floor tools",
           "PDF shop drawings & cut lists"
         ],
@@ -1148,7 +1148,7 @@
           "href": "/templates",
           "emoji": "📐",
           "title": "All furniture templates",
-          "body": "26 parametric furniture designs with three-views, joinery explosions and cut lists."
+          "body": "25 parametric furniture designs with three-views, joinery explosions and cut lists."
         }
       ]
     },
@@ -1220,7 +1220,7 @@
       "ctaGuest": "Sign in to start",
       "ctaUpgrade": "Upgrade Personal to unlock",
       "ctaSecondary": "View plans",
-      "footnote": "Included in Personal plan — one key unlocks all 26 furniture templates.",
+      "footnote": "Included in Personal plan — one key unlocks all 25 furniture templates.",
       "shareTitle": "Wood Ceiling Framing Simulator | Draw room → calc battens & boards & hangers → A4 quote",
       "diagramAria": "Ceiling framing section diagram",
       "diagramLabel1": "Main battens + sub battens + fiber-cement board",
@@ -1459,11 +1459,11 @@
         },
         {
           "q": "How much does the tool cost?",
-          "a": "Pro Monthly $9/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
+          "a": "Pro Monthly $9/mo — includes all 25 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
         },
         {
           "q": "Can I buy just this tool?",
-          "a": "Yes. Find the single-tool unlock for ceiling on /pricing. But Personal covers all 26 furniture + 3 interior tools — most people end up subscribing to Personal instead."
+          "a": "Yes. Find the single-tool unlock for ceiling on /pricing. But Personal covers all 25 furniture + 3 interior tools — most people end up subscribing to Personal instead."
         },
         {
           "q": "What about my bay window or slanted wall?",
@@ -1496,7 +1496,7 @@
         "price": "$9",
         "unit": "/mo",
         "features": [
-          "All 26 furniture templates unlocked",
+          "All 25 furniture templates unlocked",
           "Ceiling + floor + raised platform",
           "Unlimited PDF print + cloud storage"
         ],
@@ -1537,7 +1537,7 @@
         {
           "href": "/templates",
           "emoji": "🪑",
-          "title": "26 furniture templates",
+          "title": "25 furniture templates",
           "body": "From pencil holders to wardrobes — interior projects often pair with furniture."
         }
       ]
@@ -1547,7 +1547,7 @@
       "bodyLine1": "Less than a cup of coffee, a full toolkit comes with you.",
       "bodyLine2": "Includes furniture templates + floor + raised platform — every interior takeoff in one place.",
       "ctaSecondary": "View full plans",
-      "footnote": "Pro Monthly $9/mo · all 26 furniture templates + ceiling + floor + raised platform"
+      "footnote": "Pro Monthly $9/mo · all 25 furniture templates + ceiling + floor + raised platform"
     },
     "schema": {
       "productName": "Wood Ceiling Framing Simulator",
@@ -1809,7 +1809,7 @@
         },
         {
           "q": "How much does the tool cost?",
-          "a": "Pro Monthly $9/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
+          "a": "Pro Monthly $9/mo — includes all 25 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
         },
         {
           "q": "Can I buy just the floor simulator?",
@@ -1846,7 +1846,7 @@
         "price": "$9",
         "unit": "/mo",
         "features": [
-          "All 26 furniture templates unlocked",
+          "All 25 furniture templates unlocked",
           "Ceiling + floor + raised platform",
           "Unlimited PDF print + cloud storage"
         ],
@@ -1887,7 +1887,7 @@
         {
           "href": "/templates",
           "emoji": "🪑",
-          "title": "26 furniture templates",
+          "title": "25 furniture templates",
           "body": "From pencil holders to wardrobes — interior projects often pair with furniture."
         }
       ]
@@ -1897,7 +1897,7 @@
       "bodyLine1": "Living room one, dining room one, study one — a few more projects a month and the subscription pays back instantly.",
       "bodyLine2": "Less than a cup of coffee, a full interior toolkit comes with you.",
       "ctaSecondary": "View full plans",
-      "footnote": "Pro Monthly $9/mo · all 26 furniture templates + ceiling + floor + raised platform"
+      "footnote": "Pro Monthly $9/mo · all 25 furniture templates + ceiling + floor + raised platform"
     },
     "schema": {
       "productName": "Floor Installation Simulator",
@@ -2170,7 +2170,7 @@
         },
         {
           "q": "How much does the tool cost?",
-          "a": "Pro Monthly $9/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
+          "a": "Pro Monthly $9/mo — includes all 25 furniture templates + ceiling framing + floor simulator + raised platform. Pro Annual $79/yr — adds client quoting system + STL/CNC export + unlimited dimensions."
         },
         {
           "q": "Can I buy just the raised platform tool?",
@@ -2207,7 +2207,7 @@
         "price": "$9",
         "unit": "/mo",
         "features": [
-          "All 26 furniture templates unlocked",
+          "All 25 furniture templates unlocked",
           "Ceiling + floor + raised platform",
           "Unlimited PDF print + cloud storage"
         ],
@@ -2248,7 +2248,7 @@
         {
           "href": "/templates",
           "emoji": "🪑",
-          "title": "26 furniture templates",
+          "title": "25 furniture templates",
           "body": "From pencil holders to wardrobes — designers often pair these with interior projects."
         }
       ]
@@ -2258,7 +2258,7 @@
       "bodyLine1": "Tatami one, guest room one, sleeping platform one — save hours each month, double your close speed.",
       "bodyLine2": "Less than a cup of coffee, a full toolkit comes with you.",
       "ctaSecondary": "View full plans",
-      "footnote": "Pro Monthly $9/mo · all 26 furniture templates + ceiling + floor + raised platform",
+      "footnote": "Pro Monthly $9/mo · all 25 furniture templates + ceiling + floor + raised platform",
       "marketRefNote": "Reference: Taiwan tatami raised-platform market runs NT$ {price}/ping and up — one miscalculated ping costs more than half a year of this tool's subscription."
     },
     "schema": {
@@ -2272,7 +2272,7 @@
   },
   "home": {
     "metaTitle": "Wooden Ren Furniture Blueprints | Engineering drawings, BOM, quote in 3 minutes",
-    "metaDescription": "26 furniture templates — square stool, tea table, desk, wardrobe, dining chair, shoe cabinet, wine rack — enter L×W×H and wood, auto-generate three-view drawings, perspective, joinery details, BOM, A4 PDF plans. By Wooden Ren Carpentry Academy.",
+    "metaDescription": "25 furniture templates — square stool, tea table, desk, wardrobe, dining chair, shoe cabinet, wine rack — enter L×W×H and wood, auto-generate three-view drawings, perspective, joinery details, BOM, A4 PDF plans. By Wooden Ren Carpentry Academy.",
     "chipAll": "All",
     "chipSeating": "Seating",
     "chipTable": "Tables",
@@ -2714,7 +2714,7 @@
     "tierPersonalTitle": "Personal subscription",
     "tierPersonalPrice": "$9",
     "tierPersonalUnit": "/mo",
-    "tierPersonalFeature1": "All 26 templates unlocked",
+    "tierPersonalFeature1": "All 25 templates unlocked",
     "tierPersonalFeature2": "Ceiling + flooring simulators",
     "tierPersonalFeature3": "Unlimited PDF + cloud saves",
     "tierPersonalCta": "Upgrade to Personal",
@@ -2732,10 +2732,10 @@
     "relatedSubtitle": "Same family or complementary templates",
     "relatedFreeBadge": "Free",
     "relatedFullGuide": "Full guide →",
-    "relatedViewAll": "View all 26 templates →",
+    "relatedViewAll": "View all 25 templates →",
     "bottomCtaH2": "Start designing your {name}",
     "bottomCtaBodyFree": "Free template — no signup, no payment, start now.",
-    "bottomCtaBodyPaid": "Personal plan TWD 390/mo unlocks all 26 templates + interior tools.",
+    "bottomCtaBodyPaid": "Personal plan TWD 390/mo unlocks all 25 templates + interior tools.",
     "bottomCtaTryFree": "Try free →",
     "bottomCtaStartDesign": "Start designing →",
     "bottomCtaBrowse": "Browse templates"
@@ -4080,7 +4080,7 @@
     },
     {
       "q": "What's the difference between Personal (NT$390) and Pro (NT$890)?",
-      "a": "Personal: all 26 templates + ceiling/floor simulators + PDF + unlimited cloud storage. For DIY, home projects, weekend furniture makers.\n\nPro: everything in Personal + customer quote system + customer database + STL/OBJ export (CNC-ready) + Designer Mode (no size limit). For professionals who work jobs or run a studio.\n\nShort version: not taking jobs → Personal. Earning a living from this → Pro."
+      "a": "Personal: all 25 templates + ceiling/floor simulators + PDF + unlimited cloud storage. For DIY, home projects, weekend furniture makers.\n\nPro: everything in Personal + customer quote system + customer database + STL/OBJ export (CNC-ready) + Designer Mode (no size limit). For professionals who work jobs or run a studio.\n\nShort version: not taking jobs → Personal. Earning a living from this → Pro."
     },
     {
       "q": "Can I cancel any time? Will I be auto-renewed?",
@@ -5293,7 +5293,7 @@
       "monthlySubtitle": "Cancel anytime",
       "monthlyCta": "Start monthly",
       "monthlyFeatures": [
-        "All 27+ furniture templates",
+        "All 25 furniture templates",
         "Unlimited designs",
         "PDF & SVG export",
         "Bill of materials + cut list",
@@ -5498,7 +5498,7 @@
         "desc": "One board, one afternoon — a small project for practising chisel work and glue-ups."
       },
       "open": "Start free →",
-      "seeAll": "See all 26 templates →"
+      "seeAll": "See all 25 templates →"
     }
   }
 }
