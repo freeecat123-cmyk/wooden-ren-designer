@@ -38,7 +38,7 @@ export function studentEnrolledEmail(input: {
       `Your Wooden Ren Blueprint account is now upgraded to the Student plan, valid through ${expiresStr}.`,
       ``,
       `Student plan includes:`,
-      `- All 26 furniture templates unlocked (free plan only has 3)`,
+      `- All 25 furniture templates unlocked (free plan only has 3)`,
       `- Unlimited saved designs (free plan caps at 3)`,
       `- PDF print + A4 shop drawings download`,
       `- Quotes, cut lists, cut layout`,
@@ -60,7 +60,7 @@ Your Wooden Ren Blueprint account is now upgraded to the <strong>Student</strong
 <strong>${escapeHtml(expiresStr)}</strong>.</p>
 <h3 style="font-size:15px;margin:20px 0 8px;color:#374151">Student plan includes</h3>
 <ul style="padding-left:18px;line-height:1.7;color:#374151;font-size:14px">
-  <li>All 26 furniture templates unlocked (free plan: 3)</li>
+  <li>All 25 furniture templates unlocked (free plan: 3)</li>
   <li>Unlimited saved designs (free plan caps at 3)</li>
   <li>PDF print / A4 shop drawings download</li>
   <li>Quotes, cut lists, cut layout</li>
@@ -92,7 +92,7 @@ Your Wooden Ren Blueprint account is now upgraded to the <strong>Student</strong
     `木頭仁 木作藍圖 自動升級成 學員版,可用到 ${expiresStr}。`,
     ``,
     `學員版包含:`,
-    `- 26 種家具範本全解鎖(原本免費版只有 3 種)`,
+    `- 25 種家具範本全解鎖(原本免費版只有 3 種)`,
     `- 無限儲存設計(原本免費版上限 3 件)`,
     `- 工程圖 PDF 列印 / A4 工程圖紙下載`,
     `- 報價單 / 材料單 / 裁切圖`,
@@ -116,7 +116,7 @@ Your Wooden Ren Blueprint account is now upgraded to the <strong>Student</strong
 
 <h3 style="font-size:15px;margin:20px 0 8px;color:#374151">學員版包含</h3>
 <ul style="padding-left:18px;line-height:1.7;color:#374151;font-size:14px">
-  <li>26 種家具範本全解鎖(原本免費版只有 3 種)</li>
+  <li>25 種家具範本全解鎖(原本免費版只有 3 種)</li>
   <li>無限儲存設計(原本免費版上限 3 件)</li>
   <li>工程圖 PDF 列印 / A4 工程圖紙下載</li>
   <li>報價單 / 材料單 / 裁切圖</li>
