@@ -1,6 +1,10 @@
 import { build } from "esbuild";
 import { chromium, type Browser } from "playwright";
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
+
+// 真瀏覽器測試：單獨跑 1~2 秒，但全套 1868 題並行時會被擠到超過預設 5 秒而逾時
+// （2026-09-19 連跑三次紅兩次，斷言本身都沒錯）。只放寬時限，不動任何斷言。
+vi.setConfig({ testTimeout: 15_000 });
 
 let browser: Browser;
 let bundle: string;
