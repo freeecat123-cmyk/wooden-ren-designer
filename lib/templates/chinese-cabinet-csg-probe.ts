@@ -54,4 +54,7 @@ for (const part of receivers) {
   stock.dispose(); cut.dispose();
 }
 material.dispose();
-process.stdout.write(`${receivers.length} receivers verified\n`);
+// 牆鐘時間會隨機器負載（並行的 vitest worker）浮動，當不了效能閘；
+// CPU 時間只算這支自己燒掉的運算，不受旁邊多忙影響，所以由探針自己報出來。
+const cpuMs = Math.round((process.cpuUsage().user + process.cpuUsage().system) / 1000);
+process.stdout.write(`${receivers.length} receivers verified in ${cpuMs}ms cpu\n`);

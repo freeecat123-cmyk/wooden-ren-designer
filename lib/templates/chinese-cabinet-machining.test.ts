@@ -165,16 +165,29 @@ for (const [hoofMm, hoofScale] of [[80, 1.35], [140, 1.6]]) {
   });
 }
 
+// 效能閘只能卡 CPU 時間,不能卡牆鐘。
+// 🩸 2026-09-21:牆鐘 timeout 原本是 10s,但整套 vitest 並行時這支子程序要跟其他 worker
+//    搶 CPU —— 實測 7 路競爭下 140/1.6 牆鐘 4.8s → 23.1s(被 SIGKILL,隨機擋掉上線),
+//    同一次的 CPU 時間只從 4.76s → 6.07s(漂 1.28 倍)。所以牆鐘 timeout 降格成「當機保險絲」,
+//    真正的效能退步由下面這條 CPU 預算擋。探針會在 stdout 印出自己燒掉的 CPU 毫秒數。
+const CPU_BUDGET_MS = 12000; // 實測最慢 6.07s(競爭下),留 2 倍餘裕;CSG 真的變慢 2.5 倍就會紅
+function expectWithinCpuBudget(stdout: string, diagnostic: string) {
+  const m = /verified in (\d+)ms cpu/.exec(stdout);
+  expect(m?.[1], `探針沒印出 CPU 時間\n${diagnostic}`).toBeDefined();
+  expect(Number(m![1]), `CSG 花掉的 CPU 時間超出預算\n${diagnostic}`).toBeLessThanOrEqual(CPU_BUDGET_MS);
+}
+
 for (const [hoofMm, hoofScale] of [[80, 1.35], [140, 1.6]]) {
   it(`actual CSG cuts every receiver notch and retains its core: ${hoofMm}/${hoofScale}`, () => {
     const result = spawnSync(process.execPath, ["--import", "tsx",
       "lib/templates/chinese-cabinet-csg-probe.ts", String(hoofMm), String(hoofScale)], {
-      cwd: process.cwd(), timeout: 10000, killSignal: "SIGKILL", encoding: "utf8", maxBuffer: 1024 * 1024,
+      cwd: process.cwd(), timeout: 60000, killSignal: "SIGKILL", encoding: "utf8", maxBuffer: 1024 * 1024,
     });
     const diagnostic = result.stderr.split("\n").filter(line => /^(CSG |AssertionError)/.test(line)).join("\n");
     expect(result.error?.message ?? "", diagnostic).not.toContain("ETIMEDOUT");
     expect(result.status, diagnostic).toBe(0);
     expect(result.stdout).toContain("8 receivers verified");
+    expectWithinCpuBudget(result.stdout, diagnostic);
   }, 15000);
 }
 
@@ -200,12 +213,13 @@ it("has actual notch/post contact samples, and removing a cut restores real soli
 for (const cabinetPreset of ["round-cabinet", "top-cabinet"]) {
   it(`actually machines nondefault panel grooves within the hard deadline: ${cabinetPreset}`, () => {
     const result = spawnSync(process.execPath, ["--import", "tsx", "lib/templates/chinese-cabinet-csg-probe.ts", "80", "1.35", cabinetPreset], {
-      cwd: process.cwd(), timeout: 10000, killSignal: "SIGKILL", encoding: "utf8", maxBuffer: 1024 * 1024,
+      cwd: process.cwd(), timeout: 60000, killSignal: "SIGKILL", encoding: "utf8", maxBuffer: 1024 * 1024,
     });
     const diagnostic = result.stderr.split("\n").filter(line => /^(CSG |AssertionError)/.test(line)).join("\n");
     expect(result.error?.message ?? "", diagnostic).not.toContain("ETIMEDOUT");
     expect(result.status, diagnostic).toBe(0);
     expect(result.stdout).toContain(`${cabinetPreset === "top-cabinet" ? 12 : 6} receivers verified`);
+    expectWithinCpuBudget(result.stdout, diagnostic);
   }, 15000);
   it(`proves groove engagement and remaining cheeks using mesh sections: ${cabinetPreset}`, () => {
     const d = chineseCabinet({ length: 1000, width: 550, height: 2000, material: "maple",
