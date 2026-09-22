@@ -243,7 +243,22 @@ for (const e of FURNITURE_CATALOG as any[]) {
 console.log(`掃了 ${designs} 個設計 / ${pairsChecked} 個接合×視圖`);
 const uniq = (arr: string[]) => [...new Set(arr)];
 console.log(`\n圖上接不上（> ${TOL}mm）：${uniq(gaps).length}`); for (const g of uniq(gaps)) console.log("  ❌ " + g);
-console.log(`\n零件沒畫出來：${uniq(missing).length}`); for (const g of uniq(missing).slice(0, 60)) console.log("  ⚠️ " + g);
-if (uniq(missing).length > 60) console.log(`  …還有 ${uniq(missing).length - 60} 條`);
+// 「沒畫出來」要分視圖看（2026-09-22，§A12）：
+//   top 漏畫多半是零件整個被檯面／頂板蓋住 → 正常，只警告
+//   front／side 漏畫＝主視圖上這個零件根本沒線 → 客人照圖做不出來，要紅
+const missByView: Record<"front" | "side" | "top" | "other", string[]> =
+  { front: [], side: [], top: [], other: [] };
+for (const g of uniq(missing)) {
+  const m = /\] (front|side|top): /.exec(g);
+  missByView[(m?.[1] as "front" | "side" | "top") ?? "other"].push(g);
+}
+// 認不出視圖的也算硬錯：退路是擋，不是放行
+const hardMissing = [...missByView.front, ...missByView.side, ...missByView.other];
+console.log(`\n零件沒畫出來：${uniq(missing).length}（front=${missByView.front.length} side=${missByView.side.length} top=${missByView.top.length}${missByView.other.length ? ` 無法判讀視圖=${missByView.other.length}` : ""}）`);
+console.log(`\n主視圖／側視圖沒畫出來（會紅）：${hardMissing.length}`);
+for (const g of hardMissing) console.log("  ❌ " + g);
+console.log(`\n俯視圖沒畫出來（多半被檯面蓋住，只警告）：${missByView.top.length}`);
+for (const g of missByView.top.slice(0, 20)) console.log("  ⚠️ " + g);
+if (missByView.top.length > 20) console.log(`  …還有 ${missByView.top.length - 20} 條`);
 console.log(`\n炸掉：${errors.length}`); for (const g of errors) console.log("  💥 " + g);
-process.exit(gaps.length ? 1 : 0);
+process.exit(gaps.length || hardMissing.length ? 1 : 0);
