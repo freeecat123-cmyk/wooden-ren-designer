@@ -377,6 +377,9 @@ describe("全目錄預設值掃描（每一款都要排得出來）", () => {
         "cert-b3": ["drawer-1-side-left", "drawer-1-side-right"],
         "cert-b4": ["drawer-1-side-left", "drawer-1-side-right"],
       };
+      // cert-b5：一開始以為跟 cert-b3/b4 一樣互鎖（前角鳩尾沿 z、後角木釘沿 x），
+      // 實測 planAssembly 找得到逐件插入順序（見下面的契約檢查，forced 是空的）→ 不是同一種病，
+      // 不要照抄 b3/b4 硬加豁免（那條規則本身就是「不再互鎖就要拿掉」的契約）。
       const allowForced = interlockedGlueUp[e.category] ?? [];
       const allowSet = new Set(allowForced);
       const forced = plan.moves.filter((m) => m.kind === "forced");

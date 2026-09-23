@@ -39,6 +39,7 @@ import { certB1, certB1Options } from "./cert-b1";
 import { certB2, certB2Options } from "./cert-b2";
 import { certB3, certB3Options } from "./cert-b3";
 import { certB4, certB4Options } from "./cert-b4";
+import { certB5, certB5Options } from "./cert-b5";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -186,6 +187,21 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     // 尺寸鎖死：木釘列、抽屜、腳柱在腳座上的 145｜90｜145 全是考題常數，動一個其他全錯
     limits: { length: 472, width: 380, height: 370 },
     optionSchema: certB4Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-b5",
+    zhOnly: true,
+    nameZh: "乙級檢定 第五題",
+    nameEn: "Trade test Class B — Q5",
+    description: "技術士技能檢定家具木工乙級 01200-100205：雙腳端單抽小凳/邊几，兩端各 2 支 45×32 直腳、後側一支 90×20 上橫檔、前後各一支 45×32 下橫檔，抽屜前板 130 高、前角鳩尾，7 小時",
+    descriptionEn: "Taiwan Class B furniture-woodworking trade test Q5: a two-end drawer stool/side table — 4 straight 45x32 legs, one 90x20 back rail near the top plus two 45x32 lower rails, and a front-opening drawer with a 130mm-tall dovetailed front — 7-hour piece",
+    difficulty: "advanced",
+    template: certB5,
+    defaults: { length: 480, width: 380, height: 380 },
+    // 尺寸鎖死：全部是考題官方常數，跟前四題一樣不開放滑桿調整
+    limits: { length: 480, width: 380, height: 380 },
+    optionSchema: certB5Options,
     joineryOnly: true,
   },
   {
@@ -570,6 +586,7 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
   "cert-b3",   // 同上（乙級第三題）
   "cert-b4",   // 同上（乙級第四題）
   "cert-b2",   // 同上，乙級整組先不公開——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
+  "cert-b5",   // 同上（乙級第五題；且只走過單人讀圖，還沒複查，更不能上架）
 ]);
 
 /** 這個分類還在開發中嗎(sitemap 不收、頁面加 noindex、目錄不列)。 */
@@ -594,7 +611,7 @@ export function isDevCategory(category: string): boolean {
  */
 export const EXAM_CATEGORIES: ReadonlySet<string> = new Set([
   "cert-c1", "cert-c2", "cert-c3",
-  "cert-b1", "cert-b2", "cert-b3", "cert-b4",
+  "cert-b1", "cert-b2", "cert-b3", "cert-b4", "cert-b5",
 ]);
 
 /** 這是技能檢定考題範本嗎（預設尺寸＝答案，沒買斷就不給圖面）。 */
