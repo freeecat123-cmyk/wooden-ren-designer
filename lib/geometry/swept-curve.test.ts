@@ -6,8 +6,11 @@ import {
   profileWidthAt,
   projectSweptOutline,
   sampleCenterline,
+  sweptCapRing,
   sweptDistanceToSolid,
   sweptEndpoints,
+  profileLoops,
+  sweptSurfaceRings,
   sweptFrames,
   sweptLocalAABB,
   sweptPartFromWorldPoints,
@@ -184,5 +187,53 @@ describe("swept-curve 零件（sweptPartFromWorldPoints）", () => {
     // ¾ 圓弧帶面積 ≈ 弧長 × 40 ≈ 1414×40 ≈ 56k；凸包 ≈ 整個圓盤 ≈ 280k
     expect(area).toBeLessThan(hullArea * 0.4);
     expect(area).toBeGreaterThan(40000);
+  });
+});
+
+describe("端面切平面（startCap / endCap，§S7.1）與皮條線斷面", () => {
+  const slanted = (cap?: { start?: Vec3; end?: Vec3 }): SweptCurveShape => ({
+    kind: "swept-curve",
+    // 斜圓柱：從 (0,0,0) 往上、往 +x 傾 ~10°
+    controlPoints: [{ x: 0, y: 0, z: 0 }, { x: 30, y: 170, z: 0 }, { x: 60, y: 340, z: 0 }],
+    profile: { type: "round", radiusStart: 18, radiusEnd: 18 },
+    ...(cap?.start ? { startCap: cap.start } : {}),
+    ...(cap?.end ? { endCap: cap.end } : {}),
+  });
+  it("沒給 cap：端面垂直於切線（既有行為）；給了水平 cap：端面所有點同一個 y、端點與切線不變", () => {
+    const plain = slanted();
+    const c0 = sweptCapRing(plain, "start");
+    const ys0 = c0.points.map((q) => q.y);
+    expect(Math.max(...ys0) - Math.min(...ys0)).toBeGreaterThan(2); // 斜切圓柱的垂直端面有高低差
+    const capped = slanted({ start: { x: 0, y: -1, z: 0 }, end: { x: 0, y: 1, z: 0 } });
+    const c1 = sweptCapRing(capped, "start");
+    const ys1 = c1.points.map((q) => q.y);
+    expect(Math.max(...ys1) - Math.min(...ys1)).toBeLessThan(1e-9);
+    expect(Math.abs(ys1[0])).toBeLessThan(1e-9);
+    const e0 = sweptEndpoints(plain), e1 = sweptEndpoints(capped);
+    expect(e1.start.point).toEqual(e0.start.point);
+    expect(e1.end.outward).toEqual(e0.end.outward);
+    // 變異：cap 跟切線幾乎垂直（> 72°）要被忽略、退回垂直端面
+    const bad = slanted({ end: { x: 1, y: 0, z: 0 } });
+    const cb = sweptCapRing(bad, "end");
+    const ysb = cb.points.map((q) => q.y);
+    expect(Math.max(...ysb) - Math.min(...ysb)).toBeGreaterThan(2);
+  });
+  it("皮條線：上半是弧（|x/w|ⁿ+|y/h|ⁿ=1）、下半平底 + 導圓；上面最高點在中心、底面平", () => {
+    const pr = { type: "rect" as const, widthStart: 44, widthEnd: 44, thickness: 36, sectionStyle: "pitiao" as const, topExponent: 2.6, cornerR: 5 };
+    const loop = profileLoops(pr, 0.5).loops[0];
+    const top = loop.filter((q) => q.y > 0.1);
+    const bottom = loop.filter((q) => q.y < -17.9);
+    expect(top.length).toBeGreaterThan(10);
+    for (const q of top) expect(Math.pow(Math.abs(q.x / 22), 2.6) + Math.pow(Math.abs(q.y / 18), 2.6)).toBeCloseTo(1, 3);
+    // 平底：x 從 −(w−cr) 到 +(w−cr) 的點都在 y = −h
+    expect(Math.min(...bottom.map((q) => q.x))).toBeLessThan(-(22 - 5) + 0.01);
+    expect(Math.max(...bottom.map((q) => q.x))).toBeGreaterThan((22 - 5) - 0.01);
+    // 上面在 x=±22 高度為 0（弧從腰起），最高點 18
+    expect(Math.max(...loop.map((q) => q.y))).toBeCloseTo(18, 6);
+    // 3D 放樣後 rings 數 = 站數、每站點數一致
+    const shape: SweptCurveShape = { kind: "swept-curve", controlPoints: [{ x: 0, y: 0, z: 0 }, { x: 100, y: 0, z: 0 }, { x: 200, y: 0, z: 0 }], profile: pr };
+    const surf = sweptSurfaceRings(shape);
+    expect(surf.closed).toBe(true);
+    expect(new Set(surf.rings.map((st) => st[0].length)).size).toBe(1);
   });
 });

@@ -1,6 +1,7 @@
 import type { Part } from "@/lib/types";
 import { projectPartSilhouette, worldExtents } from "@/lib/render/geometry";
-import { precomputeSilhouettes, sliceOverlapAtY } from "@/lib/geometry/y-slice";
+import { partAabbAtY, precomputeSilhouettes, sliceOverlapAtY } from "@/lib/geometry/y-slice";
+import { profileWidthAt, sweptSurfaceRings } from "@/lib/geometry/swept-curve";
 import { obstacleInShelf } from "./shelf-clearance";
 import { mortiseLocalBox } from "@/lib/render/svg-views";
 import { Euler, Vector3 } from "three";
@@ -289,15 +290,133 @@ export function obbIntersect(a: OBB, b: OBB, toleranceMm = 1): boolean {
  */
 const Y_SLICE_SAMPLES: number = 24;
 
+/**
+ * swept-curve 曲料的逐站「有向」小盒子（世界座標；每站一個，沿切線 T 的長度 = 到下一站的距離，
+ * 斷面半寬 hw（沿 N）、半厚 hb（沿 B）＝該站斷面）。
+ *
+ * 為什麼不用 Y-slice：「front X 區間 × side Z 區間」對彎曲的椅圈是整條弧的外接矩形——
+ * 後高前低的扶手在某個高度同時出現在 z=−340（鱔魚頭）和 z=−140（聯幫棍頂），拼出來的
+ * AABB 把弧內側整塊算成木頭，聯幫棍頂貼在扶手底卻被報成穿模 4mm；改成逐站 AABB 又會把
+ * 傾斜接觸面（柱頂貼在下降的扶手底、棖端貼在收分腿面）的薄薄一層算成整層重疊（2026-09-23 實測）。
+ * 所以曲料改量「真正的穿深」：對方的表面採樣點鑽進這些有向小盒子多深，> tolerance 才算穿模。
+ */
+type Vec3 = V3;
+type StationBox = { c: Vec3; T: Vec3; N: Vec3; B: Vec3; hl: number; hw: number; hb: number };
+
+function sweptStationBoxes(part: Part): StationBox[] {
+  if (part.shape?.kind !== "swept-curve") return [];
+  const shape = part.shape;
+  const surf = sweptSurfaceRings(shape);
+  const yOff = part.origin.y + part.visible.thickness / 2;
+  const n = surf.sample.points.length;
+  const total = surf.sample.s[n - 1] || 1;
+  const out: StationBox[] = [];
+  for (let i = 0; i + 1 < n; i++) {
+    const a = surf.sample.points[i], b = surf.sample.points[i + 1];
+    const d = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+    const L = Math.hypot(d.x, d.y, d.z);
+    if (L < 1e-9) continue;
+    const T = { x: d.x / L, y: d.y / L, z: d.z / L };
+    const { N, B } = surf.frames[i];
+    const t01 = (surf.sample.s[i] + surf.sample.s[i + 1]) / 2 / total;
+    const w = profileWidthAt(shape.profile, t01) / 2;
+    const hb = shape.profile.type === "round" ? w : shape.profile.thickness / 2;
+    out.push({
+      c: { x: part.origin.x + (a.x + b.x) / 2, y: yOff + (a.y + b.y) / 2, z: part.origin.z + (a.z + b.z) / 2 },
+      T, N, B, hl: L / 2, hw: w, hb,
+    });
+  }
+  return out;
+}
+
+/** 曲料的表面採樣點（世界）——當「對方」的探針 */
+function sweptSurfacePoints(part: Part): Vec3[] {
+  if (part.shape?.kind !== "swept-curve") return [];
+  const surf = sweptSurfaceRings(part.shape);
+  const yOff = part.origin.y + part.visible.thickness / 2;
+  const out: Vec3[] = [];
+  for (const st of surf.rings) for (const loop of st) for (const q of loop) {
+    out.push({ x: part.origin.x + q.x, y: yOff + q.y, z: part.origin.z + q.z });
+  }
+  return out;
+}
+
+/** 點鑽進曲料有向小盒子的深度（0 = 在外面） */
+function penetrationIntoSwept(boxes: StationBox[], p: Vec3): number {
+  let best = 0;
+  for (const bx of boxes) {
+    const d = { x: p.x - bx.c.x, y: p.y - bx.c.y, z: p.z - bx.c.z };
+    const dl = bx.hl - Math.abs(d.x * bx.T.x + d.y * bx.T.y + d.z * bx.T.z);
+    if (dl <= 0) continue;
+    const dn = bx.hw - Math.abs(d.x * bx.N.x + d.y * bx.N.y + d.z * bx.N.z);
+    if (dn <= 0) continue;
+    const db = bx.hb - Math.abs(d.x * bx.B.x + d.y * bx.B.y + d.z * bx.B.z);
+    if (db <= 0) continue;
+    // 沿切線方向的「深度」不算（那是相鄰站的木頭），只看斷面方向
+    const pen = Math.min(dn, db);
+    if (pen > best) best = pen;
+  }
+  return best;
+}
+
+/** 點鑽進直料（用它 front/side silhouette 在該高度的 XZ-AABB）的深度（0 = 在外面） */
+function penetrationIntoSlices(front: V2s, side: V2s, p: Vec3): number {
+  const a = partAabbAtY(front, side, p.y);
+  if (!a) return 0;
+  const dx = Math.min(p.x - a.x[0], a.x[1] - p.x);
+  const dz = Math.min(p.z - a.z[0], a.z[1] - p.z);
+  if (dx <= 0 || dz <= 0) return 0;
+  return Math.min(dx, dz);
+}
+
+type V2s = Array<{ x: number; y: number }>;
+type OverlapEntry = { id: string; aabb: AABB3D; front: V2s; side: V2s; stations: StationBox[]; probes: Vec3[]; part: Part };
+
+/** 有曲料的一對：雙向量穿深（A 的探針鑽進 B、B 的探針鑽進 A），回傳最大值 */
+function curvedPairPenetration(a: OverlapEntry, b: OverlapEntry, yMin: number, yMax: number): number {
+  const inY = (p: Vec3) => p.y >= yMin - 1 && p.y <= yMax + 1;
+  let best = 0;
+  const probe = (from: OverlapEntry, into: OverlapEntry) => {
+    const pts = from.probes.length ? from.probes : boxProbePoints(from.part);
+    for (const p of pts) {
+      if (!inY(p)) continue;
+      const pen = into.stations.length ? penetrationIntoSwept(into.stations, p) : penetrationIntoSlices(into.front, into.side, p);
+      if (pen > best) best = pen;
+    }
+  };
+  probe(a, b);
+  probe(b, a);
+  return best;
+}
+
+/** 直料當探針：用它的 front/side silhouette 頂點反推世界點不可靠，改用 OBB 的 8 角 + 12 邊中點 + 6 面中心 */
+function boxProbePoints(part: Part): Vec3[] {
+  const o = obbFromPart(part);
+  const pts: Vec3[] = [];
+  const at = (u: number, v: number, w: number): Vec3 => ({
+    x: o.center.x + o.axes[0].x * u * o.halfExtents[0] + o.axes[1].x * v * o.halfExtents[1] + o.axes[2].x * w * o.halfExtents[2],
+    y: o.center.y + o.axes[0].y * u * o.halfExtents[0] + o.axes[1].y * v * o.halfExtents[1] + o.axes[2].y * w * o.halfExtents[2],
+    z: o.center.z + o.axes[0].z * u * o.halfExtents[0] + o.axes[1].z * v * o.halfExtents[1] + o.axes[2].z * w * o.halfExtents[2],
+  });
+  for (const u of [-1, 0, 1]) for (const v of [-1, 0, 1]) for (const w of [-1, 0, 1]) {
+    if (u === 0 && v === 0 && w === 0) continue;
+    pts.push(at(u, v, w));
+  }
+  return pts;
+}
+
 export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
   const candidates = parts.filter((p) => p.visual !== "glass");
-  const entries = candidates.map((p) => {
+  const entries: OverlapEntry[] = candidates.map((p) => {
     const sil = precomputeSilhouettes(p);
     return {
       id: p.id,
       aabb: worldAABB(p),
       front: sil.front,
       side: sil.side,
+      stations: sweptStationBoxes(p),
+      probes: sweptSurfacePoints(p),
+      part: p,
     };
   });
   const overlaps: Overlap[] = [];
@@ -346,6 +465,14 @@ export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
         if (layer.z > worstZ) worstZ = layer.z;
       }
       if (!foundLayer) continue;
+      // 有曲料的一對：Y-slice 的 AABB 對弧形／傾斜接觸面會誤報（見 sweptStationBoxes 註解），
+      // 改用真正的穿深判定；直料對直料維持原本行為（其他家具 byte 不變）。
+      if (a.stations.length || b.stations.length) {
+        const pen = curvedPairPenetration(a, b, yMin, yMax);
+        if (pen <= toleranceMm) continue;
+        worstX = Math.max(worstX, pen);
+        worstZ = Math.max(worstZ, pen);
+      }
       // A rejected aggregate excavation must not be re-approved by a later
       // legacy cutter/shape proof. Keep the candidate visible for review.
       const unsafeConstruction = [candidates[i], candidates[j]].some(p => constructionLimits(p).issues.length > 0);

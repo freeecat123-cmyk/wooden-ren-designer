@@ -32,6 +32,11 @@ export type SweptProfile =
    * - widthAlong：寬度軸鎖世界軸（靠背板板寬永遠橫向 → "x"）。
    *   兩者擇一；都不給 → thicknessAlong "y"。
    * - cornerR：斷面四角導圓（椅圈 §S6 皮條線的簡化）。
+   * - sectionStyle "pitiao"：皮條線斷面（§S7.1）——上半（+B 側）是超橢圓弧
+   *   |x/w|ⁿ+|y/h|ⁿ=1（topExponent 預設 2.6：2 = 正橢圓、越大越接近方），
+   *   下半（−B 側）是「扁」的：平底 + 四角導圓 cornerR。上圓下扁是傳統椅圈的斷面：
+   *   從正視／側視看不會像一片平板，而柱頂（鵝脖／聯幫棍／後腳／靠背板）貼的是平底，
+   *   端面切平就能貼實、不會插進弧面。
    */
   | {
       type: "rect";
@@ -40,6 +45,8 @@ export type SweptProfile =
       widthMid?: number;
       thickness: number;
       cornerR?: number;
+      sectionStyle?: "pitiao";
+      topExponent?: number;
       thicknessAlong?: "x" | "y" | "z";
       widthAlong?: "x" | "y" | "z";
     };
@@ -53,12 +60,24 @@ export type SweptCurveShape = {
   profile: SweptProfile;
   /** 中心線取樣上限（預設 400）；adaptive flatten 先跑，超過才退回均勻取樣 */
   segments?: number;
+  /**
+   * 端面切平面法線（單位向量，part-local＝世界方向；曲料零件 rotation 一律 0）。
+   * 沒給 = 端面垂直於端切線（既有行為）。給了 = 該端的斷面沿切線投影到「通過曲線端點、
+   * 以此為法線」的平面上——腳底切平貼地、腿頂順椅圈底面切斜肩（§S7.1 端面切平面）。
+   * 曲線端點與端切線不變（榫頭根面／榫軸仍是曲線端點與切線），只有實體端面換角度。
+   * 法線跟切線夾角 > 72°（cos < 0.3）視為無效，退回垂直端面。
+   */
+  startCap?: Vec3;
+  endCap?: Vec3;
 };
+/** 端面切平面的有效門檻：|T·n| 低於此值就不切（斜到 72° 以上端面會拖得很長） */
+const CAP_MIN_COS = 0.3;
 
 export const SWEPT_FLATTEN_EPS_MM = 0.1; // §S5
 const DEFAULT_MAX_SAMPLES = 400;
 const ROUND_PROFILE_SEGS = 24;
 const CORNER_SEGS = 8;
+const OVAL_SEGS = 32;
 
 // ─── 向量 ─────────────────────────────────────────────────────────────────────
 const add = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
@@ -453,6 +472,32 @@ export function profileLoops(profile: SweptProfile, t01: number): { closed: bool
   }
   const w = profileWidthAt(profile, t01) / 2;
   const h = profile.thickness / 2;
+  if (profile.sectionStyle === "pitiao") {
+    // 皮條線（上圓下扁）：上半超橢圓弧 x = w·sgn(cos a)|cos a|^(2/n)、y = h|sin a|^(2/n)，
+    // 從 (+w,0) 逆時針走到 (−w,0)；下半平底 + 兩個導圓角，繞回 (+w,0)。
+    const nExp = Math.max(1.5, profile.topExponent ?? 2.6);
+    const e = 2 / nExp;
+    const cr = Math.min(profile.cornerR ?? 0, w * 0.45, h * 0.9);
+    const ring: Vec2[] = [];
+    for (let k = 0; k <= OVAL_SEGS; k++) {
+      const a = (Math.PI * k) / OVAL_SEGS;
+      const c = Math.cos(a), s = Math.sin(a);
+      ring.push({ x: w * Math.sign(c) * Math.pow(Math.abs(c), e), y: h * Math.pow(Math.abs(s), e) });
+    }
+    if (cr > 0.01) {
+      for (let k = 0; k <= CORNER_SEGS; k++) {
+        const a = Math.PI + ((Math.PI / 2) * k) / CORNER_SEGS;
+        ring.push({ x: -w + cr + cr * Math.cos(a), y: -h + cr + cr * Math.sin(a) });
+      }
+      for (let k = 0; k <= CORNER_SEGS; k++) {
+        const a = 1.5 * Math.PI + ((Math.PI / 2) * k) / CORNER_SEGS;
+        ring.push({ x: w - cr + cr * Math.cos(a), y: -h + cr + cr * Math.sin(a) });
+      }
+    } else {
+      ring.push({ x: -w, y: -h }, { x: w, y: -h });
+    }
+    return { closed: true, loops: [ring] };
+  }
   const cr = Math.min(profile.cornerR ?? 0, w * 0.45, h * 0.45);
   if (cr <= 0.01) {
     // 4 條邊：+N 邊、+B 邊、−N 邊、−B 邊（逆時針）
@@ -488,15 +533,37 @@ export function sweptSurfaceRings(shape: SweptCurveShape): SweptSurface {
   const total = sample.s[sample.s.length - 1] || 1;
   const rings: Vec3[][][] = [];
   let closed = true;
-  for (let i = 0; i < sample.points.length; i++) {
+  const n = sample.points.length;
+  for (let i = 0; i < n; i++) {
     const c = sample.points[i];
-    const { N, B } = frames[i];
+    const { T, N, B } = frames[i];
     const t01 = sample.s[i] / total;
     const pl = profileLoops(shape.profile, t01);
     closed = pl.closed;
-    rings.push(pl.loops.map((loop) => loop.map((q) => add(c, add(mul(N, q.x), mul(B, q.y))))));
+    let ring = pl.loops.map((loop) => loop.map((q) => add(c, add(mul(N, q.x), mul(B, q.y)))));
+    // 端面切平面（§S7.1）：把端站斷面沿切線投影到通過端點、法線 = cap 的平面
+    const cap = i === 0 ? shape.startCap : i === n - 1 ? shape.endCap : undefined;
+    if (cap) {
+      const nrm = norm(cap);
+      const tn = dot(T, nrm);
+      if (Math.abs(tn) >= CAP_MIN_COS) {
+        ring = ring.map((loop) => loop.map((q) => add(q, mul(T, dot(sub(c, q), nrm) / tn))));
+      }
+    }
+    rings.push(ring);
   }
   return { sample, frames, rings, closed };
+}
+
+/**
+ * 端面切平面上的斷面點（part-local）——驗證用：回傳 start／end 站的所有點與該端切平面。
+ */
+export function sweptCapRing(shape: SweptCurveShape, which: "start" | "end"): { points: Vec3[]; origin: Vec3; normal: Vec3 | null } {
+  const surf = sweptSurfaceRings(shape);
+  const n = surf.rings.length;
+  const i = which === "start" ? 0 : n - 1;
+  const cap = which === "start" ? shape.startCap : shape.endCap;
+  return { points: surf.rings[i]?.flat() ?? [], origin: surf.sample.points[i], normal: cap ? norm(cap) : null };
 }
 
 export function sweptAllPoints(shape: SweptCurveShape): Vec3[] {
@@ -742,6 +809,9 @@ export function sweptPartFromWorldPoints(
      */
     startTangent?: Vec3;
     endTangent?: Vec3;
+    /** 端面切平面法線（世界＝part-local 方向），見 SweptCurveShape.startCap／endCap */
+    startCap?: Vec3;
+    endCap?: Vec3;
   },
 ): SweptPartGeometry {
   let fit: { controlPoints: Vec3[]; knots: number[] };
@@ -757,7 +827,11 @@ export function sweptPartFromWorldPoints(
   } else {
     fit = interpolateBSpline(throughPointsWorld);
   }
-  const worldShape: SweptCurveShape = { kind: "swept-curve", controlPoints: fit.controlPoints, knots: fit.knots, profile, segments: opts?.segments };
+  const worldShape: SweptCurveShape = {
+    kind: "swept-curve", controlPoints: fit.controlPoints, knots: fit.knots, profile, segments: opts?.segments,
+    ...(opts?.startCap ? { startCap: norm(opts.startCap) } : {}),
+    ...(opts?.endCap ? { endCap: norm(opts.endCap) } : {}),
+  };
   const box = sweptLocalAABB(worldShape);
   const center = { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 };
   const shape: SweptCurveShape = {
