@@ -1,3 +1,4 @@
+.claude/worktrees/
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -41,3 +42,33 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .superpowers/
+logs-dev.txt
+.bot-out/
+.bot-in/
+# detached dev-server logs (debug artifacts)
+.dev*.log
+.devserver*.log
+
+# playwright MCP 暫存 dump（瀏覽器自動化產物，非源碼）
+.playwright-mcp/
+# 一次性驗證截圖
+temple-page*.jpeg
+temple-*.jpeg
+*-test.jpeg
+features-*.jpeg
+ship-bar-test.jpeg
+ship-info-test.jpeg
+banner-fix-test.jpeg
+widget-final.jpeg
+
+# codex 工具目錄 + SEO 檢查暫存（非源碼）
+.codex/
+_seo_check.py
+_seo_out.txt
+
+# 一次性網站截圖（PWA 安裝頁 / 設計器預覽，可重拍，非源碼）
+install-en.jpeg
+install-zh.jpeg
+preview-desktop.jpeg
+preview-mobile.jpeg
+preview-sheet.jpeg

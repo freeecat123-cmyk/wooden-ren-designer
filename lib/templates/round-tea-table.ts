@@ -6,19 +6,24 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt } from "./_helpers";
+import { apronSetbackOption, resolveApronSetbackForLeg, apronMortiseOffset, legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 export const roundTeaTableOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
+  seatEdgeOption("top", 1),
+  seatEdgeStyleOption("top"),
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
+  // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 顯示
+  legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered"] }),
+  // stretcher 倒角只在「直腳 box」時有效（其他腳形會把橫撐做成梯形 / 斜面）
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤", defaultValue: false, help: "中央加可旋轉小圓盤——需配 8-12 吋軸承", wide: true },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 350, min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
-  { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 350, unit: "mm", min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
+  { group: "leg", type: "number", key: "legInset", label: "腳離邊", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "方錐腳（方料下方收窄）" },
@@ -30,23 +35,26 @@ export const roundTeaTableOptions: OptionSpec[] = [
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
-  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 6, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙板會跟著腳一起斜同角度。僅外斜系列有效", dependsOn: { key: "legShape", oneOf: ["splayed-tapered", "splayed-round-taper-down", "splayed-round-taper-up"] } },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 150, step: 5, unit: "mm" },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 20, min: 12, max: 35, step: 1, unit: "mm" },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "茶几較矮，10–15 視覺整體感較佳" },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右牙板下移量，3D 即時顯示。0 = 等高（自動上下半榫）" },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）" },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 6, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙條會跟著腳一起斜同角度。僅外斜系列有效", dependsOn: { key: "legShape", oneOf: ["splayed-tapered", "splayed-round-taper-down", "splayed-round-taper-up"] } },
+  apronSetbackOption("apron"),
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, min: 30, max: 150, step: 5, unit: "mm" },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 20, min: 12, max: 35, step: 1, unit: "mm" },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "茶几較矮，10–15 視覺整體感較佳" },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右牙條下移量，3D 即時顯示。0 = 等高（自動上下半榫）" },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固" },
   { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
     { value: "h-frame", label: "H 字形（4 條繞 1 圈）" },
     { value: "x-cross", label: "X 字交叉（2 條斜撐穿越中心，明清交杌做法）" },
   ], dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）", dependsOn: { key: "lowerStretcherStyle", equals: "h-frame" } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 35, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 18, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）", dependsOn: { key: "lowerStretcherStyle", equals: "h-frame" } },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 35, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 18, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "checkbox", key: "withLowerShelf", label: "下層圓棚板", defaultValue: false, help: "下橫撐上方放圓棚板，rest-on 設計，收納茶具/雜誌（直徑自動算嵌入 4 腳內）", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerShelfThickness", label: "棚板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerShelf", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerShelfThickness", label: "棚板厚", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerShelf", equals: true } },
 ];
 
 /**
@@ -56,15 +64,22 @@ export const roundTeaTableOptions: OptionSpec[] = [
  */
 export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const diameter = input.length;
 
   const o = roundTeaTableOptions;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<string | number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatChamferMm = parseSeatChamferMm(seatEdge);
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const withLazySusan = getOption<boolean>(input, opt(o, "withLazySusan"));
   const lazySusanDiameter = getOption<number>(input, opt(o, "lazySusanDiameter"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -92,6 +107,15 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const radius = diameter / 2;
   const legHeight = height - topThickness;
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
+  /**
+   * 牙條自己的中心線(受「牙條縮進」影響),只用在 origin;長度計算仍用 cornerOffset。
+   * 0 = 齊腳外面(腳外面 = cornerOffset + legSize/2)。
+   */
+  const _apronSetbackRaw2 = getOption<number>(input, opt(o, "apronSetback"));
+  const apronSetback = resolveApronSetbackForLeg(_apronSetbackRaw2, legShape, legSize, apronThickness);
+  const apronAxis = cornerOffset + legSize / 2 - apronThickness / 2 - apronSetback;
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
   // 腳頂榫對圓桌面 radial 偏（X+Z 朝中心）— 圓桌面沒「端面」概念，4 隻腳一律保護
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   // 套方凳榫卯規則
@@ -156,15 +180,23 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? topThickness
     : Math.round(Math.min(topThickness * (2 / 3), topThickness - 6));
 
-  // 圓桌面
+  // 圓桌面（seatEdge > 0 時頂面外緣加倒角）
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
+    nameEn: "Round top",
     material,
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? {
+            kind: "round",
+            chamferMm: seatChamferMm,
+            chamferStyle: seatEdgeStyle === "rounded" ? "rounded" : "chamfered",
+          }
+        : { kind: "round" },
     tenons: [],
     mortises: [
       ...[-1, 1].flatMap((sx) =>
@@ -186,18 +218,40 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
+  // Apron mortise（b3f09ad 公約）：Z 面 rotX 跟 splayDz；X 面 rotZ 跟 splayDx
+  const isSplayedLeg = legShape.startsWith("splayed-");
+  const legSplayDxForMortise = isSplayedLeg ? splayDx : 0;
+  const legSplayDzForMortise = isSplayedLeg ? splayDz : 0;
+
   // 4 隻腳
   const legs: Part[] = [-1, 1].flatMap((sx) =>
-    [-1, 1].map((sz) => ({
+    [-1, 1].map((sz) => {
+      const corner = { x: sx * cornerOffset, z: sz * cornerOffset };
+      const zFaceGeom = splayedLegMortiseGeom({
+        corner,
+        splayDz: legSplayDzForMortise,
+        legHeight,
+        legSize,
+        zCenterY: apronYCenter0,
+        tenonOffset: apronUpperTenonOffset,
+      });
+      const xFaceRotZApron = xFaceApronMortiseRotZ(corner, legSplayDxForMortise, legHeight);
+      return ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
       nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+      nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg`,
       material,
       grainDirection: "length" as const,
       visible: { length: legSize, width: legSize, thickness: legHeight },
       origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
       shape:
         legShape === "tapered"
-          ? ({ kind: "tapered", bottomScale: 0.6 } as const)
+          ? ({
+              kind: "tapered",
+              bottomScale: 0.6,
+              chamferMm: parseLegChamferMm(legEdge),
+              chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+            } as const)
           : legShape === "round"
             ? ({ kind: "round" } as const)
             : legShape === "round-taper-down"
@@ -225,19 +279,16 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         },
       ],
       mortises: [
-        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
+        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫，rotX 跟 splayDz
         {
-          origin: {
-            x: 0,
-            y: apronYCenter0 + apronUpperTenonOffset,
-            z: -sz * (legSize / 2),
-          },
+          origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
           depth: apronTenonLen,
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(zFaceGeom.rotX !== undefined && Math.abs(zFaceGeom.rotX) > 0.001 ? { rotX: zFaceGeom.rotX } : {}),
         },
-        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
+        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫，rotZ 跟 splayDx
         {
           origin: {
             x: -sx * (legSize / 2),
@@ -248,39 +299,49 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(Math.abs(xFaceRotZApron) > 0.001 ? { rotZ: xFaceRotZApron } : {}),
         },
         // X-cross 模式：腳上不加軸對齊 mortise（對角榫頭做法手作端要自行決定，
         // 通常用 45° 盲榫或暗銷；3D 視覺仍接合，不影響材料單）
         ...(withLowerStretcher && lowerStretcherStyle === "h-frame"
-          ? [
-              // X 面（前後對, 靜止）— 下半榫
-              {
-                origin: {
-                  x: -sx * (legSize / 2),
-                  y: lsYCenter0 + lowerLowerTenonOffset,
-                  z: 0,
+          ? (() => {
+              const lsZRotX = (legSplayDzForMortise !== 0 && legHeight > 0)
+                ? Math.sign(corner.z || 1) * Math.atan(Math.abs(legSplayDzForMortise) / legHeight)
+                : 0;
+              const lsXRotZ = xFaceApronMortiseRotZ(corner, legSplayDxForMortise, legHeight);
+              return [
+                // X 面（前後對, 靜止）— 下半榫，rotZ 跟 splayDx
+                {
+                  origin: {
+                    x: -sx * (legSize / 2),
+                    y: lsYCenter0 + lowerLowerTenonOffset,
+                    z: 0,
+                  },
+                  depth: lsTenonLen,
+                  length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
+                  width: lsTenonThick,
+                  through: lowerTenonType === "through-tenon",
+                  ...(Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {}),
                 },
-                depth: lsTenonLen,
-                length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
-                width: lsTenonThick,
-                through: lowerTenonType === "through-tenon",
-              },
-              // Z 面（左右對, 上移）— 上半榫
-              {
-                origin: {
-                  x: 0,
-                  y: lsYCenter0 + lowerUpperTenonOffset + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0),
-                  z: -sz * (legSize / 2),
+                // Z 面（左右對, 上移）— 上半榫，rotX 跟 splayDz
+                {
+                  origin: {
+                    x: 0,
+                    y: lsYCenter0 + lowerUpperTenonOffset + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0),
+                    z: -sz * (legSize / 2),
+                  },
+                  depth: lsTenonLen,
+                  length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
+                  width: lsTenonThick,
+                  through: lowerTenonType === "through-tenon",
+                  ...(Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {}),
                 },
-                depth: lsTenonLen,
-                length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
-                width: lsTenonThick,
-                through: lowerTenonType === "through-tenon",
-              },
-            ]
+              ];
+            })()
           : []),
       ],
-    })),
+      });
+    }),
   );
 
   // 4 條牙板
@@ -315,12 +376,26 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronYCenter0);
   const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronAxis + apronGeomX.dz) } },
+    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronAxis + apronGeomX.dz } },
+    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronAxis + apronGeomZ.dx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: apronAxis + apronGeomZ.dx, z: 0 } },
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
+    // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響
+    // 必 gate isSplayed：splayAngle 預設 8°、即使 legShape=box splayDx/Dz 仍 > 0
+    const hasAxisSplay = isSplayed && ((s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0));
+    // axis="z" 牙條 start at part-local -X → world +Z（Rx π/2 + Ry π/2 後）
+    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const tenonAxisStart = hasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
+      : null;
+    const tenonAxisEnd = hasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
+      : null;
     const bevelAngle = isSplayed ? (s.axis === "x" ? -s.sz * tilt : -s.sx * tilt) : 0;
     const apronTopAtSeat = apronDropFromTop === 0;
     const useTopBevel = isSplayed && apronTopAtSeat;
@@ -334,7 +409,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         })
       : isSplayed && apronTopAtSeat
         ? ({ kind: "apron-half-beveled" as const, bevelAngle })
-        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+        : legEdgeShape(apronEdge, apronEdgeStyle);
     const tenonType: "through-tenon" | "shouldered-tenon" =
       apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const tenons = (() => {
@@ -346,6 +421,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonW,
           thickness: apronTenonThick,
           shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
+          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
+          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       }
@@ -362,12 +439,15 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         thickness: apronTenonThick,
         shoulderOn,
         offsetWidth: -worldOffset,
+        ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
+        ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
       });
       return [mk("start"), mk("end")];
     })();
     return {
       id: s.id,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: geom.span, width: apronWidth, thickness: apronThickness },
@@ -410,10 +490,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     const lsGeomX = lsGeomFor(lsYCenter0);
     const lsGeomZ = lsGeomFor(lsYCenter0_z);
     const lsSides = [
-      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
-      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
-      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
-      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
     ];
     // 下橫撐：trapezoid 但無 bevel；左右（Z）整支上移 staggerMm
     for (const s of lsSides) {
@@ -452,6 +532,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       lowerStretchers.push({
         id: s.id,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: geom.span, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
@@ -510,13 +591,14 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     const xcTenonType: "through-tenon" | "shouldered-tenon" =
       lowerTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const diagonals = [
-      { id: "ls-xcross-1", nameZh: "X 撐 1（前左↔後右）", yRot: angle, yLift: 0 },
-      { id: "ls-xcross-2", nameZh: "X 撐 2（前右↔後左）", yRot: -angle, yLift: lowerStretcherThickness * 0.05 },
+      { id: "ls-xcross-1", nameZh: "X 撐 1（前左↔後右）", nameEn: "X-stretcher 1 (FL↔BR)", yRot: angle, yLift: 0 },
+      { id: "ls-xcross-2", nameZh: "X 撐 2（前右↔後左）", nameEn: "X-stretcher 2 (FR↔BL)", yRot: -angle, yLift: lowerStretcherThickness * 0.05 },
     ];
     for (const d of diagonals) {
       lowerStretchers.push({
         id: d.id,
         nameZh: d.nameZh,
+        nameEn: d.nameEn,
         material,
         grainDirection: "length",
         visible: { length: diagLen, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
@@ -554,6 +636,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     lowerShelfParts.push({
       id: "lower-shelf",
       nameZh: "下層圓棚板",
+      nameEn: "Lower round shelf",
       material,
       grainDirection: "length",
       visible: { length: shelfDiameter, width: shelfDiameter, thickness: lowerShelfThickness },
@@ -578,11 +661,13 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...(withLazySusan
         ? [{
             id: "lazy-susan",
-            nameZh: `旋轉盤 (${Math.min(lazySusanDiameter, diameter - 100)}mm)`,
+            nameZh: `旋轉盤`,
+            nameEn: `Lazy susan`,
             material,
             grainDirection: "length" as const,
             visible: { length: Math.min(lazySusanDiameter, diameter - 100), width: Math.min(lazySusanDiameter, diameter - 100), thickness: 18 },
-            origin: { x: 0, y: legHeight + 20, z: 0 },
+            // 桌面頂面 = legHeight + topThickness；軸承約 20mm 高，轉盤坐在軸承上
+            origin: { x: 0, y: legHeight + topThickness + 20, z: 0 },
             shape: { kind: "round" as const },
             tenons: [],
             mortises: [],
@@ -592,17 +677,21 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLowerStretcher && withLowerShelf ? ` 下層圓棚板 ${lowerShelfParts[0]?.visible.length}mm × ${lowerShelfThickness}mm，rest-on 擱在 4 條下橫撐上。` : ""}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
+    notes: isEn
+      ? `Round tea table dia. ${formatMm(diameter, "inch")} × H ${formatMm(height, "inch")}, 4 ${legShapeLabel(legShape)} legs with apron.${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${withLowerStretcher && withLowerShelf ? ` Lower round shelf ${formatMm(lowerShelfParts[0]?.visible.length ?? 0, "inch")} × ${formatMm(lowerShelfThickness, "inch")}, resting on the 4 lower stretchers.` : ""}${withLazySusan ? ` Center lazy susan ${formatMm(Math.min(lazySusanDiameter, diameter - 100), "inch")}, fits an 8–12" bearing.` : ""}`
+      : `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${withLowerStretcher && withLowerShelf ? ` 下層圓棚板 ${lowerShelfParts[0]?.visible.length}mm × ${lowerShelfThickness}mm，rest-on 擱在 4 條下橫撐上。` : ""}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,
     maxLength: 1100, maxWidth: 1100, maxHeight: 500,
-  });
+  }, locale);
   if (input.length > 1100 || input.height > 500) {
     appendSuggestion(design, {
-      text: `直徑 ${input.length}mm × 高 ${input.height}mm 已不算茶几——圓餐桌支援獨柱 / 端梁等大型結構。`,
+      text: isEn
+        ? `Diameter ${input.length} mm × height ${input.height} mm no longer counts as a tea table — the round dining table template supports pedestal / trestle structures for larger sizes.`
+        : `直徑 ${input.length}mm × 高 ${input.height}mm 已不算茶几——圓餐桌支援獨柱 / 端梁等大型結構。`,
       suggestedCategory: "round-table",
       presetParams: { length: input.length, width: input.length, height: Math.max(input.height, 700), material: input.material },
     });

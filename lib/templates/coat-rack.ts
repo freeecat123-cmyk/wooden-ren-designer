@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery } from "./_validators";
+import { formatMm } from "@/lib/units/format";
 
 /** 底爪相對立柱粗的縮放：腳厚 = columnSize × FOOT_THICKNESS_RATIO */
 const FOOT_THICKNESS_RATIO = 0.6;
@@ -49,6 +50,7 @@ const COAT_RACK_PRESETS: Record<string, CoatRackPresetConfig> = {
 };
 
 export const coatRackOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   { group: "structure", type: "select", key: "mountType", label: "安裝形式", defaultValue: "standing", choices: [
     { value: "standing", label: "立式（4 腳獨立站立，傳統款）" },
     { value: "wall-rail", label: "壁掛 Shaker peg rail（橫板 + N 個木栓掛勾，玄關經典）" },
@@ -61,23 +63,23 @@ export const coatRackOptions: OptionSpec[] = [
     { value: "kids", label: "兒童矮款（細柱 + 3 腳）" },
     { value: "industrial", label: "工業派（方柱 + 3 腳）" },
   ], help: "依風格一鍵套柱粗 / 樣式 / 底爪 / 鉤數 / 配件組合，user 後改不蓋。" },
-  { group: "leg", type: "number", key: "columnSize", label: "立柱粗 (mm)", defaultValue: 60, min: 35, max: 80, step: 5, unit: "mm" },
+  { group: "leg", type: "number", key: "columnSize", label: "立柱粗", defaultValue: 60, min: 35, max: 80, step: 5, unit: "mm" },
   { group: "leg", type: "select", key: "columnStyle", label: "立柱樣式", defaultValue: "lathe-turned", choices: [
     { value: "box", label: "方柱（直方料）" },
     { value: "round", label: "圓柱（直圓料）" },
     { value: "lathe-turned", label: "車旋柱（古典花瓶輪廓，最經典）" },
   ] },
   { group: "leg", type: "number", key: "footCount", label: "底爪數", defaultValue: 3, min: 3, max: 4, step: 1, help: "3 腳穩定、120° 等分視覺有設計感（預設）；4 腳更傳統，需 footLength ≥ 350 才不會視覺笨拙" },
-  { group: "leg", type: "number", key: "footLength", label: "底爪長 (mm)", defaultValue: 350, min: 200, max: 450, step: 10, help: "從柱中心往外的長度（影響穩定度）" },
+  { group: "leg", type: "number", key: "footLength", label: "底爪長", defaultValue: 350, unit: "mm", min: 200, max: 450, step: 10, help: "從柱中心往外的長度（影響穩定度）" },
   { group: "structure", type: "number", key: "hookCount", label: "掛鉤數", defaultValue: 6, min: 4, max: 8, step: 2 },
-  { group: "structure", type: "number", key: "hookLength", label: "掛鉤外伸長 (mm)", defaultValue: 110, min: 60, max: 180, step: 10 },
+  { group: "structure", type: "number", key: "hookLength", label: "掛鉤外伸長", defaultValue: 110, unit: "mm", min: 60, max: 180, step: 10 },
   { group: "structure", type: "checkbox", key: "withSecondHookRow", label: "加第二排掛鉤", defaultValue: false, help: "在主排下方 200mm 處加一圈，掛短外套 / 圍巾" },
   { group: "structure", type: "checkbox", key: "wallMode", label: "靠牆模式（省後排掛鉤）", defaultValue: false, help: "假定靠牆放，省掉朝牆面的 1/3 掛鉤（前 240° 範圍保留）" },
   { group: "structure", type: "checkbox", key: "withUmbrellaBase", label: "底部加傘架槽", defaultValue: false, help: "底爪之間加一個 200mm 直徑淺盤（金屬或塑膠 tray）放雨傘 / 雨鞋。實際盤要外購，木工只標位置", wide: true },
   { group: "structure", type: "checkbox", key: "withMirror", label: "立柱中段加掛鏡", defaultValue: false, help: "在立柱中段固定一面方形鏡（300×400mm 常見），出門前可整理儀容", wide: true },
   { group: "structure", type: "checkbox", key: "withHatRail", label: "頂端帽架橫木", defaultValue: false, help: "立柱頂端加 60mm 寬橫木 + 掛鉤，掛禮帽 / 報童帽不變形", wide: true },
   { group: "structure", type: "checkbox", key: "withFloorTray", label: "底盤鞋墊托", defaultValue: false, help: "底爪上加一片圓盤（400mm 直徑），放鞋墊承接滴水", wide: true },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "立柱邊倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "方柱才有效；圓柱已經圓了。1-2mm 微倒手感佳" },
+  { group: "structure", type: "number", key: "edgeChamfer", label: "立柱邊倒角", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "方柱才有效；圓柱已經圓了。1-2mm 微倒手感佳" },
 ];
 
 /**
@@ -86,6 +88,8 @@ export const coatRackOptions: OptionSpec[] = [
  */
 export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = coatRackOptions;
   const mountType = getOption<string>(input, opt(o, "mountType")) as "standing" | "wall-rail";
   const rackStyle = getOption<string>(input, opt(o, "rackStyle"));
@@ -108,7 +112,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     // 背板（沿世界 X 跨距，世界 Z 為厚度方向）
     const backRail: Part = {
       id: "back-rail",
-      nameZh: `Shaker peg 背板 ${railWidthMm}mm`,
+      nameZh: `Shaker peg 背板`,
+      nameEn: `Shaker peg backboard`,
       material,
       grainDirection: "length",
       visible: { length: railWidthMm, width: railHeightMm, thickness: railThicknessMm },
@@ -125,7 +130,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       // 用 Ry(-π/2) 把 X 軸轉到 +Z。shape: round 是純圓柱，沿 length 方向
       pegs.push({
         id: `peg-${i + 1}`,
-        nameZh: `Shaker peg ${i + 1}（⌀${pegHeadDiameter}mm × ${pegLengthMm}mm 圓料）`,
+        nameZh: `Shaker peg ${i + 1}`,
+        nameEn: `Shaker peg ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: pegLengthMm, width: pegHeadDiameter, thickness: pegHeadDiameter },
@@ -139,7 +145,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     // French cleat 上半條（背板背面 45° 斜切）
     const cleat: Part = {
       id: "french-cleat",
-      nameZh: `French cleat 吊條（45° 斜切，${railWidthMm}mm）`,
+      nameZh: `French cleat 吊條（45° 斜切）`,
+      nameEn: `French cleat hanger (45° miter)`,
       material,
       grainDirection: "length",
       visible: { length: railWidthMm, width: railHeightMm * 0.6, thickness: cleatThicknessMm },
@@ -157,7 +164,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       defaultJoinery: "blind-tenon",
       useButtJointConvention: true,
       primaryMaterial: material,
-      notes: `Shaker 傳統壁掛衣帽架。背板 ${railWidthMm}×${railHeightMm}×${railThicknessMm}mm，等距 ${pegCount} 個 Shaker peg（總長 ${pegLengthMm}mm，頂端錐形 ⌀${pegHeadDiameter}mm）。背板正面預鑽 ⌀12 緊配孔（peg 榫⌀12.7 干涉 0.7mm，敲入即固，傳統不用膠）。背板背面加 ${cleatThicknessMm}mm × 45° 斜切 French cleat 與牆面對應 cleat 配對掛上——拆掉很容易、承重 30kg+。Shaker 傳統用 milk paint，現代款上木蠟油即可。`,
+      notes: isEn
+        ? `Traditional Shaker wall-mounted coat rack. Back rail ${formatMm(railWidthMm, "inch")}×${formatMm(railHeightMm, "inch")}×${formatMm(railThicknessMm, "inch")}, ${pegCount} evenly spaced Shaker pegs (overall ${formatMm(pegLengthMm, "inch")} long, tapered head ⌀${formatMm(pegHeadDiameter, "inch")}). Drill the rail face at ⌀12mm for a press-fit (peg tenon ⌀12.7 = 0.7mm interference — tap home dry, no glue, Shaker-style). The back of the rail carries a ${formatMm(cleatThicknessMm, "inch")} × 45° French cleat that mates with a matching cleat on the wall — lifts off easily, holds 30kg+. Traditional finish is milk paint; modern builds take a hardwax oil.`
+        : `Shaker 傳統壁掛衣帽架。背板 ${railWidthMm}×${railHeightMm}×${railThicknessMm}mm，等距 ${pegCount} 個 Shaker peg（總長 ${pegLengthMm}mm，頂端錐形 ⌀${pegHeadDiameter}mm）。背板正面預鑽 ⌀12 緊配孔（peg 榫⌀12.7 干涉 0.7mm，敲入即固，傳統不用膠）。背板背面加 ${cleatThicknessMm}mm × 45° 斜切 French cleat 與牆面對應 cleat 配對掛上——拆掉很容易、承重 30kg+。Shaker 傳統用 milk paint，現代款上木蠟油即可。`,
     };
   }
 
@@ -211,10 +220,10 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const feet: Part[] = [];
   if (footCount === 4) {
     const dirs = [
-      { id: "foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1, mAngle: -Math.PI / 2 },
-      { id: "foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1, mAngle: Math.PI / 2 },
-      { id: "foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1, mAngle: Math.PI },
-      { id: "foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1, mAngle: 0 },
+      { id: "foot-front", nameZh: "前底爪", nameEn: "Front foot", axis: "z" as const, sign: -1, mAngle: -Math.PI / 2 },
+      { id: "foot-back", nameZh: "後底爪", nameEn: "Back foot", axis: "z" as const, sign: 1, mAngle: Math.PI / 2 },
+      { id: "foot-left", nameZh: "左底爪", nameEn: "Left foot", axis: "x" as const, sign: -1, mAngle: Math.PI },
+      { id: "foot-right", nameZh: "右底爪", nameEn: "Right foot", axis: "x" as const, sign: 1, mAngle: 0 },
     ];
     for (const d of dirs) {
       const isXAxis = d.axis === "x";
@@ -225,6 +234,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       feet.push({
         id: d.id,
         nameZh: d.nameZh,
+        nameEn: d.nameEn,
         material,
         grainDirection: "length",
         visible: { length: len, width: footWidth, thickness: footThickness },
@@ -233,7 +243,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
           y: 0,
           z: !isXAxis ? d.sign * center : 0,
         },
-        rotation: isXAxis
+        rotation: String(input.options?.constructionVersion) === "2"
+          ? { x: Math.PI / 2, y: -d.mAngle, z: 0 }
+          : isXAxis
           ? { x: Math.PI / 2, y: 0, z: 0 }
           : { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [
@@ -270,6 +282,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       feet.push({
         id: `foot-${i + 1}`,
         nameZh: `底爪 ${i + 1}`,
+        nameEn: `Foot ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: len, width: footWidth, thickness: footThickness },
@@ -278,7 +291,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
           y: 0,
           z: sinA * center,
         },
-        rotation: { x: Math.PI / 2, y: angle, z: 0 },
+        rotation: { x: Math.PI / 2, y: String(input.options?.constructionVersion) === "2" ? -angle : angle, z: 0 },
         tenons: [
           {
             position: "start",
@@ -309,7 +322,14 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 必須在 [0, columnHeight] 內。原本用 height-HOOK_TOP_INSET 會在
   // footThickness < HOOK_TOP_INSET 時超出 columnHeight。clamp 到 column 頂端
   // 以下保證落在範圍內。
-  const hookY = Math.min(height - HOOK_TOP_INSET, columnHeight - 1);
+  /**
+   * 🩸 舊寫法 `hookY = min(height − 30, columnHeight − 1)` 同時當「圓料底面」和「柱上榫眼中心」用：
+   *    掛鉤本體 1663~1681 而柱頂只到 1664 → 六支掛鉤整個浮在柱頂上方，榫眼也從柱頂打穿
+   *    （2026-09-02 三視圖實畫稽核抓到）。改成先定**中心線**，本體底面＝中心 − 半徑、榫眼＝中心，
+   *    中心離柱頂至少 HOOK_TOP_INSET（榫眼上方留 21mm 壁）。
+   */
+  const hookCenterY = Math.min(height - HOOK_TOP_INSET, columnHeight - HOOK_TOP_INSET);
+  const hookY = hookCenterY - HOOK_SIZE / 2;   // 圓料 origin.y = 底面
   const hooks: Part[] = [];
   // 靠牆模式：保留前 240°（4/6 圈）的掛鉤，跳過後方 120°
   const wallModeKept = (i: number, count: number): boolean => {
@@ -327,6 +347,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     hooks.push({
       id: `hook-${i + 1}`,
       nameZh: `掛鉤 ${i + 1}`,
+      nameEn: `Hook ${i + 1}`,
       material,
       grainDirection: "length",
       visible: { length: hookLength, width: HOOK_SIZE, thickness: HOOK_SIZE },
@@ -352,13 +373,15 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     columnMortises.push({
       origin: {
         x: Math.cos(angle) * (columnSize / 2),
-        y: hookY,
+        y: hookCenterY,
         z: Math.sin(angle) * (columnSize / 2),
       },
       depth: hookTenonDepth,
       length: HOOK_SIZE,
       width: HOOK_SIZE,
       through: false,
+      // 掛鉤是圓料圓榫 → 柱孔配圓（user 2026-06-11 windsor「榫不是圓的嗎」同款修法）
+      shape: "round" as const,
     });
   }
 
@@ -372,6 +395,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       hooks.push({
         id: `hook-r2-${i + 1}`,
         nameZh: `下排掛鉤 ${i + 1}`,
+        nameEn: `Lower hook ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: r2Length, width: HOOK_SIZE, thickness: HOOK_SIZE },
@@ -396,13 +420,15 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       columnMortises.push({
         origin: {
           x: Math.cos(angle) * (columnSize / 2),
-          y: row2Y,
+          y: row2Y + HOOK_SIZE / 2,   // 榫眼＝中心線
           z: Math.sin(angle) * (columnSize / 2),
         },
         depth: hookTenonDepth,
         length: HOOK_SIZE,
         width: HOOK_SIZE,
         through: false,
+        // 下排掛鉤同款圓孔
+        shape: "round" as const,
       });
     }
   }
@@ -410,6 +436,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const column: Part = {
     id: "column",
     nameZh: "中央立柱",
+    nameEn: "Central column",
     material,
     grainDirection: "length",
     visible: { length: columnSize, width: columnSize, thickness: columnHeight },
@@ -426,24 +453,12 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 頂端帽架橫木：長 60×30 木條，X 方向
   const topAccessories: Part[] = [];
-  // 傘架淺盤
-  if (withUmbrellaBase) {
-    topAccessories.push({
-      id: "umbrella-tray",
-      nameZh: "傘架淺盤",
-      material,
-      grainDirection: "length",
-      visible: { length: 200, width: 200, thickness: 25 },
-      origin: { x: 0, y: footThickness + 10, z: 0 },
-      shape: { kind: "round" },
-      tenons: [],
-      mortises: [],
-    });
-  }
+  // 傘架淺盤的 push 點在後面（withUmbrellaBase 的 metal 版本）—— 不要在此重複 push
   if (withHatRail) {
     topAccessories.push({
       id: "hat-rail",
       nameZh: "頂端帽架橫木",
+      nameEn: "Top hat rail",
       material,
       grainDirection: "length",
       visible: { length: footLength + 200, width: 60, thickness: 30 },
@@ -457,6 +472,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "mirror",
       nameZh: "中段方鏡 300×400mm",
+      nameEn: "Mid-section mirror 300×400mm",
       material,
       grainDirection: "length",
       visible: { length: 300, width: 400, thickness: 4 },
@@ -472,6 +488,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "umbrella-tray",
       nameZh: "底部傘架淺盤 ⌀200mm",
+      nameEn: "Umbrella tray ⌀200mm",
       material,
       grainDirection: "length",
       visible: { length: 200, width: 200, thickness: 30 },
@@ -487,6 +504,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     topAccessories.push({
       id: "floor-tray",
       nameZh: "底盤鞋墊托",
+      nameEn: "Floor tray",
       material,
       grainDirection: "length",
       visible: { length: 400, width: 400, thickness: 18 },
@@ -505,21 +523,43 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
+    notes: isEn
+      ? `Standing coat rack, overall height ${formatMm(height, "inch")}, column ${formatMm(columnSize, "inch")} (${styleLabel}), ${footCount} feet${footCount === 3 ? " (120° tripod — most stable)" : " (4-way radial)"}, ${totalHooks} hooks${wallMode ? " (wall-hugging mode on — rear hooks omitted)" : ""}. Feet are blind-tenoned into the column (tenon depth ${formatMm(footTenonDepth, "inch")}). Hooks are ${formatMm(HOOK_SIZE, "inch")} round stock blind-tenoned into the column (tenon depth ${formatMm(hookTenonDepth, "inch")}) — never through-tenon a round post; blind tenons are the strongest option here.${columnStyle === "lathe-turned" ? ` Lathe-turn the column from stock ≥ ${formatMm(columnSize, "inch")} diameter to shape the vase profile.` : ""}${withUmbrellaBase ? " Drop a 200mm metal or plastic shallow tray between the feet (~$3 at hardware stores) to catch umbrella drips." : ""}${withMirror ? " Mount a 300×400mm mirror midway up the column (1500mm off the floor) using 4 mirror screws — order edge-polished glass from a glazier." : ""}${withHatRail ? " Add a 60mm-wide top crossbar (200mm overhang each end) with round hooks — keeps fedoras and newsboy caps from deforming." : ""}${withFloorTray ? " Add a ⌀400mm round shoe-mat catcher on top of the feet to keep wet boots off the floor." : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` Chamfer the 4 long arrises of the square post by ${formatMm(edgeChamfer, "inch")} to soften the edges.` : ""}`
+      : `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   // max bounds + 結構檢查
   const extraWarnings: string[] = [];
   if (height > 2000) {
-    extraWarnings.push(`衣帽架高度 ${height}mm 過高（max 2000mm）——重心高 + 容易碰天花，建議縮到 1800mm 以下`);
+    extraWarnings.push(
+      isEn
+        ? `Coat rack height ${height} mm is too tall (max 2000 mm) — high center of gravity, may hit the ceiling; recommend ≤ 1800 mm.`
+        : `衣帽架高度 ${height}mm 過高（max 2000mm）——重心高 + 容易碰天花，建議縮到 1800mm 以下`,
+    );
   }
   if (height < 1500) {
-    extraWarnings.push(`衣帽架高度 ${height}mm 過矮（min 1500mm）——掛長外套會拖地`);
+    extraWarnings.push(
+      isEn
+        ? `Coat rack height ${height} mm is too short (min 1500 mm) — long coats will drag on the floor.`
+        : `衣帽架高度 ${height}mm 過矮（min 1500mm）——掛長外套會拖地`,
+    );
   }
   if (footLength < height / 8) {
-    extraWarnings.push(`底爪長 ${footLength}mm 對 ${height}mm 高度太短——容易倒。建議底爪長 ≥ 高度 / 7`);
+    extraWarnings.push(
+      isEn
+        ? `Foot length ${footLength} mm is too short for ${height} mm height — easy to tip over. Recommend foot length ≥ height / 7.`
+        : `底爪長 ${footLength}mm 對 ${height}mm 高度太短——容易倒。建議底爪長 ≥ 高度 / 7`,
+    );
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
+  // 邊緣倒角：只套到沒掛其他 shape 的零件（圓柱已是 round shape，不會被覆寫）
+  if (edgeChamfer > 0) {
+    for (const part of design.parts) {
+      if (!part.shape) {
+        part.shape = { kind: "chamfered-edges", chamferMm: edgeChamfer };
+      }
+    }
+  }
   return design;
 };

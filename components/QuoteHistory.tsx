@@ -1,8 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 
 type QuoteStatus = "pending" | "won" | "lost";
 
@@ -25,19 +28,16 @@ interface QuoteHistoryEntry {
   status?: QuoteStatus;
 }
 
-const STATUS_META: Record<QuoteStatus, { label: string; badge: string; dot: string }> = {
+const STATUS_BADGE: Record<QuoteStatus, { badge: string; dot: string }> = {
   pending: {
-    label: "待確認",
     badge: "bg-amber-100 text-amber-800 border-amber-200",
     dot: "bg-amber-400",
   },
   won: {
-    label: "✅ 已成交",
     badge: "bg-emerald-100 text-emerald-800 border-emerald-300",
     dot: "bg-emerald-500",
   },
   lost: {
-    label: "✕ 已拒絕",
     badge: "bg-zinc-100 text-zinc-500 border-zinc-200",
     dot: "bg-zinc-300",
   },
@@ -63,13 +63,7 @@ function save(list: QuoteHistoryEntry[]): void {
   window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)));
 }
 
-function formatTWD(n: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
-}
+// 金額一律以 TWD 儲存（quote 計算的原始幣別）；顯示時依 currency 用 fx 換算。
 
 function formatDate(iso: string): string {
   try {
@@ -109,6 +103,10 @@ interface Props {
  * 存儲 key: `wooden-ren-designer:quoteHistory:v1`
  */
 export function QuoteHistory({ current }: Props) {
+  const t = useTranslations("quoteHistory");
+  const currency = useCurrency();
+  const statusLabel = (s: QuoteStatus): string =>
+    s === "pending" ? t("statusPending") : s === "won" ? t("statusWon") : t("statusLost");
   const [entries, setEntries] = useState<QuoteHistoryEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const pathname = usePathname() ?? "";
@@ -175,23 +173,23 @@ export function QuoteHistory({ current }: Props) {
     <details className="mt-3 rounded-lg border border-zinc-200 bg-white">
       <summary className="cursor-pointer list-none px-4 py-2.5 text-sm flex items-center justify-between hover:bg-zinc-50">
         <span className="font-medium text-zinc-800 flex items-center gap-2 flex-wrap">
-          📁 最近報價（{entries.length}）
+          {t("summaryHTpl", { n: entries.length })}
           <span className="text-[10px] text-zinc-400 font-normal">
-            點左邊 badge 可切換 待確認 / 已成交 / 已拒絕
+            {t("summarySub")}
           </span>
           {winRate !== null && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-              轉單率 {winRate}% · 成交 {wonCount} / 拒絕 {lostCount}
+              {t("winRateTpl", { pct: winRate, won: wonCount, lost: lostCount })}
             </span>
           )}
         </span>
-        <span className="text-xs text-zinc-400">展開 / 收合</span>
+        <span className="text-xs text-zinc-400">{t("expandCollapse")}</span>
       </summary>
       <ul className="divide-y divide-zinc-100 border-t border-zinc-100">
         {entries.map((e, i) => {
           const expired = isExpired(e.savedAt, e.query);
           const status = (e.status ?? "pending") as QuoteStatus;
-          const meta = STATUS_META[status];
+          const meta = STATUS_BADGE[status];
           return (
             <li
               key={i}
@@ -203,10 +201,10 @@ export function QuoteHistory({ current }: Props) {
                 type="button"
                 onClick={() => cycleStatus(i)}
                 className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium rounded border ${meta.badge} hover:opacity-80`}
-                title="點擊切換狀態：待確認 → 已成交 → 已拒絕"
+                title={t("cycleTitle")}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-                {meta.label}
+                {statusLabel(status)}
               </button>
               <Link
                 href={`${e.pathname}?${e.query}`}
@@ -231,7 +229,7 @@ export function QuoteHistory({ current }: Props) {
                 </span>
                 {expired && status === "pending" && (
                   <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-zinc-200 text-zinc-500">
-                    已過期
+                    {t("expired")}
                   </span>
                 )}
                 <span
@@ -243,16 +241,16 @@ export function QuoteHistory({ current }: Props) {
                       : "text-zinc-900"
                   }`}
                 >
-                  {formatTWD(e.total)}
+                  {formatPrice(e.total, currency)}
                 </span>
               </Link>
               <button
                 type="button"
                 onClick={() => resendQuote(e)}
                 className="flex-shrink-0 px-2 py-0.5 text-[10px] rounded border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100"
-                title="開新分頁，直接帶這筆參數重發給同一個客人"
+                title={t("resendTitle")}
               >
-                ↗ 重發
+                {t("resendBtn")}
               </button>
             </li>
           );
@@ -264,7 +262,7 @@ export function QuoteHistory({ current }: Props) {
           onClick={clearHistory}
           className="text-[11px] text-zinc-400 hover:text-red-600 hover:underline"
         >
-          清除所有歷史
+          {t("clearAll")}
         </button>
       </div>
     </details>

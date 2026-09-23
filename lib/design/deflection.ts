@@ -21,6 +21,7 @@ const ELASTIC_MODULUS_MPA: Record<string, number> = {
   ash: 12000,
   beech: 14000,
   pine: 9500,
+  "southern-pine": 12000, // Wood Database loblolly ≈ 12.3 GPa
   "blockboard-primary": 6500,
   "plywood-primary": 8000,
   "mdf-primary": 3700,
@@ -118,6 +119,9 @@ export function checkShelfDeflection(parts: ShelfPart[]): DeflectionWarning[] {
 }
 
 function isShelfLike(id: string): boolean {
+  // 凸鑲板是貼在抽屜/門面板上的裝飾件，整片有底材撐著、不是跨距承重的層板，
+  // 不適用簡支樑撓度模型 → 排除，避免誤報「會明顯下垂」。
+  if (/raised-panel/i.test(id)) return false;
   return /shelf|under-shelf|board|top|bottom|panel/i.test(id);
 }
 

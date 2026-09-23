@@ -2,10 +2,19 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
-import {
-  RECT_LEG_SHAPE_CHOICES,
+import { apronSetbackOption,
+  RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER,
+  curvedTaperLegOptions,
   seatEdgeOption,
+  seatEdgeBottomOption,
   seatEdgeStyleOption,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  seatOutlineNote,
+  ovalMinLegInset,
   seatEdgeNote,
   seatProfileOption,
   seatProfileNote,
@@ -15,7 +24,12 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   stretcherEdgeNote,
+  apronEdgeOption,
+  apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
   legShapeLabel,
+  clampLegInset,
 } from "./_helpers";
 import {
   SHELF_CLEARANCE_MM,
@@ -24,20 +38,31 @@ import {
 } from "./_constants";
 
 export const benchOptions: OptionSpec[] = [
-  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 1 },
-  { group: "top", type: "number", key: "topThickness", label: "座板厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 1 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
-  seatProfileOption("top"),
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES_WITH_CURVED_TAPER },
+  ...curvedTaperLegOptions("leg"),
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, unit: "mm", min: 20, max: 120, step: 1 },
+  { group: "top", type: "number", key: "topThickness", label: "座板厚", defaultValue: 30, unit: "mm", min: 12, max: 60, step: 1 },
+  // 椅面俯視輪廓造型（top-outline）：非方形時倒角/挖型欄全隱藏（一件一 shape）
+  seatOutlineOption("top"),
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatOutline", oneOf: ["rect"] }, { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }] } },
+  { ...seatProfileOption("top"), dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, help: "長凳常見 50–70；80+ 配薄座板會頭輕腳重" },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
-  { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
+  ...stretcherProfileOptions("stretcher", { key: "withLowerStretchers", equals: true }),
+  apronSetbackOption("apron"),
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 60, unit: "mm", min: 30, max: 200, step: 5, help: "長凳常見 50–70；80+ 配薄座板會頭輕腳重" },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5 },
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  ...apronProfileOptions("apron"),
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "加中央牙條", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書（會自動啟用下橫撐當層板支撐）" },
   { group: "back", type: "select", key: "endSplat", label: "椅背款式", defaultValue: "none", choices: [
@@ -49,42 +74,47 @@ export const benchOptions: OptionSpec[] = [
     { value: "windsor", label: "Windsor 風（轉柱+圓料+彎弧頂木 bow）" },
   ], help: "沿長邊背側加椅背料，靠著有依靠感" },
   { group: "back", type: "number", key: "windsorSpindleCount", label: "Windsor 圓料數", defaultValue: 7, min: 5, max: 13, step: 1, help: "中央車旋圓料根數（不含兩支邊柱）", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorPostD", label: "Windsor 邊柱直徑 (mm)", defaultValue: 32, min: 20, max: 60, step: 2, help: "兩支較粗的車旋邊柱直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorSpindleD", label: "Windsor 圓料直徑 (mm)", defaultValue: 16, min: 10, max: 35, step: 1, help: "中央細圓料直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorPostD", label: "Windsor 邊柱直徑", defaultValue: 32, unit: "mm", min: 20, max: 60, step: 2, help: "兩支較粗的車旋邊柱直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorSpindleD", label: "Windsor 圓料直徑", defaultValue: 16, unit: "mm", min: 10, max: 35, step: 1, help: "中央細圓料直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorRakeDeg", label: "Windsor 靠背後傾角度 (°)", defaultValue: 0, min: 0, max: 20, step: 1, help: "整個靠背（圓料+邊柱+bow）頂端往後傾的角度。0° = 直立；建議 5~10° 像太師椅那樣略後仰", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorBowBendMm", label: "Windsor 頂橫木彎弧 (mm)", defaultValue: 40, min: 0, max: 80, step: 5, help: "頂橫木 (bow) 中央向後彎的最大量；0 = 直線", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorTopRailH", label: "Windsor 頂橫木寬度 (mm)", defaultValue: 45, min: 25, max: 100, step: 5, help: "頂橫木 (bow) 高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorTopRailT", label: "Windsor 頂橫木厚度 (mm)", defaultValue: 28, min: 15, max: 60, step: 1, help: "頂橫木 (bow) 厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorBackInset", label: "Windsor 椅背距座板背緣 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "椅背整體（圓料+邊柱+頂橫木）往前推離座板背緣的距離；0 = 齊平", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorEndInset", label: "Windsor 椅背距座板端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背左右兩端往內縮的距離（邊柱外緣 + bow 兩端）；0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorHeight", label: "Windsor 靠背高度 (mm)", defaultValue: 350, min: 200, max: 700, step: 10, help: "從座板上緣到 bow 頂端的總高度。標準椅背 350、太師椅 450~500、高背椅 600+", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorBowBendMm", label: "Windsor 頂橫木彎弧", defaultValue: 40, unit: "mm", min: 0, max: 80, step: 5, help: "頂橫木 (bow) 中央向後彎的最大量；0 = 直線", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorTopRailH", label: "Windsor 頂橫木寬度", defaultValue: 45, unit: "mm", min: 25, max: 100, step: 5, help: "頂橫木 (bow) 高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorTopRailT", label: "Windsor 頂橫木厚度", defaultValue: 28, unit: "mm", min: 15, max: 60, step: 1, help: "頂橫木 (bow) 厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorBackInset", label: "Windsor 椅背距座板背緣", defaultValue: 0, unit: "mm", min: 0, max: 150, step: 5, help: "椅背整體（圓料+邊柱+頂橫木）往前推離座板背緣的距離；0 = 齊平", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorEndInset", label: "Windsor 椅背距座板端面", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "椅背左右兩端往內縮的距離（邊柱外緣 + bow 兩端）；0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorHeight", label: "Windsor 靠背高度", defaultValue: 350, unit: "mm", min: 200, max: 700, step: 10, help: "從座板上緣到 bow 頂端的總高度。標準椅背 350、太師椅 450~500、高背椅 600+", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "slatCount", label: "直料根數", defaultValue: 5, min: 3, max: 12, step: 1, dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 20, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "slatBackInset", label: "直料距背緣 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "直料背面跟座板背緣的距離，0 = 齊平", dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "slatEndInset", label: "直料距端頭 (mm)", defaultValue: 0, min: 0, max: 200, step: 10, help: "直料兩端往內縮的距離（頂橫木仍跨整條長邊不動），0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "topRailBendMm", label: "頂橫木向後彎弧 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "頂橫木中央往後（背側）彎的最大量，給人靠著符合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatSize", label: "直料粗細", defaultValue: 20, unit: "mm", min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細", defaultValue: 50, unit: "mm", min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatBackInset", label: "直料距背緣", defaultValue: 0, unit: "mm", min: 0, max: 80, step: 5, help: "直料背面跟座板背緣的距離，0 = 齊平", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatEndInset", label: "直料距端頭", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 10, help: "直料兩端往內縮的距離（頂橫木仍跨整條長邊不動），0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "topRailBendMm", label: "頂橫木向後彎弧", defaultValue: 0, unit: "mm", min: 0, max: 80, step: 5, help: "頂橫木中央往後（背側）彎的最大量，給人靠著符合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "ladderRungs", label: "橫格條數", defaultValue: 2, min: 1, max: 3, step: 1, help: "全部排在椅背上半段，下緣不貼座板", dependsOn: { key: "endSplat", equals: "ladder" } },
-  { group: "back", type: "number", key: "ladderRailH", label: "橫格條寬度 (mm)", defaultValue: 60, min: 25, max: 150, step: 5, help: "橫木的高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "ladder" } },
-  { group: "back", type: "number", key: "ladderRailT", label: "橫格條厚度 (mm)", defaultValue: 25, min: 15, max: 50, step: 5, help: "橫木的厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "ladder" } },
-  { group: "back", type: "number", key: "ladderRailGap", label: "橫格條間距 (mm)", defaultValue: 40, min: 10, max: 200, step: 5, help: "相鄰橫木之間的空隙；橫木從頂橫木往下依序疊", dependsOn: { key: "endSplat", equals: "ladder" } },
-  { group: "back", type: "number", key: "ladderRailBendMm", label: "橫格條向後弧 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "每條橫格條中央往後（背側）彎的最大量，貼合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "ladder" } },
-  { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐 / 層板離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動 (≈ 腳高的 25%)；下橫撐跟座下層板都用這值定位" },
+  { group: "back", type: "number", key: "ladderRailH", label: "橫格條寬度", defaultValue: 60, unit: "mm", min: 25, max: 150, step: 5, help: "橫木的高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailT", label: "橫格條厚度", defaultValue: 25, unit: "mm", min: 15, max: 50, step: 5, help: "橫木的厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailGap", label: "橫格條間距", defaultValue: 40, unit: "mm", min: 10, max: 200, step: 5, help: "相鄰橫木之間的空隙；橫木從頂橫木往下依序疊", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailBendMm", label: "橫格條向後弧", defaultValue: 0, unit: "mm", min: 0, max: 80, step: 5, help: "每條橫格條中央往後（背側）彎的最大量，貼合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "leg", type: "number", key: "legInset", label: "椅腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5 },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐 / 層板離地高", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 10, help: "設 0 = 自動 (≈ 腳高的 25%)；下橫撐跟座下層板都用這值定位", dependsOn: { any: [{ key: "withLowerStretchers", equals: true }, { key: "withUnderShelf", equals: true }] } },
 ];
 
 export const bench: FurnitureTemplate = (input) => {
   const o = benchOptions;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -98,7 +128,32 @@ export const bench: FurnitureTemplate = (input) => {
   const slatBackInset = getOption<number>(input, opt(o, "slatBackInset"));
   const slatEndInset = getOption<number>(input, opt(o, "slatEndInset"));
   const topRailBendMm = getOption<number>(input, opt(o, "topRailBendMm"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓（含海棠形）座板：自動抬高椅腳內縮讓腳（含頂榫）落在輪廓內、防露榫。
+  // 椅背直料等後加榫眼由收尾的 resolveTopOutlineShape 對「最終榫眼」再驗一次。
+  const _legInsetWanted = seatOutline === "oval" || seatOutline === "petal"
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條會被算成**負長度**。
+   *
+   * §A10.2:`visible.length = length − 2×legSize − 2×legInset (+2×splay)`。
+   * doc 沒給 legInset 上限,而 OptionSpec 的 max 是**寫死的常數**(150~400)跟家具尺寸無關,
+   * 小尺寸家具把滑桿拉到底就會產出負長度的牙條 —— 完全沒有警告,
+   * 負值一路流進材料單、裁切與報價(負材積、負價格)。
+   * (2026-08-21 稽核只報了「床頭櫃抽屜」一條;實際全掃發現 10 個模板都中。)
+   *
+   * ⚠️ 夾的是**輸入**不是輸出:把零件長度夾成 0 只會生出沒厚度的鬼零件,
+   *    使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,畫面看得見也做得出來。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    legW: legSize,
+    legD: legSize,
+  });
+  const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const ladderRungs = getOption<number>(input, opt(o, "ladderRungs"));
   const ladderRailH = getOption<number>(input, opt(o, "ladderRailH"));
@@ -125,6 +180,7 @@ export const bench: FurnitureTemplate = (input) => {
     material: input.material,
     legSize,
     topThickness,
+    apronSetback: getOption<number>(input, opt(o, "apronSetback")),
     apronWidth,
     apronOffset,
     legPenetratingTenon,
@@ -132,15 +188,31 @@ export const bench: FurnitureTemplate = (input) => {
     withLowerStretchers: withLowerStretchers || withUnderShelf,
     legInset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "splayed-length", "splayed-width", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "hoof",
+    legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "splayed-length", "splayed-width", "curved-taper", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "curved-taper" | "hoof",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
+    ctLowerCove: getOption<boolean>(input, opt(o, "ctLowerCove")),
+    ctSCurve: getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve",
+    ctTwoWay: getOption<boolean>(input, opt(o, "ctTwoWay")),
+    ctSplay: getOption<number>(input, opt(o, "ctSplay")),
     seatEdge,
     seatEdgeStyle,
+    seatEdgeBottom: seatEdgeBottomClamped,
     seatProfile,
     legEdge,
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 椅背：${endSplat === "low" ? "150mm 板式（腰靠感）" : endSplat === "high" ? "350mm 板式" : endSplat === "slatted" ? "直格條 5 料" : endSplat === "ladder" ? "橫格條 3 條" : "Windsor 風（邊柱+5 圓料）"}。` : ""}`,
+    apronEdge,
+    apronEdgeStyle,
+    apronProfile: getOption<string>(input, opt(o, "apronProfile")) as "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch",
+    apronProfileDepth: getOption<number>(input, opt(o, "apronProfileDepth")),
+    stretcherProfile: getOption<string>(input, opt(o, "stretcherProfile")) as "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch",
+    stretcherProfileDepth: getOption<number>(input, opt(o, "stretcherProfileDepth")),
+    notes: isEn
+      ? `Leg style: ${legShapeLabel(legShape)}. Beefier legs = more stable bench; if over 1.2m, enable the center stretcher to resist racking. ${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` Backrest: ${endSplat === "low" ? "150mm panel (lumbar feel)" : endSplat === "high" ? "350mm panel" : endSplat === "slatted" ? "5 vertical slats" : endSplat === "ladder" ? "3 horizontal rails" : "Windsor style (posts + 5 round spindles)"}.` : ""}`
+      : `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 椅背：${endSplat === "low" ? "150mm 板式（腰靠感）" : endSplat === "high" ? "350mm 板式" : endSplat === "slatted" ? "直格條 5 料" : endSplat === "ladder" ? "橫格條 3 條" : "Windsor 風（邊柱+5 圓料）"}。` : ""}`,
   });
 
   // 椅背 —— 沿長邊背側（+Z）從座板上緣往上延伸
@@ -163,6 +235,7 @@ export const bench: FurnitureTemplate = (input) => {
       design.parts.push({
         id: "back-splat",
         nameZh: "椅背立板",
+        nameEn: "Back splat",
         material: mat,
         grainDirection: "length",
         visible: { length: input.length, width: splatHeight, thickness: splatThick },
@@ -180,6 +253,11 @@ export const bench: FurnitureTemplate = (input) => {
       const slatW = slatSize;
       const slatT = slatSize;
       const slatHeight = splatHeight - topRailH;
+      // 直料盲榫：底端入座板、頂端入頂橫木；shoulder 各留 6mm
+      const slatTenonDia = Math.max(6, slatSize - 6);
+      const slatTenonLen = 18;
+      const slatSeatMortises: Array<{ x: number; z: number }> = [];
+      const slatTopMortises: Array<{ x: number; z: number }> = [];
       // 直料兩端往內縮 slatEndInset，剩下空間平均分配 N 條直料
       // 頂橫木維持跨整條長邊（input.length）不縮
       const slatSpan = Math.max(slatN * slatW, input.length - 2 * slatEndInset);
@@ -187,8 +265,11 @@ export const bench: FurnitureTemplate = (input) => {
       // 直料 origin.z 從 backZ 往前推 slatBackInset，但 backZ 算法用了 splatThick/2，
       // 直料截面是 slatT 不是 splatThick，要校正：直料背面齊平座板背緣 - slatBackInset
       // → origin.z = halfW - slatT/2 - slatBackInset
-      const slatZ = halfW - slatT / 2 - slatBackInset;
+      // 頂橫木中軸 Z（slat 中軸跟此對齊，讓榫頭落在 rail 下緣中心軸上）
       const railZ = halfW - topRailT / 2 - slatBackInset;
+      // 直料中軸對齊頂橫木中軸（原本是後緣對齊座板後緣 → 中軸差 2.5mm，
+      // 在 rail 上的榫眼會偏後緣不在 rail 中心）
+      const slatZ = railZ;
       for (let i = 0; i < slatN; i++) {
         const x = -slatSpan / 2 + slatW / 2 + i * (slatW + slatGap);
         // 頂橫木在這個 X 位置的後彎量
@@ -201,36 +282,88 @@ export const bench: FurnitureTemplate = (input) => {
         const tilt = dzAtTop > 0 ? Math.atan(dzAtTop / slatHeight) : 0;
         const tiltedHeight = slatHeight / Math.cos(tilt);
         // PerspectiveView py = (origin.y + yExt/2) → 調 origin 讓料中軸中點落在 (slatX, seatTop+slatHeight/2, slatZ+dz/2)
-        const originY = seatTop + (slatHeight - tiltedHeight) / 2;
+        // 加 slatW/2 * sin(tilt)：rotation x=π/2+tilt 把 cross-section 角點 (±slatW/2,
+        // ±slatT/2) 也轉進 Y 軸，slat 實際世界 Y 範圍 = slatHeight + slatW * sin(tilt)。
+        // 不補償的話中段（tilt 大）slat 底邊會凸進座板 slatW/2 * sin(tilt)。
+        const slatCrossYExt = (slatW / 2) * Math.sin(tilt);
+        const originY = seatTop + (slatHeight - tiltedHeight) / 2 + slatCrossYExt;
         const originZ = slatZ + dzAtTop / 2;
         design.parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背直料 ${i + 1}`,
+          nameEn: `Back slat ${i + 1}`,
           material: mat,
           grainDirection: "length",
           visible: { length: slatW, width: tiltedHeight, thickness: slatT },
           origin: { x, y: originY, z: originZ },
           rotation: { x: Math.PI / 2 + tilt, y: 0, z: 0 },
-          shape: dzAtTop > 0
-            ? { kind: "tilt-z", topShiftMm: dzAtTop, baseHeightMm: slatHeight }
-            : undefined,
-          tenons: [],
+          // 不套 tilt-z shape：rotation x=π/2+tilt 已經把斜度做進 3D BoxGeometry
+          // (buildShapeGeometry 對 tilt-z 回 null、只看 rotation)。
+          // 同時套 tilt-z 會讓 projectPartSilhouette 雙重 tilt（rotation + shape Z
+          // 偏移），SVG 比 3D 多一份位移、slat 底邊凸進座板。
+          shape: undefined,
+          tenons: [
+            // slat rotation x=π/2 後 part-local ±Z → 世界 ∓Y：
+            //   "left"  (cz=-lz/2-L/2) → 世界 +Y = slat 頂端 → 接 bow rail
+            //   "right" (cz=+lz/2+L/2) → 世界 -Y = slat 底端 → 接座板
+            {
+              position: "left",
+              type: "blind-tenon",
+              length: slatTenonLen,
+              width: slatTenonDia,
+              thickness: slatTenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+            },
+            {
+              position: "right",
+              type: "blind-tenon",
+              length: slatTenonLen,
+              width: slatTenonDia,
+              thickness: slatTenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+            },
+          ],
           mortises: [],
         });
+        // 累積座板 + 頂橫木 mortise（依直料 X 位置）
+        slatSeatMortises.push({ x, z: slatZ });
+        slatTopMortises.push({ x, z: slatZ + dzAtTop });
       }
       // 頂橫木：不旋轉，讓 local Z = 深度方向，arch-bent 才能在世界 Z 方向彎
       // local X=長 (世界 X)、local Y=高度 (世界 Y, thickness 借當高)、local Z=深度 (世界 Z, width 借當深)
+      // 頂橫木 mortises = 直料頂端入榫位（local：x = world x；y = 0 底面入榫；z = world z 偏移 - origin.z）
+      const topRailMortises = slatTopMortises.map((m) => ({
+        origin: { x: m.x, y: 0, z: m.z - railZ },
+        depth: slatTenonLen,
+        length: slatTenonDia,
+        width: slatTenonDia,
+        through: false as const,
+      }));
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木",
+        nameEn: "Back top rail",
         material: mat,
         grainDirection: "length",
         visible: { length: input.length, width: topRailT, thickness: topRailH },
         origin: { x: 0, y: seatTop + slatHeight, z: railZ },
         shape: topRailBendMm > 0 ? { kind: "arch-bent" as const, bendMm: topRailBendMm } : undefined,
         tenons: [],
-        mortises: [],
+        mortises: topRailMortises,
       });
+      // 座板加直料盲榫眼
+      const topPartSlat = design.parts.find((p) => p.id === "top");
+      if (topPartSlat) {
+        for (const m of slatSeatMortises) {
+          topPartSlat.mortises.push({
+            origin: { x: m.x, y: topThickness, z: m.z },
+            depth: slatTenonLen,
+            length: slatTenonDia,
+            width: slatTenonDia,
+            through: false,
+          });
+        }
+      }
     } else if (endSplat === "ladder") {
       // 橫格條：N 條（1~3）水平橫料 + 2 條後背立柱接座板
       // 結構：立柱靠最後（背面齊座板背緣），橫木掛在立柱「前面」→ 從正視圖看
@@ -270,6 +403,7 @@ export const bench: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `back-rail-${i + 1}`,
           nameZh: isTop ? "椅背頂橫木" : `椅背橫料 ${i + 1}`,
+          nameEn: isTop ? "Back top rail" : `Back rail ${i + 1}`,
           material: mat,
           grainDirection: "length",
           visible: { length: railLength, width: railT, thickness: railH },
@@ -345,6 +479,7 @@ export const bench: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `back-post-${legId}-${suffix}`,
             nameZh: `椅背柱-${suffix}（接後腳 ${legId}）`,
+            nameEn: `Back post-${suffix} (joins rear leg ${legId})`,
             material: mat,
             grainDirection: "length",
             visible: { length: legSize, width: widthAdj, thickness: segH },
@@ -366,6 +501,7 @@ export const bench: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `back-post-${legId}-${suffix}`,
             nameZh: `椅背柱-${suffix}（接後腳 ${legId}）`,
+            nameEn: `Back post-${suffix} (joins rear leg ${legId})`,
             material: mat,
             grainDirection: "length",
             visible: { length: legSize, width: segH, thickness: widthAdj },
@@ -384,6 +520,7 @@ export const bench: FurnitureTemplate = (input) => {
         for (const p of rearLegs) {
           p.visible = { ...p.visible, thickness: p.visible.thickness + postUpExt };
           p.nameZh = `後腳/椅背柱 ${p.id.slice(4)}`;
+          p.nameEn = `Rear leg / back post ${p.id.slice(4)}`;
         }
       } else if (!hasCut) {
         // splayed/tapered + 沒切除 → 加單支立柱（不分段）
@@ -439,11 +576,28 @@ export const bench: FurnitureTemplate = (input) => {
       const bowCenterDz = -(topRailH / 2) * sinRake;
 
       const tanRake = sinRake / Math.max(0.0001, cosRake);
+      // 椅背圓料底端 round-tenon 入座板（直徑 = 圓料 − 4mm、深 18mm，
+      // 留 4mm 肩、≤25mm 通榫規則對純圓料不適用，固定盲榫）。
+      // 邊柱用 stumpD−6mm 留更大肩。
+      const seatMortises: Array<{
+        x: number;
+        z: number;
+        tenonDia: number;
+        tenonLen: number;
+      }> = [];
+      // 椅背圓料頂端 round-tenon 入頂橫木（bow）；深度比底端小（bow 厚度只有
+      // topRailH 約 45mm，盲榫 12mm）。
+      const bowMortises: Array<{
+        x: number;
+        tenonDia: number;
+        tenonLen: number;
+      }> = [];
       const buildVerticalRound = (
         x: number,
         diameter: number,
         idSuffix: string,
         nameZh: string,
+        nameEn: string,
         kind: "post" | "spindle" = "spindle",
       ) => {
         // BOTTOM 齊座板背緣（不動）；TOP 跟 bow 旋轉後底面中軸線跑
@@ -459,9 +613,15 @@ export const bench: FurnitureTemplate = (input) => {
         if (partHActual <= 0) return;
         const dzShape = zBottom - zTop;
         const useSplay = Math.abs(dzShape) > 0.5;
+        const tenonShoulder = kind === "post" ? 6 : 4;
+        const tenonDia = Math.max(6, diameter - tenonShoulder);
+        const tenonLen = kind === "post" ? 22 : 18;
+        // 頂端入 bow：bow 厚度 topRailH，盲榫深 12mm（不超過 bow 厚的一半，避免穿透）
+        const topTenonLen = Math.min(12, Math.floor(topRailH * 0.4));
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
+          nameEn,
           material: mat,
           grainDirection: "length",
           visible: { length: diameter, width: diameter, thickness: partHActual },
@@ -469,17 +629,48 @@ export const bench: FurnitureTemplate = (input) => {
           shape: useSplay
             ? { kind: "splayed-round-tapered" as const, bottomScale: 1, dxMm: 0, dzMm: dzShape }
             : { kind: "round" as const },
-          tenons: [],
+          tenons: [
+            {
+              position: "bottom",
+              type: "blind-tenon",
+              length: tenonLen,
+              width: tenonDia,
+              thickness: tenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+              // splayed-round-tapered：頂面在 part-local 原點、底面被 dzMm 偏移。
+              // "bottom" tenon 預設 lcz=0 會落到頂面 X/Z（離底面 dzShape 在空中），
+              // 用 offsetThickness 帶上 dzShape 把 tenon 推到底面位置。
+              offsetThickness: useSplay ? dzShape : 0,
+              // 椅背圓料是斜的（bow 後彎讓 top 比 bottom 更 +Z），底端榫頭應該
+              // 跟圓料本身平行進入座板。axis = 從 top→bottom 在世界座標系。
+              ...(useSplay
+                ? { axis: { x: 0, y: -partHActual, z: dzShape } }
+                : {}),
+            },
+            {
+              position: "top",
+              type: "blind-tenon",
+              length: topTenonLen,
+              width: tenonDia,
+              thickness: tenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+              // 頂面位於 part-local 原點，不需 offsetThickness
+            },
+          ],
           mortises: [],
         });
+        // 底端入座板 → 累積 mortise 給座板（origin.z = 圓料底端 z）
+        seatMortises.push({ x, z: zBottom, tenonDia, tenonLen });
+        // 頂端入 bow → 累積 mortise 給 bow（X = 圓料 X 位置）
+        bowMortises.push({ x, tenonDia, tenonLen: topTenonLen });
       };
 
       // 兩側邊柱 (stump posts)：邊柱「外緣」距座板端面 = endInset
       // 預設留 8mm 安全邊距避免邊柱整支懸出
       const stumpInset = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
       const stumpX = input.length / 2 - stumpInset;
-      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）", "post");
-      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）", "post");
+      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）", "Left back stump post (turned)", "post");
+      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）", "Right back stump post (turned)", "post");
 
       // 中央圓料 (spindles)：在兩邊柱「內側邊」之間等距分佈
       // 用 slot-pitch 法：兩端 gap = 中間相鄰 gap，避免端點圓料貼到邊柱
@@ -488,16 +679,31 @@ export const bench: FurnitureTemplate = (input) => {
       const innerLeft = -stumpX + stumpD / 2;
       for (let i = 0; i < spindleN; i++) {
         const x = innerLeft + slotPitch * (i + 1);
-        buildVerticalRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`);
+        buildVerticalRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`, `Back spindle ${i + 1}`);
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
       // bow 跟圓料同步：位置 +rakeMm，cross-section 旋轉 rakeRad
       // 圓料 TOP 已在 buildVerticalRound 補上 bow 旋轉後中軸線的 Y/Z 偏移
       const railZ = halfW - topRailT / 2 - backInset + rakeMm;
+      // bow 底面 (part-local y=0) 對應每根椅背圓料 X 位置的 round mortise。
+      // ⚠ origin.z 要跟弧走（mesh-local；arch-bent 的材料中心在 x 處 = z=archDzAt(x)）：
+      // 寫死 z=0（直弦）會讓中央榫眼離弧帶最遠 bendMm（40mm）——零件圖紅框排成
+      // 直線不貼弧、3D CSG 挖錯位（user 2026-06-11 回報；slatted 段同款寫法為準）。
+      const bowMortisesList = bowMortises.map((m) => ({
+        origin: { x: m.x, y: 0, z: archDzAt(m.x) },
+        depth: m.tenonLen,
+        length: m.tenonDia,
+        width: m.tenonDia,
+        through: false as const,
+        // 圓料榫頭配圓孔：不標 shape 預設方孔 → 零件圖畫方框、CSG 挖方孔
+        // （user 2026-06-11「榫不是圓的嗎？」）
+        shape: "round" as const,
+      }));
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
+        nameEn: "Back top rail (bow)",
         material: mat,
         grainDirection: "length",
         visible: { length: bowLength, width: topRailT, thickness: topRailH },
@@ -505,15 +711,34 @@ export const bench: FurnitureTemplate = (input) => {
         rotation: rakeRad > 0 ? { x: rakeRad, y: 0, z: 0 } : undefined,
         shape: bowBendMm > 0 ? { kind: "arch-bent" as const, bendMm: bowBendMm } : undefined,
         tenons: [],
-        mortises: [],
+        mortises: bowMortisesList,
       });
+      // 座板加椅背圓料盲榫眼（每根 spindle/post 在底端入座板的孔位）
+      // top part 軸：local Y 從 0 (世界 legHeight) 到 topThickness (世界 seatTop)
+      // mortise origin.y = topThickness (頂面) → 往下挖 tenonLen
+      const topPart = design.parts.find((p) => p.id === "top");
+      if (topPart) {
+        for (const m of seatMortises) {
+          topPart.mortises.push({
+            origin: { x: m.x, y: topThickness, z: m.z },
+            depth: m.tenonLen,
+            length: m.tenonDia,
+            width: m.tenonDia,
+            through: false,
+            // 圓料榫頭配圓孔（同 bow；user 2026-06-11「榫不是圓的嗎？」）
+            shape: "round",
+          });
+        }
+      }
     }
   }
 
   if (withUnderShelf) {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
-    const stretcherW = 40;
-    const stretcherT = 20; // 跟 simple-table opts.lowerStretcherThickness 預設一致
+    // 跟 simple-table opts.lowerStretcherWidth/Thickness 預設一致（30/18）
+    // 之前 hardcode 40/20 → shelf 算位高 10mm，視覺懸空、跟橫撐頂面有縫
+    const stretcherW = 30;
+    const stretcherT = 18;
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
       : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
@@ -543,6 +768,7 @@ export const bench: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "under-shelf",
       nameZh: "座下層板",
+      nameEn: "Under-seat shelf",
       material: input.material,
       grainDirection: "length",
       visible: { length: shelfLen, width: shelfWid, thickness: shelfT },
@@ -555,13 +781,40 @@ export const bench: FurnitureTemplate = (input) => {
     });
   }
 
+  // 座板俯視輪廓造型：所有椅背/直料榫眼都已加到 top part 之後才套用，
+  // 用「最終榫眼」point-in-polygon 驗證＋二分縮小（oval/petal 塞不下退方形＋警告）。
+  if (seatOutline !== "rect") {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      const resolved = resolveTopOutlineShape(
+        seatOutline,
+        seatOutlineParams,
+        topPart.visible.length,
+        topPart.visible.width,
+        topPart.mortises,
+      );
+      if (resolved !== null) {
+        topPart.shape = resolved;
+        design.notes += seatOutlineNote(seatOutline, resolved.sizeMm, locale);
+      } else {
+        appendWarnings(design, [
+          isEn
+            ? "The full-span curved seat outline (oval / petal) conflicts with existing seat mortises (back slats/posts near the edge) — reverted to a rectangular seat. Increase leg inset or back insets to enable it."
+            : "滿版曲線座板（圓／橢圓／海棠）與座板既有榫眼衝突（椅背直料／邊柱貼近邊緣），已退回方形。加大「椅腳內縮」或椅背內縮量即可啟用。",
+        ]);
+      }
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 600, minWidth: 200, minHeight: 350,
     maxLength: 2000, maxWidth: 550, maxHeight: 550,
-  });
+  }, locale);
   if (input.height > 550) {
     appendSuggestion(design, {
-      text: `坐高 ${input.height}mm 已接近桌面高度——建議用低桌或餐桌模板，含中央橫撐 + 牙板選項。`,
+      text: isEn
+        ? `Seat height ${input.height} mm is near table height — consider the low-table or dining-table template (includes center stretcher + apron options).`
+        : `坐高 ${input.height}mm 已接近桌面高度——建議用低桌或餐桌模板，含中央橫撐 + 牙板選項。`,
       suggestedCategory: input.height >= 700 ? "dining-table" : "low-table",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });
@@ -577,7 +830,7 @@ export const bench: FurnitureTemplate = (input) => {
         ? lowerStretcherHeight
         : undefined,
       hasLowerStretcher: withLowerStretchers || withUnderShelf,
-    }),
+    }, locale),
   );
   return design;
 };

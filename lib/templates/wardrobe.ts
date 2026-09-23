@@ -9,12 +9,16 @@ import {
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
   resolveBackMode,
   resolveDoorMount,
   resolveDrawerBottomMode,
+  resolveDrawerBottomThickness,
+  resolveDrawerBoxJoinery,
   resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
@@ -33,10 +37,11 @@ import {
   doorPullStyleOption,
   lockTotalHeightOptions,
   resolveLockedTotalHeight,
+  clampLegInset,
 } from "./_helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
     // 標準衣櫃：上層層板收納、中層門板（門內掛衣）、下層抽屜
     topType: "shelves", topHeight: 300, topCount: 2,
@@ -53,8 +58,8 @@ export const wardrobeOptions: OptionSpec[] = [
   doorFrameThicknessOption,
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
-  { group: "leg", type: "number", key: "legSize", label: "底座腳粗 (mm)", defaultValue: 50, min: 35, max: 120, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] }, help: "衣櫃高重，建議 50mm 以上" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 80, unit: "mm", min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "底座腳粗", defaultValue: 50, unit: "mm", min: 35, max: 120, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] }, help: "衣櫃高重，建議 50mm 以上" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -63,10 +68,13 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（衣櫃常見）" },
     { value: "panel-side", label: "側板延伸落地" },
+    { value: "full-depth-panel", label: "整深度板腳（可調左右內縮）" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerMountOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   backModeOption,
   drawerSlideOption,
   ...toeKickOptions("structure"),
@@ -77,6 +85,8 @@ export const wardrobeOptions: OptionSpec[] = [
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = wardrobeOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
@@ -84,7 +94,23 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const backPanelPlywood = getOption<boolean>(input, opt(o, "backPanelPlywood"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  /**
+   * 🧷 夾住腳內縮 —— 否則底座板會被算成**負長度**。
+   *
+   * §A10.2 同一條公式。這裡的 legInset 會傳進 case-furniture builder 算左右底座板,
+   * 滑桿上限 300 是寫死的常數、跟櫃體實際寬度無關 → 小尺寸櫃拉到底就產出負長度的底座板,
+   * 而且沒有任何警告。(2026-08-21 全站掃描發現;稽核只報了床頭櫃抽屜那一條。)
+   *
+   * 櫃體沒有「腳寬」這種東西,底座板本身就貼著側板走,所以 legW/legD 給 0
+   * —— 夾制只需要保證「兩側內縮後還留得下 minSpan」。
+   */
+  const _legInsetWanted = getOption<number>(input, opt(o, "legInset"));
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    legW: 0,
+    legD: 0,
+  });
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
   const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
@@ -131,17 +157,22 @@ export const wardrobe: FurnitureTemplate = (input) => {
     backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight: effectiveLegHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "full-depth-panel" | "round" | "round-tapered",
     legInset,
     doorMount,
     doorFrameRailWidth: getOption<number>(input, opt(o, "doorFrameRailWidth")),
     doorFrameThickness: getOption<number>(input, opt(o, "doorFrameThickness")),
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
+    drawerBottomThickness: resolveDrawerBottomThickness(input, o),
+    drawerBoxJoinery: resolveDrawerBoxJoinery(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}（${doorMountLabel(doorMount)}）${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${hasDrawers ? "、抽屜滑軌" : ""}。${pullStyleNote(pullStyle)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: (isEn
+      ? `${notesLine} (${doorMountLabel(doorMount)})${effectiveLegHeight > 0 ? `; ${effectiveLegHeight}mm ${legShape} base${legInset > 0 ? ` (inset ${legInset}mm)` : ""}` : ""}. Hanging rod + Euro hinges (${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"})${hasDrawers ? " + drawer slides" : ""} required. ${pullStyleNote(pullStyle, locale)} ${withToeKick ? `Toe kick: ${toeKickHeight}mm tall × ${toeKickRecess}mm recess so toes don't hit cabinet.` : ""} ${withCrownMolding ? `Crown molding: ${crownProjection}mm overhang (ogee/cove/chamfer router profile), glue around cabinet before finishing.` : ""}`
+      : `${notesLine}（${doorMountLabel(doorMount)}）${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${hasDrawers ? "、抽屜滑軌" : ""}。${pullStyleNote(pullStyle, locale)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`
+    ).trim(),
     warnings,
   });
   applyStandardChecks(design, {
@@ -158,7 +189,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
       hasDrawers,
       drawerCount,
       hasDrawerSlide: useDrawerSlide,
-    }),
+    }, input.locale),
   );
   // 吊衣桿高度 ergo：< 1100mm 大衣/長外套掛不下；1700+ 標配
   for (const z of zones) {

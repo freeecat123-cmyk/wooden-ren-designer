@@ -1,16 +1,30 @@
 import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
-import {
+import { apronSetbackOption,
+  curvedTaperLegOptions,
   legShapeLabel,
   seatEdgeOption,
   seatEdgeStyleOption,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineNote,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  ovalMinLegInset,
   legEdgeOption,
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  apronEdgeOption,
+  apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
+  clampLegInset,
 } from "./_helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendWarnings } from "./_validators";
+import { formatMm } from "@/lib/units/format";
 
 export const diningTableOptions: OptionSpec[] = [
   // 桌腳 (leg)
@@ -22,35 +36,45 @@ export const diningTableOptions: OptionSpec[] = [
     { value: "splayed", label: "斜腳（四角對角外傾）" },
     { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
     { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）" },
     { value: "trestle", label: "對柱腳（兩端梁框 + 中央橫木）" },
   ] },
-  { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 70, min: 20, max: 120, step: 2 },
-  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
+  ...curvedTaperLegOptions("leg"),
+  { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 70, unit: "mm", min: 20, max: 120, step: 2 },
+  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   // 桌面 (top)
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 2 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
-  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 30, unit: "mm", min: 12, max: 60, step: 2 },
+  // 桌面俯視輪廓造型（top-outline）：與 liveEdge 互斥、非方形時倒角欄隱藏（一件一 shape）
+  { ...seatOutlineOption("top", "桌面"), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "dropLeaf", oneOf: ["none"] }] } },
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },
     { value: "one-side", label: "單側翻板（一端可延伸）" },
     { value: "two-sides", label: "雙側翻板（兩端可延伸）" },
   ], help: "桌面兩端用蝶式鉸鏈加可摺疊延伸板，展開變大、收合變小。需配 1.5\" 鋼製蝶式鉸鏈" },
-  { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬 (mm)", defaultValue: 250, min: 150, max: 500, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
+  { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬", defaultValue: 300, unit: "mm", min: 150, max: 500, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
-  // 牙板 (apron)
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 30, max: 200, step: 5 },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 28, min: 10, max: 50, step: 2 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
+  // 牙條 (apron)
+  apronSetbackOption("apron"),
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 100, unit: "mm", min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 2 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
+  ...apronProfileOptions("apron", { key: "legShape", notIn: ["trestle"] }),
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   // 中央/下橫撐 (stretchers)
-  { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "明式 / 工業風款才用；現代北歐 / 日式風格不加。長桌（>1500mm）建議加防扭。注意：若下橫撐選 H 形，已自帶下層中央橫撐、不需再勾此項" },
-  { group: "stretcher", type: "number", key: "centerStretcherWidth", label: "中央橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { key: "withCenterStretcher" } },
-  { group: "stretcher", type: "number", key: "centerStretcherThickness", label: "中央橫撐厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withCenterStretcher" } },
-  { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "0 = 跟牙板上緣切齊（預設）", dependsOn: { key: "withCenterStretcher" } },
+  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "明式 / 工業風款才用；現代北歐 / 日式風格不加。長桌（>1500mm）建議加防扭。注意：若下橫撐選 H 形，已自帶下層中央牙條、不需再勾此項" },
+  { group: "apron", type: "number", key: "centerStretcherWidth", label: "中央牙條高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, dependsOn: { key: "withCenterStretcher" } },
+  { group: "apron", type: "number", key: "centerStretcherThickness", label: "中央牙條厚", defaultValue: 25, unit: "mm", min: 12, max: 50, step: 1, dependsOn: { key: "withCenterStretcher" } },
+  { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙條頂", defaultValue: 0, unit: "mm", min: 0, max: 200, step: 5, help: "0 = 跟牙條上緣切齊（預設）", dependsOn: { key: "withCenterStretcher" } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false, dependsOn: { key: "legShape", notIn: ["trestle"] } },
   { group: "stretcher", type: "select", key: "lowerStretcherArrangement", label: "下橫撐排列", defaultValue: "box-frame", choices: [
     { value: "box-frame", label: "4 邊框（最穩，預設）" },
@@ -59,10 +83,11 @@ export const diningTableOptions: OptionSpec[] = [
     { value: "pair-z", label: "雙條（左/右 2 條，無前後）" },
     { value: "double-rail", label: "雙環（4 邊框 + 低一層 4 條）" },
   ], dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 28, min: 10, max: 50, step: 1, dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）", dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherDoubleRailGap", label: "雙環下層距上層 (mm)", defaultValue: 100, min: 50, max: 300, step: 10, help: "雙環模式時，下層 4 條離上層的距離", dependsOn: { all: [{ key: "lowerStretcherArrangement", equals: "double-rail" }, { key: "legShape", notIn: ["trestle"] }] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 1, dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）", dependsOn: { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherDoubleRailGap", label: "雙環下層距上層", defaultValue: 100, unit: "mm", min: 50, max: 300, step: 10, help: "雙環模式時，下層 4 條離上層的距離", dependsOn: { all: [{ key: "lowerStretcherArrangement", equals: "double-rail" }, { key: "legShape", notIn: ["trestle"] }] } },
+  ...stretcherProfileOptions("stretcher", { all: [{ key: "withLowerStretchers" }, { key: "legShape", notIn: ["trestle"] }] }),
 ];
 
 /**
@@ -78,9 +103,10 @@ export const diningTableOptions: OptionSpec[] = [
  */
 function buildTrestleDiningTable(input: {
   length: number; width: number; height: number; material: string;
-  topThickness: number; legSize: number;
+  topThickness: number; legSize: number; locale?: string;
 }): FurnitureDesign {
   const { length, width, height, material, topThickness, legSize } = input;
+  const isEn = input.locale === "en";
   const legHeight = height - topThickness;
   // 端框位置：x = ±frameX（沿長邊內縮 22%，工程經驗值）
   const frameX = Math.round(length * 0.28);
@@ -103,6 +129,7 @@ function buildTrestleDiningTable(input: {
   const top: Part = {
     id: "top",
     nameZh: "桌面",
+    nameEn: "Top",
     material: material as "maple",
     grainDirection: "length",
     visible: { length, width, thickness: topThickness },
@@ -131,6 +158,7 @@ function buildTrestleDiningTable(input: {
       parts.push({
         id: `trestle-${fid}-${sid}-leg`,
         nameZh: `${fLabel}框${sLabel}腳`,
+        nameEn: `${fid === "left" ? "Left" : "Right"} frame ${sid} leg`,
         material: material as "maple",
         grainDirection: "length",
         visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeight - frameFootThickness - frameRailThickness },
@@ -149,6 +177,7 @@ function buildTrestleDiningTable(input: {
     parts.push({
       id: `trestle-${fid}-top-rail`,
       nameZh: `${fLabel}框頂橫木`,
+      nameEn: `${fid === "left" ? "Left" : "Right"} frame top rail`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
@@ -166,6 +195,7 @@ function buildTrestleDiningTable(input: {
     parts.push({
       id: `trestle-${fid}-foot`,
       nameZh: `${fLabel}框底足`,
+      nameEn: `${fid === "left" ? "Left" : "Right"} frame foot`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
@@ -173,17 +203,49 @@ function buildTrestleDiningTable(input: {
       rotation: { x: 0, y: Math.PI / 2, z: 0 },
       tenons: [],
       mortises: [
-        // 中央橫木 mortise（內側 X 面）
+        /**
+         * 中央橫木 mortise:開在底足的**內側面**(朝另一個框的那一面)。
+         *
+         * ⛔ 原本 `origin.x = ±(frameFootWidth / 2 − 17)` = ±33.5。但這個零件的
+         *    local X 是 `visible.length` = 571(§A9.1),±33.5 落在**料的中段**、
+         *    根本不是任何一個面;`origin.z` 又給 0(深度方向置中)→ 沒有可辨識的面,
+         *    `mortiseLocalBox` 只好退到底面。
+         *    (frameFootWidth=101 是這個零件的 local Z,不是 X —— 拿錯軸了。)
+         *
+         * ✅ 正解:`origin.z` 給**真實座標**,離內側面剛好 depth/2(= 榫眼中心該在的位置)。
+         *    `mortiseLocalBox`(svg-views.tsx:854-884)是用「離哪個面最近」決定入榫軸的:
+         *    Y 置中時離上下面各 25,所以 Z 必須比 25 更靠近它那一面才會被選中
+         *    —— ±1 的 sign-flag 在這個零件行不通(離 Z 面還有 49.5)。
+         *    §A10.9 的 ±1 形式只在「其他軸都不含糊」時才夠用。
+         */
         {
-          origin: { x: fx < 0 ? +frameFootWidth / 2 - 17 : -frameFootWidth / 2 + 17, y: frameFootThickness / 2, z: 0 },
+          origin: {
+            x: 0,
+            y: frameFootThickness / 2,
+            z: (fx < 0 ? +1 : -1) * (frameFootWidth / 2 - 35 / 2),
+          },
           depth: 35,
           length: centerStretcherWidth - 12,
           width: 18,
           through: false,
         },
-        // 2 腳 bottom 榫眼（頂面，朝 +Y）
-        { origin: { x: -frameLegSpacing / 2, y: frameFootThickness / 2 - LEG_FACE_INSET, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
-        { origin: { x: +frameLegSpacing / 2, y: frameFootThickness / 2 - LEG_FACE_INSET, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
+        /**
+         * 2 腳 bottom 榫眼:立柱站在底足**上面**,榫頭朝下插進來 → 榫眼開在**頂面**。
+         *
+         * §A10.9:Mortise 的 **Y 是 part-local 從底量的真實座標**,而且
+         * `origin = mortise CENTER`。所以要開在頂面、深 `legBotTenonLen` 的榫眼,
+         * 中心必須在 `frameFootThickness − legBotTenonLen / 2`。
+         *
+         * ⛔ 原本寫 `frameFootThickness / 2 − LEG_FACE_INSET`(= 50/2 − 1 = 24)。
+         *    LEG_FACE_INSET 是「標哪一面」用的 ±1 **旗標**(§A10.9 明講「只用來標哪一面,
+         *    不是實際座標」),只能用在 X / Z;拿去減 Y 的結果是榫眼中心落在料的正中間
+         *    再往下 1mm → `mortiseLocalBox` 的「最近表面」解成**底面**。
+         *    實測「榫孔加工面 ZIP / 1:1 實尺樣板」:trestle 底足只吐出一張
+         *    `bottom 底面 571×101`,三個孔全跑到底面而且位置也錯 —— **照圖銑必毀料**。
+         *    (2026-08-21 稽核發現。中央橫木那個榫眼開在側面,y = 厚/2 置中是對的,不動。)
+         */
+        { origin: { x: -frameLegSpacing / 2, y: frameFootThickness - legBotTenonLen / 2, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
+        { origin: { x: +frameLegSpacing / 2, y: frameFootThickness - legBotTenonLen / 2, z: 0 }, depth: legBotTenonLen, length: legTenonW, width: legTenonThick, through: false },
       ],
     });
   }
@@ -191,6 +253,7 @@ function buildTrestleDiningTable(input: {
   parts.push({
     id: "trestle-center-stretcher",
     nameZh: "中央連接橫木",
+    nameEn: "Center connecting stretcher",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
@@ -211,16 +274,69 @@ function buildTrestleDiningTable(input: {
     parts,
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
-    notes: `對柱腳餐桌：兩端梁框（左/右 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。框長 ${frameRailLen}mm，框間距 ${2 * frameX}mm。坐人膝蓋空間大、無 4 腳干擾，建議桌長 ≥ 1500mm 才用此結構。`,
+    notes: isEn
+      ? `Trestle dining table: two end frames (left / right, each 2 legs + top rail + foot) + center stretcher. Leg ${formatMm(trestleLegSize, "inch")} (base × 1.3). Frame length ${formatMm(frameRailLen, "inch")}, frame spacing ${formatMm(2 * frameX, "inch")}. Roomy knee clearance, no 4-leg interference — use this structure when the top is ≥ 60" long.`
+      : `對柱腳餐桌：兩端梁框（左/右 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。框長 ${frameRailLen}mm，框間距 ${2 * frameX}mm。坐人膝蓋空間大、無 4 腳干擾，建議桌長 ≥ 1500mm 才用此結構。`,
   };
 }
 
 export const diningTable: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = diningTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
+  const _legInsetWanted = (seatOutline === "oval" || seatOutline === "petal")
+      && getOption<boolean>(input, opt(o, "liveEdge")) !== true
+      && getOption<string>(input, opt(o, "dropLeaf")) === "none"
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條會被算成**負長度**。
+   *
+   * §A10.2:`visible.length = length − 2×legSize − 2×legInset (+2×splay)`。
+   * doc 沒給 legInset 上限,而 OptionSpec 的 max 是**寫死的常數**(150~400)跟家具尺寸無關,
+   * 小尺寸家具把滑桿拉到底就會產出負長度的牙條 —— 完全沒有警告,
+   * 負值一路流進材料單、裁切與報價(負材積、負價格)。
+   * (2026-08-21 稽核只報了「床頭櫃抽屜」一條;實際全掃發現 10 個模板都中。)
+   *
+   * ⚠️ 夾的是**輸入**不是輸出:把零件長度夾成 0 只會生出沒厚度的鬼零件,
+   *    使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,畫面看得見也做得出來。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    legW: legSize,
+    legD: legSize,
+  });
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  // 桌面俯視輪廓造型：對 top part 的「最終榫眼」驗證後套用（兩個 builder 分支共用）
+  const applySeatOutline = (design: FurnitureDesign, liveEdgeOn: boolean) => {
+    if (liveEdgeOn) return;
+    if (seatOutline === "rect") return;
+    const topPartOutline = design.parts.find((p) => p.id === "top");
+    if (!topPartOutline) return;
+    const resolvedOutline = resolveTopOutlineShape(
+      seatOutline,
+      seatOutlineParams,
+      topPartOutline.visible.length,
+      topPartOutline.visible.width,
+      topPartOutline.mortises,
+    );
+    if (resolvedOutline !== null) {
+      topPartOutline.shape = resolvedOutline;
+      design.notes += seatOutlineNote(seatOutline, resolvedOutline.sizeMm, locale, "桌面");
+    } else {
+      appendWarnings(design, [
+        isEn
+          ? "The full-span curved top outline (oval / petal) conflicts with existing top mortises — reverted to a rectangular top. Increase leg inset to enable it."
+          : "滿版曲線桌面（圓／橢圓／海棠）與桌面既有榫眼衝突，已退回方形。加大「桌腳內縮」即可啟用。",
+      ]);
+    }
+  };
   // trestle 走獨立 builder（不走 simpleTable 4 腳結構）
   if (legShape === "trestle") {
     const design = buildTrestleDiningTable({
@@ -230,7 +346,9 @@ export const diningTable: FurnitureTemplate = (input) => {
       material: input.material,
       topThickness,
       legSize,
+      locale,
     });
+    applySeatOutline(design, false);
     applyStandardChecks(design, {
       minLength: 900, minWidth: 600, minHeight: 600,
       maxLength: 2400, maxWidth: 1200, maxHeight: 800,
@@ -257,6 +375,8 @@ export const diningTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
@@ -269,6 +389,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     material: input.material,
     legSize,
     topThickness,
+    apronSetback: getOption<number>(input, opt(o, "apronSetback")),
     apronWidth,
     apronThickness,
     legPenetratingTenon,
@@ -285,17 +406,32 @@ export const diningTable: FurnitureTemplate = (input) => {
     // 額外 5mm 肩：榫寬縮成 legSize - 20，外側肩變 15mm。
     legTopShoulderExtraMm: 5,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "hoof" | "shaker",
+    legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "curved-taper" | "hoof" | "shaker",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
+    ctLowerCove: getOption<boolean>(input, opt(o, "ctLowerCove")),
+    ctSCurve: getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve",
+    ctTwoWay: getOption<boolean>(input, opt(o, "ctTwoWay")),
+    ctSplay: getOption<number>(input, opt(o, "ctSplay")),
     seatEdge,
     seatEdgeStyle,
     legEdge,
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
+    apronEdge,
+    apronEdgeStyle,
+    apronProfile: getOption<string>(input, opt(o, "apronProfile")) as "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch",
+    apronProfileDepth: getOption<number>(input, opt(o, "apronProfileDepth")),
+    stretcherProfile: getOption<string>(input, opt(o, "stretcherProfile")) as "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch",
+    stretcherProfileDepth: getOption<number>(input, opt(o, "stretcherProfileDepth")),
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}`,
+    notes: isEn
+      ? `Dining table: ${formatMm(legSize, "inch")} legs (${legShapeLabel(legShape)}), apron ${formatMm(apronWidth, "inch")}×${formatMm(apronThickness, "inch")}, top ${formatMm(topThickness, "inch")} thick.${liveEdge ? ` Top with live edge: keep the bark line — use a single wide slab (> 24") or leave the outer edge of a glued panel unjointed.` : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "One" : "Two"}-side drop leaf (each ${formatMm(dropLeafWidth, "inch")} wide, one pair of 1.5" steel butterfly hinges per end).` : ""}`
+      : `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}`,
   });
   // 下橫撐排列方式（box-frame 預設無動作）
   if (withLowerStretchers && lowerStretcherArrangement !== "box-frame") {
@@ -311,6 +447,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     });
   }
 
+  applySeatOutline(design, liveEdge || dropLeaf !== "none");
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,
     maxLength: 2400, maxWidth: 1200, maxHeight: 800,
@@ -374,7 +511,9 @@ export function applyLowerStretcherArrangement(
     for (const p of design.parts) {
       if (!p.id.startsWith("leg-")) continue;
       for (const m of p.mortises) {
-        if (legFaceMatch(m)) {
+        // 只動下橫撐高度那顆：同一個腳面上還有裙板榫眼（餐桌 / 書桌 / 工作桌都有），
+        // 沒過濾會把裙板榫眼也拉到橫撐高度（裙板那顆消失、橫撐那裡疊兩顆；09-04 工作桌隨機測試抓到）
+        if (legFaceMatch(m) && isLowerStretcherMortise(m)) {
           m.length = fullTenonW;
           m.origin = { ...m.origin, y: lsCenterY };
         }
@@ -416,14 +555,23 @@ export function applyLowerStretcherArrangement(
       const centerLen = lsRightInnerX - lsLeftInnerX;
       const centerThick = lsT;
       const centerWidth = lsW;
+      // 中央橫撐沿 X 軸（rotation x:π/2 y:0）跟前後下橫撐同軸，但前後 ls 已被
+       // 刪除——回頭從 ls-left/ls-right 借形（同 stretcherEdge chamfer 結果一致）。
+      // ls-left/right 受 stretcherEdge option 影響的形狀通常是 chamfered-edges，
+      // 直接複用、保留橫撐倒角在 h-frame 模式仍可見。
+      const lsCenterShape = lsLeft.shape?.kind === "chamfered-edges"
+        ? { ...lsLeft.shape }
+        : undefined;
       design.parts.push({
         id: "ls-center",
         nameZh: "中央下橫撐",
+        nameEn: "Center lower stretcher",
         material: params.material as "maple",
         grainDirection: "length",
         visible: { length: centerLen, width: centerWidth, thickness: centerThick },
         origin: { x: 0, y: stretcherY, z: 0 },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        shape: lsCenterShape,
         tenons: [
           { position: "start", type: "shouldered-tenon", length: 18, width: lsW - 8, thickness: Math.round(centerThick / 2) },
           { position: "end", type: "shouldered-tenon", length: 18, width: lsW - 8, thickness: Math.round(centerThick / 2) },
@@ -440,7 +588,11 @@ export function applyLowerStretcherArrangement(
           // mortiseLocalBox 以最近表面決定 depthAxis；origin.z 設成 ±some 讓 z 軸成為 depth
           // 簡化：ls-* part-local X axis（visible.length）= 世界 Z；Y=世界Y；Z=世界 X (因 rotation y:PI/2)
           // 但 mortise.origin 是 part-local，這邊直接給：origin.z = 朝家具中心方向（part-local Z 一側）
-          origin: { x: 0, y: lsW / 2, z: innerSide * (lsT / 2 - 1) },
+          // §M1 mesh-local：ls-* 的 rotation (x:π/2, y:π/2) 讓 local +Y（thickness 軸）= 世界 +X、
+          // local Z（width 軸）= 世界 −Y、local X（length 軸）= 世界 −Z。朝家具中心的面 = ls-left 的
+          // local Y=lsT 面、ls-right 的 local Y=0 面；榫眼垂直置中 → z=0。
+          // （舊寫法 y=lsW/2、z=±(lsT/2−1) 在 lsW/2 > lsT 時超出零件厚度，且 ls-right 那顆會被畫到外側面）
+          origin: { x: 0, y: innerSide > 0 ? lsT : 0, z: 0 },
           depth: 18,
           length: lsW - 8,
           width: Math.round(lsT / 2),
@@ -465,6 +617,7 @@ export function applyLowerStretcherArrangement(
         ...ref,
         id: `${ref.id}-low`,
         nameZh: `${ref.nameZh}（下層）`,
+        nameEn: `${ref.nameEn ?? ref.nameZh} (lower)`,
         origin: { ...ref.origin, y: lowerY },
         // tenons 跟原本一樣，mortise 對應加在 leg 上
       });

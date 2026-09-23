@@ -2,6 +2,10 @@ import type { BillableMaterial, FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import { taipeiYMD } from "@/lib/utils/date-tw";
+import { formatMm } from "@/lib/units/format";
+import { convertTwdToUsd } from "@/lib/units/fx";
+
+const usd = (twd: number): string => `$${convertTwdToUsd(twd).toFixed(2)}`;
 
 /**
  * 倒角 / 圓角加工工時。每條外露邊跑修邊機（V 角 / 圓刀）+ 手工砂磨。
@@ -89,7 +93,9 @@ export function computeChamferLaborHours(design: FurnitureDesign): {
 import {
   MATERIAL_PRICE_PER_BDFT,
   MM3_PER_BDFT,
+  SHEET_AREA_MM2,
   SHEET_GOOD_LABEL,
+  SHEET_GOOD_LABEL_EN,
   effectiveBillableMaterial,
 } from "./catalog";
 import { MATERIALS } from "@/lib/materials";
@@ -191,19 +197,103 @@ function wasteRateFor(category: string): number {
     : WASTE_RATES.default;
 }
 
-function materialLabel(m: BillableMaterial): string {
-  if (m === "plywood" || m === "mdf") return SHEET_GOOD_LABEL[m];
-  return MATERIALS[m]?.nameZh ?? m;
+function materialLabel(m: BillableMaterial, locale: string = "zh-TW"): string {
+  if (m === "plywood" || m === "mdf") {
+    return locale === "en" ? SHEET_GOOD_LABEL_EN[m] : SHEET_GOOD_LABEL[m];
+  }
+  const spec = MATERIALS[m];
+  if (!spec) return m;
+  return locale === "en" ? spec.nameEn : spec.nameZh;
 }
+
+const QUOTE_COPY = {
+  zhTW: {
+    materialPrefix: "材料｜",
+    primarySuffix: "（主材）",
+    panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
+      `${bdft} 板才（含 ${waste}% 切料損耗）× NT$${unitPrice}/板才`,
+    sheetMaterial: (label: string, thickness: string) =>
+      `材料｜${label}（板材，${thickness}）`,
+    sheetDetail: (sheets: number, thickness: string, sheetDims: string, areaM2: string, waste: number, unitPrice: number) =>
+      `${sheets} 張 ${thickness} × ${sheetDims}（實用 ${areaM2} m² + ${waste}% 切料損耗 → ceil 成整張）× NT$${unitPrice}/板才`,
+    labor: "加工工資",
+    laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
+      `${hours} 小時（手動覆寫;自動估 ${autoHours}h）× NT$${rate}/hr`,
+    laborDetailChamfer: (base: string, ch: string, chDetail: string, rate: number) =>
+      `主工時 ${base}h + 倒角 ${ch}h(${chDetail})× NT$${rate}/hr`,
+    laborDetailBasic: (hours: string, rate: number) => `${hours} 小時 × NT$${rate}/hr`,
+    equipment: "設備折舊",
+    equipmentDetail: (hours: string, rate: number) => `${hours} 小時 × NT$${rate}/hr`,
+    consumables: "耗材",
+    consumablesDetail: "膠、砂紙、鑽頭磨耗等",
+    finishing: "塗裝費",
+    finishingDetail: "護木油 / 蠟 / 漆料 + 上漆工時",
+    hardware: "五金",
+    hardwareDetail: "鉸鏈 / 滑軌 / 把手 / 腳輪等",
+    shipping: "運費",
+    shippingDetail: "跨區運輸 / 物流 / 搬運",
+    installation: "安裝費",
+    installationDetail: "現場組裝 / 上牆 / 水平調整",
+    chamferRound: (m: string) => `45° 倒角 ${m}m`,
+    chamferRounded: (m: string) => `圓角 ${m}m`,
+    chamferConfigs: (n: number) => `${n} 種規格 setup`,
+    chamferJoin: "、",
+  },
+  en: {
+    materialPrefix: "Material · ",
+    primarySuffix: " (primary)",
+    panelDetailTpl: (bdft: string, waste: number, unitPrice: number) =>
+      `${bdft} bd-ft (incl. ${waste}% cut waste) × ${usd(unitPrice)}/bd-ft`,
+    sheetMaterial: (label: string, thickness: string) =>
+      `Material · ${label} (sheet, ${thickness})`,
+    sheetDetail: (sheets: number, thickness: string, sheetDims: string, areaM2: string, waste: number, unitPrice: number) =>
+      `${sheets} sheets ${thickness} × ${sheetDims} (used ${areaM2} m² + ${waste}% waste → ceil to full sheets) × ${usd(unitPrice)}/bd-ft`,
+    labor: "Labor",
+    laborDetailOverride: (hours: string, autoHours: string, rate: number) =>
+      `${hours} hr (manual override; auto-est ${autoHours}h) × ${usd(rate)}/hr`,
+    laborDetailChamfer: (base: string, ch: string, chDetail: string, rate: number) =>
+      `Build ${base}h + edge profiling ${ch}h (${chDetail}) × ${usd(rate)}/hr`,
+    laborDetailBasic: (hours: string, rate: number) => `${hours} hr × ${usd(rate)}/hr`,
+    equipment: "Equipment depreciation",
+    equipmentDetail: (hours: string, rate: number) => `${hours} hr × ${usd(rate)}/hr`,
+    consumables: "Consumables",
+    consumablesDetail: "Glue, sandpaper, bit wear, etc.",
+    finishing: "Finishing",
+    finishingDetail: "Wood oil / wax / paint + finishing labor",
+    hardware: "Hardware",
+    hardwareDetail: "Hinges / slides / pulls / casters",
+    shipping: "Shipping",
+    shippingDetail: "Long-haul / logistics / moving",
+    installation: "Installation",
+    installationDetail: "On-site assembly / wall-mount / leveling",
+    chamferRound: (m: string) => `45° chamfer ${m}m`,
+    chamferRounded: (m: string) => `Rounded ${m}m`,
+    chamferConfigs: (n: number) => `${n} setup configs`,
+    chamferJoin: ", ",
+  },
+} as const;
 
 export function calculateQuote(
   design: FurnitureDesign,
   opts: LaborDefaults,
+  locale: string = "zh-TW",
+  unit: "mm" | "inch" = "mm",
 ): QuoteBreakdown {
+  const C = locale === "en" ? QUOTE_COPY.en : QUOTE_COPY.zhTW;
   // 1. 按計價材料分組加總材積
   // 使用者若把夾板/中纖板單價清空（null），該類零件併回主材一起計
   // 視覺裝飾（玻璃）不計入木料成本
+  //
+  // 板材（plywood/mdf）特別處理：實際市場整張賣（2440×1220 標準張），
+  // 半張也付全張錢。在這裡我們依「(板材, 厚度)」分組加總「面積」，
+  // 之後 ceil(面積 / 整張面積) 算實際要買幾張、billedBdft 用實際厚度計。
   const volumeByMaterial = new Map<BillableMaterial, number>();
+  // key: `${mat}-${thicknessMm}`；只放 plywood/mdf 用
+  const sheetAreaByGroup = new Map<string, {
+    mat: "plywood" | "mdf";
+    thickness: number;
+    totalAreaMm2: number;
+  }>();
   for (const part of design.parts) {
     if (part.visual !== undefined) continue;
     const cut = calculateCutDimensions(part);
@@ -214,7 +304,30 @@ export function calculateQuote(
     } else if (mat === "mdf" && opts.mdfPricePerBdft == null) {
       mat = design.primaryMaterial;
     }
-    volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
+    if (mat === "plywood" || mat === "mdf") {
+      /**
+       * ⛔ 不可以直接拿 `cut.thickness` 當板厚。
+       *
+       * `visible` 是**幾何軸**三元組（length→X、width→Z 深、thickness→Y 垂直，§A9.1），
+       * 不是「長寬厚」。立著的零件（櫃子背板、側板）真正的板厚在 `width`，
+       * `thickness` 存的是它的高度。
+       *
+       * 實際踩到：衣櫃背板 visible = {length:1200, width:3, thickness:1920}
+       * → 舊碼把 1920mm 當板厚、把 1200×3 當板面積
+       * → 一片 3mm 背板算成「1 張 1920mm 厚的夾板」= NT$121,104。
+       * 6 款櫃類全中，最誇張差 640 倍。（2026-08-23 發現）
+       *
+       * 板材的板厚一定是三邊裡最小的那邊，板面就是另外兩邊——這跟零件怎麼擺無關。
+       * 裁切模組 `cutplan/group.ts` 本來就是這樣排序的，只有報價漏了。
+       */
+      const [boardT, faceA, faceB] = [cut.length, cut.width, cut.thickness].sort((a, b) => a - b);
+      const key = `${mat}-${boardT}`;
+      const cur = sheetAreaByGroup.get(key) ?? { mat, thickness: boardT, totalAreaMm2: 0 };
+      cur.totalAreaMm2 += faceA * faceB;
+      sheetAreaByGroup.set(key, cur);
+    } else {
+      volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
+    }
   }
 
   const materialLines: QuoteLineItem[] = [];
@@ -229,39 +342,65 @@ export function calculateQuote(
     return aSheet - bSheet;
   });
 
+  // 1a. 實木：按 bdft 線性計價（鋸下來剩料還能用）
   for (const [mat, volMm3] of sortedEntries) {
     const wasteRate = wasteRateFor(design.category);
     const withWaste = volMm3 * (1 + wasteRate);
     const bdft = withWaste / MM3_PER_BDFT;
 
-    // 單價優先順序：使用者輸入 > catalog 預設
-    // （null 的情況在前面 volumeByMaterial 建立階段已併回主材，這裡不會再看到）
     let unitPrice: number;
-    if (mat === "plywood") {
-      unitPrice = opts.plywoodPricePerBdft ?? 0;
-    } else if (mat === "mdf") {
-      unitPrice = opts.mdfPricePerBdft ?? 0;
-    } else if (mat === design.primaryMaterial) {
+    if (mat === design.primaryMaterial) {
       unitPrice = opts.primaryMaterialPricePerBdft;
-    } else {
-      // 極少情況：零件標了另一種實木（目前沒有 template 會這樣）
+    } else if (mat !== "plywood" && mat !== "mdf") {
+      // 板材已在 1b 用整張計價路徑分流，這裡只剩實木 MaterialId
       unitPrice = MATERIAL_PRICE_PER_BDFT[mat] ?? 2000;
+    } else {
+      // 邏輯上不應該到這（板材在 sheetAreaByGroup 處理），保險回 0
+      unitPrice = 0;
     }
 
     const amount = bdft * unitPrice;
-    const suffix =
-      mat === design.primaryMaterial
-        ? "（主材）"
-        : mat === "plywood" || mat === "mdf"
-        ? "（板材）"
-        : "";
+    const suffix = mat === design.primaryMaterial ? C.primarySuffix : "";
     materialLines.push({
-      label: `材料｜${materialLabel(mat)}${suffix}`,
-      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(wasteRateFor(design.category) * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
+      label: `${C.materialPrefix}${materialLabel(mat, locale)}${suffix}`,
+      detail: C.panelDetailTpl(bdft.toFixed(2), Math.round(wasteRate * 100), unitPrice),
       amount,
     });
     materialCost += amount;
     totalVolumeMm3 += withWaste;
+    totalBdft += bdft;
+  }
+
+  // 1b. 板材：按整張計價（市場整張賣，半張也付全張錢）
+  for (const { mat, thickness, totalAreaMm2 } of sheetAreaByGroup.values()) {
+    const wasteRate = wasteRateFor(design.category);
+    // 板材切料損耗 → 換算成「需要的面積」，再 ceil 成整張
+    const areaWithWaste = totalAreaMm2 * (1 + wasteRate);
+    const sheetsNeeded = Math.ceil(areaWithWaste / SHEET_AREA_MM2);
+    const billedVolumeMm3 = sheetsNeeded * SHEET_AREA_MM2 * thickness;
+    const bdft = billedVolumeMm3 / MM3_PER_BDFT;
+
+    const unitPrice = mat === "plywood"
+      ? (opts.plywoodPricePerBdft ?? 0)
+      : (opts.mdfPricePerBdft ?? 0);
+    const amount = bdft * unitPrice;
+
+    const thicknessStr = formatMm(thickness, unit);
+    const sheetDimsStr = `${formatMm(2440, unit)}×${formatMm(1220, unit)}`;
+    materialLines.push({
+      label: C.sheetMaterial(materialLabel(mat, locale), thicknessStr),
+      detail: C.sheetDetail(
+        sheetsNeeded,
+        thicknessStr,
+        sheetDimsStr,
+        (totalAreaMm2 / 1e6).toFixed(2),
+        Math.round(wasteRate * 100),
+        unitPrice,
+      ),
+      amount,
+    });
+    materialCost += amount;
+    totalVolumeMm3 += billedVolumeMm3;
     totalBdft += bdft;
   }
 
@@ -334,50 +473,55 @@ export function calculateQuote(
     chamferLabor.hours > 0
       ? [
           chamferLabor.totalMmChamfered > 0
-            ? `45° 倒角 ${(chamferLabor.totalMmChamfered / 1000).toFixed(1)}m`
+            ? C.chamferRound((chamferLabor.totalMmChamfered / 1000).toFixed(1))
             : "",
           chamferLabor.totalMmRounded > 0
-            ? `圓角 ${(chamferLabor.totalMmRounded / 1000).toFixed(1)}m`
+            ? C.chamferRounded((chamferLabor.totalMmRounded / 1000).toFixed(1))
             : "",
           chamferLabor.uniqueConfigs > 0
-            ? `${chamferLabor.uniqueConfigs} 種規格 setup`
+            ? C.chamferConfigs(chamferLabor.uniqueConfigs)
             : "",
         ]
           .filter(Boolean)
-          .join("、")
+          .join(C.chamferJoin)
       : "";
 
   const lines: QuoteLineItem[] = [
     ...materialLines,
     {
-      label: "加工工資",
+      label: C.labor,
       detail: hasHoursOverride
-        ? `${laborHours.toFixed(1)} 小時（手動覆寫；自動估 ${autoLaborHours.toFixed(1)}h）× NT$${opts.hourlyRate}/hr`
+        ? C.laborDetailOverride(laborHours.toFixed(1), autoLaborHours.toFixed(1), opts.hourlyRate)
         : chamferLabor.hours > 0
-          ? `主工時 ${baseLaborHours.toFixed(1)}h + 倒角 ${chamferLabor.hours.toFixed(1)}h（${chamferDetail}）× NT$${opts.hourlyRate}/hr`
-          : `${laborHours.toFixed(1)} 小時 × NT$${opts.hourlyRate}/hr`,
+          ? C.laborDetailChamfer(
+              baseLaborHours.toFixed(1),
+              chamferLabor.hours.toFixed(1),
+              chamferDetail,
+              opts.hourlyRate,
+            )
+          : C.laborDetailBasic(laborHours.toFixed(1), opts.hourlyRate),
       amount: laborCost,
     },
     {
-      label: "設備折舊",
-      detail: `${laborHours.toFixed(1)} 小時 × NT$${opts.equipmentRate}/hr`,
+      label: C.equipment,
+      detail: C.equipmentDetail(laborHours.toFixed(1), opts.equipmentRate),
       amount: equipmentCost,
     },
     {
-      label: "耗材",
-      detail: "膠、砂紙、鑽頭磨耗等",
+      label: C.consumables,
+      detail: C.consumablesDetail,
       amount: consumables,
     },
     {
-      label: "塗裝費",
-      detail: "護木油 / 蠟 / 漆料 + 上漆工時",
+      label: C.finishing,
+      detail: C.finishingDetail,
       amount: finishingCost,
     },
     ...(hardwareCost > 0
       ? [
           {
-            label: "五金",
-            detail: "鉸鏈 / 滑軌 / 把手 / 腳輪等",
+            label: C.hardware,
+            detail: C.hardwareDetail,
             amount: hardwareCost,
           },
         ]
@@ -385,8 +529,8 @@ export function calculateQuote(
     ...(shippingCost > 0
       ? [
           {
-            label: "運費",
-            detail: "跨區運輸 / 物流 / 搬運",
+            label: C.shipping,
+            detail: C.shippingDetail,
             amount: shippingCost,
           },
         ]
@@ -394,8 +538,8 @@ export function calculateQuote(
     ...(installationCost > 0
       ? [
           {
-            label: "安裝費",
-            detail: "現場組裝 / 上牆 / 水平調整",
+            label: C.installation,
+            detail: C.installationDetail,
             amount: installationCost,
           },
         ]

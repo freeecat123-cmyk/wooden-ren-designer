@@ -30,6 +30,7 @@ export type FurnitureCategory =
   | "round-table"
   | "bed"
   | "circle-chair"
+  | "workbench"
   // 小物件 (accessories)
   | "pencil-holder"
   | "bookend"
@@ -37,7 +38,8 @@ export type FurnitureCategory =
   | "tray"
   | "dovetail-box"
   | "wine-rack"
-  | "coat-rack";
+  | "coat-rack"
+  | "wall-mounted-tool-storage";
 
 export type JoineryType =
   | "through-tenon"
@@ -50,6 +52,7 @@ export type JoineryType =
   | "tongue-and-groove"
   | "dowel"
   | "mitered-spline"
+  | "mitered"
   | "pocket-hole"
   | "screw";
 
@@ -60,6 +63,21 @@ export type TenonPosition =
   | "bottom"
   | "left"
   | "right";
+
+/** Unit vector in WORLD frame. Used by Tenon.axis / Mortise.axis to override
+ *  the implicit position-derived direction (compound splay, see plan
+ *  2026-05-18-compound-splay-tenon-axis.md).
+ *
+ *  Tenon.axis = direction the tenon physically extends in world (out of the
+ *  child part, into the mating part). Mortise.axis = opening direction in
+ *  world (out of the mother part, toward the mating part) — anti-parallel to
+ *  the matching Tenon.axis. Renderers consume these directly without composing
+ *  with part rotation. */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export type GrainDirection = "length" | "width";
 
@@ -93,6 +111,16 @@ export interface Tenon {
    */
   offsetWidth?: Millimeters;
   offsetThickness?: Millimeters;
+  /**
+   * WORLD-frame unit vector the tenon physically extends along (out of the
+   * child part, into the mother). Overrides the implicit direction derived
+   * from `position` (start→−x, end→+x, top→+y, bottom→−y, left→−z, right→+z).
+   * Used for compound splay where the tenon must point along the leg-face
+   * normal. Renderers apply this directly (no part-rotation composition) when
+   * orienting the tenon mesh / polygon. Falling back: renderers without
+   * axis-awareness use position only.
+   */
+  axis?: Vec3;
 }
 
 export interface Mortise {
@@ -116,6 +144,40 @@ export interface Mortise {
    * 2026-09-23 新加（circle-chair 大進大出腿），其他 template 目前都不用，複查時留意。
    */
   passThroughChildId?: string;
+  /**
+   * 零件圖標籤覆寫——同一件上有多條 cosmetic 槽時（如木盒壁同時有「底板槽」+
+   * 「滑蓋槽」），預設只標「凹槽1/凹槽2」看不出誰是誰。給 label 直接標名稱。
+   */
+  label?: string;
+  /**
+   * 額外旋轉（弧度）—CSG cut box / cylinder 繞 part-local X 軸轉這個角度。
+   * 用途：外撇牆的 cosmetic 孔（如把手）要跟著牆面斜，不能 axis-aligned。
+   * 想像：板還平的時候挖孔（孔軸 ⊥ 板面），再傾斜板 → 孔軸跟板一起斜。
+   */
+  rotX?: number;
+  /**
+   * 額外旋轉（弧度）—CSG cut box 繞 part-local Z 軸轉這個角度。
+   * 用途：splayed apron 的 tenon 繞自己 length 軸旋轉了 splay tilt 角，
+   * 對應的腳 mortise 也要把 cross-section（W×T 矩形）跟著旋轉，不然
+   * 軸對齊 cut box 比 tilted tenon 大、視覺上多出空白角（user 2026-05-21
+   * 回報「榫頭右邊多了一個沒傾斜的空榫孔」）。
+   */
+  rotZ?: number;
+  /**
+   * 額外旋轉（弧度）—CSG cut box 繞 part-local Y 軸轉這個角度。
+   * 用途：rect 筆筒壁的 divider dado—svg-views auto-fit heuristic 預設把長軸放
+   * 在較寬的 part 軸（outerL > wallH 時放 part-X）→ 變成橫向溝槽。rotY=π/2 把
+   * cut box 繞 Y 軸轉 90° 把 (longDim, D, shortDim) 換成 (shortDim, D, longDim) —
+   * 真正的垂直 dado。template 端要自己預測 longOnZ 決定要不要旋轉。
+   */
+  rotY?: number;
+  /**
+   * WORLD-frame unit vector the mortise opens along (out of the mother part,
+   * toward the mating tenon). Anti-parallel to the matching Tenon.axis (which
+   * points the other way — into the mother). Same backward-compat fallback as
+   * Tenon.axis.
+   */
+  axis?: Vec3;
 }
 
 export type MaterialId =
@@ -129,6 +191,7 @@ export type MaterialId =
   | "ash"
   | "beech"
   | "pine"
+  | "southern-pine"
   // 板材（裝潢常用）— 跟 SheetGood 重疊但這裡作為「主材質」用
   | "blockboard-primary"
   | "plywood-primary"
@@ -143,6 +206,10 @@ export type BillableMaterial = MaterialId | SheetGood;
 export interface Part {
   id: string;
   nameZh: string;
+  /** Optional English part name. When present, `partName(part, "en")` returns
+   *  this verbatim — useful for templates whose part ids don't match the
+   *  shared ID_EN map in `lib/templates/part-names.ts`. */
+  nameEn?: string;
   material: MaterialId;
   grainDirection: GrainDirection;
 
@@ -168,6 +235,8 @@ export interface Part {
    * - 3D / 報價總材積不變（同一塊概念面板）
    */
   panelPieces?: number;
+  /** 拼板方向：預設 "width" = 沿面寬拼 N 片；"thickness" = 疊 N 層（每層厚 = 厚 ÷ N，工作桌疊層桌面）。 */
+  panelSplit?: "width" | "thickness";
 
   /**
    * 視覺渲染提示——影響 3D / 材料單 / 報價：
@@ -181,6 +250,16 @@ export interface Part {
    * - "mirror"：鏡面，不計才、進採購清單。3D 走 reflective material。
    */
   visual?: "glass" | "brass-antique" | "fabric" | "metal" | "mirror";
+
+  /**
+   * 四周底邊搭接槽（peripheral rebate / rabbet）— 零件圖標示用。
+   * 設了之後，側視 / 正視（看得到端面厚度的視圖）的輪廓線會畫成 L 階梯：
+   * 上層 = 滿尺寸 cap、下層 = 縮窄 `widthMm` 的凸唇（plug，深 `depthMm`）。
+   * 俯視維持矩形（rebate 在面上看是隱藏線、由 cosmetic mortise 虛線表示）。
+   * 純 2D 輪廓提示——3D 仍由 cosmetic through-mortise 的 CSG 切口表現，
+   * 不影響材積 / 切料。嵌入式（rabbeted）盒蓋用。
+   */
+  peripheralRebate?: { widthMm: number; depthMm: number };
 
   /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows
@@ -214,11 +293,52 @@ export interface Part {
      *  渲染分 4 段：straight body → 外緣轉 (S 上半) → 內凹收腰 → 外撇腳趾 (S 下半)。
      *  舊資料沒帶 dirX/dirZ → fallback 對稱 4 面外擴（僅相容用，視覺較差）。 */
     | { kind: "hoof"; hoofMm: number; hoofScale: number; dirX?: -1 | 0 | 1; dirZ?: -1 | 0 | 1 }
+    /** Curved-taper 弧肩斜腳：側面輪廓沿厚度（Z）擠出的一體成型腳。
+     *  外面（+dir 側，朝外）＝垂直 plumb。
+     *  內面（-dir 側，朝家具中心／接橫撐那面）＝接撐段全寬 blockHeightMm → 內凹圓弧肩
+     *  內收 shoulderMm → 直線斜降到腳底再往內收 insetMm（弧＋斜線都在此面，橫撐榫在此面）。
+     *  dir = 外面朝哪個 local X（+1 / −1；0 視為 +1，一般四角腳取 sign(c.x) 讓垂直外面朝外、
+     *  弧＋斜線朝內）。厚度（Z）固定不變。 */
+    | { kind: "curved-taper"; blockHeightMm: number; shoulderMm: number; insetMm: number; dir: -1 | 0 | 1;
+        /** 選配外斜（splay）：腳底相對腳頂的外移量 mm（頂固定、底外踢，同 splayed 慣例）。
+         *  0 / undefined = 垂直（既有行為，byte 相容）。 */
+        dxMm?: number; dzMm?: number;
+        /**
+         * 兩向弧肩：把同一道「方肩→凹弧→斜降」同時做在**兩個相鄰內面**上。
+         *
+         * 腳站在家具角落，兩個方向都有牙條進來，所以本來就該有兩道弧肩。
+         * 現有做法是「單一側面輪廓沿厚度擠出」→ 只有一面有造型，從另一邊看是方料。
+         *
+         * 開啟後幾何從「擠出」改成「逐層矩形放樣」：每個高度的斷面是一個從
+         * 兩個相鄰邊往內縮的矩形，內側立稜隨高度往對角線移動。
+         *
+         * false / undefined = 既有行為（單向擠出），舊設計 byte 相容。（§A9.9）
+         */
+        twoWay?: boolean;
+        /**
+         * 兩向弧肩時,Z 方向那一面的內側朝哪邊(−1 = 內面在 −Z、+1 = 在 +Z)。
+         * ⛔ 不可以從 `dzMm`(外斜量)去推 —— 沒開外斜時它是 0,四支腳會全部
+         *    把弧做在同一側,結果兩支腳的弧朝外、跟牙條互相穿模。
+         *    `hoof` 腳型本來就有 dirX/dirZ 兩個欄位,這裡是抄漏了。(2026-08-24)
+         */
+        dirZ?: -1 | 0 | 1;
+        /**
+         * 下接撐段(橫撐位置的第二道弧肩,A 案)。leg-local 從腳底量的高度區間。
+         * 沒給 = 只有一道弧(既有行為)。(2026-08-25,木頭仁選 A 案)
+         */
+        lowerCove?: { botMm: number; topMm: number };
+        /**
+         * S 形肩:弧的**兩端都是垂直切線**（smoothstep），肩線順順化開。
+         * 預設（false / undefined）是圓弧,方肩那端是水平切線 = 利落的 90° 直角。
+         * 深度與跨距完全不變,只換曲線 —— 材料、榫位、報價都不動。(2026-08-26,§A9.9c)
+         */
+        sCurve?: boolean }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，
-     *  前/側視多兩個斜切角。 */
-    | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
+     *  前/側視多兩個斜切角。
+     *  bottomChamferMm > 0：底面外緣也倒角（腳內縮、座板下緣外露時用）。 */
+    | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
     /** Round tapered: 圓錐腳。bottomScale < 1 = 上粗下細；> 1 = 上細下粗。
      *  3D 用 cylinder(topR, bottomR, height)；前/側視梯形。 */
     | { kind: "round-tapered"; bottomScale: number }
@@ -249,6 +369,12 @@ export interface Part {
         kind: "apron-trapezoid";
         topLengthScale: number;
         bottomLengthScale: number;
+        /**
+         * 梯形只作用在離 local −Z 邊這段距離內（mm），再過去端面垂直、維持 bottomLengthScale。
+         * 用途：床頭板／床尾板——板從地板立到腳頂以上，只有 0~腳高 這段要貼錐腳的斜面，
+         * 上面那段是自由邊（2026-09-02）。不給＝整個寬度線性（既有行為）。
+         */
+        taperSpanMm?: number;
         bevelAngle?: number;
         /** "full"（預設, top+bot 都水平）或 "half"（只有 top 水平、bot 跟腳斜） */
         bevelMode?: "full" | "half";
@@ -258,6 +384,22 @@ export interface Part {
      *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。
      *  套用後上下緣面在 world 中保持水平 → 可貼緊椅面 / 地面。 */
     | { kind: "apron-beveled"; bevelAngle: number }
+    /** 牙板／下橫撐「造型邊」：在 length×width 大面上下緣做內凹造型，沿厚度擠出。
+     *  局部 +Z 邊＝下緣（牙板/橫撐 rotation x=π/2 後為世界下方）。
+     *  style: arch 下緣圓弧 / kunmen 壸門 / wave 波浪(waveCount 峰) /
+     *  corner-round 下緣兩端圓角(r=depth) / double-arch 上下內凹弧(束腰)。
+     *  depthMm 內凹深度（自動 clamp ≤45% 高、double-arch 每邊 ≤35%）。 */
+    | { kind: "edge-profile"; style: "arch" | "arch-out" | "top-arch" | "kunmen" | "wave" | "corner-round" | "double-arch"; depthMm: number; waveCount?: number;
+        /** 選配梯形補償（同 apron-trapezoid）：上/下緣長度縮放，與造型同時成立（斜腳/弧肩斜腳用）。 */
+        topLengthScale?: number; bottomLengthScale?: number }
+    /** Top-outline: 座板／桌面「俯視輪廓」造型——輪廓在 length(X) × width(Z) 大面上
+     *  重塑、沿厚度（local Y）擠出。輪廓函式 lib/render/geometry.ts topOutlinePoints
+     *  為 3D / silhouette / 零件 SVG 匯出共用（可直下 CNC）。
+     *  style: octagon 四角切角(X 切 sizeMm、Z 切 sizeZMm 預設同值) / oval 滿版橢圓／超橢圓
+     *  (squareness 0..1 圓→圓角方,sizeMm 不用) / arch 外凸弧(archSides 前後/左右/四邊枕形,
+     *  兩端各收 sizeMm) / petal 海棠／花瓣形(lobes 瓣、瓣深 sizeMm)。尺寸自動 clamp 保結構。 */
+    | { kind: "top-outline"; style: "octagon" | "oval" | "arch" | "petal"; sizeMm: number;
+        sizeZMm?: number; squareness?: number; archSides?: "front-back" | "left-right" | "all"; lobes?: number }
     /** Half-beveled apron（頂水平、底斜）— 牙條頂面跟椅面重疊（apronDropFromTop=0）時用。
      *  上 4 vertex 不動（頂面保持水平、可貼緊椅面），下 4 vertex shear: z' = z - y × tan(bevelAngle)。
      *  bevelAngle = 腳外斜傾角（signed radians）。 */
@@ -298,7 +440,89 @@ export interface Part {
     | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number }
     /** 板狀零件正視面 4 角圓角（length×thickness 面，從正視/側視都看得到圓角）。
      *  Z 方向（width 軸）保持滿厚度不內縮，故適合薄板（例如靠背板 18mm 厚但要 R30 圓角）。 */
-    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
+    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
+    /** 4 壁 45° 斜接：俯視時兩端切 45°，內緣比外緣短 2×insetEach。
+     *  applied 到筆筒 / 鳩尾盒 / 托盤 4 壁，cornerJoinery=miter 時用。
+     *  visible.length = 外緣長度（L），內緣 = L − 2×insetEach。
+     *  outerSide = "+y" 表 local +Y 邊為外緣（朝盒外）；"-y" 為反向。
+     *  insetEach 通常 = 壁厚 wallT；俯視 = 梯形 polygon，前/側視 = 矩形不變。*/
+    | { kind: "mitered-ends";
+        insetEach: number;
+        outerSide: "+y" | "-y";
+        /** 複斜 miter 用：牆向外撇角度 θ in radians，預設 0（直立）。配合 bevelAngle 一起用。 */
+        tiltAngle?: number;
+        /** 複斜 miter 用：鋸片傾角 B in radians，預設 0。複斜時頂端在 length 方向比底端內縮 wallH·tan(B)。 */
+        bevelAngle?: number;
+        /** 反向法：直接提供 8 個 part-local 頂點（mm），bypass ring extrude。
+         *  Layout：index 0..3 = z=-hz（世界頂）4 個 verts、index 4..7 = z=+hz（世界底）4 個 verts。
+         *  ringTop/ring 的 ordering 慣例：outer right / outer left / inner left / inner right
+         *  （for outerSide="+y"）or inner right / inner left / outer left / outer right
+         *  （for outerSide="-y"）。複斜 miter 用——8 頂點 explicit 含 tilt+bevel，
+         *  不靠 ring extrude，corner 真實 3D 接合。 */
+        vertices?: [number, number, number][];
+      }
+    /** 4 壁指接（finger / box joint）：壁兩端沿高度方向（local Z = wallH）交錯凸齒/凹槽。
+     *  segmentCount = 沿 Z 切幾段（typical 5；奇數讓兩端都是齒，較強）。
+     *  phase 0 = local -Z 端起算第 1 段為齒；phase 1 = 第 1 段為槽。鄰壁 phase 相反。
+     *  fingerDepth = 齒凸出（= 鄰壁厚 T）。3D 為 X-Z 平面 comb polygon 沿 Y 擠出。
+     *  俯視 silhouette 為簡單矩形（top slice 內看不出來），前/側視可看到 comb。*/
+    | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+    /** 4 壁鳩尾榫（dovetail joint）：仿 finger-joint，但段是梯形 trapezoid 而非矩形。
+     *  segmentCount = 沿 Z 切幾段（pin + tail 總數）。phase 0 / 1 對偶（鄰壁相反）。
+     *  angleDeg = 鳩尾角（傳統 7-14°，14° 軟木、7° 硬木；§B7）。
+     *  pinDepth = 凸/凹深度（沿 length 軸，= 鄰壁厚 T）。
+     *  halfPin = true 兩端各留半 pin（不破角，較穩，傳統做法）。
+     *
+     *  Tail（拉力承載端）：local -X 方向頂視為梯形——「外寬內窄」（沿 length 軸內凹處兩側
+     *  按 angleDeg 收斂）。Pin（被拉端）：local -X 方向頂視為「外窄內寬」梯形（互嵌）。
+     *  視 phase 對偶決定段順序。*/
+    | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
+    /** 正多邊形板（六/八角筆筒底板、托盤底）：N 個邊均勻分布、沿 thickness 軸擠出。
+     *  outerRadius = 外接圓半徑；angleOffsetDeg 預設 90°+180°/N。 */
+    | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
+    /** 直角三角形板：沿最薄軸（thickness=Y）擠出的 right-triangle 板。
+     *  在 local X-Z 平面內切去一個對角的角，剩下三角形 cross-section。
+     *  corner = 直角所在的 local 角（X 軸符號 + Z 軸符號）。例如：
+     *    "-x+z" → 直角在 local (-hx, +hz) → 缺角在 (+hx, -hz)
+     *  用途：書擋 / 桌面下 L 角加固 / 任何需要直角三角形角撐的場合。 */
+    | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
+    /** 單邊 45° miter（mitered-corner）：沿 `axis` 的某一條 corner edge 削 45°，
+     *  cross-section 變為梯形或五邊形。用於兩塊板 45° 對接（書擋、相框、抽屜）。
+     *  - axis = corner edge 跑的軸方向
+     *  - corner = 在垂直 axis 的 2D 平面上，被削掉的角（先 a1 sign 後 a2 sign）：
+     *      axis=x → a1=Y, a2=Z
+     *      axis=y → a1=X, a2=Z
+     *      axis=z → a1=X, a2=Y
+     *  - depthMm = 從原角往兩鄰面各內縮多少（45° → 兩軸相等）；= 板厚時 cross-section 變梯形 */
+    | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number; bothEnds?: boolean }
+    /** 兩端切尖（pointed-ends）：local 長×厚（X-Y）截面從矩形塌成六邊形，兩個
+     *  X 端各收成一個尖點（兩個 45° 斜面）。沿 width 軸（Z）擠出成六角柱。
+     *  用於菱形酒窖格的 45° 斜板：板斜 45° 時兩個 45° 端面在世界座標變成
+     *  一鉛直一水平 → 尖端完美卡進格子的 90° 內角。 */
+    | { kind: "pointed-ends" }
+    /** 法式斜切條（French cleat）：壁掛工具牆用。直角梯形截面——一面垂直貼牆、
+     *  一面 45° 斜切。沿零件 length 軸（X，水平左右）擠出。
+     *  local Y = thickness（凸出牆面朝前），local Z = width（條高，上下）。
+     *  - orientation="upper"：牆條，斜口朝上（前面比背面矮），固定上牆。
+     *  - orientation="lower"：活動掛座條，斜口朝下倒扣，咬住 upper 的斜面（互鎖）。
+     *  bevelAngle = 斜切角（radians，預設 Math.PI/4 = 45°）。
+     *  截面點由共用函式 frenchCleatSection() 算出，3D / 三視圖 / SVG 同源。 */
+    | { kind: "french-cleat"; bevelAngle: number; orientation: "upper" | "lower" };
+
+  /**
+   * 榫接版專用幾何覆寫：joineryMode 開啟時，渲染端會以此覆寫 part 的
+   * shape / visible / origin。用於需要「組裝版乾淨直角對接、榫接版露出 45° miter
+   * 或榫頭幾何」的場合。
+   *
+   * 例：書擋 45° miter——預設 part 用直角對接（背板 Y∈[panelT, backHeight]），
+   * joineryView.shape 加 mitered-corner、joineryView.visible 延伸到 Y=0、
+   * joineryView.origin 對應下移，露出 45° 斜切。
+   */
+  joineryView?: {
+    shape?: Part["shape"];
+    visible?: Dimensions;
+    origin?: { x: Millimeters; y: Millimeters; z: Millimeters };
+  };
 }
 
 export interface FurnitureDesign {
@@ -335,6 +559,15 @@ export interface FurnitureDesign {
     suggestedCategory: FurnitureCategory;
     presetParams: Record<string, string>;
   }>;
+  /** 鋸床複合角度設定（外撇 miter 接合用）—§AT1.1 公式：
+   *  Miter = arctan(cos θ × tan(180°/n))；Bevel = arcsin(sin θ × cos(180°/n))
+   *  木匠看到 BuildSteps 鋸切步驟時，能直接照這兩個角度設鋸床。 */
+  sawSettings?: {
+    tiltDeg: number;   // 牆外撇 θ
+    sides: number;     // n（方筒 4 / 六角 6 / 八角 8）
+    miterDeg: number;  // 鋸盤水平轉
+    bevelDeg: number;  // 鋸片垂直傾
+  };
 }
 
 export interface FurnitureTemplateInput {
@@ -344,6 +577,9 @@ export interface FurnitureTemplateInput {
   material: MaterialId;
   joinery?: JoineryType;
   options?: Record<string, string | number | boolean>;
+  /** Locale (e.g. "en", "zh-TW"). Templates use this to emit locale-aware
+   *  warning strings. Defaults to "zh-TW" when omitted (legacy callers). */
+  locale?: string;
 }
 
 export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesign;
@@ -371,6 +607,13 @@ export type OptionGroup =
   | "rail"          // 邊抹（框條尺寸）
   | "skirt"         // 牙條 + 牙頭 + 站牙 + 絛環（框外裝飾）
   | "balustrade"    // 万歷櫃圍欄
+  // tray 第一性原理拆群：
+  | "joinery"       // 角接合方式 + 該接合方式相關子選項（fingerSegments / dovetailAngle / wallSplay）
+  | "divider"       // 內格分隔（縱橫向、厚度、高度、嵌入深度）
+  | "handle"        // 把手孔（造型、尺寸、距壁頂）
+  // dovetail-box（木盒）拆群：
+  | "lid"           // 盒蓋（withLid / lidType / withMagneticClosure）
+  | "lining"        // 內襯（withFeltLining）
   | "layers"        // 分層配置
   // 三層櫃體：上中下
   | "zone-top"
@@ -379,7 +622,9 @@ export type OptionGroup =
   // 三欄櫃體：左中右
   | "col-left"
   | "col-mid"
-  | "col-right";
+  | "col-right"
+  // 木工工作桌：工件固定（前鉗 / 狗孔 / holdfast / 刨擋）
+  | "workholding";
 
 /** Only show this option when the referenced option has a matching value. */
 export interface OptionDependency {

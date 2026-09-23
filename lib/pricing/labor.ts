@@ -114,3 +114,31 @@ export const LABOR_BOUNDS = {
   plywoodPricePerBdft: { min: 5, max: 150, step: 5 },
   mdfPricePerBdft: { min: 5, max: 150, step: 5 },
 } as const;
+
+/**
+ * 把來路不明的報價參數（網址 query、分享出去的連結、舊版本留下的過期連結）
+ * 夾進 `LABOR_BOUNDS` 的合法範圍。
+ *
+ * ⛔ 報價頁與列印頁的每個費用參數都是從 URL query 讀的（`parseNum`），
+ *    而 `parseNum` 只擋 NaN、**不擋負數也不看上下限**。實測：
+ *    `?hourlyRate=-500` → 整張報價單從 NT$19,650 掉到 **NT$163**；
+ *    `?marginRate=-1` → 總價 **NT$0**；`?vatRate=-0.5` → 稅變成倒扣。
+ *    列印頁正是要交到客戶手上的那張單。（2026-08-23）
+ *
+ * ⚠️ 只夾**輸入**，不動 `calculateQuote` 的語意 ——
+ *    手動覆寫單價造成的負毛利（賠本接單）是正常功能，要留著。
+ */
+export function sanitizeLaborOpts<T extends Record<string, unknown>>(raw: T): T {
+  const out: Record<string, unknown> = { ...raw };
+  for (const [k, b] of Object.entries(LABOR_BOUNDS)) {
+    const v = out[k];
+    if (v == null) continue; // null = 「併入主材計價」等有意義的空值，不要動
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) {
+      out[k] = (LABOR_DEFAULTS as Record<string, unknown>)[k];
+      continue;
+    }
+    out[k] = Math.min(b.max, Math.max(b.min, n));
+  }
+  return out as T;
+}

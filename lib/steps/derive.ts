@@ -2,6 +2,7 @@ import type { FurnitureCategory, FurnitureDesign, JoineryType } from "@/lib/type
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
 import { MATERIALS } from "@/lib/materials";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 
 export type StepPhase =
   | "prepare"
@@ -23,6 +24,21 @@ export const PHASE_LABEL: Record<StepPhase, string> = {
   sand: "砂磨",
   finish: "塗裝",
 };
+
+export const PHASE_LABEL_EN: Record<StepPhase, string> = {
+  prepare: "Prep stock",
+  mark: "Layout",
+  "cut-stock": "Cut to length",
+  "cut-joinery": "Cut joinery",
+  fit: "Dry-fit",
+  glue: "Glue-up",
+  sand: "Sand",
+  finish: "Finish",
+};
+
+export function phaseLabel(phase: StepPhase, locale: string): string {
+  return locale === "en" ? PHASE_LABEL_EN[phase] : PHASE_LABEL[phase];
+}
 
 export interface BuildStep {
   id: string;
@@ -50,6 +66,7 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
   "tongue-and-groove": ["groove-plane", "groove-blade"],
   dowel: ["dowel-jig", "drill", "drill-bits"],
   "mitered-spline": ["japanese-saw", "groove-blade"],
+  mitered: ["japanese-saw", "miter-box"],
   "pocket-hole": ["pocket-hole-jig", "drill", "drill-bits"],
   screw: ["drill", "drill-bits"],
 };
@@ -59,7 +76,7 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
   if (
     c === "tea-table" || c === "side-table" || c === "low-table" ||
     c === "dining-table" || c === "desk" || c === "round-tea-table" ||
-    c === "round-table"
+    c === "round-table" || c === "workbench"
   ) return "table";
   if (
     c === "stool" || c === "bench" || c === "dining-chair" ||
@@ -87,10 +104,61 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   const family = categoryFamily(design.category);
 
   const hasDrawer = design.parts.some((p) => /(?:^|-)drawer/.test(p.id) && /front|side|back|bottom/.test(p.id));
-  const hasDoor = design.parts.some((p) => /door|panel/.test(p.id));
+  /**
+   * 抽屜「組數」—— 用左側板數數,一個抽屜箱剛好一片。
+   *
+   * ⛔ 原本組抽屜箱 / 裝滑軌兩步都是寫死的固定分鐘數,3 組跟 9 組抽屜完全同價。
+   *    但 quote.ts 是直接吃 totalEstimatedHours() 去算工資的,所以
+   *    9 抽屜的五斗櫃「裝滑軌」只算 40 分鐘(一組 4.4 分鐘),光這項就少估兩千多。
+   *    抽屜愈多的案子賠愈多 —— 跟上一輪修掉的「桌椅工時不隨尺寸放大」同一種病。
+   *    (旁邊的鉸鏈那步本來就有乘門片數,只有抽屜這兩步漏了。2026-08-24)
+   */
+  const drawerBoxCount = Math.max(
+    1,
+    design.parts.filter((p) => /(?:^|-)drawer/.test(p.id) && /side-left/.test(p.id)).length,
+  );
+  /**
+   * ⛔ 原本是 `/door|panel/` —— 只要零件 id 含 "panel" 就算有門。
+   *    相框的 `back-panel`(背板)因此被判成有門,施工說明書長出一步
+   *    「裝鉸鏈與門把:在門板背面用 35mm forstner 鑽鉸鏈杯孔」
+   *    → 照做會在相框上鑽一個穿孔的洞。這一步同時被送進 Google 的
+   *    HowTo 結構化資料,SEO 也扣分。
+   *
+   * 改成只認「door」這個字段本身(`-door-` / `door-` / `-door`),
+   * 不再被 back-panel / side-panel / 木鑲板 之類的 panel 誤觸。
+   * 全目錄 1268 組設計掃過:16 組判定改變,全部都是「舊的說有門、
+   * 實際一片門都沒有」,沒有漏抓任何真的門。(2026-08-24)
+   */
+  const hasDoor = design.parts.some((p) => /(?:^|-)door(?:$|-)/.test(p.id));
   const hasBack = design.parts.some((p) => p.id === "back-panel" || p.id === "back" || /^back-/.test(p.id));
   const hasShelves = design.parts.some((p) => /shelf|shelves/.test(p.id));
   const hasUpperApron = design.parts.some((p) => /apron|stretcher/.test(p.id));
+  /**
+   * 弧肩斜腳:每支腳都要挖出「方肩→凹弧→斜降」的側面輪廓。
+   *
+   * ⛔ 工序推導原本完全不知道這種腳存在 —— 不管單向還是兩向,挖弧的工時都是 0。
+   *    而 quote.ts 直接吃 totalEstimatedHours() 算工資,等於這道工白做。
+   *    兩向弧肩(§A9.9)每支腳要挖兩道,工時當然是兩倍。(2026-08-24)
+   */
+  const coveLegs = design.parts.filter((p) => p.shape?.kind === "curved-taper");
+  type CtShape = { twoWay?: boolean; lowerCove?: unknown; sCurve?: boolean } | undefined;
+  const coveFaces = coveLegs.reduce(
+    (n, p) => n + ((p.shape as CtShape)?.twoWay ? 2 : 1),
+    0,
+  );
+  /**
+   * 🩸 「橫撐處也做弧肩」(§A9.9b) 每一面要挖**兩道**弧,不是一道 ——
+   *    但工時原本只數「面數」,勾了之後總工時**一分鐘都沒變**。(2026-08-26)
+   *
+   * 同一面上的第二道弧省掉「重新夾持對位」那一段(料還在夾具上、換模板位置就好),
+   * 鋸廢料 / 靠模銑 / 修弧照做 ⇒ 算 18 分,不是 25 分。
+   * (兩向的第二**面**不打折,因為要把料翻面重新對位 —— 那是不同的事。)
+   */
+  const lowerCoveFaces = coveLegs.reduce(
+    (n, p) => n + ((p.shape as CtShape)?.lowerCove ? ((p.shape as CtShape)?.twoWay ? 2 : 1) : 0),
+    0,
+  );
+  const anySCurve = coveLegs.some((p) => (p.shape as CtShape)?.sCurve);
   const isRoundTop = design.parts.some((p) => p.shape?.kind === "round" && /top|seat/.test(p.id));
   const wideTop = isRoundTop && design.overall.length >= 600;
 
@@ -138,7 +206,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   // ---------------------------------------------------------------------------
   // 2. 切料 — 按長到短切、按長到短編號
   // ---------------------------------------------------------------------------
-  const totalParts = design.parts.length;
+  const totalParts = design.parts.filter((p) => p.visual === undefined).length; // 五金／玻璃不是切料
   steps.push({
     id: "step-03-cut-stock",
     phase: "cut-stock",
@@ -331,6 +399,89 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 4a. 角接合（cornerJoinery）— 盒型家具（托盤/筆筒/鳩尾盒）用 shape-based 接合，
+  //     不靠 tenons/mortises 而是 finger-joint-ends / dovetail-ends shape 直接渲染。
+  //     joineryUsages 看不到→需獨立判斷加對應工序與工具。
+  // ---------------------------------------------------------------------------
+  const hasFingerJointEnds = design.parts.some((p) => p.shape?.kind === "finger-joint-ends");
+  const hasDovetailEnds = design.parts.some((p) => p.shape?.kind === "dovetail-ends");
+  if (hasFingerJointEnds) {
+    // 算段數 + 估時：每段約 4-6 分鐘鋸+鑿，4 角 × N 段
+    const fingerPart = design.parts.find((p) => p.shape?.kind === "finger-joint-ends");
+    const segs = (fingerPart?.shape?.kind === "finger-joint-ends") ? fingerPart.shape.segmentCount : 5;
+    steps.push({
+      id: "step-05-corner-finger-joint",
+      phase: "cut-joinery",
+      title: `鋸製指接（finger joint，4 角 × ${segs} 段）`,
+      description:
+        `4 壁兩端沿高度方向交錯凸齒/凹槽，互嵌膠合。**先做齒、後做槽，最後試插**。`
+        + `齒寬 = 壁高 / ${segs}；齒深 = 鄰壁厚。`,
+      toolIds: ["japanese-saw", "chisel-set-3-6-12", "router-table", "marking-gauge"],
+      estimatedMinutes: 4 * segs * 4,  // 4 段 × 4 角 × 4 分鐘
+      bullets: [
+        "用劃線規 / 小刀在壁兩端標出齒線（一律從基準面測量，避免累積誤差）",
+        "鋸線留在廢料側 0.3mm，鑿削修到正好——鋸過頭再修槽會留隙",
+        "鄰壁的齒/槽 phase 必須相反（一壁齒對齊另一壁槽），不然兩壁卡不進去",
+        "膠合前乾組試插——齒太緊鑿掉一點點、齒太鬆塞紙片墊",
+      ],
+      warnings: ["鋸切時夾板要平整壓住，鋸路偏 0.5mm 整段齒就鋸壞"],
+    });
+  }
+  if (hasDovetailEnds) {
+    const dovetailPart = design.parts.find((p) => p.shape?.kind === "dovetail-ends");
+    const segs = (dovetailPart?.shape?.kind === "dovetail-ends") ? dovetailPart.shape.segmentCount : 5;
+    const angleDeg = (dovetailPart?.shape?.kind === "dovetail-ends") ? dovetailPart.shape.angleDeg : 10;
+    steps.push({
+      id: "step-05-corner-dovetail",
+      phase: "cut-joinery",
+      title: `鋸製鳩尾榫（dovetail，4 角 × ${segs} 段，${angleDeg}° 鳩尾角）`,
+      description:
+        `4 壁兩端交錯 pin / tail 梯形段、互鎖機械咬合（**不上膠都能拉緊**）。`
+        + `鳩尾角 ${angleDeg}°（硬木 7-9°、軟木 10-14°），段高 = 壁高 / ${segs}，`
+        + `兩端為半 pin 不破角。**先做尾後做榫**，配合度最高。`,
+      toolIds: ["dovetail-saw", "dovetail-marker", "chisel-set-3-6-12", "marking-gauge", "mallet"],
+      estimatedMinutes: 8 * segs * 4,  // 鳩尾比指接慢 ~2 倍：每段 ~8 分鐘 × 4 角
+      bullets: [
+        `用鳩尾劃線規 + ${angleDeg}° 角度尺先在尾板劃線（梯形：外寬內窄）`,
+        "鋸尾——鋸線留廢料側 0.3mm，沿斜線鋸下，到肩線停",
+        "「尾為母劃榫」：用做好的尾板對齊榫板端面、鉛筆轉描出榫線（最準確的配合）",
+        "鋸榫——同樣沿斜線鋸（榫的斜線跟尾相反：外窄內寬，互鎖）",
+        "鑿出兩端肩部餘料，先鑿一半翻面再鑿另一半（防底邊崩）",
+        "乾組試插——緊則微修肩、鬆則塞薄薄一片皮屑膠粉",
+      ],
+      warnings: [
+        "鳩尾角不能超過 14°——拉力雖然大但角度太斜，鋸尾時容易順木紋斷",
+        "硬木（橡木 / 山毛櫸）建議 7-8°；軟木（松 / 杉）建議 10-12°",
+      ],
+    });
+  }
+  const cleatParts = design.parts.filter((p) => p.shape?.kind === "french-cleat");
+  if (cleatParts.length > 0) {
+    const upperCount = cleatParts.filter(
+      (p) => p.shape?.kind === "french-cleat" && p.shape.orientation === "upper",
+    ).length;
+    const lowerCount = cleatParts.length - upperCount;
+    steps.push({
+      id: "step-05-french-cleat",
+      phase: "cut-joinery",
+      title: `鋸製法式斜切條（French cleat，牆條 ${upperCount} 條 + 活動座 ${lowerCount} 條）`,
+      description:
+        `把料以 **45° 縱向鋸開成兩半**——一半斜口朝上釘上牆（牆條），`
+        + `另一半斜口朝下倒扣咬合（掛在工具座底部）。重力把活動座往下壓進牆條斜面，`
+        + `愈重咬愈緊，這就是法式斜切的原理。`,
+      toolIds: ["all-purpose-saw", "magnetic-saw-guide", "marking-gauge", "drill", "drill-bits"],
+      estimatedMinutes: 8 + cleatParts.length * 6,
+      bullets: [
+        "鋸台或軌道鋸把鋸片/導板設 45°，一刀縱剖整條料 → 同時得到牆條與活動座兩半，斜面自然吻合",
+        "牆條斜口朝上、活動座斜口朝下，兩者 45° 面相對才能互鎖（裝反就掛不住）",
+        "牆條鎖牆前先用水平儀抓平，每條間距固定（本設計已算好），活動座才能任意換位",
+        "鎖牆務必鎖進壁柱或加膨脹螺栓——工具牆滿載重量不輕",
+      ],
+      warnings: ["45° 縱剖長料時務必用導板/推板，手扶離鋸片遠一點"],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // 4b. 組裝版：斜孔 / 木釘 / DOMINO（榫接版的對偶 phase）
   //     只有 design.defaultJoinery === "pocket-hole" 且沒榫卯時觸發
   // ---------------------------------------------------------------------------
@@ -431,7 +582,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         `每個抽屜獨立組裝。順序：先做「前 + 兩側」（鳩尾或半搭接），確認方正再裝後板，`
         + `最後底板從後方滑入凹槽（不上膠，讓底板能熱漲冷縮）。`,
       toolIds: ["pva-glue", "f-clamp-x4", "try-square", "rubber-mallet"],
-      estimatedMinutes: 40,
+      estimatedMinutes: 40 * drawerBoxCount,  // 每組抽屜箱 40 分(見上方 drawerBoxCount 註解)
       bullets: [
         "抽屜箱要做到完全方正——歪了滑入櫃體會卡住",
         "底板留 1mm 膠縫不上膠，底板可以隨季節熱漲冷縮不撐裂側板",
@@ -520,6 +671,40 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   // ---------------------------------------------------------------------------
   // 9. 砂磨 — 4 階段細化
   // ---------------------------------------------------------------------------
+  if (coveFaces > 0) {
+    const facesPerLeg = coveFaces / coveLegs.length;
+    const covesPerFace = lowerCoveFaces > 0 ? 2 : 1;
+    steps.push({
+      id: "step-06b-cove-legs",
+      phase: "cut-joinery",
+      title: `挖弧肩（${coveLegs.length} 支腳 × ${facesPerLeg} 面${covesPerFace > 1 ? ` × ${covesPerFace} 道` : ""}）`,
+      description:
+        `弧肩斜腳的側面輪廓：頂端保留一段全寬「接撐段」給牙板接合，往下一道內凹圓弧收肩，` +
+        `再直線斜降到腳底。先用帶鋸鋸掉大部分廢料，再靠模板 + 修邊機一次成形，最後手工修弧。` +
+        (facesPerLeg > 1
+          ? `兩向弧肩：每支腳的**兩個相鄰內面**都要做，第二面要重新夾持與對位。`
+          : `單向弧肩：只做朝家具中心的那一面。`),
+      toolIds: ["japanese-saw", "chisel-set-3-6-12", "sandpaper-set", "f-clamp-x4"],
+      // 每一面第一道 25 分：鋸廢料 + 夾持對位 + 靠模銑 + 修弧。
+      // 兩向的第二**面**不打折 —— 要翻面重新夾持對位，省不下多少。
+      // 同一面的第二**道**（橫撐處的弧肩）18 分 —— 只省掉夾持對位那一段。
+      estimatedMinutes: 25 * coveFaces + 18 * lowerCoveFaces,
+      bullets: [
+        "靠模板銑弧比手工鑿準得多，四支腳才會一致",
+        "接撐段那一節不能銑到——牙板要靠它接合",
+        ...(facesPerLeg > 1
+          ? ["兩面交界的內側立稜要留利，那條稜線是這個腳型的重點"]
+          : []),
+        ...(lowerCoveFaces > 0
+          ? ["橫撐處那節接撐段的**上下兩緣都有弧**，模板要一次做出整段（上弧＋方肩＋下弧），分兩次銑對不準"]
+          : []),
+        ...(anySCurve
+          ? ["S 形肩沒有固定半徑，**不能用圓規或 R 規對**——照模板銑到底，最後順線用線鉋／砂磨，不要用鑿刀修"]
+          : []),
+      ],
+    });
+  }
+
   steps.push({
     id: "step-11-sand-coarse",
     phase: "sand",
@@ -601,6 +786,96 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 10b. 工作桌：狗孔 / holdfast 孔列、尾鉗槽與端蓋、長板靠板（工時隨孔數線性）
+  // ---------------------------------------------------------------------------
+  if (design.category === "workbench") {
+    const holeCount = design.parts.reduce(
+      (n, p) => n + p.mortises.filter((m) => m.cosmetic && m.shape === "round" && m.through && !m.label).length,
+      0,
+    );
+    const dia = design.parts.flatMap((p) => p.mortises).find((m) => m.cosmetic && m.shape === "round" && m.through)?.length ?? 19;
+    if (holeCount > 0) {
+      steps.push({
+        id: "step-10b-dog-holes",
+        phase: "fit",
+        title: `鑽桌狗孔 / holdfast 孔（Ø${dia} × ${holeCount}）`,
+        description:
+          `桌面組好、刨平之後再鑽（先鑽再拼板會對不齊）。用 Ø${dia} 平翼鑽頭或木工長鑽，鑽台或鑽孔導套保證垂直——`
+          + `孔歪 2° 桌狗就卡、holdfast 就咬不住。從前鉗那端第一孔開始，用同一把尺沿桌面前緣量孔距，別一孔一孔接力量。`,
+        toolIds: ["drill", "forstner-bit-19", "try-square", "tape-measure-5m"],
+        estimatedMinutes: 10 + 2 * holeCount,
+        bullets: [
+          "桌面下方墊廢料再鑽穿，出口才不會撕裂",
+          "鑽完用桌狗試插每一孔：太緊拿砂紙捲一下，太鬆那孔就留給 holdfast",
+          "holdfast 孔如果桌面超過 90mm，從底面反鑽 Ø30 讓有效厚度回到 70 左右",
+        ],
+        warnings: ["狗孔位置現在就決定，事後在裝好的桌上鑽會打到節、也很難垂直"],
+      });
+    }
+    // 夾板疊層版（§AU23）：疊層膠合 + 搭接槽預留；工時隨膠合面數 / 槽數線性
+    const plyNotches = design.parts.reduce((n, p) => n + p.mortises.filter((m) => m.cosmetic && (m.label ?? "").startsWith("搭接槽")).length, 0);
+    if (plyNotches > 0) {
+      const glueLines = design.parts.reduce((n, p) => n + (p.panelSplit === "thickness" ? Math.max(0, (p.panelPieces ?? 1) - 1) : 0), 0);
+      steps.push({
+        id: "step-10f-ply-laminate",
+        phase: "glue",
+        title: `夾板疊層：膠合桌面／腳／橫撐（${glueLines} 道膠合面）、預留 ${plyNotches} 個搭接槽`,
+        description:
+          "每一層先用軌道鋸裁到比成品大 5mm，腳跟橫撐的缺口在疊層前就從那一層裁掉（缺口位置量好、每層一樣）。"
+          + "整面塗木工膠（滾筒最快）、對齊一角，從中央往外每 250mm 一支 4×40 皿頭螺絲鎖住（或用夾具夾到膠乾），疊完再用修邊機齊邊刀把四邊修齊。"
+          + "橫撐嵌進腳的缺口後上膠、每處 3 支 6×80 螺絲；桌面靠腳內側的口袋孔螺絲鎖住。",
+        toolIds: ["track-saw", "drill", "screwdriver", "router-table", "clamps", "tape-measure-5m"],
+        estimatedMinutes: 20 + 12 * glueLines + 6 * plyNotches,
+        bullets: [
+          "夾板裁切邊會撕裂：好面朝下用軌道鋸，或先劃線再鋸",
+          "螺絲頭一定要沉進去（皿頭＋沉頭鑽），不然下一層貼不平",
+          "桌面最上層挑好面朝上、鑽狗孔前先整面刨平或用砂機磨平",
+        ],
+        warnings: ["缺口深度、位置每一層都要一樣，疊起來才是一個平整的槽；錯 2mm 橫撐就進不去"],
+      });
+    }
+    if (design.parts.some((p) => p.id === "end-cap")) {
+      steps.push({
+        id: "step-10c-wagon-slot",
+        phase: "fit",
+        title: "尾鉗：桌面開滑塊槽、裝端蓋",
+        description:
+          "先量五金滑塊實際尺寸再開槽（圖上 365×52 是 Benchcrafted 規格）。槽用修邊機沿直尺分多刀切穿，四角用鑿刀修方；"
+          + "槽底兩側要留平整給導軌。端蓋前側用鳩尾或兩支螺栓固定，後側螺栓走長孔讓桌面伸縮，再把螺桿穿過端蓋鎖上手輪。",
+        toolIds: ["router-table", "chisel-set-3-6-12", "drill", "drill-bits", "try-square"],
+        estimatedMinutes: 90,
+        bullets: ["槽跟前緣狗孔列同一條軸線，滑塊上的狗才對得到桌面狗孔", "端蓋跟桌面齊平後再一起刨平桌面"],
+      });
+    }
+    if (design.parts.some((p) => p.id.startsWith("top-batten-"))) {
+      steps.push({
+        id: "step-10e-top-battens",
+        phase: "fit",
+        title: "桌面底穿帶：批燕尾槽、滑入穿帶",
+        description:
+          "桌面翻面，在兩端離邊 20 處各批一道止燕尾槽：深 15、槽口 40、槽底 50（約 1:6），用修邊機燕尾刀分兩刀（先直刀清中間再燕尾刀修兩壁）。"
+          + "穿帶 60×30 的燕尾邊用同一支刀在路達台上修，試滑到緊而不卡；只在中央 10cm 上膠，兩端不膠，桌面才能隨季節脹縮。",
+        toolIds: ["router-table", "chisel-set-3-6-12", "try-square", "tape-measure-5m"],
+        estimatedMinutes: 60,
+        bullets: ["槽從桌面後緣進刀、止在離前緣 20 處，前緣看不到槽口", "穿帶比槽長 10 留修整，滑進去再鋸齊"],
+      });
+    }
+    if (design.parts.some((p) => p.id === "deadman-board")) {
+      steps.push({
+        id: "step-10d-deadman",
+        phase: "fit",
+        title: "長板靠板：脊條、桌底軌、滑板",
+        description:
+          "脊條上緣刨成 45°，膠合並螺絲鎖在前下橫撐頂面靠前緣；桌底軌條鎖在桌面底面同一條垂直線上。"
+          + "滑板下緣鋸出 V 槽卡脊條、上緣留 25 舌頭進軌槽，兩端各留 1mm 才滑得動；最後鑽 Ø19 孔列。",
+        toolIds: ["japanese-saw", "chisel-set-3-6-12", "drill", "forstner-bit-19", "screwdriver"],
+        estimatedMinutes: 45,
+        bullets: ["滑板要能整片抽出來：軌條兩端別頂到腳，留 25mm 缺口"],
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // 11. 五金 / 配件
   // ---------------------------------------------------------------------------
   if (hasDoor) {
@@ -629,7 +904,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         `三節滑軌：先把滑軌的「外軌」鎖到櫃體側板，「內軌」鎖到抽屜箱側板。`
         + `兩軌的高度位置必須完全水平、左右對齊，不然抽屜推進去會卡。傳統作法不用滑軌而用木滑條也可以。`,
       toolIds: ["drill", "drill-bits", "level", "tape-measure-5m"],
-      estimatedMinutes: 40,
+      estimatedMinutes: 40 * drawerBoxCount,  // 每對三節滑軌 40 分(對位水平最花時間)
       bullets: [
         "滑軌前緣要跟櫃體前緣切齊（裝抽屜面板才能蓋過滑軌）",
         "雙側滑軌高度誤差 ≤ 1mm；3mm 以上抽屜會卡",
@@ -681,6 +956,37 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Table / seating family sizeFactor — 工時隨**檯面面積**放大
+  //
+  // ⛔ 修好前只有 cabinet 有放大,桌椅完全沒有:同一個餐桌模板報 2400×1000 大餐桌,
+  //    加工工資仍是 15.1hr × NT$500 = NT$7,550,**跟 1200×800 一模一樣**
+  //    (整張報價只有材料在變:16,747 → 18,898)。大件桌椅/長凳一律報價偏低。
+  //    (2026-08-21 稽核發現。)
+  //
+  // ⭐ 為什麼用**面積**不是長度:§X1 明訂「砂磨 80→120→180→240 ≈ 1 hr/m² 全程」,
+  //    而桌椅的工時大頭就是檯面/座面砂磨。2400×1000 的檯面是 2.4m²,
+  //    1200×800 只有 0.96m² —— 差 2.5 倍,用長度算(2400/1200 = 2 倍)會低估。
+  //    (cabinet 用長度是因為櫃體工時大頭是層板/側板的切料與組裝,跟長度比較線性。)
+  //
+  // baseline: 1200×800 = 0.96 m² → sizeFactor = 1.0;clamp [0.7, 2.5] 同 cabinet。
+  // 套用工序與 cabinet 相同(切料 / 砂磨 / 膠合 / 試組),排除按件數計的五金安裝。
+  // ---------------------------------------------------------------------------
+  if (family === "table" || family === "seating") {
+    const baselineAreaMm2 = 1200 * 800;
+    const rawFactor = (design.overall.length * design.overall.width) / baselineAreaMm2;
+    const sizeFactor = Math.min(2.5, Math.max(0.7, rawFactor));
+    const scaledPhases: StepPhase[] = ["cut-stock", "sand", "glue", "fit"];
+    const excludedIds = new Set(["step-18-hinges", "step-19-drawer-slide"]);
+    for (const st of steps) {
+      if (!st.estimatedMinutes) continue;
+      if (excludedIds.has(st.id)) continue;
+      if (scaledPhases.includes(st.phase)) {
+        st.estimatedMinutes = Math.max(5, Math.round(st.estimatedMinutes * sizeFactor));
+      }
+    }
+  }
+
   // 小物件（accessory）整體工時調整。實做經驗：筆筒/書擋這種「真小物件」
   // 1-2 小時就能做完，跟櫃子用同一套估工時極不合理。分兩段套：
   //
@@ -712,6 +1018,71 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     }
   }
 
+  const clearanceCuts = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.label === "避腳缺角" || m.label === "Leg clearance notch").length, 0);
+  if (clearanceCuts > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "shelf-leg-clearance", phase: "cut-joinery",
+      title: `下棚條避腳缺角（${clearanceCuts} 處）`,
+      description: "依零件圖標出缺角位置與朝向，鋸除端部廢料後用鑿刀修平。缺角已留 0.5mm 餘隙；放回下橫撐試裝，確認四腳不頂住棚條，再處理缺口邊緣。",
+      toolIds: ["tape-measure-5m", "japanese-saw", "chisel-set-3-6-12", "f-clamp-x4"], estimatedMinutes: 6 * clearanceCuts,
+    });
+  }
+  const frameRebates = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.cosmetic && m.label === "框背槽").length, 0);
+  if (frameRebates > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "frame-rear-rebate", phase: "cut-joinery",
+      title: `加工框背槽（${frameRebates} 條）`,
+      description: "依零件圖從邊框背面加工內緣槽口，先用廢料試切槽寬與槽深，再分次加工。玻璃與背板同置背槽；乾組確認各邊餘隙，以可拆壓片固定背板。",
+      toolIds: ["router-table", "marking-gauge", "f-clamp-x4"], estimatedMinutes: 6 * frameRebates,
+    });
+  }
+  const deadmanReliefs = design.parts.reduce((sum, part) => sum + part.mortises.filter(m => m.cosmetic && ["滑板後側避層板槽", "Rear cheek shelf clearance"].includes(m.label ?? "")).length, 0);
+  if (deadmanReliefs > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "deadman-shelf-clearance", phase: "cut-joinery",
+      title: "加工滑板後側避層板槽",
+      description: "依零件圖在滑板後側下緣標出槽口，固定工件並分次切削至指定深度。乾組後沿全行程滑動，確認層板不頂住滑板，保留導軌與底槽的承靠面。",
+      toolIds: ["router-table", "marking-gauge", "f-clamp-x4"], estimatedMinutes: 8 * deadmanReliefs,
+    });
+  }
+  const housingParts = design.parts.filter(part => part.mortises.some(m => constructionCutBox(m)));
+  const housings = housingParts.reduce((sum, part) => sum + part.mortises.filter(m => constructionCutBox(m)).length, 0);
+  if (housings > 0) {
+    const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+    steps.splice(position < 0 ? steps.length : position, 0, {
+      id: "construction-housings", phase: "cut-joinery",
+      title: `加工結構嵌槽（${housings} 處）`,
+      description: "依加工面圖逐處標出嵌槽範圍、進刀面與深度。固定工件後分次切削，修平槽底並保留圖示剩餘木料；乾組確認牙撐、底爪或交角能就位，再進行膠合。",
+      toolIds: ["router-table", "marking-gauge", "chisel-set-3-6-12", "f-clamp-x4"],
+      partIds: housingParts.map(part => part.id), estimatedMinutes: 8 * housings,
+    });
+  }
+  if (design.category === "chinese-cabinet") {
+    const grooves = design.parts.reduce((n, p) => n + p.mortises.filter(m => m.cosmetic && m.label === "板心槽 5mm").length, 0);
+    const shelfReliefs = design.parts.reduce((n, p) => n + p.mortises.filter(m => m.cosmetic && m.label === "側腳避讓").length, 0);
+    const hoofSites = design.parts.reduce((n, p) => n + new Set(p.mortises.filter(m => m.cosmetic && m.label?.startsWith("馬蹄避讓 ")).map(m => m.label)).size, 0);
+    const spandrels = design.parts.filter(p => p.nameZh.includes("連體牙頭")).length;
+    const rakedRails = design.parts.filter(p => p.id.includes("-rail") && p.shape?.kind === "mitered-ends" && p.shape.vertices).length;
+    const operations = [
+      { id: "cabinet-shelf-reliefs", count: shelfReliefs, minutes: 6, title: "加工層板避腳缺口", description: "依零件圖標出層板與斜腳相接的缺口，分次鋸除並修平。保留圖示餘隙，乾組確認各高度的層板不會頂住向內傾斜的立柱。" },
+      { id: "cabinet-panel-grooves", count: grooves, minutes: 6, title: "加工板心槽", description: "依加工面圖標出板心槽，槽深 5mm，分次進刀並保留圖示槽壁。試裝板心確認可浮動伸縮，不將整圈板心膠死。" },
+      { id: "cabinet-hoof-reliefs", count: hoofSites, minutes: 8, title: "加工馬蹄避讓", description: "依零件圖逐處放樣馬蹄輪廓，以分層刀路移除干涉木料，再修順接續處。每處按同一立柱的完整輪廓加工並乾組，不把多段刀路當成多個獨立缺口。" },
+      { id: "cabinet-integral-spandrels", count: spandrels, minutes: 12, title: "鋸修連體牙頭", description: "在同一支牙條毛料放樣連體牙頭，鋸除曲線廢料後依樣板修整。中央肉高至少保留 18mm；牙頭不另加一塊重複木料。" },
+      { id: "cabinet-raked-ends", count: rakedRails * 2, minutes: 4, title: "修整斜端肩位", description: "依零件圖的上下肩距放樣每個斜端，沿立柱內面斜率修肩。肩距與榫頭伸出量分開量測，先乾組確認貼合，再加工接合。" },
+    ];
+    for (const operation of operations) {
+      if (!operation.count) continue;
+      const position = steps.findIndex(step => ["fit", "glue", "sand", "finish"].includes(step.phase));
+      steps.splice(position < 0 ? steps.length : position, 0, {
+        id: operation.id, phase: "cut-joinery", title: `${operation.title}（${operation.count} 處）`,
+        description: operation.description, estimatedMinutes: operation.minutes * operation.count,
+        toolIds: ["marking-gauge", "japanese-saw", "chisel-set-3-6-12", "f-clamp-x4"],
+      });
+    }
+  }
   return steps;
 }
 

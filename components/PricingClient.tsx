@@ -1,412 +1,407 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState, useEffect } from "react";
-import { EarlyBirdBanner, EARLY_BIRD } from "./EarlyBirdBanner";
+import { useTranslations } from "next-intl";
+import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCard";
+import { useUserPlan } from "@/hooks/useUserPlan";
+import { TemplateUnlockSection } from "./TemplateUnlockSection";
+import { ToolUnlockSection } from "./ToolUnlockSection";
+import { FURNITURE_CATALOG , DEV_CATEGORIES } from "@/lib/templates";
+import { isPaidCategory } from "@/lib/permissions";
+import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 
-const CATEGORY_NAME_ZH: Record<string, string> = {
-  stool: "方凳",
-  bench: "長凳",
-  "tea-table": "茶几",
-  "side-table": "邊桌 / 床頭櫃",
-  "low-table": "矮桌",
-  "open-bookshelf": "開放書櫃",
-  "chest-of-drawers": "斗櫃",
-  "shoe-cabinet": "鞋櫃",
-  "display-cabinet": "玻璃展示櫃",
-  "dining-table": "餐桌",
-  desk: "書桌",
-  "dining-chair": "餐椅",
-  wardrobe: "衣櫃",
-  "bar-stool": "吧檯椅",
-  "media-console": "電視櫃",
-  nightstand: "床頭櫃",
-  "round-stool": "圓凳",
-  "round-tea-table": "圓茶几",
-  "round-table": "圓餐桌",
-  "pencil-holder": "筆筒",
-  bookend: "書擋",
-  "photo-frame": "相框",
-  tray: "托盤",
-  "dovetail-box": "木盒",
-  "wine-rack": "紅酒架",
-  "coat-rack": "立式衣帽架",
-};
+// 名單見 lib/templates 的 DEV_CATEGORIES(單一真相來源;這裡以前漏了 wall-mounted-tool-storage)
+const DEVELOPMENT_CATEGORIES = DEV_CATEGORIES;
 
-type BillingPeriod = "monthly" | "yearly";
-
-interface PlanCard {
-  id: "free" | "personal" | "pro" | "student_personal" | "student_pro";
-  name: string;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  /** 月付對比的「原價」(月費 × 12)，年付才顯示劃線 */
-  originalYearly?: number;
-  /** 原價月費（學員續用版顯示劃線對比用） */
-  originalMonthly?: number;
-  audience: string[];
-  features: Array<{ ok: boolean; text: string }>;
-  highlight?: boolean;
-  studentOnly?: boolean;
-  cta: string;
+interface CouponState {
+  code: string;
+  status: "idle" | "checking" | "ok" | "error";
+  discountPercent?: number;
+  error?: string;
 }
 
-const PLANS: PlanCard[] = [
-  {
-    id: "free",
-    name: "免費版",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    audience: [
-      "想先試試看的",
-      "做方凳、茶几、筆筒就夠的",
-      "還沒決定要不要付費的",
-    ],
-    features: [
-      { ok: true, text: "3 種入門家具：方凳、茶几、筆筒" },
-      { ok: true, text: "3D 透視圖預覽" },
-      { ok: true, text: "工程三視圖（含浮水印）" },
-      { ok: false, text: "其他 16 種家具" },
-      { ok: false, text: "下載 PDF" },
-      { ok: false, text: "客製家具報價" },
-    ],
-    cta: "立即免費使用",
-  },
-  {
-    id: "personal",
-    name: "個人版",
-    monthlyPrice: 290,
-    yearlyPrice: 2900,
-    originalYearly: 290 * 12,
-    audience: ["DIY 木工玩家", "週末做家具的人", "自己家裡用的"],
-    features: [
-      { ok: true, text: "無限儲存設計" },
-      { ok: true, text: "下載 PDF（無浮水印）" },
-      { ok: true, text: "完整裁切計算器" },
-      { ok: true, text: "全部範本 + 3D 預覽" },
-      { ok: false, text: "客製家具報價系統" },
-      { ok: false, text: "客戶資料管理" },
-    ],
-    cta: "選擇個人版",
-  },
-  {
-    id: "pro",
-    name: "專業版",
-    monthlyPrice: 890,
-    yearlyPrice: 8900,
-    originalYearly: 890 * 12,
-    audience: ["接案木工師傅", "獨立傢俱設計師", "工作室經營者"],
-    features: [
-      { ok: true, text: "個人版全部功能" },
-      { ok: true, text: "客製家具報價系統" },
-      { ok: true, text: "自訂報價單抬頭 / LOGO" },
-      { ok: true, text: "客戶資料管理" },
-      { ok: true, text: "PDF 報價單一鍵產出" },
-      { ok: true, text: "LINE / Email 一鍵分享" },
-    ],
-    highlight: true,
-    cta: "選擇專業版",
-  },
-];
-
-const STUDENT_PLANS: PlanCard[] = [
-  {
-    id: "student_personal",
-    name: "學員續用 · 個人",
-    monthlyPrice: 219,
-    yearlyPrice: 2190,
-    originalMonthly: 290,
-    originalYearly: 290 * 12,
-    audience: ["DIY 自家用的學員", "做完課程作品想繼續做家具", "不需要報價系統"],
-    features: [
-      { ok: true, text: "個人版全部功能" },
-      { ok: true, text: "無限儲存設計" },
-      { ok: true, text: "PDF 下載（無浮水印）" },
-      { ok: true, text: "完整裁切計算器" },
-      { ok: true, text: "學員專屬約 25% 折扣" },
-      { ok: false, text: "客製家具報價系統" },
-    ],
-    studentOnly: true,
-    cta: "選擇學員 · 個人",
-  },
-  {
-    id: "student_pro",
-    name: "學員續用 · 專業",
-    monthlyPrice: 690,
-    yearlyPrice: 6900,
-    originalMonthly: 890,
-    originalYearly: 890 * 12,
-    audience: ["學完去接案的學員", "獨立工作室經營者", "需要完整報價/客戶管理"],
-    features: [
-      { ok: true, text: "專業版全部功能" },
-      { ok: true, text: "客製家具報價系統" },
-      { ok: true, text: "自訂報價單抬頭 / LOGO" },
-      { ok: true, text: "客戶資料管理" },
-      { ok: true, text: "PDF 報價單一鍵產出" },
-      { ok: true, text: "學員專屬約 22% 折扣" },
-    ],
-    studentOnly: true,
-    cta: "選擇學員 · 專業",
-  },
-];
+const PLAN_PRICES: Record<"free" | "personal" | "pro", { monthly: number; yearly: number; originalYearly?: number }> = {
+  free: { monthly: 0, yearly: 0 },
+  personal: { monthly: 390, yearly: 3900, originalYearly: 390 * 12 },
+  pro: { monthly: 890, yearly: 8900, originalYearly: 890 * 12 },
+};
 
 export function PricingClient() {
+  const t = useTranslations("pricingPage");
+  const tFurn = useTranslations("furniture");
+  const tPlans = useTranslations("pricingPlans");
+  const tErr = useTranslations("pricingErrors");
+  const tRoot = useTranslations();
+  const faqs = tRoot.raw("pricingFaqs") as Array<{ q: string; a: string }>;
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [lockedCategory, setLockedCategory] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState(false);
+  const [coupon, setCoupon] = useState<CouponState>({ code: "", status: "idle" });
+  const { profile, userId } = useUserPlan();
+  const currentPlan = profile?.plan ?? null;
+  const currentStatus = profile?.subscription_status ?? null;
+  const [currentPeriod, setCurrentPeriod] = useState<BillingPeriod | null>(null);
+
+  const lockedName = lockedCategory
+    ? (() => {
+        try {
+          return tFurn(lockedCategory);
+        } catch {
+          return lockedCategory;
+        }
+      })()
+    : "";
+
+  const buildPlan = (id: "free" | "personal" | "pro"): PlanCard => {
+    const prices = PLAN_PRICES[id];
+    const data = tPlans.raw(id) as {
+      name: string;
+      audience: string[];
+      features: Array<{ ok: boolean; text: string }>;
+      cta: string;
+    };
+    return {
+      id,
+      name: data.name,
+      monthlyPrice: prices.monthly,
+      yearlyPrice: prices.yearly,
+      originalYearly: prices.originalYearly,
+      audience: data.audience,
+      features: data.features,
+      highlight: id === "pro",
+      cta: data.cta,
+    };
+  };
+
+  const PLANS: PlanCard[] = [buildPlan("free"), buildPlan("personal"), buildPlan("pro")];
+
+  useEffect(() => {
+    if (!userId || currentStatus !== "active") {
+      setCurrentPeriod(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("period")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const p = (data as { period?: string } | null)?.period;
+      setCurrentPeriod(p === "yearly" || p === "monthly" ? (p as BillingPeriod) : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, currentStatus]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
-    const locked = sp.get("locked");
+    // 工具銷售頁用 ?upgrade=<tool>，paywall 用 ?locked=<category>，兩個都吃
+    const locked = sp.get("locked") ?? sp.get("upgrade");
     if (locked) setLockedCategory(locked);
+    const c = sp.get("coupon");
+    if (c) setCoupon({ code: c.toUpperCase(), status: "idle" });
+    if (sp.get("error") === "payment_not_configured") {
+      setPaymentError(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (coupon.status === "ok" || coupon.status === "error") {
+      setCoupon((c) => ({ code: c.code, status: "idle" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
+
+  async function applyCoupon() {
+    if (!coupon.code.trim()) return;
+    setCoupon((c) => ({ ...c, status: "checking", error: undefined }));
+    try {
+      const res = await fetch("/api/coupon/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: coupon.code, plan: "personal", period }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        const code = typeof json.error === "string" ? json.error : "";
+        let msg = t("couponErrFallback");
+        if (code) {
+          try {
+            msg = tErr(code);
+          } catch {
+            msg = code;
+          }
+        }
+        setCoupon((c) => ({
+          ...c,
+          status: "error",
+          error: msg,
+        }));
+      } else {
+        setCoupon((c) => ({
+          ...c,
+          status: "ok",
+          discountPercent: json.coupon.discountPercent,
+        }));
+      }
+    } catch (e) {
+      setCoupon((c) => ({
+        ...c,
+        status: "error",
+        error: e instanceof Error ? e.message : t("couponNetworkErr"),
+      }));
+    }
+  }
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      <EarlyBirdBanner />
-
+      {paymentError && (
+        <div className="max-w-3xl mx-auto mb-6 px-5 py-4 rounded-2xl bg-rose-50 ring-1 ring-rose-300 shadow-sm flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0">⚠️</span>
+          <div className="flex-1 text-sm leading-relaxed">
+            <p className="font-semibold text-rose-900">{t("paymentErrorH")}</p>
+            <p className="mt-1 text-rose-800">
+              {t("paymentErrorBody")}
+              <Link href="/contact" className="underline underline-offset-2 font-semibold">
+                {t("paymentErrorContact")}
+              </Link>
+              {t("paymentErrorBodyTail")}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    window.location.href = "/templates";
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-rose-800 text-xs font-semibold ring-1 ring-rose-300 hover:ring-rose-500 hover:-translate-y-0.5 transition-all"
+              >
+                {t("paymentErrorBack")}
+              </button>
+              <Link
+                href="/templates"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-zinc-700 text-xs font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:-translate-y-0.5 transition-all"
+              >
+                {t("paymentErrorBrowse")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       {lockedCategory && (
-        <div
-          className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-xl border-2 flex items-start gap-3"
-          style={{ background: "#fff8ee", borderColor: "#d4a574" }}
-        >
+        <div className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-2xl bg-amber-50 ring-1 ring-amber-400/60 shadow-sm flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">🔒</span>
           <div className="flex-1 text-sm leading-relaxed">
-            <p className="font-semibold text-[#5a3812]">
-              「{CATEGORY_NAME_ZH[lockedCategory] ?? lockedCategory}」是付費版才能用的家具範本
+            <p className="font-semibold text-amber-950">
+              {t("lockedHTpl", { name: lockedName })}
             </p>
-            <p className="mt-1 text-[#7c4f1a]">
-              免費版只開放 3 種入門款（方凳、茶几、筆筒），其他 16 種要升級個人版以上。
-              下方挑一個適合你的方案就能解鎖。
-            </p>
+            <p className="mt-1 text-amber-800">{t("lockedBody")}</p>
+            {FEATURED_TEMPLATE_CATEGORIES.includes(lockedCategory as never) && (
+              <Link
+                href={`/templates/${lockedCategory}`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2"
+              >
+                {t("lockedDetailTpl", { name: lockedName })}
+              </Link>
+            )}
           </div>
         </div>
       )}
 
       <div className="text-center mb-8">
-        <Link
-          href="/"
-          className="inline-block text-sm text-zinc-500 hover:text-zinc-700 mb-4"
-        >
-          ← 回家具列表
-        </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900">
-          選一個適合你的方案
+        <div className="flex items-center justify-center gap-4 flex-wrap mb-5">
+          <Link
+            href="/app"
+            className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-amber-800 transition-colors"
+          >
+            {t("backToApp")}
+          </Link>
+          <span aria-hidden className="text-amber-900/20 select-none">·</span>
+          <Link
+            href="/templates"
+            className="inline-flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 transition-colors"
+          >
+            {t("browseTemplates")}
+          </Link>
+        </div>
+        <h1 className="font-serif-tc text-3xl sm:text-4xl font-bold tracking-tight text-amber-950">
+          {t("h1")}
         </h1>
-        <p className="mt-3 text-zinc-600 text-sm sm:text-base">
-          不論你是 DIY 玩家、接案師傅，還是設計師，都有對應方案
+        <p className="mt-3 text-zinc-600 text-sm sm:text-base">{t("subH1")}</p>
+        <p className="mt-2 text-xs text-zinc-500">
+          {t("subHelpPre")}{" "}
+          <Link href="/templates" className="text-amber-700 hover:text-amber-900 underline underline-offset-2">
+            {t("subHelpLink")}
+          </Link>{" "}
+          {t("subHelpSuffix")}
         </p>
       </div>
 
-      {/* 月付 / 年付 toggle */}
       <div className="flex justify-center mb-8 sm:mb-10">
-        <div className="inline-flex rounded-full border border-zinc-300 bg-white p-1 shadow-sm">
+        <div className="inline-flex rounded-full ring-1 ring-amber-900/15 bg-white p-1 shadow-sm">
           <button
             type="button"
             onClick={() => setPeriod("monthly")}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
               period === "monthly"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "bg-amber-800 text-white shadow-sm"
+                : "text-zinc-600 hover:text-amber-800"
             }`}
           >
-            月付
+            {t("tabMonthly")}
           </button>
           <button
             type="button"
             onClick={() => setPeriod("yearly")}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${
               period === "yearly"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "bg-amber-800 text-white shadow-sm"
+                : "text-zinc-600 hover:text-amber-800"
             }`}
           >
-            年付
+            {t("tabYearly")}
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                 period === "yearly"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-emerald-400 text-emerald-950"
                   : "bg-emerald-100 text-emerald-700"
               }`}
             >
-              省 2 個月
+              {t("yearlySavings")}
             </span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+      <div className="max-w-md mx-auto mb-8">
+        <div className="rounded-2xl bg-white ring-1 ring-amber-900/10 p-4 shadow-sm">
+          <label className="block text-xs font-semibold text-zinc-700 mb-2">
+            {t("couponLabel")}
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={coupon.code}
+              onChange={(e) =>
+                setCoupon((c) => ({
+                  code: e.target.value.toUpperCase(),
+                  status: c.status === "ok" ? "idle" : c.status,
+                }))
+              }
+              placeholder={t("couponPlaceholder")}
+              className="flex-1 px-3 py-2 rounded-lg border border-zinc-300 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <button
+              type="button"
+              onClick={applyCoupon}
+              disabled={!coupon.code.trim() || coupon.status === "checking"}
+              className="px-4 py-2 rounded-lg bg-zinc-800 text-white text-sm font-semibold hover:bg-zinc-900 disabled:opacity-50"
+            >
+              {coupon.status === "checking" ? t("couponChecking") : t("couponApply")}
+            </button>
+          </div>
+          {coupon.status === "ok" && (
+            <p className="mt-2 text-xs text-emerald-700 font-semibold">
+              {t("couponOkTpl", { pct: coupon.discountPercent ?? 0 })}
+            </p>
+          )}
+          {coupon.status === "error" && (
+            <p className="mt-2 text-xs text-rose-700">
+              {t("couponErrPrefix")}{coupon.error}
+            </p>
+          )}
+          {coupon.status === "ok" && period === "monthly" && (
+            <p className="mt-1 text-xs text-amber-700">{t("couponMonthlyWarn")}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-start">
         {PLANS.map((p) => (
           <PlanCardView
             key={p.id}
             plan={p}
             period={period}
-            earlyBird={p.id === "pro" && period === "monthly" && EARLY_BIRD.isActive()}
+            currentPlan={currentPlan}
+            currentStatus={currentStatus}
+            currentPeriod={currentPeriod}
+            currentExpiresAt={profile?.subscription_expires_at ?? null}
+            couponCode={coupon.status === "ok" && period === "yearly" ? coupon.code : null}
+            couponDiscountPercent={coupon.status === "ok" && period === "yearly" ? coupon.discountPercent ?? null : null}
           />
         ))}
       </div>
 
-      {/* === 學員續用版（兩條分流）=== */}
-      <section className="mt-14 sm:mt-16">
-        <div className="text-center mb-5">
-          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">
-            🎓 學員專屬續用方案
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 max-w-3xl mx-auto">
-          {STUDENT_PLANS.map((p) => (
-            <PlanCardView key={p.id} plan={p} period={period} />
+      <TemplateUnlockSection
+        catalog={FURNITURE_CATALOG
+          .filter((e) => isPaidCategory(e.category))
+          .filter((e) => !DEVELOPMENT_CATEGORIES.has(e.category))
+          .map((e) => ({
+            category: e.category,
+            nameZh: e.nameZh,
+            difficulty: e.difficulty,
+          }))}
+        lockedCategory={lockedCategory}
+      />
+
+      <ToolUnlockSection />
+
+      <section className="mt-16 max-w-3xl mx-auto">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-center text-amber-950 mb-2">
+          {t("faqsH")}
+        </h2>
+        <p className="text-center text-zinc-500 text-sm mb-9">{t("faqsSub")}</p>
+        <div className="space-y-3">
+          {faqs.map((f) => (
+            <details
+              key={f.q}
+              className="group rounded-2xl bg-white ring-1 ring-stone-200 px-5 py-4 open:shadow-md transition-shadow"
+            >
+              <summary className="cursor-pointer font-semibold text-zinc-900 list-none flex items-center justify-between gap-3">
+                <span>{f.q}</span>
+                <span className="text-amber-700 group-open:rotate-45 transition-transform text-xl shrink-0">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-zinc-700 leading-relaxed text-sm whitespace-pre-line">
+                {f.a}
+              </p>
+            </details>
           ))}
+        </div>
+        <div className="mt-6 text-center">
+          <Link
+            href="/help"
+            className="text-sm text-amber-700 hover:text-amber-900 font-semibold"
+          >
+            {t("fullFaq")}
+          </Link>
         </div>
       </section>
 
-      <div className="mt-12 text-center text-xs text-zinc-500 max-w-2xl mx-auto leading-relaxed">
-        <p>
-          所有方案皆可隨時升降級。月費／年費方案到期未續訂自動降為免費版
-          （你的設計、客戶資料保留 90 天）。
+      <div className="mt-12 max-w-2xl mx-auto rounded-2xl bg-amber-50/80 ring-1 ring-amber-900/10 px-6 py-5 text-center text-xs text-zinc-600 leading-relaxed">
+        <p className="flex items-center justify-center gap-1.5">
+          <span aria-hidden>🔄</span>
+          {t("footnote1")}
         </p>
-        <p className="mt-2">
-          年付 = 月費 × 10（省 2 個月），一年只付一次比較單純。
-        </p>
-        <p className="mt-2">
-          學員版限 木匠學院 / Hahow 課程學員，註冊後 email 自動帶入白名單。
+        <p className="mt-2 flex items-center justify-center gap-1.5">
+          <span aria-hidden>💡</span>
+          {t("footnote2")}
         </p>
       </div>
     </main>
-  );
-}
-
-function PlanCardView({
-  plan,
-  period,
-  earlyBird = false,
-}: {
-  plan: PlanCard;
-  period: BillingPeriod;
-  earlyBird?: boolean;
-}) {
-  const isFree = plan.monthlyPrice === 0;
-  let priceLine: React.ReactNode;
-  let belowPrice: React.ReactNode = null;
-
-  if (isFree) {
-    priceLine = (
-      <>
-        <span className="text-2xl sm:text-3xl font-bold text-zinc-900">NT$ 0</span>
-        <span className="text-sm text-zinc-500">
-          {period === "yearly" ? "/ 年" : "/ 月"}
-        </span>
-      </>
-    );
-  } else if (period === "yearly") {
-    const monthlyEq = Math.round(plan.yearlyPrice / 12);
-    priceLine = (
-      <>
-        <span className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          NT$ {plan.yearlyPrice.toLocaleString()}
-        </span>
-        {plan.originalYearly && plan.originalYearly > plan.yearlyPrice && (
-          <span className="text-sm text-zinc-400 line-through">
-            NT$ {plan.originalYearly.toLocaleString()}
-          </span>
-        )}
-        <span className="text-sm text-zinc-500">/ 年</span>
-      </>
-    );
-    belowPrice = (
-      <p className="mt-1 text-xs text-emerald-700 font-medium">
-        相當於 NT$ {monthlyEq} / 月
-        {plan.originalYearly &&
-          plan.originalYearly > plan.yearlyPrice &&
-          `（省 NT$ ${(plan.originalYearly - plan.yearlyPrice).toLocaleString()}）`}
-      </p>
-    );
-  } else if (earlyBird) {
-    const earlyPrice = Math.round(plan.monthlyPrice / 2);
-    priceLine = (
-      <>
-        <span className="text-2xl sm:text-3xl font-bold text-[#c0651e]">
-          NT$ {earlyPrice.toLocaleString()}
-        </span>
-        <span className="text-sm text-zinc-400 line-through">
-          NT$ {plan.monthlyPrice.toLocaleString()}
-        </span>
-        <span className="text-sm text-zinc-500">/ 月</span>
-      </>
-    );
-    belowPrice = (
-      <p className="mt-1 text-xs text-[#c0651e] font-semibold">
-        🔥 早鳥半價 · 首 3 個月，第 4 個月起 NT$ {plan.monthlyPrice}/月
-      </p>
-    );
-  } else {
-    priceLine = (
-      <>
-        <span className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          NT$ {plan.monthlyPrice.toLocaleString()}
-        </span>
-        {plan.originalMonthly && plan.originalMonthly > plan.monthlyPrice && (
-          <span className="text-sm text-zinc-400 line-through">
-            NT$ {plan.originalMonthly.toLocaleString()}
-          </span>
-        )}
-        <span className="text-sm text-zinc-500">/ 月</span>
-      </>
-    );
-  }
-
-  return (
-    <div
-      className={`relative rounded-xl border-2 bg-white p-5 sm:p-6 flex flex-col ${
-        plan.highlight ? "border-[#8b4513] shadow-lg" : "border-zinc-200"
-      }`}
-    >
-      {plan.highlight && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#8b4513] text-white text-xs font-semibold">
-          ★ 推薦
-        </div>
-      )}
-
-      <h2 className="text-lg sm:text-xl font-bold text-zinc-900">{plan.name}</h2>
-      <div className="mt-2 flex items-baseline gap-1 flex-wrap">{priceLine}</div>
-      {belowPrice}
-      {plan.studentOnly && (
-        <p className="mt-1 text-xs text-amber-700 font-medium">🎓 限木匠學院學員</p>
-      )}
-
-      <ul className="mt-3 text-xs text-zinc-600 space-y-0.5">
-        {plan.audience.map((a) => (
-          <li key={a}>· {a}</li>
-        ))}
-      </ul>
-
-      <hr className="my-4 border-zinc-200" />
-
-      <ul className="flex-1 space-y-2 text-sm">
-        {plan.features.map((f, i) => (
-          <li
-            key={i}
-            className={`flex items-start gap-2 ${
-              f.ok ? "text-zinc-700" : "text-zinc-400 line-through"
-            }`}
-          >
-            <span className="mt-0.5 leading-none">{f.ok ? "✓" : "✗"}</span>
-            <span>{f.text}</span>
-          </li>
-        ))}
-      </ul>
-
-      <button
-        type="button"
-        className={`mt-5 w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-          plan.highlight
-            ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
-            : "bg-zinc-900 text-white hover:bg-zinc-700"
-        } disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        {plan.cta}
-      </button>
-      <p className="mt-2 text-[11px] text-zinc-400 text-center">付款功能即將開放</p>
-    </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 
 const STORAGE_KEY = "wr_student_welcomed";
@@ -11,6 +12,7 @@ const STORAGE_KEY = "wr_student_welcomed";
  * - 看完後寫 localStorage flag 不再跳
  */
 export function StudentWelcomeModal() {
+  const locale = useLocale();
   const { plan, isLoading, isLoggedIn } = useUserPlan();
   const [shouldShow, setShouldShow] = useState(false);
 
@@ -21,6 +23,8 @@ export function StudentWelcomeModal() {
     const seen = window.localStorage.getItem(STORAGE_KEY);
     if (!seen) setShouldShow(true);
   }, [plan, isLoading, isLoggedIn]);
+
+  if (locale !== "zh-TW") return null;
 
   function handleClose() {
     try {

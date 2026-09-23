@@ -1,0 +1,2794 @@
+{
+  "chinese-cabinet:auto": [
+    {
+      "a": "post-front-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "skirt-front",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "skirt-left",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "skirt-back",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "skirt-left",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "skirt-front",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "skirt-right",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "skirt-back",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "skirt-right",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "back-upper-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "back-lower-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-left-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-right-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-back",
+      "intersectionMm": {
+        "x": 680,
+        "y": 17.5,
+        "z": 12
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "layer1-drawer-1-front",
+      "b": "layer1-drawer-1-pull",
+      "intersectionMm": {
+        "x": 27.9,
+        "y": 8,
+        "z": 10
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-bottom",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 704,
+        "y": 6,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-left-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-right-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-back",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 680,
+        "y": 7,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-left-door",
+      "b": "layer2-left-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-right-door",
+      "b": "layer2-right-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    }
+  ],
+  "chinese-cabinet:inward-hoof": [
+    {
+      "a": "post-front-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "skirt-front",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "skirt-left",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "skirt-back",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "skirt-left",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "skirt-front",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "skirt-right",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "skirt-back",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "skirt-right",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "back-upper-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "back-lower-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-left-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-right-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-back",
+      "intersectionMm": {
+        "x": 680,
+        "y": 17.5,
+        "z": 12
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "layer1-drawer-1-front",
+      "b": "layer1-drawer-1-pull",
+      "intersectionMm": {
+        "x": 27.9,
+        "y": 8,
+        "z": 10
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-bottom",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 704,
+        "y": 6,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-left-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-right-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-back",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 680,
+        "y": 7,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-left-door",
+      "b": "layer2-left-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-right-door",
+      "b": "layer2-right-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    }
+  ],
+  "chinese-cabinet:outward-hoof": [
+    {
+      "a": "post-front-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "skirt-front",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "skirt-left",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "skirt-back",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "skirt-left",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "skirt-front",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "skirt-right",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 37.3
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 37.3,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "skirt-back",
+      "intersectionMm": {
+        "x": 5.5,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "skirt-right",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 4.3,
+        "y": 110,
+        "z": 18
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 110,
+        "z": 6.1
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "back-upper-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "back-lower-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-left-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-right-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-back",
+      "intersectionMm": {
+        "x": 680,
+        "y": 17.5,
+        "z": 12
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "layer1-drawer-1-front",
+      "b": "layer1-drawer-1-pull",
+      "intersectionMm": {
+        "x": 27.9,
+        "y": 8,
+        "z": 10
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-bottom",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 704,
+        "y": 6,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-left-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-right-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-back",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 680,
+        "y": 7,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-left-door",
+      "b": "layer2-left-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-right-door",
+      "b": "layer2-right-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    }
+  ],
+  "chinese-cabinet:box": [
+    {
+      "a": "post-front-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-left",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "left-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-left",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-front-right",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "right-side-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 35
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "post-back-right",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 35,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "left-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "left-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "back-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-upper-rail",
+      "b": "front-upper-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "right-side-panel",
+      "intersectionMm": {
+        "x": 12,
+        "y": 5,
+        "z": 330
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "back-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "right-side-lower-rail",
+      "b": "front-lower-rail",
+      "intersectionMm": {
+        "x": 25,
+        "y": 45,
+        "z": 25
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "back-upper-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "back-lower-rail",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 730,
+        "y": 5,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-left-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-right-side",
+      "intersectionMm": {
+        "x": 12,
+        "y": 17.5,
+        "z": 300
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "divider-1",
+      "b": "layer1-drawer-back",
+      "intersectionMm": {
+        "x": 680,
+        "y": 17.5,
+        "z": 12
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "layer1-drawer-1-front",
+      "b": "layer1-drawer-1-pull",
+      "intersectionMm": {
+        "x": 27.9,
+        "y": 8,
+        "z": 10
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-bottom",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 704,
+        "y": 6,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-left-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-right-side",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 12,
+        "y": 7,
+        "z": 300
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer1-drawer-back",
+      "b": "bottom-board",
+      "intersectionMm": {
+        "x": 680,
+        "y": 7,
+        "z": 12
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-left-door",
+      "b": "layer2-left-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "layer2-right-door",
+      "b": "layer2-right-door-pull",
+      "intersectionMm": {
+        "x": 30,
+        "y": 8,
+        "z": 11
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-front",
+      "b": "spandrel-front-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-left-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-back",
+      "b": "spandrel-back-right-x",
+      "intersectionMm": {
+        "x": 80,
+        "y": 50,
+        "z": 18
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-left",
+      "b": "spandrel-left-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-front-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "skirt-right",
+      "b": "spandrel-right-back-z",
+      "intersectionMm": {
+        "x": 18,
+        "y": 50,
+        "z": 80
+      },
+      "worstAxis": "x"
+    }
+  ],
+  "desk:splayed-round-tapered": [
+    {
+      "a": "leg-1",
+      "b": "apron-front",
+      "intersectionMm": {
+        "x": 27.5,
+        "y": 90.6,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-1",
+      "b": "apron-left",
+      "intersectionMm": {
+        "x": 25,
+        "y": 90.6,
+        "z": 27.5
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-2",
+      "b": "apron-front",
+      "intersectionMm": {
+        "x": 27.5,
+        "y": 90.6,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-2",
+      "b": "apron-right",
+      "intersectionMm": {
+        "x": 25,
+        "y": 90.6,
+        "z": 27.5
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-3",
+      "b": "apron-back",
+      "intersectionMm": {
+        "x": 27.5,
+        "y": 90.6,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-3",
+      "b": "apron-left",
+      "intersectionMm": {
+        "x": 25,
+        "y": 90.6,
+        "z": 27.5
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "leg-4",
+      "b": "apron-back",
+      "intersectionMm": {
+        "x": 27.5,
+        "y": 90.6,
+        "z": 25
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "leg-4",
+      "b": "apron-right",
+      "intersectionMm": {
+        "x": 25,
+        "y": 90.6,
+        "z": 27.5
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "apron-front",
+      "b": "apron-left",
+      "intersectionMm": {
+        "x": 12.6,
+        "y": 90.6,
+        "z": 12.6
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "apron-front",
+      "b": "apron-right",
+      "intersectionMm": {
+        "x": 12.6,
+        "y": 90.6,
+        "z": 12.6
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "apron-back",
+      "b": "apron-left",
+      "intersectionMm": {
+        "x": 12.6,
+        "y": 90.6,
+        "z": 12.6
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "apron-back",
+      "b": "apron-right",
+      "intersectionMm": {
+        "x": 12.6,
+        "y": 90.6,
+        "z": 12.6
+      },
+      "worstAxis": "x"
+    }
+  ],
+  "dovetail-box:default": [
+    {
+      "a": "wall-front",
+      "b": "wall-left",
+      "intersectionMm": {
+        "x": 12,
+        "y": 60.8,
+        "z": 12
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "wall-front",
+      "b": "wall-right",
+      "intersectionMm": {
+        "x": 12,
+        "y": 72,
+        "z": 12
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "wall-front",
+      "b": "lid",
+      "intersectionMm": {
+        "x": 243,
+        "y": 6,
+        "z": 5
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "wall-back",
+      "b": "wall-left",
+      "intersectionMm": {
+        "x": 12,
+        "y": 60.8,
+        "z": 12
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "wall-back",
+      "b": "wall-right",
+      "intersectionMm": {
+        "x": 12,
+        "y": 72,
+        "z": 12
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "wall-back",
+      "b": "lid",
+      "intersectionMm": {
+        "x": 243,
+        "y": 6,
+        "z": 5
+      },
+      "worstAxis": "z"
+    }
+  ],
+  "coat-rack:default": [
+    {
+      "a": "column",
+      "b": "foot-2",
+      "intersectionMm": {
+        "x": 28.9,
+        "y": 48,
+        "z": 11.3
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "column",
+      "b": "foot-3",
+      "intersectionMm": {
+        "x": 28.9,
+        "y": 48,
+        "z": 11.3
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "column",
+      "b": "hook-2",
+      "intersectionMm": {
+        "x": 22.7,
+        "y": 18,
+        "z": 8.5
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "column",
+      "b": "hook-3",
+      "intersectionMm": {
+        "x": 22.7,
+        "y": 18,
+        "z": 8.5
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "column",
+      "b": "hook-5",
+      "intersectionMm": {
+        "x": 22.7,
+        "y": 18,
+        "z": 8.5
+      },
+      "worstAxis": "z"
+    },
+    {
+      "a": "column",
+      "b": "hook-6",
+      "intersectionMm": {
+        "x": 22.7,
+        "y": 18,
+        "z": 8.5
+      },
+      "worstAxis": "z"
+    }
+  ],
+  "stool:curved-taper+ctTwoWay": [
+    {
+      "a": "ls-front",
+      "b": "ls-left",
+      "intersectionMm": {
+        "x": 1.4,
+        "y": 40,
+        "z": 1.4
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "ls-front",
+      "b": "ls-right",
+      "intersectionMm": {
+        "x": 1.4,
+        "y": 40,
+        "z": 1.4
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "ls-back",
+      "b": "ls-left",
+      "intersectionMm": {
+        "x": 1.4,
+        "y": 40,
+        "z": 1.4
+      },
+      "worstAxis": "x"
+    },
+    {
+      "a": "ls-back",
+      "b": "ls-right",
+      "intersectionMm": {
+        "x": 1.4,
+        "y": 40,
+        "z": 1.4
+      },
+      "worstAxis": "x"
+    }
+  ],
+  "round-table:pedestal": [
+    {
+      "a": "pedestal-column",
+      "b": "pedestal-foot-front",
+      "intersectionMm": {
+        "x": 50,
+        "y": 35,
+        "z": 46.3
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "pedestal-column",
+      "b": "pedestal-foot-back",
+      "intersectionMm": {
+        "x": 50,
+        "y": 35,
+        "z": 46.3
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "pedestal-column",
+      "b": "pedestal-foot-left",
+      "intersectionMm": {
+        "x": 46.3,
+        "y": 35,
+        "z": 50
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "pedestal-column",
+      "b": "pedestal-foot-right",
+      "intersectionMm": {
+        "x": 46.3,
+        "y": 35,
+        "z": 50
+      },
+      "worstAxis": "y"
+    }
+  ],
+  "photo-frame:default": [
+    {
+      "a": "frame-top",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 110,
+        "y": 4,
+        "z": 5
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "frame-bottom",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 110,
+        "y": 4,
+        "z": 5
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "frame-left",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 5,
+        "y": 4,
+        "z": 150
+      },
+      "worstAxis": "y"
+    },
+    {
+      "a": "frame-right",
+      "b": "back-panel",
+      "intersectionMm": {
+        "x": 5,
+        "y": 4,
+        "z": 150
+      },
+      "worstAxis": "y"
+    }
+  ],
+  "workbench:default+deadman+lowerStretcherArrangement=box-frame+withUnderShelf": [
+    {
+      "a": "deadman-board",
+      "b": "under-shelf",
+      "intersectionMm": {
+        "x": 180,
+        "y": 4,
+        "z": 7.5
+      },
+      "worstAxis": "y"
+    }
+  ]
+}

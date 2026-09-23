@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
+import { formatMm } from "@/lib/units/format";
 
 interface PhotoResponse {
   category: string;
@@ -17,20 +20,23 @@ interface PhotoResponse {
   warnings?: string[];
 }
 
-const CONFIDENCE_LABEL: Record<string, { label: string; color: string }> = {
-  high: { label: "信心高", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
-  medium: { label: "信心中", color: "text-amber-700 bg-amber-50 border-amber-200" },
-  low: { label: "信心低", color: "text-red-700 bg-red-50 border-red-200" },
+const CONFIDENCE_COLOR: Record<string, string> = {
+  high: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  medium: "text-amber-700 bg-amber-50 border-amber-200",
+  low: "text-red-700 bg-red-50 border-red-200",
 };
 
 /** 圖片壓縮：max 1024px 邊長，jpeg quality 0.85 → 通常 <500KB */
-async function compressImage(file: File): Promise<{ base64: string; mediaType: string }> {
+async function compressImage(
+  file: File,
+  errors: { readFail: string; decodeFail: string; canvasFail: string },
+): Promise<{ base64: string; mediaType: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("讀檔失敗"));
+    reader.onerror = () => reject(new Error(errors.readFail));
     reader.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error("解碼失敗"));
+      img.onerror = () => reject(new Error(errors.decodeFail));
       img.onload = () => {
         const MAX = 1024;
         let { width, height } = img;
@@ -43,7 +49,7 @@ async function compressImage(file: File): Promise<{ base64: string; mediaType: s
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("canvas 失敗"));
+        if (!ctx) return reject(new Error(errors.canvasFail));
         ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
         const base64 = dataUrl.split(",")[1] ?? "";
@@ -56,6 +62,26 @@ async function compressImage(file: File): Promise<{ base64: string; mediaType: s
 }
 
 export function PhotoToParamsButton() {
+  const t = useTranslations("photoToParams");
+  const tErr = useTranslations("photoToParams.errors");
+  const unit = useUnit();
+
+  const resolveServerError = (
+    code: unknown,
+    params: Record<string, unknown> | undefined,
+  ): string => {
+    if (typeof code !== "string" || !code) return t("errRecognize");
+    try {
+      // next-intl throws if key is missing; fall back to generic recognition error.
+      return tErr(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        code as any,
+        (params ?? {}) as Record<string, string | number>,
+      );
+    } catch {
+      return t("errRecognize");
+    }
+  };
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [available, setAvailable] = useState(false);
@@ -64,6 +90,14 @@ export function PhotoToParamsButton() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PhotoResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorUpgrade, setErrorUpgrade] = useState<{ url: string; label: string } | null>(null);
+
+  const confidenceLabel = (k: string): string => {
+    if (k === "high") return t("confidenceHigh");
+    if (k === "medium") return t("confidenceMedium");
+    if (k === "low") return t("confidenceLow");
+    return k;
+  };
 
   useEffect(() => {
     fetch("/api/photo-to-params").then(async (r) => {
@@ -76,17 +110,20 @@ export function PhotoToParamsButton() {
     }).catch(() => setAvailable(false));
   }, []);
 
-  // 沒設 API key 不顯示按鈕——免得 user 第一眼看到「灰掉的功能」以為網站是半成品
   if (!available) return null;
 
   const handleFile = async (file: File) => {
-    setError(null);
+    setError(null); setErrorUpgrade(null);
     setResult(null);
     setLoading(true);
     try {
-      if (!file.type.startsWith("image/")) throw new Error("請選圖片檔");
-      if (file.size > 10 * 1024 * 1024) throw new Error("圖檔不能超過 10MB");
-      const { base64, mediaType } = await compressImage(file);
+      if (!file.type.startsWith("image/")) throw new Error(t("errSelectImage"));
+      if (file.size > 10 * 1024 * 1024) throw new Error(t("errSize10MB"));
+      const { base64, mediaType } = await compressImage(file, {
+        readFail: t("errReadFail"),
+        decodeFail: t("errDecodeFail"),
+        canvasFail: t("errCanvasFail"),
+      });
       setPreview(`data:${mediaType};base64,${base64}`);
       const res = await fetch("/api/photo-to-params", {
         method: "POST",
@@ -94,10 +131,13 @@ export function PhotoToParamsButton() {
         body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "辨識失敗");
+      if (!res.ok) {
+        if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? t("upgradeFallback") });
+        throw new Error(resolveServerError(data.error, data.errorParams));
+      }
       setResult(data as PhotoResponse);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "未知錯誤");
+      setError(e instanceof Error ? e.message : t("errUnknown"));
     } finally {
       setLoading(false);
     }
@@ -124,7 +164,7 @@ export function PhotoToParamsButton() {
     setOpen(false);
     setResult(null);
     setPreview(null);
-    setError(null);
+    setError(null); setErrorUpgrade(null);
   };
 
   return (
@@ -133,10 +173,10 @@ export function PhotoToParamsButton() {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-white text-zinc-800 ring-1 ring-zinc-300 hover:bg-violet-50 hover:ring-violet-400 transition"
-        title="上傳家具照，AI 推測類別/尺寸/木種/風格，自動套進設計器"
+        title={t("btnTitle")}
       >
         <span>📷</span>
-        <span>照片轉設計</span>
+        <span>{t("btnLabel")}</span>
       </button>
 
       {open && (
@@ -149,7 +189,7 @@ export function PhotoToParamsButton() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-base font-semibold">📷 照片轉設計</h2>
+              <h2 className="text-base font-semibold">{t("modalH")}</h2>
               <button onClick={handleClose} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">×</button>
             </div>
 
@@ -160,8 +200,8 @@ export function PhotoToParamsButton() {
                 className="w-full border-2 border-dashed border-zinc-300 rounded-lg p-8 text-center hover:border-violet-400 hover:bg-violet-50/30"
               >
                 <div className="text-4xl mb-2">🖼️</div>
-                <div className="text-sm text-zinc-700 mb-1">點選 / 拖入家具照片</div>
-                <div className="text-[11px] text-zinc-500">jpeg / png / webp · 最大 10MB</div>
+                <div className="text-sm text-zinc-700 mb-1">{t("dropZoneH")}</div>
+                <div className="text-[11px] text-zinc-500">{t("dropZoneSub")}</div>
               </button>
             )}
 
@@ -179,27 +219,35 @@ export function PhotoToParamsButton() {
             {preview && (
               <div className="mb-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="預覽" className="w-full max-h-48 object-contain rounded border border-zinc-200" />
+                <img src={preview} alt={t("previewAlt")} className="w-full max-h-48 object-contain rounded border border-zinc-200" />
               </div>
             )}
 
             {loading && (
               <div className="text-center py-4 text-sm text-zinc-600">
-                <span className="inline-block animate-pulse">🔍 AI 辨識中…（約 5-10 秒）</span>
+                <span className="inline-block animate-pulse">{t("loading")}</span>
               </div>
             )}
 
             {error && (
               <div className="rounded-md bg-red-50 border border-red-200 text-red-800 text-xs p-3 mb-2">
-                ⚠️ {error}
+                <div>⚠️ {error}</div>
+                {errorUpgrade && (
+                  <a
+                    href={errorUpgrade.url}
+                    className="mt-1 inline-block font-semibold underline hover:text-red-900"
+                  >
+                    {errorUpgrade.label}
+                  </a>
+                )}
               </div>
             )}
 
             {result && (
               <div className="space-y-3 text-xs">
                 <div className="flex flex-wrap gap-2 items-center">
-                  <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] ${CONFIDENCE_LABEL[result.confidence]?.color ?? ""}`}>
-                    {CONFIDENCE_LABEL[result.confidence]?.label ?? result.confidence}
+                  <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] ${CONFIDENCE_COLOR[result.confidence] ?? ""}`}>
+                    {confidenceLabel(result.confidence)}
                   </span>
                   <span className="font-mono text-zinc-700">{result.category}</span>
                   <span className="font-mono text-zinc-500">
@@ -208,10 +256,10 @@ export function PhotoToParamsButton() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  {result.material && <div><span className="text-zinc-500">木種：</span>{result.material}</div>}
-                  {result.style && <div><span className="text-zinc-500">風格：</span>{result.style}</div>}
-                  {result.legShape && <div><span className="text-zinc-500">腳形：</span>{result.legShape}</div>}
-                  {result.legSize && <div><span className="text-zinc-500">腳粗：</span>{result.legSize}mm</div>}
+                  {result.material && <div><span className="text-zinc-500">{t("lblMaterial")}</span>{result.material}</div>}
+                  {result.style && <div><span className="text-zinc-500">{t("lblStyle")}</span>{result.style}</div>}
+                  {result.legShape && <div><span className="text-zinc-500">{t("lblLegShape")}</span>{result.legShape}</div>}
+                  {result.legSize && <div><span className="text-zinc-500">{t("lblLegSize")}</span>{formatMm(result.legSize, unit)}</div>}
                 </div>
 
                 <div className="text-[11px] text-zinc-700 leading-relaxed bg-zinc-50 rounded p-2 border border-zinc-200">
@@ -225,7 +273,7 @@ export function PhotoToParamsButton() {
                 )}
 
                 <div className="text-[10px] text-zinc-500 italic">
-                  ⚠️ 尺寸是 AI 估的不是量的，套用後請依實際需求調整
+                  {t("estimatedWarn")}
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -234,18 +282,18 @@ export function PhotoToParamsButton() {
                     onClick={handleApply}
                     className="flex-1 px-3 py-2 rounded bg-violet-600 text-white text-xs font-medium hover:bg-violet-700"
                   >
-                    套用到設計器
+                    {t("applyBtn")}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       setResult(null);
                       setPreview(null);
-                      setError(null);
+                      setError(null); setErrorUpgrade(null);
                     }}
                     className="px-3 py-2 rounded border border-zinc-300 text-xs hover:bg-zinc-50"
                   >
-                    重來
+                    {t("redoBtn")}
                   </button>
                 </div>
               </div>

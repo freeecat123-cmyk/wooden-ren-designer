@@ -9,11 +9,15 @@ import {
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   drawerMountOption,
   drawerSlideOption,
   resolveBackMode,
   resolveDoorMount,
   resolveDrawerBottomMode,
+  resolveDrawerBottomThickness,
+  resolveDrawerBoxJoinery,
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
@@ -29,19 +33,23 @@ import {
 } from "./_helpers";
 
 export const shoeCabinetOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   // 單一收納區（不分上下層）：類型 + 數量。topType/topCount 這個 key 名是
   // 為了沿用既有 ANY_ZONE_IS_DOOR 條件 + 共用 door / drawer 子選項。
   // 分上下層 toggle：勾起 = 加上層；取消 = 整個櫃單一收納區（只剩下層 = 全櫃）
   { group: "structure", type: "checkbox", key: "withUpperZone", label: "分上下層（上層+下層獨立配置）", defaultValue: true, wide: true, help: "勾起：上層放小物/抽屜、下層放鞋。取消：整個櫃內單一收納區（無上層）" },
   // ── 上層：upper* 全屬 zone-top，手機 AdvancedSheet 會自動歸到「▲ 上層」section
-  { group: "zone-top", type: "number", key: "upperHeight", label: "上層高度 (mm)", defaultValue: 220, min: 80, max: 600, step: 10, help: "上層 zone 的垂直空間，建議 180~260mm 給薄抽屜或小物收納", dependsOn: { key: "withUpperZone", equals: true } },
+  { group: "zone-top", type: "number", key: "upperHeight", label: "上層高度", defaultValue: 220, unit: "mm", min: 80, max: 600, step: 10, help: "上層 zone 的垂直空間，建議 180~260mm 給薄抽屜或小物收納", dependsOn: { key: "withUpperZone", equals: true } },
   { group: "zone-top", type: "select", key: "upperType", label: "上層類型", defaultValue: "drawer", choices: [
     { value: "drawer", label: "抽屜" },
     { value: "door", label: "門板" },
     { value: "shelves", label: "開放層板" },
   ], dependsOn: { key: "withUpperZone", equals: true } },
-  { group: "zone-top", type: "number", key: "upperCount", label: "上層 數量", defaultValue: 1, min: 1, max: 4, step: 1, help: "抽屜=排數 / 門=扇數 / 層板=層數", dependsOn: { key: "withUpperZone", equals: true } },
+  // 「上層 數量」依類型拆 3 個 entry（同 key=upperCount，dependsOn 隔開）。
+  // 門扇數上限 2（單門 / 雙開門）；抽屜排數 / 層板層數仍可到 4。
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 門扇數", defaultValue: 1, min: 1, max: 2, step: 1, help: "雙開門=2、單門=1", dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "door" }] } },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 抽屜排數", defaultValue: 1, min: 1, max: 4, step: 1, help: "上下幾排抽屜", dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "drawer" }] } },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 層板層數", defaultValue: 1, min: 1, max: 4, step: 1, help: "1=空櫃、2=1 片中板…", dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "shelves" }] } },
   { group: "zone-top", type: "number", key: "upperCols", label: "上層 列數（左右分）", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "drawer" }] } },
   { group: "zone-top", type: "number", key: "upperDoorShelves", label: "上層 門後藏層板數", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "door" }] } },
   // ── 下層（主鞋櫃 / 單一收納區時就是整櫃）：top* 全屬 zone-bot
@@ -53,7 +61,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ] },
   // 「數量」依類型拆 3 個 entry，label 隨類型變（避免跟「門內層板數」搞混）。
   // 三個 entry 同 key=topCount，dependsOn 隔開，UI 只顯示符合當前類型的那個。
-  { group: "zone-bot", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 8, step: 1, help: "雙開門=2、單門=1、多扇=3 以上", dependsOn: { key: "topType", equals: "door" } },
+  { group: "zone-bot", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 2, step: 1, help: "雙開門=2、單門=1", dependsOn: { key: "topType", equals: "door" } },
   { group: "zone-bot", type: "number", key: "topCount", label: "層板層數", defaultValue: 2, min: 1, max: 8, step: 1, help: "1=空櫃、2=1 片中板、3=2 片中板…", dependsOn: { key: "topType", equals: "shelves" } },
   { group: "zone-bot", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
   { group: "zone-bot", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
@@ -69,11 +77,13 @@ export const shoeCabinetOptions: OptionSpec[] = [
   doorFrameThicknessOption,
   drawerMountOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   backModeOption,
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 80, unit: "mm", min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 35, unit: "mm", min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -82,11 +92,12 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
+    { value: "full-depth-panel", label: "整深度板腳（可調左右內縮）" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerSlideOption,
   { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：上層 / 下層高度都明確設、總高扣掉後的餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、下層自動吃剩（原本行為）", wide: true },
-  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度 (mm)", defaultValue: 600, min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度（不分上下層時 = 整個內部高度）。上層高度請用「上層高度」欄位設定", dependsOn: { key: "lockTotalHeight", equals: true } },
+  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度", defaultValue: 600, unit: "mm", min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度（不分上下層時 = 整個內部高度）。上層高度請用「上層高度」欄位設定", dependsOn: { key: "lockTotalHeight", equals: true } },
   { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。只在類型=開放層板時生效。", wide: true },
   { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),
@@ -94,6 +105,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = shoeCabinetOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
@@ -120,7 +133,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const withUpperZone = getOption<boolean>(input, opt(o, "withUpperZone"));
   const upperHeight = getOption<number>(input, opt(o, "upperHeight"));
   const upperType = getOption<string>(input, opt(o, "upperType")) as CabinetZone["type"];
-  const upperCount = getOption<number>(input, opt(o, "upperCount"));
+  let upperCount = getOption<number>(input, opt(o, "upperCount"));
   const upperCols = getOption<number>(input, opt(o, "upperCols"));
   const upperDoorShelves = getOption<number>(input, opt(o, "upperDoorShelves"));
   const hasUpper = withUpperZone;
@@ -171,6 +184,16 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   // door 模式 doorInnerShelves=0 = 沒層板 → 尊重使用者選擇，斜放本次無作用，只 warn
   if (angledRackActive && zoneType === "door" && doorInnerShelves === 0) {
     warnings.push(`勾了斜放鞋格但「門後藏層板數」為 0 → 沒層板可斜。要看斜板請把「門後藏層板數」設 ≥ 1。`);
+  }
+  // 門扇數上限 2（單門 / 雙開門）。3 扇以上鞋櫃寬度分不實用，且門把無法落在豎梃。
+  // OptionSpec max 已限 2，這裡夾限防呆舊 URL / 風格變體寫進來的過大值。
+  if (zoneType === "door" && zoneCount > 2) {
+    warnings.push(`門扇數上限為 2（單門 / 雙開門），已從 ${zoneCount} 修正為 2。`);
+    zoneCount = 2;
+  }
+  if (upperType === "door" && upperCount > 2) {
+    warnings.push(`上層門扇數上限為 2，已從 ${upperCount} 修正為 2。`);
+    upperCount = 2;
   }
   // zones bottom-up: zones[0]=主（下）區，zones[1]=上層（hasUpper 才加）
   const zones: CabinetZone[] = [
@@ -237,41 +260,112 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight: effectiveLegHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "full-depth-panel" | "round" | "round-tapered",
     legInset,
     doorMount,
     doorFrameRailWidth: getOption<number>(input, opt(o, "doorFrameRailWidth")),
     doorFrameThickness: getOption<number>(input, opt(o, "doorFrameThickness")),
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
+    drawerBottomThickness: resolveDrawerBottomThickness(input, o),
+    drawerBoxJoinery: resolveDrawerBoxJoinery(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${effectiveLegHeight > 0 ? `；加 ${Math.round(effectiveLegHeight)}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}${lockTotalHeight ? "（鎖定總高自動算）" : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""}`.trim(),
+    notes: (isEn
+      ? `${notesLine}; door: ${doorMountLabel(doorMount)} (Euro hinge ${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"})${effectiveLegHeight > 0 ? `; ${Math.round(effectiveLegHeight)}mm base legs (${legShape})${legInset > 0 ? `, inset ${legInset}mm` : ""}${lockTotalHeight ? " (auto-calc from locked total height)" : ""}` : ""}. ${pullStyleNote(pullStyle, locale)} ${doorType === "louvered" ? "Louvered door: horizontal slats cut in panel (8mm slat thickness, 15mm spacing, 25° tilt) for ventilation against shoe odor." : ""}`
+      : `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${effectiveLegHeight > 0 ? `；加 ${Math.round(effectiveLegHeight)}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}${lockTotalHeight ? "（鎖定總高自動算）" : ""}` : ""}。${pullStyleNote(pullStyle, locale)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""}`
+    ).trim(),
     warnings,
   });
-  // 百葉門：在每片門面板上加水平百葉 mortises（每片 ⌀15mm 間距、傾斜記在 notes）
-  // 限定門相關 id（-door / -slab / -panel / -rail / -stile），不要誤抓抽屜面板（-face）
-  // 也排除門內藏層板 -door-inner-shelf-N
+  // 百葉門：把每片門的木鑲板換成「N 片橫向實心百葉條」（真實葉片，非裝飾凹槽）。
+  // 框（橫檔 + 豎梃）由 caseFurniture 已建好、保留；只把 -panel 換成葉片群。
+  // 葉片沿門寬橫放（rotation 同橫檔的單軸 X 旋轉），嵌在框內開口、上下均分。
   if (doorType === "louvered") {
-    const doorParts = design.parts.filter(
-      (p) =>
-        (p.id.includes("-door-") || p.id.endsWith("-door") || p.id.endsWith("-slab") || p.id.endsWith("-panel")) &&
-        !p.id.includes("-door-inner") &&
-        !/-rail-|-stile-/.test(p.id) &&
-        !p.id.endsWith("-glass"),
+    const grooveDepth = 8;   // caseFurniture 門框鑲板槽深，用來推算框內開口
+    const slatThick = 6;     // 葉片厚＝豎梃斜槽寬；25° 斜槽在門厚 22 內的鉛直跨度
+                             // = faceH·sin25+thick·cos25，thick 9→6 把跨度 19→16、
+                             // 槽到料面留 ~2.8mm 壁（原 1.4mm 快破邊，user 回報）
+    const slatPitch = 30;    // 葉片中心間距
+    const slatFaceH = 26;    // 葉片面寬（傾斜後鉛直投影 ≈27mm < pitch → 不互疊）
+    // 葉片繞自身長軸（part-local X）傾斜 25°；疊在門板基準 X 旋轉上仍為單軸。
+    const slatTiltRad = (25 * Math.PI) / 180;
+    const louverPanels = design.parts.filter(
+      (p) => p.id.endsWith("-panel") && p.id.includes("-door-") && !p.id.includes("-door-inner"),
     );
-    for (const dp of doorParts) {
-      const dH = dp.visible.width;
-      const slatPitch = 23; // 8mm 葉片 + 15mm 間距
-      const count = Math.floor((dH - 40) / slatPitch);
-      const newM = [...dp.mortises];
+    for (const panel of louverPanels) {
+      // 葉片長度 = 原木鑲板全寬（panelOuterW）：整片直接卡進左右豎梃凹槽
+      // （兩端各埋 grooveDepth），不另做榫。跟原本木鑲板入框做法一致。
+      // 葉片入豎梃槽（panel 全寬、兩端各埋 grooveDepth）＝真實接合、無端面縫隙。
+      // （葉片端跟豎梃的互穿白點靠 3D 材質 polygonOffset 把葉片壓後讓豎梃遮住，
+      //  見 PerspectiveView：百葉葉片 polygonOffset 大值。）
+      const slatLen = panel.visible.length;
+      const openH = panel.visible.width - 2 * grooveDepth;  // 框內開口高
+      const openBottomY = panel.origin.y + grooveDepth;
+      const count = Math.max(2, Math.floor(openH / slatPitch));
+      const margin = (openH - count * slatPitch) / 2;
+      const idBase = panel.id.replace(/-panel$/, "");
+      const baseName = panel.nameZh.replace(/木鑲板$/, "");
+      // 兩側豎梃：每片葉片兩端嵌進豎梃內側的斜槽。原本只生葉片、豎梃完全沒槽
+      // → 零件圖看不到葉片榫孔（user 回報）。在豎梃 local 座標補 cosmetic 斜槽：
+      //   - origin.x = 內側面（沿用該豎梃既有橫檔榫眼的 x，已驗證落在內緣）
+      //   - origin.z = 葉片世界高 − 豎梃中心高（豎梃 width=門高、mortise.z 沿此軸）
+      //   - length(沿門高) = 葉片面寬、width(沿門厚) = 葉片厚、depth = 凹槽深
+      //   - rotX = 葉片傾角（CSG cut box 跟著葉片斜 25°）
+      const stiles = [
+        design.parts.find((p) => p.id === `${idBase}-stile-left`),
+        design.parts.find((p) => p.id === `${idBase}-stile-right`),
+      ].filter((p): p is NonNullable<typeof p> => p != null);
       for (let r = 0; r < count; r++) {
-        const y = -dH / 2 + 20 + (r + 0.5) * slatPitch;
-        newM.push({ origin: { x: 0, y, z: 0 }, depth: 6, length: dp.visible.length - 30, width: 8, through: false });
+        const slatY =
+          openBottomY + margin + r * slatPitch + (slatPitch - slatFaceH) / 2;
+        design.parts.push({
+          id: `${idBase}-louver-${r + 1}`,
+          nameZh: `${baseName}百葉條`,
+          nameEn: `${panel.nameEn ?? "Panel"} louver ${r + 1}`,
+          material: panel.material,
+          grainDirection: "length",
+          visible: { length: slatLen, width: slatFaceH, thickness: slatThick },
+          origin: { x: panel.origin.x, y: slatY, z: panel.origin.z },
+          rotation: { x: Math.PI / 2 + slatTiltRad, y: 0, z: 0 },
+          // 葉片兩短邊（厚度向 6mm 邊）倒圓＝百葉慣例 bullnose（非方角）；
+          // chamferMm = 厚/2 把 6mm 短邊磨成半圓，截面成跑道形（user 回報）。
+          shape: { kind: "chamfered-edges", chamferMm: slatThick / 2, style: "rounded" },
+          tenons: [],
+          mortises: [],
+        });
+        for (const stile of stiles) {
+          // 內側面 x：沿用既有橫檔榫眼 x（落在面向門心的內緣）；無則由幾何推算
+          const innerX =
+            stile.mortises[0]?.origin.x ??
+            Math.sign(panel.origin.x - stile.origin.x) *
+              (stile.visible.length / 2 - grooveDepth / 2);
+          const stileCenterY = stile.origin.y + stile.visible.width / 2;
+          const tiltDeg = Math.round((slatTiltRad * 180) / Math.PI);
+          stile.mortises.push({
+            // origin.y 是 from-bottom（零件底面起算）→ 槽要落在板厚中央＝thickness/2
+            // （葉片在門厚中段，槽置中料厚；y:0 會貼底面、零件圖偏下一邊 user 回報）
+            // z 要對齊葉片「中心高」＝slatY(葉片底origin.y)+slatFaceH/2，非葉片底；
+            // 用 slatY 會讓整排槽偏 −slatFaceH/2、最頂端空出半葉空格（user「最右邊空一格」）。
+            origin: {
+              x: innerX,
+              y: stile.visible.thickness / 2,
+              z: slatY + slatFaceH / 2 - stileCenterY,
+            },
+            depth: grooveDepth,
+            length: slatFaceH,
+            width: slatThick,
+            through: false,
+            cosmetic: true,
+            rotX: slatTiltRad,
+            label: `百葉槽${tiltDeg}°`,
+          });
+        }
       }
-      dp.mortises = newM;
     }
+    // 移除原本的實心木鑲板（已被百葉條群取代）
+    const louverPanelIds = new Set(louverPanels.map((p) => p.id));
+    design.parts = design.parts.filter((p) => !louverPanelIds.has(p.id));
   }
   // 斜放鞋格：將「主（下）收納區」的層板向前傾斜（rake = rotation.x），前緣下沉，
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
@@ -338,6 +432,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `${shelf.id}-stop`,
         nameZh: `${shelf.nameZh} 止擋條`,
+        nameEn: `${shelf.nameEn ?? "Shelf"} stop bar`,
         material: input.material,
         grainDirection: "length",
         visible: { length: shelf.visible.length, width: battenT, thickness: battenH },
@@ -366,7 +461,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
-    }),
+    }, input.locale),
   );
   // 鞋層淨高 ergo：每層 < 170mm 高跟鞋放不下，> 350mm 太浪費；建議 190-280mm
   // 從 zones 計算每個 shelves zone 的每層淨高（heightMm / count）
@@ -382,7 +477,10 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   }
   if (input.height > 2000 || input.length > 1500) {
     appendSuggestion(design, {
-      text: `${input.length}×${input.height}mm 已超過鞋櫃常規——衣櫃模板支援大尺寸玄關櫃。`,
+      text:
+        input.locale === "en"
+          ? `${input.length}×${input.height} mm is past typical shoe-cabinet sizing — the wardrobe template handles large entry cabinets.`
+          : `${input.length}×${input.height}mm 已超過鞋櫃常規——衣櫃模板支援大尺寸玄關櫃。`,
       suggestedCategory: "wardrobe",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });

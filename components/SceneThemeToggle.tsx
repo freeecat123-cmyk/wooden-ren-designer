@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { SCENE_THEME_LIST, type SceneThemeId } from "@/lib/design/scene-themes";
 
 /**
@@ -11,43 +12,46 @@ import { SCENE_THEME_LIST, type SceneThemeId } from "@/lib/design/scene-themes";
  * 後會在 3D 加地板 + 調光，給客戶看「擺在家裡的樣子」。
  */
 export function SceneThemeToggle({ current }: { current: SceneThemeId }) {
+  const t = useTranslations("sceneToggle");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const onSelect = (id: SceneThemeId) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     if (id === "natural") {
       params.delete("scene");
     } else {
       params.set("scene", id);
     }
     const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    const path = pathname ?? "/";
+    router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
   };
 
   return (
-    <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 bg-zinc-50/50">
-      <span className="text-[11px] text-zinc-600 mr-1.5">場景</span>
-      {SCENE_THEME_LIST.map((t) => {
-        const active = t.id === current;
+    <div className="flex items-center gap-1 px-3 py-2 border-b border-amber-100 bg-amber-50/40">
+      <span className="text-[11px] font-medium text-zinc-600 mr-1.5">{t("sceneLbl")}</span>
+      {SCENE_THEME_LIST.map((theme) => {
+        const active = theme.id === current;
+        const label = t(theme.id);
         return (
           <button
-            key={t.id}
+            key={theme.id}
             type="button"
-            onClick={() => onSelect(t.id)}
-            title={t.nameZh}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] transition-colors ${
+            onClick={() => onSelect(theme.id)}
+            title={label}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-all ${
               active
-                ? "bg-zinc-900 text-white"
-                : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
+                ? "bg-amber-600 text-white shadow-sm shadow-amber-900/20"
+                : "bg-white text-zinc-700 border border-zinc-200 hover:border-amber-300 hover:bg-amber-50"
             }`}
           >
             <span
               className="inline-block w-3 h-3 rounded-sm border border-black/10"
-              style={{ backgroundColor: t.swatch }}
+              style={{ backgroundColor: theme.swatch }}
             />
-            {t.nameZh}
+            {label}
           </button>
         );
       })}

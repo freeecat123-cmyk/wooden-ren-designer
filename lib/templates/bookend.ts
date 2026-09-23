@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { formatMm } from "@/lib/units/format";
 
 /** 三角加固板厚（恆 12mm，過厚反而難切斜邊） */
 const BRACE_THICKNESS = 12;
@@ -15,26 +16,9 @@ const BRACE_HEIGHT_FRAC = 0.6;
 /** 帶肩榫的肩寬（每邊各內縮多少 mm） */
 const TENON_SHOULDER = 4;
 
-/** 使用情境 preset */
-const BOOKEND_PRESETS: Record<string, { panelThickness?: number; withBrace?: boolean; edgeChamfer?: number; label: string }> = {
-  // 簡約款：薄板無加固
-  minimalist: { panelThickness: 15, withBrace: false, edgeChamfer: 2, label: "簡約極薄款（15mm + 無加固，適合輕書/設計感）" },
-  // 經典款：標準厚板 + 三角加固
-  classic: { panelThickness: 18, withBrace: true, edgeChamfer: 2, label: "經典加固款（18mm + 三角加固）" },
-  // 重型款：厚板 + 加固，撐住沉重收藏書/字典
-  heavy: { panelThickness: 25, withBrace: true, edgeChamfer: 3, label: "重型款（25mm + 加固，撐字典/年鑑）" },
-  // 兒童款：圓角倒大、加固防壓
-  kids: { panelThickness: 18, withBrace: true, edgeChamfer: 5, label: "兒童款（圓角 R5 防撞，加固防壓書）" },
-};
-
 export const bookendOptions: OptionSpec[] = [
-  { group: "preset", type: "select", key: "bookendStyle", label: "風格預設", defaultValue: "custom", choices: [
-    { value: "custom", label: "自訂（不套 preset）" },
-    ...Object.entries(BOOKEND_PRESETS).map(([k, v]) => ({ value: k, label: v.label })),
-  ], help: "依使用情境一鍵套板厚 / 加固 / 倒角組合，user 後改不蓋。" },
-  { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
-  { group: "structure", type: "checkbox", key: "withBrace", label: "加三角加固", defaultValue: true, help: "底板與背板交界加三角支撐，避免重書壓彎" },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "外露邊緣倒角，2-3mm 手感佳；兒童款可拉到 5mm" },
+  { group: "structure", type: "number", key: "panelThickness", label: "板厚", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", help: "輕書/設計感 15mm；標準 18mm；撐字典/年鑑 25mm" },
+  { group: "structure", type: "checkbox", key: "withBrace", label: "加三角加固", defaultValue: true, help: "底板與背板交界加直角三角支撐，避免重書壓彎" },
 ];
 
 /**
@@ -48,82 +32,82 @@ export const bookendOptions: OptionSpec[] = [
  */
 export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: baseDepth, width: baseWidth, height: backHeight, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = bookendOptions;
-  const bookendStyle = getOption<string>(input, opt(o, "bookendStyle"));
-  const preset = BOOKEND_PRESETS[bookendStyle];
-  const panelTRaw = getOption<number>(input, opt(o, "panelThickness"));
-  const panelT = panelTRaw === 18 && preset?.panelThickness !== undefined ? preset.panelThickness : panelTRaw;
-  const withBraceRaw = getOption<boolean>(input, opt(o, "withBrace"));
-  const withBrace = withBraceRaw === true && preset?.withBrace !== undefined ? preset.withBrace : withBraceRaw;
-  const edgeChamferRaw = getOption<number>(input, opt(o, "edgeChamfer"));
-  const edgeChamfer = edgeChamferRaw === 2 && preset?.edgeChamfer !== undefined ? preset.edgeChamfer : edgeChamferRaw;
+  const panelT = getOption<number>(input, opt(o, "panelThickness"));
+  const withBrace = getOption<boolean>(input, opt(o, "withBrace"));
 
-  // 背板貼底板後緣立起，本身高 = backHeight - 底板厚
+  // 預設組裝版幾何（直角對接，乾淨好看）：
+  // - 底板 X∈[-60,+60] Y∈[0, panelT]、整片方板
+  // - 背板沿後緣立起，Y∈[panelT, backHeight]，origin.y=panelT
+  // 榫接版（joineryView 覆寫）露出 45° miter：兩塊板都套 mitered-corner shape，
+  // 背板延伸到 Y=0 涵蓋重疊區後再削掉前下角，外觀接續成連續 L。
   const backPanelH = backHeight - panelT;
-  // 帶肩榫：榫長 = 底板厚（從背板下緣往底板裡插），寬 = 底板寬內縮 2× 肩寬
-  const tenonW = Math.max(1, baseWidth - 2 * TENON_SHOULDER);
+  const tenonW = Math.max(1, baseWidth - 2 * TENON_SHOULDER); // spline 寬度 baseline
 
-  // 底板沿世界 X = baseDepth（書方向，前後深度），世界 Z = baseWidth（沿書架）
   const base: Part = {
     id: "base",
     nameZh: "底板",
+    nameEn: "Base panel",
     material,
     grainDirection: "length",
     visible: { length: baseDepth, width: baseWidth, thickness: panelT },
     origin: { x: 0, y: 0, z: 0 },
     tenons: [],
-    mortises: [
-      {
-        // 背板榫眼開在底板「後緣」(世界 -X 端) 的中央
-        origin: { x: -(baseDepth / 2 - panelT / 2), y: panelT, z: 0 },
-        depth: panelT,
-        length: tenonW,
-        width: panelT - 2,
-        through: false,
-      },
-    ],
+    mortises: [],
+    joineryView: {
+      shape: { kind: "mitered-corner", axis: "z", corner: "-+", depthMm: panelT },
+    },
   };
 
-  // 背板立在底板的「後緣」(世界 -X)，沿世界 Z 跨滿整個 baseWidth，
-  // 旋轉後板厚 panelT 落在世界 X 軸（厚度方向）。
   const back: Part = {
     id: "back",
     nameZh: "背板",
+    nameEn: "Back panel",
     material,
     grainDirection: "length",
     visible: { length: baseWidth, width: backPanelH, thickness: panelT },
     origin: { x: -(baseDepth / 2 - panelT / 2), y: panelT, z: 0 },
+    // 雙軸 Rx(π/2)·Ry(π/2)：把橫躺板（visible.width=backPanelH 沿 Z 軸）扶正
+    // → backPanelH 變世界 +Y（垂直立板）、baseWidth 變世界 Z、panelT 變世界 X。
+    // 形成書擋 L 型 silhouette。曾在 b8c84c4 改成單軸 Ry 變回平躺，已 revert。
     rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-    tenons: [
-      {
-        position: "bottom",
-        type: "shouldered-tenon",
-        length: panelT,
-        width: tenonW,
-        thickness: panelT - 2,
-      },
-    ],
+    tenons: [],
     mortises: [],
+    joineryView: {
+      // 榫接版：背板延伸到 Y=0 + 前下角 45° miter
+      visible: { length: baseWidth, width: backHeight, thickness: panelT },
+      origin: { x: -(baseDepth / 2 - panelT / 2), y: 0, z: 0 },
+      shape: { kind: "mitered-corner", axis: "x", corner: "++", depthMm: panelT },
+    },
   };
 
   const parts: Part[] = [base, back];
   const warnings: string[] = [];
 
   if (backPanelH <= 0) {
-    warnings.push(`背板高度 ≤ 0：總高 ${backHeight}mm 小於板厚 ${panelT}mm。`);
+    warnings.push(
+      isEn
+        ? `Back panel height ≤ 0: overall height ${backHeight} mm is less than panel thickness ${panelT} mm.`
+        : `背板高度 ≤ 0：總高 ${backHeight}mm 小於板厚 ${panelT}mm。`,
+    );
   }
 
   if (withBrace) {
     const braceLeg = Math.min(baseDepth * BRACE_DEPTH_FRAC, backHeight * BRACE_HEIGHT_FRAC);
-    // 三角加固（其實是矩形板）卡在「底板上面 + 背板前面」的角落，
-    // 沿世界 X 從背板前面 (X=-baseDepth/2 + panelT) 往前延伸 braceLeg
+    // 三角加固卡在「底板上面 + 背板前面」的角落
     parts.push({
       id: "brace",
       nameZh: "三角加固",
+      nameEn: "Triangle brace",
       material,
       grainDirection: "length",
       visible: { length: braceLeg, width: braceLeg, thickness: BRACE_THICKNESS },
+      // 直角三角形卡 base 上面 + back 前面的角落，跟雙軸 back panel 對齊。
       origin: { x: -baseDepth / 2 + panelT + braceLeg / 2, y: panelT, z: 0 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      shape: { kind: "right-triangle", corner: "-x+z" },
       tenons: [],
       mortises: [],
     });
@@ -135,18 +119,26 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "書擋（一對）",
     overall: { length: baseDepth, width: baseWidth, thickness: backHeight },
     parts,
-    defaultJoinery: "shouldered-tenon",
+    defaultJoinery: "mitered-spline",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（榫長 ${panelT}mm、寬 ${tenonW}mm）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}${edgeChamfer > 0 ? `所有外露邊緣倒 ${edgeChamfer}mm 防扎手。` : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
+    notes: isEn
+      ? `Bookend ${formatMm(baseDepth, "inch")}×${formatMm(baseWidth, "inch")}×${formatMm(backHeight, "inch")}. Base and back join with a **45° miter + hidden spline**: chamfer the top-rear edge of the base and the bottom-front edge of the back at ${formatMm(panelT, "inch")} × 45°, so the seam disappears once mated; cut a 6×40mm spline groove down the center of both faces and glue in a straight-grain spline (grain running across the short axis) — keeps the corner aligned and resists peeling.${withBrace ? " A right-angle triangular brace on the inside of the L corner adds serious load capacity." : ""} **Bookends always come in pairs** — this cut list is per piece; order ×2.`
+      : `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用 **45° miter + spline 暗榫**接：底板後緣上頂面、背板前緣下底面各斜切 ${panelT}mm × 45°，對接後縫隙完全隱形；接合面中央開 6×40mm spline 凹槽，內嵌片榫（直紋木條沿短邊方向）膠合 → 既對齊又抗剝離。${withBrace ? "L 角內側再加直角三角加固，承重大幅提升。" : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };
-  // max bounds
   if (baseDepth > 250 || baseWidth > 300 || backHeight > 350) {
-    warnings.push(`書擋 ${baseDepth}×${baseWidth}×${backHeight}mm 超過合理範圍（max 250×300×350mm）。再大就不是書擋而是 L 型桌或小櫃`);
+    warnings.push(
+      isEn
+        ? `Bookend ${baseDepth}×${baseWidth}×${backHeight} mm exceeds reasonable range (max 250×300×350 mm). Larger than this is no longer a bookend but an L-shaped desk or small cabinet.`
+        : `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm 超過合理範圍（max 250×300×350mm）。再大就不是書擋而是 L 型桌或小櫃`,
+    );
   }
-  // 結構檢查
   if (panelT < 12 && backHeight > 200) {
-    warnings.push(`板厚 ${panelT}mm 對 ${backHeight}mm 高背板太薄——重書壓久會彎，建議加厚到 15mm 以上`);
+    warnings.push(
+      isEn
+        ? `Panel ${panelT} mm vs ${backHeight} mm tall back is too thin — heavy books will bend it over time; recommend ≥ 15 mm.`
+        : `板厚 ${panelT}mm 對 ${backHeight}mm 高背板太薄——重書壓久會彎，建議加厚到 15mm 以上`,
+    );
   }
   if (warnings.length) design.warnings = warnings;
   return design;

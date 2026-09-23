@@ -7,13 +7,17 @@
 }
 
 /*
- * 強制 light mode — 木工圖紙工具一律白底黑字才看得清楚。
+ * 強制 light mode — 木工設計圖工具一律白底黑字才看得清楚。
  * 不偵測系統 dark mode（避免暗底文字消失問題）。
  */
 :root {
   color-scheme: light;
-  --background: #fafaf7;
-  --foreground: #1a1a1a;
+  /* 米白基底 — 對齊木匠學院 woodenrenclass.com 工坊暖調，
+     低彩度的暖金棕（舊金／黃銅調，非螢光黃），不過深影響閱讀。 */
+  --background: #ece0bd;
+  --foreground: #2a2420;
+  /* 品牌 accent — 木匠學院招牌金棕色 */
+  --accent: #bd9955;
 }
 
 @theme inline {
@@ -21,6 +25,29 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif-tc);
+
+  /* 全站暖色重映射 — amber-* 色階一律改成木匠學院金棕 (#BD9955)。
+     全站 ~500 處 hardcoded bg/text/border-amber-* 自動套用，免逐檔改。 */
+  --color-amber-50: #fdf8ec;
+  --color-amber-100: #f9eed0;
+  --color-amber-200: #efdaa6;
+  --color-amber-300: #e1c485;
+  --color-amber-400: #cfa962;
+  --color-amber-500: #c39d58;
+  --color-amber-600: #bd9955;
+  --color-amber-700: #9e7b41;
+  --color-amber-800: #765a30;
+  --color-amber-900: #493921;
+  --color-amber-950: #2b2013;
+}
+
+/* 中文標題質感字體：明朝體（Noto Serif TC）— 給 h1 / hero 標題用。
+   小字 / 標籤 / 內文仍用 sans，避免閱讀疲勞。 */
+.font-serif-tc {
+  font-family: var(--font-serif-tc), "Noto Serif TC", "Source Han Serif TC",
+    "PingFang TC", serif;
+  letter-spacing: 0.02em;
 }
 
 html {
@@ -30,6 +57,15 @@ html {
 
 body {
   background: var(--background);
+  /* 木紋質感：對齊木匠學院的工坊調性。
+     用 inline SVG turbulence，各向異性 baseFrequency（X 低頻拉長、Y 高頻密集）
+     模擬橫向木紋條痕。CSS-only、不需多載資源、不影響 Lighthouse。
+     疊兩層：主木紋條痕 + 細噪點碎屑感，alpha 控在白卡片外才看得到的程度。 */
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='760' height='760'><filter id='w'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.07' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.44 0 0 0 0 0.31 0 0 0 0 0.16 0 0 0 0.13 0'/></filter><rect width='100%25' height='100%25' filter='url(%23w)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.36 0 0 0 0 0.2 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat, repeat;
+  background-size: 760px 760px, 200px 200px;
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Noto Sans TC", "PingFang TC",
     "Microsoft JhengHei", system-ui, sans-serif;
@@ -56,6 +92,7 @@ body {
     min-height: 0 !important;
     display: block !important;
     background: #ffffff !important;
+    background-image: none !important;
     color: #111 !important;
   }
   .no-print {
@@ -122,4 +159,47 @@ summary::-webkit-details-marker {
 }
 summary {
   list-style: none;
+}
+
+/* number input 拿掉瀏覽器預設的上下箭頭（取代 Tailwind 4 arbitrary variant、
+   `[&::-webkit-inner-spin-button]:m-0` 在 Turbopack 會生成 BEL 控制字元炸 CSS parser）*/
+.no-spinner {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* chip 列細捲軸:留著當「可往右捲」的視覺提示,但壓細並跟文字留呼吸 */
+.scrollbar-thin {
+  scrollbar-width: thin; /* Firefox */
+}
+.scrollbar-thin::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.4); /* stone-500 @40% */
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 🖥 全螢幕工具頁（/cnc 有權限時的 iframe）：把站台外框整個收起來。
+   ⭐為什麼需要:站台 layout 無條件渲染 SiteHeader/SiteFooter，而 SiteHeader 是 sticky z-40，
+   會直接壓在全螢幕工具上面（user 實機截圖回報：導覽列與頁尾出現在工具中間）。
+   只在工具實際掛載時由 CncClient 打上這個旗標，銷售頁（同一個 /cnc 路由）不受影響。 */
+html[data-fullscreen-tool] > body > header,
+html[data-fullscreen-tool] > body > footer,
+html[data-fullscreen-tool] header.no-print,
+html[data-fullscreen-tool] footer.no-print {
+  display: none;
+}
+html[data-fullscreen-tool],
+html[data-fullscreen-tool] > body {
+  overflow: hidden;
+  overscroll-behavior: none;
 }

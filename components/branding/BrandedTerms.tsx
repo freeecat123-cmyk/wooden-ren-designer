@@ -1,6 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useBranding } from "./branding";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/units/fx";
 
 function splitLines(s: string): string[] {
   return s
@@ -9,13 +12,7 @@ function splitLines(s: string): string[] {
     .filter(Boolean);
 }
 
-function twd(n: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
-}
+// 報價金額以 TWD 儲存，顯示時走 fx.formatPrice 統一換算。
 
 interface TermsProps {
   /** 訂金比例 0–1；0 或 1 表示不做拆分，沿用使用者原文字 */
@@ -36,15 +33,17 @@ export function BrandedTermsBlocks({
   totalAmount,
   deliveryWorkdays,
 }: TermsProps = {}) {
+  const t = useTranslations("branded");
   const { data } = useBranding();
+  const currency = useCurrency();
+  const twd = (n: number) => formatPrice(n, currency);
+  const longDashes = t("dashesPlaceholder");
+  const shortDashes = t("dashesShort");
 
-  // 1. 付款條件：去掉原本的訂金/尾款/中期款/匯款銀行/帳戶行
-  // 訂金/尾款行會被自動算的金額取代；匯款資訊改用專屬欄位 bankName/bankAccount
   const userLines = splitLines(data.paymentTerms).filter(
-    (l) => !/^(訂金|中期款|尾款|匯款銀行|帳戶)/.test(l),
+    (l) => !/^(訂金|中期款|尾款|匯款銀行|帳戶|Deposit|Mid|Balance|Bank|Account)/i.test(l),
   );
   const autoPaymentLines: string[] = [];
-  // 優先：抬頭設定的 N 期分期（覆寫 depositRate）
   if (
     data.paymentInstallments.length > 0 &&
     typeof totalAmount === "number" &&
@@ -54,7 +53,11 @@ export function BrandedTermsBlocks({
       const pct = Math.round(inst.ratio * 1000) / 10;
       const amt = Math.round(totalAmount * inst.ratio);
       autoPaymentLines.push(
-        `${inst.label || "—"}：${pct}%（${twd(amt)}）`,
+        t("installmentLineTpl", {
+          label: inst.label || t("installmentLabelFallback"),
+          pct,
+          amount: twd(amt),
+        }),
       );
     }
   } else if (
@@ -66,18 +69,16 @@ export function BrandedTermsBlocks({
   ) {
     const depositPct = Math.round(depositRate * 100);
     autoPaymentLines.push(
-      `訂金：簽約付款 ${depositPct}%（${twd(depositAmount)}）`,
-      `尾款：交貨前付款 ${100 - depositPct}%（${twd(balanceAmount)}）`,
+      t("depositLineTpl", { pct: depositPct, amount: twd(depositAmount) }),
+      t("balanceLineTpl", { pct: 100 - depositPct, amount: twd(balanceAmount) }),
     );
   }
   const bankLines: string[] = [];
-  if (data.bankName.trim()) bankLines.push(`匯款銀行：${data.bankName}`);
-  if (data.bankAccount.trim()) bankLines.push(`帳戶：${data.bankAccount}`);
+  if (data.bankName.trim()) bankLines.push(t("bankNameTpl", { bank: data.bankName }));
+  if (data.bankAccount.trim()) bankLines.push(t("bankAccountTpl", { account: data.bankAccount }));
   const paymentBody = [...autoPaymentLines, ...userLines, ...bankLines].join("\n");
 
-  // 2. 交貨期：用 BrandingData 的模板，若含 ____ 空格自動填入工作天
-  // (workdays 由報價頁自動估算，或被 deliveryDaysOverride 覆寫後傳進來)
-  let deliveryText = data.deliveryTerms || "＿＿＿＿＿＿＿＿";
+  let deliveryText = data.deliveryTerms || longDashes;
   if (
     typeof deliveryWorkdays === "number" &&
     deliveryWorkdays > 0 &&
@@ -85,7 +86,7 @@ export function BrandedTermsBlocks({
   ) {
     deliveryText = deliveryText.replace(
       /[_＿]{2,}/,
-      `約 ${deliveryWorkdays} 個工作`,
+      t("deliveryWorkdaysTpl", { n: deliveryWorkdays }),
     );
   }
 
@@ -93,23 +94,23 @@ export function BrandedTermsBlocks({
     <section className="mt-3 grid grid-cols-2 gap-3 text-[10px]">
       <div className="border border-zinc-300 rounded">
         <div className="bg-zinc-100 px-3 py-1.5 text-[10px] font-semibold tracking-wider border-b border-zinc-300">
-          付款條件 PAYMENT TERMS
+          {t("termsPaymentH")}
         </div>
         <div className="p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-zinc-800">
-          {paymentBody || "＿＿＿＿＿＿＿＿"}
+          {paymentBody || longDashes}
         </div>
       </div>
       <div className="border border-zinc-300 rounded">
         <div className="bg-zinc-100 px-3 py-1.5 text-[10px] font-semibold tracking-wider border-b border-zinc-300">
-          交貨與售後 DELIVERY &amp; WARRANTY
+          {t("termsDeliveryH")}
         </div>
         <dl className="p-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
-          <dt className="text-zinc-500">交貨期</dt>
+          <dt className="text-zinc-500">{t("termsDeliveryLbl")}</dt>
           <dd className="text-zinc-900">{deliveryText}</dd>
-          <dt className="text-zinc-500">保固</dt>
-          <dd className="text-zinc-900">{data.warranty || "＿＿＿＿"}</dd>
-          <dt className="text-zinc-500">售後服務</dt>
-          <dd className="text-zinc-900">{data.afterSales || "＿＿＿＿"}</dd>
+          <dt className="text-zinc-500">{t("termsWarrantyLbl")}</dt>
+          <dd className="text-zinc-900">{data.warranty || shortDashes}</dd>
+          <dt className="text-zinc-500">{t("termsAfterSalesLbl")}</dt>
+          <dd className="text-zinc-900">{data.afterSales || shortDashes}</dd>
         </dl>
       </div>
     </section>
@@ -123,6 +124,7 @@ interface NotesProps {
 
 /** 備註區塊 */
 export function BrandedNotes({ prependNotes = [] }: NotesProps = {}) {
+  const t = useTranslations("branded");
   const { data } = useBranding();
   const userNotes = splitLines(data.notes);
   const notes = [...prependNotes, ...userNotes];
@@ -131,7 +133,7 @@ export function BrandedNotes({ prependNotes = [] }: NotesProps = {}) {
 
   return (
     <section className="mt-2 p-2 border border-zinc-300 rounded text-[10px] leading-relaxed">
-      <p className="font-semibold mb-1">備註 NOTES</p>
+      <p className="font-semibold mb-1">{t("notesH")}</p>
       <ul className="list-disc pl-4 space-y-0.5 text-zinc-700">
         {notes.map((n, i) => (
           <li key={i}>{n}</li>

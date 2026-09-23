@@ -1,12 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
-/**
- * 3D 線框模式切換：勾起來所有零件渲染成線框骨架，看得到所有 edge / 內部結構。
- * URL 參數 `?wf=1` 控制。
- */
 export function WireframeToggle({ current }: { current: boolean }) {
+  const t = useTranslations("wireframeToggle");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -21,7 +19,7 @@ export function WireframeToggle({ current }: { current: boolean }) {
 
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 bg-zinc-50/50">
-      <span className="text-[11px] text-zinc-600 mr-1.5">線框</span>
+      <span className="text-[11px] text-zinc-600 mr-1.5">{t("lbl")}</span>
       <button
         type="button"
         onClick={toggle}
@@ -30,9 +28,9 @@ export function WireframeToggle({ current }: { current: boolean }) {
             ? "bg-amber-600 text-white"
             : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
         }`}
-        title={current ? "點擊回到實心模式" : "點擊切換成線框骨架（看得到內部結構）"}
+        title={current ? t("onTitle") : t("offTitle")}
       >
-        {current ? "🕸️ 線框 ON" : "🕸️ 線框"}
+        {current ? t("onLabel") : t("offLabel")}
       </button>
     </div>
   );

@@ -1,5 +1,27 @@
 "use client";
 
+const COPY = {
+  en: {
+    h: "Something went wrong",
+    bodyPre: "Please retry or refresh the page. If the issue keeps happening, contact Wooden Ren at ",
+    bodySuf: ".",
+    retry: "Retry",
+    htmlLang: "en",
+  },
+  zh: {
+    h: "發生嚴重錯誤",
+    bodyPre: "請重試，或重新整理頁面。如果一直發生，請聯絡木頭仁 ",
+    bodySuf: "。",
+    retry: "重試",
+    htmlLang: "zh-Hant",
+  },
+} as const;
+
+function detectLocale(): "en" | "zh" {
+  if (typeof window === "undefined") return "zh";
+  return window.location.pathname.startsWith("/en") ? "en" : "zh";
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -7,8 +29,9 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const c = COPY[detectLocale()];
   return (
-    <html lang="zh-Hant">
+    <html lang={c.htmlLang}>
       <body
         style={{
           fontFamily: "system-ui, sans-serif",
@@ -20,11 +43,11 @@ export default function GlobalError({
       >
         <div style={{ fontSize: 60 }}>💥</div>
         <h1 style={{ fontSize: 22, fontWeight: 600, marginTop: 12 }}>
-          發生嚴重錯誤
+          {c.h}
         </h1>
         <p style={{ marginTop: 8, color: "#52525b" }}>
-          請重試，或重新整理頁面。如果一直發生，請聯絡木頭仁
-          wengbinren@gmail.com。
+          {c.bodyPre}
+          wengbinren@gmail.com{c.bodySuf}
         </p>
         <pre
           style={{
@@ -52,7 +75,7 @@ export default function GlobalError({
               cursor: "pointer",
             }}
           >
-            重試
+            {c.retry}
           </button>
         </div>
       </body>

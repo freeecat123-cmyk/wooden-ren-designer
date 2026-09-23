@@ -1,4 +1,5 @@
 import type { FurnitureDesign, JoineryType, Tenon } from "@/lib/types";
+import { partName } from "@/lib/templates/part-names";
 
 export interface JoineryUsage {
   type: JoineryType;
@@ -6,6 +7,7 @@ export interface JoineryUsage {
   /** 哪個零件上的這個榫頭 */
   partId: string;
   partNameZh: string;
+  partNameEn: string;
   /** 推測的母件厚度（取設計裡所有同類型零件的中位數厚度） */
   estimatedMotherThickness: number;
   /** 公件（扛榫頭的那支）自身的斷面厚度（取零件最小邊） */
@@ -16,6 +18,7 @@ export interface JoineryUsage {
   count: number;
   /** 匹配到的母件名稱（去重） */
   motherPartNames: string[];
+  motherPartNamesEn: string[];
   /** 母件斷面形狀（"round" 表示母件是圓 / 蓋圓 / 夏克風腳） */
   motherShape: "box" | "round";
 }
@@ -33,6 +36,7 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
     `${t.type}-${t.length}-${t.width}-${t.thickness}`;
   const motherThicknessByKey: Map<string, number> = new Map();
   const motherNamesByKey: Map<string, Set<string>> = new Map();
+  const motherNamesEnByKey: Map<string, Set<string>> = new Map();
   const motherShapeByKey: Map<string, "box" | "round"> = new Map();
 
   for (const part of design.parts) {
@@ -98,6 +102,12 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
               .trim();
             if (!motherNamesByKey.has(k)) motherNamesByKey.set(k, new Set());
             motherNamesByKey.get(k)!.add(displayName);
+            const displayNameEn = partName(part, "en")
+              .replace(/\d+/g, "")
+              .replace(/\s+/g, " ")
+              .trim();
+            if (!motherNamesEnByKey.has(k)) motherNamesEnByKey.set(k, new Set());
+            motherNamesEnByKey.get(k)!.add(displayNameEn);
           }
         }
       }
@@ -152,16 +162,22 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
         const motherPartNames = explicit && explicit.size > 0
           ? Array.from(explicit)
           : [];
+        const explicitEn = motherNamesEnByKey.get(key);
+        const motherPartNamesEn = explicitEn && explicitEn.size > 0
+          ? Array.from(explicitEn)
+          : [];
         seen.set(key, {
           type: tenon.type,
           tenon,
           partId: part.id,
           partNameZh: part.nameZh,
+          partNameEn: partName(part, "en"),
           estimatedMotherThickness: motherThickness,
           childThickness,
           childWidth,
           count: 1,
           motherPartNames,
+          motherPartNamesEn,
           motherShape: motherShapeByKey.get(key) ?? "box",
         });
       }

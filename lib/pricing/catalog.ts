@@ -9,8 +9,26 @@ import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
  *
  * 預設值沿用使用者（木頭仁）原本熟悉的數字，不自動換算倍率；
  * 實際進貨價以使用者在表單輸入為準。
+ *
+ * ⛔ 【不要改成台才】2026-08-23 已跟木頭仁確認：本站的「板才」就是**美制 board foot**，
+ *    單價表（楓木 150、白橡 200、台檜 1000…）也是照 board foot 報的。
+ *
+ *    `docs/drafting-math.md` §T2 另外定義了「台才 = 1 寸 × 1 寸 × 10 尺 = 2,781,870 mm³」
+ *    ——那是台灣木材行講「才」時的單位，**跟這裡不是同一個東西**，兩者差 17.9%。
+ *    看到 doc 就把這個常數「修正」成 2,781,870 的話，全站材料成本會一夕之間
+ *    虛增 17.9%（或反過來說，單價表沒跟著換算就等於報價全錯）。
+ *
+ *    要改的話兩件事得一起改：這個常數 + 上面整張單價表 + 使用者表單裡已存的自填單價。
  */
 export const MM3_PER_BDFT = 25.4 * 25.4 * 25.4 * 144; // ≈ 2,359,737
+
+/**
+ * 板材標準張：4×8 呎 = 2440×1220mm，標準厚 18mm。
+ * 用於 plywood / mdf 計價時 ceil 成「整張」——市場板材整張賣，
+ * 半張也付全張錢。背板/抽屜底實際用 0.4 張、結帳要算 1 整張。
+ */
+export const SHEET_DIM_MM = { length: 2440, width: 1220, refThickness: 18 } as const;
+export const SHEET_AREA_MM2 = SHEET_DIM_MM.length * SHEET_DIM_MM.width; // 2,976,800
 
 export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
   "taiwan-cypress": 1000,
@@ -20,6 +38,8 @@ export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
   ash: 150,
   beech: 120,
   pine: 80,
+  // 南方松：2×4 12 呎（實際 38×89×3600 ≈ 5.2 板呎）NT$300~420 → 約 60~80/板呎（2026-09 蝦皮 / 木材行）
+  "southern-pine": 70,
   teak: 300, // 估算（使用者未提供）
   "douglas-fir": 90, // 估算（花旗松比松木略貴）
   // —— 板材類（裝潢用）——
@@ -47,6 +67,15 @@ export const SHEET_GOOD_LABEL: Record<SheetGood, string> = {
   plywood: "夾板",
   mdf: "中纖板",
 };
+
+export const SHEET_GOOD_LABEL_EN: Record<SheetGood, string> = {
+  plywood: "Plywood",
+  mdf: "MDF",
+};
+
+export function sheetGoodLabel(m: SheetGood, locale: string): string {
+  return locale === "en" ? SHEET_GOOD_LABEL_EN[m] : SHEET_GOOD_LABEL[m];
+}
 
 /** 零件實際計價材料：有 override 就用 override，否則用主材。
  *  例外：主材已是 *-primary 板材時，整個家具都是同一塊板材，
@@ -84,7 +113,7 @@ export function formatBdft(bdft: number): string {
   return bdft.toFixed(2);
 }
 
-/** 格式化新台幣金額，附千分位 */
+/** 格式化新台幣金額，附千分位（傳統 server-only call sites 用）*/
 export function formatTWD(amount: number): string {
   return new Intl.NumberFormat("zh-TW", {
     style: "currency",
@@ -92,3 +121,10 @@ export function formatTWD(amount: number): string {
     maximumFractionDigits: 0,
   }).format(Math.round(amount));
 }
+
+/**
+ * Currency-aware wrapper. `amount` is TWD (canonical); converts to USD via
+ * fixed FX (lib/units/fx) when currency==="USD". 新呼叫端請用這個取代
+ * `formatTWD`，這樣同一份計算結果就能在 zh-TW 顯示 NT$ / 在 EN 顯示 USD。
+ */
+export { formatPrice as formatMoney } from "@/lib/units/fx";

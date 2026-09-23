@@ -14,7 +14,7 @@
  * - 不適合所有家具類型的 preset 用 applicableTo 限定
  */
 
-import type { MaterialId } from "@/lib/types";
+import type { MaterialId, OptionSpec } from "@/lib/types";
 import { STYLE_DETAIL_PACKS } from "./style-detail-packs";
 import { adaptStyleParams } from "./style-adapter";
 
@@ -24,6 +24,9 @@ export interface StylePreset {
   /** 顯示名 */
   nameZh: string;
   nameEn: string;
+  /** 按鈕短標籤（去掉括號補充） */
+  labelZh?: string;
+  labelEn?: string;
 
   /** 一段話描述視覺特徵（給 UI 預覽 / tooltip 用） */
   visualHint: string;
@@ -84,6 +87,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "shaker",
     nameZh: "簡約細腳（Shaker / 北歐 / 斯堪地）",
     nameEn: "Shaker / Mid-Century / Scandi",
+    labelEn: "Shaker",
     visualHint: "極簡、無裝飾、細料漸縮腳、櫻桃/楓木淺色、through-tenon 加楔片、椅背用 ladder（橫檔）",
     materials: ["maple", "ash", "walnut"],
     legShape: "tapered",
@@ -103,6 +107,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "ming",
     nameZh: "明式（中國傳統）",
     nameEn: "Ming Style",
+    labelEn: "Ming",
     visualHint: "圓料腳、抱肩榫、深色紅木、中板式椅背（圈椅靠背板）、座高偏高",
     materials: ["walnut", "taiwan-cypress"],
     legShape: "round",
@@ -122,8 +127,9 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "industrial",
     nameZh: "工業風（Loft）",
     nameEn: "Industrial",
+    labelEn: "Industrial",
     visualHint: "厚實粗料 60mm、松木/道格拉斯杉、直角無倒邊、無牙條（鐵腳模擬）、極簡椅背",
-    materials: ["pine", "douglas-fir", "white-oak"],
+    materials: ["pine", "southern-pine", "douglas-fir", "white-oak"],
     legShape: "box",
     legSizeMm: 60, // 粗腳
     legEdgeMm: 0,
@@ -141,6 +147,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "japanese",
     nameZh: "日式禪風（和家具 / 侘寂）",
     nameEn: "Japanese / Wa / Wabi-Sabi",
+    labelEn: "Japanese",
     visualHint: "檜木淺色、細料 35mm 方腳、極簡無椅背或低矮椅背、無顯著倒邊、藏榫",
     materials: ["taiwan-cypress", "douglas-fir", "ash"],
     legShape: "box",
@@ -160,8 +167,9 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "farmhouse",
     nameZh: "美式手工（Farmhouse / Mission / Windsor）",
     nameEn: "American Craft (Farmhouse / Mission / Windsor)",
+    labelEn: "American Craft",
     visualHint: "厚粗料 55mm 直方腳、松木 / 橡木深色、X 形下橫撐、寬牙條 85mm、座面平",
-    materials: ["pine", "white-oak", "douglas-fir"],
+    materials: ["pine", "southern-pine", "white-oak", "douglas-fir"],
     legShape: "box",
     legSizeMm: 55,
     legEdgeMm: 0,
@@ -179,6 +187,7 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "chippendale",
     nameZh: "古典歐式（Chippendale）",
     nameEn: "Chippendale / 18th C. English",
+    labelEn: "Chippendale",
     visualHint: "粗料 45mm 漸縮腳、深色胡桃、寬牙條 90mm、中板式椅背（splat）、線腳大圓邊",
     materials: ["walnut", "white-oak"],
     legShape: "tapered",
@@ -250,7 +259,7 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
-import { sampleStyleVariant, getAllPoolKeys, getCanonicalSize } from "./style-variants";
+import { sampleStyleVariant, sampleGenericVariant, getAllPoolKeys, getCanonicalSize } from "./style-variants";
 // ─── Structural variants ─────────────────────────────────────────────────
 // 重複按同一風格時，套 STYLE_STRUCTURAL_VARIANTS 裡的結構性 overlay 而非
 // 數值 jitter——換 backStyle、改 ladder/slat 數、加扶手、換 stretcherStyle、
@@ -263,6 +272,7 @@ export function applyStylePreset(
   category?: string,
   ctx?: { totalLength: number; totalWidth: number; totalHeight: number; material?: string },
   variantSeed: number = 0,
+  optionSchema?: OptionSpec[],
 ): Record<string, string | number | boolean> | null {
   const preset = STYLE_PRESETS[styleId];
   if (!preset) return null;
@@ -334,10 +344,28 @@ export function applyStylePreset(
 
   // 變體：variantSeed > 0 時從 pool 隨機抽結構 + 尺寸 overlay（infinite variation）
   // baseSize 傳 adapterCtx（canonical-anchored）而非 URL current，避免複利暴衝
+  /**
+   * ⚠️ **沒有 ctx 時整段變體會被跳過** —— 而且是靜默的:呼叫端看不出差別,
+   *    使用者連按同一個風格只有計數在跳、參數一字不差 = 死控制項。
+   *    2026-08-21 稽核抓到的「手機版風格變體沒作用」,真因就是 MobileShell 漏傳
+   *    `designSize` → ctx undefined → 這個條件永遠不成立。
+   *    留一行警告,下次有人漏傳至少在 console 看得到,不會再查半天。
+   */
+  if (variantSeed > 0 && !adapterCtx) {
+    console.warn(
+      "[style-presets] 要求變體(seed>0)但沒有提供 ctx/designSize,變體會被略過 —— 呼叫端請把家具尺寸傳進來",
+      { styleId, category, variantSeed },
+    );
+  }
   if (variantSeed > 0 && adapterCtx) {
     const overlay = sampleStyleVariant(styleId, category, variantSeed,
       { length: adapterCtx.totalLength, width: adapterCtx.totalWidth, height: adapterCtx.totalHeight },
       result);
+    // 通用變體先鋪滿整個模板的選項（所有家具類型都有結構/尺寸變化），
+    // 再讓 hand-coded pool overlay 覆寫——chair/stool 走高保真風格池。
+    if (optionSchema && optionSchema.length > 0) {
+      Object.assign(result, sampleGenericVariant(optionSchema, variantSeed));
+    }
     Object.assign(result, overlay);
     // 木種也跟著變：從該風格 materials[] 抽（用獨立 salt 避免跟結構選擇相關）
     if (preset.materials.length > 1) {

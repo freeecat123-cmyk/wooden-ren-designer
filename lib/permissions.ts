@@ -4,17 +4,17 @@
  */
 
 import type { FurnitureCategory } from "./types";
+import { isExpiredPastGrace } from "@/lib/pricing/expiry";
 
 export type PlanId = "free" | "personal" | "pro" | "lifetime" | "student";
 
 /**
- * 免費版可訪問的家具範本——只有這 3 種「入門級代表」。
- * 其他 16 種要付費（個人版以上）才能進。
+ * 免費版可訪問的家具範本——「練習小物」2 種 + 木工工作桌（2026-09-03 木頭仁：「工作桌我想用送的」）。
  */
 export const FREE_UNLOCKED_CATEGORIES: FurnitureCategory[] = [
-  "stool",          // 方凳（椅凳代表）
-  "tea-table",      // 茶几（桌類代表）
-  "pencil-holder",  // 筆筒（小物件代表）
+  "stool",          // 方凳（椅凳練習）
+  "pencil-holder",  // 筆筒（小物件練習）
+  "workbench",      // 木工工作桌（免費送：每個木工都要先有一張桌）
 ];
 
 /** 該分類是否需要付費才能進 */
@@ -37,6 +37,14 @@ export interface PlanFeatures {
   canManageCustomers: boolean;
   /** 設計師模式（自由尺寸，解除範本上限） */
   canUseDesignerMode: boolean;
+  /** 木作天花板骨架施工模擬器(/ceiling) */
+  canUseCeilingTool: boolean;
+  /** 地板施工模擬器(/floor) */
+  canUseFloorTool: boolean;
+  /** 和室架高平台施工模擬器(/raised-floor) */
+  canUseRaisedFloorTool: boolean;
+  /** CNC 刀路產生器(/cnc)：SVG/DXF→Carvera Air G-code */
+  canUseCncTool: boolean;
 }
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
@@ -48,6 +56,10 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canCustomizeQuoteHeader: false,
     canManageCustomers: false,
     canUseDesignerMode: false,
+    canUseCeilingTool: false,
+    canUseFloorTool: false,
+    canUseRaisedFloorTool: false,
+    canUseCncTool: false,
   },
   personal: {
     maxDesigns: Infinity,
@@ -57,6 +69,12 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canCustomizeQuoteHeader: false,
     canManageCustomers: false,
     canUseDesignerMode: false,
+    // 2026-05-21 決策：裝潢實用工具（天花板／地板／線板）整組降到個人版，
+    // 把專業版完全聚焦「接案 SaaS」（報價/客戶/STL/無上限）。
+    canUseCeilingTool: true,
+    canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
   pro: {
     maxDesigns: Infinity,
@@ -66,6 +84,10 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canCustomizeQuoteHeader: true,
     canManageCustomers: true,
     canUseDesignerMode: true,
+    canUseCeilingTool: true,
+    canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
   student: {
     maxDesigns: Infinity,
@@ -75,6 +97,10 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canCustomizeQuoteHeader: true,
     canManageCustomers: true,
     canUseDesignerMode: true,
+    canUseCeilingTool: true,
+    canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
   lifetime: {
     maxDesigns: Infinity,
@@ -84,6 +110,10 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canCustomizeQuoteHeader: true,
     canManageCustomers: true,
     canUseDesignerMode: true,
+    canUseCeilingTool: true,
+    canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
+    canUseCncTool: true,
   },
 };
 
@@ -105,10 +135,28 @@ export interface UserPlanProfile {
 }
 
 /**
+ * 「已付費到 subscription_expires_at 為止」的狀態。
+ *
+ * ⭐`cancelled` 一定要含在內：取消訂閱只是**停止下次自動扣款**，該期的錢已經收了。
+ *   - `/api/cancel-subscription` 只把 status 改 cancelled，plan 與 expires_at 都原封不動
+ *   - Lemon Squeezy webhook 也一樣（原始碼註解寫「保留 expires_at，仍可用到 ends_at」）
+ *   - 真正的降級是 `/api/cron/subscription-sweep` 在**過期＋寬限期之後**才做（plan→free、
+ *     status→expired）；退款則走 refunds 直接改 expired
+ *   也就是說整套後端都以「cancelled 但未到期＝仍有權限」在運作，只有這支函式沒跟上，
+ *   導致使用者一按「取消訂閱」就當場被降成免費版（付到 9/4 卻 8/4 就沒得用）。
+ *
+ * `expired` / `inactive` 不算：那是掃描降級、退款、admin 停權明確標記的「已無權限」。
+ */
+const ENTITLED_SUB_STATUSES: readonly UserPlanProfile["subscription_status"][] = [
+  "active",
+  "cancelled",
+];
+
+/**
  * 取得使用者實際可用的方案：
  * - student：檢查 student_expires_at，過期降 free
  * - lifetime：永久
- * - 一般訂閱：subscription_status=active 且 subscription_expires_at 未到
+ * - 一般訂閱：subscription_status 為 active/cancelled 且 subscription_expires_at 未到
  */
 export function getEffectivePlan(profile: UserPlanProfile | null | undefined): PlanId {
   if (!profile) return "free";
@@ -126,12 +174,39 @@ export function getEffectivePlan(profile: UserPlanProfile | null | undefined): P
   if (profile.plan === "lifetime") return "lifetime";
 
   if (
-    profile.subscription_status === "active" &&
+    ENTITLED_SUB_STATUSES.includes(profile.subscription_status) &&
     profile.subscription_expires_at &&
     new Date(profile.subscription_expires_at) > new Date()
   ) {
     return profile.plan;
   }
+
+  /**
+   * ⭐ 扣款失敗的 3 天寬限期也算有權限。
+   *
+   * ⛔ 綠界月扣失敗時 `subscription_status` 還是 `active`(periodic-notify 只記一筆
+   *    失敗的 payment、不動狀態),到期日一過這裡就直接回 free →
+   *    **付費功能當場全沒**。但同一時間:
+   *    - `/my-subscription` 正在顯示「⚠️ 訂閱已到期 — 寬限期剩 N 天」,
+   *      內文白紙黑字寫「**付費功能仍可使用**,請於 N 天內續訂」
+   *      (messages/zh-TW.json:2341-2342)
+   *    - `/api/cron/subscription-sweep` 用 `isExpiredPastGrace()` 判斷,
+   *      這 3 天內**不會**把他降級
+   *    三邊各說各話,使用者看到的是「說我還能用,點下去卻被踢到 /pricing」。
+   *    (2026-08-24 大軍稽核抓到,跟 cancelled 那條同一個病根:判準不只一套)
+   *
+   * ⚠️ 只給 `active`:寬限期是為了「錢還沒收到、綠界還在重試」而存在。
+   *    `cancelled` 是使用者自己按的,到期就是到期,不給寬限。
+   */
+  if (
+    profile.subscription_status === "active" &&
+    profile.plan !== "free" &&
+    profile.subscription_expires_at &&
+    !isExpiredPastGrace(profile.subscription_expires_at)
+  ) {
+    return profile.plan;
+  }
+
   return "free";
 }
 
@@ -161,11 +236,17 @@ export function getPlanFeatures(profile: UserPlanProfile | null | undefined): Pl
   return PLAN_FEATURES[plan];
 }
 
-/** 該方案是否能進這個家具範本（免費版只能進 FREE_UNLOCKED_CATEGORIES） */
+/** 該方案是否能進這個家具範本（免費版只能進 FREE_UNLOCKED_CATEGORIES）
+ *
+ *  unlockedCategories 是該 user 透過單範本買斷取得的永久解鎖清單,任一通過即可放行
+ *  （訂閱 OR 單範本買斷 OR 免費版預設）。
+ */
 export function canAccessCategory(
   profile: UserPlanProfile | null | undefined,
   category: FurnitureCategory,
+  unlockedCategories?: readonly string[],
 ): boolean {
+  if (unlockedCategories?.includes(category)) return true;
   const plan = getEffectivePlan(profile);
   if (plan === "free") return FREE_UNLOCKED_CATEGORIES.includes(category);
   return true; // 付費版全部解鎖

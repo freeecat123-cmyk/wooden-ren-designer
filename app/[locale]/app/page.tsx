@@ -1,0 +1,672 @@
+import { Link } from "@/i18n/navigation";
+import { bilingualAlternates } from "@/i18n/metadata";
+import Image from "next/image";
+import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { FURNITURE_CATALOG, getEntryName, type FurnitureCatalogEntry } from "@/lib/templates";
+import { routing, type Locale } from "@/i18n/routing";
+import type { FurnitureCategory } from "@/lib/types";
+import { StudentLoginHint } from "@/components/StudentLoginHint";
+import { isPaidCategory } from "@/lib/permissions";
+import { CatalogSearch } from "@/components/CatalogSearch";
+import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
+import { createAdminClient, getSessionUser } from "@/lib/supabase/server";
+import { fetchUnlockedCategories } from "@/lib/unlocks";
+import { fetchUnlockedTools } from "@/lib/tool-unlocks";
+import type { ToolId } from "@/lib/pricing/tool-unlock";
+
+interface SearchParams {
+  cat?: string;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "home" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: bilingualAlternates("/app", locale),
+  };
+}
+
+/**
+ * 首頁 v3：視覺優先大圖網格（第一性原理）
+ *
+ * 使用者進來 3 秒內想知道:
+ *   1. 我能做什麼 → 全圖列表一目瞭然
+ *   2. 看起來怎樣 → 3D 縮圖佔卡片 75%
+ *   3. 我會嗎 → 難度用單色 dot (綠/黃/紅) 自說自話
+ *   4. 我有資格 → 付費 🔒 角標,免費不標
+ *
+ * 砍掉:依類別 vs 依程度 view toggle、卡片內 5 件 meta 雜訊、
+ * 分組 section 隔板、難度圖例說明字。
+ * 用頂部 chip 篩單一條件,搜尋走 CatalogSearch。
+ */
+
+type CatKey = "all" | "seating" | "table" | "cabinet" | "accessories" | "tool" | "dev";
+
+const CATEGORY_CHIPS: Array<{
+  key: CatKey;
+  labelKey: string;
+  match?: (c: FurnitureCategory) => boolean;
+}> = [
+  { key: "all", labelKey: "chipAll" },
+  {
+    key: "seating",
+    labelKey: "chipSeating",
+    match: (c) =>
+      c === "stool" || c === "bench" || c === "dining-chair" ||
+      c === "bar-stool" || c === "round-stool",
+  },
+  {
+    key: "table",
+    labelKey: "chipTable",
+    match: (c) =>
+      c === "tea-table" || c === "side-table" || c === "low-table" ||
+      c === "dining-table" || c === "desk" ||
+      c === "round-tea-table" || c === "round-table" || c === "workbench",
+  },
+  {
+    key: "cabinet",
+    labelKey: "chipCabinet",
+    match: (c) =>
+      c === "open-bookshelf" || c === "chest-of-drawers" ||
+      c === "shoe-cabinet" || c === "display-cabinet" ||
+      c === "wardrobe" || c === "media-console" || c === "nightstand",
+  },
+  { key: "tool", labelKey: "chipTool" },
+  {
+    key: "accessories",
+    labelKey: "chipAccessories",
+    match: (c) =>
+      c === "pencil-holder" || c === "photo-frame" ||
+      c === "tray" || c === "dovetail-box" || c === "wine-rack",
+  },
+];
+
+const DIFFICULTY_KEY = {
+  beginner: "diffBeginner",
+  intermediate: "diffIntermediate",
+  advanced: "diffAdvanced",
+} as const;
+
+/** 難度膠囊樣式：有底色 + 文字，看得懂、不是裸色點 */
+const DIFFICULTY_PILL = {
+  beginner: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  intermediate: "bg-amber-100 text-amber-800 ring-amber-300",
+  advanced: "bg-rose-100 text-rose-800 ring-rose-200",
+} as const;
+
+const DIFFICULTY_DOT = {
+  beginner: "bg-emerald-500",
+  intermediate: "bg-amber-500",
+  advanced: "bg-rose-500",
+} as const;
+
+const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
+
+/** 開發中家具:卡片半透明、不可點、上覆「敬請期待」chip */
+const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
+  "chinese-cabinet", "bed", "coat-rack", "wall-mounted-tool-storage",
+]);
+
+function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
+  if (chip === "dev") {
+    return entries.filter((e) => DEVELOPMENT_CATEGORIES.has(e.category));
+  }
+  // 非「開發中」分頁一律排除開發中項目（含「全部」、各家具分類、工具）
+  const ready = entries.filter((e) => !DEVELOPMENT_CATEGORIES.has(e.category));
+  if (chip === "all" || chip === "tool") return ready;
+  const def = CATEGORY_CHIPS.find((c) => c.key === chip);
+  if (!def?.match) return ready;
+  return ready.filter((e) => def.match!(e.category));
+}
+
+function sortByDifficulty(entries: FurnitureCatalogEntry[]) {
+  return [...entries].sort(
+    (a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty],
+  );
+}
+
+/** 全部 view 專用排序:免費 3 件置頂,其餘按難度。 */
+function sortAllFreeFirst(entries: FurnitureCatalogEntry[]) {
+  return [...entries].sort((a, b) => {
+    const aPaid = isPaidCategory(a.category) ? 1 : 0;
+    const bPaid = isPaidCategory(b.category) ? 1 : 0;
+    if (aPaid !== bPaid) return aPaid - bPaid; // 免費 (0) 在前
+    return DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty];
+  });
+}
+
+export default async function Home({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<SearchParams>;
+}) {
+  const { locale: raw } = await params;
+  const locale: Locale = (raw as Locale) ?? routing.defaultLocale;
+  const t = await getTranslations({ locale, namespace: "home" });
+  const sp = (await searchParams) ?? {};
+  const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
+  const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
+
+  // 撈 user 已永久買斷的範本 + 工具,首頁卡片要根據這個決定要不要顯示 🔒 / ✓
+  const user = await getSessionUser();
+  const admin = user ? createAdminClient() : null;
+  const [unlockedCats, unlockedTools] = user && admin
+    ? await Promise.all([
+        fetchUnlockedCategories(admin, user.id),
+        fetchUnlockedTools(admin, user.id),
+      ])
+    : [[] as string[], [] as ToolId[]];
+  const unlockedSet = new Set(unlockedCats);
+  const unlockedToolSet = new Set<ToolId>(unlockedTools);
+
+  const filtered = filterByChip(FURNITURE_CATALOG, chip);
+  // 自然排序(免費置頂 / 按難度) — 不在這層把已解鎖搬上去,否則會打亂工具卡插入點
+  const furniture = chip === "all"
+    ? sortAllFreeFirst(filtered)
+    : sortByDifficulty(filtered);
+  const showTools = chip === "all" || chip === "tool";
+  const showFurniture = chip !== "tool";
+  const visibleCount =
+    (showFurniture ? furniture.length : 0) + (showTools ? 4 : 0);
+
+  return (
+    <main className="max-w-7xl mx-auto px-5 sm:px-6 py-8 sm:py-12">
+      <PerspectivePrefetch />
+      <StudentLoginHint />
+
+      {/* ============ Hero ============ */}
+      <header className="mb-9 sm:mb-12">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-white to-stone-100 ring-1 ring-amber-200/70 shadow-sm px-6 py-8 sm:px-10 sm:py-10">
+          {/* 角落裝飾光暈 */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-amber-200/40 blur-3xl"
+          />
+          <div className="relative flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
+            <Image
+              src={locale === "en" ? "/brand-logo-en.png" : "/brand-logo.png"}
+              alt={locale === "en" ? "Furniture Blueprints" : "木頭仁 木作藍圖"}
+              width={192}
+              height={192}
+              className="rounded-2xl shadow-lg ring-1 ring-amber-200 shrink-0 w-32 h-32 md:w-44 md:h-44"
+              priority
+            />
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white ring-1 ring-amber-300 text-amber-800 text-xs font-semibold mb-4 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                {t("heroBadge")}
+              </div>
+              <h1 className="font-serif-tc text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight text-zinc-900 leading-[1.15]">
+                {t("heroH1")}
+                <span className="text-amber-700">{t("heroH1Amber")}</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-zinc-700 leading-relaxed">
+                {t("heroBody")}
+              </p>
+              {/* 三件輸出小標 */}
+              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-zinc-700">
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-amber-700">▸</span>{t("miniItem1")}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-amber-700">▸</span>{t("miniItem2")}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-amber-700">▸</span>{t("miniItem3")}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-zinc-500 leading-relaxed">
+                {t("heroHint")}
+              </p>
+              <div className="mt-5">
+                <Link
+                  href="/templates"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700 hover:text-amber-900 transition-colors"
+                >
+                  <span aria-hidden>📖</span>
+                  {t("introLink")}
+                  <span aria-hidden>→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* 搜尋 + 分類:同一塊操作區 */}
+      <div className="mb-9 sm:mb-10">
+        <CatalogSearch />
+
+        {/* 分類 chip row */}
+        <nav className="mt-4 -mx-5 sm:mx-0 px-5 sm:px-0 pb-3 overflow-x-auto scrollbar-thin">
+          <div className="inline-flex gap-2 min-w-max">
+            {CATEGORY_CHIPS.map((c) => {
+              const active = chip === c.key;
+              const href = c.key === "all" ? "/app" : `/app?cat=${c.key}`;
+              return (
+                <Link
+                  key={c.key}
+                  href={href}
+                  scroll={false}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    active
+                      ? "bg-amber-700 text-white shadow-md shadow-amber-700/20 ring-1 ring-amber-700"
+                      : "bg-white text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-400 hover:text-amber-800 hover:-translate-y-0.5"
+                  }`}
+                >
+                  {t(c.labelKey)}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
+      {/* 計數 + 難度圖例（文字膠囊,看得懂） */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
+        <span className="text-sm text-zinc-600">
+          {t("countingShown")}{" "}
+          <strong className="text-amber-800 font-bold tabular-nums text-base">
+            {visibleCount}
+          </strong>
+          <span className="text-zinc-400"> / {ready + 1}</span> {t("countingPieces")}
+        </span>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-zinc-400 font-medium">{t("diffLegend")}</span>
+          {(["beginner", "intermediate", "advanced"] as const).map((d) => (
+            <span
+              key={d}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ring-1 ${DIFFICULTY_PILL[d]}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${DIFFICULTY_DOT[d]}`} />
+              {t(DIFFICULTY_KEY[d])}
+            </span>
+          ))}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white ring-1 ring-stone-300 text-zinc-600 font-medium">
+            {t("paidBadge")}
+          </span>
+        </div>
+      </div>
+
+      {/* 大圖網格 — 工具卡（中階）插在 furniture 中階區開頭 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+        {(() => {
+          if (!showFurniture && !showTools) return null;
+          if (!showFurniture) {
+            return [
+              <CeilingToolCard key="t-ceiling" locale={locale} />,
+              <FloorToolCard key="t-floor" locale={locale} />,
+              <RaisedFloorToolCard key="t-raised-floor" locale={locale} />,
+              <CncToolCard key="t-cnc" locale={locale} />,
+            ];
+          }
+          // 已解鎖的範本/工具一律置頂;未解鎖的維持自然排序、工具卡插在中階開頭
+          const ownedFurniture = furniture.filter((it) => unlockedSet.has(it.category));
+          const restFurniture = furniture.filter((it) => !unlockedSet.has(it.category));
+          const ceilingOwned = unlockedToolSet.has("ceiling");
+          const floorOwned = unlockedToolSet.has("floor");
+          /**
+           * ⛔ 這裡原本是 `const raisedFloorOwned = floorOwned;`,註解寫「同 server gate」。
+           *    **那個前提在 2026-05-27 就不成立了** —— server 端
+           *    `app/[locale]/raised-floor/page.tsx` 查的是 `unlockedTools.includes("raised-floor")`
+           *    (該檔開頭註解自己就寫著「2026-05-27 之前共用 /floor 的鑰匙當 fallback,
+           *     但 raised-floor 進 ToolId 之後改成獨立的鑰匙」)。
+           *    結果:買了 floor 的人在 /app 看到架高地板顯示「已解鎖」,點進去卻被擋在付費牆;
+           *    只買 raised-floor 的人則在 /app 看不到自己買的工具。兩個方向都錯。
+           *    (2026-08-21 稽核發現;跟 lib/supabase/server.ts 那條一樣是「註解寫的前提過期了」。)
+           */
+          const raisedFloorOwned = unlockedToolSet.has("raised-floor");
+          const cncOwned = unlockedToolSet.has("cnc");
+
+          if (!showTools) {
+            return [...ownedFurniture, ...restFurniture].map((item) => (
+              <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked={unlockedSet.has(item.category)} />
+            ));
+          }
+
+          const ownedNodes: ReactNode[] = [
+            ...ownedFurniture.map((item) => (
+              <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked />
+            )),
+            ...(ceilingOwned ? [<CeilingToolCard key="t-ceiling-owned" locale={locale} isUnlocked />] : []),
+            ...(floorOwned ? [<FloorToolCard key="t-floor-owned" locale={locale} isUnlocked />] : []),
+            ...(raisedFloorOwned
+              ? [<RaisedFloorToolCard key="t-raised-floor-owned" locale={locale} isUnlocked />]
+              : []),
+            ...(cncOwned ? [<CncToolCard key="t-cnc-owned" locale={locale} isUnlocked />] : []),
+          ];
+
+          // 在「未解鎖區」找第一個 intermediate 的位置,未擁有的工具卡插在這
+          const interIdx = restFurniture.findIndex((it) => it.difficulty === "intermediate");
+          const cut = interIdx === -1
+            ? restFurniture.findIndex((it) => it.difficulty === "advanced")
+            : interIdx;
+          const cutFinal = cut === -1 ? restFurniture.length : cut;
+          const head = restFurniture.slice(0, cutFinal).map((item) => (
+            <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked={false} />
+          ));
+          const tail = restFurniture.slice(cutFinal).map((item) => (
+            <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked={false} />
+          ));
+          const unownedTools: ReactNode[] = [
+            ...(ceilingOwned ? [] : [<CeilingToolCard key="t-ceiling" locale={locale} isUnlocked={false} />]),
+            ...(floorOwned ? [] : [<FloorToolCard key="t-floor" locale={locale} isUnlocked={false} />]),
+            ...(raisedFloorOwned
+              ? []
+              : [<RaisedFloorToolCard key="t-raised-floor" locale={locale} isUnlocked={false} />]),
+            ...(cncOwned ? [] : [<CncToolCard key="t-cnc" locale={locale} isUnlocked={false} />]),
+          ];
+          return [
+            ...ownedNodes,
+            ...head,
+            ...unownedTools,
+            ...tail,
+          ];
+        })()}
+      </div>
+    </main>
+  );
+}
+
+async function CeilingToolCard({ locale, isUnlocked = false }: { locale: string; isUnlocked?: boolean }) {
+  const t = await getTranslations({ locale, namespace: "home" });
+  return (
+    <Link
+      href="/ceiling"
+      data-catalog-search="天花板 骨架 矽酸鈣板 裝潢 ceiling"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
+    >
+      {/* Top-right corner: 已擁有打勾 / 付費鎖 */}
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          {t("owned")}
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title={t("paidTitle")}>🔒</span>
+        </div>
+      )}
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+        <Image
+          src="/thumbs/v2/ceiling.webp"
+          alt={t("toolCeilingAlt")}
+          width={240}
+          height={180}
+          quality={75}
+          loading="lazy"
+          sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
+          className="transition-transform duration-300 ease-out group-hover:scale-[1.06]"
+          style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
+        />
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+          {t("toolCeilingName")}
+        </span>
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
+          title={t("diffTitle", { diff: t("diffIntermediate") })}
+        >
+          {t("diffIntermediate")}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+/** 地板施工模擬器:個人版工具卡(可點,導 /floor) */
+async function FloorToolCard({ locale, isUnlocked = false }: { locale: string; isUnlocked?: boolean }) {
+  const t = await getTranslations({ locale, namespace: "home" });
+  return (
+    <Link
+      href="/floor"
+      data-catalog-search="地板 施工 模擬器 超耐磨 海島型 木地板 排版 人字拼 估價 floor"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
+    >
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          {t("owned")}
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title={t("paidTitle")}>🔒</span>
+        </div>
+      )}
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
+          {[0, 1, 2, 3, 4].map((r) => (
+            <g key={r}>
+              {[-1, 0, 1, 2, 3].map((c) => (
+                <rect
+                  key={c}
+                  x={c * 44 + (r % 2) * 22}
+                  y={8 + r * 22}
+                  width={42}
+                  height={20}
+                  rx={2}
+                  fill="#e7d8ae"
+                  stroke="#bd9955"
+                  strokeWidth={1.2}
+                />
+              ))}
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+          {t("toolFloorName")}
+        </span>
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
+          title={t("diffTitle", { diff: t("diffIntermediate") })}
+        >
+          {t("diffIntermediate")}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+/** 和室架高平台:個人版工具卡(可點,導 /raised-floor、跟 floor 共用解鎖) */
+async function RaisedFloorToolCard({ locale, isUnlocked = false }: { locale: string; isUnlocked?: boolean }) {
+  const t = await getTranslations({ locale, namespace: "home" });
+  return (
+    <Link
+      href="/raised-floor"
+      data-catalog-search="和室 架高 平台 榻榻米 骨架 角材 夾板 估價 raised-floor"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
+    >
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          {t("owned")}
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title={t("paidTitle")}>🔒</span>
+        </div>
+      )}
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
+          {/* 平台側視:架高平台 + 4 根角材柱 */}
+          <rect x={14} y={28} width={92} height={14} rx={1} fill="#e7d8ae" stroke="#bd9955" strokeWidth={1.2} />
+          {[18, 44, 70, 96].map((x) => (
+            <rect key={x} x={x - 3} y={42} width={6} height={42} fill="#bd9955" />
+          ))}
+          <line x1={10} y1={84} x2={110} y2={84} stroke="#999" strokeWidth={1.5} />
+          {/* 骨架虛線 */}
+          {[36, 52, 68].map((y) => (
+            <line key={y} x1={14} y1={y} x2={106} y2={y} stroke="#c9a86b" strokeWidth={0.8} strokeDasharray="2 2" />
+          ))}
+        </svg>
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+          {t("toolRaisedFloorName")}
+        </span>
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
+          title={t("diffTitle", { diff: t("diffIntermediate") })}
+        >
+          {t("diffIntermediate")}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+/** CNC 刀路產生器:個人版以上工具卡(可點，導 /cnc；也可單買 tool=cnc) */
+async function CncToolCard({ locale, isUnlocked = false }: { locale: string; isUnlocked?: boolean }) {
+  const t = await getTranslations({ locale, namespace: "home" });
+  return (
+    <Link
+      href="/cnc"
+      data-catalog-search="CNC 刀路 g-code svg dxf carvera 雕刻 切割 cnc toolpath"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
+    >
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          {t("owned")}
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title={t("paidTitle")}>🔒</span>
+        </div>
+      )}
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
+          <rect x={16} y={16} width={88} height={88} rx={4} fill="#e7d8ae" stroke="#bd9955" strokeWidth={1.5} />
+          <rect x={30} y={30} width={60} height={60} rx={3} fill="none" stroke="#8a6d3b" strokeWidth={1.5} strokeDasharray="4 3" />
+          <path d="M60 42 V78 M42 60 H78" stroke="#8a6d3b" strokeWidth={1.2} />
+          <circle cx={60} cy={60} r={3.5} fill="#a9884f" />
+          <circle cx={38} cy={38} r={2.5} fill="#8a6d3b" />
+          <circle cx={82} cy={82} r={2.5} fill="#8a6d3b" />
+        </svg>
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+          {t("toolCncName")}
+        </span>
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.advanced}`}
+          title={t("diffTitle", { diff: t("diffAdvanced") })}
+        >
+          {t("diffAdvanced")}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+async function FurnitureCard({ item, locale, isUnlocked = false }: { item: FurnitureCatalogEntry; locale: Locale; isUnlocked?: boolean }) {
+  const t = await getTranslations({ locale, namespace: "home" });
+  // 付費版範本但 user 已永久買斷 → 不顯示 🔒（避免「我已買還鎖」的視覺誤導）
+  const paid = isPaidCategory(item.category) && !isUnlocked;
+  const inDevelopment = DEVELOPMENT_CATEGORIES.has(item.category);
+  const displayName = getEntryName(item, locale);
+  // 搜尋兼用兩語名稱（zh-TW user 搜英文名也能找到，反之亦然）
+  const searchTokens = [item.nameZh, item.nameEn, item.category, item.description, item.descriptionEn]
+    .filter(Boolean)
+    .join(" ");
+
+  // 開發中:不可點、灰遮罩 + 中央 chip
+  if (inDevelopment) {
+    return (
+      <div
+        data-catalog-search={searchTokens}
+        aria-disabled="true"
+        className="group relative block overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-65 cursor-not-allowed select-none"
+      >
+        <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
+            {t("wip")}
+          </span>
+        </span>
+        <CardThumb item={item} alt={displayName} previewAltTpl={t("preview3dAlt", { name: displayName })} />
+        <CardFooter name={displayName} item={item} paid={paid}
+          diffLabel={t(DIFFICULTY_KEY[item.difficulty])}
+          diffTitle={t("diffTitle", { diff: t(DIFFICULTY_KEY[item.difficulty]) })} />
+      </div>
+    );
+  }
+
+  const diffLabel = t(DIFFICULTY_KEY[item.difficulty]);
+  return (
+    <Link
+      href={`/design/${item.category}`}
+      data-catalog-search={searchTokens}
+      title={`${displayName} · ${diffLabel}${paid ? t("cardTitlePaid") : t("cardTitleFree")}`}
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
+    >
+      {/* Top-right corner: 已擁有打勾 / 付費鎖 */}
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          {t("owned")}
+        </div>
+      ) : paid ? (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title={t("paidTitle")}>🔒</span>
+        </div>
+      ) : null}
+      <CardThumb item={item} alt={displayName} previewAltTpl={t("preview3dAlt", { name: displayName })} />
+      <CardFooter name={displayName} item={item} paid={paid}
+        diffLabel={diffLabel}
+        diffTitle={t("diffTitle", { diff: diffLabel })} />
+    </Link>
+  );
+}
+
+function CardThumb({ item, alt, previewAltTpl }: { item: FurnitureCatalogEntry; alt: string; previewAltTpl: string }) {
+  return (
+    <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+      <Image
+        src={`/thumbs/v2/${item.category}.webp`}
+        alt={previewAltTpl}
+        width={240}
+        height={180}
+        quality={75}
+        loading="lazy"
+        sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
+        className="transition-transform duration-300 ease-out group-hover:scale-[1.06]"
+        style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
+      />
+    </div>
+  );
+}
+
+function CardFooter({
+  item,
+  name,
+  diffLabel,
+  diffTitle,
+}: {
+  item: FurnitureCatalogEntry;
+  name: string;
+  paid: boolean;
+  diffLabel: string;
+  diffTitle: string;
+}) {
+  return (
+    <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
+      <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+        {name}
+      </span>
+      <span
+        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL[item.difficulty]}`}
+        title={diffTitle}
+      >
+        {diffLabel}
+      </span>
+    </div>
+  );
+}

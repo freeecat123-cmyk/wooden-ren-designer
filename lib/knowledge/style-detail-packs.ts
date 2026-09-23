@@ -54,7 +54,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withGalleryRail": false,
       "withToeKick": false,
       "withCrownMolding": false,
-      "backPanelMaterial": "plywood",
       "topType": "drawer",
       "topHeight": 250,
       "topCount": 1,
@@ -159,9 +158,11 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
-      "apronWidth": 70,
+      "apronWidth": 0,
       "apronOffset": 0,
-      "withLowerStretchers": true
+      "withLowerStretchers": false,
+      "withDrawer": false,
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 25,
@@ -227,10 +228,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 120,
       "legShape": "box",
       "legInset": 0,
-      "withTopCompartment": false,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "display-cabinet": {
@@ -257,7 +254,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "box",
       "legInset": 0,
       "doorMullion": "cross",
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "shoe-cabinet": {
@@ -274,7 +270,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "box",
       "legInset": 0,
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "media-console": {
@@ -296,7 +291,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "box",
       "legInset": 0,
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "nightstand": {
@@ -318,7 +312,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "box",
       "legInset": 0,
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "tea-table": {
@@ -406,43 +399,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 25,
-      "withBrace": true,
-      "edgeChamfer": 0
-    },
     "photo-frame": {
       "frameWidth": 35,
       "frameThickness": 25,
       "backThickness": 6,
       "glassThickness": 3,
       "glassGrooveDepth": 10,
-      "frameProfile": "flat",
-      "multiPhotoLayout": "single",
-      "stand": "wall-hung"
+      "frameProfile": "flat"
     },
     "tray": {
-      "wallHeight": 60,
       "wallThickness": 18,
       "bottomThickness": 12,
       "cornerJoinery": "stub-joint",
-      "handleStyle": "metal",
       "handleWidth": 100,
-      "handleHeight": 30,
-      "withFeltPad": false,
-      "dividerLayout": "none",
-      "edgeChamfer": 0
+      "handleHeight": 30
     },
     "dovetail-box": {
       "wallThickness": 16,
       "bottomThickness": 12,
       "withLid": true,
-      "dovetailStyle": "through",
       "lidType": "rabbeted",
-      "withFeltLining": false,
-      "withMagneticClosure": false,
-      "withInnerTray": false,
-      "edgeChamfer": 0
+      "withInnerTray": false
     },
     "wine-rack": {
       "bottlesWide": 5,
@@ -450,11 +427,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 25,
       "bottleOrientation": "horizontal",
-      "mountStyle": "wall-mount",
-      "withGlassRack": true,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 0
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 75,
@@ -613,19 +586,24 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "side-table": {
       "legShape": "tapered",
-      "legSize": 40,
+      "legSize": 45,
       "legInset": 15,
-      "topThickness": 28,
+      "topThickness": 30,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
       "legEdge": 8,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
-      "apronWidth": 75,
-      "withLowerStretchers": false,
+      "apronWidth": 90,
       "apronOffset": 10,
-      "lowerStretcherHeight": 0
+      "withLowerStretchers": false,
+      "lowerStretcherHeight": 0,
+      "withDrawer": true,
+      "drawerHeight": 140,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": false
     },
     "chest-of-drawers": {
       "panelThickness": 22,
@@ -644,7 +622,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "toeKickRecess": 30,
       "withCrownMolding": true,
       "crownProjection": 35,
-      "backPanelMaterial": "solid",
       "withGalleryRail": true,
       "topType": "drawer",
       "topHeight": 200,
@@ -703,11 +680,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "bracket",
       "legInset": 20,
       "withCrownMolding": true,
-      "crownProjection": 50,
-      "withTopCompartment": false,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "solid"
+      "crownProjection": 50
     },
     "display-cabinet": {
       "panelThickness": 22,
@@ -735,7 +708,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "doorMullion": "colonial",
       "withCrownMolding": true,
       "crownProjection": 50,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "shoe-cabinet": {
@@ -751,8 +723,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 100,
       "legSize": 50,
       "legShape": "bracket",
-      "legInset": 15,
-      "backPanelMaterial": "solid"
+      "legInset": 15
     },
     "media-console": {
       "panelThickness": 22,
@@ -776,8 +747,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "bracket",
       "legInset": 15,
       "withCrownMolding": true,
-      "crownProjection": 40,
-      "backPanelMaterial": "solid"
+      "crownProjection": 40
     },
     "nightstand": {
       "panelThickness": 22,
@@ -797,8 +767,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 100,
       "legSize": 35,
       "legShape": "bracket",
-      "legInset": 15,
-      "backPanelMaterial": "solid"
+      "legInset": 15
     },
     "tea-table": {
       "legShape": "tapered",
@@ -887,43 +856,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 22,
-      "withBrace": true,
-      "edgeChamfer": 3
-    },
     "photo-frame": {
       "frameWidth": 50,
       "frameThickness": 25,
       "backThickness": 5,
       "glassThickness": 2,
       "glassGrooveDepth": 10,
-      "frameProfile": "ogee",
-      "multiPhotoLayout": "single",
-      "stand": "easel"
+      "frameProfile": "ogee"
     },
     "tray": {
-      "wallHeight": 55,
       "wallThickness": 14,
       "bottomThickness": 10,
       "cornerJoinery": "dovetail",
-      "handleStyle": "metal",
       "handleWidth": 90,
-      "handleHeight": 28,
-      "withFeltPad": true,
-      "dividerLayout": "none",
-      "edgeChamfer": 3
+      "handleHeight": 28
     },
     "dovetail-box": {
       "wallThickness": 14,
       "bottomThickness": 10,
       "withLid": true,
-      "dovetailStyle": "half-blind",
       "lidType": "hinged",
-      "withFeltLining": true,
-      "withMagneticClosure": false,
-      "withInnerTray": true,
-      "edgeChamfer": 3
+      "withInnerTray": true
     },
     "wine-rack": {
       "bottlesWide": 4,
@@ -931,11 +884,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 22,
       "bottleOrientation": "horizontal",
-      "mountStyle": "freestanding",
-      "withGlassRack": true,
-      "withFelt": true,
-      "withPullOutDrawer": true,
-      "edgeChamfer": 3
+      "withPullOutDrawer": true
     },
     "coat-rack": {
       "columnSize": 60,
@@ -992,7 +941,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerMount": "overlay-6",
       "drawerBottomMode": "rebated",
       "backMode": "rebated",
-      "backPanelMaterial": "plywood",
       "withGalleryRail": false,
       "topType": "drawer",
       "topHeight": 180,
@@ -1111,10 +1059,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 150,
       "legShape": "tapered",
       "legInset": 30,
-      "withTopCompartment": false,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "display-cabinet": {
@@ -1141,7 +1085,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "tapered",
       "legInset": 25,
       "doorMullion": "none",
-      "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull"
     },
     "shoe-cabinet": {
@@ -1158,7 +1101,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "tapered",
       "legInset": 20,
-      "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull"
     },
     "media-console": {
@@ -1182,7 +1124,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "tapered",
       "legInset": 25,
-      "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull"
     },
     "nightstand": {
@@ -1204,7 +1145,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "tapered",
       "legInset": 15,
-      "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
     "tea-table": {
@@ -1286,43 +1226,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 18,
-      "withBrace": false,
-      "edgeChamfer": 4
-    },
     "photo-frame": {
       "frameWidth": 18,
       "frameThickness": 14,
       "backThickness": 4,
       "glassThickness": 2,
       "glassGrooveDepth": 8,
-      "frameProfile": "chamfer-out",
-      "multiPhotoLayout": "single",
-      "stand": "easel"
+      "frameProfile": "chamfer-out"
     },
     "tray": {
-      "wallHeight": 35,
       "wallThickness": 10,
       "bottomThickness": 8,
       "cornerJoinery": "finger-joint",
-      "handleStyle": "cutout",
       "handleWidth": 110,
-      "handleHeight": 22,
-      "withFeltPad": true,
-      "dividerLayout": "none",
-      "edgeChamfer": 3
+      "handleHeight": 22
     },
     "dovetail-box": {
       "wallThickness": 10,
       "bottomThickness": 8,
       "withLid": true,
-      "dovetailStyle": "secret-mitered",
       "lidType": "lift-off",
-      "withFeltLining": true,
-      "withMagneticClosure": true,
-      "withInnerTray": true,
-      "edgeChamfer": 2
+      "withInnerTray": true
     },
     "wine-rack": {
       "bottlesWide": 5,
@@ -1330,11 +1254,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 18,
       "bottleOrientation": "horizontal",
-      "mountStyle": "freestanding",
-      "withGlassRack": true,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 3
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 40,
@@ -1389,7 +1309,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "useDrawerSlide": false,
       "pullStyle": "knob",
       "drawerFaceStyle": "shaker",
-      "backPanelMaterial": "solid",
       "withGalleryRail": false,
       "topType": "drawer",
       "topHeight": 200,
@@ -1450,10 +1369,24 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": false
     },
     "side-table": {
+      "legShape": "shaker",
+      "legSize": 30,
+      "legInset": 0,
       "topThickness": 22,
-      "apronWidth": 55,
+      "seatEdge": 3,
+      "seatEdgeStyle": "chamfered",
+      "legEdge": 1,
+      "legEdgeStyle": "chamfered",
+      "stretcherEdge": 1,
+      "stretcherEdgeStyle": "chamfered",
+      "apronWidth": 50,
       "apronOffset": 5,
-      "withLowerStretchers": false
+      "withLowerStretchers": true,
+      "withDrawer": true,
+      "drawerHeight": 100,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 18,
@@ -1506,10 +1439,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 80,
       "legShape": "plinth",
       "legInset": 0,
-      "withTopCompartment": false,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "display-cabinet": {
@@ -1536,7 +1465,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "tapered",
       "legInset": 20,
       "doorMullion": "none",
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "shoe-cabinet": {
@@ -1553,7 +1481,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "tapered",
       "legInset": 0,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "media-console": {
@@ -1577,7 +1504,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "tapered",
       "legInset": 20,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "nightstand": {
@@ -1599,7 +1525,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "tapered",
       "legInset": 15,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "tea-table": {
@@ -1681,43 +1606,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 1,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 18,
-      "withBrace": true,
-      "edgeChamfer": 2
-    },
     "photo-frame": {
       "frameWidth": 22,
       "frameThickness": 16,
       "backThickness": 4,
       "glassThickness": 2,
       "glassGrooveDepth": 8,
-      "frameProfile": "flat",
-      "multiPhotoLayout": "single",
-      "stand": "wall-hung"
+      "frameProfile": "flat"
     },
     "tray": {
-      "wallHeight": 50,
       "wallThickness": 12,
       "bottomThickness": 8,
       "cornerJoinery": "stub-joint",
-      "handleStyle": "cutout",
       "handleWidth": 90,
-      "handleHeight": 25,
-      "withFeltPad": false,
-      "dividerLayout": "none",
-      "edgeChamfer": 2
+      "handleHeight": 25
     },
     "dovetail-box": {
       "wallThickness": 12,
       "bottomThickness": 8,
       "withLid": true,
-      "dovetailStyle": "through",
       "lidType": "sliding",
-      "withFeltLining": false,
-      "withMagneticClosure": false,
-      "withInnerTray": false,
-      "edgeChamfer": 1
+      "withInnerTray": false
     },
     "wine-rack": {
       "bottlesWide": 4,
@@ -1725,11 +1634,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 18,
       "bottleOrientation": "upright",
-      "mountStyle": "wall-mount",
-      "withGlassRack": false,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 2
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 45,
@@ -1798,7 +1703,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withGalleryRail": false,
       "withToeKick": false,
       "withCrownMolding": false,
-      "backPanelMaterial": "solid",
       "topType": "drawer",
       "topHeight": 160,
       "topCount": 1,
@@ -1901,7 +1805,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "stretcherEdgeStyle": "chamfered",
       "apronWidth": 40,
       "apronOffset": 10,
-      "withLowerStretchers": false
+      "withLowerStretchers": false,
+      "withDrawer": false,
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 18,
@@ -1963,10 +1869,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 80,
       "legShape": "plinth",
       "legInset": 0,
-      "withTopCompartment": false,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "solid",
       "pullStyle": "finger-pull"
     },
     "display-cabinet": {
@@ -1993,7 +1895,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "box",
       "legInset": 5,
       "doorMullion": "vertical-3",
-      "backPanelMaterial": "solid",
       "pullStyle": "finger-pull"
     },
     "shoe-cabinet": {
@@ -2010,7 +1911,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 32,
       "legShape": "box",
       "legInset": 5,
-      "backPanelMaterial": "solid",
       "pullStyle": "finger-pull"
     },
     "media-console": {
@@ -2031,7 +1931,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "box",
       "legInset": 5,
-      "backPanelMaterial": "solid",
       "pullStyle": "finger-pull"
     },
     "nightstand": {
@@ -2053,7 +1952,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "box",
       "legInset": 8,
-      "backPanelMaterial": "solid",
       "pullStyle": "finger-pull"
     },
     "tea-table": {
@@ -2135,43 +2033,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 14,
-      "withBrace": false,
-      "edgeChamfer": 1
-    },
     "photo-frame": {
       "frameWidth": 18,
       "frameThickness": 12,
       "backThickness": 3,
       "glassThickness": 2,
       "glassGrooveDepth": 7,
-      "frameProfile": "flat",
-      "multiPhotoLayout": "single",
-      "stand": "easel"
+      "frameProfile": "flat"
     },
     "tray": {
-      "wallHeight": 30,
       "wallThickness": 10,
       "bottomThickness": 6,
       "cornerJoinery": "finger-joint",
-      "handleStyle": "cutout",
       "handleWidth": 70,
-      "handleHeight": 18,
-      "withFeltPad": false,
-      "dividerLayout": "split-2",
-      "edgeChamfer": 2
+      "handleHeight": 18
     },
     "dovetail-box": {
       "wallThickness": 10,
       "bottomThickness": 6,
       "withLid": true,
-      "dovetailStyle": "secret-mitered",
       "lidType": "sliding",
-      "withFeltLining": false,
-      "withMagneticClosure": false,
-      "withInnerTray": false,
-      "edgeChamfer": 1
+      "withInnerTray": false
     },
     "wine-rack": {
       "bottlesWide": 3,
@@ -2179,11 +2061,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 14,
       "bottleOrientation": "upright",
-      "mountStyle": "freestanding",
-      "withGlassRack": false,
-      "withFelt": true,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 2
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 45,
@@ -2236,7 +2114,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerBottomMode": "rebated",
       "useDrawerSlide": false,
       "drawerFaceStyle": "flat",
-      "backPanelMaterial": "solid",
       "withGalleryRail": true,
       "topType": "drawer",
       "topHeight": 180,
@@ -2302,11 +2179,25 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherHeight": 0
     },
     "side-table": {
-      "topThickness": 28,
-      "apronWidth": 80,
+      "legShape": "box",
+      "legSize": 55,
+      "legInset": 0,
+      "topThickness": 35,
+      "seatEdge": 5,
+      "seatEdgeStyle": "chamfered",
+      "legEdge": 0,
+      "legEdgeStyle": "chamfered",
+      "stretcherEdge": 0,
+      "stretcherEdgeStyle": "chamfered",
+      "apronWidth": 85,
       "apronOffset": 5,
       "withLowerStretchers": true,
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 100,
+      "withDrawer": true,
+      "drawerHeight": 130,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": true
     },
     "open-bookshelf": {
       "panelThickness": 22,
@@ -2368,11 +2259,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "plinth",
       "legInset": 0,
       "withCrownMolding": true,
-      "crownProjection": 35,
-      "withTopCompartment": false,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "solid"
+      "crownProjection": 35
     },
     "display-cabinet": {
       "panelThickness": 22,
@@ -2399,8 +2286,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 0,
       "doorMullion": "vertical-3",
       "withCrownMolding": true,
-      "crownProjection": 40,
-      "backPanelMaterial": "solid"
+      "crownProjection": 40
     },
     "shoe-cabinet": {
       "panelThickness": 22,
@@ -2415,8 +2301,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 0,
       "legSize": 50,
       "legShape": "panel-side",
-      "legInset": 0,
-      "backPanelMaterial": "solid"
+      "legInset": 0
     },
     "media-console": {
       "panelThickness": 22,
@@ -2438,8 +2323,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 0,
       "legSize": 50,
       "legShape": "panel-side",
-      "legInset": 0,
-      "backPanelMaterial": "solid"
+      "legInset": 0
     },
     "nightstand": {
       "panelThickness": 22,
@@ -2459,8 +2343,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 80,
       "legSize": 50,
       "legShape": "tapered",
-      "legInset": 0,
-      "backPanelMaterial": "solid"
+      "legInset": 0
     },
     "tea-table": {
       "legShape": "box",
@@ -2550,43 +2433,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 22,
-      "withBrace": true,
-      "edgeChamfer": 1
-    },
     "photo-frame": {
       "frameWidth": 38,
       "frameThickness": 22,
       "backThickness": 5,
       "glassThickness": 2,
       "glassGrooveDepth": 9,
-      "frameProfile": "flat",
-      "multiPhotoLayout": "single",
-      "stand": "wall-hung"
+      "frameProfile": "flat"
     },
     "tray": {
-      "wallHeight": 55,
       "wallThickness": 15,
       "bottomThickness": 10,
       "cornerJoinery": "finger-joint",
-      "handleStyle": "metal",
       "handleWidth": 90,
-      "handleHeight": 25,
-      "withFeltPad": false,
-      "dividerLayout": "none",
-      "edgeChamfer": 1
+      "handleHeight": 25
     },
     "dovetail-box": {
       "wallThickness": 14,
       "bottomThickness": 10,
       "withLid": true,
-      "dovetailStyle": "through",
       "lidType": "hinged",
-      "withFeltLining": false,
-      "withMagneticClosure": false,
-      "withInnerTray": false,
-      "edgeChamfer": 1
+      "withInnerTray": false
     },
     "wine-rack": {
       "bottlesWide": 4,
@@ -2594,11 +2461,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 22,
       "bottleOrientation": "upright",
-      "mountStyle": "freestanding",
-      "withGlassRack": true,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 1
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 65,
@@ -2853,7 +2716,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerMount": "inset",
       "drawerBottomMode": "rebated",
       "backMode": "rebated",
-      "backPanelMaterial": "solid",
       "withGalleryRail": false,
       "topType": "door",
       "topHeight": 550,
@@ -2917,12 +2779,22 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": false
     },
     "side-table": {
-      "topThickness": 25,
-      "legShape": "box",
-      "legSize": 35,
+      "legShape": "tapered",
+      "legSize": 38,
+      "legInset": 30,
+      "topThickness": 28,
+      "seatEdge": 5,
+      "seatEdgeStyle": "rounded",
+      "legEdge": 3,
+      "legEdgeStyle": "rounded",
+      "stretcherEdge": 3,
+      "stretcherEdgeStyle": "rounded",
       "apronWidth": 65,
-      "apronOffset": 10,
-      "withLowerStretchers": false
+      "apronOffset": 0,
+      "withLowerStretchers": true,
+      "lowerStretcherHeight": 120,
+      "withDrawer": false,
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 22,
@@ -2978,10 +2850,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legHeight": 80,
       "legShape": "plinth",
       "legInset": 0,
-      "withTopCompartment": true,
-      "withBottomShoeRack": false,
-      "withInteriorLed": false,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "display-cabinet": {
@@ -3009,7 +2877,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "plinth",
       "legInset": 0,
       "doorMullion": "none",
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "shoe-cabinet": {
@@ -3026,7 +2893,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "plinth",
       "legInset": 0,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "media-console": {
@@ -3050,7 +2916,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "plinth",
       "legInset": 0,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "nightstand": {
@@ -3072,7 +2937,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "box",
       "legInset": 10,
-      "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
     "tea-table": {
@@ -3154,43 +3018,27 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "dividers": 0,
       "crossDividers": 0
     },
-    "bookend": {
-      "panelThickness": 20,
-      "withBrace": false,
-      "edgeChamfer": 3
-    },
     "photo-frame": {
       "frameWidth": 32,
       "frameThickness": 20,
       "backThickness": 4,
       "glassThickness": 2,
       "glassGrooveDepth": 8,
-      "frameProfile": "chamfer-in",
-      "multiPhotoLayout": "single",
-      "stand": "wall-hung"
+      "frameProfile": "chamfer-in"
     },
     "tray": {
-      "wallHeight": 40,
       "wallThickness": 12,
       "bottomThickness": 8,
       "cornerJoinery": "dovetail",
-      "handleStyle": "cutout",
       "handleWidth": 80,
-      "handleHeight": 20,
-      "withFeltPad": false,
-      "dividerLayout": "tea-set",
-      "edgeChamfer": 2
+      "handleHeight": 20
     },
     "dovetail-box": {
       "wallThickness": 14,
       "bottomThickness": 10,
       "withLid": true,
-      "dovetailStyle": "secret-mitered",
       "lidType": "sliding",
-      "withFeltLining": true,
-      "withMagneticClosure": false,
-      "withInnerTray": true,
-      "edgeChamfer": 2
+      "withInnerTray": true
     },
     "coat-rack": {
       "columnSize": 55,
@@ -3206,6 +3054,29 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withHatRail": false,
       "withFloorTray": false,
       "edgeChamfer": 2
+    }
+  },
+  "farmhouse": {
+    "side-table": {
+      "legShape": "box",
+      "legSize": 55,
+      "legInset": 0,
+      "topThickness": 35,
+      "seatEdge": 5,
+      "seatEdgeStyle": "chamfered",
+      "legEdge": 0,
+      "legEdgeStyle": "chamfered",
+      "stretcherEdge": 0,
+      "stretcherEdgeStyle": "chamfered",
+      "apronWidth": 85,
+      "apronOffset": 5,
+      "withLowerStretchers": true,
+      "lowerStretcherHeight": 100,
+      "withDrawer": true,
+      "drawerHeight": 130,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": true
     }
   }
 };

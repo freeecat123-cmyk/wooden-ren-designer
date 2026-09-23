@@ -4,11 +4,15 @@ import { caseFurniture } from "./_builders/case-furniture";
 import {
   backModeOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
   resolveBackMode,
   resolveDrawerBottomMode,
+  resolveDrawerBottomThickness,
+  resolveDrawerBoxJoinery,
   resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
@@ -29,7 +33,7 @@ import {
 } from "./_helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   backModeOption,
   // 上中下分層 zone 設定：ascending 模式下整組隱藏（攤平改用 ratio 自動分配）
   ...makeZoneOptions({
@@ -54,8 +58,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { all: [{ key: "withLegs", equals: true }, { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] }] } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 70, unit: "mm", min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { all: [{ key: "withLegs", equals: true }, { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] }] } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, unit: "mm", min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（下方收窄）" },
@@ -64,10 +68,13 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
+    { value: "full-depth-panel", label: "整深度板腳（可調左右內縮）" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
   drawerMountOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   drawerSlideOption,
   pullStyleOption("drawer"),
   ...toeKickOptions("structure"),
@@ -86,10 +93,12 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   ], help: "傳統斗櫃下層抽屜較深放衣物棉被、上層較淺放小件；現代款多等高" },
   ...lockTotalHeightOptions({ extraDeps: [{ key: "drawerHeightStyle", notIn: ["ascending"] }] }),
   { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面圍欄", defaultValue: false, help: "頂板左/右/後加 25mm 高木條圍欄（前面不裝避免擋取物），擺放物品防掉落、視覺更精緻", wide: true },
-  { group: "structure", type: "number", key: "galleryInset", label: "圍欄內縮 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "圍欄從頂板邊緣向內縮的距離，0 = 切齊邊緣", dependsOn: { key: "withGalleryRail", equals: true } },
+  { group: "structure", type: "number", key: "galleryInset", label: "圍欄內縮", defaultValue: 0, unit: "mm", min: 0, max: 80, step: 5, help: "圍欄從頂板邊緣向內縮的距離，0 = 切齊邊緣", dependsOn: { key: "withGalleryRail", equals: true } },
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = chestOfDrawersOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const legHeight = resolveLegHeight(input, o);
@@ -162,13 +171,17 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight: effectiveLegHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "full-depth-panel" | "round" | "round-tapered",
     legInset,
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
+    drawerBottomThickness: resolveDrawerBottomThickness(input, o),
+    drawerBoxJoinery: resolveDrawerBoxJoinery(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     notes: buildChestNotes({
+      isEn,
+      locale,
       notesLine,
       legHeight, legShape, legInset,
       pullStyle, pullPosition,
@@ -225,6 +238,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `${face.id}-raised-panel`,
         nameZh: face.nameZh + " 中央凸鑲板",
+        nameEn: (face.nameEn ?? face.nameZh) + " center raised panel",
         material: input.material,
         grainDirection: "length",
         visible: { length: panelLen, width: panelH, thickness: raisedPanelT },
@@ -273,6 +287,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
           ...pull,
           id: pull.id + "-R",
           nameZh: (pull.nameZh ?? "把手") + "（右）",
+          nameEn: (pull.nameEn ?? "Pull") + " (right)",
           origin: { ...pull.origin, x: origX + dx },
         };
         rightCopies.push(right);
@@ -280,6 +295,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
         pull.origin = { ...pull.origin, x: origX - dx };
         pull.id = pull.id + "-L";
         pull.nameZh = (pull.nameZh ?? "把手") + "（左）";
+        pull.nameEn = (pull.nameEn ?? "Pull") + " (left)";
       }
       design.parts.push(...rightCopies);
     }
@@ -297,6 +313,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "gallery-back",
       nameZh: "頂面圍欄 後條",
+      nameEn: "Gallery rail back",
       material: input.material,
       grainDirection: "length",
       visible: { length: backLen, width: railH, thickness: railT },
@@ -312,6 +329,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `gallery-${side > 0 ? "right" : "left"}`,
         nameZh: `頂面圍欄 ${side > 0 ? "右" : "左"}條`,
+        nameEn: `Gallery rail ${side > 0 ? "right" : "left"}`,
         material: input.material,
         grainDirection: "length",
         visible: { length: sideLen, width: railH, thickness: railT },
@@ -343,11 +361,14 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       hasDrawers: actualDrawerCount > 0,
       drawerCount: actualDrawerCount,
       hasDrawerSlide: useDrawerSlide,
-    }),
+    }, input.locale),
   );
   if (input.height > 1500) {
     appendSuggestion(design, {
-      text: `櫃高 ${input.height}mm 已接近衣櫃尺寸——衣櫃模板有吊衣桿、長褲架等收納選項。`,
+      text:
+        input.locale === "en"
+          ? `Cabinet height ${input.height} mm is approaching wardrobe size — the wardrobe template offers hanging rods, trouser racks, and more storage options.`
+          : `櫃高 ${input.height}mm 已接近衣櫃尺寸——衣櫃模板有吊衣桿、長褲架等收納選項。`,
       suggestedCategory: "wardrobe",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });
@@ -357,6 +378,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
 
 // 把超長 notes 字串拆成可讀 helper
 function buildChestNotes(cfg: {
+  isEn: boolean;
+  locale: string;
   notesLine: string;
   legHeight: number; legShape: string; legInset: number;
   pullStyle: string; pullPosition: string;
@@ -366,19 +389,30 @@ function buildChestNotes(cfg: {
   drawerHeightStyle: string;
   withGalleryRail: boolean;
 }): string {
+  const { isEn, locale } = cfg;
   const parts: string[] = [cfg.notesLine];
   if (cfg.legHeight > 0) {
-    parts.push(`底座加 ${cfg.legHeight}mm ${cfg.legShape} 腳${cfg.legInset > 0 ? `（內縮 ${cfg.legInset}mm）` : ""}`);
+    parts.push(isEn
+      ? `${cfg.legHeight}mm ${cfg.legShape} base legs${cfg.legInset > 0 ? ` (inset ${cfg.legInset}mm)` : ""}`
+      : `底座加 ${cfg.legHeight}mm ${cfg.legShape} 腳${cfg.legInset > 0 ? `（內縮 ${cfg.legInset}mm）` : ""}`);
   }
   if (cfg.pullStyle && cfg.pullStyle !== "none") {
-    parts.push(`${pullStyleNote(cfg.pullStyle)}${cfg.pullPosition === "dual" ? "（左右各 1 顆）" : ""}`);
+    parts.push(isEn
+      ? `${pullStyleNote(cfg.pullStyle, locale)}${cfg.pullPosition === "dual" ? " (one on each side)" : ""}`
+      : `${pullStyleNote(cfg.pullStyle, locale)}${cfg.pullPosition === "dual" ? "（左右各 1 顆）" : ""}`);
   }
-  const tk = toeKickNote(cfg.withToeKick, cfg.toeKickHeight, cfg.toeKickRecess);
-  if (tk) parts.push(tk);
-  const cm = crownMoldingNote(cfg.withCrownMolding, cfg.crownProjection);
-  if (cm) parts.push(cm);
-  if (cfg.drawerFaceStyle === "raised-panel") parts.push("抽屜面板採凸版（中央凸 6mm 雕花板）");
-  if (cfg.drawerHeightStyle === "ascending") parts.push("抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
-  if (cfg.withGalleryRail) parts.push("頂面加 25mm 高圍欄");
-  return parts.filter(Boolean).join("；") + "。";
+  if (cfg.withToeKick) {
+    parts.push(isEn
+      ? `Toe kick: ${cfg.toeKickHeight}mm tall × ${cfg.toeKickRecess}mm recess so toes don't hit cabinet`
+      : toeKickNote(cfg.withToeKick, cfg.toeKickHeight, cfg.toeKickRecess).replace(/。$/, ""));
+  }
+  if (cfg.withCrownMolding) {
+    parts.push(isEn
+      ? `Crown molding: ${cfg.crownProjection}mm overhang (ogee/cove/chamfer router profile), glue around cabinet before finishing`
+      : crownMoldingNote(cfg.withCrownMolding, cfg.crownProjection).replace(/。$/, ""));
+  }
+  if (cfg.drawerFaceStyle === "raised-panel") parts.push(isEn ? "Drawer faces are raised-panel (central 6mm raised carving panel)" : "抽屜面板採凸版（中央凸 6mm 雕花板）");
+  if (cfg.drawerHeightStyle === "ascending") parts.push(isEn ? "Drawer heights: large at bottom, small at top (traditional Ming/Qing 1.4 : 1.2 : 1 ratio)" : "抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
+  if (cfg.withGalleryRail) parts.push(isEn ? "Top gallery rail, 25mm tall" : "頂面加 25mm 高圍欄");
+  return parts.filter(Boolean).join(isEn ? "; " : "；") + (isEn ? "." : "。");
 }

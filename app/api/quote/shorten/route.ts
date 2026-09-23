@@ -1,10 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { customAlphabet } from "nanoid";
 import {
   getRedis,
   SHORT_KEY_PREFIX,
   SHORT_TTL_SECONDS,
 } from "@/lib/shorten/redis";
+import { checkIpRateLimit, getClientIp } from "@/lib/api/ip-rate-limit";
+
+const MAX_PATH_LENGTH = 4096; // quote/print URL 可能含很多參數，給寬一點
+const SHORTEN_PER_DAY = 30;
 
 // base62（去掉視覺易混淆的 0/O/I/l），8 字元 ≈ 218 兆組合，碰撞機率近 0
 const nanoid = customAlphabet(
@@ -31,7 +35,19 @@ export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rl = await checkIpRateLimit({
+    prefix: "shorten:quote",
+    ip: getClientIp(req),
+    perDay: SHORTEN_PER_DAY,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429, headers: CORS_HEADERS },
+    );
+  }
+
   let path: string;
   try {
     const body = await req.json();
@@ -39,6 +55,12 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "path required" },
         { status: 400, headers: CORS_HEADERS },
+      );
+    }
+    if (body.path.length > MAX_PATH_LENGTH) {
+      return NextResponse.json(
+        { error: "path too long", max: MAX_PATH_LENGTH },
+        { status: 413, headers: CORS_HEADERS },
       );
     }
     path = body.path;

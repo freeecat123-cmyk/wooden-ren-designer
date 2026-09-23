@@ -1,9 +1,13 @@
 "use client";
 
+import { memo } from "react";
+import { constructionCutBox } from "@/lib/geometry/construction-cuts";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
-import { JOINERY_LABEL } from "@/lib/joinery/details";
+import { JOINERY_LABEL, JOINERY_LABEL_EN } from "@/lib/joinery/details";
+import { partName } from "@/lib/templates/part-names";
+import { formatLengthBare, formatInchFraction, formatMm } from "@/lib/units/format";
 import {
   MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
@@ -17,10 +21,12 @@ import {
   pointInPolygon,
   projectPart,
   projectPartPolygon,
+  projectPartSilhouette,
+  panelSplitWorld,
   projectTiltedBoxSilhouette,
   sortPartsByDepth,
   worldExtents,
-  type OrthoView,
+  type OrthoView as OrthoViewKind,
 } from "@/lib/render/geometry";
 
 /** Sutherland-Hodgman: clip polygon to horizontal half-plane. */
@@ -112,7 +118,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
   // 橫向構件：牙板 / 橫撐 / 椅背料 / footrest 等（Y 位置 = origin.y, yExt 用 worldExtents）
   const crossPieces = design.parts
     .filter((p) =>
-      /^(apron|ls-|stretcher|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
+      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
         p.id,
       ),
     )
@@ -127,6 +133,10 @@ function extractFurnitureDims(design: FurnitureDesign) {
       const trapBotLen = trap ? p.visible.length * trap.bottomLengthScale : p.visible.length;
       const trapTopLen = trap ? p.visible.length * trap.topLengthScale : p.visible.length;
       const cutLengthMm = Math.max(trapBotLen, trapTopLen);
+      // 梯形件兩端不等長：保留上邊(接座)/下邊(接地)讓主三視圖也標兩個數,
+      // 跟零件圖一致(user 2026-06-01「三視圖也改標上下邊」)。非梯形 = null。
+      const trapTopMm = trap ? trapTopLen : null;
+      const trapBotMm = trap ? trapBotLen : null;
       const cutAngleDeg = trap
         ? (Math.atan(Math.abs(trapBotLen - trapTopLen) / 2 / p.visible.width) *
             180) /
@@ -144,6 +154,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
         topY: p.origin.y + yExt,
         yExt,
         cutLengthMm,
+        trapTopMm,
+        trapBotMm,
         cutAngleDeg,
         isZAxis,
         archBendMm,
@@ -152,7 +164,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
     .sort((a, b) => a.bottomY - b.bottomY);
 
   // 腳：取所有 id 開頭為 leg- 的件（俯視圖用來標腳跨距 / 腳粗）
-  const legs = design.parts.filter((p) => /^leg-?\d*$/.test(p.id));
+  // id 兩種慣例：leg-1..4（simple-table 系）與 leg-lf/lb/rf/rb（case/圓件系）
+  const legs = design.parts.filter((p) => /^leg(?:-\d+|-[lr][fb])?$/.test(p.id));
   // 外斜腳的最大落地點偏移（splayed shape 的 dxMm / dzMm 絕對值最大者）
   // 用來算落地點 X / Z 範圍 vs 椅面邊距
   const maxSplayDx = Math.max(
@@ -187,6 +200,161 @@ function extractFurnitureDims(design: FurnitureDesign) {
         })()
       : null;
 
+  // 櫃類板厚（§I6 必標板厚）：側板/背板取三軸最小值當厚（背板厚在 width 軸、
+  // 側板厚在 thickness 軸，min 三軸對兩種都穩）
+  const sideLeftPanel = design.parts.find((p) => p.id === "side-left");
+  const sidePanelT = sideLeftPanel
+    ? Math.min(
+        sideLeftPanel.visible.length,
+        sideLeftPanel.visible.width,
+        sideLeftPanel.visible.thickness,
+      )
+    : null;
+  const backPart = cabinet ? design.parts.find((p) => p.id === "back") : null;
+  const backPanelT = backPart
+    ? Math.min(
+        backPart.visible.length,
+        backPart.visible.width,
+        backPart.visible.thickness,
+      )
+    : null;
+
+  // 吊衣桿（wardrobe）：中心離地高 + 桿徑。
+  // id 慣例三種：hanging-rod（舊 hangingArea 路徑）/ zN-rod / zN-hang-rod /
+  // zN-colM-rod（zone hanging 路徑）。複數桿（雙吊桿）同高去重、各標一條。
+  const rods = (() => {
+    const seen = new Map<number, { centerY: number; d: number }>();
+    for (const p of design.parts) {
+      if (!/(?:^|-)(?:hanging-|hang-)?rod$/.test(p.id)) continue;
+      const centerY = p.origin.y + worldExtents(p).yExt / 2;
+      const key = Math.round(centerY);
+      if (!seen.has(key))
+        seen.set(key, {
+          centerY,
+          d: Math.min(p.visible.width, p.visible.thickness),
+        });
+    }
+    return [...seen.values()].sort((a, b) => b.centerY - a.centerY);
+  })();
+
+  // 門板（slab / 框門 / 玻璃門）：以 id 白名單成員做分組 AABB 聯集
+  // （doorOuterW/H 是 builder local 變數不在 part 上）。
+  // 白名單避免 -door-pull / -slab-pull 把手件撐大 AABB。同尺寸合併計數。
+  // 「door」後綴＝整片門一件式（中式櫃 layer2-left-door）；id.includes("door")
+  // guard 擋掉 back-panel / side-panel 這類含 -panel 但非門的件
+  const DOOR_MEMBER =
+    /-(slab|stile-left|stile-right|rail-top|rail-bottom|panel|glass|door)$/;
+  const doors = (() => {
+    const byDoor = new Map<
+      string,
+      { minX: number; maxX: number; minY: number; maxY: number }
+    >();
+    for (const p of design.parts) {
+      if (!DOOR_MEMBER.test(p.id) || !p.id.includes("door")) continue;
+      const key = p.id.replace(DOOR_MEMBER, "");
+      const { xExt, yExt } = worldExtents(p);
+      const b =
+        byDoor.get(key) ??
+        { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+      b.minX = Math.min(b.minX, p.origin.x - xExt / 2);
+      b.maxX = Math.max(b.maxX, p.origin.x + xExt / 2);
+      b.minY = Math.min(b.minY, p.origin.y);
+      b.maxY = Math.max(b.maxY, p.origin.y + yExt);
+      byDoor.set(key, b);
+    }
+    const groups = new Map<
+      string,
+      { w: number; h: number; cx: number; topY: number; count: number }
+    >();
+    for (const b of byDoor.values()) {
+      const dw = b.maxX - b.minX;
+      const dh = b.maxY - b.minY;
+      const key = `${Math.round(dw)}x${Math.round(dh)}`;
+      const cx = (b.minX + b.maxX) / 2;
+      const g = groups.get(key);
+      if (!g) {
+        groups.set(key, { w: dw, h: dh, cx, topY: b.maxY, count: 1 });
+      } else {
+        g.count += 1;
+        if (cx < g.cx) {
+          g.cx = cx;
+          g.topY = b.maxY;
+        }
+      }
+    }
+    return [...groups.values()];
+  })();
+
+  // 圓面主板（圓凳/圓桌/圓茶几）：主標掛 Ø、俯視同值冗餘跳過（§I6）
+  const isRoundMain =
+    main.shape?.kind === "round" &&
+    Math.abs(main.visible.length - main.visible.width) < 0.5;
+
+  // 腳剖面（front/side 標腳粗用；§I6 必標件厚）：錐形腳標上/下端、圓料掛 Ø
+  const legProfile =
+    legs.length > 0
+      ? (() => {
+          const sample = legs[0];
+          const sh = sample.shape;
+          const topSize = Math.min(sample.visible.length, sample.visible.width);
+          const bottomScale =
+            sh?.kind === "shaker"
+              ? (sh.bottomScale ?? 0.6)
+              : sh != null && "bottomScale" in sh && typeof sh.bottomScale === "number"
+                ? sh.bottomScale
+                : 1;
+          const isRound =
+            sh?.kind === "round" ||
+            sh?.kind === "round-tapered" ||
+            sh?.kind === "splayed-round-tapered" ||
+            sh?.kind === "lathe-turned";
+          return { topSize, botSize: topSize * bottomScale, isRound };
+        })()
+      : null;
+
+  // 抽屜/門「面板」：id 以 -face 結尾（drawer-row 慣例）；inset 抽屜無面板時
+  // 抽屜箱前板（-drawer-N-front，且無同名 -face 兄弟）就是可見面，一併標。
+  // 面板直立（rotation.x=π/2）→ W = visible.length、H = visible.width。
+  // 同尺寸合併計數標一次（§I6 重複件標一次），標註位置取最上排最左面板。
+  const faceIds = new Set(
+    design.parts.filter((p) => /-face$/.test(p.id)).map((p) => p.id),
+  );
+  const isVisibleFace = (id: string) =>
+    /-face$/.test(id) ||
+    // (?:^|-)：side-table 抽屜 id 是「drawer-1-front」無前綴，
+    // 舊 regex 要求前綴 dash 漏掉它 → 主視圖缺抽面標（2026-06-12 邊桌排查）
+    (/(?:^|-)drawer-\d+-front$/.test(id) &&
+      !faceIds.has(id.replace(/-front$/, "-face")));
+  const drawerFaces = (() => {
+    const groups = new Map<
+      string,
+      { w: number; h: number; cx: number; bottomY: number; count: number }
+    >();
+    for (const p of design.parts) {
+      if (!isVisibleFace(p.id)) continue;
+      // 用 worldExtents 而非 visible 軸：drawer-row 慣例（rot.x=π/2）與
+      // 中式櫃等自建抽屜前板的軸向不同，世界座標 X/Y extent 對兩者都對
+      const { xExt, yExt } = worldExtents(p);
+      const fw = xExt;
+      const fh = yExt;
+      const key = `${Math.round(fw)}x${Math.round(fh)}`;
+      const g = groups.get(key);
+      if (!g) {
+        groups.set(key, { w: fw, h: fh, cx: p.origin.x, bottomY: p.origin.y, count: 1 });
+      } else {
+        g.count += 1;
+        if (
+          p.origin.y > g.bottomY + 1 ||
+          (Math.abs(p.origin.y - g.bottomY) <= 1 && p.origin.x < g.cx)
+        ) {
+          g.cx = p.origin.x;
+          g.bottomY = p.origin.y;
+        }
+      }
+    }
+    return [...groups.values()];
+  })();
+
   return {
     legs,
     maxSplayDx,
@@ -200,6 +368,72 @@ function extractFurnitureDims(design: FurnitureDesign) {
     shelves,
     crossPieces,
     legFootprint,
+    isRoundMain,
+    legProfile,
+    drawerFaces,
+    sidePanelT,
+    backPanelT,
+    rods,
+    doors,
+  };
+}
+
+/**
+ * 箱盒類（筆筒/托盤/木盒——buildBox 慣例 wall-front/back/left/right + bottom）
+ * 的標線資訊。六/八角款（polygonStaves）無 wall-front → 回 null 優雅降級。
+ * 牆板 rot.x=π/2 → visible.width 軸＝world Y（牆高）、thickness＝壁厚。
+ */
+function extractBoxDims(design: FurnitureDesign) {
+  const bottom = design.parts.find((p) => p.id === "bottom");
+  const wallFront = design.parts.find((p) => /(?:^|-)wall-front$/.test(p.id));
+  if (!bottom || !wallFront) return null;
+  const wallT = wallFront.visible.thickness;
+  const wallH = wallFront.visible.width;
+  const botT = bottom.visible.thickness;
+  const wallBottomY = wallFront.origin.y; // 牆底＝底板頂（surface 底）或更低（入溝底）
+  // 垂直內深用「總高 − 底板頂面」幾何算，別用 wallH——外撇（splay）托盤的
+  // wallH 是斜壁「料寬」（52/cos30° = 60，跟總高同值明顯矛盾），垂直內深
+  // 才是「能放多高的東西」（user 2026-06-11 托盤外撇變體檢查）。
+  // 垂直壁時兩者相等，不影響既有件。
+  const bottomTopY = bottom.origin.y + botT;
+  const innerDepth = design.overall.thickness - bottomTopY;
+  const lid = design.parts.find((p) => p.id === "lid");
+  return {
+    wallT,
+    wallH,
+    botT,
+    wallBottomY,
+    bottomTopY,
+    innerDepth,
+    lidT: lid ? lid.visible.thickness : null,
+    lidBottomY: lid ? lid.origin.y : null,
+  };
+}
+
+/**
+ * 相框（photo-frame——frame-top/bottom/left/right + glass + back-panel）。
+ * 框平躺建模（框面在 X–Z 平面）→ 內框口/框料標在俯視圖。
+ */
+function extractFrameDims(design: FurnitureDesign) {
+  const ft = design.parts.find((p) => p.id === "frame-top");
+  const fb = design.parts.find((p) => p.id === "frame-bottom");
+  const fl = design.parts.find((p) => p.id === "frame-left");
+  const fr = design.parts.find((p) => p.id === "frame-right");
+  if (!ft || !fb || !fl || !fr) return null;
+  const railW = ft.visible.width;
+  const railT = ft.visible.thickness;
+  // 內框口：左右豎料內緣距（豎料 rot.y=π/2 → world X extent = visible.width）
+  const openX = (fr.origin.x - fr.visible.width / 2) - (fl.origin.x + fl.visible.width / 2);
+  const openZ = (ft.origin.z - ft.visible.width / 2) - (fb.origin.z + fb.visible.width / 2);
+  const glass = design.parts.find((p) => p.id === "glass");
+  const back = design.parts.find((p) => p.id === "back-panel");
+  return {
+    railW,
+    railT,
+    openX,
+    openZ,
+    glassT: glass ? glass.visible.thickness : null,
+    backT: back ? back.visible.thickness : null,
   };
 }
 
@@ -218,6 +452,36 @@ function partFill(part: Part) {
   return MATERIALS[part.material].color;
 }
 
+/**
+ * lathe-turned 花瓶輪廓段表（前/側視 polygon 取樣用）。
+ * 每段 [topR, botR, hFrac]：topR/botR 是該段上下半徑相對 fullR 的比例，
+ * hFrac 是該段佔總高 fullH 的比例。從頂端往下累加。
+ * 同份資料供 svg-views 內部畫輪廓 & part-drawing 的 LatheSegmentTable 列段別表。
+ */
+export const LATHE_SEG: ReadonlyArray<readonly [number, number, number]> = [
+  [1.0, 1.0, 0.05], [1.0, 1.10, 0.04], [1.10, 1.0, 0.04],
+  [1.0, 0.55, 0.10], [0.55, 0.78, 0.18], [0.78, 0.55, 0.20],
+  [0.55, 0.50, 0.10], [0.50, 0.95, 0.10], [0.95, 0.85, 0.05],
+  [0.85, 0.95, 0.06], [0.95, 0.95, 0.05], [0.95, 0.80, 0.03],
+];
+
+/**
+ * OrthoView viewBox + projector context passed to `overlayContent` slot.
+ * 讓零件圖 overlay（T1 尺寸/T2 榫卯虛框/木紋箭頭等）能對齊 OrthoView 的 viewBox。
+ */
+export interface OrthoViewBoxCtx {
+  vbX: number;
+  vbY: number;
+  vbW: number;
+  vbH: number;
+  /** Convert part-local mm coords to SVG pixel coords for this view. */
+  partLocalToSvg(localX: number, localY: number, localZ: number): { x: number; y: number };
+  /** 零件圖 isolate 模式：本零件 silhouette 的 clipPath id。
+   *  T2 mortise 紅框用它裁進輪廓內——錐形腳細端的眼框不再突出楔形外
+   *（user 2026-06-12 茶几錐形腳回報）。tenon 藍框（本來就凸出件外）不裁。 */
+  partClipId?: string;
+}
+
 // ─── Joinery overlay (Phase 1.5) ────────────────────────────────────────────
 // 把 part-local AABB（tenon 或 mortise 的小箱）投影到 view 平面，回 bbox。
 // 採跟 projectPartSilhouette 相同的 Euler XYZ + bottom-origin 慣例：
@@ -225,13 +489,18 @@ function partFill(part: Part) {
 export type LocalBox = {
   cx: number; cy: number; cz: number;     // local center (centered on length/thickness/width)
   hx: number; hy: number; hz: number;     // half-extents
+  rotX?: number;                          // 額外繞 part-local X 軸旋轉（弧度）—外撇牆 cosmetic 孔 / splayed apron X 面榫
+  rotY?: number;                          // 額外繞 part-local Y 軸旋轉（弧度）—rect 筆筒壁 dado dim swap
+  rotZ?: number;                          // 額外繞 part-local Z 軸旋轉（弧度）—splayed apron Z 面榫的 tilt
+  /** 入榫軸（depth 軸）——榫眼從哪個 part-local 軸鑿入。CNC 榫孔面匯出用它決定放平哪一面。 */
+  depthAxis?: "x" | "y" | "z";
 };
 
 /**
  * 把 part-local 點 (xL, yL, zL) 經 part 的 Euler XYZ rotation + origin 投影
  * 到指定 view 的 (vx, vy)。共用給 projectFeatureRect。
  */
-function makeProjector(part: Part, view: OrthoView) {
+function makeProjector(part: Part, view: OrthoViewKind) {
   const rx = part.rotation?.x ?? 0;
   const ry = part.rotation?.y ?? 0;
   const rz = part.rotation?.z ?? 0;
@@ -255,7 +524,12 @@ function makeProjector(part: Part, view: OrthoView) {
     const wy = y + yOffset;
     const wz = z + part.origin.z;
     if (view === "top") return { x: -wx, y: wz };
-    if (view === "side") return { x: wz, y: wy };
+    // 側視（從 +X 看 -X，第三角法右側視圖）：viewer 右手 = -Z = 家具前面，
+    // SVG x 增加方向 = 右邊 → 前面（-Z）映射到 SVG +x（右）→ 取 -wz。
+    // 之前用 +wz 等於把側視畫成「左側視」（從 -X 看 +X），跟 UI 排版
+    // [front][side][top] 第三角法右側位置不一致：把手在前面（-Z）卻
+    // 顯示在 SVG 左邊。本 commit 統一為「前=右」。
+    if (view === "side") return { x: -wz, y: wy };
     return { x: -wx, y: wy };
   };
 }
@@ -319,7 +593,7 @@ function boxWorldCenter(part: Part, box: LocalBox): { x: number; y: number; z: n
 function projectFeatureRect(
   part: Part,
   box: LocalBox,
-  view: OrthoView,
+  view: OrthoViewKind,
 ): { x: number; y: number; w: number; h: number } {
   const polygon = projectFeaturePolygon(part, box, view);
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -340,7 +614,7 @@ function projectFeatureRect(
 function projectFeaturePolygon(
   part: Part,
   box: LocalBox,
-  view: OrthoView,
+  view: OrthoViewKind,
   /** true = box 是 tenon/mortise 之類 feature（強制走 full bevel，不套 half-bevel 的 top-only 邏輯） */
   isFeature = false,
 ): Array<{ x: number; y: number }> {
@@ -390,6 +664,28 @@ function projectFeaturePolygon(
       const zOut = zL - (applyShear ? yL * bevShear : 0);
       return [xL * xScale, yL, zOut];
     }
+    /**
+     * 錐形腳(tapered / round-tapered):腳寬沿 Y 線性縮,**榫眼也要跟著縮**。
+     *
+     * §A11.2:`scaleAt(Y) = bottomScale + (1 − bottomScale) × Y / legHeight`
+     *   Y=0(底)→ bottomScale;Y=legHeight(頂)→ 1。
+     *
+     * ⛔ `deform` 原本**完全沒有 tapered 分支** → 榫眼虛線框照未縮的腳寬畫。
+     *    實測 /design/stool 選「方錐漸縮腳」+ 榫接模式:
+     *    正 / 側視圖的下橫撐榫眼虛線框整個畫到腳的輪廓**外面 7.7mm**;
+     *    零件卡 T2 還寫「10×18 深 25」,但腳在那個高度只有 19.7mm 厚 —— 照著鑿一定鑿穿。
+     *    (零件卡因為有 partClipId 把框裁進輪廓,反而把錯誤藏起來、只剩錯的數字。)
+     *    (2026-08-21 稽核發現。)
+     *
+     * ⚠️ 榫眼(isFeature)跟本體一樣要縮:它是挖在這支腳身上的,腳縮它就得縮。
+     */
+    if (shape.kind === "tapered" || shape.kind === "round-tapered") {
+      const bottomScale = shape.bottomScale ?? 1;
+      if (bottomScale === 1) return [xL, yL, zL];
+      const t = ly > 0 ? (yL + ly / 2) / ly : 1; // 0=底, 1=頂
+      const scale = bottomScale + (1 - bottomScale) * t;
+      return [xL * scale, yL, zL * scale];
+    }
     if (shape.kind === "apron-beveled") {
       const bevShear = Math.tan(shape.bevelAngle);
       const zOut = isFeature ? zL : zL - yL * bevShear;
@@ -421,16 +717,31 @@ function projectFeaturePolygon(
     const wz = z + part.origin.z;
     let vx: number, vy: number;
     if (view === "top") { vx = -wx; vy = wz; }
-    else if (view === "side") { vx = wz; vy = wy; }
+    // 側視 = 右側視（從 +X 看 -X），前面（-Z）→ SVG 右（+x）→ 取 -wz
+    else if (view === "side") { vx = -wz; vy = wy; }
     else { vx = -wx; vy = wy; }
     return { x: vx, y: vy };
+  };
+
+  // box 自己的 Euler XYZ 旋轉（splayed apron mortise 的 rotZ ≈ tiltX 等）
+  const brx = box.rotX ?? 0, bry = box.rotY ?? 0, brz = box.rotZ ?? 0;
+  const bcx = Math.cos(brx), bsx = Math.sin(brx);
+  const bcy = Math.cos(bry), bsy = Math.sin(bry);
+  const bcz = Math.cos(brz), bsz = Math.sin(brz);
+  const rotateBoxCorner = (ox: number, oy: number, oz: number) => {
+    let x = ox, y = oy, z = oz;
+    if (brx) { const ny = y * bcx - z * bsx, nz = y * bsx + z * bcx; y = ny; z = nz; }
+    if (bry) { const nx = x * bcy + z * bsy, nz = -x * bsy + z * bcy; x = nx; z = nz; }
+    if (brz) { const nx = x * bcz - y * bsz, ny = x * bsz + y * bcz; x = nx; y = ny; }
+    return [x, y, z] as [number, number, number];
   };
 
   const corners: Array<{ x: number; y: number }> = [];
   for (const sx of [-1, 1])
     for (const sy of [-1, 1])
       for (const sz of [-1, 1]) {
-        corners.push(project(box.cx + sx * box.hx, box.cy + sy * box.hy, box.cz + sz * box.hz));
+        const [ox, oy, oz] = rotateBoxCorner(sx * box.hx, sy * box.hy, sz * box.hz);
+        corners.push(project(box.cx + ox, box.cy + oy, box.cz + oz));
       }
   // unused vars to avoid lint
   void lx; void lz;
@@ -472,7 +783,7 @@ function tenonShoulderBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
   }
 }
 
-function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
+export function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;
@@ -482,23 +793,35 @@ function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
   // 不對稱榫接的中心偏移（drafting-math.md §A10.10）
   const oW = tenon.offsetWidth ?? 0;
   const oT = tenon.offsetThickness ?? 0;
+  let cx = 0, cy = 0, cz = 0, hx = 0, hy = 0, hz = 0;
   switch (tenon.position) {
     // start/end：length 沿 ±X，width 沿 Z，thickness 沿 Y
     case "start":
-      return { cx: -lx / 2 - L / 2, cy: oT, cz: oW, hx: L / 2, hy: T / 2, hz: W / 2 };
+      cx = -lx / 2 - L / 2; cy = oT; cz = oW; hx = L / 2; hy = T / 2; hz = W / 2; break;
     case "end":
-      return { cx: +lx / 2 + L / 2, cy: oT, cz: oW, hx: L / 2, hy: T / 2, hz: W / 2 };
+      cx = +lx / 2 + L / 2; cy = oT; cz = oW; hx = L / 2; hy = T / 2; hz = W / 2; break;
     // top/bottom：length 沿 ±Y，width 沿 X，thickness 沿 Z
     case "top":
-      return { cx: oW, cy: +ly / 2 + L / 2, cz: oT, hx: W / 2, hy: L / 2, hz: T / 2 };
+      cx = oW; cy = +ly / 2 + L / 2; cz = oT; hx = W / 2; hy = L / 2; hz = T / 2; break;
     case "bottom":
-      return { cx: oW, cy: -ly / 2 - L / 2, cz: oT, hx: W / 2, hy: L / 2, hz: T / 2 };
+      cx = oW; cy = -ly / 2 - L / 2; cz = oT; hx = W / 2; hy = L / 2; hz = T / 2; break;
     // left/right：length 沿 ±Z，width 沿 X，thickness 沿 Y
     case "left":
-      return { cx: oW, cy: oT, cz: -lz / 2 - L / 2, hx: W / 2, hy: T / 2, hz: L / 2 };
+      cx = oW; cy = oT; cz = -lz / 2 - L / 2; hx = W / 2; hy = T / 2; hz = L / 2; break;
     case "right":
-      return { cx: oW, cy: oT, cz: +lz / 2 + L / 2, hx: W / 2, hy: T / 2, hz: L / 2 };
+      cx = oW; cy = oT; cz = +lz / 2 + L / 2; hx = W / 2; hy = T / 2; hz = L / 2; break;
   }
+  // 注意：tenon.axis 是「世界座標系」單位向量（由 computeCompoundSplayNormal
+  // 算的腳/牙板斜接法向），不是 part-local。早期版本（2af8c14）在這裡誤把
+  // axis 當 part-local 加到 cx/cy/cz：經過 part.rotation 後再次旋轉，產生
+  // 大幅錯位（左右牙板榫在正/側視變兩疊、位置鏡像到腳外側）。
+  //
+  // 修正：axis 只用在 CompoundMiterAnnotation 文字角度（α₁/α₂），不參與
+  // tenon body 的 part-local 位置；位置完全靠 position-default 的 cx/cy/cz +
+  // part.rotation 自然投影即可。PerspectiveView 也走同樣慣例（只用 axis 做
+  // 朝向 quaternion、不偏 local position），這樣 3D 與 2D 一致。
+  // ≤12° 範圍內視覺差距 AABB 可吸收。
+  return { cx, cy, cz, hx, hy, hz };
 }
 
 /**
@@ -523,6 +846,9 @@ function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
  */
 function warnInvalidMortiseSpec(partId: string, m: Part["mortises"][number], lx: number, ly: number, lz: number): void {
   if (typeof window === "undefined" && process.env.NODE_ENV === "production") return;
+  // 帶 rotX/rotZ 的 cosmetic 挖孔（外撇托盤手把：「板平著挖、再傾斜板」模型，
+  // verts 平推後實體 y 範圍隨 z 平移）origin.y 合法超出未變形 box —— 不警告
+  if (m.cosmetic && (m.rotX || m.rotZ)) return;
   const issues: string[] = [];
   if (m.origin.y < -1 || m.origin.y > ly + 1) {
     issues.push(`origin.y=${m.origin.y} 超出 part.thickness 範圍 [0, ${ly}]—可能誤把「post-rotation 高度」放在 mesh local Y 軸（應放 origin.x）`);
@@ -539,7 +865,32 @@ function warnInvalidMortiseSpec(partId: string, m: Part["mortises"][number], lx:
   }
 }
 
+/**
+ * 從 Mortise.axis（world-frame 入榫方向）取 part-local 的 depthAxis。
+ *
+ * 沒給 axis、或零件帶旋轉（world 軸 ≠ part-local 軸）時回 null，呼叫端退回既有
+ * 的「哪一軸離表面最近」啟發式。取主導分量而不是要求嚴格軸對齊——外斜腳的入榫
+ * 方向本來就帶一點傾斜（5° 的話主導分量仍然是那一軸）。
+ */
+function mortiseAxisHint(part: Part, m: Part["mortises"][number]): "x" | "y" | "z" | null {
+  const ax = m.axis;
+  if (!ax) return null;
+  const r = part.rotation;
+  if (r && (r.x !== 0 || r.y !== 0 || r.z !== 0)) return null;
+  const cand: Array<["x" | "y" | "z", number]> = [
+    ["x", Math.abs(ax.x ?? 0)],
+    ["y", Math.abs(ax.y ?? 0)],
+    ["z", Math.abs(ax.z ?? 0)],
+  ];
+  cand.sort((a, b) => b[1] - a[1]);
+  // 主導分量要真的主導——分不出來（例如剛好 45°）就別猜，退回啟發式。
+  if (cand[0][1] <= 0 || cand[0][1] < cand[1][1] * 1.5) return null;
+  return cand[0][0];
+}
+
 export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
+  const construction = constructionCutBox(m);
+  if (construction) return construction;
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;
@@ -558,13 +909,57 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   //
   // Bug 修：origin.y=0 是 from-bottom 慣例的「便利預設值」，不該被當作真的
   // Y face 入榫。當 origin.y 在 canonical 值（0 或 ly）+ X 或 Z 軸有 origin
-  // 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—template 真正想表
-  // 達的入榫方向。例：頂板側板榫眼 origin=(±halfL-9, 0, 0)，xToFace=9 才是
-  // 真正入榫面，不該因為 yToFace=0 而誤判 depthAxis="y" → CSG 切到頂板底面
-  // 整條 6×11×392mm 凹槽。
+  // **嚴格更靠近** face（< yToFace）時，優先選 X/Z 為真正 entry axis—template
+  // 真正想表達的入榫方向。例：頂板側板榫眼 origin=(±halfL-9, 0, 0)，xToFace=9
+  // 比 yToFace=0 不更靠近，仍維持 depthAxis="y"（這類 case 已改 template 不
+  // 依賴 placeholder）。
+  //
+  // 2026-05-21 修：原條件 `xToFace < ly/2 || zToFace < ly/2` 會在 part 很薄
+  // （例 topRailThickness=22, ly=topRailHeight=50, zToFace=11 < 25）時誤判，
+  // 把 slat→topRail 底面入榫的 mortise 改判成 Z 軸入榫 → CSG 切錯面、tenon
+  // mesh 找不到母件 → 紅榫頭凸出頂橫木頂面。改用「嚴格小於 yToFace」確保
+  // 真實底/頂面入榫（yToFace=0）永遠保留 Y。
   const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
   let depthAxis: "x" | "y" | "z";
-  if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+  // cosmetic+through+rotX：外撇牆手把孔軸固定沿 part-local Y（牆厚方向）。
+  // 不能讓 mortiseLocalBox 的 yToFace/xToFace/zToFace 比較邏輯把 depthAxis
+  // 切到 "z"——origin.y 隨外撇 θ 增大會超過 zToFace（θ ~18°），結果 mortise
+  // box 方向反轉、marker 跑到天上。
+  // 明確指定入榫方向的優先——不要再猜。
+  //
+  // 下面那套「哪一軸離表面最近」的啟發式對絕大多數榫眼都對，但兩種情況會失手：
+  //   ① 榫眼靠近零件端部（弧肩斜腳的牙板榫眼 y=410、腳高 425 → 離頂面只剩 15mm，
+  //      比離側面的 16.5mm 更近）→ 被判成「頂面入榫」
+  //   ② 面別標記那一軸被拿去放位移量（弧肩斜腳橫撐榫眼的 ctZShift 外挪
+  //      origin.x=-7.99 → 離 X 面 9.5mm，比離 Z 面的 16.5mm 更近）→ 判成「左端入榫」
+  // 兩種都會讓 1:1 樣板把孔畫到錯的面上，照著鑿就鑿在別面（2026-08-21 追查
+  // 弧肩斜腳「沒有下橫撐榫孔」時挖到的）。
+  //
+  // Mortise.axis 是 world-frame 的入榫方向單位向量,型別早就有這個欄位。這裡取它
+  // 的主導分量當 depthAxis。**只在零件沒有旋轉時採用**——有旋轉時 world 軸跟
+  // part-local 軸不一致,換算另有學問,寧可退回既有啟發式(不會比現況差)。
+  const axisHint = mortiseAxisHint(part, m);
+  /**
+   * ⭐ 「離面 1mm」的面別標記優先於下面那套猜測。
+   *
+   * 腳上的牙條 / 橫撐榫眼慣例是:入榫那一軸放 ±LEG_FACE_INSET(±1),
+   * **另一軸放橫向位移量**。位移量一大(例如牙條縮進讓 origin.x = −7.5),
+   * 「哪一軸離面最近」就會挑錯軸 —— 上面第 ② 條註解講的就是這個,
+   * 2026-08-25 加「牙條縮進」時再度撞到:1:1 樣板從 2 張變 4 張、孔畫在錯的面。
+   *
+   * 標記本身是明確訊號,不用猜:剛好一個軸的絕對值 === 1 就用那一軸。
+   * (兩軸都是 1 或都不是 1 → 退回原本的啟發式,行為不變。)
+   */
+  const MARK = 1;   // LEG_FACE_INSET
+  const xMarked = Math.abs(Math.abs(m.origin.x) - MARK) < 1e-6;
+  const zMarked = Math.abs(Math.abs(m.origin.z) - MARK) < 1e-6;
+  if (axisHint) {
+    depthAxis = axisHint;
+  } else if (xMarked !== zMarked && lx > 2 * MARK + 1 && lz > 2 * MARK + 1) {
+    depthAxis = xMarked ? "x" : "z";
+  } else if (m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0) {
+    depthAxis = "y";
+  } else if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {
     depthAxis = xToFace <= zToFace ? "x" : "z";
   } else if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
   else if (xToFace <= zToFace) depthAxis = "x";
@@ -590,15 +985,33 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   const PERP_SHRINK = 0;
   if (depthAxis === "y") {
     const enterTop = m.origin.y > ly / 2;
-    const cyL = m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
+    // cosmetic 穿透切口：depth≈板厚（真‧貫穿整個板厚，如紅酒架搭接缺口）→ cy=0 全厚置中
+    // （否則只畫到半厚、偏一邊，user 回報）；depth<板厚（單面凹槽，如外撇托盤手把孔、工具牆
+    // 鑿槽）→ 維持 oyC 用 origin.y 給的中心（貼某一面、不置中）。
+    const cyL = m.cosmetic && m.through
+      ? (Math.abs(D - ly) < 1 ? 0 : oyC)
+      : (m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2));
     const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
     const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
-    const longOnZ = zFace > xFace;
+    // 嵌槽判別（2026-06-13 開放書櫃側板 dado 翻向修，⚠️與 annotation
+    // mortiseEntryBox y 分支同步）：只有一軸塞得下 → 該軸；都塞得下且某軸
+    // 填滿率 >0.8（dado 特徵）→ 填滿率高的軸；其他維持距面較遠舊邏輯。
+    const fitX = longDim <= lx * 1.05;
+    const fitZ = longDim <= lz * 1.05;
+    // cosmetic 穿透切口（half-lap 搭接缺口/指槽）footprint=length×width 明確，不該 auto-fit
+    // 重猜軸（否則零件圖會多畫一條擺錯軸的「橫躺長孔」，跟 annotation mortiseEntryBox 同步）。
+    const longOnZ = m.cosmetic && m.through && Lm !== Wm
+      ? Wm > Lm
+      : fitX !== fitZ
+        ? fitZ
+        : fitX && (longDim / lz > 0.8 || longDim / lx > 0.8)
+          ? longDim / lz >= longDim / lx
+          : zFace > xFace;
     const useX = Math.max(0.1, (longOnZ ? shortDim : longDim) - PERP_SHRINK * 2);
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
-    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2 };
+    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX, rotY: m.rotY, depthAxis: "y" };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
@@ -609,7 +1022,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
-    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2 };
+    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2, rotX: m.rotX, depthAxis: "x" };
   } else {
     // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg），
     // 或門橫檔內側面的鑲板槽（length 沿 rail 長度 = X 軸）。
@@ -624,38 +1037,337 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useY = Math.max(0.1, (longOnX ? shortDim : longDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
-    return { cx: cxClipped, cy: cyClipped, cz: czL, hx: useX / 2, hy: useY / 2, hz: D / 2 };
+    return { cx: cxClipped, cy: cyClipped, cz: czL, hx: useX / 2, hy: useY / 2, hz: D / 2, rotZ: m.rotZ, depthAxis: "z" };
   }
 }
 
+/**
+ * 仰視 BOTTOM view：把 design 沿 XZ 平面（Y=0）鏡像，內部當作 top view 渲染。
+ *
+ * 鏡像 = 每個 part 的 origin.y 反號 + 繞 part-local X 軸再轉 180°。後者讓 part
+ * 局部「底面」（local +Y）轉到世界 -Y 方向，等同從下方看的視角。
+ *
+ * ⚠️ tenon 的中心偏移（offsetWidth / offsetThickness）不會「自動」被 rotation
+ * 翻對：tenonLocalBox 把 offset 套進 part-local 的 cx/cy/cz，而繞 local X 轉
+ * 180° 只翻 cy/cz、不翻 cx。所以 offset 落在被翻軸（cy/cz）時要手動反號補正，
+ * 否則牙板「上半榫/下半榫」在仰視(BOTTOM)/零件圖正視會上下顛倒
+ * （user 2026-06-01 回報：3D 前後牙條榫在下、零件圖卻畫在上）。
+ * 按 position 分軸（對齊 tenonLocalBox §A10）：
+ *   - start/end ：offsetWidth→cz、offsetThickness→cy，兩者都被翻 → 都反號
+ *   - top/bottom：offsetWidth→cx（不翻）、offsetThickness→cz（翻）→ 只反 offsetThickness
+ *   - left/right：offsetWidth→cy（翻）、offsetThickness→cx（不翻）→ 只反 offsetWidth
+ * leg 頂榫(top, offsetWidth→cx)實測不受影響，驗證見 commit 訊息。
+ *
+ * 此處不動 part.shape 的 Y 不對稱參數（如 tapered.bottomScale）；
+ * π rotation 已把 local +Y 轉到世界 -Y，幾何 silhouette 會自然從反面看。
+ */
+export function mirrorYPart(p: import("@/lib/types").Part): import("@/lib/types").Part {
+  const flipTenonOffset = (
+    t: import("@/lib/types").Tenon,
+  ): import("@/lib/types").Tenon => {
+    const flipW =
+      t.position === "start" ||
+      t.position === "end" ||
+      t.position === "left" ||
+      t.position === "right";
+    const flipT =
+      t.position === "start" ||
+      t.position === "end" ||
+      t.position === "top" ||
+      t.position === "bottom";
+    const next = { ...t };
+    if (flipW && t.offsetWidth != null) next.offsetWidth = -t.offsetWidth;
+    if (flipT && t.offsetThickness != null)
+      next.offsetThickness = -t.offsetThickness;
+    return next;
+  };
+  return {
+    ...p,
+    origin: { x: p.origin.x, y: -p.origin.y, z: p.origin.z },
+    rotation: {
+      x: (p.rotation?.x ?? 0) + Math.PI,
+      y: p.rotation?.y ?? 0,
+      z: p.rotation?.z ?? 0,
+    },
+    tenons: p.tenons?.map(flipTenonOffset) ?? p.tenons,
+  };
+}
+function mirrorYDesign(d: import("@/lib/types").FurnitureDesign): import("@/lib/types").FurnitureDesign {
+  return {
+    ...d,
+    parts: d.parts.map(mirrorYPart),
+  };
+}
+
 /** Single orthographic view with engineering-drawing frame and dim lines */
-export function OrthoView({
-  design,
-  view,
+function OrthoViewImpl({
+  design: rawDesign,
+  view: rawView,
   title,
   titleEn,
   className,
   joineryMode = false,
+  isolatePartId,
+  showDimensions = true,
+  overlayContent,
+  noTitleInSvg = false,
+  paperMode,
+  paperScale,
+  paperBroken,
+  paperTitleBlock,
+  paperViewport,
+  paperFrame = true,
+  embedded = false,
+  locale = "zh-TW",
+  unit,
 }: ViewProps & {
-  view: OrthoView;
+  view: OrthoViewKind;
   title: string;
   titleEn: string;
   /** 覆蓋 SVG 預設 className（預設 "bg-white w-full h-auto max-h-[70vh]"） */
   className?: string;
   /** 榫接模式：在三視圖上加畫公榫凸出（實線）+ 母榫（虛線）+ 肩寬虛線 */
   joineryMode?: boolean;
+  /** 零件圖：只渲染這個 part.id、把它 recenter 到原點。預設 undefined = 渲染整套。 */
+  isolatePartId?: string;
+  /** 是否顯示尺寸標註層（dim lines / scale bar / 方位標記）。預設 true。
+   *  PartDrawing 會傳 false 然後自己畫零件層級的標註。*/
+  showDimensions?: boolean;
+  /** 零件圖 overlay slot：給定 viewBox 上下文，回 SVG 元素疊在最上層。
+   *  例如 T1 全長尺寸/T2 榫卯虛框/木紋箭頭等。*/
+  overlayContent?: (ctx: OrthoViewBoxCtx) => React.ReactNode;
+  /**
+   * 不在 SVG 內畫 title bar（外框 + 標題列底線 + title/titleEn text）。
+   * 預設 false（保留既有行為）。PartDrawing zoom 模式設 true、自己用 HTML
+   * 在 SVG 外畫標題，避免 transform: scale(zoom) 把 SVG 內的標題字也一起放大。
+   */
+  noTitleInSvg?: boolean;
+  /**
+   * 零件圖正規製圖紙張模式（Step 1）。設為 "a4-landscape" 時：
+   *   - viewBox 固定 0 0 297 210（A4 横式 mm）
+   *   - silhouette + overlay 套 <g transform="translate(cx, cy) scale(1/scale)">
+   *   - paperScale denominator 由 caller（PartDrawing）算好傳進
+   * 預設 undefined → 走既有 isolatePartId 動態 padding 邏輯。
+   */
+  paperMode?: "a4-landscape";
+  /** paperMode 對應的 CNS 比例分母（pickScaleForPaper 結果）。 */
+  paperScale?: number;
+  /** paperMode + needBrokenView 時，broken view 切割參數（傳 null 不切）。 */
+  paperBroken?: import("@/lib/render/part-drawing/broken-view").BrokenViewSpec | null;
+  /** paperMode title block 欄位（件號/材料/數量/尺寸）。 */
+  paperTitleBlock?: {
+    partNo: string;
+    count: number;
+    materialLabel: string;
+    dimsLabel: string; // e.g. "35×35×425"
+  };
+  /** paperMode 自訂 viewport 中心（A4 mm 座標）。
+   *  L 型佈局時 PaperSheet wrapper 用這個把 3 個 view 放到不同位置。
+   *  傳 undefined → 預設置中於 drawing area 中央。 */
+  paperViewport?: { x: number; y: number; w: number; h: number };
+  /** 是否渲染 A4 紙面 chrome（外框/標題列/標題欄/比例尺/投影符號）。
+   *  L 型 PaperSheet 已自繪 chrome,3 個內嵌 view 該設 false。預設 true。 */
+  paperFrame?: boolean;
+  /** 是否回 <g> 而非 <svg>，給 PaperSheet 多 view 共用同一 outer SVG。 */
+  embedded?: boolean;
+  /** 'zh-TW'（預設）或 'en'。影響 SVG 內 dim label 文字（寬/深/高/內/外伸…）。 */
+  locale?: string;
+  /** 'mm' | 'inch'，控制長度數值格式。未傳時依 locale 推（en→inch、其他→mm），
+   *  讓使用者透過 UnitToggle 可以在中文站切英寸 / 英文站切 mm 不被綁死。 */
+  unit?: "mm" | "inch";
 }) {
-  const { overall } = design;
+  const isEn = locale === "en";
+  const effectiveUnit: "mm" | "inch" = unit ?? (isEn ? "inch" : "mm");
+  const useInch = effectiveUnit === "inch";
+  // useInch 時長度標籤從「123 mm」改成「4-13/16"」(1/16" 精度).
+  // mm 端保留 Math.round 整數呈現 — 桌長 800.4mm 標 800mm，師傅看到不會多想。
+  const dimMm = (mm: number): string =>
+    useInch ? formatInchFraction(mm) : `${Math.round(mm)} mm`;
+  // 小數一位版：梯形橫撐上/下邊長度要跟零件圖(round1)同精度,整數會跟
+  // 零件圖的 285.2 對不上(user 2026-06-01)。inch 模式沿用分數。
+  const dimMm1 = (mm: number): string =>
+    useInch ? formatInchFraction(mm) : `${(Math.round(mm * 10) / 10).toFixed(1)} mm`;
+  // 仰視 BOTTOM = top view 看「Y 軸鏡像」後的 design。
+  // 內部所有 view ===、投影、visibility 邏輯都用 top 跑，使用者標題顯示「仰視」。
+  const isBottomView = rawView === "bottom";
+  const view: OrthoViewKind = isBottomView ? "top" : rawView;
+  const design = isBottomView ? mirrorYDesign(rawDesign) : rawDesign;
+  // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
+  // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
+  const renderDesign = isolatePartId
+    ? (() => {
+        const isolated = design.parts
+          .filter((p) => p.id === isolatePartId)
+          .map((p) => {
+            // splayed-tapered / splayed-round-tapered：零件圖顯示「加工姿態」=未傾斜的
+            // 錐形料（splay 只是組裝傾斜角、非料本身形狀；splay 資訊在 ShapeSpecificAnnotation
+            // 的「複斜腳 X/Z-splay」文字）。直接降成純 tapered / round-tapered，三視圖全照
+            // 一般錐形腳單調錐縮渲染。⚠ 舊作法只清零 dx/dz、保留 splayed-tapered kind，會讓
+            // 正視走外斜腳專屬 line 渲染、把錐縮畫成「兩端全高中間窄」的沙漏
+            //（user 2026-06-14 圓凳外斜方錐腳「輪廓不是錐形/正視還是有問題」）。
+            // 純 splayed（無錐縮）→ 保留 dx/dz，渲染原本平行四邊形（斜邊）。
+            let nextShape = p.shape;
+            if (p.shape?.kind === "splayed-tapered") {
+              nextShape = { kind: "tapered", bottomScale: p.shape.bottomScale };
+            } else if (p.shape?.kind === "splayed-round-tapered") {
+              nextShape = { kind: "round-tapered", bottomScale: p.shape.bottomScale };
+            } else if (p.shape?.kind === "mitered-ends" && p.shape.vertices) {
+              // 複斜外撇牆（splay 托盤）：vertices 把「組裝傾斜」烘進 mesh。
+              // 零件卡要顯示「加工姿態」——料是平板（斜切兩端、垂直鑽孔），
+              // 不是斜著的成品姿態（user 2026-06-11 外撇左壁卡：俯視斜 pill
+              // 突出薄板、側視平行四邊形）。反烘：丟 vertices/tilt/bevel 走
+              // 直立 ring extrude（端面顯示 45° 斜切）。
+              nextShape = {
+                ...p.shape,
+                vertices: undefined,
+                tiltAngle: 0,
+                bevelAngle: 0,
+              };
+            }
+            // 同步歸位「板平著挖」的 cosmetic 斜孔（外撇手把）：mesh 反烘成
+            // 平板後，孔心回壁厚中心、rotX 清零、深 = 壁厚（維持貫穿）。
+            // 僅反烘「貫穿」型（外撇牆/托盤手把）；非貫穿斜槽（百葉門 25° 斜淺槽）
+            // 保留斜度，下方 cosmetic outline 才會（依 isolate+rotX 判斷）讓位給
+            // annotation 的剪切斜框、不疊出軸對齊直框（user 2026-06-18「兩個一上一下」）。
+            const nextMortises = p.mortises.map((m) =>
+              m.cosmetic && m.through && (m.rotX || m.rotZ)
+                ? {
+                    ...m,
+                    origin: { ...m.origin, y: p.visible.thickness / 2 },
+                    rotX: 0,
+                    rotZ: 0,
+                    depth: p.visible.thickness,
+                  }
+                : m,
+            );
+
+            // 橫向正規製圖：偵測 part 三軸最大者，加 rotation 讓長軸轉到水平
+            //   local X = visible.length,  local Y = visible.thickness,  local Z = visible.width
+            //   想要 longest 軸落在 world X（front view r.w 方向 = 水平）
+            //     length 最長 → 不旋轉
+            //     thickness 最長 → rotation.z = -π/2 把 local Y 轉到 world X
+            //     width 最長 → rotation.y = -π/2 把 local Z 轉到 world X
+            const L = p.visible.length;
+            const T = p.visible.thickness;
+            const W = p.visible.width;
+            let rotation = { x: 0, y: 0, z: 0 };
+            if (T > L && T >= W) {
+              rotation = { x: 0, y: 0, z: -Math.PI / 2 };
+            } else if (W > L && W > T) {
+              rotation = { x: 0, y: -Math.PI / 2, z: 0 };
+            }
+
+            return {
+              ...p,
+              origin: { x: 0, y: 0, z: 0 },
+              rotation,
+              shape: nextShape,
+              mortises: nextMortises,
+            };
+          });
+        if (!isolated.length) return design;
+        const p = isolated[0];
+        // 同步更新 overall——用 worldExtents 算旋轉後的 bbox,讓圖紙框跟著 part
+        // 旋轉變橫向（rotation.z=-π/2 把 thickness 轉到水平 → overall.length
+        // = worldExtents.xExt = 原 thickness）。
+        // 若直接用 p.visible.thickness 當高度,框會維持 portrait、橫躺的 part 會
+        // 突出框外。
+        const we = worldExtents(p);
+        return {
+          ...design,
+          parts: isolated,
+          overall: {
+            length: we.xExt,
+            width: we.zExt,
+            thickness: we.yExt,
+          },
+        };
+      })()
+    : design;
+  const { overall } = renderDesign;
   const w = view === "side" ? overall.width : overall.length;
   const h = view === "top" ? overall.width : overall.thickness;
 
-  const vbW = w + PADDING * 2;
-  const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
-  const vbX = -PADDING - w / 2;
+  // 正/側視圖共用同一 viewBox 寬（取 max(length, width)），讓兩張圖
+  // 同 mm 對到同 px。否則側視圖在同樣容器寬下會被放大、120mm 高看起來
+  // 比正視圖大一截。Top 視圖維持自己 vbW。
+  const vbContentW =
+    view === "front" || view === "side"
+      ? Math.max(overall.length, overall.width)
+      : w;
+  // noTitleInSvg=true 時不保留 SVG 內 title bar 空間（PartDrawing zoom 模式
+  // 會在 SVG 外另畫 HTML 標題、避免 transform:scale 把標題字一起放大）
+  const reservedTitleH = noTitleInSvg ? 0 : TITLE_BAR_H;
+  // 零件圖（isolatePartId）：固定 PADDING=220 對「整套家具」是必要（容納
+  // 整片 dim chain + 工序文字 + zone 鏈），但對單一零件來說太誇張——一支
+  // 35×425mm 的腳套 220mm padding 後 viewBox 寬 475mm，腳只佔 7% 寬，
+  // 視覺上整片白邊配右下角小小的剪影（Inspector A 多家具回報）。
+  // 改用「跟 part 較大邊成比例 + T1 dim line 預留」的動態 padding：
+  //   - T1Dimensions 需 HORIZ_OFFSET 18-30 + VERT_OFFSET 70 + 文字寬約 34
+  //   - 取 max(128, 0.15 × part 較大邊)，上限 PADDING（220）保底
+  // ⚠ 下限 64 是 VERT_OFFSET=50 年代算的；50→70 後沒同步 → 用到下限的
+  //   part（托盤底板 392×272）右側「寬 272」label 畫在 viewBox 外被切掉
+  //   （user 2026-06-11 托盤回報「底板卡缺寬」）。128 = 70 + 58（「寬 1000」級長標）。
+  // 對 1000mm 圓桌面：max(104, 150) = 150mm、viewBox 寬 1300mm、桌面佔 77%（OK）
+  // 頂端榫頭凸出量 — front/side view 看到「top tenon」沿 +Y 凸；top view 看到
+  // length/width 端面 tenon 沿 ±X/±Z 凸。padding 不夠的話 T1 dim chain（含榫
+  // 標籤）+ title bar 會撞在一起。
+  // front/side view：top tenon 朝畫面上方凸出，dim chain 會被推到 part top
+  // 之上 (tenon.length + HORIZ_OFFSET + label) 處。top view 不算這條，因為
+  // top view 看 L×W 平面，tenon 凸出方向是 ±X / ±Z（水平），不影響上邊距。
+  const maxTenonProtrusion = isolatePartId && renderDesign.parts[0] && view !== "top"
+    ? Math.max(
+        0,
+        ...renderDesign.parts[0].tenons
+          .filter((t) => t.position === "top")
+          .map((t) => t.length),
+      )
+    : 0;
+  // T1 dim chain 上推：HORIZ_OFFSET(30) + GROSS_GAP(14) + text height(12) + 上箭頭
+  // facing mark(16) + safety(8) = 80。少於這個會跟 title bar 卡同一線。
+  // splay 件的虛線傾斜輪廓會往上爬 max(|dx|,|dz|)，gross dim 跟著被推高，
+  // 不算進去會讓「含榫/長」dim 線頂進 title bar
+  //（user 2026-06-12「三個視圖的標題擋到圖」——splay 腳卡最明顯）。
+  const isoShape = isolatePartId ? renderDesign.parts[0]?.shape : undefined;
+  const splayClimb =
+    isoShape &&
+    (isoShape.kind === "splayed" ||
+      isoShape.kind === "splayed-tapered" ||
+      isoShape.kind === "splayed-round-tapered")
+      ? Math.max(Math.abs(isoShape.dxMm ?? 0), Math.abs(isoShape.dzMm ?? 0))
+      : 0;
+  const tenonTopBuffer =
+    maxTenonProtrusion > 0 || splayClimb > 0
+      ? maxTenonProtrusion + splayClimb + 80
+      : 0;
+  // 全 isolate 卡上方固定加 24 呼吸空間：「含榫/長」雙行 dim + 文字
+  // 與 title bar 底線間留白，避免任何件貼線。
+  const ISOLATE_TOP_EXTRA = 24;
+  const isolateTopExtra = isolatePartId ? ISOLATE_TOP_EXTRA : 0;
+  const isolatePadding = isolatePartId
+    ? Math.min(
+        PADDING,
+        Math.max(128, 0.15 * Math.max(overall.length, overall.width, overall.thickness), tenonTopBuffer),
+      )
+    : PADDING;
+  const isolateDimOffset = isolatePartId
+    ? Math.max(36, isolatePadding * 0.4)
+    : DIM_OFFSET;
+  // 主視圖（非 isolate）front/side 右側「座下高 / 桌下淨高 + 數值 + mm」高度標線
+  // 放在 x = w/2 + 140，220 padding 只剩 80px，但 4 字長標籤（如「桌下淨高 1234 mm」
+  // ≈ 108px）會被 viewBox 右緣切掉（user 2026-06-14 吧台椅主視圖回報，實為餐椅/
+  // 餐桌/圓凳/書桌/長凳/邊桌等全腳類家具通病，溢出 14–27px）。右側多留 48px
+  // （只擴 vbW、vbX 不動 → 額外空間全給右邊；isolate 零件卡不受影響、其標籤另以
+  //  end-anchor clamp 處理）。
+  const mainRightExtra =
+    !isolatePartId && (view === "front" || view === "side") ? 48 : 0;
+  const vbW = vbContentW + isolatePadding * 2 + mainRightExtra;
+  const vbH = h + isolatePadding * 2 + isolateTopExtra + isolateDimOffset + reservedTitleH;
+  const vbX = -isolatePadding - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
   // front/side views use natural flipY so parts span y=-h..0.
   const drawAreaTop = view === "top" ? -h / 2 : -h;
-  const vbY = drawAreaTop - PADDING - TITLE_BAR_H;
+  const vbY = drawAreaTop - isolatePadding - isolateTopExtra - reservedTitleH;
 
   // Frame: enclose drawing + title bar + dim area
   const frameX = vbX + 8;
@@ -663,12 +1375,78 @@ export function OrthoView({
   const frameW = vbW - 16;
   const frameH = vbH - 16;
 
+  // Build overlay ctx only when consumer asks — avoid projector overhead otherwise.
+  // 零件圖模式（isolatePartId 設）下，renderDesign.parts[0] 就是 recentered 的 part，
+  // 它的 makeProjector 直接吃 part-local mm 回到 SVG 座標。
+  // 整套模式下沒有單一 part，給 no-op projector 讓 caller 可選擇不依賴此欄位。
+  const isolateClipId =
+    isolatePartId && renderDesign.parts.length > 0
+      ? `psil-${isolatePartId}-${view}`
+      : undefined;
+  const overlayCtx: OrthoViewBoxCtx | null = overlayContent
+    ? {
+        vbX,
+        vbY,
+        vbW,
+        vbH,
+        partClipId: isolateClipId,
+        // 注意：silhouette 渲染時用 -p.y 翻 Y（svg-views 內部慣例）。
+        // overlay (T1/T2/dim line) 為了跟 silhouette 對齊、也需要負 Y。
+        // 這裡的 partLocalToSvg wrap projector、output y 已翻好不用 caller 再處理。
+        partLocalToSvg:
+          isolatePartId && renderDesign.parts.length > 0
+            ? (() => {
+                const proj = makeProjector(renderDesign.parts[0], view);
+                return (x: number, y: number, z: number) => {
+                  const p = proj(x, y, z);
+                  return { x: p.x, y: -p.y };
+                };
+              })()
+            : (_x: number, _y: number, _z: number) => ({ x: 0, y: 0 }),
+      }
+    : null;
+
+  // ─── Paper mode (Step 1)：A4 横式紙面 ─────────────────────────────────
+  // viewBox 固定 0 0 297 210，把既有 inner content（part-local mm）用
+  // <g transform="translate(...) scale(1/n)"> 映射到紙面主繪圖區中央。
+  // partLocalToSvg 仍輸出原 mm（不變語意），overlay 跟 silhouette 同 group。
+  const isPaper = paperMode === "a4-landscape";
+  const paperScaleN = isPaper ? Math.max(1, paperScale ?? 1) : 1;
+  const outerViewBox = isPaper
+    ? `0 0 297 210`
+    : `${vbX} ${vbY} ${vbW} ${vbH}`;
+  // 把原 inner viewBox 中心 (innerCx, innerCy) 映射到紙面 viewport 中心
+  // (paperCx, paperCy)：translate 量 = paperC - innerC/n
+  // paperViewport 設定時用該 region 中心,否則用 drawing area 中央
+  const innerCx = vbX + vbW / 2;
+  const innerCy = vbY + vbH / 2;
+  const paperCx = paperViewport
+    ? paperViewport.x + paperViewport.w / 2
+    : (10 + 287) / 2; // 148.5
+  const paperCy = paperViewport
+    ? paperViewport.y + paperViewport.h / 2
+    : (24 + 180) / 2; // 102
+  const paperTx = paperCx - innerCx / paperScaleN;
+  const paperTy = paperCy - innerCy / paperScaleN;
+  const paperGroupTransform = isPaper
+    ? `translate(${paperTx} ${paperTy}) scale(${1 / paperScaleN})`
+    : undefined;
+
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    embedded ? (
+      <g>{children}</g>
+    ) : (
+      <svg
+        viewBox={outerViewBox}
+        preserveAspectRatio="xMidYMid meet"
+        className={className ?? "bg-white w-full h-auto max-h-[70vh]"}
+      >
+        {children}
+      </svg>
+    );
+
   return (
-    <svg
-      viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
-      preserveAspectRatio="xMidYMid meet"
-      className={className ?? "bg-white w-full h-auto max-h-[70vh]"}
-    >
+    <Wrapper>
       <defs>
         <marker
           id={`arr-${view}`}
@@ -686,51 +1464,312 @@ export function OrthoView({
         <clipPath id={`leftHalf-${view}`}>
           <rect x={vbX} y={vbY} width={-vbX} height={vbH} />
         </clipPath>
+        {/* 零件圖 isolate：本零件 silhouette clipPath（T2 mortise 紅框裁邊用）。
+            splay 腳例外：本卡「實線＝未傾斜方料」才是加工本體（虛線只是
+            傾斜示意），斜挖的眼框要裁進實線方料框、不是傾斜輪廓
+            （user 2026-06-12「要畫在實線腳上」）。 */}
+        {isolateClipId && (() => {
+          const isoP = renderDesign.parts[0];
+          const isoSplay =
+            isoP.shape?.kind === "splayed" ||
+            isoP.shape?.kind === "splayed-tapered" ||
+            isoP.shape?.kind === "splayed-round-tapered";
+          return (
+            <clipPath id={isolateClipId}>
+              {isoSplay ? (
+                <rect x={-w / 2} y={drawAreaTop} width={w} height={h} />
+              ) : (
+                <polygon
+                  points={projectPartSilhouette(isoP, view)
+                    .map((pt) => `${pt.x.toFixed(2)},${(-pt.y).toFixed(2)}`)
+                    .join(" ")}
+                />
+              )}
+            </clipPath>
+          );
+        })()}
       </defs>
 
-      {/* outer frame */}
-      <rect
-        x={frameX}
-        y={frameY}
-        width={frameW}
-        height={frameH}
-        fill="none"
-        stroke="#222"
-        strokeWidth={1}
-      />
+      {/* Paper mode（Step 1）：A4 紙面外框 + title bar + title block，
+          放在 scaled group **外**，這樣文字/框線不受 1/n 縮放影響。
+          paperFrame=false（L 型 PaperSheet wrap 已自繪 chrome 時）跳過。 */}
+      {isPaper && paperFrame && (
+        <g fontFamily="sans-serif">
+          {/* A4 紙面外框 */}
+          <rect
+            x={0.5}
+            y={0.5}
+            width={296}
+            height={209}
+            fill="none"
+            stroke="#222"
+            strokeWidth={0.5}
+          />
+          {/* Title bar 區（y 8~20） */}
+          <line
+            x1={10}
+            x2={287}
+            y1={20}
+            y2={20}
+            stroke="#222"
+            strokeWidth={0.4}
+          />
+          <text
+            x={12}
+            y={16.5}
+            fontSize={5}
+            fontWeight={700}
+            fill="#111"
+          >
+            {title}
+            <tspan dx={3} fontSize={3.5} fontWeight={400} fill="#666">
+              {titleEn}
+            </tspan>
+          </text>
+          <text
+            x={285}
+            y={16.5}
+            fontSize={4}
+            fill="#444"
+            textAnchor="end"
+          >
+            比例 1:{paperScaleN}
+          </text>
+          {/* Drawing area inner border (淺色輔助) */}
+          <rect
+            x={10}
+            y={24}
+            width={277}
+            height={156}
+            fill="none"
+            stroke="#ddd"
+            strokeWidth={0.2}
+            strokeDasharray="1 1"
+          />
 
-      {/* title bar at top */}
-      <g>
-        <line
-          x1={frameX}
-          x2={frameX + frameW}
-          y1={frameY + TITLE_BAR_H}
-          y2={frameY + TITLE_BAR_H}
-          stroke="#222"
-          strokeWidth={0.6}
-        />
-        <text
-          x={frameX + 10}
-          y={frameY + TITLE_BAR_H - 10}
-          fontSize={13}
-          fontWeight="700"
-          fill="#111"
-          fontFamily="sans-serif"
-        >
-          {title}
-        </text>
-        <text
-          x={frameX + 10}
-          y={frameY + TITLE_BAR_H - 10}
-          dx={70}
-          dy="14"
-          fontSize={10}
-          fill="#666"
-          fontFamily="sans-serif"
-        >
-          {titleEn}
-        </text>
-      </g>
+          {/* 比例尺條 — 實體 50mm 真實長度，按比例縮畫
+              印 1:1 時影印縮放仍能對照真實尺寸 */}
+          {(() => {
+            const realMm = 50;
+            const barMm = realMm / paperScaleN; // 紙上 mm
+            if (barMm < 4 || barMm > 60) return null;
+            const barX = 200;
+            const barY = 178;
+            return (
+              <g fontFamily="sans-serif">
+                {/* 主刻度線 5 分 */}
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <line
+                    key={i}
+                    x1={barX + (barMm * i) / 5}
+                    x2={barX + (barMm * i) / 5}
+                    y1={barY - (i % 5 === 0 ? 2 : 1)}
+                    y2={barY}
+                    stroke="#222"
+                    strokeWidth={0.3}
+                  />
+                ))}
+                {/* 主橫條 */}
+                <line
+                  x1={barX}
+                  x2={barX + barMm}
+                  y1={barY}
+                  y2={barY}
+                  stroke="#222"
+                  strokeWidth={0.4}
+                />
+                <text x={barX} y={barY + 4} fontSize={2.8} fill="#444">
+                  0
+                </text>
+                <text
+                  x={barX + barMm}
+                  y={barY + 4}
+                  fontSize={2.8}
+                  fill="#444"
+                  textAnchor="end"
+                >
+                  {useInch ? formatInchFraction(realMm) : `${realMm}mm`}
+                </text>
+              </g>
+            );
+          })()}
+
+          {/* 第三角法投影符號（CNS / JIS / ASME 慣例）
+              兩塊：左 = 圓+同心小圓（從圓錐大端看）、右 = 梯形（側面看）
+              木工不一定需要，但符合製圖規範，學員教學/正式圖紙都該有 */}
+          {(() => {
+            const sx = 168;
+            const sy = 184;
+            const w = 6;
+            return (
+              <g fontFamily="sans-serif">
+                {/* 左方塊：兩個同心圓 */}
+                <circle
+                  cx={sx + w / 2}
+                  cy={sy + 6}
+                  r={2.5}
+                  fill="none"
+                  stroke="#333"
+                  strokeWidth={0.3}
+                />
+                <circle
+                  cx={sx + w / 2}
+                  cy={sy + 6}
+                  r={1.2}
+                  fill="none"
+                  stroke="#333"
+                  strokeWidth={0.3}
+                />
+                {/* 右方塊：梯形 */}
+                <path
+                  d={`M ${sx + w + 1} ${sy + 8.5}
+                      L ${sx + w + 1} ${sy + 3.5}
+                      L ${sx + w + 6} ${sy + 4.5}
+                      L ${sx + w + 6} ${sy + 7.5} Z`}
+                  fill="none"
+                  stroke="#333"
+                  strokeWidth={0.3}
+                />
+                <text x={sx} y={sy + 2.5} fontSize={2.4} fill="#666">
+                  第三角法
+                </text>
+              </g>
+            );
+          })()}
+          {/* Title block 區（y 182~202）— CNS 六大必備欄位
+              寬 277mm 分 6 等：每格 ~46mm（件號/件名/材料/數量/比例/尺寸）*/}
+          <line
+            x1={10}
+            x2={287}
+            y1={182}
+            y2={182}
+            stroke="#222"
+            strokeWidth={0.5}
+          />
+          <rect
+            x={10}
+            y={182}
+            width={277}
+            height={20}
+            fill="none"
+            stroke="#222"
+            strokeWidth={0.4}
+          />
+          {/* 6 個欄位垂直分割線 */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <line
+              key={i}
+              x1={10 + (277 / 6) * i}
+              x2={10 + (277 / 6) * i}
+              y1={182}
+              y2={202}
+              stroke="#222"
+              strokeWidth={0.3}
+            />
+          ))}
+          {/* 欄位標籤 + 值 */}
+          {(() => {
+            const colW = 277 / 6;
+            // Title-block field labels — chosen short so they fit a 277/6 mm column.
+            // We pick EN labels when the OrthoView title starts with an ASCII letter
+            // (which only happens when ThreeViewLayout passed an EN title), otherwise zh.
+            const enTitleBlock = /^[A-Z]/.test(title);
+            const cols: Array<{ label: string; value: string }> = enTitleBlock
+              ? [
+                  { label: "Part #", value: paperTitleBlock?.partNo ?? "—" },
+                  { label: "Name", value: title },
+                  { label: "Material", value: paperTitleBlock?.materialLabel ?? "—" },
+                  { label: "Qty", value: `×${paperTitleBlock?.count ?? 1}` },
+                  { label: "Scale", value: `1:${paperScaleN}` },
+                  { label: useInch ? "Size in" : "Size mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+                ]
+              : [
+                  { label: "件號", value: paperTitleBlock?.partNo ?? "—" },
+                  { label: "件名", value: title },
+                  { label: "材料", value: paperTitleBlock?.materialLabel ?? "—" },
+                  { label: "數量", value: `×${paperTitleBlock?.count ?? 1}` },
+                  { label: "比例", value: `1:${paperScaleN}` },
+                  { label: useInch ? "尺寸 in" : "尺寸 mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+                ];
+            return cols.map((c, i) => {
+              const cx = 10 + colW * i + colW / 2;
+              return (
+                <g key={i}>
+                  <text
+                    x={cx}
+                    y={189}
+                    fontSize={3}
+                    fill="#666"
+                    textAnchor="middle"
+                  >
+                    {c.label}
+                  </text>
+                  <text
+                    x={cx}
+                    y={198}
+                    fontSize={4.5}
+                    fontWeight={700}
+                    fill="#111"
+                    textAnchor="middle"
+                  >
+                    {c.value}
+                  </text>
+                </g>
+              );
+            });
+          })()}
+        </g>
+      )}
+
+      {/* 把 inner content 包進 scaled group（paperMode 才有 transform）；
+          一般模式 transform=undefined → React 不會輸出 transform 屬性。 */}
+      <g transform={paperGroupTransform}>
+
+      {/* outer frame + title bar — 預設保留；noTitleInSvg=true（PartDrawing zoom 模式）
+          時整組跳過，由 caller 用 HTML 在 SVG 外畫標題，避免 transform:scale
+          連帶把這層 SVG 文字也一起放大。
+          paperMode 時也跳過（紙面外框由上面 isPaper 區處理） */}
+      {!noTitleInSvg && !isPaper && (
+        <>
+          <rect
+            x={frameX}
+            y={frameY}
+            width={frameW}
+            height={frameH}
+            fill="none"
+            stroke="#222"
+            strokeWidth={1}
+          />
+          <g>
+            <line
+              x1={frameX}
+              x2={frameX + frameW}
+              y1={frameY + TITLE_BAR_H}
+              y2={frameY + TITLE_BAR_H}
+              stroke="#222"
+              strokeWidth={0.6}
+            />
+            <text
+              x={frameX + 10}
+              y={frameY + TITLE_BAR_H - 10}
+              fontSize={13}
+              fontWeight="700"
+              fill="#111"
+              fontFamily="sans-serif"
+            >
+              {title}
+              <tspan
+                dx={8}
+                fontSize={10}
+                fontWeight="400"
+                fill="#666"
+              >
+                {titleEn}
+              </tspan>
+            </text>
+          </g>
+        </>
+      )}
 
       {/* center lines (dot-dash) */}
       <g stroke="#888" strokeWidth={0.5} strokeDasharray="8 2 2 2" opacity={0.7}>
@@ -744,7 +1783,89 @@ export function OrthoView({
       </g>
 
       {/* parts — line-art style: visible solid, hidden dashed */}
-      {sortPartsByDepth(design.parts, view).map((part) => {
+      {(() => {
+        const sortedParts = sortPartsByDepth(
+          joineryMode
+            ? renderDesign.parts.map((p) =>
+                p.joineryView
+                  ? {
+                      ...p,
+                      shape: p.joineryView.shape ?? p.shape,
+                      visible: p.joineryView.visible ?? p.visible,
+                      origin: p.joineryView.origin ?? p.origin,
+                    }
+                  : p,
+              )
+            : renderDesign.parts,
+          view,
+        );
+
+        // 俯視 dot-cloud dedup（chinese-cabinet 等多層櫃體）：
+        // 多個 hidden part 在俯視疊在同 X-Z bbox（divider/back-panel/抽屜內板/
+        // 鉸鍊/把手），每件畫 4 條 dashed line → 100+ 條虛線重疊變 dot cloud。
+        // 規則：part 完全被 *另一個更大的 hidden part* contain 就跳過 outline
+        // 渲染。最外層 hidden 件（divider / drawer-front）保留；內層內裝（抽屜底/
+        // 側板/把手）跳過。可見件不受影響。
+        const skipOutlineInTopDotCloud = new Set<string>();
+        if (view === "top" && !isolatePartId) {
+          const hiddenParts: Array<{ id: string; r: { x: number; y: number; w: number; h: number } }> = [];
+          for (const p of sortedParts) {
+            const id = p.id;
+            const dir = id.match(/-(front|back|left|right)$/)?.[1] ?? null;
+            const isCornerPost = /^post-(front|back)-(left|right)$/.test(id);
+            const isDoorMuntin = /-door-muntin-/.test(id);
+            void dir;
+            if (isCornerPost || isDoorMuntin) continue;
+            // 斜放件（rotation.y 非 π/2 倍數，如 X 撐對角樑）俯視 footprint 是菱形，
+            // projectPart 的 AABB 比實際大很多 → 兩條 +45°/−45° 對角樑 AABB 完全相同
+            // 但其實是鏡像兩件，dedup 會誤殺一條（user 2026-06-15 回報「X 交叉少一隻」）。
+            // 非軸對齊件一律不進 dedup 候選（永遠保留 outline）。
+            const ry = p.rotation?.y ?? 0;
+            const ryMod = Math.abs(((ry % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2));
+            const axisAlignedTop = ryMod < 0.02 || Math.PI / 2 - ryMod < 0.02;
+            if (!axisAlignedTop) continue;
+            // 用跟下游一樣的 hidden 判定（只 top view 的 isPartHidden 結果即可—isInteriorInTop 不存在）
+            const isHidden = isPartHidden(p, renderDesign.parts, view);
+            if (!isHidden) continue;
+            hiddenParts.push({ id, r: projectPart(p, view) });
+          }
+          // 用 AABB containment：若 a 完全包住 b 就把 b skip
+          const eps = 1;
+          for (let i = 0; i < hiddenParts.length; i++) {
+            const b = hiddenParts[i];
+            for (let j = 0; j < hiddenParts.length; j++) {
+              if (i === j) continue;
+              const a = hiddenParts[j];
+              // a 完全包 b 且不等於（避免相同 bbox 互殺）
+              const sameSize =
+                Math.abs(a.r.x - b.r.x) < eps &&
+                Math.abs(a.r.y - b.r.y) < eps &&
+                Math.abs(a.r.w - b.r.w) < eps &&
+                Math.abs(a.r.h - b.r.h) < eps;
+              if (sameSize) {
+                // 重複 bbox 的兩件，只留 ID 字典序較小的（穩定）
+                if (b.id > a.id) {
+                  skipOutlineInTopDotCloud.add(b.id);
+                  break;
+                }
+                continue;
+              }
+              const contains =
+                a.r.x <= b.r.x + eps &&
+                a.r.x + a.r.w >= b.r.x + b.r.w - eps &&
+                a.r.y <= b.r.y + eps &&
+                a.r.y + a.r.h >= b.r.y + b.r.h - eps;
+              if (contains) {
+                skipOutlineInTopDotCloud.add(b.id);
+                break;
+              }
+            }
+          }
+        }
+
+        return sortedParts.map((part) => {
+        // 俯視 dot-cloud dedup：part 完全被更大 hidden part contain 就跳過
+        if (skipOutlineInTopDotCloud.has(part.id)) return null;
         // Hidden line elimination 補強：isPartHidden 的 AABB containment 對某些
         // 情況失準（splayed 腳的 AABB 不含 shape 變形、apron tilt 邊界、跨件
         // 形變、apron-trapezoid scale）。用 ID 慣例直接標記內部結構件。
@@ -782,16 +1903,21 @@ export function OrthoView({
         // isPartHidden 會把它判 hidden。但櫺條凸貼在門前方 Z 較小（更靠
         // 觀察者），語意上是「正面浮雕」，必須當 visible 走實線。
         const isDoorMuntin = /-door-muntin-/.test(id);
+        // 整深度板腳（full-depth-panel leg）：id 結尾 -left/-right 只是「左/右那支腳」，
+        // 不是櫃體側板。dir 規則會誤判成 dir="left/right" → isInteriorInFront 當側板
+        // 藏成虛線（user 2026-06-25 電視櫃板腳正視變虛線回報）。板腳是落地結構件、
+        // 正視/側視都看得到，跟 corner post 同樣強制 visible。
+        const isFullDepthPanelLeg = /panel-leg-(left|right)$/.test(id);
 
         const isInteriorInFront =
-          view === "front" && !isCornerPost && !isDoorMuntin &&
+          view === "front" && !isCornerPost && !isDoorMuntin && !isFullDepthPanelLeg &&
           (isAlwaysInterior ||
             isCabinetBack ||
             isBackOfChair ||
             isBedSideRail ||
             dir === "left" || dir === "right" || dir === "back");
         const isInteriorInSide =
-          view === "side" && !isCornerPost && !isDoorMuntin &&
+          view === "side" && !isCornerPost && !isDoorMuntin && !isFullDepthPanelLeg &&
           (isAlwaysInterior ||
             isBedEnd ||
             id === "cornice-front" ||
@@ -799,11 +1925,46 @@ export function OrthoView({
         // 立柱永遠 visible（櫃體外輪廓骨架），不走 isPartHidden 的 4 立柱互相
         // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）。
         // 格扇門櫺條同理——凸貼浮雕不該被它附著的門 part contain 規則藏掉。
-        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, design.parts, view));
-        const stroke = hidden ? "#444" : "#111";
+        // 零件圖模式（isolatePartId）：part 就是主角，不該套組裝視圖的
+        // interior/hidden 啟發式（e.g. apron-front 側視被 dir="front" 判 hidden）。
+        const hidden = isolatePartId
+          ? false
+          : (isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && !isFullDepthPanelLeg && isPartHidden(part, renderDesign.parts, view)));
+        const stroke = hidden ? "#444" : "#000";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
-        const sw = hidden ? 0.7 : (isCornerPost ? 1.4 : 0.9);
+        // 零件圖（isolatePartId）下 0.9 在 1x 螢幕 sub-pixel 灰，1.2 才穩
+        const sw = hidden
+          ? 0.7
+          : isolatePartId
+            ? 1.5
+            : isCornerPost
+              ? 1.4
+              : 0.9;
         const dash = hidden ? "4 3" : undefined;
+        // 玻璃片（visual === "glass"）特例：玻璃 5mm 比門框 22mm 薄，4 條 outline
+        // 邊在 HLE 都會落在 frame 內判 hidden → 全部變灰虛線消失。改用工程圖
+        // 慣例「淡色矩形外框 + 45° 對角細線雙條」表明這是透明玻璃片。
+        if (part.visual === "glass") {
+          const r = projectPart(part, view);
+          // top view 看玻璃只看到 5mm 厚的細長條，視覺意義低 → 維持原 rendering
+          // （讓 HLE 跑、灰虛線無妨）。只有 front/side 才畫 hatching。
+          if (view === "front" || view === "side") {
+            const x1 = r.x, x2 = r.x + r.w;
+            const y1 = -(r.y + r.h), y2 = -r.y;
+            return (
+              <g key={part.id} data-part-id={part.id}>
+                {/* 外框：淡灰實線 */}
+                <rect x={x1} y={y1} width={r.w} height={r.h}
+                  fill="none" stroke="#9ca3af" strokeWidth={0.7} />
+                {/* 對角線 ×：左上 → 右下 + 右上 → 左下 */}
+                <line x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke="#9ca3af" strokeWidth={0.4} opacity={0.6} />
+                <line x1={x2} y1={y1} x2={x1} y2={y2}
+                  stroke="#9ca3af" strokeWidth={0.4} opacity={0.6} />
+              </g>
+            );
+          }
+        }
         // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
         // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
         if (
@@ -881,13 +2042,13 @@ export function OrthoView({
             });
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               {backLines}
               <polygon
                 points={fmt(frontFace)}
                 fill="none"
-                stroke="#111"
-                strokeWidth={0.9}
+                stroke={stroke}
+                strokeWidth={sw}
               />
             </g>
           );
@@ -959,25 +2120,20 @@ export function OrthoView({
             });
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               {botLines}
               <polygon
                 points={fmt(topFace)}
                 fill="none"
-                stroke="#111"
-                strokeWidth={0.9}
+                stroke={stroke}
+                strokeWidth={sw}
               />
             </g>
           );
         }
         // lathe-turned 前 / 側視畫花瓶階梯輪廓（segments 跟 PerspectiveView 那份同步）
+        // LATHE_SEG 提升到 module top（export 給 part-drawing 列段別表共用）
         if (part.shape?.kind === "lathe-turned" && view !== "top") {
-          const LATHE_SEG: Array<[number, number, number]> = [
-            [1.0, 1.0, 0.05], [1.0, 1.10, 0.04], [1.10, 1.0, 0.04],
-            [1.0, 0.55, 0.10], [0.55, 0.78, 0.18], [0.78, 0.55, 0.20],
-            [0.55, 0.50, 0.10], [0.50, 0.95, 0.10], [0.95, 0.85, 0.05],
-            [0.85, 0.95, 0.06], [0.95, 0.95, 0.05], [0.95, 0.80, 0.03],
-          ];
           const r = projectPart(part, view);
           const fullR = r.w / 2;
           const fullH = r.h;
@@ -996,21 +2152,74 @@ export function OrthoView({
           const polyPts = [...right, ...left.reverse()];
           return (
             <polygon
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               points={polyPts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
               fill="none"
-              stroke="#111"
-              strokeWidth={0.9}
+              stroke={stroke}
+              strokeWidth={sw}
             />
           );
         }
-        // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
+        // 圓料軸別感知（2026-05-21）：knob 把手 axis="z"（往前突出的橫圓柱），
+        // 從正視才看得到端面圓；俯視看到的是側面 = 矩形。
+        // legs / 圓盤腳 axis="y"（垂直圓柱），俯視才是圓。
+        // axis="x"（極少見的橫向圓料）side view 才是圓。
+        // ⚠ 2026-06-11：軸向要看「world 軸」不是 local 軸——零件圖 isolate 模式
+        // 把長軸轉橫躺（rotation.z=-π/2），垂直圓柱（Windsor 邊柱）躺成 X 軸 →
+        // 端面圓該畫在側視、俯視是矩形側影；沒換算會在俯視/正視卡中央懸一顆圓
+        // （user 2026-06-11 回報）。quarter 旋轉軸交換順序與 worldExtents 一致。
+        const roundAxisLocal =
+          part.shape?.kind === "round" ? (part.shape.axis ?? "y") : "y";
+        const qRot = (a?: number) => Math.abs(Math.sin(a ?? 0)) > 0.5;
+        let roundAxis: "x" | "y" | "z" = roundAxisLocal;
+        if (qRot(part.rotation?.x))
+          roundAxis = roundAxis === "y" ? "z" : roundAxis === "z" ? "y" : roundAxis;
+        if (qRot(part.rotation?.y))
+          roundAxis = roundAxis === "x" ? "z" : roundAxis === "z" ? "x" : roundAxis;
+        if (qRot(part.rotation?.z))
+          roundAxis = roundAxis === "x" ? "y" : roundAxis === "y" ? "x" : roundAxis;
+        const roundCircleView: "front" | "side" | "top" =
+          roundAxis === "z" ? "front" :
+          roundAxis === "x" ? "side" :
+          "top";
+        /**
+         * 🩸 上面的 qRot 用 |sin| > 0.5 認「轉了 90°」——衣帽架掛鉤是繞 Y 轉 60°/120° 的圓棒，
+         *    被當成端面朝你 → 正/側視畫成一個小圓圈，跟柱子之間看起來有縫（2026-09-02 三視圖實畫稽核）。
+         *    非 90° 倍數旋轉的圓料一律走 projectPartSilhouette（圓截面採樣→旋轉→投影→hull ＝ 縮短的圓棒）。
+         */
+        const isTiltedRound = part.shape?.kind === "round" && hasNonQuarterRotation(part);
+        // round axis="z"/"x"：用對應視角畫圓；其他視角 fall-through 走預設矩形。
+        if (
+          part.shape?.kind === "round" &&
+          !isTiltedRound &&
+          (roundAxis === "z" || roundAxis === "x") &&
+          view === roundCircleView
+        ) {
+          const r = projectPart(part, view);
+          const cx = r.x + r.w / 2;
+          const cy = view === "top" ? -(r.y + r.h / 2) : -(r.y + r.h / 2);
+          const radius = Math.min(r.w, r.h) / 2;
+          return (
+            <circle
+              key={part.id} data-part-id={part.id}
+              cx={cx}
+              cy={cy}
+              r={radius}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+            />
+          );
+        }
+        // 圓盤 / 圓柱腳「軸向視圖」畫圓；其餘視圖維持矩形（圓柱側面 = 直徑 × 長）
+        // 一般組裝視角＝俯視（垂直圓柱）；isolate 橫躺後 roundCircleView 變側視。
         if (
           (part.shape?.kind === "round" ||
             part.shape?.kind === "round-tapered" ||
             part.shape?.kind === "splayed-round-tapered" ||
             part.shape?.kind === "lathe-turned") &&
-          view === "top"
+          !isTiltedRound &&
+          view === roundCircleView
         ) {
           const r = projectPart(part, view);
           const cx = r.x + r.w / 2;
@@ -1045,7 +2254,7 @@ export function OrthoView({
             }
             // HLE：在俯視找出 bow（arch-bent + rotation.x）作為遮蔽體，
             // 算出 bow 頂面 top-view footprint，spindle 在裡面的部分用虛線
-            const bowOccluder = design.parts.find(
+            const bowOccluder = renderDesign.parts.find(
               (q) =>
                 q.id !== part.id &&
                 q.shape?.kind === "arch-bent" &&
@@ -1107,7 +2316,7 @@ export function OrthoView({
             // 頂圓（接 bow 那端）：圓心在 bow footprint 內 → 整圓虛線
             const topCircleHidden = isHidden(cx, cy);
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <circle
                   cx={cx}
                   cy={cy}
@@ -1117,14 +2326,14 @@ export function OrthoView({
                   strokeWidth={topCircleHidden ? 0.5 : sw}
                   strokeDasharray={topCircleHidden ? "4 3" : dash}
                 />
-                <circle cx={footCx} cy={footCy} r={r2} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+                <circle cx={footCx} cy={footCy} r={r2} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
                 {tangentEls}
               </g>
             );
           }
           return (
             <circle
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               cx={cx}
               cy={cy}
               r={radius}
@@ -1148,25 +2357,75 @@ export function OrthoView({
         const isTiltedBox = boxLikeShape && hasNonQuarterRotation(part);
         const isApronTrapezoid = part.shape?.kind === "apron-trapezoid";
         const isApronBeveled = part.shape?.kind === "apron-beveled";
+        // apron-half-beveled 之前漏掉 silhouette gate，掉到 useShape →
+        // projectPartPolygon 對該 shape 沒分支 → 回 fallback box，三視圖全變
+        // 純矩形看不出單側 bevel。projectTiltedBoxSilhouette 已支援，補進來。
+        const isApronHalfBeveled = part.shape?.kind === "apron-half-beveled";
         const isArchBentSideFront =
           part.shape?.kind === "arch-bent" && view !== "top";
         const isTiltZ = part.shape?.kind === "tilt-z" && view !== "top";
+        // french-cleat：直角梯形（側視看到斜邊），全視角走 projectPartSilhouette
+        // → 側視梯形、正視/俯視矩形。俯視不走下方 apron 特例（cleat 非傾斜料）。
+        const isFrenchCleat = part.shape?.kind === "french-cleat";
         if (
           isTiltedBox ||
+          isTiltedRound ||
           isApronTrapezoid ||
           isApronBeveled ||
+          isApronHalfBeveled ||
           isArchBentSideFront ||
-          isTiltZ
+          isTiltZ ||
+          isFrenchCleat
         ) {
           // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
           // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
-          if (view === "top") {
+          if (view === "top" && !isFrenchCleat && !isTiltedRound) {
             const lx = part.visible.length;
             const ly = part.visible.thickness;
             const lz = part.visible.width;
             const trap = isApronTrapezoid && part.shape?.kind === "apron-trapezoid" ? part.shape : null;
             const bev = isApronBeveled && part.shape?.kind === "apron-beveled" ? part.shape : null;
             const bevShear = bev ? Math.tan(bev.bevelAngle) : 0;
+            // 零件圖（isolatePartId）apron-trapezoid 專屬：rotation 已 reset，
+            // 原本的 topCorners/botCorners 雙 polygon 在 rotation=0 下會塌成
+            // 兩條水平線（4 corners 共用同 y）。改畫單一閉合梯形 outline，
+            // 4 corner 各自帶 top/bot scale → 看出兩端錯位（user 2026-05-21 回報
+            // 「四腳外斜的牙板 top view 應該是單斜你畫成直的」）。
+            if (isolatePartId && trap) {
+              // 物理上：visible.length 是 apron center Y 的長度，tenon 從 ±lx/2 端
+              // 面凸出。topLengthScale/bottomLengthScale 是相對 center 的比例。
+              // 之前直接套 ±lx/2 * scale 會讓 top corner 在 ±lx/2 × 0.97 = 比 tenon
+              // 內側位置（±lx/2）短 3mm → top edge 跟 tenon 之間有三角形缺口；
+              // bot corner 則凸過 tenon。改成把 body top 對齊 tenon 端面（±lx/2），
+              // bottom 用相對比例延伸（physical：splay 是底面往外開、頂面接腳）。
+              // ⚠️ 2026-06-01 改：接座/接地一律用 doc §A10.4 真實比例
+              // （length × top/bottomLengthScale，相對肩到肩中心），跟俯視
+              // silhouette + 主三視圖同源。先前用 ratio=bot/top 把接座對齊 tenon
+              // 端面、接地放大，數值偏大(師傅照切會切長)、且跟俯視不一致
+              // (user 2026-06-01「俯視短一節」)。寧可接座 < tenon 端面有小縫,
+              // 也要三視圖/零件圖數值一致且符合 doc。
+              const halfTop = (lx / 2) * trap.topLengthScale; // 接座(窄)
+              const halfBot = (lx / 2) * trap.bottomLengthScale; // 接地(寬)
+              const corners = [
+                { x: -halfTop, y: +lz / 2 }, // 接座面左（畫面上方，跟 tenon 左內側對齊）
+                { x: +halfTop, y: +lz / 2 }, // 接座面右
+                { x: +halfBot, y: -lz / 2 }, // 接地面右（畫面下方，往外延伸）
+                { x: -halfBot, y: -lz / 2 }, // 接地面左
+              ];
+              const pts = corners
+                .map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`)
+                .join(" ");
+              return (
+                <polygon
+                  key={part.id} data-part-id={part.id}
+                  points={pts}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={sw}
+                  strokeDasharray={dash}
+                />
+              );
+            }
             const proj = (xl: number, yl: number, zl: number) => {
               // 梯形：x 依 z 端的 scale 縮放
               const xScale = trap
@@ -1208,11 +2467,13 @@ export function OrthoView({
             ];
             const fmt = (pts: typeof topCorners) =>
               pts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
-            // 傾斜橫撐俯視：被座板蓋著 → top/bot 兩面都用虛線（不做 HLE 分段，避免短實線）
+            // 傾斜橫撐俯視：top（接座面）實線、bot（接地面）虛線，跟 splayed-tapered
+            // top view 同 convention，視覺上看得出哪面是頂哪面是底（user 2026-05-21
+            // 回報 apron-beveled top view 兩條虛線重疊分不出 top/bot）。
             return (
-              <g key={part.id}>
-                <polygon points={fmt(topCorners)} fill="none" stroke="#888" strokeWidth={0.5} strokeDasharray="4 3" />
-                <polygon points={fmt(botCorners)} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+              <g key={part.id} data-part-id={part.id}>
+                <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} />
+                <polygon points={fmt(botCorners)} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               </g>
             );
           }
@@ -1240,15 +2501,15 @@ export function OrthoView({
               const zL = (ez * lz) / 2;
               const wy = yL * cosRake - zL * sinRake + yOff;
               const wz = yL * sinRake + zL * cosRake + part.origin.z;
-              // side view: svg x = wz, svg y = -wy
-              return { x: wz, y: -wy };
+              // side view: svg x = -wz（前=右慣例）, svg y = -wy
+              return { x: -wz, y: -wy };
             });
             const endPts = endCorners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
             const poly = projectTiltedBoxSilhouette(part, view);
             const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
             void arch;
             return (
-              <g key={part.id}>
+              <g key={part.id} data-part-id={part.id}>
                 <polygon
                   points={points}
                   fill="none"
@@ -1259,8 +2520,8 @@ export function OrthoView({
                 <polygon
                   points={endPts}
                   fill="none"
-                  stroke="#111"
-                  strokeWidth={0.5}
+                  stroke={stroke}
+                  strokeWidth={sw * 0.6}
                 />
               </g>
             );
@@ -1274,7 +2535,7 @@ export function OrthoView({
           // back-post 不 clip 頂端（柱穿到 height）；back-top-rail / back-rung 不 clip
           if (view === "side" || view === "front") {
             if (part.id.startsWith("back-post-")) {
-              const seat = design.parts.find((p) => p.id === "seat");
+              const seat = renderDesign.parts.find((p) => p.id === "seat");
               if (seat) poly = clipPolygonAboveY(poly, seat.origin.y + seat.visible.thickness);
             } else if (
               part.id.startsWith("back-slat-") ||
@@ -1282,19 +2543,88 @@ export function OrthoView({
               part.id === "back-curved-splat" ||
               part.id.startsWith("back-spindle-")
             ) {
-              const topRail = design.parts.find((p) => p.id === "back-top-rail");
+              const topRail = renderDesign.parts.find((p) => p.id === "back-top-rail");
               if (topRail) poly = clipPolygonBelowY(poly, topRail.origin.y);
             }
           }
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
+          // 零件圖 splay 腳側/正視:實線=未傾斜原料(outer ghost rect)、
+          // 虛線=傾斜後 silhouette。木工視角:要動鋸子的原料 = 實線比較直覺。
+          const isSplayFamily =
+            part.shape?.kind === "splayed" ||
+            part.shape?.kind === "splayed-tapered" ||
+            part.shape?.kind === "splayed-round-tapered";
+          const splaySwap =
+            isolatePartId && isSplayFamily && (view === "front" || view === "side" || view === "top");
+          // 零件圖 apron-trapezoid 俯視(view="front"): silhouette = 下邊長
+          // (290.4)，但師傅要看得到上邊(280)位置才知道兩端要切多少。加兩條
+          // 虛線「肩線」標 ±L/2×topLengthScale = 上邊端點 X 位置。
+          // user 2026-06-02「單斜俯視看得到框形的榫肩樣子」。
+          const trapForTop =
+            isolatePartId &&
+            view === "front" &&
+            part.shape?.kind === "apron-trapezoid"
+              ? part.shape
+              : null;
+          let trapShoulderOverlay: React.ReactNode = null;
+          if (trapForTop && Math.abs(trapForTop.topLengthScale - trapForTop.bottomLengthScale) > 0.0001) {
+            const lx = part.visible.length;
+            const halfTop = (lx / 2) * trapForTop.topLengthScale;
+            // 俯視 view="front" 投影：(wx, wy) → (-wx, wy)；apron 原點 0、
+            // rotation reset 後 part-local X→世界 X、Y→世界 Y。
+            const xL = halfTop; // 螢幕 = -wx → 左肩在 -(-halfTop) = +halfTop
+            const xR = -halfTop;
+            // user 2026-06-02「應該跟 290.4 一樣 是連接整個零件的實心線」：
+            // 不是虛線、不是短肩線。Y 用 silhouette polygon 上下緣（含 splay/
+            // tenon 延伸）才是「整個零件」高度。
+            const polyYs = poly.map((p) => p.y);
+            const polyYMin = Math.min(...polyYs);
+            const polyYMax = Math.max(...polyYs);
+            const ySvgTop = -polyYMax;
+            const ySvgBot = -polyYMin;
+            trapShoulderOverlay = (
+              <g key={`${part.id}-trap-shoulder`}>
+                <line
+                  x1={xL}
+                  x2={xL}
+                  y1={ySvgTop}
+                  y2={ySvgBot}
+                  stroke={stroke}
+                  strokeWidth={sw}
+                />
+                <line
+                  x1={xR}
+                  x2={xR}
+                  y1={ySvgTop}
+                  y2={ySvgBot}
+                  stroke={stroke}
+                  strokeWidth={sw}
+                />
+              </g>
+            );
+          }
+          if (trapShoulderOverlay) {
+            return (
+              <g key={part.id} data-part-id={part.id}>
+                <polygon
+                  points={points}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={sw}
+                  strokeDasharray={dash}
+                />
+                {trapShoulderOverlay}
+              </g>
+            );
+          }
           return (
             <polygon
-              key={part.id}
+              key={part.id} data-part-id={part.id}
               points={points}
               fill="none"
               stroke={stroke}
-              strokeWidth={sw}
-              strokeDasharray={dash}
+              strokeWidth={splaySwap ? sw * 0.8 : sw}
+              strokeDasharray={splaySwap ? "4 3" : dash}
             />
           );
         }
@@ -1316,11 +2646,54 @@ export function OrthoView({
             [footX, footY], [footX + footW, footY], [footX + footW, footY + footH], [footX, footY + footH],
           ];
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <rect x={r.x} y={headY} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
-              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               {topCorners.map((tc, i) => (
                 <line key={i} x1={tc[0]} y1={tc[1]} x2={botCorners[i][0]} y2={botCorners[i][1]} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              ))}
+            </g>
+          );
+        }
+        /**
+         * 俯視「腳底投影」補畫（§A9.9c，2026-09-02）——兩種腳的腳底不在頂面正下方，
+         * 只畫頂面小方塊會讓接在下半段的橫撐／腳踏看起來懸空 3~27mm：
+         *   (a) 弧肩腳帶外斜（curved-taper + ctSplay → dxMm/dzMm）：腳底整個外移，
+         *       且內面在腳底縮進 insetMm+shoulderMm（兩向時 Z 面也縮）。
+         *   (b) 倒錐腳（tapered、bottomScale > 1）：腳底比頂面大。
+         * 畫法跟上面 splayed-tapered 一樣：頂面實線／腳底虛線／4 條角對角線。
+         * 3D 本來就對，這裡只補圖。零件圖（isolatePartId）與帶旋轉的件不走這裡。
+         */
+        const footPrintRot = (part.rotation?.x ?? 0) !== 0 || (part.rotation?.y ?? 0) !== 0 || (part.rotation?.z ?? 0) !== 0;
+        const ctFoot = part.shape?.kind === "curved-taper" && (Math.abs(part.shape.dxMm ?? 0) > 0.5 || Math.abs(part.shape.dzMm ?? 0) > 0.5) ? part.shape : null;
+        const invFoot = part.shape?.kind === "tapered" && part.shape.bottomScale > 1 && (part.shape.chamferMm ?? 0) <= 0 ? part.shape : null;
+        if (view === "top" && !isolatePartId && !footPrintRot && (ctFoot || invFoot)) {
+          const r = projectPart(part, view);
+          const headY = -(r.y + r.h);
+          let footX = r.x, footY = headY, footW = r.w, footH = r.h;
+          if (ctFoot) {
+            const rec = ctFoot.insetMm + ctFoot.shoulderMm;   // 腳底內面縮進量（弧＋斜線總和）
+            // 局部 +X → 螢幕左（vx = -wx）；dir = 外面朝哪個局部 X，內面在 -dir 側
+            const dirX = (ctFoot.dir || 1) as 1 | -1;
+            if (dirX > 0) footW = Math.max(1, r.w - rec); else { footX = r.x + rec; footW = Math.max(1, r.w - rec); }
+            if (ctFoot.twoWay) {
+              const dirZ = (ctFoot.dirZ || 1) as 1 | -1;   // 局部 +Z → 螢幕上（y = -wz）
+              if (dirZ > 0) footH = Math.max(1, r.h - rec); else { footY = headY + rec; footH = Math.max(1, r.h - rec); }
+            }
+            footX += -(ctFoot.dxMm ?? 0);   // 同 splayed-tapered：俯視鏡像 X
+            footY += -(ctFoot.dzMm ?? 0);   // 翻轉 Y 後 dz 符號反過來
+          } else if (invFoot) {
+            footW = r.w * invFoot.bottomScale; footH = r.h * invFoot.bottomScale;
+            footX = r.x + r.w / 2 - footW / 2; footY = headY + r.h / 2 - footH / 2;
+          }
+          const topC = [[r.x, headY], [r.x + r.w, headY], [r.x + r.w, headY + r.h], [r.x, headY + r.h]];
+          const botC = [[footX, footY], [footX + footW, footY], [footX + footW, footY + footH], [footX, footY + footH]];
+          return (
+            <g key={part.id} data-part-id={part.id}>
+              <rect x={r.x} y={headY} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
+              {topC.map((tc, i) => (
+                <line key={i} x1={tc[0]} y1={tc[1]} x2={botC[i][0]} y2={botC[i][1]} stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               ))}
             </g>
           );
@@ -1331,7 +2704,8 @@ export function OrthoView({
         // 但「帶 chamferMm 的 round（圓凳座板倒角）」前/側視會多 2 個倒角，
         // 這時要走 polygon 路徑；俯視仍由上面的圓形 case 處理。
         const isRoundWithChamfer =
-          part.shape?.kind === "round" && (part.shape.chamferMm ?? 0) > 0;
+          part.shape?.kind === "round" &&
+          ((part.shape.chamferMm ?? 0) > 0 || (part.shape.bottomChamferMm ?? 0) > 0);
         // tapered 帶 chamfer（圓凳/餐椅方錐腳套 legEdge）：俯視要畫八邊形
         // cross-section；前/側視仍是梯形（同 chamfered-edges convention）。
         const isTaperedWithChamfer =
@@ -1347,8 +2721,32 @@ export function OrthoView({
           Math.abs(part.rotation?.x ?? 0) > 0.01 &&
           Math.abs(part.rotation?.x ?? 0) < Math.PI / 2 - 0.01 &&
           view !== "top";
+        // tray 鳩尾榫 pin board synthesis：wall-left/right 沒 shape（3D 走 CSG
+        // 挖洞）但 design 有 tail board → projectPartPolygon 合成 phase=1
+        // dovetail-ends 出梯形 notch。
+        // projectPartPolygon 內 combAxis 偵測會自動 reject「該視角看不到 broad
+        // face」（含 thickness 的 end-face / edge-face）；不再 hardcode `view`
+        // 限制，讓零件圖（reset rotation）下 top 視圖也能 synthesise。
+        // 零件圖 isolation 模式只剩 1 個 part，本 part 沒 shape、找不到 donor
+        // → 也用 design.parts 找原始 donor（renderDesign.parts 被 filter 掉了）
+        // tray 鳩尾接合：tail board = wall-front/back (有 shape)、pin board = wall-left/right
+        // drawer 鳩尾接合（半鳩尾 / 通鳩尾）：tail board = 側板 (-side-left/right，有 shape)、
+        //   pin board = 前/後板 (-N-front / -N-back，無 shape)。
+        // 兩種 case pin board 都需要 projectPartPolygon 合成梯形 notch。
+        const isDovetailPinBoard =
+          (!part.shape || part.shape.kind === "box") &&
+          (/^wall-(left|right)$/.test(part.id) ||
+            /-\d+-(front|back)$/.test(part.id)) &&
+          (renderDesign.parts.some((p) => p.shape?.kind === "dovetail-ends") ||
+            design.parts.some((p) => p.shape?.kind === "dovetail-ends"));
+        // 嵌入式盒蓋四周搭接槽（rabbeted lid）：shape 仍是 box（3D 走 CSG），但
+        // 側 / 正視要走 polygon path 才能畫出 L 階梯輪廓（projectPartPolygon 有
+        // peripheralRebate 分支）。俯視看面維持矩形 → 不納入。
+        const isRabbetLid = !!part.peripheralRebate && view !== "top";
         const useShape =
-          !isFaceRoundedXTilt &&
+          isRabbetLid ||
+          isDovetailPinBoard ||
+          (!isFaceRoundedXTilt &&
           part.shape &&
           part.shape.kind !== "box" &&
           (part.shape.kind !== "round" || (isRoundWithChamfer && view !== "top")) &&
@@ -1358,31 +2756,112 @@ export function OrthoView({
             part.shape.kind !== "splayed-tapered" &&
             part.shape.kind !== "splayed-round-tapered" &&
             part.shape.kind !== "notched-corners" &&
+            part.shape.kind !== "mitered-ends" &&
+            part.shape.kind !== "finger-joint-ends" &&
+            part.shape.kind !== "dovetail-ends" &&
+            part.shape.kind !== "regular-polygon" &&
             part.shape.kind !== "arch-bent" &&
+            part.shape.kind !== "right-triangle" &&
+            part.shape.kind !== "mitered-corner" &&
+            // pointed-ends：六角柱斜板（45° 旋轉），top view 也要走 silhouette
+            // pipeline 才能正確投影旋轉後的尖角輪廓，不被 fallback rect 補方
+            part.shape.kind !== "pointed-ends" &&
+            // chamfered-edges：腳 / 橫撐 4 條長邊倒角，在「沿最長軸看過去」
+            // 的視圖畫八邊形截面（geometry.ts projectPartPolygon §730 處理）；
+            // top view 對腳（最長軸=Y）正好是 cross-section view，必須走
+            // polygon path 才能畫八邊形，否則 fallback rect 沒倒角。
+            part.shape.kind !== "chamfered-edges" &&
+            // tilt-z：椅背直料 top view 用底面 cross-section 不要被 tilt Z 拉長
+            // 成 (20+topShift) tall rect；projectPartPolygon 有專屬 tilt-z 分支
+            part.shape.kind !== "tilt-z" &&
+            // live-edge 原木邊：俯視要畫波浪長邊（projectPartSilhouette 32 段
+            // wavy 多邊形），不在白名單會 fallback 成直邊矩形
+            //（user 2026-06-12 矮桌排查）
+            part.shape.kind !== "live-edge" &&
+            // 帶 rotation（零件圖 isolate 橫躺）的錐形腳：top 視角看到的是
+            // 沿世界 X 漸變的楔形，必須走 polygon → silhouette delegate，
+            // 否則 fallback box 畫成直條（user 2026-06-11 茶几錐形腳卡回報）
+            !((part.shape.kind === "tapered" || part.shape.kind === "round-tapered") &&
+              ((part.rotation?.x ?? 0) !== 0 ||
+                (part.rotation?.y ?? 0) !== 0 ||
+                (part.rotation?.z ?? 0) !== 0)) &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
-          );
+          ));
         if (useShape) {
-          const poly = projectPartPolygon(part, view);
+          // 零件圖 isolation 模式下，renderDesign.parts 只有 1 個 part、找不到
+          // dovetail-ends donor → 額外把 design.parts（原始 4 壁）餵進去，讓
+          // projectPartPolygon 借得到參數合成 pin board phase=1 shape。
+          const polyAllParts = isolatePartId ? design.parts : renderDesign.parts;
+          const poly = projectPartPolygon(part, view, polyAllParts);
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
-          // Splayed top view: also draw the shifted bottom footprint so you
-          // can see how far the foot lands from directly below the head.
-          if (part.shape?.kind === "splayed" && view === "top") {
-            const r = projectPart(part, view);
-            extras.push(
-              <rect
-                key={`${part.id}-foot`}
-                x={r.x + -part.shape.dxMm}
-                y={-(r.y + r.h) - part.shape.dzMm}
-                width={r.w}
-                height={r.h}
-                fill="none"
-                stroke="#888"
-                strokeWidth={0.4}
-                strokeDasharray="3 3"
-              />,
-            );
+          // Splayed top view 雙條 shoulder（user 2026-05-29「俯視應該看到 2 條線
+          // 單斜起點 + 切好終點」）:外輪廓 polygon 已含 bottom 面偏移,補上 top 面
+          // 兩端 shoulder 線(未偏移)。X 軸 dxMm 才有 X 方向偏移、TOP view 看得到
+          // 雙線;dzMm 單斜在 TOP view 投影沒 X 偏移、不畫(保留判斷簡單)。
+          if (
+            view === "top" &&
+            (part.shape?.kind === "splayed" ||
+              part.shape?.kind === "splayed-tapered" ||
+              part.shape?.kind === "splayed-round-tapered")
+          ) {
+            const dxMm = part.shape.dxMm ?? 0;
+            const dzMm = part.shape.dzMm ?? 0;
+            if (Math.abs(dxMm) > 0.5 || Math.abs(dzMm) > 0.5) {
+              const r = projectPart(part, view);
+              // top 面(無偏移)是 projectPart 回的 r;bottom 面偏 (Dx, Dy)
+              // 跟 geometry.ts:651-652 同慣例:Dx=-dxMm, Dy=dzMm
+              const Dx = -dxMm;
+              const Dy = dzMm;
+              // 兩端各畫 top 面 shoulder(若跟 bottom 面 shoulder X 偏移 > 1.5 svg
+              // 才畫,避免雙線疊在一起看不出來)
+              if (Math.abs(Dx) > 1.5) {
+                extras.push(
+                  <line
+                    key={`${part.id}-topshoulder-L`}
+                    x1={r.x}
+                    x2={r.x}
+                    y1={-r.y}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                  <line
+                    key={`${part.id}-topshoulder-R`}
+                    x1={r.x + r.w}
+                    x2={r.x + r.w}
+                    y1={-r.y}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                );
+              }
+              // Z 偏移時補 top 面前/後 shoulder(沿 length 軸的水平線)
+              if (Math.abs(Dy) > 1.5) {
+                extras.push(
+                  <line
+                    key={`${part.id}-topshoulder-F`}
+                    x1={r.x}
+                    x2={r.x + r.w}
+                    y1={-r.y}
+                    y2={-r.y}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                  <line
+                    key={`${part.id}-topshoulder-B`}
+                    x1={r.x}
+                    x2={r.x + r.w}
+                    y1={-(r.y + r.h)}
+                    y2={-(r.y + r.h)}
+                    stroke="#444"
+                    strokeWidth={0.6}
+                  />,
+                );
+              }
+            }
           }
           // Arch-bent 側視：在未彎時的端面後緣多畫一條垂直實線，標示
           // 端面（cross-section）邊界——讓看圖的人分得出料的真實厚度 vs 彎弧延伸
@@ -1443,14 +2922,107 @@ export function OrthoView({
               }
             }
           }
+          // dovetail-ends 端頭視圖（length 軸 ⊥ view direction）：pin 板（phase=1）
+          // 在端面看會有 N 個梯形 gap 形狀（= 對面 tail 的截面投影）：外側較寬
+          // 內側較窄。tail 板（phase=0）端面是直的（plain rect），不畫 overlay。
+          if (part.shape?.kind === "dovetail-ends" && view !== "top" && part.shape.phase === 1) {
+            const L = part.visible.length;
+            const r = projectPart(part, view);
+            const isEndFace = Math.abs(r.w - L) > 0.5 && Math.abs(r.h - L) > 0.5;
+            if (isEndFace) {
+              const N = Math.max(3, Math.floor(part.shape.segmentCount));
+              const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
+              const halfPin = part.shape.halfPin ?? true;
+              const phaseDt = part.shape.phase;
+              const isPinDt = (s: number) =>
+                (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phaseDt) % 2) === 0;
+              const isLeftWall = part.origin.x < 0;
+              const xOuter = isLeftWall ? r.x : r.x + r.w;
+              const xInner = isLeftWall ? r.x + r.w : r.x;
+              const useH = r.h > r.w;
+              if (useH) {
+                const segH = r.h / N;
+                const d = Math.min(part.shape.pinDepth, r.w * 0.45);
+                const slant = Math.min(segH * 0.45, d * Math.tan(angleRad));
+                for (let s = 0; s < N; s++) {
+                  if (isPinDt(s)) continue;
+                  const yT = r.y + r.h - s * segH;
+                  const yB = r.y + r.h - (s + 1) * segH;
+                  const slantTop = s === 0 ? 0 : slant;
+                  const slantBot = s === N - 1 ? 0 : slant;
+                  const polyPts = [
+                    [xOuter, yT + slantTop],
+                    [xInner, yT],
+                    [xInner, yB],
+                    [xOuter, yB - slantBot],
+                  ];
+                  extras.push(
+                    <polygon
+                      key={`${part.id}-gap-${s}`}
+                      points={polyPts.map((p) => `${p[0].toFixed(2)},${(-p[1]).toFixed(2)}`).join(" ")}
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth={sw}
+                      strokeDasharray={dash}
+                    />,
+                  );
+                }
+              }
+            }
+          }
+          // 多邊形底板在俯視從外面是被壁體擋住 → 虛線（hidden line convention）
+          const isPolygonBottomTop = part.shape?.kind === "regular-polygon" && view === "top";
+          const effDash = isPolygonBottomTop ? "4 3" : dash;
+          const effStroke = isPolygonBottomTop ? "#444" : stroke;
+          // 零件圖 splay 腳側/正視:實線=未傾斜原料(outer ghost rect 加深處理)、
+          // 虛線=傾斜後 silhouette。木工視角:要動鋸子的原料 = 實線比較直覺。
+          const isSplayFamilyShape =
+            part.shape?.kind === "splayed" ||
+            part.shape?.kind === "splayed-tapered" ||
+            part.shape?.kind === "splayed-round-tapered";
+          const splaySwapShape =
+            isolatePartId && isSplayFamilyShape && (view === "front" || view === "side" || view === "top");
+          // 〔已停用 2026-06-01〕原本(9adb6ee2)為斜接 apron 俯視 TOP 把垂直端邊
+          // 換成 overlay 的 shoulder 雙線。但 body 已統一成真實比例梯形/矩形 outline,
+          // 這套 shoulder 雙線多餘且讓俯視端部多出榫頭肩線、看起來亂
+          // (user 2026-06-01「俯視不畫榫頭肩線」)。直接停用,俯視走正常 body outline。
+          const hasTiltedEndTenon = false;
+          if (hasTiltedEndTenon) {
+            const r = projectPart(part, view);
+            const yTop = -(r.y + r.h);
+            const yBot = -r.y;
+            return (
+              <g key={part.id} data-part-id={part.id}>
+                <line
+                  x1={r.x}
+                  x2={r.x + r.w}
+                  y1={yTop}
+                  y2={yTop}
+                  stroke={effStroke}
+                  strokeWidth={sw}
+                  strokeDasharray={effDash}
+                />
+                <line
+                  x1={r.x}
+                  x2={r.x + r.w}
+                  y1={yBot}
+                  y2={yBot}
+                  stroke={effStroke}
+                  strokeWidth={sw}
+                  strokeDasharray={effDash}
+                />
+                {extras}
+              </g>
+            );
+          }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <polygon
                 points={points}
                 fill="none"
-                stroke={stroke}
-                strokeWidth={sw}
-                strokeDasharray={dash}
+                stroke={effStroke}
+                strokeWidth={splaySwapShape ? sw * 0.8 : sw}
+                strokeDasharray={splaySwapShape ? "4 3" : effDash}
               />
               {extras}
             </g>
@@ -1494,7 +3066,8 @@ export function OrthoView({
             const wx = xL + ox;
             const wy = yR + oy;
             const wz = zR + oz;
-            if (view === "side") return { x: wz, y: wy };
+            // 側視前=右慣例：svg x = -wz
+            if (view === "side") return { x: -wz, y: wy };
             return { x: -wx, y: wy }; // front
           };
           let polyPts: Array<{ x: number; y: number }>;
@@ -1554,7 +3127,7 @@ export function OrthoView({
             );
           }
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <polygon
                 points={points}
                 fill="none"
@@ -1569,26 +3142,34 @@ export function OrthoView({
         const r = projectPart(part, view);
         // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
         // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
+        // 〔已停用 2026-06-01〕同 hasTiltedEndTenon：shoulder 雙線機制移除,
+        // 俯視 fallback rect 走正常四邊。
+        const hasTiltedEndTenonRect = false;
         if (hidden) {
           // 改畫成 4 條獨立 line + 同步 dashoffset（不再用 single rect path）
           // 同 Y / 同 X 的多 part hidden 邊就能 phase 對齊不鋸齒
           const ry = view === "top" ? -(r.y + r.h) : -r.y - r.h;
           const PERIOD = 7; // dasharray "4 3"
           const mod = (n: number) => ((n % PERIOD) + PERIOD) % PERIOD;
+          const vfx = isolatePartId ? "non-scaling-stroke" : undefined;
           return (
-            <g key={part.id}>
+            <g key={part.id} data-part-id={part.id}>
               <line x1={r.x} y1={ry} x2={r.x + r.w} y2={ry}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(r.x)} fill="none" />
-              <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
-                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(ry)} fill="none" />
+                strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
+              {!hasTiltedEndTenonRect && (
+                <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
+                  stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                  strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
+              )}
               <line x1={r.x} y1={ry + r.h} x2={r.x + r.w} y2={ry + r.h}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(r.x)} fill="none" />
-              <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
-                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(ry)} fill="none" />
+                strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
+              {!hasTiltedEndTenonRect && (
+                <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
+                  stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                  strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
+              )}
             </g>
           );
         }
@@ -1598,11 +3179,27 @@ export function OrthoView({
           { x: r.x + r.w, y: r.y + r.h },
           { x: r.x, y: r.y + r.h },
         ];
-        const isHiddenAt = makeHiddenChecker(part, design.parts, view);
+        const isHiddenAt = makeHiddenChecker(part, renderDesign.parts, view);
         const lines: React.ReactNode[] = [];
-        // 立柱可見邊用粗線 1.4 突顯（俯視圖立柱方塊容易被層板矩形蓋過）
-        const visibleSw = isCornerPost ? 1.4 : 0.9;
+        // 主面板（座板 / 桌面）俯視 outline：viewBox 大（790×872）經 SVG scale ≈0.75
+        // 後 sw=0.9→0.67 css px 變 sub-pixel anti-aliased 灰，整個座板實線消失。
+        // 立柱可見邊用粗線 1.4；零件圖模式（isolatePartId）下 0.9 在 1x 螢幕
+        // 還是 sub-pixel anti-aliased 灰，提到 1.2 才穩定渲染 1 css px 純黑
+        const isMainPanelTopView =
+          view === "top" &&
+          (part.id === "seat" || part.id === "top" || part.id === "table-top");
+        const visibleSw = isolatePartId
+          ? 1.5
+          : isCornerPost
+            ? 1.4
+            : isMainPanelTopView
+              ? 1.8
+              : 0.9;
+        const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
+          // 跳過 view="front" 帶斜接 tenon 的料的左右垂直端邊
+          // (i=1 右垂直 / i=3 左垂直,corners 順序:TL→TR→BR→BL)
+          if (hasTiltedEndTenonRect && (i === 1 || i === 3)) continue;
           const a = corners[i];
           const b = corners[(i + 1) % 4];
           const segs = classifyEdgeVisibility(a, b, isHiddenAt);
@@ -1629,21 +3226,85 @@ export function OrthoView({
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke={seg.hidden ? "#444" : "#111"}
+                stroke={seg.hidden ? "#444" : visibleStroke}
                 strokeWidth={seg.hidden ? 0.7 : visibleSw}
                 strokeDasharray={seg.hidden ? "4 3" : undefined}
                 strokeDashoffset={dashOffset}
                 fill="none"
+                vectorEffect={isolatePartId ? "non-scaling-stroke" : undefined}
               />,
             );
           });
         }
-        return <g key={part.id}>{lines}</g>;
+        return <g key={part.id} data-part-id={part.id}>{lines}</g>;
+      });
+      })()}
+
+      {/* 單斜 apron tenon shoulder 俯視 TOP 面板雙線(user 2026-05-29):
+          零件圖「俯視 TOP」面板 = OrthoView view="front" = X-Y 投影。
+          每個 start/end tenon 帶 axis 的 → 兩條黑色垂直直線:
+            top 面 shoulder + bottom 面 shoulder
+          兩條 X 偏移 = (ay/ax) × T(全厚度的 tan)。
+          先用白線蓋掉 polygon 本體在 shoulder 處的垂直端邊(避免變 3 條線),
+          再畫黑色 shoulder 雙線。 */}
+      {/* 〔已停用 2026-06-01〕斜接 apron 俯視 shoulder 雙線 overlay 移除:
+          body 已用真實比例 outline,此 overlay 多出榫頭肩線、俯視看起來亂
+          (user「俯視不畫榫頭肩線」)。 */}
+      {false && view === "front" && !!isolatePartId && renderDesign.parts.map((p) => {
+        const tilts = p.tenons.filter((t) => {
+          if (!t.axis) return false;
+          if (t.position !== "start" && t.position !== "end") return false;
+          const ax = t.axis.x ?? 0;
+          const ay = t.axis.y ?? 0;
+          if (Math.abs(ax) < 0.001) return false;
+          return Math.abs((ay / ax) * p.visible.thickness / 2) >= 0.5;
+        });
+        if (tilts.length === 0) return null;
+        const T = p.visible.thickness;
+        const r = projectPart(p, view);
+        const yTopSvg = -(r.y + r.h);
+        const yBotSvg = -r.y;
+        const lines: React.ReactNode[] = [];
+        for (const t of tilts) {
+          const ax = t.axis!.x ?? 0;
+          const ay = t.axis!.y ?? 0;
+          const delta = (ay / ax) * T / 2;
+          let xTop: number;
+          let xBot: number;
+          if (t.position === "end") {
+            xTop = r.x + delta;
+            xBot = r.x - delta;
+          } else {
+            xTop = r.x + r.w + delta;
+            xBot = r.x + r.w - delta;
+          }
+          lines.push(
+            <line
+              key={`${p.id}-${t.position}-shoulder-top`}
+              x1={xTop}
+              x2={xTop}
+              y1={yTopSvg}
+              y2={yBotSvg}
+              stroke="#000"
+              strokeWidth={0.8}
+            />,
+            <line
+              key={`${p.id}-${t.position}-shoulder-bot`}
+              x1={xBot}
+              x2={xBot}
+              y1={yTopSvg}
+              y2={yBotSvg}
+              stroke="#000"
+              strokeWidth={0.8}
+            />,
+          );
+        }
+        return <g key={`${p.id}-tilt-shoulders`}>{lines}</g>;
       })}
 
       {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓
            俯視看不到挖型不畫；曲線從矩形頂緣往下凹（最深點 = depthMm） */}
-      {view !== "top" && design.parts
+      {view !== "top" && renderDesign.parts
         .filter((p) => p.shape?.kind === "seat-scoop")
         .map((p) => {
           if (p.shape?.kind !== "seat-scoop") return null;
@@ -1696,18 +3357,41 @@ export function OrthoView({
           );
         })}
 
-      {/* outer bounding box (dashed ghost) */}
-      <rect
-        x={-w / 2}
-        y={drawAreaTop}
-        width={w}
-        height={h}
-        fill="none"
-        stroke="#999"
-        strokeDasharray="3 3"
-        strokeWidth={0.5}
-        opacity={0.8}
-      />
+      {/* outer bounding box (dashed ghost)
+          零件圖 splay 腳側/正視:此框=未傾斜原料,改實線深色當主輪廓
+          (跟 polygon silhouette 改虛線配對, 木工視角實線=要切的料) */}
+      {(() => {
+        const isolatedPart = isolatePartId ? renderDesign.parts[0] : null;
+        const isSplayPartSwap =
+          !!isolatedPart &&
+          (isolatedPart.shape?.kind === "splayed" ||
+            isolatedPart.shape?.kind === "splayed-tapered" ||
+            isolatedPart.shape?.kind === "splayed-round-tapered") &&
+          (view === "front" || view === "side" || view === "top");
+        // arch-bent（椅背頂橫木 bow）零件圖：ghost 框＝毛料含弧高（W + bendMm，
+        // 與 grossPartDims / 毛料厚≥X 標一致），不然「直料弦框」會斜切過弧帶、
+        // 看起來像兩條線交叉（user 2026-06-11 回報）。彎向 mesh +Z →
+        // top/bottom 視圖往 SVG −y 擴、side 視圖往 SVG −x 擴（+Z 投影到 −x）。
+        const archBendGhost =
+          isolatedPart?.shape?.kind === "arch-bent"
+            ? (isolatedPart.shape.bendMm ?? 0)
+            : 0;
+        const ghostUp = view === "top" ? archBendGhost : 0;
+        const ghostLeft = view === "side" ? archBendGhost : 0;
+        return (
+          <rect
+            x={-w / 2 - ghostLeft}
+            y={drawAreaTop - ghostUp}
+            width={w + ghostLeft}
+            height={h + ghostUp}
+            fill="none"
+            stroke={isSplayPartSwap ? "#000" : "#999"}
+            strokeDasharray={isSplayPartSwap ? undefined : "3 3"}
+            strokeWidth={isSplayPartSwap ? 1.2 : 0.5}
+            opacity={isSplayPartSwap ? 1 : 0.8}
+          />
+        );
+      })()}
 
       {/* 榫接模式 overlay（drafting-math.md §B5/§B6）：
             - tenon 凸出 = 紅實線
@@ -1721,7 +3405,7 @@ export function OrthoView({
         // polygon、不畫 splayed 2-slice。視覺乾淨，三視圖一致。
         return (
         <g pointerEvents="none">
-          {design.parts.map((part) => {
+          {renderDesign.parts.map((part) => {
             if (part.visual === "glass") return null;
             const elements: React.ReactNode[] = [];
             // tenon 凸出（公榫）—— 一律單 polygon，跟著公件 shape/rotation 變形
@@ -1755,10 +3439,10 @@ export function OrthoView({
               // 腳頂中心 (世界): (ox, oy + lh, oz)
               const bx = ox + bottomDx, by = oy, bz = oz + bottomDz;
               const tx = ox, ty = oy + lh, tz = oz;
-              // 投影到視圖平面（用跟 makeProjector 相同的慣例：front/top 都 -wx）
+              // 投影到視圖平面（用跟 makeProjector 相同的慣例：front/top 都 -wx；側視 -wz）
               const proj = (wx: number, wy: number, wz: number) => {
                 if (view === "front") return { x: -wx, y: wy };
-                if (view === "side") return { x: wz, y: wy };
+                if (view === "side") return { x: -wz, y: wy };
                 return { x: -wx, y: wz };  // top view (won't use here)
               };
               const p1 = proj(bx, by, bz);
@@ -1816,7 +3500,7 @@ export function OrthoView({
                   part.shape?.kind === "round-tapered" ||
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
-                if (isRoundLegPart && t.position === "top") {
+                if (isRoundLegPart && (t.position === "top" || t.position === "bottom")) {
                   if (view === "top") {
                     // 俯視：圓榫畫成圓（圓料 cross-section）
                     const cx = r.x + r.w / 2;
@@ -1837,32 +3521,36 @@ export function OrthoView({
                     );
                   } else {
                     // 正/側視：圓柱榫的側面投影 = 兩條沿腳中軸方向的平行延伸線
-                    // 不畫端面 cap（圓料端面是圓，但從側看就是線，畫了像方框）
-                    const cxBase = r.x + r.w / 2;  // 腳頂榫中心 X（在 r 底部，因為 tenon 從腳頂往上 = +Y 方向）
-                    const yBaseWorld = r.y;  // 腳頂 Y
-                    const yTopWorld = r.y + r.h;  // 榫頂 Y
+                    // top tenon：root 在 r.y（低 Y），tip 在 r.y+r.h（高 Y），軸向 +Y
+                    // bottom tenon：root 在 r.y+r.h（高 Y），tip 在 r.y（低 Y），軸向 -Y
+                    const isTopPos = t.position === "top";
+                    const cxBase = r.x + r.w / 2;
+                    const yBaseWorld = isTopPos ? r.y : r.y + r.h;  // root face Y
+                    const yTopWorld = isTopPos ? r.y + r.h : r.y;   // tip face Y
                     const halfWidth = r.w / 2;  // 圓料半徑
-                    // 腳中軸方向（從腳頂指向榫頂）：直腳=(0,1)，splayed=(-dx, lh) 歸一化
+                    // 腳中軸方向（top tenon = 腳頂往榫頂；bottom tenon = 圓料底往榫尖即繼續往下）
+                    // 直腳=(0, ±1)，splayed-round-tapered=(±dx, ±lh) 歸一化
                     let axDx = 0;
-                    let axDy = 1;
+                    let axDy = isTopPos ? 1 : -1;
                     if (part.shape?.kind === "splayed-round-tapered") {
                       const dx = part.shape.dxMm ?? 0;
                       const dz = part.shape.dzMm ?? 0;
                       const lh = part.visible.thickness;
                       if (lh > 0) {
-                        // 世界中腳軸往上 = (-dx, +lh, -dz)；投到 screen：
-                        //   front: screen X = -world X → screen Δx = +dx
-                        //   side:  screen X =  world Z → screen Δx = -dz
-                        // screen Y = world Y 對 front/side 一致，axDy = lh/norm
-                        const projDx = view === "front" ? dx : view === "side" ? -dz : 0;
+                        // top tenon: leg axis (bot→top) = (-dx, +lh, -dz)；繼續延伸上去 same direction
+                        // bottom tenon: spindle axis (top→bot) = (+dx, -lh, +dz)；繼續往下 same
+                        const sgn = isTopPos ? 1 : -1;
+                        const projDx = view === "front" ? dx : view === "side" ? dz : 0;
                         const norm = Math.sqrt(projDx * projDx + lh * lh);
-                        axDx = projDx / norm;
-                        axDy = lh / norm;
+                        // screen X = -world X (front) 或 -world Z (side)
+                        // top: screen Δx = sgn * +projDx；bottom: 反向 → 套 -sgn
+                        axDx = (sgn === 1 ? projDx : -projDx) / norm;
+                        axDy = (sgn * lh) / norm;
                       }
                     }
-                    // 榫長 = 沿腳中軸延伸的距離；用 r.h（投影 Y 距離）≈ length × axDy
-                    const tenonLen = axDy > 0.01 ? r.h / axDy : r.h;
-                    // 兩條平行線：腳頂左右端點（垂直腳中軸偏 ±halfWidth）→ 沿軸延伸 tenonLen
+                    // 榫長 = 沿腳中軸延伸的距離；用 r.h（投影 Y 距離）≈ length × |axDy|
+                    const tenonLen = Math.abs(axDy) > 0.01 ? r.h / Math.abs(axDy) : r.h;
+                    // 兩條平行線：腳頂/底左右端點（垂直腳中軸偏 ±halfWidth）→ 沿軸延伸 tenonLen
                     // 垂直軸的 unit vector (right side)：rotate 軸 90° → (axDy, -axDx)
                     const perpX = axDy;
                     const perpY = -axDx;
@@ -2070,47 +3758,221 @@ export function OrthoView({
         );
       })()}
 
+      {/* 拼板 / 疊層分件線：桌面做法（寬板平拼 / 窄條側立拼 / 疊層）要從圖上看得出來
+          （🩸2026-09-04 木頭仁：「桌面做法從圖上都要看得出來」）。分件方向跟 3D 木紋、
+          料單同一支 panelSplitWorld()，不要各判一套。 */}
+      <g pointerEvents="none">
+        {renderDesign.parts.map((part) => {
+          if (part.visual === "glass" || part.visual === "metal") return null;
+          const sp = panelSplitWorld(part);
+          if (!sp) return null;
+          // 這個視圖看不看得到分件線：分件方向跟視線同軸 = 看不到
+          const hidden =
+            (view === "front" && sp.axis === "z") ||
+            (view === "side" && sp.axis === "x") ||
+            (view === "top" && sp.axis === "y");
+          if (hidden) return null;
+          const { xExt, yExt, zExt } = worldExtents(part);
+          const ox = part.origin?.x ?? 0, oy = part.origin?.y ?? 0, oz = part.origin?.z ?? 0;
+          // 世界 → svg（跟 makeProjector 同慣例：front/top 用 -wx、側視 -wz；y 再取負）
+          const sx = (wx: number, wz: number) => (view === "side" ? -wz : -wx);
+          const sy = (wy: number, wz: number) => (view === "top" ? -wz : -wy);
+          const lines: React.ReactNode[] = [];
+          const step = (sp.hi - sp.lo) / sp.pieces;
+          for (let i = 1; i < sp.pieces; i++) {
+            const at = sp.lo + step * i;
+            let x1: number, y1: number, x2: number, y2: number;
+            if (sp.axis === "x") {
+              x1 = x2 = sx(at, oz);
+              if (view === "top") { y1 = sy(0, oz - zExt / 2); y2 = sy(0, oz + zExt / 2); }
+              else { y1 = sy(oy, oz); y2 = sy(oy + yExt, oz); }
+            } else if (sp.axis === "y") {
+              y1 = y2 = sy(at, oz);
+              if (view === "side") { x1 = sx(ox, oz - zExt / 2); x2 = sx(ox, oz + zExt / 2); }
+              else { x1 = sx(ox - xExt / 2, oz); x2 = sx(ox + xExt / 2, oz); }
+            } else {
+              if (view === "top") {
+                y1 = y2 = sy(0, at);
+                x1 = sx(ox - xExt / 2, oz); x2 = sx(ox + xExt / 2, oz);
+              } else {
+                // 側視：分件方向沿世界 Z = 畫面水平
+                x1 = x2 = sx(ox, at);
+                y1 = sy(oy, oz); y2 = sy(oy + yExt, oz);
+              }
+            }
+            lines.push(
+              <line key={`${part.id}-panel-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="#666" strokeWidth={0.6} />,
+            );
+          }
+          return lines.length > 0 ? <g key={`panel-${part.id}`}>{lines}</g> : null;
+        })}
+      </g>
+
       {/* Cosmetic mortise（無線充電凹槽、後板穿線孔等產品功能）—正常三視圖也要可見 */}
       <g pointerEvents="none">
-        {design.parts.map((part) => {
+        {renderDesign.parts.map((part) => {
           if (part.visual === "glass") return null;
-          const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0);
+          // polygon staves（wall-1, wall-2…）的 divider dado mortise 不畫橘色指示框
+          // CSG 還是會挖，只是 2D 不再加多餘虛線（隔板邊緣已經視覺上嵌入壁）
+          if (/^wall-\d+$/.test(part.id)) return null;
+          // rect 壁 dado（divider 嵌入溝）：m.rotY 標記用，CSG 會挖但 2D outline 算錯方向，跳過
+          // 零件圖（isolate）模式下，傾斜 cosmetic 槽（rotX/rotZ，如百葉門 25° 斜槽）
+          // 改由 annotation T2 的剪切多邊形畫斜框；svg outline 在 isolate 視軸重映後
+          // 不會跟著轉、會疊出一條軸對齊直框（user 回報「兩個一上一下」），故跳過。
+          const cosmetic = part.mortises.filter(
+            (m) =>
+              m.cosmetic &&
+              m.depth > 0 &&
+              !m.rotY &&
+              !(isolatePartId && (m.rotX || m.rotZ)),
+          );
           if (cosmetic.length === 0) return null;
+          // Pill 偵測：rect mortise + 2 round mortise（at ±rect.length/2、同 cy/cz/rotX/depth）
+          // 視為單一 pill 路徑。否則 3 個獨立框 + outer/inner 雙輪廓 = 6 條線，使用者覺得亂。
+          type Entry =
+            | { kind: "pill"; rect: typeof cosmetic[number]; rounds: [typeof cosmetic[number], typeof cosmetic[number]] }
+            | { kind: "single"; m: typeof cosmetic[number] };
+          const entries: Entry[] = [];
+          const used = new Set<number>();
+          const eq = (a: number, b: number) => Math.abs(a - b) < 0.5;
+          for (let i = 0; i < cosmetic.length; i++) {
+            if (used.has(i)) continue;
+            const m = cosmetic[i];
+            if (m.shape === "rect") {
+              const offX = m.length / 2;
+              let li = -1, ri = -1;
+              for (let j = 0; j < cosmetic.length; j++) {
+                if (j === i || used.has(j)) continue;
+                const om = cosmetic[j];
+                if (om.shape !== "round") continue;
+                if (!eq(om.origin.y, m.origin.y) || !eq(om.origin.z, m.origin.z)) continue;
+                if ((om.rotX ?? 0) !== (m.rotX ?? 0)) continue;
+                if (eq(om.origin.x, m.origin.x - offX)) li = j;
+                else if (eq(om.origin.x, m.origin.x + offX)) ri = j;
+              }
+              if (li >= 0 && ri >= 0) {
+                entries.push({ kind: "pill", rect: m, rounds: [cosmetic[li], cosmetic[ri]] });
+                used.add(i); used.add(li); used.add(ri);
+                continue;
+              }
+            }
+            entries.push({ kind: "single", m });
+            used.add(i);
+          }
           return (
             <g key={`cosmetic-${part.id}`}>
-              {cosmetic.map((m, i) => {
+              {entries.flatMap((entry, i) => {
+                // 取得本 entry 用的 mortise 與 box（pill 用合成 box；single 用本身）
+                const m = entry.kind === "pill" ? entry.rect : entry.m;
                 const lb = mortiseLocalBox(part, m);
-                const r = projectFeatureRect(part, lb, view);
-                if (r.w < 0.5 || r.h < 0.5) return null;
+                // front view 會另外用 SVG transform rotate(m.rotX) 畫斜孔——
+                // 投影 box 必須用「未旋轉版」，否則 projectFeatureRect 先算
+                // 旋轉 AABB、transform 又轉一次＝雙重旋轉：pill 變胖
+                //（8.5→19.9 寬）且半懸出斜壁帶（user 2026-06-11 外撇主視圖
+                // 手把孔騎在斜邊線上回報）。side/top 無 transform rotate，
+                // 維持原 AABB 投影。
+                const lbBase =
+                  view === "front" && m.rotX
+                    ? { ...lb, rotX: 0, rotY: 0, rotZ: 0 }
+                    : lb;
+                let r: { x: number; y: number; w: number; h: number };
+                const isPill = entry.kind === "pill";
+                if (entry.kind === "pill") {
+                  // Pill 合成 box：x 半寬 = (handleW)/2 = rect.length/2 + round.length/2
+                  // 用 rect mortise 的 lb 做基底、改 hx
+                  const handleW = entry.rect.length + entry.rounds[0].length;
+                  const pillLb = { ...lbBase, hx: handleW / 2 };
+                  r = projectFeatureRect(part, pillLb, view);
+                } else {
+                  r = projectFeatureRect(part, lbBase, view);
+                }
+                if (r.w < 0.5 || r.h < 0.5) return [];
                 const cx = r.x + r.w / 2;
                 const cy = -(r.y + r.h) + r.h / 2;
-                if (m.shape === "round") {
+                const rotDeg = m.rotX && view === "front" ? (-m.rotX * 180 / Math.PI) : 0;
+                const transform = rotDeg !== 0 ? `rotate(${rotDeg.toFixed(2)} ${cx} ${cy})` : undefined;
+
+                // 斜壁通孔：side/top view 加內面虛線（外實內虛）。
+                // 外內偏移在 side view = 0（外/內面 cut 在同 SVG 位置、視覺上覆蓋同一處
+                // 用 solid+dashed 區分前後），foreshortening 才是 pill 在 view 真正高度。
+                // Pill 在 splayed 壁上 24mm 高，但 side view 看的是 24·cosθ ≈ 17mm（θ=45°）。
+                const isThroughTilted = m.through && m.rotX !== undefined && m.rotX !== 0;
+                const innerDx = 0;
+                const innerDy = 0;
+                // 在 side view 對 splayed 通孔的高度套 cosθ foreshortening。
+                // 用 SVG group transform 套 scaleY，中心 = pill 中心，避免位置位移。
+                let foreshortenScaleY = 1;
+                if (isThroughTilted && view === "side") {
+                  foreshortenScaleY = Math.cos(Math.abs(m.rotX!));
+                }
+
+                const stroke = "#c97a2b";
+                const strokeW = 0.6;
+                const dashedAttr = "2 1.5";
+
+                // foreshortening：對 splayed pill 在 side view 套 scaleY，繞 pill 中心
+                // 縮 cos θ 倍。SVG transform 合併 rotate（front view）+ scale。
+                const composeTransform = () => {
+                  const parts: string[] = [];
+                  if (rotDeg !== 0) parts.push(`rotate(${rotDeg.toFixed(2)} ${cx} ${cy})`);
+                  if (foreshortenScaleY !== 1) {
+                    // translate to center, scale, translate back（centered scale）
+                    parts.push(`translate(${cx} ${cy})`);
+                    parts.push(`scale(1 ${foreshortenScaleY.toFixed(4)})`);
+                    parts.push(`translate(${-cx} ${-cy})`);
+                  }
+                  return parts.length > 0 ? parts.join(" ") : undefined;
+                };
+                const tform = composeTransform();
+
+                // round 孔只在「軸正對視圖」時畫圓（投影矩形接近正方形）；
+                // 軸跟視圖平行時（投影成長細條）改畫 silhouette rect = 兩條長邊像
+                // 工程圖約定的「通孔上下緣」雙線
+                const rAspect = r.w > 0 && r.h > 0 ? Math.min(r.w, r.h) / Math.max(r.w, r.h) : 0;
+                const roundAsCircle = !isPill && m.shape === "round" && rAspect >= 0.7;
+                const node = (key: string, ox: number, oy: number, dashed: boolean) => {
+                  if (roundAsCircle) {
+                    return (
+                      <circle
+                        key={key}
+                        cx={cx + ox}
+                        cy={cy + oy}
+                        r={Math.min(r.w, r.h) / 2}
+                        fill="none"
+                        stroke={stroke}
+                        strokeWidth={strokeW}
+                        strokeDasharray={dashed ? dashedAttr : m.through ? undefined : dashedAttr}
+                        transform={tform}
+                      />
+                    );
+                  }
+                  // Pill 或 rect 或 round-as-silhouette：rect (with rx for pill)
+                  const rx = isPill ? Math.min(r.w, r.h) / 2 : 0;
                   return (
-                    <circle
-                      key={`cm-${i}`}
-                      cx={cx}
-                      cy={cy}
-                      r={Math.min(r.w, r.h) / 2}
+                    <rect
+                      key={key}
+                      x={r.x + ox}
+                      y={-(r.y + r.h) + oy}
+                      width={r.w}
+                      height={r.h}
+                      rx={rx}
+                      ry={rx}
                       fill="none"
-                      stroke="#c97a2b"
-                      strokeWidth={0.6}
-                      strokeDasharray={m.through ? undefined : "2 1.5"}
+                      stroke={stroke}
+                      strokeWidth={strokeW}
+                      strokeDasharray={dashed ? dashedAttr : m.through ? undefined : dashedAttr}
+                      transform={tform}
                     />
                   );
+                };
+
+                const outer = node(`cm-${i}`, 0, 0, !m.through);
+                if (!isThroughTilted || (view !== "side" && view !== "top")) {
+                  return [outer];
                 }
-                return (
-                  <rect
-                    key={`cm-${i}`}
-                    x={r.x}
-                    y={-(r.y + r.h)}
-                    width={r.w}
-                    height={r.h}
-                    fill="none"
-                    stroke="#c97a2b"
-                    strokeWidth={0.6}
-                    strokeDasharray={m.through ? undefined : "2 1.5"}
-                  />
-                );
+                const inner = node(`cm-${i}-inner`, innerDx, innerDy, true);
+                return [outer, inner];
               })}
             </g>
           );
@@ -2118,43 +3980,346 @@ export function OrthoView({
       </g>
 
       {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
-          Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
-      <DimensionLine
-        arrowId={`arr-${view}`}
-        x1={-w / 2}
-        x2={w / 2}
-        y={drawAreaTop + h + 28}
-        label={`${view === "side" ? "深" : "寬"} ${w} mm`}
-      />
+          Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）
+          圓面家具（圓凳/圓桌）bbox 寬 = 直徑時掛 Ø（§I6 寬=深同值，標 Ø 一次說清）*/}
+      {showDimensions && (() => {
+        const dims0 = extractFurnitureDims(renderDesign);
+        const roundFull =
+          !!dims0?.isRoundMain && Math.abs(w - dims0.main.visible.length) < 1;
+        const label = roundFull
+          ? `Ø ${dimMm(w)}`
+          : isEn
+            ? `${view === "side" ? "Depth" : "Width"} ${dimMm(w)}`
+            : `${view === "side" ? "深" : "寬"} ${dimMm(w)}`;
+        return (
+          <DimensionLine
+            arrowId={`arr-${view}`}
+            x1={-w / 2}
+            x2={w / 2}
+            y={drawAreaTop + h + 28}
+            label={label}
+          />
+        );
+      })()}
 
       {/* vertical dimension on right side
           桌椅類（非 cabinet）前/側視圖左側有「桌下淨高 + 桌面厚」等價資訊，跳過；
           頂視圖 + 所有櫃類（cabinet !== null）無左側等價總高標，必顯示
           Front/Side 投影 Y 軸 = 高（thickness）；Top 投影 Y 軸 = 深（width）*/}
-      {(() => {
+      {showDimensions && (() => {
         // 桌椅類（有主面但無底板 = 非櫃）才跳過右側總高標，因左側已有
         // 「桌下淨高 + 桌面厚」等價資訊。
         // 櫃類（cabinet 非 null）只有內高 / 腳高，師傅看不到整件家具
         // 實際總高，必須保留此右側總高標線（解法 C）。
-        const dims0 = extractFurnitureDims(design);
+        const dims0 = extractFurnitureDims(renderDesign);
         const hasFlatTopLeftLabel =
           view !== "top" && dims0 !== null && dims0.cabinet === null;
         if (hasFlatTopLeftLabel) return null;
+        // 圓面家具俯視：寬=深=Ø，底部已標 Ø，右側同值冗餘跳過（§I6 冗餘刪一）
+        if (
+          view === "top" &&
+          dims0?.isRoundMain &&
+          Math.abs(w - h) < 1 &&
+          Math.abs(w - dims0.main.visible.length) < 1
+        )
+          return null;
         return (
           <VerticalDimensionLine
             arrowId={`arr-${view}`}
             x={w / 2 + 28}
             y1={view === "top" ? -h / 2 : -h}
             y2={view === "top" ? h / 2 : 0}
-            label={`${view === "top" ? "深" : "高"} ${h} mm`}
+            label={isEn ? `${view === "top" ? "Depth" : "Height"} ${dimMm(h)}` : `${view === "top" ? "深" : "高"} ${dimMm(h)}`}
           />
         );
       })()}
 
       {/* === 額外標線（內部尺寸 + zone 高度鏈 / 桌面厚 + 淨高 / 層板高度）=== */}
-      {(() => {
-        const dims = extractFurnitureDims(design);
-        if (!dims) return null;
+      {showDimensions && (() => {
+        const dims = extractFurnitureDims(renderDesign);
+        if (!dims) {
+          // ===== 箱盒類（筆筒/托盤/木盒：無 top/seat → 走輕量 box 分支）=====
+          // 槽位沿用櫃類慣例（y+80 內寬、x+96 內深、x+140 底厚）視覺語言一致
+          const box = extractBoxDims(renderDesign);
+          if (box) {
+            const { wallT, wallH, botT, wallBottomY, bottomTopY, innerDepth, lidT, lidBottomY } = box;
+            if (view === "front" || view === "side") {
+              const innerSpan = w - 2 * wallT;
+              // 矮件（托盤 60mm）三條垂直標的 label 會擠同一水平帶 →
+              // 鏈式錯開：高（generic，自身 mid）→ 內深（mid+18）→ 底（再 +18）
+              // （§I2 平行標間距；user 2026-06-11 托盤回報「內深 52 底 8 疊字」）
+              const overallMid = drawAreaTop + h / 2;
+              const innerMid = (drawAreaTop + -bottomTopY) / 2;
+              const innerLabelY =
+                Math.abs(innerMid - overallMid) < 18 ? overallMid + 18 : innerMid;
+              const baseMid = (-botT + (drawAreaTop + h)) / 2;
+              const baseLabelY =
+                Math.abs(baseMid - innerLabelY) < 18
+                  ? innerLabelY + 18
+                  : undefined;
+              return (
+                <>
+                  {/* 內寬/內長（§I6 必標；front=X、side=Z 同壁厚） */}
+                  <DimensionLine
+                    arrowId={`arr-${view}`}
+                    x1={-w / 2 + wallT}
+                    x2={w / 2 - wallT}
+                    y={drawAreaTop + h + 80}
+                    label={isEn ? `Inner ${dimMm(innerSpan)}` : `內 ${dimMm(innerSpan)}`}
+                  />
+                  {view === "front" && (
+                    <>
+                      {/* 內深（牆底到牆頂的可用深度）。矮件與外高標籤同 Y
+                          水平撞字 → labelY 錯開 18（§I2 間距） */}
+                      <VerticalDimensionLine
+                        arrowId={`arr-${view}`}
+                        x={w / 2 + 96}
+                        y1={drawAreaTop}
+                        y2={-bottomTopY}
+                        label={isEn ? `Inner ${dimMm(innerDepth)}` : `內深 ${dimMm(innerDepth)}`}
+                        labelY={
+                          innerLabelY !== innerMid ? innerLabelY : undefined
+                        }
+                      />
+                      {/* 底板厚（矮件接續內深再往下錯 18） */}
+                      <VerticalDimensionLine
+                        arrowId={`arr-${view}`}
+                        x={w / 2 + 140}
+                        y1={-botT}
+                        y2={drawAreaTop + h}
+                        label={isEn ? `Base ${dimMm(botT)}` : `底 ${dimMm(botT)}`}
+                        labelY={baseLabelY}
+                      />
+                      {/* 壁厚 text 貼左牆 */}
+                      <text
+                        x={-w / 2 + wallT + 4}
+                        y={-(wallBottomY + wallH * 0.6)}
+                        fontSize={10}
+                        fill="#444"
+                        fontFamily="sans-serif"
+                      >
+                        {isEn ? "Wall" : "壁"} {dimMm(wallT)}
+                      </text>
+                      {/* 蓋厚 text（有蓋款） */}
+                      {lidT != null && lidBottomY != null && (
+                        <text
+                          x={w / 2 + 4}
+                          y={-(lidBottomY + lidT / 2) + 4}
+                          fontSize={10}
+                          fill="#444"
+                          fontFamily="sans-serif"
+                        >
+                          {isEn ? "Lid" : "蓋"} {dimMm(lidT)}
+                        </text>
+                      )}
+                    </>
+                  )}
+                </>
+              );
+            }
+            // top：內長（X）+ 內寬（Z）+ 壁厚
+            return (
+              <>
+                <DimensionLine
+                  arrowId={`arr-${view}`}
+                  x1={-w / 2 + wallT}
+                  x2={w / 2 - wallT}
+                  y={drawAreaTop + h + 80}
+                  label={isEn ? `Inner ${dimMm(w - 2 * wallT)}` : `內 ${dimMm(w - 2 * wallT)}`}
+                />
+                {/* 內寬(Z)。與 x+28 的「深」標 mid 都在 0 → label 錯開 18（§I2，
+                    user 2026-06-11 托盤俯視「深 280 內 264」相連回報） */}
+                <VerticalDimensionLine
+                  arrowId={`arr-${view}`}
+                  x={w / 2 + 96}
+                  y1={-h / 2 + wallT}
+                  y2={h / 2 - wallT}
+                  label={isEn ? `Inner ${dimMm(h - 2 * wallT)}` : `內 ${dimMm(h - 2 * wallT)}`}
+                  labelY={18}
+                />
+                <text
+                  x={-w / 2 + wallT + 4}
+                  y={4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Wall" : "壁"} {dimMm(wallT)}
+                </text>
+              </>
+            );
+          }
+          // ===== 相框（平躺建模 → 內框口/框料標在俯視圖）=====
+          const pf = extractFrameDims(renderDesign);
+          if (pf && view === "top") {
+            return (
+              <g fontFamily="sans-serif" pointerEvents="none">
+                <text
+                  x={0}
+                  y={-4}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="#7a5a2b"
+                  fontWeight="700"
+                >
+                  {isEn ? "Opening" : "內框口"} {dimMm(pf.openX)}×{dimMm(pf.openZ)}
+                </text>
+                {(pf.glassT != null || pf.backT != null) && (
+                  <text x={0} y={10} textAnchor="middle" fontSize={9} fill="#7a5a2b">
+                    {[
+                      pf.glassT != null
+                        ? `${isEn ? "Glass" : "玻璃"} ${dimMm(pf.glassT)}`
+                        : null,
+                      pf.backT != null
+                        ? `${isEn ? "Back" : "背板"} ${dimMm(pf.backT)}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join("・")}
+                  </text>
+                )}
+                {/* 框料寬×厚 text 貼上框 */}
+                <text
+                  x={0}
+                  y={-h / 2 + pf.railW / 2 + 4}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="#444"
+                >
+                  {isEn ? "Rail" : "框料"}{" "}
+                  {useInch
+                    ? `${formatLengthBare(pf.railW, "inch")}×${formatLengthBare(pf.railT, "inch")}`
+                    : `${Math.round(pf.railW)}×${Math.round(pf.railT)}`}
+                </text>
+              </g>
+            );
+          }
+          // ===== 床架（slat-N ≥ 3 支：床板條規格＋床面高）=====
+          // 排列軸動態判斷（origins 分佈大的軸＝排列方向），別硬猜 X/Z
+          const slatsRaw = renderDesign.parts.filter((p) =>
+            /^slat-\d+$/.test(p.id),
+          );
+          const slatSpread = (axis: "x" | "z") => {
+            const vs = slatsRaw.map((p) => p.origin[axis]);
+            return Math.max(...vs) - Math.min(...vs);
+          };
+          const slatAxis: "x" | "z" =
+            slatsRaw.length >= 2 && slatSpread("x") >= slatSpread("z")
+              ? "x"
+              : "z";
+          const slats = [...slatsRaw].sort(
+            (a, b) => a.origin[slatAxis] - b.origin[slatAxis],
+          );
+          if (slats.length >= 3) {
+            const sl = slats[0];
+            const ext = worldExtents(sl);
+            const yExt = ext.yExt;
+            const slatW = slatAxis === "x" ? ext.xExt : ext.zExt; // 板條寬（排列軸）
+            const slatL = slatAxis === "x" ? ext.zExt : ext.xExt; // 板條長（橫跨軸）
+            const gap =
+              slats[1].origin[slatAxis] - slats[0].origin[slatAxis] - slatW;
+            if (view === "top") {
+              // 板條規格一次說清（§I6 重複件標一次）：支數・寬・間距
+              const fmt = (mm: number) =>
+                useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+              return (
+                <text
+                  x={0}
+                  y={4}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="#7a5a2b"
+                  fontWeight="700"
+                  fontFamily="sans-serif"
+                  pointerEvents="none"
+                >
+                  {isEn
+                    ? `Slats ×${slats.length} · W ${fmt(slatW)} · gap ${fmt(gap)}`
+                    : `床板條 ×${slats.length}・寬 ${fmt(slatW)}・間距 ${fmt(gap)}`}
+                </text>
+              );
+            }
+            if (view === "side" || view === "front") {
+              // 床面高（床墊放置面）＋板條長（front 視圖＝橫跨方向）
+              const slatTopY = sl.origin.y + yExt;
+              return (
+                <>
+                  <VerticalDimensionLine
+                    arrowId={`arr-${view}`}
+                    x={w / 2 + 96}
+                    y1={-slatTopY}
+                    y2={drawAreaTop + h}
+                    label={
+                      isEn
+                        ? `Deck ${dimMm(slatTopY)}`
+                        : `床面高 ${dimMm(slatTopY)}`
+                    }
+                  />
+                  {view === "front" && (
+                    <text
+                      x={0}
+                      y={-slatTopY - 6}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fill="#444"
+                      fontFamily="sans-serif"
+                    >
+                      {isEn
+                        ? `Slat L ${dimMm(slatL)}`
+                        : `床板條長 ${dimMm(slatL)}`}
+                    </text>
+                  )}
+                </>
+              );
+            }
+            return null;
+          }
+          // ===== 立式衣帽架（column + hook-N：掛鉤高度＋柱料尺寸）=====
+          const crColumn = renderDesign.parts.find((p) => p.id === "column");
+          const crHooks = renderDesign.parts.filter((p) => /^hook-\d+$/.test(p.id));
+          if (crColumn && crHooks.length > 0 && (view === "front" || view === "side")) {
+            // 掛鉤高度：同高去重（環繞柱身的一圈鉤同 Y 標一次）
+            const hookYs = [
+              ...new Set(
+                crHooks.map((p) =>
+                  Math.round(p.origin.y + worldExtents(p).yExt / 2),
+                ),
+              ),
+            ].sort((a, b) => b - a);
+            const colSize = Math.min(
+              crColumn.visible.length,
+              crColumn.visible.width,
+            );
+            const isRoundCol = crColumn.shape?.kind === "round";
+            const fmt = (mm: number) =>
+              useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+            return (
+              <>
+                {hookYs.slice(0, 3).map((hy, i) => (
+                  <VerticalDimensionLine
+                    key={`hook-${i}`}
+                    arrowId={`arr-${view}`}
+                    x={w / 2 + 96 + i * 44}
+                    y1={-hy}
+                    y2={drawAreaTop + h}
+                    label={isEn ? `Hook ${dimMm(hy)}` : `掛鉤高 ${dimMm(hy)}`}
+                  />
+                ))}
+                <text
+                  x={colSize / 2 + 6}
+                  y={-h * 0.45}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Post " : "柱 "}
+                  {isRoundCol ? `Ø${fmt(colSize)}` : `${fmt(colSize)}×${fmt(colSize)}`}
+                </text>
+              </>
+            );
+          }
+          return null;
+        }
         const {
           main,
           mainT,
@@ -2168,6 +4333,7 @@ export function OrthoView({
           legs,
           maxSplayDx,
           maxSplayDz,
+          legProfile,
         } = dims;
         const sFloor = drawAreaTop + h;
 
@@ -2192,7 +4358,7 @@ export function OrthoView({
                   fill="#444"
                   fontFamily="sans-serif"
                 >
-                  腳 {legSize}×{legSize}
+                  {`${isEn ? "Leg " : "腳 "}${useInch ? `${formatLengthBare(legSize, "inch")}×${formatLengthBare(legSize, "inch")}` : `${legSize}×${legSize}`}`}
                 </text>
                 {/* 桌面外伸——只在右上角標一個（4 邊對稱所以只標 1 處夠用）*/}
                 {showOverhang && (
@@ -2202,14 +4368,14 @@ export function OrthoView({
                       x1={maxX + legSize / 2}
                       x2={w / 2}
                       y={-h / 2 - 16}
-                      label={`外伸 ${Math.round(overhangXr)}`}
+                      label={isEn ? `Overhang ${dimMm(overhangXr)}` : `外伸 ${dimMm(overhangXr)}`}
                     />
                     <VerticalDimensionLine
                       arrowId={`arr-${view}`}
                       x={w / 2 + 16}
                       y1={maxZ + legSize / 2}
                       y2={h / 2}
-                      label={`外伸 ${Math.round(overhangZb)}`}
+                      label={isEn ? `Overhang ${dimMm(overhangZb)}` : `外伸 ${dimMm(overhangZb)}`}
                     />
                   </>
                 )}
@@ -2262,7 +4428,9 @@ export function OrthoView({
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
-                    mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
+                    isEn
+                      ? (mm > 0 ? `Footprint past seat ${dimMm(mm)}` : `Foot inset ${dimMm(-mm)}`)
+                      : (mm > 0 ? `落地超出椅面 ${dimMm(mm)}` : `落地內縮 ${dimMm(-mm)}`);
                   return (
                     <g clipPath={`url(#leftHalf-${view})`}>
                       {/* 橫撐上下緣 Y 的腳框（淺紅）+ 落地點腳框（深紅）
@@ -2340,31 +4508,38 @@ export function OrthoView({
             );
           }
           // front / side：主面厚 + 淨高 + 座面高 + 層板 + 橫撐 / 牙板 / 椅背
-          const labelMain = mainKind === "seat" ? "座板" : "桌面";
-          const labelClear = mainKind === "seat" ? "座下高" : "桌下淨高";
+          const labelMain = isEn
+            ? (mainKind === "seat" ? "Seat" : "Top")
+            : (mainKind === "seat" ? "座板" : "桌面");
+          const labelClear = isEn
+            ? (mainKind === "seat" ? "Under-seat" : "Under-top clear")
+            : (mainKind === "seat" ? "座下高" : "桌下淨高");
           // 把所有「會疊在左側的高度標線」整合：座面高 + 層板 + cross-pieces
           const leftStack: { y: number; label: string }[] = [];
           if (mainKind === "seat") {
             leftStack.push({
               y: mainTopY,
-              label: `座面 ${Math.round(mainTopY)}`,
+              label: isEn ? `Seat ${dimMm(mainTopY)}` : `座面 ${dimMm(mainTopY)}`,
             });
           }
           for (const s of shelves) {
+            // 名字剝尾碼數字：「下棚條 1」+「188 mm」連排會誤讀成 1188
+            //（user 2026-06-11 茶几排查）；同高棚條本就同 Y 去重只標一筆
+            const sName = (partName(s, locale) ?? s.nameZh).replace(/\s*\d+\s*$/, "");
             leftStack.push({
               y: s.topY,
-              label: `${s.nameZh} ${Math.round(s.topY)}`,
+              label: `${sName} ${dimMm(s.topY)}`,
             });
           }
           for (const c of crossPieces) {
             leftStack.push({
               y: c.topY,
-              label: `${c.nameZh} ${Math.round(c.topY)}`,
+              label: `${partName(c, locale)} ${dimMm(c.topY)}`,
             });
           }
           // 排序去重（同 Y 只留一個）
           const seen = new Set<number>();
-          const dedupedStack = leftStack
+          const dedupedStackBase = leftStack
             .sort((a, b) => a.y - b.y)
             .filter((it) => {
               const key = Math.round(it.y);
@@ -2372,6 +4547,29 @@ export function OrthoView({
               seen.add(key);
               return true;
             });
+          // labelY 防撞：兩筆 topY 太近時把後面那筆往下推一格（避免「左牙板 416/
+          // 前牙板 400」「左下橫撐 170/前下橫撐 170」label 撞字 user 2026-05-21 回報）。
+          // 處理順序由螢幕上往下（worldY 大→小、SVG y 小→大）：算出每筆「不要
+          // 撞到前一筆」的 labelY，再以原本的 column index 順序（i = ascending y）
+          // 套回去渲染。
+          const MIN_GAP = 18; // SVG mm，約一行字高
+          const labelYMap = new Map<number, number>();
+          {
+            const topDown = [...dedupedStackBase].sort((a, b) => b.y - a.y);
+            let prevLabelY = -Infinity;
+            for (const it of topDown) {
+              const desired = -it.y;
+              const effective = desired < prevLabelY + MIN_GAP
+                ? prevLabelY + MIN_GAP
+                : desired;
+              prevLabelY = effective;
+              labelYMap.set(Math.round(it.y), effective);
+            }
+          }
+          const dedupedStack = dedupedStackBase.map((it) => ({
+            ...it,
+            labelY: labelYMap.get(Math.round(it.y)) ?? -it.y,
+          }));
           return (
             <>
               {/* 主面厚 */}
@@ -2380,7 +4578,7 @@ export function OrthoView({
                 x={w / 2 + 96}
                 y1={-mainTopY}
                 y2={-mainBottomY}
-                label={`${labelMain} ${Math.round(mainT)}`}
+                label={`${labelMain} ${dimMm(mainT)}`}
               />
               {/* 淨高 */}
               <VerticalDimensionLine
@@ -2388,31 +4586,112 @@ export function OrthoView({
                 x={w / 2 + 140}
                 y1={-mainBottomY}
                 y2={sFloor}
-                label={`${labelClear} ${Math.round(mainBottomY)} mm`}
+                label={`${labelClear} ${dimMm(mainBottomY)}`}
               />
-              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同 Y 同尺寸去重，只標一次
-                  名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」） */}
+              {/* 腳外距（落地、含 splay；§I1 水平→下、底部第二槽 y+80）。
+                  內距 = 外距 − 2×腳粗 可推導不標（§I6）。
+                  side 視圖採右側視慣例：world +Z 投影到 SVG −x。 */}
+              {legFootprint && (() => {
+                const isSideV = view === "side";
+                const lo = isSideV ? legFootprint.minZ : legFootprint.minX;
+                const hi = isSideV ? legFootprint.maxZ : legFootprint.maxX;
+                const splay = isSideV ? maxSplayDz : maxSplayDx;
+                const half = legFootprint.legSize / 2;
+                const a = lo - half - splay;
+                const b = hi + half + splay;
+                if (b - a <= legFootprint.legSize + 1) return null; // 單柱腳無跨距
+                // 腳齊面緣（外距 = 整體寬）→ 與底部主標同值冗餘，跳過（§I6 冗餘刪一）
+                if (Math.abs(b - a - w) < 1) return null;
+                return (
+                  <DimensionLine
+                    arrowId={`arr-${view}`}
+                    x1={isSideV ? -b : a}
+                    x2={isSideV ? -a : b}
+                    y={drawAreaTop + h + 80}
+                    label={
+                      isEn ? `Leg span ${dimMm(b - a)}` : `腳外距 ${dimMm(b - a)}`
+                    }
+                  />
+                );
+              })()}
+              {/* 腳粗（§I6 必標件厚）：錐形腳標上/下端、圓料掛 Ø。
+                  放腳外距標線下緣置中（仿俯視圖腳粗 text 的 bare-number 慣例） */}
+              {legProfile && legFootprint && (() => {
+                const t = legProfile.topSize;
+                const bSize = legProfile.botSize;
+                const tapered = Math.abs(bSize - t) > 0.5;
+                const fmt = (mm: number) =>
+                  useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+                const pre = isEn ? "Leg " : "腳 ";
+                const label = legProfile.isRound
+                  ? tapered
+                    ? `${pre}Ø${fmt(t)}${isEn ? " top" : "上"}/Ø${fmt(bSize)}${isEn ? " btm" : "下"}`
+                    : `${pre}Ø${fmt(t)}`
+                  : tapered
+                    ? `${pre}${isEn ? "top " : "上"}${fmt(t)}/${isEn ? "btm " : "下"}${fmt(bSize)}`
+                    : `${pre}${fmt(t)}×${fmt(t)}`;
+                return (
+                  <text
+                    x={0}
+                    y={drawAreaTop + h + 94}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="#444"
+                    fontFamily="sans-serif"
+                  >
+                    {label}
+                  </text>
+                );
+              })()}
+              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同名 + 同尺寸去重只標一次
+                  名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」）
+                  ⚠ 不用 bottomY 當 dedup key：apronStaggerMm > 0 時 X 軸牙板與
+                     Z 軸牙板坐在不同 Y、bottomY 不同，key 不同會疊兩個「牙板 85」 */}
               {(() => {
-                const seen = new Map<string, typeof crossPieces[0]>();
+                const bare = (n: string) =>
+                  n.replace(/^(前|後|左|右)/, "").replace(/[-‧·]?(前|後|左|右)$/, "");
+                // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm。
+                // 前=右慣例下 +Z 投影到 SVG -x（左），bow 往 SVG 左凸 →
+                // 右側標籤不再與 silhouette 重疊；archShift 取 0。
+                // 若未來有 -Z（前）方向 bend，外推應為 |bendMm|（往左閃避）。
+                const seen = new Map<string, { label: string; midY: number }>();
                 for (const c of crossPieces) {
-                  const key = `${Math.round(c.bottomY)}_${Math.round(c.yExt)}`;
-                  if (!seen.has(key)) seen.set(key, c);
+                  const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}`;
+                  if (!seen.has(key))
+                    seen.set(key, {
+                      label: `${bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} ${dimMm(c.yExt)}`,
+                      midY: c.bottomY + c.yExt / 2,
+                    });
                 }
-                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
-                return [...seen.values()].map((c) => {
-                  // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm，標籤要再往右閃避
-                  // 不然會壓在彎弧凸出的 silhouette 上面（使用者 4.29 回報 bow 標籤蓋到圖）
-                  const archShift = view === "side" ? c.archBendMm : 0;
+                // 層板厚（§I6 必標板厚；同名同厚標一次）併入同帶（x = w/2+4）。
+                // 名稱剝尾碼數字：棚條 1/2/3/4 同厚只標一次「棚條厚」
+                const bareShelf = (n: string) =>
+                  bare(n).replace(/\s*\d+\s*$/, "");
+                for (const s of shelves) {
+                  const key = `shelfT_${bareShelf(s.nameZh)}_${Math.round(s.thickness)}`;
+                  if (!seen.has(key))
+                    seen.set(key, {
+                      label: `${bareShelf(isEn ? (partName(s, locale) ?? s.nameZh) : s.nameZh)}${isEn ? " t " : "厚 "}${dimMm(s.thickness)}`,
+                      midY: (s.bottomY + s.topY) / 2,
+                    });
+                }
+                // 同帶 Y 防撞：由上而下排，距前一筆 <12 就往下推（仿 :3661 MIN_GAP 手法）
+                const items = [...seen.values()].sort((a, b) => b.midY - a.midY);
+                let prevY = -Infinity;
+                return items.map((it, i) => {
+                  let sy = -it.midY + 4;
+                  if (sy < prevY + 12) sy = prevY + 12;
+                  prevY = sy;
                   return (
                     <text
-                      key={`xp-thick-${c.id}`}
-                      x={w / 2 + 4 + archShift}
-                      y={-(c.bottomY + c.yExt / 2) + 4}
+                      key={`xp-thick-${i}`}
+                      x={w / 2 + 4}
+                      y={sy}
                       fontSize={10}
                       fill="#444"
                       fontFamily="sans-serif"
                     >
-                      {bare(c.nameZh)} {Math.round(c.yExt)}
+                      {it.label}
                     </text>
                   );
                 });
@@ -2427,18 +4706,26 @@ export function OrthoView({
                   const key = `${Math.round(c.bottomY)}_${Math.round(c.cutLengthMm)}`;
                   if (!seenLen.has(key)) seenLen.set(key, c);
                 }
-                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
+                const bare = (n: string) =>
+                  n.replace(/^(前|後|左|右)/, "").replace(/[-‧·]?(前|後|左|右)$/, "");
                 return [...seenLen.values()].map((c) => {
                   const halfL = c.cutLengthMm / 2;
                   const yLine = -c.bottomY + 12;
-                  const showAngle = c.cutAngleDeg > 0.1;
+                  const showAngle = c.cutAngleDeg > 0.05;
                   return (
                     <g key={`xp-len-${c.id}`} stroke="#a55" fill="#a55" strokeWidth={0.5} fontFamily="sans-serif">
                       <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
                         markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
                       <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
-                        {bare(c.nameZh)} L{Math.round(c.cutLengthMm)}
-                        {showAngle ? ` ∠${c.cutAngleDeg.toFixed(1)}°` : ""}
+                        {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)}{" "}
+                        {c.trapTopMm != null &&
+                        c.trapBotMm != null &&
+                        Math.abs(c.trapBotMm - c.trapTopMm) > 0.5
+                          ? isEn
+                            ? `top ${dimMm1(c.trapTopMm)} / btm ${dimMm1(c.trapBotMm)}`
+                            : `上 ${dimMm1(c.trapTopMm)} 下 ${dimMm1(c.trapBotMm)}`
+                          : `${isEn ? "net" : "淨長"} ${dimMm(c.cutLengthMm)}`}
+                        {showAngle ? (isEn ? ` bevel ∠${c.cutAngleDeg.toFixed(1)}°` : ` 切角 ∠${c.cutAngleDeg.toFixed(1)}°`) : ""}
                       </text>
                     </g>
                   );
@@ -2453,6 +4740,8 @@ export function OrthoView({
                   y1={-it.y}
                   y2={sFloor}
                   label={it.label}
+                  // 標籤位置：基準是各自 topY、但同 Y 或太近的會被算好錯位推下去
+                  labelY={it.labelY}
                 />
               ))}
             </>
@@ -2472,17 +4761,17 @@ export function OrthoView({
           const sFloor = drawAreaTop + h; // 螢幕地面 Y
           // 內寬：上方 dim line（畫在頂板下緣再往下一點，內側 W）
           // zone 高度鏈：從 bottomTopY 往上每片 boundary，左側堆疊
-          const boundaryYs = extractZoneBoundaryYs(design);
+          const boundaryYs = extractZoneBoundaryYs(renderDesign);
           const zoneSegments: { y1: number; y2: number; label: string }[] = [];
           let prevY = bottomTopY;
           for (const by of boundaryYs) {
-            zoneSegments.push({ y1: -prevY, y2: -by, label: `${Math.round(by - prevY)} mm` });
+            zoneSegments.push({ y1: -prevY, y2: -by, label: dimMm(by - prevY) });
             prevY = by + panelT; // 下一段從 boundary 上緣開始
           }
           zoneSegments.push({
             y1: -prevY,
             y2: -topBottomY,
-            label: `${Math.round(topBottomY - prevY)} mm`,
+            label: dimMm(topBottomY - prevY),
           });
 
           return (
@@ -2493,15 +4782,21 @@ export function OrthoView({
                 x1={-w / 2 + panelT}
                 x2={w / 2 - panelT}
                 y={drawAreaTop + h + 80}
-                label={`內 ${Math.round(innerW)} mm`}
+                label={isEn ? `Inner ${dimMm(innerW)}` : `內 ${dimMm(innerW)}`}
               />
-              {/* 內高 — 在右側外高內側再加一條（往內偏 32px） */}
+              {/* 內高 — 在右側外高內側再加一條（往內偏 32px）。
+                  矮櫃時與外高標籤同 Y 會水平撞字 → labelY 錯開 18（§I2 間距） */}
               <VerticalDimensionLine
                 arrowId={`arr-${view}`}
                 x={w / 2 + 96}
                 y1={sTop}
                 y2={sBottom}
-                label={`內 ${Math.round(innerH)} mm`}
+                label={isEn ? `Inner ${dimMm(innerH)}` : `內 ${dimMm(innerH)}`}
+                labelY={
+                  Math.abs((sTop + sBottom) / 2 - (drawAreaTop + h / 2)) < 18
+                    ? drawAreaTop + h / 2 + 18
+                    : undefined
+                }
               />
               {/* 腳高 — 右側更靠內，從底板下緣到地面 */}
               {legHeight > 0 && (
@@ -2510,7 +4805,7 @@ export function OrthoView({
                   x={w / 2 + 140}
                   y1={sLegBottom}
                   y2={sFloor}
-                  label={`腳 ${Math.round(legHeight)} mm`}
+                  label={isEn ? `Leg ${dimMm(legHeight)}` : `腳 ${dimMm(legHeight)}`}
                 />
               )}
               {/* zone 高度鏈 — 左側堆疊 */}
@@ -2527,33 +4822,150 @@ export function OrthoView({
               {/* 板厚標註：頂板 + 底板（小字 + 引線） */}
               <g fontFamily="sans-serif" fill="#444" fontSize={10}>
                 <text x={w / 2 + 4} y={-topBottomY - panelT / 2 - 2} textAnchor="start">
-                  頂板 {panelT} mm
+                  {isEn ? "Top" : "頂板"} {dimMm(panelT)}
                 </text>
                 <text x={w / 2 + 4} y={-bottomTopY + panelT / 2 + 8} textAnchor="start">
-                  底板 {panelT} mm
+                  {isEn ? "Bottom" : "底板"} {dimMm(panelT)}
                 </text>
               </g>
+              {/* 櫃內層板厚 — 全部同厚標一次（§I6 重複件標一次），text 櫃內貼左
+                  （zone 高度鏈段差已用 panelT，這裡把板厚本身寫明） */}
+              {boundaryYs.length > 0 && (
+                <text
+                  x={-w / 2 + panelT + 6}
+                  y={-(boundaryYs[0] + panelT / 2) + 4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Shelf" : "層板"} {dimMm(panelT)}
+                </text>
+              )}
+              {/* 吊衣桿（wardrobe）：中心離地高（左側第 2/3 欄 x=-72/-116；
+                  zone 鏈占 -28，§I2 平行標間距 44 合規）+ 桿徑 Ø text 貼桿左端。
+                  雙吊桿各標一條、高的在內欄（§I2 短內長外）。 */}
+              {dims.rods.slice(0, 2).map((rd, ri) => (
+                <g key={`rod-${ri}`}>
+                  <VerticalDimensionLine
+                    arrowId={`arr-${view}`}
+                    x={-w / 2 - 72 - ri * 44}
+                    y1={-rd.centerY}
+                    y2={sFloor}
+                    label={
+                      isEn
+                        ? `Rod ${dimMm(rd.centerY)}`
+                        : `吊桿高 ${dimMm(rd.centerY)}`
+                    }
+                  />
+                  <text
+                    x={-w / 2 + panelT + 6}
+                    y={-rd.centerY - 8}
+                    fontSize={10}
+                    fill="#444"
+                    fontFamily="sans-serif"
+                  >
+                    Ø{dimMm(rd.d)}
+                  </text>
+                </g>
+              ))}
+              {/* 紅酒架格子尺寸：只在「左下第一格」標一次，全部格子尺寸都相同。
+                  Rect = 直接標 cellSize × cellSize pitch；
+                  Diamond = 標內接圓直徑（瓶子實際能塞多大、≈ cellSize/√2 − panelT，
+                  比方格小約 30%，跟 pitch 完全不同）。 */}
+              {(() => {
+                if (renderDesign.category !== "wine-rack") return null;
+                const m = renderDesign.notes?.match(/每瓶位\s*(\d+(?:\.\d+)?)\s*×/);
+                if (!m) return null;
+                const cellSize = parseFloat(m[1]);
+                if (cellSize <= 0) return null;
+                const isDiamond = renderDesign.parts.some((p) =>
+                  p.id.startsWith("diamond-"),
+                );
+                const cellCx = -w / 2 + panelT + cellSize / 2;
+                // 菱形 layout 在左下角是半菱形（被框邊切掉），標籤往上推 1 row
+                // 落在第 2 列完整菱形/邊界節點之間的空白處，避免壓到對角線。
+                const rowOffset = isDiamond ? cellSize * 1.5 : cellSize / 2;
+                const cellCy = -(bottomTopY + rowOffset);
+                if (isDiamond) {
+                  const inscribed = Math.round(cellSize / Math.SQRT2 - panelT);
+                  if (inscribed <= 0) return null;
+                  return (
+                    <g fontFamily="sans-serif" pointerEvents="none">
+                      <text
+                        x={cellCx}
+                        y={cellCy - 2}
+                        textAnchor="middle"
+                        fontSize={11}
+                        fill="#7a5a2b"
+                        fontWeight="700"
+                      >
+                        {isEn ? "Diamond" : "菱形"} Ø{dimMm(inscribed)}
+                      </text>
+                      <text
+                        x={cellCx}
+                        y={cellCy + 11}
+                        textAnchor="middle"
+                        fontSize={9}
+                        fill="#7a5a2b"
+                      >
+                        內接圓
+                      </text>
+                    </g>
+                  );
+                }
+                const rectNet = Math.round(cellSize - panelT);
+                return (
+                  <g fontFamily="sans-serif" pointerEvents="none">
+                    <text
+                      x={cellCx}
+                      y={cellCy - 2}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fill="#7a5a2b"
+                      fontWeight="700"
+                    >
+                      {isEn ? "Cell" : "格"} {dimMm(rectNet)}×{dimMm(rectNet)}
+                    </text>
+                    <text
+                      x={cellCx}
+                      y={cellCy + 11}
+                      textAnchor="middle"
+                      fontSize={9}
+                      fill="#7a5a2b"
+                    >
+                      淨寬
+                    </text>
+                  </g>
+                );
+              })()}
             </>
           );
         }
         if (view === "side") {
           return (
             <>
-              {/* 內深 — 外深下方再加一條 */}
-              <DimensionLine
-                arrowId={`arr-${view}`}
-                x1={-w / 2}
-                x2={-w / 2 + innerD}
-                y={drawAreaTop + h + 80}
-                label={`內深 ${Math.round(innerD)} mm`}
-              />
-              {/* 內高 — 右側內側多一條 */}
+              {/* 內深 — 外深下方再加一條。側板滿深時 內深=外深 冗餘跳過（§I6） */}
+              {Math.abs(innerD - w) >= 1 && (
+                <DimensionLine
+                  arrowId={`arr-${view}`}
+                  x1={-w / 2}
+                  x2={-w / 2 + innerD}
+                  y={drawAreaTop + h + 80}
+                  label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
+                />
+              )}
+              {/* 內高 — 右側內側多一條（矮櫃 labelY 錯開 18 防水平撞字 §I2） */}
               <VerticalDimensionLine
                 arrowId={`arr-${view}`}
                 x={w / 2 + 96}
                 y1={-topBottomY}
                 y2={-bottomTopY}
-                label={`內 ${Math.round(innerH)} mm`}
+                label={isEn ? `Inner ${dimMm(innerH)}` : `內 ${dimMm(innerH)}`}
+                labelY={
+                  Math.abs((-topBottomY + -bottomTopY) / 2 - (drawAreaTop + h / 2)) < 18
+                    ? drawAreaTop + h / 2 + 18
+                    : undefined
+                }
               />
               {legHeight > 0 && (
                 <VerticalDimensionLine
@@ -2561,8 +4973,20 @@ export function OrthoView({
                   x={w / 2 + 140}
                   y1={-legHeight}
                   y2={drawAreaTop + h}
-                  label={`腳 ${Math.round(legHeight)} mm`}
+                  label={isEn ? `Leg ${dimMm(legHeight)}` : `腳 ${dimMm(legHeight)}`}
                 />
+              )}
+              {/* 背板厚（§I6 必標板厚）— 右側視慣例：背（world +Z）在 SVG 左緣 */}
+              {dims.backPanelT != null && (
+                <text
+                  x={-w / 2 + dims.backPanelT + 4}
+                  y={drawAreaTop + 16}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Back" : "背板"} {dimMm(dims.backPanelT)}
+                </text>
               )}
             </>
           );
@@ -2578,71 +5002,241 @@ export function OrthoView({
                 x1={-w / 2 + panelT}
                 x2={w / 2 - panelT}
                 y={drawAreaTop + h + 80}
-                label={`內 ${Math.round(innerW)} mm`}
+                label={isEn ? `Inner ${dimMm(innerW)}` : `內 ${dimMm(innerW)}`}
               />
-              {/* 內深 — 右側內側 */}
-              <VerticalDimensionLine
-                arrowId={`arr-${view}`}
-                x={w / 2 + 96}
-                y1={-h / 2}
-                y2={-h / 2 + innerD}
-                label={`內深 ${Math.round(innerD)} mm`}
-              />
+              {/* 內深 — 右側內側。側板滿深時 內深=外深 冗餘跳過（§I6） */}
+              {Math.abs(innerD - h) >= 1 && (
+                <VerticalDimensionLine
+                  arrowId={`arr-${view}`}
+                  x={w / 2 + 96}
+                  y1={-h / 2}
+                  y2={-h / 2 + innerD}
+                  label={isEn ? `Inner depth ${dimMm(innerD)}` : `內深 ${dimMm(innerD)}`}
+                />
+              )}
+              {/* 側板厚（左豎條）/ 背板厚（上緣 BACK 側）— §I6 必標板厚 */}
+              {dims.sidePanelT != null && (
+                <text
+                  x={-w / 2 + dims.sidePanelT + 4}
+                  y={4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Side" : "側板"} {dimMm(dims.sidePanelT)}
+                </text>
+              )}
+              {dims.backPanelT != null && (
+                <text
+                  x={w / 4}
+                  y={-h / 2 + dims.backPanelT + 12}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  {isEn ? "Back" : "背板"} {dimMm(dims.backPanelT)}
+                </text>
+              )}
             </>
           );
         }
         return null;
       })()}
 
+      {/* 抽屜面板 / 門板 W×H（§I6 重複件合併標一次）— 桌類抽屜與櫃類共用，
+          只在前視圖標（面板朝前）。text 置面板中央、棕色仿紅酒架格標慣例；
+          抽面與橫撐淨長紅線（y = -bottomY + 12）距 <20 時下移 14 防撞；
+          門板 text 放上 1/3 高（玻璃門中梃在中央會壓字）。 */}
+      {showDimensions && view === "front" && (() => {
+        const dims = extractFurnitureDims(renderDesign);
+        if (!dims || (dims.drawerFaces.length === 0 && dims.doors.length === 0))
+          return null;
+        const fmt = (mm: number) =>
+          useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
+        const lineYs = dims.crossPieces
+          .filter((c) => !c.isZAxis)
+          .map((c) => -c.bottomY + 12);
+        const faceLabels = dims.drawerFaces.map((f, i) => {
+          let ty = -(f.bottomY + f.h / 2) + 4;
+          if (lineYs.some((ly) => Math.abs(ly - ty) < 20)) ty += 14;
+          return (
+            <text
+              key={`dface-${i}`}
+              x={f.cx}
+              y={ty}
+              textAnchor="middle"
+              fontSize={10}
+              fill="#7a5a2b"
+              fontWeight="700"
+              fontFamily="sans-serif"
+              pointerEvents="none"
+            >
+              {`${isEn ? "Drawer face" : "抽面"} ${fmt(f.w)}×${fmt(f.h)}${f.count > 1 ? ` ×${f.count}` : ""}`}
+            </text>
+          );
+        });
+        const doorLabels = dims.doors.map((g, i) => (
+          <text
+            key={`door-${i}`}
+            x={g.cx}
+            y={-(g.topY - g.h / 3)}
+            textAnchor="middle"
+            fontSize={10}
+            fill="#7a5a2b"
+            fontWeight="700"
+            fontFamily="sans-serif"
+            pointerEvents="none"
+          >
+            {`${isEn ? "Door" : "門"} ${fmt(g.w)}×${fmt(g.h)}${g.count > 1 ? ` ×${g.count}` : ""}`}
+          </text>
+        ));
+        return (
+          <>
+            {faceLabels}
+            {doorLabels}
+          </>
+        );
+      })()}
+
       {/* Orientation marker: the TOP view shows the furniture from above, so
           label which edge is the FRONT face (−Z in world) and which is BACK.
           Helps readers orient since top-view alone is ambiguous. */}
-      {view === "top" && (
+      {showDimensions && view === "top" && (
         <g fontFamily="sans-serif" fill="#666" fontSize={11}>
           <text
             x={0}
             y={drawAreaTop - 6}
             textAnchor="middle"
           >
-            後 BACK
+            {isEn ? "BACK" : "後 BACK"}
           </text>
           <text
             x={0}
             y={drawAreaTop + h + 110}
             textAnchor="middle"
           >
-            前 FRONT
+            {isEn ? "FRONT" : "前 FRONT"}
           </text>
         </g>
       )}
 
       {/* 比例尺：100mm 參考棒（per drafting-math.md §A3）
-          位於圖框左下角，給讀者一個視覺基準快速估其他尺寸 */}
-      <g fontFamily="sans-serif" fill="#666" stroke="#666" strokeWidth={0.3}>
-        {(() => {
-          const sx = frameX + 14;
-          const sy = frameY + frameH - 14;
-          const barLen = 100; // mm in SVG units (since viewBox is mm-based)
-          return (
-            <>
-              {/* 主棒 */}
-              <line x1={sx} y1={sy} x2={sx + barLen} y2={sy} strokeWidth={0.6} />
-              {/* 兩端 + 中央 tick */}
-              <line x1={sx} y1={sy - 4} x2={sx} y2={sy + 4} strokeWidth={0.6} />
-              <line x1={sx + barLen / 2} y1={sy - 3} x2={sx + barLen / 2} y2={sy + 3} strokeWidth={0.4} />
-              <line x1={sx + barLen} y1={sy - 4} x2={sx + barLen} y2={sy + 4} strokeWidth={0.6} />
-              <text x={sx + barLen / 2} y={sy + 14} textAnchor="middle" fontSize={9} stroke="none" fill="#666">
-                100 mm
-              </text>
-            </>
-          );
-        })()}
+          位於圖框左下角，給讀者一個視覺基準快速估其他尺寸。
+          paperMode 時 scale bar 已由 title block 表達，跳過。 */}
+      {showDimensions && !isPaper && (
+        <g fontFamily="sans-serif" fill="#666" stroke="#666" strokeWidth={0.3}>
+          {(() => {
+            const sx = frameX + 14;
+            const sy = frameY + frameH - 14;
+            const barLen = 100; // mm in SVG units (since viewBox is mm-based)
+            return (
+              <>
+                {/* 主棒 */}
+                <line x1={sx} y1={sy} x2={sx + barLen} y2={sy} strokeWidth={0.6} />
+                {/* 兩端 + 中央 tick */}
+                <line x1={sx} y1={sy - 4} x2={sx} y2={sy + 4} strokeWidth={0.6} />
+                <line x1={sx + barLen / 2} y1={sy - 3} x2={sx + barLen / 2} y2={sy + 3} strokeWidth={0.4} />
+                <line x1={sx + barLen} y1={sy - 4} x2={sx + barLen} y2={sy + 4} strokeWidth={0.6} />
+                <text x={sx + barLen / 2} y={sy + 14} textAnchor="middle" fontSize={9} stroke="none" fill="#666">
+                  100 mm
+                </text>
+              </>
+            );
+          })()}
+        </g>
+      )}
+
+      {/* Phase 2: overlay slot — caller-controlled SVG over OrthoView. */}
+      {overlayCtx && overlayContent && overlayContent(overlayCtx)}
+
+      {/* Broken view（Step 3）：超長件中段省略 — 用白色遮中段 silhouette + 兩條
+          波浪線標示中斷邊界。不真 clipPath 切 silhouette（複雜），但視覺上能
+          看出「中段省略 → 真實全長」這件事。 */}
+      {isPaper && paperBroken?.active && (() => {
+        const spec = paperBroken;
+        // 中段 gap 區（part-world mm，y 用 silhouette 慣例負 y）
+        const gapMinX = spec.leftHi;
+        const gapMaxX = spec.rightLo;
+        const vert = spec.vertHeight;
+        // y range：silhouette 用 -y 慣例，從 -vert 到 +vert/2 取保險寬一點
+        const yTop = -vert * 0.65;
+        const yBot = vert * 0.65;
+        return (
+          <g className="broken-view">
+            {/* 白遮罩：把中段 silhouette 蓋掉 */}
+            <rect
+              x={gapMinX}
+              y={yTop}
+              width={gapMaxX - gapMinX}
+              height={yBot - yTop}
+              fill="white"
+            />
+            {/* 兩條波浪線 — 因 scaled group 有 1/n scale，stroke-width 要 × n 才會
+                顯示成設計的 0.4mm 紙上寬度 */}
+            <path
+              d={(() => {
+                const amp = 1.5 * paperScaleN; // 振幅按 scale 補回
+                const seg = 4 * paperScaleN;
+                const n = Math.max(2, Math.ceil((yBot - yTop) / seg));
+                let d = `M ${gapMinX} ${yTop}`;
+                for (let i = 0; i < n; i++) {
+                  const yMid = yTop + (i + 0.5) * ((yBot - yTop) / n);
+                  const yEnd = yTop + (i + 1) * ((yBot - yTop) / n);
+                  const dir = i % 2 === 0 ? +1 : -1;
+                  d += ` Q ${gapMinX + dir * amp} ${yMid} ${gapMinX} ${yEnd}`;
+                }
+                return d;
+              })()}
+              stroke="#222"
+              strokeWidth={0.4 * paperScaleN}
+              fill="none"
+            />
+            <path
+              d={(() => {
+                const amp = 1.5 * paperScaleN;
+                const seg = 4 * paperScaleN;
+                const n = Math.max(2, Math.ceil((yBot - yTop) / seg));
+                let d = `M ${gapMaxX} ${yTop}`;
+                for (let i = 0; i < n; i++) {
+                  const yMid = yTop + (i + 0.5) * ((yBot - yTop) / n);
+                  const yEnd = yTop + (i + 1) * ((yBot - yTop) / n);
+                  const dir = i % 2 === 0 ? +1 : -1;
+                  d += ` Q ${gapMaxX + dir * amp} ${yMid} ${gapMaxX} ${yEnd}`;
+                }
+                return d;
+              })()}
+              stroke="#222"
+              strokeWidth={0.4 * paperScaleN}
+              fill="none"
+            />
+            {/* 中段標真實全長 */}
+            <text
+              x={(gapMinX + gapMaxX) / 2}
+              y={yBot + 6 * paperScaleN}
+              fontSize={4 * paperScaleN}
+              fill="#444"
+              textAnchor="middle"
+            >
+              真實全長 {Math.round(spec.fullLength)}mm
+            </text>
+          </g>
+        );
+      })()}
+
       </g>
-    </svg>
+    </Wrapper>
   );
 }
 
-function DimensionLine({
+// memo wrap：父層（ZoomableThreeViews / ThreeViewLayout / PartDrawing）有自己的
+// scale/scroll state，每次互動都會 re-render。OrthoView 內含 projectPart、
+// sortPartsByDepth、Sutherland-Hodgman polygon clipping，O(n²) 級別重算。
+// design 物件由 server component 產生、reference 在 client 端穩定 → 預設 shallow
+// 比較就能跳過大量無謂重算。
+export const OrthoView = memo(OrthoViewImpl);
+
+export function DimensionLine({
   x1,
   x2,
   y,
@@ -2677,7 +5271,7 @@ function DimensionLine({
         y={y - 5}
         textAnchor="middle"
         fontSize={13}
-        fontWeight="600"
+        fontWeight="700"
         stroke="none"
       >
         {label}
@@ -2686,18 +5280,23 @@ function DimensionLine({
   );
 }
 
-function VerticalDimensionLine({
+export function VerticalDimensionLine({
   x,
   y1,
   y2,
   label,
   arrowId,
+  labelY,
 }: {
   x: number;
   y1: number;
   y2: number;
   label: string;
   arrowId: string;
+  /** 自訂標籤垂直位置（SVG 座標）；不傳則用 (y1+y2)/2。
+   *  左側高度堆疊用 labelY = y1 讓每筆貼著自己的 topY，
+   *  416 vs 400 兩個 staggered 牙板自然錯開不疊字。 */
+  labelY?: number;
 }) {
   const ext = 2; // 越過 dim line 2 (per CNS 2-3mm)
   const reach = 26; // 從 dim line 往 bbox 方向延伸 26（典型 dim 距 bbox 28，剩 2 mm 為 CNS gap）
@@ -2718,11 +5317,11 @@ function VerticalDimensionLine({
       />
       <text
         x={x >= 0 ? x + 6 : x - 6}
-        y={(y1 + y2) / 2}
+        y={labelY ?? (y1 + y2) / 2}
         textAnchor={x >= 0 ? "start" : "end"}
         dominantBaseline="middle"
         fontSize={13}
-        fontWeight="600"
+        fontWeight="700"
         stroke="none"
       >
         {label}
@@ -2734,20 +5333,25 @@ function VerticalDimensionLine({
 export function ThreeViewLayout({
   design,
   joineryMode = false,
+  locale = "zh-TW",
+  unit,
 }: {
   design: FurnitureDesign;
   joineryMode?: boolean;
+  locale?: string;
+  unit?: "mm" | "inch";
 }) {
+  const isEn = locale === "en";
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT VIEW" joineryMode={joineryMode} />
+        <OrthoView design={design} view="front" title={isEn ? "FRONT VIEW" : "正視圖"} titleEn={isEn ? "" : "FRONT VIEW"} joineryMode={joineryMode} locale={locale} unit={unit} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE VIEW" joineryMode={joineryMode} />
+        <OrthoView design={design} view="side" title={isEn ? "SIDE VIEW" : "側視圖"} titleEn={isEn ? "" : "SIDE VIEW"} joineryMode={joineryMode} locale={locale} unit={unit} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP VIEW" joineryMode={joineryMode} />
+        <OrthoView design={design} view="top" title={isEn ? "TOP VIEW" : "俯視圖"} titleEn={isEn ? "" : "TOP VIEW"} joineryMode={joineryMode} locale={locale} unit={unit} />
       </div>
     </div>
   );
@@ -2757,49 +5361,54 @@ export function ThreeViewLayout({
  * Compact three-view strip — 3 views side-by-side 固定小尺寸，給 A4 報價單用。
  * 每個 view 最大高度 ~28mm，3 個總寬度 ~70mm，可放進文件抬頭不佔太多版面。
  */
-export function CompactThreeViews({ design }: { design: FurnitureDesign }) {
+export function CompactThreeViews({ design, locale = "zh-TW" }: { design: FurnitureDesign; locale?: string }) {
+  const isEn = locale === "en";
   return (
     <div className="flex gap-2 compact-three-views">
       <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
-        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT" />
+        <OrthoView design={design} view="front" title={isEn ? "FRONT" : "正視圖"} titleEn={isEn ? "" : "FRONT"} locale={locale} />
       </div>
       <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
-        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE" />
+        <OrthoView design={design} view="side" title={isEn ? "SIDE" : "側視圖"} titleEn={isEn ? "" : "SIDE"} locale={locale} />
       </div>
       <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
-        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP" />
+        <OrthoView design={design} view="top" title={isEn ? "TOP" : "俯視圖"} titleEn={isEn ? "" : "TOP"} locale={locale} />
       </div>
     </div>
   );
 }
 
-/**
- * 零件分類——用 id 前綴判斷屬於哪個結構分組，方便材料單視覺切分。
- * 順序即為顯示順序。
- */
-export type PartCategory =
-  | "case"       // 櫃體結構：頂底板、側板、背板
-  | "divider"    // 層板 / 分隔板 / 中柱
-  | "drawer"     // 抽屜組件
-  | "door"       // 門組件
-  | "apron"      // 牙板 / 橫撐（桌椅）
-  | "seat"       // 座板 / 椅背板（椅）
-  | "leg"        // 椅腳 / 桌腳 / 底座
-  | "misc";
+// 零件分類——用 id 前綴判斷屬於哪個結構分組，方便材料單視覺切分。
+// 邏輯在 lib/render/categorize-part.ts（server-safe），這裡只做 re-export。
+import { categorizePart } from "./categorize-part";
+import type { PartCategory } from "./categorize-part";
+export { categorizePart };
+export type { PartCategory };
 
 const CATEGORY_ORDER: PartCategory[] = [
   "case", "divider", "drawer", "door", "apron", "seat", "leg", "misc",
 ];
 
-const CATEGORY_LABEL: Record<PartCategory, string> = {
+const CATEGORY_LABEL_ZH: Record<PartCategory, string> = {
   case: "🗄️ 櫃體結構",
   divider: "═ 層板 / 分隔板",
   drawer: "🧺 抽屜",
   door: "🚪 門",
-  apron: "━ 牙板 / 橫撐",
+  apron: "━ 牙板",
   seat: "🪑 座板 / 椅背",
   leg: "🦵 腳 / 底座",
   misc: "⚙ 其他",
+};
+
+const CATEGORY_LABEL_EN: Record<PartCategory, string> = {
+  case: "🗄️ Carcase",
+  divider: "═ Shelves / Dividers",
+  drawer: "🧺 Drawers",
+  door: "🚪 Doors",
+  apron: "━ Aprons",
+  seat: "🪑 Seat / Back",
+  leg: "🦵 Legs / Base",
+  misc: "⚙ Other",
 };
 
 // 色碼分組：每個分類一個顯眼色，左側 4px 直條 + 標頭背景。
@@ -2818,62 +5427,22 @@ const CATEGORY_COLOR: Record<
   misc:    { bar: "bg-zinc-400",    head: "bg-zinc-50",    text: "text-zinc-700"    },
 };
 
-export function categorizePart(id: string): PartCategory {
-  // 抽屜組件：z*-drawer-N-face / front / back / side / bottom
-  if (/^z?\d*-?drawer-?\d*-(face|front|back|side|bottom)/.test(id))
-    return "drawer";
-  if (/drawer-col-partition/.test(id)) return "divider";
-  // 門組件
-  if (/-door-.*-(rail|stile|panel|glass)/.test(id)) return "door";
-  // 櫃體主結構
-  if (id === "top" || id === "bottom" || id === "back") return "case";
-  if (/^side-(left|right)$/.test(id)) return "case";
-  // 分隔板 / 層板 / zone boundary / col partition
-  if (
-    /^shelf-/.test(id) ||
-    /-shelf-/.test(id) ||
-    /-divider-/.test(id) ||
-    /-boundary/.test(id) ||
-    /^col-partition/.test(id) ||
-    /col-partition-/.test(id)
-  )
-    return "divider";
-  // 牙板 / 橫撐
-  if (
-    /^apron/.test(id) ||
-    /^stretcher/.test(id) ||
-    /^ls-/.test(id) ||
-    id === "center-stretcher" ||
-    id === "back-rail" ||
-    id === "back-top-rail"
-  )
-    return "apron";
-  // 座板 / 椅背
-  if (id === "seat" || /^seat-/.test(id)) return "seat";
-  if (/^back-slat/.test(id) || /^back-splat/.test(id) || /^splat/.test(id))
-    return "seat";
-  if (/^slat/.test(id) || /^rung/.test(id)) return "seat";
-  // 腳類 / 托腳牙 / 底座
-  if (
-    /^leg-/.test(id) ||
-    /^bracket-/.test(id) ||
-    /^plinth/.test(id) ||
-    /^side-extension/.test(id)
-  )
-    return "leg";
-  // 其他（吊衣桿、特殊件）
-  return "misc";
-}
-
 export function MaterialList({
   design,
   selectedPartId,
   onPartClick,
+  locale = "zh-TW",
+  unit,
 }: {
   design: FurnitureDesign;
   selectedPartId?: string | null;
   onPartClick?: (id: string) => void;
+  locale?: string;
+  unit?: "mm" | "inch";
 }) {
+  const isEn = locale === "en";
+  const effectiveUnit: "mm" | "inch" = unit ?? (isEn ? "inch" : "mm");
+  const CATEGORY_LABEL = isEn ? CATEGORY_LABEL_EN : CATEGORY_LABEL_ZH;
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
 
@@ -2889,17 +5458,28 @@ export function MaterialList({
   };
   // 顯示尺寸時最多保留 1 位小數，整數就不顯示「.0」。
   // 木工現場 0.1mm 已是極限，130.66666666 這種沒意義反而難讀。
-  const fmt = (n: number): string => {
-    const rounded = Math.round(n * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  };
+  // EN locale → 1/16" 分數（38mm → 1-1/2、19mm → 3/4），對應北美/英國木工慣例。
+  const fmt = (n: number): string => formatLengthBare(n, effectiveUnit);
 
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
     const isGlass = part.visual === "glass";
-    const isBrass = part.visual === "brass-antique";
+    // metal（鉗身、手把、螺桿、手輪…）跟仿古銅一樣是外購五金：歸五金區、不計件數、不計材積
+    //（2026-09-04 木頭仁：「虎鉗不該算進料單裡面，通常都是買金屬的」）
+    const isMetal = part.visual === "metal";
+    const isBrass = part.visual === "brass-antique" || isMetal;
     const isHardware = isGlass || isBrass;
-    const volMm3 = cut.length * cut.width * cut.thickness;
+    // bdft 體積：bbox × thickness 是預設；對非方形截面（regular-polygon / round）改用實際面積。
+    // 注意：cut 尺寸仍維持 bbox（下料需要方板），只是 bdft 計算用實際截面積避免高估。
+    let crossSectionFactor = 1;
+    if (part.shape?.kind === "regular-polygon") {
+      const n = Math.max(3, part.shape.sides);
+      // 正多邊形面積 / bbox 面積。bbox = 2R × 2R = 4R²；polygon area = (n/2)R²sin(2π/n)
+      crossSectionFactor = (n / 8) * Math.sin((2 * Math.PI) / n);
+    } else if (part.shape?.kind === "round") {
+      crossSectionFactor = Math.PI / 4; // 圓 πR² / bbox 4R²
+    }
+    const volMm3 = cut.length * cut.width * cut.thickness * crossSectionFactor;
     // 五金件（玻璃/銅件）不算木材材積；不累計 totalBdft / bdftByMaterial
     const bdft = isHardware ? 0 : volMm3 / MM3_PER_BDFT;
     if (!isHardware) totalBdft += bdft;
@@ -2907,33 +5487,36 @@ export function MaterialList({
     const pieces = Math.max(1, Math.round(part.panelPieces ?? 1));
 
     const billable = effectiveBillableMaterial(part);
+    const matName = isEn ? (MATERIALS[part.material].nameEn ?? MATERIALS[part.material].nameZh) : MATERIALS[part.material].nameZh;
     const materialLabel = isGlass
-      ? `${cut.thickness}mm 強化玻璃`
-      : isBrass
-        ? "仿古銅五金（外購）"
+      ? (isEn ? `${formatMm(cut.thickness, effectiveUnit)} tempered glass` : `${formatMm(cut.thickness, effectiveUnit)} 強化玻璃`)
+      : isMetal
+        ? (isEn ? "Hardware (purchased, not in cut list)" : "五金（外購，不入料單）")
+        : isBrass
+        ? (isEn ? "Antiqued-brass hardware (purchased)" : "仿古銅五金（外購）")
         : billable === "plywood" || billable === "mdf"
-          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-          : MATERIALS[part.material].nameZh;
+          ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
+          : matName;
 
     if (!isHardware) {
       const groupKey =
         billable === "plywood" || billable === "mdf"
           ? SHEET_GOOD_LABEL[billable]
-          : MATERIALS[part.material].nameZh;
+          : matName;
       bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
     }
 
     const tenonNotes = isGlass
-      ? "另向玻璃行訂製，不入裁切"
+      ? (isEn ? "Order from glass shop; not in cut list" : "另向玻璃行訂製，不入裁切")
       : isBrass
-        ? "外購五金件，不入裁切"
+        ? (isEn ? "Purchased hardware; not in cut list" : "外購五金件，不入裁切")
         : part.tenons.length
           ? part.tenons
               .map(
                 (t) =>
-                  `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+                  `${t.position} ${formatMm(t.length, effectiveUnit)} ${(isEn ? JOINERY_LABEL_EN : JOINERY_LABEL)[t.type] ?? t.type}`,
               )
-              .join("、")
+              .join(isEn ? ", " : "、")
           : "—";
 
     const category = categorizePart(part.id);
@@ -2960,17 +5543,20 @@ export function MaterialList({
   }
   const sortedCategories = CATEGORY_ORDER.filter((c) => byCategory.has(c));
 
+  // isolate 建立獨立 stacking context——避免內部 sticky thead / 第一欄 z-index
+  // 穿透到 MobileShell 上方的 sticky 3D viewer (z-10)。wrap 自己 z-auto 整塊
+  // 滑到 3D viewer 底下。
   return (
-    <div className="overflow-x-auto">
+    <div className="isolate overflow-auto max-h-[70vh] md:max-h-none md:overflow-x-auto print:max-h-none print:overflow-visible">
     <table className="w-full text-sm min-w-[760px]">
-      <thead className="bg-zinc-100">
+      <thead className="bg-zinc-100 sticky top-0 z-20">
         <tr>
-          <th className="text-left p-2">零件</th>
-          <th className="text-left p-2">材質</th>
-          <th className="text-right p-2">可見長 × 寬 × 厚 (mm)</th>
-          <th className="text-right p-2">切料尺寸 (mm)</th>
-          <th className="text-right p-2">材積（板才）</th>
-          <th className="text-left p-2">榫頭備註</th>
+          <th className="text-left p-2 sticky left-0 z-30 bg-zinc-100">{isEn ? "Part" : "零件"}</th>
+          <th className="text-left p-2">{isEn ? "Material" : "材質"}</th>
+          <th className="text-right p-2">{isEn ? `Visible L × W × T (${effectiveUnit === "inch" ? "in" : "mm"})` : `可見長 × 寬 × 厚 (${effectiveUnit === "inch" ? "in" : "mm"})`}</th>
+          <th className="text-right p-2">{isEn ? `Cut size (${effectiveUnit === "inch" ? "in" : "mm"})` : `切料尺寸 (${effectiveUnit === "inch" ? "in" : "mm"})`}</th>
+          <th className="text-right p-2">{isEn ? "Volume (bdft)" : "材積（板才）"}</th>
+          <th className="text-left p-2">{isEn ? "Tenon notes" : "榫頭備註"}</th>
         </tr>
       </thead>
       {sortedCategories.map((cat) => {
@@ -2987,7 +5573,7 @@ export function MaterialList({
                 <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar}`} />
                 {CATEGORY_LABEL[cat]}
                 <span className="ml-2 font-normal opacity-60">
-                  · {catRows.length} 件
+                  · {isEn ? `${catRows.length} parts` : `${catRows.length} 件`}
                 </span>
               </td>
               <td className={`px-2 py-1.5 text-right text-xs font-mono ${color.text}`}>
@@ -2998,36 +5584,40 @@ export function MaterialList({
             {catRows.map(
               ({ part, cut, bdft, materialLabel, tenonNotes, pieces }) => {
                 // 拼板：可見/切料寬度都先除以片數（單片實際尺寸），方便去料行下單
-                const dispVw = part.visible.width / pieces;
-                const dispCw = cut.width / pieces;
-                const [vl, vw, vt] = sortDimsDesc(
-                  part.visible.length,
-                  dispVw,
-                  part.visible.thickness,
-                );
-                const [cl, cw, ct] = sortDimsDesc(
-                  cut.length,
-                  dispCw,
-                  cut.thickness,
-                );
-                const piecesPrefix = pieces > 1 ? `${pieces} 片 × ` : "";
+                // 疊層（panelSplit="thickness"）：除的是厚度（每層厚 = 厚 ÷ 層數），面寬不動
+                // ⚠️ 疊層除的是「最小的那一維」（跟 cutplan/group.ts 同一套）：夾板疊層的腳 visible.thickness 是腳高，不是層厚
+                const byThickness = part.panelSplit === "thickness";
+                const dispVw = byThickness ? part.visible.width : part.visible.width / pieces;
+                const dispCw = byThickness ? cut.width : cut.width / pieces;
+                const [vl0, vw0, vt0] = sortDimsDesc(part.visible.length, dispVw, part.visible.thickness);
+                const [cl0, cw0, ct0] = sortDimsDesc(cut.length, dispCw, cut.thickness);
+                const [vl, vw, vt]: [number, number, number] = byThickness ? [vl0, vw0, vt0 / pieces] : [vl0, vw0, vt0];
+                const [cl, cw, ct]: [number, number, number] = byThickness ? [cl0, cw0, ct0 / pieces] : [cl0, cw0, ct0];
+                const piecesPrefix = pieces > 1 ? (isEn ? `${pieces} × ` : `${pieces} 片 × `) : "";
                 const isSelected = selectedPartId === part.id;
                 const interactive = !!onPartClick;
+                // sticky 第一欄需自帶 bg 避免下方 cell 從後面透出來；
+                // 跟 row 狀態同步：選中=amber-100、hover=amber-50、預設=white
+                const firstColBg = isSelected
+                  ? "bg-amber-100"
+                  : interactive
+                    ? "bg-white group-hover:bg-amber-50"
+                    : "bg-white";
                 return (
                   <tr
                     key={part.id}
                     data-part-id={part.id}
                     onClick={interactive ? () => onPartClick!(part.id) : undefined}
-                    className={`border-b border-zinc-100 ${
+                    className={`group border-b border-zinc-100 ${
                       interactive ? "cursor-pointer hover:bg-amber-50" : ""
                     } ${isSelected ? "bg-amber-100 ring-2 ring-amber-400" : ""}`}
                   >
-                    <td className="p-2 pl-3 relative">
+                    <td className={`p-2 pl-3 relative sticky left-0 z-10 ${firstColBg}`}>
                       <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar} opacity-50`} />
-                      {part.nameZh}
+                      {partName(part, locale)}
                       {pieces > 1 && (
                         <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">
-                          拼 {pieces} 片
+                          {byThickness ? (isEn ? `laminate ${pieces}` : `疊 ${pieces} 層`) : (isEn ? `glue ${pieces}` : `拼 ${pieces} 片`)}
                         </span>
                       )}
                     </td>
@@ -3053,16 +5643,17 @@ export function MaterialList({
         <tbody className="border-t-2 border-sky-300 bg-sky-50/30">
           <tr className="bg-sky-100/60">
             <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-sky-900">
-              🪟 玻璃（另向玻璃行訂製，不入裁切）
-              <span className="ml-2 font-normal text-sky-700">· {glassRows.length} 片</span>
+              {isEn ? "🪟 Glass (order from glass shop; not in cut list)" : "🪟 玻璃（另向玻璃行訂製，不入裁切）"}
+              <span className="ml-2 font-normal text-sky-700">{isEn ? `· ${glassRows.length} panels` : `· ${glassRows.length} 片`}</span>
             </td>
             <td className="px-2 py-1.5 text-right text-xs font-mono text-sky-700">—</td>
             <td />
           </tr>
           <tr className="bg-sky-50/60">
             <td colSpan={6} className="px-3 py-1.5 text-[11px] text-sky-800 italic">
-              ⚠️ 此尺寸僅供參考——實際應在門片做完、量過實際開口後再向玻璃行下單，
-              避免框料切削誤差導致玻璃尺寸不合。
+              {isEn
+                ? "⚠️ Sizes shown are approximate — only order glass after the doors are built and the openings measured, to avoid frame-machining drift."
+                : "⚠️ 此尺寸僅供參考——實際應在門片做完、量過實際開口後再向玻璃行下單，避免框料切削誤差導致玻璃尺寸不合。"}
             </td>
           </tr>
           {glassRows.map(({ part, cut, materialLabel, tenonNotes }) => {
@@ -3074,7 +5665,7 @@ export function MaterialList({
             const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
             return (
               <tr key={part.id} className="border-b border-sky-100">
-                <td className="p-2">{part.nameZh}</td>
+                <td className="p-2">{partName(part, locale)}</td>
                 <td className="p-2">{materialLabel}</td>
                 <td className="p-2 text-right">
                   {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
@@ -3093,8 +5684,8 @@ export function MaterialList({
         <tbody className="border-t-2 border-amber-400 bg-amber-50/30">
           <tr className="bg-amber-100/60">
             <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-amber-900">
-              🪙 仿古銅五金（外購，不入裁切）
-              <span className="ml-2 font-normal text-amber-700">· {brassRows.length} 件</span>
+              {isEn ? "🪙 Hardware (purchased; not in cut list)" : "🪙 五金（外購，不入裁切）"}
+              <span className="ml-2 font-normal text-amber-700">{isEn ? `· ${brassRows.length} items` : `· ${brassRows.length} 件`}</span>
             </td>
             <td className="px-2 py-1.5 text-right text-xs font-mono text-amber-700">—</td>
             <td />
@@ -3108,7 +5699,7 @@ export function MaterialList({
             const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
             return (
               <tr key={part.id} className="border-b border-amber-100">
-                <td className="p-2">{part.nameZh}</td>
+                <td className="p-2">{partName(part, locale)}</td>
                 <td className="p-2">{materialLabel}</td>
                 <td className="p-2 text-right">
                   {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
@@ -3126,17 +5717,17 @@ export function MaterialList({
       <tfoot className="bg-zinc-100 border-t-2 border-zinc-400">
         <tr>
           <td className="p-2 font-semibold" colSpan={4}>
-            合計
+            {isEn ? "Total" : "合計"}
             <span className="ml-3 text-xs text-zinc-500 font-normal">
               {[...bdftByMaterial.entries()]
-                .map(([k, v]) => `${k} ${v.toFixed(2)} 板才`)
-                .join("　・　")}
+                .map(([k, v]) => isEn ? `${k} ${v.toFixed(2)} bdft` : `${k} ${v.toFixed(2)} 板才`)
+                .join(isEn ? "  ·  " : "　・　")}
             </span>
           </td>
           <td className="p-2 text-right font-mono font-semibold">
             {totalBdft.toFixed(2)}
           </td>
-          <td className="p-2 text-xs text-zinc-500">未含 10% 切料損耗</td>
+          <td className="p-2 text-xs text-zinc-500">{isEn ? "Excludes 10% trim waste" : "未含 10% 切料損耗"}</td>
         </tr>
       </tfoot>
     </table>

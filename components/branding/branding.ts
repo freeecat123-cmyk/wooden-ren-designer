@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 export interface BrandingData {
@@ -70,17 +71,35 @@ export const DEFAULT_BRANDING: BrandingData = {
   paymentInstallments: [],
 };
 
+export const DEFAULT_BRANDING_EN: BrandingData = {
+  ...DEFAULT_BRANDING,
+  paymentTerms:
+    "Deposit: 50% on signing\nBalance: 50% before delivery\nBank: ____\nAccount: ____",
+  deliveryTerms: "Within ____ business days after signing; shop pickup / shipping quoted separately",
+  warranty: "1 year (excluding misuse)",
+  notes: [
+    "Wood dimensions and color may vary ±3% due to moisture and grain selection.",
+    "Once the custom design is confirmed, any design revision requires a new quote; changes after production has started incur a change fee of $35+ per revision.",
+    "If a tax invoice is required (5% VAT in Taiwan), please specify when ordering.",
+  ].join("\n"),
+};
+
+function pickDefault(locale: string | undefined): BrandingData {
+  return locale === "en" ? DEFAULT_BRANDING_EN : DEFAULT_BRANDING;
+}
+
 const STORAGE_KEY = "wooden-ren-designer:branding:v1";
 
-export function loadBranding(): BrandingData {
-  if (typeof window === "undefined") return DEFAULT_BRANDING;
+export function loadBranding(locale?: string): BrandingData {
+  const def = pickDefault(locale);
+  if (typeof window === "undefined") return def;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_BRANDING;
+    if (!raw) return def;
     const parsed = JSON.parse(raw) as Partial<BrandingData>;
-    return { ...DEFAULT_BRANDING, ...parsed };
+    return { ...def, ...parsed };
   } catch {
-    return DEFAULT_BRANDING;
+    return def;
   }
 }
 
@@ -112,17 +131,19 @@ export function useBranding(): {
   /** 立刻 flush 雲端推送（取消 debounce 直接送）；未登入則只回 false */
   flush: () => Promise<boolean>;
 } {
-  const [data, setData] = useState<BrandingData>(DEFAULT_BRANDING);
+  const locale = useLocale();
+  const def = pickDefault(locale);
+  const [data, setData] = useState<BrandingData>(def);
   const [hydrated, setHydrated] = useState(false);
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
   const [pendingPush, setPendingPush] = useState(false);
   const userIdRef = useRef<string | null>(null);
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestDataRef = useRef<BrandingData>(DEFAULT_BRANDING);
+  const latestDataRef = useRef<BrandingData>(def);
 
   // 1. 開機：先吃 localStorage（同步），再非同步抓 Supabase
   useEffect(() => {
-    setData(loadBranding());
+    setData(loadBranding(locale));
     setHydrated(true);
 
     let cancelled = false;
@@ -140,7 +161,7 @@ export function useBranding(): {
           .maybeSingle();
         if (cancelled) return;
         if (row?.data) {
-          const merged = { ...DEFAULT_BRANDING, ...(row.data as Partial<BrandingData>) };
+          const merged = { ...def, ...(row.data as Partial<BrandingData>) };
           setData(merged);
           saveBranding(merged);
           setSyncedAt(Date.now());
@@ -197,9 +218,9 @@ export function useBranding(): {
   };
 
   const reset = () => {
-    setData(DEFAULT_BRANDING);
-    saveBranding(DEFAULT_BRANDING);
-    schedulePush(DEFAULT_BRANDING);
+    setData(def);
+    saveBranding(def);
+    schedulePush(def);
   };
 
   const flush = async (): Promise<boolean> => {

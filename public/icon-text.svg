@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1e3a5f"/>
+  <g stroke="#ffffff" stroke-width="3" opacity="0.18">
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+  </g>
+  <text x="256" y="150" text-anchor="middle" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif" font-size="120" font-weight="900" fill="#ffffff" letter-spacing="6">木頭仁</text>
+  <g stroke="#ffffff" stroke-width="2" opacity="0.7">
+    <line x1="120" y1="200" x2="180" y2="200"/>
+    <line x1="332" y1="200" x2="392" y2="200"/>
+  </g>
+  <text x="256" y="222" text-anchor="middle" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif" font-size="34" font-weight="600" fill="#ffffff" letter-spacing="8">木作藍圖</text>
+  <polygon points="256,290 410,350 256,410 102,350" fill="#fbbf24" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <polygon points="102,350 256,410 256,470 102,410" fill="#d97706" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <polygon points="410,350 256,410 256,470 410,410" fill="#b45309" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <g stroke="#92400e" stroke-width="3" opacity="0.5" fill="none">
+    <path d="M 160 345 Q 256 332 352 345"/>
+    <path d="M 180 370 Q 256 358 332 370"/>
+  </g>
+</svg>

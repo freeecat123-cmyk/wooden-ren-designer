@@ -9,11 +9,15 @@ import {
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   drawerMountOption,
   drawerSlideOption,
   resolveBackMode,
   resolveDoorMount,
   resolveDrawerBottomMode,
+  resolveDrawerBottomThickness,
+  resolveDrawerBoxJoinery,
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
@@ -39,7 +43,7 @@ const COL_TYPE_CHOICES = [
 ];
 
 export const mediaConsoleOptions: OptionSpec[] = [
-  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚", defaultValue: 18, unit: "mm", min: 9, max: 35, step: 1 },
   // 佈局模式
   { group: "structure", type: "select", key: "layoutMode", label: "佈局模式", defaultValue: "v-2layer", choices: [
     { value: "v-1layer", label: "縱向 1 層（整個一種）" },
@@ -59,12 +63,12 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "2", label: "2 欄（中間 1 片直立分隔）" },
     { value: "3", label: "3 欄（2 片直立分隔）" },
   ], help: "縱向 1 層 = 整片分欄、可指定左右欄寬；縱向 2 層 = 上層分欄（均分）。要不同類型請改用橫向 2/3 欄模式。", dependsOn: { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] } },
-  { group: "zone-top", type: "number", key: "singleLayerLeftWidthMm", label: "左欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, help: "右/中欄自動填滿剩餘", dependsOn: { all: [{ key: "singleLayerCols", oneOf: ["2", "3"] }, { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] }] } },
-  { group: "zone-top", type: "number", key: "singleLayerRightWidthMm", label: "右欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, help: "中欄自動填滿剩餘", dependsOn: { all: [{ key: "singleLayerCols", equals: "3" }, { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] }] } },
+  { group: "zone-top", type: "number", key: "singleLayerLeftWidthMm", label: "左欄寬度", defaultValue: 400, unit: "mm", min: 100, max: 2000, step: 10, help: "右/中欄自動填滿剩餘", dependsOn: { all: [{ key: "singleLayerCols", oneOf: ["2", "3"] }, { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] }] } },
+  { group: "zone-top", type: "number", key: "singleLayerRightWidthMm", label: "右欄寬度", defaultValue: 400, unit: "mm", min: 100, max: 2000, step: 10, help: "中欄自動填滿剩餘", dependsOn: { all: [{ key: "singleLayerCols", equals: "3" }, { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] }] } },
   // 縱向 2 層：下層抽屜（zone-bot）—— 只在 v-2layer
   { group: "zone-bot", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
   { group: "zone-bot", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
-  { group: "zone-bot", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
+  { group: "zone-bot", type: "number", key: "drawerHeight", label: "下層抽屜區高", defaultValue: 180, unit: "mm", min: 80, max: 500, step: 10, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
   { group: "zone-bot", type: "select", key: "drawerRowRatio", label: "抽屜分區比例（排數 ≥ 2 才生效）", defaultValue: "equal", choices: [
     { value: "equal", label: "均分（預設）" },
     { value: "shallow-deep", label: "上淺下深 2:3（淺抽放遙控器、深抽放線材）", dependsOn: { key: "drawerRows", equals: 2 } },
@@ -84,7 +88,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "col-left", type: "number", key: "leftDoorCols", label: "門板橫向分隔數", defaultValue: 1, min: 1, max: 4, step: 1, help: "門板類型才生效；欄內切 N 個獨立子櫃，子櫃間有直立分隔板", dependsOn: { all: [{ key: "layoutMode", oneOf: ["h-2col", "h-3col"] }, { key: "leftType", equals: "door" }] } },
   { group: "col-left", type: "number", key: "leftDoorInnerShelves", label: "門內層板片數", defaultValue: 0, min: 0, max: 6, step: 1, help: "門板類型才生效；門後加 N 片層板把空間分成 N+1 層", dependsOn: { all: [{ key: "layoutMode", oneOf: ["h-2col", "h-3col"] }, { key: "leftType", equals: "door" }] } },
   { group: "col-left", type: "number", key: "leftShelvesCols", label: "開放層板橫向分隔數", defaultValue: 1, min: 1, max: 4, step: 1, help: "開放層板才生效；欄內切 N 個子欄並排，中間有直立分隔板", dependsOn: { all: [{ key: "layoutMode", oneOf: ["h-2col", "h-3col"] }, { key: "leftType", equals: "shelves" }] } },
-  { group: "col-left", type: "number", key: "leftWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, help: "h-2col 模式下右欄自動填滿剩餘", dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
+  { group: "col-left", type: "number", key: "leftWidthMm", label: "寬度", defaultValue: 400, unit: "mm", min: 100, max: 2000, step: 10, help: "h-2col 模式下右欄自動填滿剩餘", dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
   // 中欄只 3 欄用
   { group: "col-mid", type: "select", key: "centerType", label: "類型（3 欄用，寬度自動填滿）", defaultValue: "shelves", choices: COL_TYPE_CHOICES, dependsOn: { key: "layoutMode", equals: "h-3col" } },
   { group: "col-mid", type: "number", key: "centerCount", label: "數量", defaultValue: 2, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", equals: "h-3col" } },
@@ -110,7 +114,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "col-right", type: "number", key: "rightDoorCols", label: "門板橫向分隔數", defaultValue: 1, min: 1, max: 4, step: 1, help: "門板類型才生效；欄內切 N 個獨立子櫃", dependsOn: { all: [{ key: "layoutMode", oneOf: ["h-2col", "h-3col"] }, { key: "rightType", equals: "door" }] } },
   { group: "col-right", type: "number", key: "rightDoorInnerShelves", label: "門內層板片數", defaultValue: 0, min: 0, max: 6, step: 1, help: "門板類型才生效；門後加 N 片層板把空間分成 N+1 層", dependsOn: { all: [{ key: "layoutMode", oneOf: ["h-2col", "h-3col"] }, { key: "rightType", equals: "door" }] } },
   { group: "col-right", type: "number", key: "rightShelvesCols", label: "開放層板橫向分隔數", defaultValue: 1, min: 1, max: 4, step: 1, help: "開放層板才生效；欄內切 N 個子欄並排", dependsOn: { all: [{ key: "layoutMode", oneOf: ["h-2col", "h-3col"] }, { key: "rightType", equals: "shelves" }] } },
-  { group: "col-right", type: "number", key: "rightWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, help: "h-2col 不顯示（右欄自動填滿）；h-3col 中欄自動填滿", dependsOn: { key: "layoutMode", equals: "h-3col" } },
+  { group: "col-right", type: "number", key: "rightWidthMm", label: "寬度", defaultValue: 400, unit: "mm", min: 100, max: 2000, step: 10, help: "h-2col 不顯示（右欄自動填滿）；h-3col 中欄自動填滿", dependsOn: { key: "layoutMode", equals: "h-3col" } },
   // 門材質
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
@@ -122,12 +126,14 @@ export const mediaConsoleOptions: OptionSpec[] = [
   doorFrameThicknessOption,
   drawerMountOption,
   drawerBottomModeOption,
+  drawerBottomThicknessOption,
+  drawerBoxJoineryOption,
   backModeOption,
   // 腳
   withLegsOption,
   backPanelPlywoodOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 120, min: 0, max: 400, step: 10, help: "電視櫃常見 100–150mm 底座", dependsOn: { key: "withLegs", equals: true } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高", defaultValue: 120, unit: "mm", min: 0, max: 400, step: 10, help: "電視櫃常見 100–150mm 底座", dependsOn: { key: "withLegs", equals: true } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 40, unit: "mm", min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -136,8 +142,9 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
+    { value: "full-depth-panel", label: "整深度板腳（可調左右內縮）" },
   ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerSlideOption,
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
@@ -167,6 +174,8 @@ const toColumn = (t: ColType, count: number, drawerCols = 1, doorCols = 1, doorI
  * 電視櫃（media console）— 縱向 1/2 層或橫向 2/3 欄分區。
  */
 export const mediaConsole: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = mediaConsoleOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const layoutMode = getOption<string>(input, opt(o, "layoutMode"));
@@ -400,24 +409,36 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "full-depth-panel" | "round" | "round-tapered",
     legInset,
     doorMount,
     doorFrameRailWidth: getOption<number>(input, opt(o, "doorFrameRailWidth")),
     doorFrameThickness: getOption<number>(input, opt(o, "doorFrameThickness")),
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, mediaConsoleOptions),
+    drawerBottomThickness: resolveDrawerBottomThickness(input, mediaConsoleOptions),
+    drawerBoxJoinery: resolveDrawerBoxJoinery(input, mediaConsoleOptions),
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     pullStyle,
     doorPullStyle,
-    notes: [
-      `電視櫃：${noteParts.join("；")}。`,
-      `門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。`,
-      `底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
-      pullStyleNote(pullStyle),
-      toeKickNote(withToeKick, toeKickHeight, toeKickRecess),
-      crownMoldingNote(withCrownMolding, crownProjection),
-    ].filter((s) => s && s.trim()).join(" ").trim(),
+    notes: (isEn
+      ? [
+          `Media console: ${noteParts.join("; ")}.`,
+          `Door: ${doorMountLabel(doorMount)} (Euro hinge ${doorMount === "inset" ? "inset" : doorMount === "overlay-3" ? "half-overlay" : "full-overlay"}).`,
+          `Base legs ${legHeight}mm (${legShape})${legInset > 0 ? `, inset ${legInset}mm` : ""}.`,
+          pullStyleNote(pullStyle, locale),
+          withToeKick ? `Toe kick: ${toeKickHeight}mm tall × ${toeKickRecess}mm recess.` : "",
+          withCrownMolding ? `Crown molding: ${crownProjection}mm overhang (ogee/cove/chamfer profile).` : "",
+        ]
+      : [
+          `電視櫃：${noteParts.join("；")}。`,
+          `門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。`,
+          `底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
+          pullStyleNote(pullStyle, locale),
+          toeKickNote(withToeKick, toeKickHeight, toeKickRecess),
+          crownMoldingNote(withCrownMolding, crownProjection),
+        ]
+    ).filter((s) => s && s.trim()).join(" ").trim(),
   });
 
   applyStandardChecks(design, {
@@ -430,11 +451,14 @@ export const mediaConsole: FurnitureTemplate = (input) => {
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
-    }),
+    }, input.locale),
   );
   if (input.height > 900 || input.length > 3000) {
     appendSuggestion(design, {
-      text: `${input.length}×${input.height}mm 已不算電視矮櫃——展示櫃模板支援更高尺寸。`,
+      text:
+        input.locale === "en"
+          ? `${input.length}×${input.height} mm is past media-console territory — the display-cabinet template handles taller sizes.`
+          : `${input.length}×${input.height}mm 已不算電視矮櫃——展示櫃模板支援更高尺寸。`,
       suggestedCategory: "display-cabinet",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });

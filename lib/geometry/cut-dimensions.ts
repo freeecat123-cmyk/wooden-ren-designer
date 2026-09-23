@@ -13,9 +13,12 @@ import type { Dimensions, Part, Tenon } from "@/lib/types";
  *  - top/bottom: thickness (rare; e.g. tongue on a panel edge)
  */
 export function calculateCutDimensions(part: Part): Dimensions {
-  let length = part.visible.length;
-  let width = part.visible.width;
-  let thickness = part.visible.thickness;
+  // 若 part 有 joineryView.visible（榫接版專用幾何，例如 45° miter 延伸過 base 重疊區），
+  // 那才是「實際下料尺寸」——組裝版 visible 只是簡化視覺，物理材料以 joineryView 為準。
+  const phys = part.joineryView?.visible ?? part.visible;
+  let length = phys.length;
+  let width = phys.width;
+  let thickness = phys.thickness;
 
   for (const tenon of part.tenons) {
     switch (tenon.position) {

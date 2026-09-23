@@ -1,4 +1,5 @@
 import type { MaterialId, Part } from "@/lib/types";
+import { warnOnce } from "../_helpers";
 
 /**
  * 抽屜列共用 builder。原本嵌在 case-furniture 的 `renderDrawerZone` 與
@@ -29,8 +30,9 @@ export function makePullParts(
     return [];
   }
   const cx = pullX ?? faceX;
-  const cy = faceY + faceHeight / 2;
   const isDoor = idPrefix.includes("-door") || idPrefix.includes("-slab");
+  // 門板把手與抽屜一致放豎向正中央（門在豎梃高度中點）。
+  const cy = faceY + faceHeight / 2;
   const barVertical = orientation ? orientation === "vertical" : isDoor;
   // 0.5mm clearance 避免跟面板 floating-point overlap
   const CLEAR = 0.5;
@@ -210,7 +212,16 @@ export interface RenderDrawerZoneCfg {
   /** 抽屜面板厚（22mm 配框料門、18mm 配平板門/無門） */
   drawerFacePanelT: number;
   drawerMount: DrawerMount;
+  /** 強制用「外加面板 + 抽屜箱」做法（即使 inset 無滑軌）——走櫃子抽屜的正規搭接、
+   *  不走 inset 無面板的 half-lap（紅酒架要跟櫃子抽屜一致時用）。 */
+  forceFacePanel?: boolean;
   drawerBottomMode?: DrawerBottomMode;
+  /** 抽屜底板厚度 mm；3/6/9/12 任一。釘底 / 入溝皆套用此厚度。
+   *  fallback：surface=3, rebated=6（跟舊行為一致）。 */
+  drawerBottomThickness?: number;
+  /** 抽屜箱體 4 角接合：lap 搭接（側板蓋前後）/ dovetail 鳩尾（自動依面板判半/通）。
+   *  預設 "lap"。 */
+  drawerBoxJoinery?: "lap" | "dovetail";
   drawerSlideGap?: number;
   pullStyle: string;
   /** 跳過 case 風格的水平分隔板 / zone-boundary（給 desk 牙板抽屜用）。
@@ -229,7 +240,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const {
     yStart,
     height: zoneH,
-    rows,
+    rows: requestedRows,
     cols,
     idPrefix,
     labelPrefix,
@@ -246,9 +257,45 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     caseInnerZ,
     drawerFacePanelT,
     drawerMount,
+    forceFacePanel,
     pullStyle,
     skipCaseDividers,
   } = cfg;
+  /**
+   * 🧷 排數上限:**這個區域的高度放得下幾排,就只能生幾排**。
+   *
+   * ⛔ 原本直接吃 cfg.rows,完全沒有下限保護。§A10.5 的公式是
+   *      drawerH = drawerSlotH − shelfT − 2×drawerGap
+   *    doc 沒有給下限,於是 slot 一小就會算出**負數**。
+   *    實測床頭櫃 /design/nightstand:上層抽屜區高 150mm,把「數量」拉到 5(UI 上限 8)
+   *    → 150/5 = 30mm,再扣 18(層板)+4(間隙) = **−7mm**,
+   *    產生 16 個 `visible.width = −7` 的零件,**完全沒有警告**,
+   *    一路流進材料單、裁切計算與報價(負的材積、負的價格)。
+   *
+   * ✅ 修法是**夾排數**,不是夾零件尺寸:零件尺寸夾成 0 只會生出一堆沒有厚度的鬼零件,
+   *    使用者看不出哪裡不對。夾排數則是「你要 5 排但只放得下 3 排」,
+   *    畫面立刻看得出來,而且每一排都是可以做出來的。
+   *
+   * MIN_DRAWER_H 取 30mm:再矮的抽屜盒側板連五金都裝不上,不是可製作的東西。
+   */
+  const MIN_DRAWER_H = 30;
+  /** 抽屜與 slot 之間的上下間隙。下面的 `drawerGap` 直接沿用這個常數,不要各寫一份。 */
+  const DRAWER_GAP = 2;
+  const perRowOverhead =
+    shelfT +
+    2 * DRAWER_GAP +
+    ((cfg.drawerBottomMode ?? "surface") === "surface" ? (cfg.drawerBottomThickness ?? 3) : 0);
+  const maxRows = Math.max(1, Math.floor(zoneH / (MIN_DRAWER_H + perRowOverhead)));
+  const rows = Math.min(requestedRows, maxRows);
+
+  if (rows < requestedRows) {
+    warnOnce(
+      "drawer-rows",
+      `[drawer-row] ${idPrefix}:區域高 ${zoneH.toFixed(0)}mm 放不下 ${requestedRows} 排,` +
+        `已夾到 ${rows} 排(每排至少需要 ${(MIN_DRAWER_H + perRowOverhead).toFixed(0)}mm)`,
+    );
+  }
+
   const zoneCx = cfg.xCenter ?? 0;
   const zoneW = cfg.colInnerW ?? innerW;
   // 每排高度（mm）：cfg.rowHeights 是 fraction（總和=1）；未傳走均分。長度不對也 fallback 均分。
@@ -304,13 +351,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     }
   }
 
-  const drawerFrontT = 18;
-  const drawerSideT = 14;
-  const drawerBackT = 12;
-  const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
-  const isSurfaceDrawerBottom = drawerBottomMode === "surface";
-  const drawerBottomT = isSurfaceDrawerBottom ? 3 : 6;
-  const drawerGap = 2;
+  const drawerGap = DRAWER_GAP;
   const partitionT = cols > 1 ? panelT : 0;
   const totalPartitionW = (cols - 1) * partitionT;
   const drawerSlotW = (zoneW - totalPartitionW) / cols;
@@ -320,14 +361,56 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const drawerOverlay =
     drawerMount === "overlay-3" ? 9 :
     drawerMount === "overlay-6" ? panelT : 0;
-  const hasFacePanel = hasSlide || !isInsetDrawer;
+  const hasFacePanel = hasSlide || !isInsetDrawer || !!forceFacePanel;
+  // 抽屜接合 + 內框厚度邏輯（依「有沒有外加面板」分流）：
+  //
+  //   hasFacePanel = true  → 外加面板蓋住前板 → 內框 4 片等厚 14mm
+  //                          鳩尾 = 通鳩尾（tail 穿過、面板蓋住不用藏）
+  //   hasFacePanel = false → 入柱+無滑軌、前板就是面板 → 不等厚 18/14/14
+  //                          鳩尾 = 半鳩尾（tail 只進前板 2/3、面板木紋完整）
+  //
+  // 接合方式 user 可選（drawerBoxJoinery option）：
+  //   "lap" 搭接：側板蓋前後板、無榫頭（butt joint）
+  //   "dovetail" 鳩尾：依 hasFacePanel 自動分通/半
+  const drawerBoxJoinery = cfg.drawerBoxJoinery ?? "lap";
+  const isLapJoint = drawerBoxJoinery === "lap";
+  const isDovetailJoint = drawerBoxJoinery === "dovetail";
+  // 內框前板厚：有面板 14（跟側板等厚）/ 無面板 18（視覺面厚一點）
+  const drawerFrontT = hasFacePanel ? 14 : 18;
+  const drawerSideT = 14;
+  const drawerBackT = 14;
+  // 鳩尾 pinDepth：有面板 → 通鳩尾（=drawerFrontT 整個穿過）/
+  //                沒面板 → 半鳩尾（round(drawerFrontT*2/3) = 12）
+  const useHalfBlindDovetail = isDovetailJoint && !hasFacePanel;
+  const useThroughDovetail = isDovetailJoint && hasFacePanel;
+  // 半搭接：搭接 + 入柱（無面板）→ 前板全寬蓋住側板、背面挖 1/3 深凹槽讓
+  // 側板前緣嵌進。完全沒榫、沒 dovetail-ends shape、只用 cosmetic mortise 切凹槽。
+  // side panel 長度跟全搭接一樣 drawerOuterD、但 z 位置往後推 rabbetDepth、
+  // 讓 side 前緣坐在 rabbet 底（不再跟前板正面齊平、面板蓋住側板端）。
+  const useHalfLap = isLapJoint && !hasFacePanel;
+  const useFullLap = isLapJoint && hasFacePanel;
+  const halfLapRabbetDepth = Math.round(drawerFrontT / 3);
+  const dovetailPinDepth = useThroughDovetail
+    ? drawerFrontT
+    : useHalfBlindDovetail
+      ? Math.round((drawerFrontT * 2) / 3)
+      : 0;
+  const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
+  const isSurfaceDrawerBottom = drawerBottomMode === "surface";
+  // 入溝槽深固定 6mm（吃進側板厚度），不管底板多厚都不會挖穿 14mm 側板。
+  // mortise.width = drawerBottomT + 1 是槽「在側板面上的高度」（讓底板厚度塞得進）
+  // 不是往側板厚度方向挖多深、跟側板厚度無關。
+  const drawerBottomT = cfg.drawerBottomThickness ?? (isSurfaceDrawerBottom ? 3 : 6);
   const faceT = hasFacePanel ? drawerFacePanelT : 0;
-  const faceTBoxOffset = isInsetDrawer && hasSlide ? drawerFacePanelT : 0;
+  // inset 有外加面板時，抽屜箱要往後退一個面板厚，箱前板才在面板「後面」而非跟它重疊。
+  // （原本只在 hasSlide 退；forceFacePanel 無滑軌也有面板、一樣要退，否則兩片面板重疊）
+  const faceTBoxOffset = isInsetDrawer && hasFacePanel ? drawerFacePanelT : 0;
   const backClearance = hasSlide ? 10 : 6;
   const drawerOuterW = drawerSlotW - 2 * slideGap;
   const boxExtW = hasSlide ? drawerOuterW : drawerOuterW - 4;
   const drawerInnerW = boxExtW - 2 * drawerSideT;
   const drawerInnerD = innerD - faceTBoxOffset - drawerFrontT - drawerBackT - backClearance;
+  const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
   const boxYOffset = hasSlide ? 5 - drawerGap : 0;
   const dovetailLen = drawerSideT;
   const inColumn = cfg.colInnerW !== undefined;
@@ -395,9 +478,15 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     const isTopRowExpand = row === rows - 1 && dividerFrom !== "above";
     const expandTop = isTopRowExpand ? shelfT : 0;
     const slotHRow = rowSlotH[row];
-    const drawerHRow = slotHRow - shelfT - drawerGap * 2;
-    const boxHRow = (hasSlide ? slotHRow - shelfT - 10 : drawerHRow) + expandTop;
-    const yBase = drawerZoneBottomY + rowSlotYBottom[row] + drawerGap;
+    // 釘底底板 attach 在側板下緣（y = yBase - drawerBottomT）→ 抽屜總高
+    // = boxHRow + drawerBottomT。要：
+    //   1. 從 slot 預算扣掉這段（縮 boxHRow）
+    //   2. 把 yBase 推高 drawerBottomT（不然底板會垂出 slot 底）
+    // 入溝底板嵌在 box 內、不增加總高、不扣。
+    const surfaceBottomReserve = isSurfaceDrawerBottom ? drawerBottomT : 0;
+    const drawerHRow = slotHRow - shelfT - drawerGap * 2 - surfaceBottomReserve;
+    const boxHRow = (hasSlide ? slotHRow - shelfT - 10 - surfaceBottomReserve : drawerHRow) + expandTop;
+    const yBase = drawerZoneBottomY + rowSlotYBottom[row] + drawerGap + surfaceBottomReserve;
     const xCenter =
       zoneCx -
       zoneW / 2 +
@@ -488,7 +577,22 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
                 z: boxHRow / 2 - (6 + drawerBottomT / 2),
               },
               depth: 6,
-              length: drawerInnerW + 4,
+              /**
+               * ⛔ 原本寫 `drawerInnerW + 12`,理由註解是「跟底板 X length 對齊」——
+               *    但那個 +12 是**底板**的:底板要兩端各嵌進側板的溝裡 6mm,
+               *    所以底板總寬 = drawerInnerW + 12。前板的溝只沿著**前板自己**跑,
+               *    不該加那 12mm。
+               *
+               *    實測(五斗櫃預設 · 榫接版):前板 711mm、溝卻 723mm →
+               *    「榫孔加工面」那張圖上,溝從板子左端跑出去 12mm。
+               *    照著切 CNC 是從料外面下刀,手工開槽則是把前板左端整個開穿。
+               *    ⚠️ 榫接版會自動把「釘底」升級成「入溝」
+               *    (lib/design/parse-search-params.ts:69),所以這是榫接版抽屜櫃的
+               *    **預設路徑**,不是極端值。5 款櫃體中招。(2026-08-24)
+               *
+               * 前板長度見下方 `useFullLap ? drawerInnerW : boxExtW`,溝跟它同寬。
+               */
+              length: useFullLap ? drawerInnerW : boxExtW,
               width: drawerBottomT,
               through: false,
               cosmetic: true,
@@ -496,6 +600,43 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
             },
           ]
         : [];
+    // 半搭接：前板背面在側板對應位置開 cosmetic rabbet（drawerSideT 寬 × 2/3 深）
+    // 讓側板嵌進。完全沒榫、無 dovetail-ends shape、只是視覺凹槽（cosmetic mortise）。
+    //
+    // origin.y 用 drawerFrontT - halfLapRabbetDepth/2 而不是 canonical drawerFrontT：
+    // mortiseLocalBox 對 canonical Y + 靠近 X face 會把 depthAxis 切到 X、變成從
+    // 側邊往內挖。改用中間值才會正確走 Y 深度（從背面往前面挖 2/3）。
+    const halfLapRabbetOriginY = drawerFrontT - halfLapRabbetDepth / 2;
+    const frontRabbetMortises: Part["mortises"] = useHalfLap
+      ? [
+          {
+            origin: {
+              x: -boxExtW / 2 + drawerSideT / 2,
+              y: halfLapRabbetOriginY,
+              z: 0,
+            },
+            depth: halfLapRabbetDepth,
+            length: boxHRow + frontExtraDown,
+            width: drawerSideT,
+            through: false,
+            cosmetic: true,
+            shape: "rect",
+          },
+          {
+            origin: {
+              x: +boxExtW / 2 - drawerSideT / 2,
+              y: halfLapRabbetOriginY,
+              z: 0,
+            },
+            depth: halfLapRabbetDepth,
+            length: boxHRow + frontExtraDown,
+            width: drawerSideT,
+            through: false,
+            cosmetic: true,
+            shape: "rect",
+          },
+        ]
+      : [];
     parts.push({
       id: `${idPrefix}-${i + 1}-front`,
       nameZh: hasFacePanel
@@ -503,30 +644,19 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
         : `${labelPrefix}${i + 1} 面板`,
       material,
       grainDirection: "length",
+      // 前板長度依接合：
+      //  useFullLap（有面板+搭接）→ 夾在側板中間 drawerInnerW
+      //  其他（half-lap / dovetail）→ 全寬 boxExtW
       visible: {
-        length: boxExtW,
+        length: useFullLap ? drawerInnerW : boxExtW,
         width: boxHRow + frontExtraDown,
         thickness: drawerFrontT,
       },
       origin: { x: xCenter, y: yBase + boxYOffset - frontExtraDown, z: zFront },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [
-        {
-          position: "start",
-          type: "dovetail",
-          length: dovetailLen,
-          width: boxHRow - 6,
-          thickness: drawerFrontT - 2,
-        },
-        {
-          position: "end",
-          type: "dovetail",
-          length: dovetailLen,
-          width: boxHRow - 6,
-          thickness: drawerFrontT - 2,
-        },
-      ],
-      mortises: frontGrooveMortises,
+      // lap = butt joint 無榫；dovetail = CSG 從側板 shape 切、前板自己也無 tenons
+      tenons: [],
+      mortises: [...frontGrooveMortises, ...frontRabbetMortises],
     });
     if (!hasFacePanel) {
       parts.push(...makePullParts(
@@ -550,71 +680,83 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       nameZh: `${labelPrefix}${i + 1} 後板`,
       material,
       grainDirection: "length",
+      // 後板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
+      // 跨外寬被側板 tail CSG 切（=boxExtW = drawerInnerW + 2×drawerSideT）。
       visible: {
-        length: drawerInnerW + 2 * drawerSideT,
+        // useFullLap → drawerInnerW 夾中間 / 其他 → 全寬
+        length: useFullLap ? drawerInnerW : drawerInnerW + 2 * drawerSideT,
         width: drawerBackHeight,
         thickness: drawerBackT,
       },
       origin: { x: xCenter, y: drawerBackY, z: zBack },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [
-        {
-          position: "start",
-          type: "half-lap",
-          length: drawerSideT * 0.5,
-          width: drawerBackHeight - 4,
-          thickness: drawerBackT,
-        },
-        {
-          position: "end",
-          type: "half-lap",
-          length: drawerSideT * 0.5,
-          width: drawerBackHeight - 4,
-          thickness: drawerBackT,
-        },
-      ],
+      // lap / dovetail 皆無 corner tenons（lap=butt、dovetail=CSG）
+      tenons: [],
       mortises: [],
     });
 
     const sideZCenter =
       (zFront + drawerFrontT / 2 + zBack - drawerBackT / 2) / 2;
+    const halfBlindSegmentCount = Math.max(
+      3,
+      Math.min(11, Math.round(boxHRow / (1.8 * drawerSideT))),
+    );
+    // 半鳩尾段數要奇數（前後段都是 pin 才不破角）
+    const dovetailSegCount =
+      halfBlindSegmentCount % 2 === 0
+        ? halfBlindSegmentCount + 1
+        : halfBlindSegmentCount;
     for (const side of [-1, 1] as const) {
+      // side panel 依接合方式決定長度 + 位置：
+      // - dovetail（含半鳩尾）：body 延長 2×pinDepth 進前後板實體區、shape 在
+      //   延伸區做 crenellated tail。z center 維持 sideZCenter（body 中段）。
+      // - lap（搭接）：body 蓋滿前後板（drawerOuterD）、z center 推到 drawer
+      //   外部中心、無 shape、前後板被夾在中間。
+      const sideLength = isDovetailJoint
+        ? drawerInnerD + 2 * dovetailPinDepth
+        : drawerOuterD;
+      // 全搭接：側板蓋滿前後板（front 邊緣到 back 邊緣）
+      const sideZCenterLap =
+        (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
+      // 半搭接：側板要躲進前板覆蓋的 2/3 內側。rabbet 從背面切 1/3、剩 2/3 的
+      // 前板材料覆蓋 → side z 要往後推 (drawerFrontT - rabbet) = 2/3 厚 = 12mm。
+      // 之前推 rabbet 深度（=1/3）太少、side 跟前板還會重疊 6mm（user 反映）。
+      const halfLapSideShift = drawerFrontT - halfLapRabbetDepth;
+      const sideZCenterHalfLap = sideZCenterLap + halfLapSideShift;
+      const effectiveSideZCenter = useHalfLap
+        ? sideZCenterHalfLap
+        : isLapJoint
+          ? sideZCenterLap
+          : sideZCenter;
       parts.push({
         id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
         nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
         material,
         grainDirection: "length",
         visible: {
-          length: drawerInnerD,
+          length: sideLength,
           width: boxHRow,
           thickness: drawerSideT,
         },
         origin: {
           x: xCenter + side * (boxExtW / 2 - drawerSideT / 2),
           y: yBase + boxYOffset,
-          z: sideZCenter,
+          z: effectiveSideZCenter,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        shape: isDovetailJoint
+          ? {
+              kind: "dovetail-ends" as const,
+              segmentCount: dovetailSegCount,
+              phase: 0 as const,
+              angleDeg: 10,
+              pinDepth: dovetailPinDepth,
+              halfPin: true,
+            }
+          : undefined,
         tenons: [],
+        // lap / dovetail 都無 corner mortise（lap=butt joint、dovetail=CSG 從 shape 切）
         mortises: [
-          {
-            origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
-            depth: dovetailLen,
-            length: boxHRow - 6,
-            width: drawerFrontT - 2,
-            through: true,
-          },
-          {
-            origin: {
-              x: drawerInnerD / 2 + 1,
-              y: 0,
-              z: isSurfaceDrawerBottom ? 0 : (drawerBottomT + 6) / 2,
-            },
-            depth: drawerSideT * 0.5,
-            length: drawerBackHeight - 4,
-            width: drawerBackT,
-            through: false,
-          },
           ...(isSurfaceDrawerBottom
             ? []
             : [
@@ -632,7 +774,6 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       });
     }
 
-    const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
     const drawerBottomLengthRebated = drawerInnerD + drawerBackT + 6;
     const drawerBottomFrontEdgeZ = zFront + drawerFrontT / 2 - 6;
     const drawerBottomRearEdgeZ = zBack + drawerBackT / 2;
@@ -646,7 +787,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       grainDirection: "length",
       visible: isSurfaceDrawerBottom
         ? { length: boxExtW, width: drawerOuterD, thickness: drawerBottomT }
-        : { length: drawerInnerW + 4, width: drawerBottomLengthRebated, thickness: drawerBottomT },
+        // 入溝：X 方向左右各 +6mm 進到側板槽底（跟 Z 方向 drawerBottomFrontEdgeZ
+        // 的 -6 慣例一致）。前 +4 = 左右各 +2 只 stick into 2mm、視覺上像「沒卡進去」
+        : { length: drawerInnerW + 12, width: drawerBottomLengthRebated, thickness: drawerBottomT },
       origin: {
         x: xCenter,
         y: isSurfaceDrawerBottom
@@ -656,24 +799,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           ? (zFront + zBack) / 2
           : (drawerBottomFrontEdgeZ + drawerBottomRearEdgeZ) / 2,
       },
-      tenons: isSurfaceDrawerBottom
-        ? []
-        : [
-            {
-              position: "start",
-              type: "tongue-and-groove",
-              length: 6,
-              width: drawerInnerD - 4,
-              thickness: drawerBottomT,
-            },
-            {
-              position: "end",
-              type: "tongue-and-groove",
-              length: 6,
-              width: drawerInnerD - 4,
-              thickness: drawerBottomT,
-            },
-          ],
+      // 入溝底板：body 已 +12（左右各 +6mm 卡到槽底）、無需 tenons 再外推；
+      // 加 tenons 反而會超出側板槽底 6mm 深、戳進實心側板（紅榫頭 bug）。
+      tenons: [],
       mortises: [],
     });
    }

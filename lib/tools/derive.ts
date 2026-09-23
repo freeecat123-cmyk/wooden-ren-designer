@@ -1,11 +1,28 @@
 import type { FurnitureDesign, JoineryType } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { TOOL_CATALOG, type Tool, type ToolPriority } from "./catalog";
+import { deriveBuildSteps } from "@/lib/steps/derive";
 
 export interface RequiredTool {
   tool: Tool;
   priority: ToolPriority;
   reason: string;
+}
+
+interface ReasonPair {
+  zh: string;
+  en: string;
+}
+
+interface AlwaysSpec {
+  id: string;
+  reason: ReasonPair;
+}
+
+interface JoinerySpec {
+  id: string;
+  priority: ToolPriority;
+  reason: ReasonPair;
 }
 
 const PRIORITY_RANK: Record<ToolPriority, number> = {
@@ -14,90 +31,155 @@ const PRIORITY_RANK: Record<ToolPriority, number> = {
   optional: 2,
 };
 
-const ALWAYS_REQUIRED: Array<{ id: string; reason: string }> = [
-  { id: "tape-measure-5m", reason: "全程量測下料與組裝" },
-  { id: "try-square", reason: "確認直角與肩線" },
-  { id: "marking-gauge", reason: "劃榫頭/榫眼基準線" },
-  { id: "f-clamp-x4", reason: "膠合時固定零件" },
-  { id: "pva-glue", reason: "榫接膠合" },
-  { id: "sandpaper-set", reason: "組裝後表面處理" },
-  { id: "wood-oil", reason: "完成後保護表面" },
+const pickReason = (r: ReasonPair, locale: string) =>
+  locale === "en" ? r.en : r.zh;
+
+const ALWAYS_REQUIRED: AlwaysSpec[] = [
+  { id: "tape-measure-5m", reason: { zh: "全程量測下料與組裝", en: "Measuring from cut list to assembly" } },
+  { id: "try-square", reason: { zh: "確認直角與肩線", en: "Check square edges and shoulder lines" } },
+  { id: "marking-gauge", reason: { zh: "劃榫頭/榫眼基準線", en: "Mark tenon and mortise reference lines" } },
+  { id: "f-clamp-x4", reason: { zh: "膠合時固定零件", en: "Clamp parts during glue-up" } },
+  { id: "pva-glue", reason: { zh: "榫接膠合", en: "Glue mortise-and-tenon joints" } },
+  { id: "sandpaper-set", reason: { zh: "組裝後表面處理", en: "Surface prep after assembly" } },
+  { id: "wood-oil", reason: { zh: "完成後保護表面", en: "Protect the finished surface" } },
 ];
 
-const JOINERY_TOOLS: Record<
-  JoineryType,
-  Array<{ id: string; priority: ToolPriority; reason: string }>
-> = {
+const JOINERY_TOOLS: Record<JoineryType, JoinerySpec[]> = {
   "through-tenon": [
-    { id: "chisel-set-3-6-12", priority: "required", reason: "鑿通榫榫眼與整修榫頭" },
-    { id: "japanese-saw", priority: "required", reason: "切榫頰與肩線" },
-    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "鑿通榫榫眼與整修榫頭", en: "Chop the through mortise and pare tenons" } },
+    { id: "japanese-saw", priority: "required", reason: { zh: "切榫頰與肩線", en: "Cut tenon cheeks and shoulders" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,一把可替代切榫頰與肩線", en: "All-purpose backsaw — covers both cheeks and shoulders" } },
+    { id: "flush-cut-saw", priority: "recommended", reason: { zh: "組裝後切平突出的通榫榫頭,不傷木面", en: "Trim through-tenon proud ends flush without scratching the surface" } },
+    { id: "mallet", priority: "required", reason: { zh: "敲擊鑿刀", en: "Strike the chisel" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
   ],
   "blind-tenon": [
-    { id: "chisel-set-3-6-12", priority: "required", reason: "鑿半榫榫眼" },
-    { id: "japanese-saw", priority: "required", reason: "切榫頰與肩線" },
-    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "鑿半榫榫眼", en: "Chop the blind mortise" } },
+    { id: "japanese-saw", priority: "required", reason: { zh: "切榫頰與肩線", en: "Cut tenon cheeks and shoulders" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,一把可替代切榫頰與肩線", en: "All-purpose backsaw — covers both cheeks and shoulders" } },
+    { id: "mallet", priority: "required", reason: { zh: "敲擊鑿刀", en: "Strike the chisel" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
   ],
   "shouldered-tenon": [
-    { id: "chisel-set-3-6-12", priority: "required", reason: "整修肩榫" },
-    { id: "japanese-saw", priority: "required", reason: "切肩線" },
-    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "整修肩榫", en: "Pare the shouldered tenon" } },
+    { id: "japanese-saw", priority: "required", reason: { zh: "切肩線", en: "Cut the shoulder line" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,一把可替代切肩線", en: "All-purpose backsaw — fine for shoulder cuts" } },
+    { id: "mallet", priority: "required", reason: { zh: "敲擊鑿刀", en: "Strike the chisel" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
   ],
   "stub-joint": [
-    { id: "chisel-set-3-6-12", priority: "required", reason: "鑿出寬深榫眼讓整支牙條卡入" },
-    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
-    { id: "router-table", priority: "recommended", reason: "用銑床快速挖槽，比手鑿快數倍" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "鑿出寬深榫眼讓整支牙條卡入", en: "Chop a wide-deep mortise to seat the apron" } },
+    { id: "mallet", priority: "required", reason: { zh: "敲擊鑿刀", en: "Strike the chisel" } },
+    { id: "router-table", priority: "recommended", reason: { zh: "用銑床快速挖槽,比手鑿快數倍", en: "Router-table for fast mortising — many times faster than hand chopping" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
   ],
   "half-lap": [
-    { id: "japanese-saw", priority: "required", reason: "切搭接深度" },
-    { id: "chisel-set-3-6-12", priority: "required", reason: "整平搭接面" },
+    { id: "japanese-saw", priority: "required", reason: { zh: "切搭接深度", en: "Cut to the lap depth" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,一把可替代切搭接", en: "All-purpose backsaw — handles lap joints" } },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "整平搭接面", en: "Pare the lap surface flat" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
   ],
   dovetail: [
-    { id: "dovetail-saw", priority: "required", reason: "切鳩尾的細齒鋸" },
-    { id: "dovetail-marker", priority: "required", reason: "1:6 / 1:8 角度劃線" },
-    { id: "chisel-set-3-6-12", priority: "required", reason: "清除鳩尾廢料" },
+    { id: "dovetail-saw", priority: "required", reason: { zh: "切鳩尾的細齒鋸", en: "Fine-tooth saw for dovetail cuts" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,極細齒亦可切鳩尾", en: "All-purpose backsaw — extra-fine teeth also cut dovetails" } },
+    { id: "dovetail-marker", priority: "required", reason: { zh: "1:6 / 1:8 角度劃線", en: "Lay out 1:6 / 1:8 dovetail angles" } },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "清除鳩尾廢料", en: "Chop out dovetail waste" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
+    { id: "dovetail-jig", priority: "recommended", reason: { zh: "搭配修邊機批量做全透燕尾榫,省手工時間", en: "Router jig for batch through-dovetails — saves hand work" } },
   ],
   "finger-joint": [
-    { id: "chisel-set-3-6-12", priority: "required", reason: "整修指接" },
-    { id: "router-table", priority: "recommended", reason: "用銑床批量切指" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: { zh: "整修指接", en: "Pare the finger joint" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,手工切指接", en: "All-purpose backsaw — hand-cut finger joints" } },
+    { id: "router-table", priority: "recommended", reason: { zh: "用銑床批量切指", en: "Router-table for batched finger cuts" } },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: { zh: "鑿刀組收納捲包,保護刀刃", en: "Chisel roll — protects edges in storage" } },
   ],
   "tongue-and-groove": [
-    { id: "groove-plane", priority: "recommended", reason: "手工開槽" },
-    { id: "groove-blade", priority: "recommended", reason: "搭配修邊機 + 開槽直刀，效率最佳" },
+    { id: "groove-plane", priority: "recommended", reason: { zh: "手工開槽", en: "Hand-cut grooves" } },
+    { id: "groove-blade", priority: "recommended", reason: { zh: "搭配修邊機 + 開槽直刀,效率最佳", en: "Router + straight grooving bit — most efficient" } },
   ],
   dowel: [
-    { id: "dowel-jig", priority: "required", reason: "確保木釘對齊" },
-    { id: "drill", priority: "required", reason: "鑽木釘孔" },
-    { id: "drill-bits", priority: "required", reason: "搭配電鑽使用" },
+    { id: "dowel-jig", priority: "required", reason: { zh: "確保木釘對齊", en: "Keep dowels aligned" } },
+    { id: "drill", priority: "required", reason: { zh: "鑽木釘孔", en: "Drill dowel holes" } },
+    { id: "drill-bits", priority: "required", reason: { zh: "搭配電鑽使用", en: "Bits for the drill" } },
+    { id: "flush-cut-saw", priority: "recommended", reason: { zh: "組裝後切平突出的木釘,不傷木面", en: "Trim proud dowels flush without scratching the surface" } },
   ],
   "mitered-spline": [
-    { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
-    { id: "groove-blade", priority: "recommended", reason: "切片榫溝（修邊機 + 開槽直刀）" },
+    { id: "japanese-saw", priority: "required", reason: { zh: "精準 45° 切角", en: "Precise 45° miter cut" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,一把可替代切 45° 角", en: "All-purpose backsaw — also makes 45° miters" } },
+    { id: "groove-blade", priority: "recommended", reason: { zh: "切片榫溝(修邊機 + 開槽直刀)", en: "Cut spline slots (router + grooving bit)" } },
+    { id: "magnetic-saw-guide", priority: "recommended", reason: { zh: "磁吸 45° 導引塊,手鋸切角不歪斜", en: "Magnetic 45° guide — keeps the hand saw straight" } },
+  ],
+  mitered: [
+    { id: "japanese-saw", priority: "required", reason: { zh: "精準 45° 切角", en: "Precise 45° miter cut" } },
+    { id: "all-purpose-saw", priority: "recommended", reason: { zh: "泛用型導付鋸,一把可替代切 45° 角", en: "All-purpose backsaw — also makes 45° miters" } },
+    { id: "miter-box", priority: "recommended", reason: { zh: "斜切箱輔助角度,比目測精準", en: "Miter box keeps the cut true" } },
+    { id: "magnetic-saw-guide", priority: "recommended", reason: { zh: "磁吸 45° 導引塊,手鋸切角不歪斜", en: "Magnetic 45° guide — keeps the hand saw straight" } },
   ],
   "pocket-hole": [
-    { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔" },
-    { id: "drill", priority: "required", reason: "鑽孔" },
-    { id: "drill-bits", priority: "required", reason: "斜孔專用階梯鑽頭" },
+    { id: "pocket-hole-jig", priority: "required", reason: { zh: "鑽 15° 斜孔", en: "Drill 15° pocket holes" } },
+    { id: "drill", priority: "required", reason: { zh: "鑽孔", en: "Drill the holes" } },
+    { id: "drill-bits", priority: "required", reason: { zh: "斜孔專用階梯鑽頭", en: "Pocket-hole step-drill bits" } },
+    { id: "tenz-screw-set", priority: "recommended", reason: { zh: "TENZ 星型螺絲省力不咬合,斜孔鎖固專用", en: "TENZ star-drive screws — low cam-out, great for pocket holes" } },
+    { id: "countersink-bit", priority: "recommended", reason: { zh: "螺絲頭埋進木面不外露,正面更光潔", en: "Countersink the head flush — cleaner show face" } },
+    { id: "mallet", priority: "recommended", reason: { zh: "組裝敲合對位,白橡膠不留痕", en: "Tap parts flush during assembly — white rubber leaves no marks" } },
   ],
   screw: [
-    { id: "drill", priority: "required", reason: "鑽先導孔與鎖螺絲" },
-    { id: "drill-bits", priority: "required", reason: "搭配電鑽" },
+    { id: "drill", priority: "required", reason: { zh: "鑽先導孔與鎖螺絲", en: "Pilot-drill and drive screws" } },
+    { id: "drill-bits", priority: "required", reason: { zh: "搭配電鑽", en: "Bits for the drill" } },
+    { id: "tenz-screw-set", priority: "recommended", reason: { zh: "TENZ 星型螺絲省力不咬合", en: "TENZ star-drive screws — low cam-out" } },
+    { id: "countersink-bit", priority: "recommended", reason: { zh: "螺絲頭埋進木面不外露", en: "Countersink the head flush" } },
+    { id: "hand-drill-brace", priority: "optional", reason: { zh: "手搖鑽手動鎖固,無電源也能裝", en: "Hand brace — drive screws without power" } },
+    { id: "mallet", priority: "recommended", reason: { zh: "組裝敲合對位,白橡膠不留痕", en: "Tap parts flush during assembly — white rubber leaves no marks" } },
   ],
 };
 
-export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
+const POWER_TOOL_IDS = [
+  "router-table",
+  "drill",
+  "drill-bits",
+  "dowel-jig",
+  "pocket-hole-jig",
+  "groove-blade",
+];
+
+const SHARPENABLE_IDS = ["chisel-set-3-6-12", "chisel-hardwood", "groove-plane"];
+
+const EXTRA_REASONS = {
+  dogHoles: { zh: "工作桌狗孔 / holdfast 孔要 Ø19 平翼鑽頭垂直鑽", en: "Dog and holdfast holes need a 3/4\" Forstner bit drilled dead square" },
+  benchDogs: { zh: "配狗孔用，夾長料兩端", en: "Pair with the dog holes to clamp long stock between dogs" },
+  holdfast: { zh: "壓桿一敲就固定，桌面 44~89mm 才咬得住；台灣木樹林有小號", en: "One tap holds the work; needs a 44–89mm top" },
+  wagonVise: { zh: "尾鉗滑塊五金要另購，開槽前先量實物", en: "Wagon vise hardware is bought separately — measure it before cutting the slot" },
+  hardwoodChisel: { zh: "白橡等硬木需高硬度鑿刀,普通鑿刀易崩刃", en: "Hardwoods like white oak need hardened chisels — standard ones chip" },
+  hardwoodCoarseSand: { zh: "硬木刨後需 60 番去除刨痕", en: "Hardwood after planing needs 60-grit to remove plane marks" },
+  longClamp: { zh: "長型家具膠合需大尺寸夾具", en: "Long furniture glue-ups need large clamps" },
+  concealedHinge: { zh: "櫃門可選用隱藏鉸鏈", en: "Cabinet doors may use concealed hinges" },
+  markingKnife: { zh: "SK5 雙刃劃線刀,比鉛筆精準十倍,榫接對位專用", en: "SK5 double-edged marking knife — ten times more precise than a pencil for joinery layout" },
+  maskingTape: { zh: "弱黏紙膠帶,膠合防溢膠、塗裝遮邊、面板保護萬用", en: "Low-tack masking tape — squeeze-out, paint edges, panel protection" },
+  benchVise: { zh: "快速虎鉗,鑿榫／鋸切時鎖緊零件比 F 夾穩", en: "Quick-release vise — steadier than F-clamps when chopping or sawing" },
+  glueTray: { zh: "矽膠托盤＋滾筒刷,膠水乾掉一撕即淨,比紙杯衛生", en: "Silicone tray + roller — peel cured glue off cleanly, beats paper cups" },
+  glueBox: { zh: "矽膠膠水盒,膠水可儲存重複用,比拋棄式環保", en: "Silicone glue box — store and reuse glue, less waste than disposables" },
+  sharpening: { zh: "鑿刀／鉋刀定角開刃,搭配磨刀石使用", en: "Fixed-angle sharpening jig for chisels / plane blades — pairs with a waterstone" },
+  lubricant: { zh: "帶鋸／台鋸／平刨台面防鏽＋離型,推料順暢", en: "Rust prevention + release for bandsaw / table saw / jointer tables — feeds smoother" },
+  routerEngraving: { zh: "修邊機加底座做圓弧／龜甲紋雕刻裝飾", en: "Router base for arc / honeycomb decorative carving" },
+  fromBuildStep: { zh: "施工步驟裡直接用到這把工具", en: "Called for directly by a build step" },
+};
+
+export function deriveRequiredTools(
+  design: FurnitureDesign,
+  locale: string = "zh-TW",
+): RequiredTool[] {
   const map = new Map<string, RequiredTool>();
 
-  const add = (id: string, priority: ToolPriority, reason: string) => {
+  const add = (id: string, priority: ToolPriority, reason: ReasonPair) => {
     const tool = TOOL_CATALOG[id];
     if (!tool) return;
     const existing = map.get(id);
     if (!existing) {
-      map.set(id, { tool, priority, reason });
+      map.set(id, { tool, priority, reason: pickReason(reason, locale) });
       return;
     }
     if (PRIORITY_RANK[priority] < PRIORITY_RANK[existing.priority]) {
-      map.set(id, { tool, priority, reason });
+      map.set(id, { tool, priority, reason: pickReason(reason, locale) });
     }
   };
 
@@ -111,6 +193,15 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
       seenJoinery.add(tenon.type);
     }
   }
+  /**
+   * 🩸 組裝版（toBeginnerMode）把榫頭全拔掉、defaultJoinery 設成 pocket-hole，
+   * 但這裡只從榫頭推工具 → 組裝版的工具清單沒有電鑽、斜孔治具、TENZ 螺絲，
+   * 偏偏那一版就是靠螺絲鎖起來的（2026-09-02 木頭仁：「工具清單 增加官網的 tenz 螺絲」）。
+   * 沒有任何榫頭時，退而用設計宣告的預設接合法。
+   */
+  if (seenJoinery.size === 0 && design.defaultJoinery && JOINERY_TOOLS[design.defaultJoinery]) {
+    seenJoinery.add(design.defaultJoinery);
+  }
   for (const joinery of seenJoinery) {
     for (const t of JOINERY_TOOLS[joinery]) {
       add(t.id, t.priority, t.reason);
@@ -119,8 +210,8 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
 
   const hardness = MATERIALS[design.primaryMaterial]?.hardness ?? 0;
   if (hardness >= 5000) {
-    add("chisel-hardwood", "required", "白橡等硬木需高硬度鑿刀，普通鑿刀易崩刃");
-    add("sandpaper-coarse-60", "required", "硬木刨後需 60 番去除刨痕");
+    add("chisel-hardwood", "required", EXTRA_REASONS.hardwoodChisel);
+    add("sandpaper-coarse-60", "required", EXTRA_REASONS.hardwoodCoarseSand);
   }
 
   const longSpan =
@@ -129,7 +220,7 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
     design.category === "desk" ||
     design.category === "bench";
   if (longSpan) {
-    add("long-clamp-x2", "required", "長型家具膠合需大尺寸夾具");
+    add("long-clamp-x2", "required", EXTRA_REASONS.longClamp);
   }
 
   if (
@@ -140,7 +231,58 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
     design.category === "nightstand" ||
     design.category === "wardrobe"
   ) {
-    add("concealed-hinge", "optional", "櫃門可選用隱藏鉸鏈");
+    add("concealed-hinge", "optional", EXTRA_REASONS.concealedHinge);
+  }
+
+  add("marking-knife", "recommended", EXTRA_REASONS.markingKnife);
+  add("masking-tape-low-tack", "recommended", EXTRA_REASONS.maskingTape);
+  add("quick-bench-vise", "recommended", EXTRA_REASONS.benchVise);
+  if (design.category === "workbench") {
+    const hasHoles = design.parts.some((p) => p.mortises.some((m) => m.cosmetic && m.shape === "round" && m.through));
+    if (hasHoles) {
+      add("forstner-bit-19", "required", EXTRA_REASONS.dogHoles);
+      add("bench-dog-pair", "recommended", EXTRA_REASONS.benchDogs);
+      add("holdfast", "recommended", EXTRA_REASONS.holdfast);
+    }
+    if (design.parts.some((p) => p.id === "end-cap")) add("wagon-vise-kit", "required", EXTRA_REASONS.wagonVise);
+  }
+  add("glue-tray-set", "recommended", EXTRA_REASONS.glueTray);
+  add("silicone-glue-box", "recommended", EXTRA_REASONS.glueBox);
+
+  if (SHARPENABLE_IDS.some((id) => map.has(id))) {
+    add("sharpening-jig", "recommended", EXTRA_REASONS.sharpening);
+  }
+  if (POWER_TOOL_IDS.some((id) => map.has(id))) {
+    add("silicone-lubricant", "recommended", EXTRA_REASONS.lubricant);
+  }
+  if (
+    design.category === "chinese-cabinet" ||
+    design.category === "display-cabinet"
+  ) {
+    add("router-engraving-base", "optional", EXTRA_REASONS.routerEngraving);
+  }
+
+  /**
+   * 🧷 工序叫人用的工具,一定要出現在購物清單裡。
+   *
+   * ⛔ 上面整份清單是從**零件的榫頭**(`part.tenons[].type`)推的,
+   *    但工序表是另一條路徑(`deriveBuildSteps`)推的 —— 兩邊必然對不起來:
+   *    - 組裝版(網址預設、新手最常按進來的那個)沒有榫頭 → 推不出任何接合工具,
+   *      但工序內文正是「斜孔治具 + 電鑽」。28 款**全部**漏列 drill / pocket-hole-jig。
+   *    - 鳩尾盒的工序寫「鋸製鳩尾榫」列了鳩尾鋸 / 鳩尾規 / 鑿刀,
+   *      清單裡卻只有紙膠帶和矽膠膠水盒 —— 那是這件家具唯一的工法。
+   *
+   *    使用者照清單買齊料開工,做到第四步才發現少了最關鍵的工具;
+   *    商店端也少賣了客單價最高的那幾樣(每項工具都掛商店連結)。
+   *
+   * 修法跟其他「一個判斷兩套答案」的問題一樣:**讓下游吃上游**,
+   * 直接把工序聲明的 toolIds 併進來,不要各推各的。
+   * 併進來的一律標 required —— 工序寫著要用,就是必需品。(2026-08-24)
+   */
+  for (const step of deriveBuildSteps(design)) {
+    for (const id of step.toolIds ?? []) {
+      add(id, "required", EXTRA_REASONS.fromBuildStep);
+    }
   }
 
   return Array.from(map.values()).sort((a, b) => {

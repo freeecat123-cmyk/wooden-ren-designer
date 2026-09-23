@@ -18,18 +18,22 @@ export function CollapsibleSection({
   return (
     <details
       open={defaultOpen}
-      className="group bg-white border border-zinc-200 rounded-lg overflow-hidden"
+      className="group bg-white ring-1 ring-amber-900/10 shadow-sm rounded-xl overflow-hidden"
     >
       <summary
-        className="flex items-center justify-between min-h-[48px] px-4 py-2.5 cursor-pointer list-none select-none hover:bg-zinc-50"
+        className="flex items-center justify-between min-h-[48px] px-4 py-2.5 cursor-pointer list-none select-none hover:bg-amber-50/70 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-zinc-400 transition-transform group-open:rotate-90">▶</span>
-          <span className="text-base font-semibold text-zinc-800">{title}</span>
+          <span className="text-amber-600 text-xs transition-transform group-open:rotate-90">▶</span>
+          <span className="text-base font-semibold text-amber-950">{title}</span>
         </div>
-        {badge && <span className="text-xs text-zinc-500">{badge}</span>}
+        {badge && (
+          <span className="text-[11px] font-medium text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+            {badge}
+          </span>
+        )}
       </summary>
-      <div className="border-t border-zinc-200 p-4">{children}</div>
+      <div className="border-t border-amber-900/10 p-4">{children}</div>
     </details>
   );
 }

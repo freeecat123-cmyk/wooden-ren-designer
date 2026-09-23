@@ -1,57 +1,80 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, Component, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Canvas, useThree } from "@react-three/fiber";
+import { useLocale, useTranslations } from "next-intl";
+import { isDragRelease, nextPartSelection } from "@/lib/render/part-selection";
+import { useSmartFrameloop } from "@/components/viewer/useSmartFrameloop";
+import { CoffeeDuck } from "@/components/viewer/CoffeeDuck";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, EdgesGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
-import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, Mesh, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap, type Group, type Material } from "three";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { Brush } from "three-bvh-csg";
+import { subtractMortisesFromGeometry, ordinaryTenonPrimitive, buildDovetailCutBrushes, dovetailCutsForPart, subtractDovetailReceiverGeometry, partForJoineryView } from "@/lib/render/mortise-csg";
+export { subtractMortisesFromGeometry } from "@/lib/render/mortise-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
+import { plyLayers as plyLayerBoxes } from "@/lib/render/ply-layers";
+import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld, type WorldMortise } from "@/lib/assembly/joint-world";
+import { offsetsAt, planAssembly, stepIndexAt, travelMm, type AssemblyPlan, type ScrewSpec } from "@/lib/assembly/plan";
+import { downloadBlob, extensionForMime, pickRecorderMime, startCanvasRecording, type CanvasRecording } from "@/lib/assembly/record";
+import { partName } from "@/lib/templates/part-names";
+import {
+  type ShapeSpec,
+  buildShapeGeometry,
+  holeAxisOf,
+  holeRadiusOf,
+} from "@/lib/render/part-geometry";
 import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
-import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
+import {
+  getWoodCompile,
+  WIDE_BOARD_THRESHOLD_MM,
+} from "@/components/wood-shader";
+import { useHoveredParts } from "@/components/HoveredPartsContext";
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
 // Three.js consumes from `new Euler(rx, ry, rz, "ZYX")`.
-function rotateXYZ(
-  rx: number, ry: number, rz: number,
-  lx: number, ly: number, lz: number,
-) {
-  const cosX = Math.cos(rx), sinX = Math.sin(rx);
-  const cosY = Math.cos(ry), sinY = Math.sin(ry);
-  const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
-  let x = lx, y = ly, z = lz;
-  const y1 = y * cosX - z * sinX;
-  const z1 = y * sinX + z * cosX;
-  y = y1; z = z1;
-  const x2 = x * cosY + z * sinY;
-  const z2 = -x * sinY + z * cosY;
-  x = x2; z = z2;
-  const x3 = x * cosZ - y * sinZ;
-  const y3 = x * sinZ + y * cosZ;
-  x = x3; y = y3;
-  return { x, y, z };
+
+/**
+ * 包住 <Environment> HDR 載入 — drei CDN 抖動時 (Could not load lebombo_1k.hdr)
+ * 不該讓整個 3D 場景炸到外層 error boundary 跳「設計參數渲染失敗」。
+ * HDR 掛了就 silently 拿掉，其他 ambient + directional light 仍給足基本明暗。
+ */
+class HDRBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: Error) {
+    // dev 看到一次就好，prod silently 失敗
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[HDRBoundary] HDR env failed, dropping:", err.message);
+    }
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
-type WorldMortise = {
-  partId: string;
-  entryX: number; entryY: number; entryZ: number;
-  axis: "x" | "y" | "z";
-  sign: 1 | -1;
-  depth: number;
-  through: boolean;
-};
 
 /**
  * Blend a hex color toward a tint. amount=0 → original, 1 → tint.
  * Used to highlight drawer / door parts so they're easy to spot against
  * the rest of the cabinet (which all share the same wood color).
  */
+/** 把 hex 顏色乘一個係數（<1 變深）。夾板疊層用來讓相鄰兩層深淺不同。 */
+function shadeHex(hex: string, f: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+  return "#" + ch.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
 function tintHex(baseHex: string, tintHex: string, amount: number): string {
   const parse = (h: string) => {
     const s = h.replace("#", "");
@@ -101,123 +124,8 @@ function pairShadeByPartId(hex: string, partId: string): string {
   return `#${toHex(clamp(r))}${toHex(clamp(g))}${toHex(clamp(b))}`;
 }
 
-/**
- * 車旋腳輪廓（古典花瓶/baluster 風格）：
- * [topRScale, botRScale, hFrac]，從上到下
- * - 頂部：滿尺寸做榫接區
- * - 上球節：圓潤外凸
- * - 凹頸：明顯收進去
- * - 花瓶腹身：先外擴再內收，像花瓶
- * - 主桿：細長下漸細
- * - 下球節：再次外擴
- * - 足盤：穩定的較粗底座
- * 半徑 scale 全部以 fullR (= legSize/2) 為基準
- */
-export const LATHE_TURNED_SEGMENTS: Array<[number, number, number]> = [
-  [1.0, 1.0, 0.05],   // 頂端榫接區（直圓柱）
-  [1.0, 1.10, 0.04],  // 上球節 ↑
-  [1.10, 1.0, 0.04],  // 上球節 ↓
-  [1.0, 0.55, 0.10],  // 凹頸 cove
-  [0.55, 0.78, 0.18], // 花瓶腹身上半（外擴）
-  [0.78, 0.55, 0.20], // 花瓶腹身下半（內收）
-  [0.55, 0.50, 0.10], // 主桿（細部）
-  [0.50, 0.95, 0.10], // 下球節 ↑
-  [0.95, 0.85, 0.05], // 過渡
-  [0.85, 0.95, 0.06], // 足盤外擴
-  [0.95, 0.95, 0.05], // 足底圓盤
-  [0.95, 0.80, 0.03], // 足底斜邊
-];
 
-type ShapeSpec =
-  | { kind: "box" }
-  | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
-  | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
-  | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
-  | { kind: "round-tapered"; bottomScale: number }
-  | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
-  | { kind: "lathe-turned" }
-  | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number; bevelMode?: "full" | "half" }
-  | { kind: "apron-beveled"; bevelAngle: number }
-  | { kind: "apron-half-beveled"; bevelAngle: number }
-  | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
-  | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
-  | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
-  | { kind: "arch-bent"; bendMm: number; segments?: number }
-  | { kind: "live-edge"; amplitudeMm: number }
-  | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
-  | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
-
-/**
- * 把母件的 base geometry 用 CSG 減掉每個 mortise 對應的方塊，produce 帶
- * 真實榫眼洞的 buffer geometry。box 座標已 SCALE 過（three.js units）。
- *
- * - through mortise 由 caller 傳入時自帶內墊（避免 CSG 留薄殼）
- * - 共用一個 Evaluator 跑完所有 mortise（sequential subtraction）
- * - 中間 brush 的 geometry 會 dispose；保留原 baseGeo 不動（useMemo 會重用）
- */
-function subtractMortisesFromGeometry(
-  baseGeo: BufferGeometry,
-  mortiseBoxes: LocalBox[],
-  mortiseShapes?: Array<"rect" | "round">,
-): BufferGeometry {
-  if (mortiseBoxes.length === 0) return baseGeo;
-  // 確保 base 有 normal 跟 index（CSG 必須）。原 builder 多半都做了，
-  // 但雙保險：toNonIndexed → mergeVertices? 實際試 prepareGeometry 再
-  // call evaluator。BoxGeometry / buildChamferedEdgesGeometry 都 indexed。
-  const material = new MeshStandardMaterial();
-  const evaluator = new Evaluator();
-  evaluator.useGroups = false;
-  // 限定只處理 position + normal，避免 base 有 uv 但 cut 沒 uv（或反之）
-  // 觸發 evaluator 內部 attribute mismatch crash。
-  evaluator.attributes = ["position", "normal"];
-  // 統一兩個 brush 的 attribute set：剝掉 uv
-  const baseClean = baseGeo.clone();
-  baseClean.deleteAttribute("uv");
-  if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
-  let acc = new Brush(baseClean, material);
-  acc.updateMatrixWorld();
-  for (let i = 0; i < mortiseBoxes.length; i++) {
-    const m = mortiseBoxes[i];
-    if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
-    const isRound = mortiseShapes?.[i] === "round";
-    let cutGeo: BufferGeometry;
-    if (isRound) {
-      // 圓孔沿 part-local Y 軸（top mortise 慣例）—— radius = min(hx, hz)
-      const r = Math.min(m.hx, m.hz);
-      cutGeo = new CylinderGeometry(r, r, 2 * m.hy, 24);
-    } else {
-      cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * m.hz);
-    }
-    cutGeo.deleteAttribute("uv");
-    const cut = new Brush(cutGeo, material);
-    cut.position.set(m.cx, m.cy, m.cz);
-    cut.updateMatrixWorld();
-    const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-    cutGeo.dispose();
-    acc.geometry.dispose();
-    acc = next;
-  }
-  return acc.geometry;
-}
-
-function Part({
-  position,
-  size,
-  rotation,
-  color,
-  shape,
-  isGlass,
-  isBrass,
-  grainDirection,
-  mortiseBoxes,
-  mortiseShapes,
-  isSelected,
-  isDimmed,
-  wireframe,
-}: {
+type PartProps = {
   position: [number, number, number];
   size: [number, number, number];
   rotation: Euler;
@@ -226,191 +134,144 @@ function Part({
   isGlass?: boolean;
   isBrass?: boolean;
   grainDirection?: "length" | "width";
-  /** joineryMode：母件 mortise 的 SCALE 過 LocalBox（caller 已乘 SCALE）。
-   *  傳 undefined / [] 表示不做 CSG，走原本 plain mesh 路徑。 */
+  /** 料單上這個零件是幾片拼的 / 幾層疊的（panelPieces）；> 1 時 3D 畫出片與片的膠合線 */
+  boardPieces?: number;
+  /** true = 沿厚度疊層（panelSplit="thickness"），false = 沿跨紋方向拼板 */
+  boardThin?: boolean;
+  /** 這件是夾板（materialOverride==='plywood'）→ 用夾板的表皮木紋，不是實木年輪 */
+  isPly?: boolean;
   mortiseBoxes?: LocalBox[];
-  /** 對應 mortiseBoxes 每個的形狀（"rect" | "round"）；undefined = 全 rect */
   mortiseShapes?: Array<"rect" | "round">;
-  /** 選中：本體 emissive 黃光，最強視覺提示 */
+  /** 圓形貫穿裝飾孔（工作桌狗孔 / holdfast 孔 / MFT 格陣）不走 CSG，改畫深色圓柱「塞」在孔位：
+   *  20 個孔 sequential subtraction 一次 4.7 秒（M4），手機直接像當機（木頭仁 2026-09-03「參數都沒辦法點」）。 */
+  holeDecals?: LocalBox[];
+  dovetailCuts?: Brush[];
   isSelected?: boolean;
-  /** 其他零件被選中時：本體變半透明灰，讓選中零件凸出 */
+  isHovered?: boolean;
   isDimmed?: boolean;
-  /** 線框模式：所有 face 變骨架線 */
   wireframe?: boolean;
-}) {
-  // 高亮配色（選中：amber-400 emissive；變灰：opacity 0.18）
+  /** 開啟 polygon offset，把這個 mesh 的深度往前推一格、避開跟其他共平面 mesh
+   * 的 z-fight。目前只用在紅酒架菱形對角板（pointed-ends 兩 wedge 面剛好落在
+   * 框內側面平面上、否則 solid view 會閃動）。 */
+  polygonOffset?: boolean;
+  /** 強力 polygon offset（把 mesh 深度大幅往後推）——百葉斜葉片端嵌進豎梃實料、
+   *  交界面 z-fight 出白點；把葉片壓後讓豎梃在交界處贏深度測試、遮住葉片端。
+   *  比 polygonOffset(factor/units=1) 大很多才壓得住斜交線。 */
+  pushBack?: boolean;
+};
+
+// React.memo 比較器：父元件 render 時 size/position/rotation 都是新 array
+// reference；不寫自訂 equality React 預設 shallow compare 永遠 fail，memo
+// 等於沒掛。把 array/Euler/shape 改成元素比較，跳過 hover / select 等
+// 只動 1 件家具的場景（其他 29 件可以完全跳 render）。
+function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
+  if (a.color !== b.color) return false;
+  if (a.isGlass !== b.isGlass || a.isBrass !== b.isBrass) return false;
+  if (a.grainDirection !== b.grainDirection) return false;
+  if (a.boardPieces !== b.boardPieces) return false;
+  if (a.boardThin !== b.boardThin) return false;
+  if (a.isPly !== b.isPly) return false;
+  if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
+  if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
+  if (a.polygonOffset !== b.polygonOffset) return false;
+  if (a.pushBack !== b.pushBack) return false;
+  if (a.position[0] !== b.position[0] || a.position[1] !== b.position[1] || a.position[2] !== b.position[2]) return false;
+  if (a.size[0] !== b.size[0] || a.size[1] !== b.size[1] || a.size[2] !== b.size[2]) return false;
+  if (a.rotation.x !== b.rotation.x || a.rotation.y !== b.rotation.y || a.rotation.z !== b.rotation.z) return false;
+  // shape: 小物件 JSON 比較（kind + 數個 number 欄位，<200 bytes，~5μs）
+  const sa = a.shape ? JSON.stringify(a.shape) : "";
+  const sb = b.shape ? JSON.stringify(b.shape) : "";
+  if (sa !== sb) return false;
+  // mortiseBoxes / mortiseShapes / dovetailCuts: 長度 + element ref 比較
+  const ma = a.mortiseBoxes, mb = b.mortiseBoxes;
+  if ((ma?.length ?? 0) !== (mb?.length ?? 0)) return false;
+  if (ma && mb) for (let i = 0; i < ma.length; i++) if (ma[i] !== mb[i]) return false;
+  const msa = a.mortiseShapes, msb = b.mortiseShapes;
+  if ((msa?.length ?? 0) !== (msb?.length ?? 0)) return false;
+  if (msa && msb) for (let i = 0; i < msa.length; i++) if (msa[i] !== msb[i]) return false;
+  const ha = a.holeDecals, hb = b.holeDecals;
+  if ((ha?.length ?? 0) !== (hb?.length ?? 0)) return false;
+  if (ha && hb) for (let i = 0; i < ha.length; i++) if (ha[i] !== hb[i]) return false;
+  const da = a.dovetailCuts, db = b.dovetailCuts;
+  if ((da?.length ?? 0) !== (db?.length ?? 0)) return false;
+  if (da && db) for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return false;
+  return true;
+}
+
+const Part = memo(function PartInner({
+  position,
+  size,
+  rotation,
+  color,
+  shape,
+  isGlass,
+  isBrass,
+  grainDirection,
+  boardPieces,
+  boardThin,
+  isPly,
+  mortiseBoxes,
+  mortiseShapes,
+  holeDecals,
+  dovetailCuts,
+  isSelected,
+  isHovered,
+  isDimmed,
+  wireframe,
+  polygonOffset,
+  pushBack,
+}: PartProps) {
+  // 高亮配色（選中：amber-400 emissive 強；hover：同色但弱，預覽用）
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
   const HIGHLIGHT_INTENSITY = 0.55;
+  const HOVER_INTENSITY = 0.4;
+  const isHighlighted = isSelected || isHovered;
+  const highlightIntensity = isSelected ? HIGHLIGHT_INTENSITY : (isHovered ? HOVER_INTENSITY : 0);
   const DIM_OPACITY = 0.18;
-  // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）
-  const woodCompile = grainDirection === "width" ? woodCompileZ : woodCompileX;
+  // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）。
+  // 依「跨紋方向尺寸」選 wide（山形紋）或 narrow（直紋）：寬板 plain-sawn
+  // 山形紋、細條 quartersawn 直紋——跟真實鋸下來的木料長相一致。
+  // size 是 three-units（1 unit = 100mm），×100 換回 mm。
+  const crossGrainMm =
+    (grainDirection === "width" ? size[0] : size[2]) * 100;
+  // 山形紋 vs 直紋要看「每一片自己的跨紋寬」，不是整個零件的寬。
+  // 🩸2026-09-04 木頭仁：「窄條側立拼要能看出來」——側立拼每條只有 75mm（＝桌面厚），
+  // 真實長相是直紋；用整片 600 去判就變成整面山形紋，跟寬板平拼看起來一樣。
+  // 疊層（thin）不分：每一層都是整片寬，維持用零件寬判。
+  const perPieceCrossMm = !boardThin && (boardPieces ?? 1) > 1
+    ? crossGrainMm / (boardPieces as number)
+    : crossGrainMm;
+  const isWide = perPieceCrossMm >= WIDE_BOARD_THRESHOLD_MM;
+  // 拼板 / 疊層：料單說這件是 N 片，3D 就把每片的木紋錯開並畫膠合線（不動幾何）。
+  // ⭐疊層切「最小的那一維」（跟料單 / cutplan 同一套）：腳的 visible.thickness 是腳高，
+  //   照它切會把腳沿高度切成好幾段（木頭仁 09-04 回報）。拼板則切跨紋方向那一維。
+  const dimsMm: Array<{ axis: "x" | "y" | "z"; mm: number }> = [
+    { axis: "x", mm: size[0] * 100 },
+    { axis: "y", mm: size[1] * 100 },
+    { axis: "z", mm: size[2] * 100 },
+  ];
+  const thinnest = dimsMm.reduce((a, b) => (b.mm < a.mm ? b : a));
+  const crossAxis: "x" | "z" = grainDirection === "width" ? "x" : "z";
+  const board = boardThin
+    ? { pieces: boardPieces ?? 1, spanMm: thinnest.mm, axis: thinnest.axis }
+    : { pieces: boardPieces ?? 1, spanMm: crossGrainMm, axis: crossAxis };
+  const woodCompile = getWoodCompile(
+    grainDirection === "width" ? "width" : "length",
+    // 夾板不看寬窄——它的面永遠是薄表皮的細直紋，不會有實木的山形年輪
+    isPly ? "ply" : (isWide ? "wide" : "narrow"),
+    boardPieces && boardPieces > 1 ? board : undefined,
+  );
+  // useMemo deps：size 是 [a,b,c] array、shape 是 object——父元件每 render
+  // 都建新 reference 害 useMemo 永遠 invalidate。改 primitive + shape JSON
+  // 後 box 件 fast-path 不變，異形件每次拖滑桿省一次 geometry 重建（50-200ms）。
+  const sx = size[0], sy = size[1], sz = size[2];
+  const shapeKey = shape ? JSON.stringify(shape) : "";
   const geometry = useMemo(() => {
-    if (!shape || shape.kind === "box") return null;
-    if (shape.kind === "tapered") {
-      // 帶倒角的方錐（圓凳/餐椅方錐腳套用 legEdge）：用 chamfered-edges
-      // builder 帶 bottomScale，cross-section 八邊形 + 底端縮小。
-      if (shape.chamferMm && shape.chamferMm > 0) {
-        return buildChamferedEdgesGeometry(
-          size,
-          shape.chamferMm,
-          shape.chamferStyle ?? "chamfered",
-          0,
-          0,
-          shape.bottomScale,
-        );
-      }
-      if (shape.bottomScale === 1) return null;
-      return buildTaperedGeometry(size, shape.bottomScale);
-    }
-    if (shape.kind === "splayed") {
-      // 有 chamfer → 用 chamfered-edges builder + 底端偏移；無 chamfer → 純 splayed box
-      if (shape.chamferMm && shape.chamferMm > 0) {
-        return buildChamferedEdgesGeometry(
-          size,
-          shape.chamferMm,
-          shape.chamferStyle ?? "chamfered",
-          shape.dx,
-          shape.dz,
-        );
-      }
-      return buildSplayedGeometry(size, shape.dx, shape.dz);
-    }
-    if (shape.kind === "hoof") {
-      return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale, shape.dirX, shape.dirZ);
-    }
-    if (shape.kind === "splayed-tapered") {
-      return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);
-    }
-    // 圓料：把 cylinderGeometry / latheGeometry 改成 buffer geo 走 useMemo，
-    // CSG 才能挖洞（Phase 2 後續擴展）。座板上的方形 mortise 對圓腳 → 圓
-    // 柱面挖出方洞，視覺正確。
-    if (shape.kind === "round") {
-      // axis: cylinder 中心軸對齊的世界軸；預設 "y"（站立圓柱）
-      // axis="z" 用於門把/旋鈕（軸朝前後，從正面看是圓）
-      // axis="x" 用於橫躺圓柱（軸朝左右）
-      const ax = shape.axis ?? "y";
-      const radius =
-        ax === "y" ? size[0] / 2 : ax === "x" ? size[1] / 2 : size[0] / 2;
-      const height = ax === "y" ? size[1] : ax === "x" ? size[0] : size[2];
-      const chamfer = shape.chamferMm ?? 0;
-      const rotation: [number, number, number] =
-        ax === "x" ? [0, 0, Math.PI / 2] : ax === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
-      if (chamfer > 0) {
-        const h = height;
-        const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
-        const innerR = Math.max(0.5, radius - cap);
-        const styleSegs = shape.chamferStyle === "rounded" ? 6 : 1;
-        const points: Vector2[] = [
-          new Vector2(0, -h / 2),
-          new Vector2(radius, -h / 2),
-          new Vector2(radius, h / 2 - cap),
-        ];
-        if (styleSegs === 1) {
-          points.push(new Vector2(innerR, h / 2));
-        } else {
-          for (let i = 1; i <= styleSegs; i++) {
-            const t = (i / styleSegs) * (Math.PI / 2);
-            points.push(
-              new Vector2(innerR + cap * Math.cos(t), h / 2 - cap + cap * Math.sin(t)),
-            );
-          }
-        }
-        points.push(new Vector2(0, h / 2));
-        const lathe = new LatheGeometry(points, 48);
-        if (rotation[0] || rotation[1] || rotation[2]) {
-          lathe.rotateX(rotation[0]);
-          lathe.rotateY(rotation[1]);
-          lathe.rotateZ(rotation[2]);
-        }
-        return lathe;
-      }
-      const cyl = new CylinderGeometry(radius, radius, height, 48);
-      if (rotation[0] || rotation[1] || rotation[2]) {
-        cyl.rotateX(rotation[0]);
-        cyl.rotateY(rotation[1]);
-        cyl.rotateZ(rotation[2]);
-      }
-      return cyl;
-    }
-    if (shape.kind === "round-tapered") {
-      const topR = size[0] / 2;
-      const botR = topR * shape.bottomScale;
-      return new CylinderGeometry(topR, botR, size[1], 48);
-    }
-    if (shape.kind === "splayed-round-tapered") {
-      // 已經有 builder，重用即可（buffer geo + index）
-      return buildSplayedRoundTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz, 48);
-    }
-    // 夏克風 / 車旋腳：原本走 multi-mesh group，整合成單一 merged BufferGeometry
-    // 給 CSG pipeline 用（座板/橫撐 mortise → 圓柱面方洞）
-    if (shape.kind === "shaker") {
-      const SQUARE_FRAC = shape.squareFrac ?? 0.25;
-      const TAPER_BOT_SCALE = shape.bottomScale ?? 0.6;
-      const fullH = size[1];
-      const squareH = fullH * SQUARE_FRAC;
-      const taperH = fullH * (1 - SQUARE_FRAC);
-      const fullR = size[0] / 2;
-      const botR = fullR * TAPER_BOT_SCALE;
-      const squareYOffset = taperH / 2;
-      const taperYOffset = -squareH / 2;
-      const sq = new BoxGeometry(size[0], squareH, size[2]);
-      sq.translate(0, squareYOffset, 0);
-      const cyl = new CylinderGeometry(fullR, botR, taperH, 48);
-      cyl.translate(0, taperYOffset, 0);
-      const merged = mergeGeometries([sq, cyl], false);
-      sq.dispose();
-      cyl.dispose();
-      return merged ?? new BoxGeometry(size[0], size[1], size[2]);
-    }
-    if (shape.kind === "lathe-turned") {
-      const fullH = size[1];
-      const fullR = size[0] / 2;
-      let yCursor = fullH / 2;
-      const segs: BufferGeometry[] = [];
-      for (const [topR, botR, hFrac] of LATHE_TURNED_SEGMENTS) {
-        const segH = fullH * hFrac;
-        const segYCenter = yCursor - segH / 2;
-        yCursor -= segH;
-        const cyl = new CylinderGeometry(fullR * topR, fullR * botR, segH, 32);
-        cyl.translate(0, segYCenter, 0);
-        segs.push(cyl);
-      }
-      const merged = mergeGeometries(segs, false);
-      for (const s of segs) s.dispose();
-      return merged ?? new BoxGeometry(size[0], size[1], size[2]);
-    }
-    if (shape.kind === "apron-trapezoid") {
-      return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full");
-    }
-    if (shape.kind === "apron-beveled") {
-      return buildBeveledApronGeometry(size, shape.bevelAngle);
-    }
-    if (shape.kind === "apron-half-beveled") {
-      return buildHalfBeveledApronGeometry(size, shape.bevelAngle);
-    }
-    if (shape.kind === "chamfered-top") {
-      return buildChamferedTopGeometry(size, shape.chamferMm, shape.style ?? "chamfered", shape.bottomChamferMm ?? 0, shape.cornerR ?? 0);
-    }
-    if (shape.kind === "chamfered-edges") {
-      return buildChamferedEdgesGeometry(size, shape.chamferMm, shape.style ?? "chamfered");
-    }
-    if (shape.kind === "notched-corners") {
-      return buildNotchedCornersGeometry(size, shape.notchLengthMm, shape.notchWidthMm);
-    }
-    if (shape.kind === "arch-bent") {
-      return buildArchBentGeometry(size, shape.bendMm, shape.segments ?? 16);
-    }
-    if (shape.kind === "live-edge") {
-      return buildLiveEdgeGeometry(size, shape.amplitudeMm);
-    }
-    if (shape.kind === "seat-scoop") {
-      return buildSeatScoopGeometry(size, shape.profile, shape.depth);
-    }
-    if (shape.kind === "face-rounded") {
-      return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
-    }
-    return null;
-  }, [size, shape]);
+    // 幾何分派抽到 lib/render/part-geometry.ts 的純函式 buildShapeGeometry，
+    // 3D 預覽與 STL/OBJ 匯出共用同一份建模邏輯。回傳 null = 用方塊 fast-path。
+    return buildShapeGeometry(shape, size);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sx, sy, sz, shapeKey]);
 
   // joineryMode CSG：把每個 mortise 從 base geo 挖掉。base geo 為 null 時
   // 用預設 box 當底建 brush；多 mesh shape（lathe-turned / shaker）跟自由曲面
@@ -424,12 +285,75 @@ function Part({
     // 若 baseGeo 是新建的 BoxGeometry（不是 useMemo cache 的 geometry），dispose
     if (!geometry) baseGeo.dispose();
     return result;
-  }, [geometry, mortiseBoxes, mortiseShapes, shape, size]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geometry, mortiseBoxes, mortiseShapes, shapeKey, sx, sy, sz]);
+
+  // 鳩尾榫 CSG：把 dovetailCuts 中每個 cutter Brush 從本零件 base geo 減掉。
+  // 上輪 (09c1097) 用 Brush.position.set + rotation.set + updateMatrixWorld 對齊
+  // 的方式整個側板被挖空，疑是 matrixWorld 沒 propagate / acc 跟 cutter local
+  // frame 對不上。本輪改 **pre-transform geometry**：直接把 base geo vertices
+  // 套上 part 的 world transform（apply Matrix4），brush.matrixWorld 是 identity
+  // → CSG 結果就是 world 座標，外層 mesh 用 identity transform 渲染。
+  // deps 用 primitive：position/rotation 每 render 是 new array / new Euler，
+  // 但實際數值穩定 → 拆成 6 個 number 防止 useMemo 每幀重做 CSG 害掉 invalidate
+  // 迴圈。
+  const px0 = position[0], py0 = position[1], pz0 = position[2];
+  const rx0 = rotation.x, ry0 = rotation.y, rz0 = rotation.z;
+  const dovetailCutGeometry = useMemo(() => {
+    if (!dovetailCuts || dovetailCuts.length === 0) return null;
+    const localGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
+    // PRE-TRANSFORM base geo to world：vertices 直接套上 part 的 world matrix
+    const m = new Matrix4().compose(
+      new Vector3(px0, py0, pz0),
+      new Quaternion().setFromEuler(new Euler(rx0, ry0, rz0, "ZYX")),
+      new Vector3(1, 1, 1),
+    );
+    const result = subtractDovetailReceiverGeometry(localGeo, m, dovetailCuts);
+    if (!csgGeometry && !geometry) localGeo.dispose();
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [csgGeometry, geometry, size[0], size[1], size[2], dovetailCuts, px0, py0, pz0, rx0, ry0, rz0]);
   // wireframeMode：抽出 silhouette edges（box=12 邊、tapered=12、圓柱=雙圈
   //  + 接縫；用 EdgesGeometry 預設 1° 門檻只留相鄰面 normal 變化大的邊
   //  → 不會畫三角形對角線）
   const edgesGeometry = useMemo(() => {
     if (!wireframe) return null;
+    // ⭐ pointed-ends 特例：六角柱的「±X tip」兩條 Z 方向 side edge 在紅酒架
+    // 菱形 lattice 用 Rz(π/4) 後落在框內側面 plane 上、wireframe 看像「對角板
+    // tip line 從框前緣穿到後緣」（這是 line-in-coplanar-face 視錯覺、非真穿透）。
+    // polygonOffset 在 WebGL line spec 不適用（GL_POLYGON_OFFSET_LINE 沒在 WebGL）。
+    // → 自建 edges：保留 hex 12 outline edge + 4 條 non-tip side edge，
+    //    skip 兩條 tip side edge (i=0 / i=3)。三視圖 / STL / silhouette 不受影響。
+    if (shape?.kind === "pointed-ends") {
+      const hx = sx / 2, hy = sy / 2, hz = sz / 2;
+      const inset = Math.min(hy, hx * 0.999);
+      const front: Array<[number, number, number]> = [
+        [hx, 0, hz],
+        [hx - inset, hy, hz],
+        [-hx + inset, hy, hz],
+        [-hx, 0, hz],
+        [-hx + inset, -hy, hz],
+        [hx - inset, -hy, hz],
+      ];
+      const back: Array<[number, number, number]> = front.map(([x, y]) => [x, y, -hz]);
+      const positions: number[] = [];
+      const push = (a: [number, number, number], b: [number, number, number]) => {
+        positions.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+      };
+      // 12 條 hex outline edge (front + back 各 6 條)
+      for (let i = 0; i < 6; i++) {
+        push(front[i], front[(i + 1) % 6]);
+        push(back[i], back[(i + 1) % 6]);
+      }
+      // 6 條 z 方向 side edge — skip ±X tip 那兩條 (i=0 +X tip / i=3 -X tip)
+      for (let i = 0; i < 6; i++) {
+        if (i === 0 || i === 3) continue;
+        push(front[i], back[i]);
+      }
+      const eg = new BufferGeometry();
+      eg.setAttribute("position", new Float32BufferAttribute(positions, 3));
+      return eg;
+    }
     // 線框直接用 pre-CSG geometry（box / tapered / cylinder 原型），
     // 不抽 csgGeometry 因 CSG 切出的小三角網狀沒有 clean shared edges
     // → 對角線消不掉。線框是「結構輪廓」視圖，榫眼挖洞細節不需要顯示。
@@ -447,12 +371,34 @@ function Part({
     const isRound = shape?.kind === "round" || shape?.kind === "round-tapered"
       || shape?.kind === "splayed-round-tapered" || shape?.kind === "shaker"
       || shape?.kind === "lathe-turned";
-    const threshold = isRound ? 1 : 30;
+    // 圓角倒角（chamfered-top / chamfered-edges / tapered / splayed 等
+    // 帶 rounded chamfer 拼 4 段約 22.5°）也低於 30° → threshold 30 會把座板/腳
+    // 整圈圓角邊濾光，線框看起來缺輪廓。
+    // arch-bent / face-rounded / live-edge / seat-scoop 等弧面類同樣降門檻。
+    const hasRoundedChamfer =
+      (shape?.kind === "chamfered-top" ||
+        shape?.kind === "chamfered-edges") &&
+      shape.style === "rounded";
+    const hasSplayedRoundedChamfer =
+      (shape?.kind === "splayed" ||
+        shape?.kind === "tapered" ||
+        shape?.kind === "splayed-tapered") &&
+      (shape as { chamferStyle?: string }).chamferStyle === "rounded";
+    const hasRoundedFacets =
+      hasRoundedChamfer ||
+      hasSplayedRoundedChamfer ||
+      shape?.kind === "arch-bent" ||
+      shape?.kind === "face-rounded" ||
+      shape?.kind === "live-edge" ||
+      shape?.kind === "seat-scoop" ||
+      shape?.kind === "curved-taper";
+    const threshold = isRound ? 1 : hasRoundedFacets ? 15 : 30;
     const eg = new EdgesGeometry(merged, threshold);
     if (merged !== baseGeo) merged.dispose();
     if (createdLocally) baseGeo.dispose();
     return eg;
-  }, [wireframe, geometry, size, shape]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wireframe, geometry, sx, sy, sz, shapeKey]);
 
   // wireframe 模式：所有材質統一用 silhouette edges 渲染
   if (wireframe && edgesGeometry) {
@@ -482,8 +428,8 @@ function Part({
           transparent
           opacity={isDimmed ? 0.12 : 0.35}
           depthWrite={false}
-          emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
-          emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+          emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
+          emissiveIntensity={highlightIntensity}
         />
       </mesh>
     );
@@ -501,8 +447,8 @@ function Part({
           transparent
           opacity={isDimmed ? DIM_OPACITY : 1}
           depthWrite={!isDimmed && !wireframe}
-          emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
-          emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+          emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
+          emissiveIntensity={highlightIntensity}
         />
       </mesh>
     );
@@ -521,1321 +467,79 @@ function Part({
   // CSG 挖出的 cosmetic mortise（指槽 / 無線充電凹槽等）也需要 flatShading：
   // 否則 smooth shading 會把凹槽邊緣 normal 插值平滑掉，看起來像沒挖一樣
   const hasCosmeticCut = (mortiseBoxes?.length ?? 0) > 0;
+  const hasDovetailCut = (dovetailCuts?.length ?? 0) > 0 && dovetailCutGeometry !== null;
   const useFlatShading =
     shape?.kind === "chamfered-edges" ||
     shape?.kind === "chamfered-top" ||
+    shape?.kind === "mitered-ends" ||
+    shape?.kind === "finger-joint-ends" ||
+    shape?.kind === "dovetail-ends" ||
+    shape?.kind === "regular-polygon" ||
+    shape?.kind === "right-triangle" ||
+    shape?.kind === "mitered-corner" ||
+    shape?.kind === "french-cleat" ||
     (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0) ||
-    hasCosmeticCut;
+    hasCosmeticCut ||
+    hasDovetailCut;
+  // dovetailCutGeometry 已在 world，mesh 必須 identity transform 否則雙重套位置錯
+  const meshPosition: [number, number, number] = hasDovetailCut ? [0, 0, 0] : position;
+  const meshRotation = hasDovetailCut ? new Euler(0, 0, 0) : rotation;
+  // 圓孔「塞」：深色圓柱沿孔的深度軸（half-extent 最大那軸）擺，兩端各露出 0.3mm 蓋過木面
+  const holePlugs = holeDecals && holeDecals.length > 0 && !hasDovetailCut ? holeDecals.map((h, i) => {
+    const axis = holeAxisOf(h.hx, h.hy, h.hz);
+    const half = axis === "x" ? h.hx : axis === "z" ? h.hz : h.hy;
+    const r = holeRadiusOf(h.hx, h.hy, h.hz);
+    const rot: [number, number, number] = axis === "x" ? [0, 0, Math.PI / 2] : axis === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
+    return (
+      <mesh key={`plug-${i}`} position={[h.cx, h.cy, h.cz]} rotation={rot}>
+        <cylinderGeometry args={[r, r, 2 * half + 0.006, 20]} />
+        <meshStandardMaterial color="#241a10" roughness={1} metalness={0} transparent opacity={isDimmed ? DIM_OPACITY : 1} depthWrite={!isDimmed} />
+      </mesh>
+    );
+  }) : null;
   return (
-    <mesh position={position} rotation={rotation} castShadow receiveShadow>
-      {csgGeometry ? (
+    <group position={meshPosition} rotation={meshRotation}>
+    {holePlugs}
+    <mesh castShadow receiveShadow>
+      {dovetailCutGeometry ? (
+        <primitive attach="geometry" object={dovetailCutGeometry} />
+      ) : csgGeometry ? (
         <primitive attach="geometry" object={csgGeometry} />
       ) : geometry ? (
         <primitive attach="geometry" object={geometry} />
       ) : (
         <boxGeometry args={size} />
       )}
+      {/*
+        🩸2026-09-05 木頭仁：「選桌面做法時不會即時更新，要重新整理網頁」。
+        three.js 的 onBeforeCompile 只在**材質第一次編譯**時跑；換了 woodCompile
+        （拼板片數 / 疊層 / 木紋方向變了）之後 material 還是拿舊的 program，
+        除非 needsUpdate 或整個重建。夾板疊層那條路是改幾何所以看得到，
+        實木「桌面做法」只改著色器參數 → 畫面就卡在舊的，要 F5 才會變。
+        給材質一把跟著 cacheKey 走的 key，參數一變 React 就重建材質＝重新編譯。
+      */}
       <meshStandardMaterial
+        key={woodCompile.cacheKey}
         color={color}
         roughness={0.55}
         metalness={0.05}
         flatShading={useFlatShading}
         onBeforeCompile={woodCompile}
+        customProgramCacheKey={() => woodCompile.cacheKey}
         transparent
         opacity={isDimmed ? DIM_OPACITY : 1}
         depthWrite={!isDimmed && !wireframe}
-        emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
-        emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+        emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
+        emissiveIntensity={highlightIntensity}
+        polygonOffset={polygonOffset || pushBack}
+        polygonOffsetFactor={pushBack ? 6 : polygonOffset ? 1 : 0}
+        polygonOffsetUnits={pushBack ? 24 : polygonOffset ? 1 : 0}
       />
     </mesh>
+    </group>
   );
-}
+}, arePartPropsEqual);
 
-/**
- * Truncated pyramid: top face is full size (length × width), bottom face is
- * scaled by `scale`. Height axis is Y (local thickness in our part convention
- * maps to Y in three.js box). 8 vertices, 12 triangles.
- */
-function buildTaperedGeometry(
-  size: [number, number, number],
-  scale: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const bx = hx * scale;
-  const bz = hz * scale;
-  // 8 verts: 0..3 bottom (y=-hy), 4..7 top (y=+hy), order: -x-z, +x-z, +x+z, -x+z
-  const v: number[] = [
-    -bx, -hy, -bz,
-    bx, -hy, -bz,
-    bx, -hy, bz,
-    -bx, -hy, bz,
-    -hx, hy, -hz,
-    hx, hy, -hz,
-    hx, hy, hz,
-    -hx, hy, hz,
-  ];
-  // Three.js uses right-handed coords with CCW winding = front face. Each
-  // quad (a,b,c,d) is listed so the normal points outward.
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 1, 2, 3), // bottom (-y outward)
-    ...f(4, 7, 6, 5), // top (+y outward)
-    ...f(0, 4, 5, 1), // front (-z outward)
-    ...f(1, 5, 6, 2), // right (+x outward)
-    ...f(2, 6, 7, 3), // back (+z outward)
-    ...f(3, 7, 4, 0), // left (-x outward)
-  ];
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * Splayed box: same length/width/height as a box, but the 4 bottom vertices
- * are shifted by (dx, dz) relative to the 4 top vertices, so the whole leg
- * leans in the (dx, dz) direction. dx/dz are in three.js units (already
- * scaled).
- */
-function buildSplayedGeometry(
-  size: [number, number, number],
-  dx: number,
-  dz: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const v: number[] = [
-    // bottom (y = -hy), shifted by (dx, dz)
-    -hx + dx, -hy, -hz + dz,
-    hx + dx, -hy, -hz + dz,
-    hx + dx, -hy, hz + dz,
-    -hx + dx, -hy, hz + dz,
-    // top (y = +hy)
-    -hx, hy, -hz,
-    hx, hy, -hz,
-    hx, hy, hz,
-    -hx, hy, hz,
-  ];
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 1, 2, 3),
-    ...f(4, 7, 6, 5),
-    ...f(0, 4, 5, 1),
-    ...f(1, 5, 6, 2),
-    ...f(2, 6, 7, 3),
-    ...f(3, 7, 4, 0),
-  ];
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 牙條梯形：上窄下寬（或反之）的 box，length 軸在 ±width/2 端不同尺寸。
- * 用於外斜腳家具的 apron——讓 apron 的左右端跟著腳的中心軸傾斜對齊。
- * 8 corners: 上 (local Z=-hz) 用 topScale 縮 length，下 (local Z=+hz) 用 bottomScale。
- */
-function buildApronTrapezoidGeometry(
-  size: [number, number, number],
-  topScale: number,
-  bottomScale: number,
-  bevelAngle: number = 0,
-  bevelMode: "full" | "half" = "full",
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const topX = hx * topScale;
-  const botX = hx * bottomScale;
-  // bevel shear：z' = z - y × tan(bevel)
-  // mode="half"：只 top 4 vertex shear（頂面水平、底面跟 rotation 自然斜）
-  const shear = Math.tan(bevelAngle);
-  const topShear = shear;
-  const botShear = bevelMode === "half" ? 0 : shear;
-  const v: number[] = [
-    -topX, -hy, -hz - (-hy) * topShear,
-    topX, -hy, -hz - (-hy) * topShear,
-    topX, hy, -hz - (+hy) * topShear,
-    -topX, hy, -hz - (+hy) * topShear,
-    -botX, -hy, hz - (-hy) * botShear,
-    botX, -hy, hz - (-hy) * botShear,
-    botX, hy, hz - (+hy) * botShear,
-    -botX, hy, hz - (+hy) * botShear,
-  ];
-  // 6 faces, CCW from outside
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 3, 2, 1), // -z face (top of apron in world)
-    ...f(4, 5, 6, 7), // +z face (bottom of apron in world)
-    ...f(0, 1, 5, 4), // -y face
-    ...f(2, 3, 7, 6), // +y face
-    ...f(1, 2, 6, 5), // +x face
-    ...f(3, 0, 4, 7), // -x face
-  ];
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 牙條斜邊（apron beveled）：上下緣切斜面，跟外斜腳 apron tilt 互補。
- * Local 截面從矩形變平行四邊形：所有 corner 的 z 偏移 -y × tan(bevelAngle)。
- * 套用 part rotation 後上下緣面在世界中保持水平（可貼緊椅面 / 地面）。
- *
- * bevelAngle = 牙條繞 local X 軸的「補償用」旋轉量（signed radians）。
- *   X 軸 apron（前/後）：bevelAngle = (-sz) × tilt
- *   Z 軸 apron（左/右）：bevelAngle = -(sx) × tilt
- */
-function buildBeveledApronGeometry(
-  size: [number, number, number],
-  bevelAngle: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const shear = Math.tan(bevelAngle);
-  // For corner (x, y, z): z' = z - y × shear. Top z = -hz, bottom z = +hz.
-  // 8 verts in same order as buildApronTrapezoidGeometry：z=-hz first, z=+hz second
-  const v: number[] = [
-    -hx, -hy, -hz - (-hy) * shear, // 0: -x, -y, top  → z' = -hz + hy*shear
-    +hx, -hy, -hz - (-hy) * shear, // 1: +x, -y, top
-    +hx, +hy, -hz - (+hy) * shear, // 2: +x, +y, top  → z' = -hz - hy*shear
-    -hx, +hy, -hz - (+hy) * shear, // 3: -x, +y, top
-    -hx, -hy, +hz - (-hy) * shear, // 4: -x, -y, bot  → z' = +hz + hy*shear
-    +hx, -hy, +hz - (-hy) * shear, // 5: +x, -y, bot
-    +hx, +hy, +hz - (+hy) * shear, // 6: +x, +y, bot  → z' = +hz - hy*shear
-    -hx, +hy, +hz - (+hy) * shear, // 7: -x, +y, bot
-  ];
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 3, 2, 1), // -z face (top of apron in world)
-    ...f(4, 5, 6, 7), // +z face (bottom of apron in world)
-    ...f(0, 1, 5, 4), // -y face
-    ...f(2, 3, 7, 6), // +y face
-    ...f(1, 2, 6, 5), // +x face
-    ...f(3, 0, 4, 7), // -x face
-  ];
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * Half-beveled apron: 只把「上 4 vertex」shear（補償 rotation 的 tilt → 頂面在 world 水平）；
- * 「下 4 vertex」不動（底面跟著 rotation 自然斜，跟腳同向）。
- * 牙條 apronDropFromTop=0 時用，頂面才能貼緊水平的座板。
- */
-function buildHalfBeveledApronGeometry(
-  size: [number, number, number],
-  bevelAngle: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const shear = Math.tan(bevelAngle);
-  const v: number[] = [
-    -hx, -hy, -hz - (-hy) * shear, // 0: top, sheared
-    +hx, -hy, -hz - (-hy) * shear, // 1: top, sheared
-    +hx, +hy, -hz - (+hy) * shear, // 2: top, sheared
-    -hx, +hy, -hz - (+hy) * shear, // 3: top, sheared
-    -hx, -hy, +hz,                  // 4: bot, NOT sheared
-    +hx, -hy, +hz,                  // 5: bot
-    +hx, +hy, +hz,                  // 6: bot
-    -hx, +hy, +hz,                  // 7: bot
-  ];
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 3, 2, 1),
-    ...f(4, 5, 6, 7),
-    ...f(0, 1, 5, 4),
-    ...f(2, 3, 7, 6),
-    ...f(1, 2, 6, 5),
-    ...f(3, 0, 4, 7),
-  ];
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 板狀零件頂緣 4 邊倒角（chamfered top）：
- * 座板 / 桌面常見的「邊緣 5×45° 倒角」或「R5/R12 圓角」視覺呈現。
- * 為簡化都用 45° 倒角實作（視覺接近，3D 不真做圓弧）：
- *   - chamfered: chamferMm = 5
- *   - rounded R5: chamferMm = 5（同 chamfered，視覺差異看 SVG label）
- *   - rounded R12: chamferMm = 12
- * Local Y 是厚度軸（origin = 底部），頂面 = +y 那面。
- * 16 vertices: 8 原 box 頂點 + 8 新增（頂面 4 角往內縮、頂面下緣 4 角）
- */
-function buildChamferedTopGeometry(
-  size: [number, number, number],
-  chamferMm: number,
-  style: "chamfered" | "rounded" = "chamfered",
-  bottomChamferMm: number = 0,
-  cornerR: number = 0,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hz = lz / 2;
-  const yBot = -ly / 2;
-  const yTop = ly / 2;
-  const cTop = Math.min(chamferMm, ly * 0.45, hx * 0.45, hz * 0.45);
-  const cBot = bottomChamferMm > 0
-    ? Math.min(bottomChamferMm, ly * 0.45, hx * 0.45, hz * 0.45)
-    : 0;
-  const baseR = Math.max(0, Math.min(cornerR, hx * 0.95, hz * 0.95));
-
-  // 圓角用多段 chamfer 拼近似四分圓，45° 用單段斜面
-  const segs = style === "rounded" ? 4 : 1;
-  const cornerSegs = baseR > 0 ? 6 : 0;
-
-  // 由下往上堆 levels：每個 level 有 (y, inset)
-  const levels: Array<{ y: number; inset: number }> = [];
-  if (cBot > 0) {
-    for (let i = 0; i <= segs; i++) {
-      const θ = (i * Math.PI) / 2 / segs;
-      levels.push({
-        y: yBot + cBot - cBot * Math.sin(θ),
-        inset: cBot - cBot * Math.cos(θ),
-      });
-    }
-    levels.reverse();
-  } else {
-    levels.push({ y: yBot, inset: 0 });
-  }
-  for (let i = 1; i <= segs; i++) {
-    const θ = (i * Math.PI) / 2 / segs;
-    levels.push({
-      y: yTop - cTop + cTop * Math.sin(θ),
-      inset: cTop - cTop * Math.cos(θ),
-    });
-  }
-  if (cTop > 0) {
-    const insertIdx = levels.length - segs;
-    levels.splice(insertIdx, 0, { y: yTop - cTop, inset: 0 });
-  }
-
-  // 一個 level 的 perimeter (X-Z 平面 4 角圓角矩形)，CCW 從 +Y 方向看（俯視）
-  // 4 個角各 (cornerSegs+1) 點；無圓角時退回 4 角矩形
-  // ⚠ 每層點數必須一致（下方三角化寫死 K = perimeters[0].length）。
-  //   cornerSegs > 0 時一律走圓角迴圈——r 夾到 0（cornerR < chamferMm 時上倒角層會發生）
-  //   也只是讓該角的點塌縮到尖角，點數仍 = 4×(cornerSegs+1)，K 不會錯位。
-  const perimeterAt = (inset: number): Array<[number, number]> => {
-    const ax = Math.max(0, hx - inset);
-    const az = Math.max(0, hz - inset);
-    const r = Math.max(0, Math.min(baseR - inset, ax, az));
-    if (cornerSegs === 0) {
-      return [[-ax, -az], [+ax, -az], [+ax, +az], [-ax, +az]];
-    }
-    const pts: Array<[number, number]> = [];
-    // BR 角 (中心 +ax-r, -az+r)，從 -π/2 → 0
-    for (let i = 0; i <= cornerSegs; i++) {
-      const t = -Math.PI / 2 + (Math.PI / 2) * (i / cornerSegs);
-      pts.push([(ax - r) + r * Math.cos(t), (-az + r) + r * Math.sin(t)]);
-    }
-    // TR 角 (中心 +ax-r, +az-r)，從 0 → π/2
-    for (let i = 0; i <= cornerSegs; i++) {
-      const t = (Math.PI / 2) * (i / cornerSegs);
-      pts.push([(ax - r) + r * Math.cos(t), (az - r) + r * Math.sin(t)]);
-    }
-    // TL 角 (中心 -ax+r, +az-r)，從 π/2 → π
-    for (let i = 0; i <= cornerSegs; i++) {
-      const t = Math.PI / 2 + (Math.PI / 2) * (i / cornerSegs);
-      pts.push([(-ax + r) + r * Math.cos(t), (az - r) + r * Math.sin(t)]);
-    }
-    // BL 角 (中心 -ax+r, -az+r)，從 π → 3π/2
-    for (let i = 0; i <= cornerSegs; i++) {
-      const t = Math.PI + (Math.PI / 2) * (i / cornerSegs);
-      pts.push([(-ax + r) + r * Math.cos(t), (-az + r) + r * Math.sin(t)]);
-    }
-    return pts;
-  };
-
-  // 算每個 level 的 perimeter，K = 同一個值（每層點數一樣）
-  const perimeters = levels.map((L) => perimeterAt(L.inset));
-  const K = perimeters[0].length;
-
-  const v: number[] = [];
-  for (let li = 0; li < levels.length; li++) {
-    const L = levels[li];
-    const peri = perimeters[li];
-    for (const [x, z] of peri) {
-      v.push(x, L.y, z);
-    }
-  }
-  // 底面與頂面用 fan 三角化，center 點放最後
-  const bottomCenterIdx = levels.length * K;
-  v.push(0, levels[0].y, 0);
-  const topCenterIdx = bottomCenterIdx + 1;
-  v.push(0, levels[levels.length - 1].y, 0);
-
-  const idx: number[] = [];
-
-  // 底面 fan：perimeter 點 0..K-1 在 X-Z 平面是 BL→BR→TR→TL（CCW from +Y）
-  // 從 -Y 看（仰望）這變 CW；底面 outward=-Y，要 CCW from -Y 才對 → idx 用 (center, a, b)
-  for (let i = 0; i < K; i++) {
-    const a = i;
-    const b = (i + 1) % K;
-    idx.push(bottomCenterIdx, a, b);
-  }
-
-  // 相鄰 level 之間連接（每邊 K 個 quad）
-  for (let li = 0; li < levels.length - 1; li++) {
-    const a0 = li * K;
-    const a1 = (li + 1) * K;
-    for (let i = 0; i < K; i++) {
-      const i1 = (i + 1) % K;
-      idx.push(a0 + i, a1 + i, a1 + i1);
-      idx.push(a0 + i, a1 + i1, a0 + i1);
-    }
-  }
-
-  // 頂面 fan：perimeter 是 CCW from +Y 看，頂面 outward=+Y 要 CCW from +Y → 用 (center, b, a)
-  const topBase = (levels.length - 1) * K;
-  for (let i = 0; i < K; i++) {
-    const a = topBase + i;
-    const b = topBase + ((i + 1) % K);
-    idx.push(topCenterIdx, b, a);
-  }
-
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 4 條沿最長軸的長邊各倒 45°——cross-section 從正方形變八角形。
- * 自動偵測 size 三軸最大者當「長軸」（腳 = Y、橫撐 = X）。
- * 16 vertices = 8 cross-section corners × 2 ends。
- *
- * splayDx / splayDz：可選的「底端偏移」——非 0 時把長軸最低端（-ha）整面
- * 沿 X / Z 平移，組合 chamfered + splayed（外斜腳也要倒角）。
- */
-function buildChamferedEdgesGeometry(
-  size: [number, number, number],
-  chamferMm: number,
-  style: "chamfered" | "rounded" = "chamfered",
-  splayDx: number = 0,
-  splayDz: number = 0,
-  bottomScale: number = 1,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const longAxis: 0 | 1 | 2 =
-    ly > lx && ly > lz ? 1 : lz > lx && lz > ly ? 2 : 0;
-  const shortDim = (i: 0 | 1 | 2) => (i === 0 ? lx : i === 1 ? ly : lz);
-  const longLen = shortDim(longAxis);
-  const sa1 = ((longAxis + 1) % 3) as 0 | 1 | 2;
-  const sa2 = ((longAxis + 2) % 3) as 0 | 1 | 2;
-  const ha = longLen / 2;
-  const hb = shortDim(sa1) / 2;
-  const hc = shortDim(sa2) / 2;
-  const c = Math.min(chamferMm, hb * 0.45, hc * 0.45);
-
-  // 圓角用 N=4 段 chamfer 拼近似四分圓；45° 用 1 段
-  const segs = style === "rounded" ? 4 : 1;
-  // 每個 corner 都是凸圓弧，圓心在內側 c 距離處
-  // CCW 順序（從 +b 軸看 +long 方向）：NE → NW → SW → SE
-  const arcPts = (cx: number, cy: number, θ0: number, θ1: number): Array<[number, number]> => {
-    const pts: Array<[number, number]> = [];
-    for (let i = 0; i <= segs; i++) {
-      const θ = θ0 + ((θ1 - θ0) * i) / segs;
-      pts.push([cx + c * Math.cos(θ), cy + c * Math.sin(θ)]);
-    }
-    return pts;
-  };
-  const ne = arcPts(hb - c, hc - c, 0, Math.PI / 2);            // (hb, hc-c) → (hb-c, hc)
-  const nw = arcPts(-hb + c, hc - c, Math.PI / 2, Math.PI);     // (-hb+c, hc) → (-hb, hc-c)
-  const sw = arcPts(-hb + c, -hc + c, Math.PI, 3 * Math.PI / 2); // (-hb, -hc+c) → (-hb+c, -hc)
-  const se = arcPts(hb - c, -hc + c, 3 * Math.PI / 2, 2 * Math.PI); // (hb-c, -hc) → (hb, -hc+c)
-  // 一圈 CCW：ne 末 = (hb-c, hc) → nw 起 = (-hb+c, hc) 之間是 top straight（不加中間點）
-  // 完整序列：ne ∪ nw ∪ sw ∪ se
-  const cs: Array<[number, number]> = [...ne, ...nw, ...sw, ...se];
-
-  // 每個 cross-section corner 在兩端 (long axis = ±ha) 各一個 vertex → 16 verts
-  // vertex layout: 0..7 = 端 -ha 的 8 點，8..15 = 端 +ha 的 8 點
-  // 把 (a, b, c) 的 longAxis 座標放對位置
-  const place = (axisVal: number, sa1Val: number, sa2Val: number): [number, number, number] => {
-    const arr: [number, number, number] = [0, 0, 0];
-    arr[longAxis] = axisVal;
-    arr[sa1] = sa1Val;
-    arr[sa2] = sa2Val;
-    return arr;
-  };
-
-  const N = cs.length; // chamfered=8, rounded=20
-  const v: number[] = [];
-  // 底端（-ha 端）：可選 bottomScale 縮 cross-section（tapered+chamfered 用）
-  // 加 splayDx/Dz 平移（splayed+chamfered 用）。兩者可獨立或組合。
-  for (const [b, cc] of cs) {
-    const p = place(-ha, b * bottomScale, cc * bottomScale);
-    p[0] += splayDx;
-    p[2] += splayDz;
-    v.push(...p);
-  }
-  for (const [b, cc] of cs) v.push(...place(+ha, b, cc));
-
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx: number[] = [];
-
-  // N 個側面（cross-section 邊 × 長軸延伸）
-  for (let i = 0; i < N; i++) {
-    const next = (i + 1) % N;
-    idx.push(...f(i, next, next + N, i + N));
-  }
-  // 兩個多邊形端面（fan from vertex 0）
-  for (let i = 1; i < N - 1; i++) {
-    idx.push(0, i + 1, i);          // -ha 端
-    idx.push(N, N + i, N + i + 1);  // +ha 端
-  }
-
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 外斜方錐：方料 + 上下不同尺寸 + 底部偏移。
- * 上方面 (lx × lz) 在 y=+hy（無偏移），下方面 (lx*scale × lz*scale) 在 y=-hy
- * 偏移 (dx, dz)。
- */
-function buildSplayedTaperedGeometry(
-  size: [number, number, number],
-  scale: number,
-  dx: number,
-  dz: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const bx = hx * scale;
-  const bz = hz * scale;
-  const v: number[] = [
-    -bx + dx, -hy, -bz + dz,
-    bx + dx, -hy, -bz + dz,
-    bx + dx, -hy, bz + dz,
-    -bx + dx, -hy, bz + dz,
-    -hx, hy, -hz,
-    hx, hy, -hz,
-    hx, hy, hz,
-    -hx, hy, hz,
-  ];
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 1, 2, 3),
-    ...f(4, 7, 6, 5),
-    ...f(0, 4, 5, 1),
-    ...f(1, 5, 6, 2),
-    ...f(2, 6, 7, 3),
-    ...f(3, 7, 4, 0),
-  ];
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 外斜圓錐：圓料（直徑 = lx）+ 上下不同半徑 + 底部偏移。
- * segments 段邊（48 段視覺平滑），加上下 cap 中心點。
- */
-function buildSplayedRoundTaperedGeometry(
-  size: [number, number, number],
-  scale: number,
-  dx: number,
-  dz: number,
-  segments = 48,
-): BufferGeometry {
-  const [lx, ly] = size;
-  const r = lx / 2;
-  const hy = ly / 2;
-  const rTop = r;
-  const rBot = r * scale;
-  const v: number[] = [];
-  for (let i = 0; i < segments; i++) {
-    const theta = (i / segments) * 2 * Math.PI;
-    v.push(Math.cos(theta) * rTop, hy, Math.sin(theta) * rTop);
-  }
-  for (let i = 0; i < segments; i++) {
-    const theta = (i / segments) * 2 * Math.PI;
-    v.push(Math.cos(theta) * rBot + dx, -hy, Math.sin(theta) * rBot + dz);
-  }
-  const topCenter = segments * 2;
-  const botCenter = segments * 2 + 1;
-  v.push(0, hy, 0);
-  v.push(dx, -hy, dz);
-  const idx: number[] = [];
-  for (let i = 0; i < segments; i++) {
-    const i0 = i;
-    const i1 = (i + 1) % segments;
-    const j0 = segments + i;
-    const j1 = segments + ((i + 1) % segments);
-    // 側面：CCW from outside（法線朝外）
-    // theta 由小到大走 CCW 從上往下看（+Y），但側面要從外側看 CCW
-    // 順序：i0 (top θ) → i1 (top θ+δ) → j1 (bot θ+δ) → j0 (bot θ)
-    idx.push(i0, i1, j1, i0, j1, j0);
-    // 上 cap（CCW from above looking +Y down）：center → i0 → i1
-    idx.push(topCenter, i0, i1);
-    // 下 cap（CCW from below looking -Y up）：center → j1 → j0
-    idx.push(botCenter, j1, j0);
-  }
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * Live edge 板狀零件（保留樹皮的原木板桌面）。
- *
- * 兩條長邊（±Z 方向）以多段 sin 組合 noise 做不規則波浪，模擬樹皮的有機曲線。
- * 兩端 (±X) 與上下面 (±Y) 保持平直。
- *
- * 段數固定 32（沿長邊取樣），波形 = 3 個不同週期的 sin 疊加，振幅 = amplitudeMm。
- * 兩條長邊用不同 phase（差 π/3），看起來不會對稱。
- */
-/**
- * 4 角缺角板：層板 4 個角各切掉 notchLength × notchWidth 的矩形。
- * 用 8-corner 多邊形 prism——上下兩面都是 8 邊形，4 條垂直邊連起來。
- * 用途：座下層板延伸到下橫撐齊平、跟腳柱重疊的角要切掉。
- */
-function buildNotchedCornersGeometry(
-  size: [number, number, number],
-  notchL: number,
-  notchW: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const nL = Math.max(0, Math.min(notchL, hx * 0.95));
-  const nW = Math.max(0, Math.min(notchW, hz * 0.95));
-  if (nL <= 0 || nW <= 0) {
-    // Fallback: regular box
-    const g = new BufferGeometry();
-    const v = [
-      -hx, -hy, -hz,  hx, -hy, -hz,  hx, hy, -hz,  -hx, hy, -hz,
-      -hx, -hy,  hz,  hx, -hy,  hz,  hx, hy,  hz,  -hx, hy,  hz,
-    ];
-    const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-    const idx = [
-      ...f(0, 1, 2, 3), ...f(7, 6, 5, 4),
-      ...f(4, 5, 1, 0), ...f(2, 6, 7, 3),
-      ...f(1, 5, 6, 2), ...f(0, 3, 7, 4),
-    ];
-    g.setAttribute("position", new Float32BufferAttribute(v, 3));
-    g.setIndex(idx);
-    g.computeVertexNormals();
-    return g;
-  }
-  // 8 outer corners on top + 8 on bottom 環一圈順時針：
-  // (hx, -hz+nW), (hx, hz-nW), (hx-nL, hz-nW), (hx-nL, hz),
-  // (-hx+nL, hz), (-hx+nL, hz-nW), (-hx, hz-nW), (-hx, -hz+nW),
-  // (-hx+nL, -hz+nW), (-hx+nL, -hz), (hx-nL, -hz), (hx-nL, -hz+nW)
-  const ring: Array<[number, number]> = [
-    [+hx, -hz + nW], [+hx, +hz - nW], [+hx - nL, +hz - nW], [+hx - nL, +hz],
-    [-hx + nL, +hz], [-hx + nL, +hz - nW], [-hx, +hz - nW], [-hx, -hz + nW],
-    [-hx + nL, -hz + nW], [-hx + nL, -hz], [+hx - nL, -hz], [+hx - nL, -hz + nW],
-  ];
-  const v: number[] = [];
-  // bottom ring (y=-hy), then top ring (y=+hy)
-  for (const [x, z] of ring) v.push(x, -hy, z);
-  for (const [x, z] of ring) v.push(x,  hy, z);
-  const N = ring.length;
-  const idx: number[] = [];
-  // 側面：相鄰 2 點 + 對應 top 的 2 點 → 1 個 quad = 2 三角
-  // ring 是俯視 CW，所以從外面看 quad（a, b, bt, at）順序是 CW → backface culled。
-  // 反成 (a, at, bt, b) 才是 CCW from outside。
-  for (let i = 0; i < N; i++) {
-    const a = i;
-    const b = (i + 1) % N;
-    const at = a + N;
-    const bt = b + N;
-    idx.push(a, at, bt, a, bt, b);
-  }
-  // ring 在上方俯視是 CW 順序，所以底面（從下方看）是 CCW，
-  // 但頂面（從上方看）是 CW → 需要反轉 winding
-  // 底面 fan from vertex 0：idx 順序 0, i, i+1（順 ring CW）= 從下看 CCW ✓
-  for (let i = 1; i < N - 1; i++) {
-    idx.push(0, i, i + 1);
-  }
-  // 頂面 fan from vertex N：要從上看 CCW，所以反轉 ring 順序 → N, i+1, i
-  for (let i = 1; i < N - 1; i++) {
-    idx.push(N, N + i + 1, N + i);
-  }
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 板狀零件正面 4 角圓角：
- * - 不彎曲（bendMm=0）→ Shape + ExtrudeGeometry，圓角 + topArch/bottomArch 都可用
- * - 彎曲（bendMm>0）→ 自製 grid-based BufferGeometry，
- *   M×N 細密 mesh（80×24）+ 圓角用 corner clamping 投影回 rounded-rect 邊界
- *   這樣 bent surface 才平滑、不會出現 ExtrudeGeometry earcut 大三角的 facet
- */
-function buildFaceRoundedGeometry(
-  size: [number, number, number],
-  cornerR: number,
-  topArchMm: number = 0,
-  bottomArchMm: number = 0,
-  bendMm: number = 0,
-  bendAxis: "z" | "y" = "z",
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  // 圓角夾在「大面」兩軸：bendAxis="z" 大面 = lx × ly（靠背）；
-  // bendAxis="y" 大面 = lx × lz（椅面）。用薄軸夾會把 cornerR 壓死成板厚一半
-  const faceB = bendAxis === "z" ? ly : lz;
-  const r = Math.min(cornerR, lx * 0.45, faceB * 0.45);
-  if (bendMm === 0) {
-    return buildFaceRoundedExtrude(lx, ly, lz, r, topArchMm, bottomArchMm);
-  }
-  return buildBentPanelGrid(lx, ly, lz, r, topArchMm, bottomArchMm, bendMm, bendAxis);
-}
-
-function buildFaceRoundedExtrude(
-  lx: number,
-  ly: number,
-  lz: number,
-  r: number,
-  topArchMm: number,
-  bottomArchMm: number,
-): BufferGeometry {
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const nx = 40;
-  const ny = 12;
-  const arcSegs = Math.max(8, Math.round(r / 4));
-  const shape = new Shape();
-  shape.moveTo(-hx + r, -hy);
-  for (let i = 1; i <= nx; i++) {
-    const t = i / nx;
-    const x = -hx + r + (lx - 2 * r) * t;
-    const y = bottomArchMm !== 0 ? -hy + bottomArchMm * Math.sin(Math.PI * t) : -hy;
-    shape.lineTo(x, y);
-  }
-  shape.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0, false);
-  for (let i = 1; i <= ny; i++) {
-    const t = i / ny;
-    shape.lineTo(hx, -hy + r + (ly - 2 * r) * t);
-  }
-  shape.absarc(hx - r, hy - r, r, 0, Math.PI / 2, false);
-  for (let i = 1; i <= nx; i++) {
-    const t = i / nx;
-    const x = (hx - r) - (lx - 2 * r) * t;
-    const y = topArchMm !== 0 ? hy + topArchMm * Math.sin(Math.PI * t) : hy;
-    shape.lineTo(x, y);
-  }
-  shape.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI, false);
-  for (let i = 1; i <= ny; i++) {
-    const t = i / ny;
-    shape.lineTo(-hx, (hy - r) - (ly - 2 * r) * t);
-  }
-  shape.absarc(-hx + r, -hy + r, r, Math.PI, (3 * Math.PI) / 2, false);
-  const geom = new ExtrudeGeometry(shape, { depth: lz, bevelEnabled: false, curveSegments: arcSegs });
-  geom.translate(0, 0, -lz / 2);
-  return geom;
-}
-
-/**
- * 彎曲薄板：M+1 × N+1 grid 構成兩片大面 + 4 條側壁。
- *
- * bendAxis 決定板子的「薄軸」：
- *  - "z"（預設，靠背用）：薄軸 = local Z（lz=厚度），大面在 X-Y 平面，
- *    grid 鋪在 (lx, ly)，兩片大面位於 z=±hz，bend 推 Z
- *  - "y"（椅面用）：薄軸 = local Y（ly=厚度），大面在 X-Z 平面，
- *    grid 鋪在 (lx, lz)，兩片大面位於 y=±hy，bend 推 Y（負值=中央往下凹）
- *
- * bend 公式統一：offset = bendMm × (1 − (x/hx)²)，沿 X 軸對稱、兩端 0。
- * 圓角處理在大面上執行；arch（topArch/bottomArch）只用於 bendAxis="z"（靠背 4 邊）。
- */
-function buildBentPanelGrid(
-  lx: number,
-  ly: number,
-  lz: number,
-  r: number,
-  topArchMm: number,
-  bottomArchMm: number,
-  bendMm: number,
-  bendAxis: "z" | "y" = "z",
-): BufferGeometry {
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const M = 80;
-  const N = 24;
-
-  // 大面內第二軸的「半長」：z 模式用 hy，y 模式用 hz
-  const hu = bendAxis === "z" ? hy : hz;
-
-  // 給定 grid 索引 (i, j)，回傳該點在大面平面上的位置 (x, u)。
-  // u 是大面的第二軸：bendAxis="z" 時 u=y，bendAxis="y" 時 u=z。
-  const gridFace = (i: number, j: number): [number, number] => {
-    const ti = i / M;
-    const tj = j / N;
-    let x = -hx + lx * ti;
-    let u = -hu + 2 * hu * tj;
-    // 圓角投影：在原始矩形角落區內把點投影到 R 弧上
-    if (r > 0 && Math.abs(x) > hx - r && Math.abs(u) > hu - r) {
-      const sx = Math.sign(x) || 1;
-      const su = Math.sign(u) || 1;
-      const cx = sx * (hx - r);
-      const cu = su * (hu - r);
-      const dx = x - cx;
-      const du = u - cu;
-      const d = Math.hypot(dx, du);
-      if (d > r && d > 1e-6) {
-        x = cx + (dx / d) * r;
-        u = cu + (du / d) * r;
-      }
-    }
-    // arch 只在 z 軸（靠背）模式套到頂/底緣（u 軸=ly=面高度方向）
-    if (bendAxis === "z") {
-      if (j === N && topArchMm !== 0) {
-        u += topArchMm * Math.sin(Math.PI * ti);
-      } else if (j === 0 && bottomArchMm !== 0) {
-        u += bottomArchMm * Math.sin(Math.PI * ti);
-      }
-    }
-    return [x, u];
-  };
-
-  const bendOffset = (x: number): number => {
-    const t = x / hx;
-    return bendMm * Math.max(0, 1 - t * t);
-  };
-
-  const positions: number[] = [];
-  const indices: number[] = [];
-
-  // 兩片大面：bendAxis="z" 在 z=±hz；bendAxis="y" 在 y=±hy
-  // 命名為 frontStart / backStart 維持原語義（front=+offset 那片，back=-offset 那片）
-  const frontStart = 0;
-  for (let j = 0; j <= N; j++) {
-    for (let i = 0; i <= M; i++) {
-      const [x, u] = gridFace(i, j);
-      const off = bendOffset(x);
-      if (bendAxis === "z") {
-        positions.push(x, u, hz + off);
-      } else {
-        positions.push(x, hy + off, u);
-      }
-    }
-  }
-  const backStart = (M + 1) * (N + 1);
-  for (let j = 0; j <= N; j++) {
-    for (let i = 0; i <= M; i++) {
-      const [x, u] = gridFace(i, j);
-      const off = bendOffset(x);
-      if (bendAxis === "z") {
-        positions.push(x, u, -hz + off);
-      } else {
-        positions.push(x, -hy + off, u);
-      }
-    }
-  }
-
-  const fIdx = (i: number, j: number) => frontStart + j * (M + 1) + i;
-  const bIdx = (i: number, j: number) => backStart + j * (M + 1) + i;
-
-  // Front face: outward normal +Z (兩三角形 winding 為 CCW 從 +Z 看)
-  for (let j = 0; j < N; j++) {
-    for (let i = 0; i < M; i++) {
-      const a = fIdx(i, j);
-      const b = fIdx(i + 1, j);
-      const c = fIdx(i, j + 1);
-      const d = fIdx(i + 1, j + 1);
-      indices.push(a, b, d);
-      indices.push(a, d, c);
-    }
-  }
-  // Back face: outward normal -Z (反向 winding)
-  for (let j = 0; j < N; j++) {
-    for (let i = 0; i < M; i++) {
-      const a = bIdx(i, j);
-      const b = bIdx(i + 1, j);
-      const c = bIdx(i, j + 1);
-      const d = bIdx(i + 1, j + 1);
-      indices.push(a, d, b);
-      indices.push(a, c, d);
-    }
-  }
-  // 側壁：4 條邊把 front 連到 back（winding 對應 outward normal，否則背面剔除後只看到一片正面）
-  // 上邊 j=N (outward +Y)
-  for (let i = 0; i < M; i++) {
-    const fa = fIdx(i, N);
-    const fb = fIdx(i + 1, N);
-    const ba = bIdx(i, N);
-    const bb = bIdx(i + 1, N);
-    indices.push(fa, fb, ba);
-    indices.push(fb, bb, ba);
-  }
-  // 下邊 j=0 (outward -Y)
-  for (let i = 0; i < M; i++) {
-    const fa = fIdx(i, 0);
-    const fb = fIdx(i + 1, 0);
-    const ba = bIdx(i, 0);
-    const bb = bIdx(i + 1, 0);
-    indices.push(fa, ba, fb);
-    indices.push(fb, ba, bb);
-  }
-  // 右邊 i=M (outward +X)
-  for (let j = 0; j < N; j++) {
-    const fa = fIdx(M, j);
-    const fb = fIdx(M, j + 1);
-    const ba = bIdx(M, j);
-    const bb = bIdx(M, j + 1);
-    indices.push(fa, ba, fb);
-    indices.push(fb, ba, bb);
-  }
-  // 左邊 i=0 (outward -X)
-  for (let j = 0; j < N; j++) {
-    const fa = fIdx(0, j);
-    const fb = fIdx(0, j + 1);
-    const ba = bIdx(0, j);
-    const bb = bIdx(0, j + 1);
-    indices.push(fa, fb, ba);
-    indices.push(fb, bb, ba);
-  }
-
-  // 大面換軸後三角形 winding 都會反向（cross product sign flip），統一翻所有 indices
-  if (bendAxis === "y") {
-    for (let i = 0; i < indices.length; i += 3) {
-      const tmp = indices[i + 1];
-      indices[i + 1] = indices[i + 2];
-      indices[i + 2] = tmp;
-    }
-  }
-
-  const geom = new BufferGeometry();
-  geom.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  geom.setIndex(indices);
-  geom.computeVertexNormals();
-  return geom;
-}
-
-/**
- * 弧形彎料：沿 length 軸切 N 段，每段 z 軸偏移 = bend × (1 - (2x/L)²)
- * 用於椅背頂橫木向後彎的弧形。box 截面 (ly × lz) 不變、只是 z 中心彎。
- * 上下/左右 face 用 N+1 環 vertex 連接側面，端面 2 個 quad。
- */
-function buildArchBentGeometry(
-  size: [number, number, number],
-  bendMm: number,
-  segments: number = 16,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const N = Math.max(2, segments);
-  // 計算每個 X 切片的 z 中心偏移
-  const zOffsetAt = (x: number): number => {
-    const t = (2 * x) / lx; // [-1, 1]
-    return bendMm * Math.max(0, 1 - t * t);
-  };
-  const v: number[] = [];
-  // 每個 slice 4 個 vertex（截面 4 角）：bottom-front, top-front, top-back, bottom-back
-  for (let i = 0; i <= N; i++) {
-    const x = -hx + (lx * i) / N;
-    const dz = zOffsetAt(x);
-    v.push(x, -hy, -hz + dz);  // 0: front-bot
-    v.push(x,  hy, -hz + dz);  // 1: front-top
-    v.push(x,  hy,  hz + dz);  // 2: back-top
-    v.push(x, -hy,  hz + dz);  // 3: back-bot
-  }
-  const idx: number[] = [];
-  // 4 個 side face 沿 length 連接每個 slice
-  // 注意：所有三角形 winding 為 CCW 從外側看（法線朝外）
-  for (let i = 0; i < N; i++) {
-    const a = i * 4;
-    const b = (i + 1) * 4;
-    // bottom face (法線 -Y)：從 -Y 看 CCW
-    idx.push(a + 0, b + 0, b + 3, a + 0, b + 3, a + 3);
-    // top face (法線 +Y)：從 +Y 看 CCW
-    idx.push(a + 1, a + 2, b + 2, a + 1, b + 2, b + 1);
-    // front face (法線 -Z)：從 -Z 看 CCW
-    idx.push(a + 0, a + 1, b + 1, a + 0, b + 1, b + 0);
-    // back face (法線 +Z)：從 +Z 看 CCW
-    idx.push(a + 3, b + 3, b + 2, a + 3, b + 2, a + 2);
-  }
-  // 兩端 cap：第 0 slice 跟第 N slice 各 1 個 quad
-  // 起始端（X=-hx，法線 -X）：從 -X 看 CCW = 0 → 3 → 2 → 1
-  idx.push(0, 3, 2, 0, 2, 1);
-  // 終止端（X=+hx，法線 +X）：從 +X 看 CCW = e → e+1 → e+2 → e+3
-  const e = N * 4;
-  idx.push(e, e + 1, e + 2, e, e + 2, e + 3);
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-function buildLiveEdgeGeometry(
-  size: [number, number, number],
-  amplitudeMm: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const N = 32; // 段數
-  const amp = amplitudeMm;
-
-  // 沿 length 軸（X）取樣，每個 x_i 各算 +Z 邊和 -Z 邊的 z 偏移（向外側突出 amp 範圍內）
-  const noise = (x: number, phase: number) =>
-    amp * 0.6 * Math.sin((x + phase) / (lx * 0.06)) +
-    amp * 0.3 * Math.sin((x + phase * 1.7) / (lx * 0.035)) +
-    amp * 0.1 * Math.sin((x + phase * 2.3) / (lx * 0.02));
-
-  // 取樣點 (i = 0..N)，端點 (i=0, i=N) 強制 noise=0 讓兩端平整
-  const xs: number[] = [];
-  const zPos: number[] = []; // +Z 邊
-  const zNeg: number[] = []; // -Z 邊
-  for (let i = 0; i <= N; i++) {
-    const x = -hx + (lx * i) / N;
-    xs.push(x);
-    const t = i / N;
-    // 兩端漸退讓 noise 收斂為 0（避免端面變形）
-    const taper = Math.sin(Math.PI * t);
-    zPos.push(hz + noise(x, 0) * taper);
-    zNeg.push(-hz - noise(x, Math.PI / 3) * taper);
-  }
-
-  // Vertex layout：每個取樣點上 4 個 vertex（top-front, top-back, bot-front, bot-back）
-  // index = i * 4 + (0=botBack, 1=botFront, 2=topFront, 3=topBack)
-  // botBack = (xs[i], -hy, zPos[i])
-  // botFront = (xs[i], -hy, zNeg[i])
-  // topFront = (xs[i], +hy, zNeg[i])
-  // topBack  = (xs[i], +hy, zPos[i])
-  const v: number[] = [];
-  for (let i = 0; i <= N; i++) {
-    v.push(xs[i], -hy, zPos[i]);
-    v.push(xs[i], -hy, zNeg[i]);
-    v.push(xs[i], hy, zNeg[i]);
-    v.push(xs[i], hy, zPos[i]);
-  }
-
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const vi = (i: number, k: number) => i * 4 + k;
-  const idx: number[] = [];
-
-  // Side faces between i and i+1
-  for (let i = 0; i < N; i++) {
-    // bottom face (looking from -Y): vertices at -hy, CCW from -Y
-    idx.push(...f(vi(i, 0), vi(i, 1), vi(i + 1, 1), vi(i + 1, 0)));
-    // top face (from +Y): CCW from +Y
-    idx.push(...f(vi(i, 3), vi(i + 1, 3), vi(i + 1, 2), vi(i, 2)));
-    // +Z 長邊（後緣，向 +Z 突出）。normal +Z when viewed from +Z
-    idx.push(...f(vi(i, 0), vi(i + 1, 0), vi(i + 1, 3), vi(i, 3)));
-    // -Z 長邊（前緣，向 -Z 突出）。normal -Z
-    idx.push(...f(vi(i, 1), vi(i, 2), vi(i + 1, 2), vi(i + 1, 1)));
-  }
-  // 端面 -X (i=0)
-  idx.push(...f(vi(0, 0), vi(0, 3), vi(0, 2), vi(0, 1)));
-  // 端面 +X (i=N)
-  idx.push(...f(vi(N, 0), vi(N, 1), vi(N, 2), vi(N, 3)));
-
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 明式馬蹄腳。
- *
- * 結構：上方直料 → 馬蹄區段 4 環，外側 2 面做 S 形（上半外凸 → 中段內凹收腰
- * → 下半外撇腳趾），內側 2 面保持直線。dirX/dirZ 決定哪 2 面是「外側」。
- *
- * 為什麼這麼做：原本實作所有 4 面對稱外擴 → 像漏斗，跟明式馬蹄腳完全不像。
- * 真正的馬蹄腳只有「朝家具外」的兩個面才會踢出來，其他 2 面（朝中心）保持
- * 直線——這樣才能把腳趾的方向感做出來。
- *
- * 參數：
- *  hoofHeight = 馬蹄區段總高（從底部往上算）
- *  hoofScale  = 腳趾外側 flare 倍率（>1 = 外撇）
- *  dirX/dirZ  = 外側方向（±1 = 該軸的這個方向是外側、要 flare；0 = 該軸不 flare）
- *
- * 環高度比例：top 50% 直線 / 鼓肚 25% / 收腰 15% / 腳趾 10%
- */
-function buildHoofGeometry(
-  size: [number, number, number],
-  hoofHeight: number,
-  hoofScale: number,
-  dirX: -1 | 0 | 1,
-  dirZ: -1 | 0 | 1,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const hoofH = Math.min(hoofHeight, ly * 0.5);
-
-  // 4 個馬蹄區段環的 Y（從上到下）+ 該環各 4 個 corner 的 X/Z 縮放比
-  // 比例是「外側面相對直料寬」的縮放：
-  //   start: 1.00（剛離開直料，全寬）
-  //   bulge: 1.10（外側面鼓出去——S 上半圓弧）
-  //   waist: 0.85（外側面內凹收腰，比直料窄 15%）
-  //   toe:   hoofScale（腳趾外撇到最大寬）
-  // 內側面所有環都保持 1.0（直料），這樣外側才看得出 S 形腳趾踢出去。
-  const rings = [
-    { yFrac: 0.00, outerScale: 1.00 },  // 馬蹄頂（與直料銜接）
-    { yFrac: 0.45, outerScale: 1.10 },  // 鼓肚
-    { yFrac: 0.78, outerScale: 0.85 },  // 收腰（要明顯一點才看得出 S 形）
-    { yFrac: 1.00, outerScale: hoofScale }, // 腳趾（最寬）
-  ];
-  const yTopHoof = -hy + hoofH; // 馬蹄區段的頂端
-
-  // 收 vertex 的 helper：給 ring index + corner sign (sx, sz)，回傳 [x, y, z]
-  const cornerVert = (
-    ringIdx: number,
-    sx: -1 | 1,
-    sz: -1 | 1,
-  ): [number, number, number] => {
-    const ring = rings[ringIdx];
-    const y = yTopHoof - hoofH * ring.yFrac;
-    // 外側軸（sx === dirX 或 sz === dirZ）才套 outerScale；內側保持 1
-    // dirX/dirZ 可能是 0（中柱腳，該軸不外撇），這時跟 sx/sz 都不相等 → 走 1.0
-    const xScale = (dirX as number) !== 0 && sx === dirX ? ring.outerScale : 1;
-    const zScale = (dirZ as number) !== 0 && sz === dirZ ? ring.outerScale : 1;
-    return [sx * hx * xScale, y, sz * hz * zScale];
-  };
-
-  const v: number[] = [];
-  // 環 0..3：馬蹄區段 4 環，每環 4 個 corner，順序 (-,-) (+,-) (+,+) (-,+)
-  // 對應 vertex index：環 r 的 corner i 在 v 的 4*r + i
-  for (let r = 0; r < 4; r++) {
-    v.push(...cornerVert(r, -1, -1));
-    v.push(...cornerVert(r, 1, -1));
-    v.push(...cornerVert(r, 1, 1));
-    v.push(...cornerVert(r, -1, 1));
-  }
-  // 環 4：直料頂端（= 馬蹄區段頂端 + 上方直料）。原本 yTopHoof = -hy + hoofH，
-  // 直料頂在 +hy。所以 ring 0 (= yTopHoof) 跟 ring 4 (= +hy) 之間是直料。
-  v.push(-hx, hy, -hz);
-  v.push(hx, hy, -hz);
-  v.push(hx, hy, hz);
-  v.push(-hx, hy, hz);
-
-  // f(a, b, c, d) → 兩個三角形組成 quad，winding 由 caller 控制
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  // 環 r 的 corner 索引：4*r + i (i = 0..3)
-  // ring 0 = 馬蹄頂；ring 3 = 腳趾底；ring 4 = 直料頂（最高）。
-  const ri = (r: number, i: number) => 4 * r + i;
-  const idx: number[] = [];
-  // 底面（ring 3 = 腳趾底，normal -Y）
-  idx.push(...f(ri(3, 0), ri(3, 1), ri(3, 2), ri(3, 3)));
-  // 頂面（ring 4 = 直料頂，normal +Y）
-  idx.push(...f(ri(4, 0), ri(4, 3), ri(4, 2), ri(4, 1)));
-  // 4 個側面 × 4 個環間區段（ring r 在上、ring r+1 在下；
-  // r=3 的時候 r+1=4，這是直料區段—直料頂端 ring 4 在最上方，
-  // 但 corner 順序仍對齊 ring 0..3 的 (-,-) (+,-) (+,+) (-,+)）
-  // 為避免直料區段方向反，r 從 0 到 2 處理馬蹄區，r=3 額外處理直料區。
-  // CCW from outside: bot → top → top_next → bot_next
-  for (let r = 0; r < 3; r++) {
-    // 馬蹄區段（r 在上、r+1 在下）
-    idx.push(...f(ri(r + 1, 0), ri(r, 0), ri(r, 1), ri(r + 1, 1))); // -Z 面
-    idx.push(...f(ri(r + 1, 1), ri(r, 1), ri(r, 2), ri(r + 1, 2))); // +X 面
-    idx.push(...f(ri(r + 1, 2), ri(r, 2), ri(r, 3), ri(r + 1, 3))); // +Z 面
-    idx.push(...f(ri(r + 1, 3), ri(r, 3), ri(r, 0), ri(r + 1, 0))); // -X 面
-  }
-  // 直料區段：ring 4 在上 (+hy)、ring 0 在下 (yTopHoof = -hy + hoofH)
-  idx.push(...f(ri(0, 0), ri(4, 0), ri(4, 1), ri(0, 1)));
-  idx.push(...f(ri(0, 1), ri(4, 1), ri(4, 2), ri(0, 2)));
-  idx.push(...f(ri(0, 2), ri(4, 2), ri(4, 3), ri(0, 3)));
-  idx.push(...f(ri(0, 3), ri(4, 3), ri(4, 0), ri(0, 0)));
-
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-/**
- * 座面挖型曲面：把座板頂面換成 displaced grid。
- *  saddle  = 中央 paraboloid 凹陷（雙軸）
- *  scooped = 沿 X 軸兩個並列 basin（左右各一個沿 Z 方向延伸的凹槽）
- *
- * 為了讓側面與底面保持平直、不被 grid 平均的 normal 帶歪，側 / 底面用獨立 quad
- * 建立（自帶頂點，不跟 grid 共用），grid 用 32×32 細分套 computeVertexNormals
- * 平滑出曲面。
- */
-function buildSeatScoopGeometry(
-  size: [number, number, number],
-  profile: "saddle" | "scooped" | "dished",
-  depth: number,
-): BufferGeometry {
-  const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const hz = lz / 2;
-  const nx = 32;
-  const nz = 32;
-
-  // depth 是 scene units（已乘 SCALE）。clip 到不超過厚度 70%
-  const maxDip = Math.min(depth, ly * 0.7);
-
-  function dipAt(x: number, z: number): number {
-    const rx = (2 * x) / lx; // [-1, 1]
-    const rz = (2 * z) / lz;
-    if (profile === "saddle") {
-      const fx = Math.max(0, 1 - rx * rx);
-      const fz = Math.max(0, 1 - rz * rz);
-      return -maxDip * fx * fz;
-    }
-    if (profile === "dished") {
-      // 沿 Z 軸（座深方向）單軸下凹—— 給長坐用，Z 中央最深、X 全長均勻
-      // X 方向兩端稍微淺一點，避免邊緣銳利
-      const fz = Math.max(0, 1 - rz * rz);
-      const fx = Math.max(0, 1 - rx * rx * 0.3);
-      return -maxDip * fz * fx;
-    }
-    // scooped: 兩個 basin 中心在 x = ±lx/4，每個寬 lx/2，沿 z 全長延伸（兩端漸收）
-    const bw = lx / 4; // basin half-width
-    const r1 = (x - lx / 4) / bw;
-    const r2 = (x + lx / 4) / bw;
-    const f1 = Math.max(0, 1 - r1 * r1);
-    const f2 = Math.max(0, 1 - r2 * r2);
-    const fz = Math.max(0, 1 - rz * rz * 0.6); // z 方向稍微收（兩端稍淺）
-    return -maxDip * Math.max(f1, f2) * fz;
-  }
-
-  const v: number[] = [];
-  const idx: number[] = [];
-
-  // 1) 頂面 grid（(nx+1) × (nz+1) 個頂點，displaced）
-  const topStart = 0;
-  for (let i = 0; i <= nx; i++) {
-    const x = -hx + (i / nx) * lx;
-    for (let j = 0; j <= nz; j++) {
-      const z = -hz + (j / nz) * lz;
-      v.push(x, hy + dipAt(x, z), z);
-    }
-  }
-  for (let i = 0; i < nx; i++) {
-    for (let j = 0; j < nz; j++) {
-      const a = topStart + i * (nz + 1) + j;
-      const b = topStart + (i + 1) * (nz + 1) + j;
-      const c = topStart + (i + 1) * (nz + 1) + j + 1;
-      const d = topStart + i * (nz + 1) + j + 1;
-      idx.push(a, b, c, a, c, d);
-    }
-  }
-
-  // 2) 側面 + 底面：4 個邊牆 + 1 個底面，獨立頂點以保平面 shading
-  // 邊牆頂端的 Y 對齊 grid 邊緣，但用獨立 vertex 不分享。
-  const sideStart = v.length / 3;
-
-  // -Z 面（front, j=0），i=0..nx
-  for (let i = 0; i <= nx; i++) {
-    const x = -hx + (i / nx) * lx;
-    v.push(x, hy + dipAt(x, -hz), -hz); // 頂
-    v.push(x, -hy, -hz);                 // 底
-  }
-  const negZBase = sideStart;
-  for (let i = 0; i < nx; i++) {
-    const a = negZBase + i * 2;
-    const b = negZBase + (i + 1) * 2;
-    const ab = a + 1;
-    const bb = b + 1;
-    idx.push(a, ab, bb, a, bb, b);
-  }
-
-  const posZBase = v.length / 3;
-  for (let i = 0; i <= nx; i++) {
-    const x = -hx + (i / nx) * lx;
-    v.push(x, hy + dipAt(x, hz), hz);
-    v.push(x, -hy, hz);
-  }
-  for (let i = 0; i < nx; i++) {
-    const a = posZBase + i * 2;
-    const b = posZBase + (i + 1) * 2;
-    const ab = a + 1;
-    const bb = b + 1;
-    idx.push(a, bb, ab, a, b, bb);
-  }
-
-  const negXBase = v.length / 3;
-  for (let j = 0; j <= nz; j++) {
-    const z = -hz + (j / nz) * lz;
-    v.push(-hx, hy + dipAt(-hx, z), z);
-    v.push(-hx, -hy, z);
-  }
-  for (let j = 0; j < nz; j++) {
-    const a = negXBase + j * 2;
-    const b = negXBase + (j + 1) * 2;
-    const ab = a + 1;
-    const bb = b + 1;
-    idx.push(a, bb, ab, a, b, bb);
-  }
-
-  const posXBase = v.length / 3;
-  for (let j = 0; j <= nz; j++) {
-    const z = -hz + (j / nz) * lz;
-    v.push(hx, hy + dipAt(hx, z), z);
-    v.push(hx, -hy, z);
-  }
-  for (let j = 0; j < nz; j++) {
-    const a = posXBase + j * 2;
-    const b = posXBase + (j + 1) * 2;
-    const ab = a + 1;
-    const bb = b + 1;
-    idx.push(a, ab, bb, a, bb, b);
-  }
-
-  // 底面 4 角（normal -Y）
-  const botBase = v.length / 3;
-  v.push(-hx, -hy, -hz);
-  v.push(hx, -hy, -hz);
-  v.push(hx, -hy, hz);
-  v.push(-hx, -hy, hz);
-  idx.push(botBase, botBase + 2, botBase + 1);
-  idx.push(botBase, botBase + 3, botBase + 2);
-
-  // 上面 winding 是內外相反（top 變 backface culled、座面整個消失）。
-  // 一次性翻轉所有 triangle 的 winding，再算 normal。
-  for (let k = 0; k < idx.length; k += 3) {
-    const tmp = idx[k + 1];
-    idx[k + 1] = idx[k + 2];
-    idx[k + 2] = tmp;
-  }
-
-  const g = new BufferGeometry();
-  g.setAttribute("position", new Float32BufferAttribute(v, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
 
 export function PerspectiveView({
   design,
@@ -1843,19 +547,30 @@ export function PerspectiveView({
   joineryMode = false,
   auditMode = false,
   explodeMm = 0,
+  lidLiftMm = 0,
   xrayMode = "off",
   selectedPartId = null,
   onPartSelect,
   compactMode = false,
   wireframeMode = false,
+  hidePartIds = [],
+  assemblyPlan: assemblyPlanProp = null,
 }: {
   design: FurnitureDesign;
+  /**
+   * 組裝動畫排程（server 端用「還帶榫頭榫眼的原始設計」算好傳進來，見 §H8）。
+   * 組裝版的 design 已被 toBeginnerMode 拔掉榫接資料，PerspectiveView 自己算會
+   * 排不出榫的方向；沒傳才退而用 design 自己算（榫接版可用）。
+   */
+  assemblyPlan?: AssemblyPlan | null;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
   /** 榫接模式：3D 多畫一層紅色 tenon 凸出 */
   joineryMode?: boolean;
   /** Dev audit mode：?audit=true URL 啟用，overlap 的 parts 用紅色 wireframe 高亮 */
   auditMode?: boolean;
+  /** 掀蓋浮起：dovetail-box 才用，lid + plug + hinge 往上抬 lidLiftMm（mm） */
+  lidLiftMm?: number;
   /** 爆炸視圖：joineryMode 下 tenon 沿 position 方向往外偏 explodeMm（mm），
    *  視覺像榫頭從榫眼抽出來。0 = 無偏移（預設），> 0 拆得越開 */
   explodeMm?: number;
@@ -1872,8 +587,79 @@ export function PerspectiveView({
   compactMode?: boolean;
   /** 線框模式：所有零件渲染成骨架，看內部結構 */
   wireframeMode?: boolean;
+  /** Debug：隱藏特定 part.id（用 URL ?hide=wall-front,wall-back 之類驗證 CSG/joint） */
+  hidePartIds?: string[];
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
+  // Hover 高亮（Bot B：context 進來的 part id 集合，emissive 預覽用）
+  // 沒 provider 也 fallback 空集合，hook 不會 throw
+  const { hoveredPartIds } = useHoveredParts();
+
+  /**
+   * 組裝動畫（docs/drafting-math.md §H8）。
+   * 順序 / 方向由 lib/assembly/plan.ts 從榫接關係推出來；這裡只負責
+   * 「每幀把每個零件的 <group> 位移設成 offsetsAt(t)」——幾何、材質一律不重建，
+   * 所以不會踩到 useMemo 重做 CSG 的坑，也不動任何家具定義。
+   * 時鐘放 ref 不放 state：播放中每幀改 state 會讓整棵零件樹重 render。
+   */
+  const [assemblyOn, setAssemblyOn] = useState(false);
+  const [assemblyPlaying, setAssemblyPlaying] = useState(false);
+  const [assemblyUiT, setAssemblyUiT] = useState(0);       // 給滑桿 / 步驟文字用，100ms 更新一次
+  const [assemblyScrubNonce, setAssemblyScrubNonce] = useState(0);
+  const assemblyClockRef = useRef(0);
+  const partGroupRefs = useRef(new Map<string, Group>());
+  const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const assemblyPlan = useMemo<AssemblyPlan | null>(
+    () => (assemblyOn ? (assemblyPlanProp ?? planAssembly(design)) : null),
+    [assemblyOn, assemblyPlanProp, design],
+  );
+  const screwsByMother = useMemo(() => {
+    const m = new Map<string, ScrewSpec[]>();
+    for (const sc of assemblyPlan?.screws ?? []) (m.get(sc.motherId) ?? m.set(sc.motherId, []).get(sc.motherId)!).push(sc);
+    return m;
+  }, [assemblyPlan]);
+  const registerGroup = useCallback((id: string, g: Group | null) => {
+    if (g) partGroupRefs.current.set(id, g);
+    else partGroupRefs.current.delete(id);
+  }, []);
+  // 錄影：把 WebGL 每一幀複製到這張 2D 畫布（含背景色），錄的是它
+  const [exportTarget, setExportTarget] = useState<HTMLCanvasElement | null>(null);
+  const toggleAssembly = useCallback(() => {
+    setAssemblyOn((on) => {
+      if (on) { setAssemblyPlaying(false); return false; }
+      assemblyClockRef.current = 0;
+      setAssemblyUiT(0);
+      setAssemblyPlaying(true);
+      return true;
+    });
+  }, []);
+  const seekAssembly = useCallback((tMs: number) => {
+    assemblyClockRef.current = tMs;
+    setAssemblyUiT(tMs);
+    setAssemblyScrubNonce((n) => n + 1);
+  }, []);
+  // 影片輸出：錄 WebGL canvas，播完自動停、下載
+  const recordingRef = useRef<CanvasRecording | null>(null);
+  const exportRestoreRef = useRef<(() => void) | null>(null);
+  const [exporting, setExporting] = useState<{ pct: number } | null>(null);
+  const [exportAspect, setExportAspect] = useState<"current" | "portrait" | "square">("current");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
+  // 運鏡：播放（含錄影）期間相機繞著家具慢慢轉，整段約 120°；使用者拖曳照樣有效
+  const [cameraOrbit, setCameraOrbit] = useState(true);
+  // 🦆 喝咖啡的鴨子（木頭仁女兒畫的），站在家具旁邊陪組裝；控制列可關
+  const [duckOn, setDuckOn] = useState(true);
+  // xrayMode 完全用 URL 當 source of truth:
+  //   ViewPresetBar 按鈕走 router.replace 改 URL,App Router 在手機 + Vercel cache
+  //   下 server 不一定立刻 re-render,server prop 會 stale。改在 client 直接讀
+  //   useSearchParams,任何 URL 變化即時反映,不靠 server roundtrip。
+  const _spUrl = useSearchParams();
+  const _xUrl = _spUrl?.get("xray");
+  xrayMode =
+    _xUrl === "face" || _xUrl === "true" || _xUrl === "1"
+      ? "face"
+      : _xUrl === "full"
+        ? "full"
+        : "off";
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
   const maxDim = Math.max(
@@ -1882,6 +668,8 @@ export function PerspectiveView({
     design.overall.thickness,
   ) * SCALE;
   const themeFloor = sceneTheme?.floorColor ?? null;
+  // shoot 模式（?_shoot=1，截圖產 Pinterest Pin 用）隱藏量測 grid → 乾淨產品照懸浮感
+  const hideGrid = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("_shoot") === "1";
   const ambientMul = sceneTheme?.ambientMul ?? 1.0;
   const tint = sceneTheme?.lightTint ?? { r: 1, g: 1, b: 1 };
   // 把 (r,g,b) 0-1 轉成 rgb() string（Three.js Color.set 不接 array）
@@ -1890,95 +678,11 @@ export function PerspectiveView({
   // joineryMode：把所有 mortise 攤成 world 座標索引，給 tenon mesh 配對用。
   // 配對後 tenon mesh 長度 clamp 到 mortise.depth，確保 mesh 永遠住在母件
   // 預挖的洞裡，不會因為母件 shape（圓腳/倒角）讓 CSG 失效而從外面戳出來。
-  const worldMortiseIndex = useMemo<WorldMortise[]>(() => {
-    if (!joineryMode) return [];
-    const idx: WorldMortise[] = [];
-    for (const part of design.parts) {
-      if (!part.mortises || part.mortises.length === 0) continue;
-      const rx = part.rotation?.x ?? 0;
-      const ry = part.rotation?.y ?? 0;
-      const rz = part.rotation?.z ?? 0;
-      const lx = part.visible.length;
-      const ly = part.visible.thickness;
-      const lz = part.visible.width;
-      const yExt = worldExtents(part).yExt;
-      const pcx = part.origin.x;
-      const pcy = part.origin.y + yExt / 2;
-      const pcz = part.origin.z;
-      for (const m of part.mortises) {
-        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）。
-        // 重要：origin.y=0 或 origin.y=ly 是 from-bottom 慣例的「便利預設值」
-        // （側板/牙條 mortise template 常寫 y:0 表示「不指定 Y 入榫」），不該被
-        // 當作真的 Y face 入榫。當 origin.y 在 canonical 值 + X 或 Z 軸有
-        // origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—跟
-        // svg-views.tsx 的 mortiseLocalBox 邏輯保持一致，否則 tenon outAxis
-        // 配對全錯，drawer-bottom tenon 抓不到 side-panel mortise → 紅塊。
-        const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
-        const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
-        const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
-        const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
-        let lex = 0, ley = 0, lez = 0;
-        let localAxis: "x" | "y" | "z";
-        let localSign: 1 | -1;
-        if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
-          // canonical Y 不是真深度軸 → 改選 X 或 Z（最靠近 face 的那個）
-          if (xToFace <= zToFace) {
-            localAxis = "x";
-            localSign = m.origin.x >= 0 ? 1 : -1;
-            lex = localSign === 1 ? lx / 2 : -lx / 2;
-            ley = m.origin.y - ly / 2;
-            lez = m.origin.z;
-          } else {
-            localAxis = "z";
-            localSign = m.origin.z >= 0 ? 1 : -1;
-            lex = m.origin.x;
-            ley = m.origin.y - ly / 2;
-            lez = localSign === 1 ? lz / 2 : -lz / 2;
-          }
-        } else if (yToFace <= xToFace && yToFace <= zToFace) {
-          localAxis = "y";
-          localSign = m.origin.y >= ly - 1 ? 1 : -1;
-          lex = m.origin.x;
-          ley = localSign === 1 ? ly / 2 : -ly / 2;
-          lez = m.origin.z;
-        } else if (xToFace <= zToFace) {
-          localAxis = "x";
-          localSign = m.origin.x >= 0 ? 1 : -1;
-          lex = localSign === 1 ? lx / 2 : -lx / 2;
-          ley = m.origin.y - ly / 2;
-          lez = m.origin.z;
-        } else {
-          localAxis = "z";
-          localSign = m.origin.z >= 0 ? 1 : -1;
-          lex = m.origin.x;
-          ley = m.origin.y - ly / 2;
-          lez = localSign === 1 ? lz / 2 : -lz / 2;
-        }
-        const e = rotateXYZ(rx, ry, rz, lex, ley, lez);
-        const ax = localAxis === "x" ? localSign : 0;
-        const ay = localAxis === "y" ? localSign : 0;
-        const az = localAxis === "z" ? localSign : 0;
-        const a = rotateXYZ(rx, ry, rz, ax, ay, az);
-        const aX = Math.abs(a.x), aY = Math.abs(a.y), aZ = Math.abs(a.z);
-        let worldAxis: "x" | "y" | "z";
-        let worldSign: 1 | -1;
-        if (aX >= aY && aX >= aZ) { worldAxis = "x"; worldSign = a.x >= 0 ? 1 : -1; }
-        else if (aY >= aZ) { worldAxis = "y"; worldSign = a.y >= 0 ? 1 : -1; }
-        else { worldAxis = "z"; worldSign = a.z >= 0 ? 1 : -1; }
-        idx.push({
-          partId: part.id,
-          entryX: pcx + e.x,
-          entryY: pcy + e.y,
-          entryZ: pcz + e.z,
-          axis: worldAxis,
-          sign: worldSign,
-          depth: m.depth,
-          through: m.through ?? false,
-        });
-      }
-    }
-    return idx;
-  }, [design.parts, joineryMode]);
+  // 榫眼世界索引：抽到 lib/assembly/joint-world.ts（組裝動畫共用同一份）。
+  const worldMortiseIndex = useMemo<WorldMortise[]>(
+    () => (joineryMode ? buildWorldMortiseIndex(design.parts) : []),
+    [design.parts, joineryMode],
+  );
 
   // Audit mode：抓 overlap 對，把出現在裡面的 part id 拉成 set。標紅色高亮。
   const overlapIds = useMemo(() => {
@@ -2007,25 +711,222 @@ export function PerspectiveView({
     return ids;
   }, [auditMode, design]);
 
+  // 鳩尾榫 CSG cutters：把每個 dovetail-ends 板（tray 前後板）的幾何包成 Brush，
+  // **vertices 直接 pre-transform 到 world** (applyMatrix4 套 part position + ZYX
+  // rotation)、brush.matrixWorld = identity → CSG 結果就是 world 座標。
+  //
+  // 設計：tray.ts 把 dovetail-ends shape 只掛在 wall-front/wall-back（phase=0
+  // = tail），左右板留完整 box（不切榫）。本 useMemo 用前後板的 dovetail tail
+  // 幾何當 cutter，從左右板 box 挖出對應的梯形 gap → 自動形成正確的 pin 形狀，
+  // 不用硬算 trapezoid 對齊。
+  //
+  // 上輪 (09c1097 → revert 191a5ac) 用 brush.position.set + rotation.set +
+  // updateMatrixWorld 對齊，側板整個被挖空。本輪改 pre-transform geometry 避開
+  // matrixWorld propagation 疑慮。
+  const dovetailCutBrushes = useMemo(() => buildDovetailCutBrushes(design.parts, SCALE), [design.parts]);
+
+  const tPV = useTranslations("perspectiveView");
+  const pvLocale = useLocale();
+
+  /**
+   * ⭐ 轉動模型 ≠ 點選零件。
+   *
+   * R3F 的 onClick 是在 pointerup 觸發的,**不管中間拖了多遠** ——
+   * 所以用手指轉一下 3D,放手時就會選到手指下面那個零件,
+   * 其他零件全被打成 18% 半透明(DIM_OPACITY)。
+   * 使用者的感受是「我根本沒點,畫面自己變透視」。(2026-08-25 木頭仁回報)
+   *
+   * Canvas 那層早就知道這件事 —— 它的註解寫著「不接 onClick 因為 OrbitControls
+   * 拖動結束會 fire click」,所以改用 onPointerMissed。但**零件那層漏了同一道防護**。
+   *
+   * 作法:記下 pointerdown 的座標,放手時位移超過 DRAG_SLOP_PX 就當成「轉動」,不改選取。
+   */
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedAway = (e: { clientX: number; clientY: number }) =>
+    isDragRelease(pointerDownRef.current, { x: e.clientX, y: e.clientY });
+
+  /**
+   * 靜置時停止重繪（見 components/viewer/useSmartFrameloop.ts 的抬頭警告）。
+   * 場景全靜態：沒有任何 useFrame、OrbitControls 也沒開 damping，
+   * 所以「沒人碰就不用畫」是安全的。
+   */
+  const canvasHostRef = useRef<HTMLDivElement | null>(null);
+  const frameloop = useSmartFrameloop(canvasHostRef, [
+    design,
+    sceneTheme,
+    joineryMode,
+    auditMode,
+    explodeMm,
+    lidLiftMm,
+    xrayMode,
+    selectedPartId,
+    compactMode,
+    wireframeMode,
+    hidePartIds.join(","),
+    hoveredPartIds,
+    viewPreset,
+    assemblyOn,
+    assemblyPlaying,
+    assemblyScrubNonce,
+    assemblyPlanProp,
+    duckOn,
+  ]);
+
+  const finishExport = useCallback(async () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    exportRestoreRef.current?.();
+    exportRestoreRef.current = null;
+    setExportTarget((c) => { c?.remove(); return null; });
+    if (!rec) return;
+    const blob = await rec.stop();
+    const ext = extensionForMime(rec.mime);
+    const base = pvLocale === "en" ? `${design.id}-assembly` : `${design.nameZh}-組裝動畫`;
+    const file = `${base}.${ext}`;
+    downloadBlob(blob, file);
+    setExporting(null);
+    setExportMsg(tPV("assemblyDoneTpl", { file }));
+  }, [design.id, design.nameZh, pvLocale, tPV]);
+
+  const onAssemblyTick = useCallback((tMs: number, done: boolean) => {
+    setAssemblyUiT(tMs);
+    if (recordingRef.current && assemblyPlan) {
+      setExporting({ pct: Math.min(100, Math.round((100 * tMs) / assemblyPlan.totalMs)) });
+    }
+    if (done) {
+      setAssemblyPlaying(false);
+      if (recordingRef.current) void finishExport();
+    }
+  }, [assemblyPlan, finishExport]);
+
+  const startExport = useCallback(async () => {
+    if (!assemblyPlan || exporting) return;
+    const canvas = glCanvasRef.current;
+    const host = canvasHostRef.current;
+    if (!canvas || !host) return;
+    if (!pickRecorderMime()) { setExportMsg(tPV("assemblyExportUnsupported")); return; }
+    setExportMsg(null);
+    // 2D 目標畫布：接在 body 下（Safari 對脫離 DOM 的 canvas 不吐幀），尺寸由 RecorderTap 每幀對齊
+    const target = document.createElement("canvas");
+    target.width = canvas.width;
+    target.height = canvas.height;
+    target.style.cssText = "position:fixed;left:-20000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(target);
+    setExportTarget(target);
+    // 直式 / 方形：暫時把 canvas 容器改成該比例（R3F 會跟著 resize），錄完還原
+    if (exportAspect !== "current") {
+      const prev = host.style.cssText;
+      const h = host.clientHeight;
+      const w = exportAspect === "portrait" ? Math.round((h * 9) / 16) : h;
+      host.style.width = `${w}px`;
+      host.style.height = `${h}px`;
+      host.style.flex = "none";
+      host.style.alignSelf = "center";
+      exportRestoreRef.current = () => { host.style.cssText = prev; };
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+    assemblyClockRef.current = 0;
+    setAssemblyUiT(0);
+    setAssemblyScrubNonce((n) => n + 1);
+    try {
+      recordingRef.current = startCanvasRecording(target);
+    } catch {
+      exportRestoreRef.current?.();
+      exportRestoreRef.current = null;
+      setExportTarget((c) => { c?.remove(); return null; });
+      setExportMsg(tPV("assemblyExportUnsupported"));
+      return;
+    }
+    setExporting({ pct: 0 });
+    setAssemblyPlaying(true);
+  }, [assemblyPlan, exporting, exportAspect, tPV]);
+
+  // 元件卸載時若還在錄，收掉（不下載）
+  useEffect(() => () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    exportRestoreRef.current?.();
+    exportRestoreRef.current = null;
+    if (rec) void rec.stop();
+    document.querySelectorAll<HTMLCanvasElement>("canvas[data-assembly-export]").forEach((c) => c.remove());
+  }, []);
+
+  /**
+   * 🧷 選取的 id 在目前設計裡找不到時,一律當成「沒選」。
+   *
+   * 不這樣做的話會出現最難解釋的死局:**全部零件都半透明,卻沒有任何一根亮起來**
+   * (因為 isDimmed 只看 `selectedPartId !== null`),而且取消鈕也不會出現
+   * —— 使用者完全沒有出口。換家具 / 換模式導致零件 id 變動時就會撞到。
+   */
+  const activeSelectedId =
+    selectedPartId && design.parts.some((p) => p.id === selectedPartId)
+      ? selectedPartId
+      : null;
+  const selectedPart = activeSelectedId
+    ? design.parts.find((p) => p.id === activeSelectedId)
+    : null;
+
   return (
     <div className={
       compactMode
         ? "w-full h-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
         : "w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
     }>
-      <ViewPresetBar onSelect={setViewPreset} />
-      <div data-thumb="3d" className="flex-1 min-h-0 relative">
+      <ViewPresetBar
+        onSelect={setViewPreset}
+        hasLid={design.parts.some((p) => p.id === "lid")}
+        assemblyOn={assemblyOn}
+        onToggleAssembly={toggleAssembly}
+      />
+      {assemblyOn && assemblyPlan ? (
+        <AssemblyControls
+          plan={assemblyPlan}
+          design={design}
+          locale={pvLocale}
+          playing={assemblyPlaying}
+          tMs={assemblyUiT}
+          compact={compactMode}
+          exporting={exporting}
+          exportAspect={exportAspect}
+          exportMsg={exportMsg}
+          onPlayPause={() => {
+            if (exporting) return;
+            if (!assemblyPlaying && assemblyClockRef.current >= assemblyPlan.totalMs) seekAssembly(0);
+            setAssemblyPlaying((p) => !p);
+          }}
+          onReplay={() => { if (exporting) return; seekAssembly(0); setAssemblyPlaying(true); }}
+          onSeek={(t) => { if (exporting) return; setAssemblyPlaying(false); seekAssembly(t); }}
+          onClose={() => { if (exporting) return; toggleAssembly(); }}
+          onExport={() => { void startExport(); }}
+          onAspect={setExportAspect}
+          orbit={cameraOrbit}
+          onOrbit={setCameraOrbit}
+          duck={duckOn}
+          onDuck={setDuckOn}
+        />
+      ) : null}
+      <div
+        ref={canvasHostRef}
+        data-thumb="3d"
+        className="flex-1 min-h-0 relative"
+        onPointerDownCapture={(e) => {
+          pointerDownRef.current = { x: e.clientX, y: e.clientY };
+        }}
+      >
       <Canvas
-        shadows
+        // VSMShadowMap (variance) 取代預設 PCFSoftShadowMap—— PCFSoftShadowMap
+        // 在 Three.js r170+ 已 deprecated 並 fallback 到硬陰影 PCFShadowMap，
+        // console 每張 3D 載入時刷 11+ 條 warning 像出包。VSM 是新版軟陰影方案，
+        // 視覺效果接近原本，且不再有 deprecation 警告。
+        shadows={{ type: VSMShadowMap }}
         // 點到家具零件之外的空白處（場景空地、grid）→ 清掉 selectedPartId
         // 不接 onClick 因為 OrbitControls 拖動結束會 fire click。
         // onPointerMissed 是 R3F 提供：pointer up 沒打到任何 mesh 才 fire。
-        onPointerMissed={onPartSelect ? () => onPartSelect(null) : undefined}
-        // frameloop="always" 確保 selectedPartId / dim opacity 變化即時反映
-        // （之前 demand 模式有 race condition：material prop 變更但 invalidate
-        //  時 GPU 還沒收到 → 透明效果失效）。代價：scroll 時 3D 持續渲染
-        //  約 30-60fps，比 demand 多吃一些 GPU 但保證視覺正確
-        frameloop="always"
+        onPointerMissed={onPartSelect ? (e: MouseEvent) => { if (draggedAway(e)) return; onPartSelect(null); } : undefined}
+        // 有變動 / 有人在操作 / 看得到 → "always"（連續重繪 1.5 秒，蓋過當年
+        // demand 模式那個「material prop 改了但 GPU 還沒收到」的競態）；
+        // 完全靜置或捲出畫面 → "demand"（幾乎不吃 GPU）。見 useSmartFrameloop。
+        frameloop={frameloop}
         // dpr 上限 1.5 防止 Retina 螢幕 4× 像素做 shadow map。
         dpr={[1, 1.5]}
         // ACES Filmic tone mapping — 電影業界標準，給 PBR 材質正確的高光衰減
@@ -2088,7 +989,9 @@ export function PerspectiveView({
             +directionalLight 已給足基本明暗。 */}
         {!compactMode && (
           <>
-            <Environment preset="apartment" />
+            <HDRBoundary>
+              <Environment preset="apartment" />
+            </HDRBoundary>
             <ContactShadows
               position={[0, 0.001, 0]}
               opacity={0.35}
@@ -2111,8 +1014,8 @@ export function PerspectiveView({
           </mesh>
         )}
 
-        {/* 沒選 theme 時保留原本的 grid（給設計師量度），有 theme 時用實心地板 */}
-        {!themeFloor && (
+        {/* 沒選 theme 時保留原本的 grid（給設計師量度），有 theme 時用實心地板;shoot 模式隱藏 */}
+        {!themeFloor && !hideGrid && (
           <gridHelper
             args={[
               (Math.max(design.overall.length, design.overall.width) * SCALE) * 3,
@@ -2123,7 +1026,11 @@ export function PerspectiveView({
           />
         )}
 
-        {design.parts.map((part) => {
+        {design.parts.map((partRaw) => {
+          if (hidePartIds.includes(partRaw.id)) return null;
+          // joineryView 覆寫：joineryMode 開啟時，部分 part 會用「榫接版專用幾何」
+          // （e.g. 書擋的 45° miter）；組裝版維持原本直角對接 / 簡潔形狀。
+          const part = joineryMode ? partForJoineryView(partRaw) : partRaw;
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
           // X-ray 模式過濾：
@@ -2135,13 +1042,15 @@ export function PerspectiveView({
             // 但要排除門「內層板」（id 含 -door-inner-shelf-）— 那是櫃內收納板不是門
             const isDoor = (category === "door" || /-door($|-)/.test(part.id))
               && !/-door-inner-/.test(part.id);
+            // 盒蓋（dovetail-box lid）跟門一樣 xray 一律藏
+            const isLid = part.id === "lid";
             // face mode：藏「面板」+「箱體前板」+「面板把手」
             const isDrawerFront = /-drawer-\d+-(face|front)(-pull)?$/.test(part.id);
             const isDrawer = category === "drawer" || /-drawer-\d+/.test(part.id);
             // pull / hinge 屬於門 / 抽屜的視覺配件，xray 一律藏
             const isPull = /-pull$/.test(part.id);
             const isHinge = /-hinge/.test(part.id);
-            if (isDoor || isPull || isHinge) return null;
+            if (isDoor || isLid || isPull || isHinge) return null;
             if (xrayMode === "face" && isDrawerFront) return null;
             if (xrayMode === "full" && isDrawer) return null;
           }
@@ -2154,9 +1063,45 @@ export function PerspectiveView({
           // 配對二元淺/深：左右淺、上下深，最多 2 色不亂
           const color = pairShadeByPartId(tintedColor, part.id);
           const { yExt } = worldExtents(part);
-          const px = part.origin.x * SCALE;
-          const py = (part.origin.y + yExt / 2) * SCALE;
-          const pz = part.origin.z * SCALE;
+          // 掀蓋：lid / lid-plug / lid-hinge-* 整組
+          //   lidLiftMm > 0 = 垂直浮起 N mm（lift 模式）
+          //   lidLiftMm < 0 = 繞後緣 90° 鉸鏈翻開（open 模式）
+          const isLidGroup =
+            part.id === "lid" || /^lid-(plug|hinge|cleat|raised-center)/.test(part.id) || /-lid$/.test(part.id);
+          const lidOpenMode = isLidGroup && lidLiftMm < 0;
+          // 預設 px/py/pz：未掀 + lift mode 共用
+          const liftMm = isLidGroup && lidLiftMm > 0 ? lidLiftMm : 0;
+          let px = part.origin.x * SCALE;
+          let py = (part.origin.y + yExt / 2 + liftMm) * SCALE;
+          let pz = part.origin.z * SCALE;
+          // open mode：把 part center 繞後緣軸（X 軸通過 (0, lidBottomY_mm, +outerW/2)）轉 +π/2
+          // pivot Y 用 lid origin.y（= 壁頂層 outerH - lidT），pivot Z = +outerW/2。
+          let openRotation: Euler | null = null;
+          if (lidOpenMode) {
+            // pivot Y：lift-off 模式 = lid 牆底（= cutY）；其他蓋型 = lid origin.y
+            // 偵測 lift-off：存在 wall-*-lid 牆
+            const lidWall = design.parts.find((p) => /-lid$/.test(p.id) && /^wall-/.test(p.id));
+            const lidRef = design.parts.find((p) => p.id === "lid");
+            const pivotY_mm = lidWall?.origin.y ?? lidRef?.origin.y ?? part.origin.y;
+            const pivotZ_mm = design.overall.width / 2;
+            const cx_mm = part.origin.x;
+            const cy_mm = part.origin.y + yExt / 2;
+            const cz_mm = part.origin.z;
+            const rY = cy_mm - pivotY_mm;
+            const rZ = cz_mm - pivotZ_mm;
+            // Rx(+π/2)：new_y = -z, new_z = y
+            const newRY = -rZ;
+            const newRZ = rY;
+            px = cx_mm * SCALE;
+            py = (pivotY_mm + newRY) * SCALE;
+            pz = (pivotZ_mm + newRZ) * SCALE;
+            // 合成 rotation：openQuat ∘ partQuat
+            const openQuat = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+            const partQuat = new Quaternion().setFromEuler(
+              new Euler(part.rotation?.x ?? 0, part.rotation?.y ?? 0, part.rotation?.z ?? 0, "ZYX"),
+            );
+            openRotation = new Euler().setFromQuaternion(openQuat.multiply(partQuat), "ZYX");
+          }
           let shape: ShapeSpec | undefined;
           if (part.shape?.kind === "tapered") {
             shape = {
@@ -2180,6 +1125,54 @@ export function PerspectiveView({
               hoofScale: part.shape.hoofScale,
               dirX: part.shape.dirX ?? 0,
               dirZ: part.shape.dirZ ?? 0,
+            };
+          } else if (part.shape?.kind === "curved-taper") {
+            shape = {
+              kind: "curved-taper",
+              blockHeightMm: part.shape.blockHeightMm * SCALE,
+              shoulderMm: part.shape.shoulderMm * SCALE,
+              insetMm: part.shape.insetMm * SCALE,
+              dir: part.shape.dir,
+              ...(part.shape.dxMm ? { dxMm: part.shape.dxMm * SCALE } : {}),
+              ...(part.shape.dzMm ? { dzMm: part.shape.dzMm * SCALE } : {}),
+              ...(part.shape.twoWay ? { twoWay: true, dirZ: part.shape.dirZ ?? 1 } : {}),
+              // S 形肩：純旗標,不是長度,**不要乘 SCALE**。
+              ...(part.shape.sCurve ? { sCurve: true } : {}),
+              /**
+               * 🩸 「橫撐處也做弧肩」勾了但 3D 完全沒反應 —— 就是這裡漏了。
+               *
+               * 這個分支是**逐欄位重組** shape 物件的,新增欄位不會自動跟過來。
+               * 幾何、三視圖、零件圖都有第二道弧,只有 3D 沒有 → 使用者說「根本沒有」。
+               * ⚠️ 而且 `lowerCove` 是 mm,跟 blockHeightMm 一樣要乘 SCALE。
+               * (2026-08-26;同一個地方 8/25 才因為漏 `dirZ` 出過一模一樣的包。)
+               */
+              ...(part.shape.lowerCove
+                ? {
+                    lowerCove: {
+                      botMm: part.shape.lowerCove.botMm * SCALE,
+                      topMm: part.shape.lowerCove.topMm * SCALE,
+                    },
+                  }
+                : {}),
+            };
+          } else if (part.shape?.kind === "edge-profile") {
+            shape = {
+              kind: "edge-profile",
+              style: part.shape.style,
+              depthMm: part.shape.depthMm * SCALE,
+              waveCount: part.shape.waveCount,
+              topLengthScale: part.shape.topLengthScale,
+              bottomLengthScale: part.shape.bottomLengthScale,
+            };
+          } else if (part.shape?.kind === "top-outline") {
+            shape = {
+              kind: "top-outline",
+              style: part.shape.style,
+              sizeMm: part.shape.sizeMm * SCALE,
+              sizeZMm: part.shape.sizeZMm ? part.shape.sizeZMm * SCALE : undefined,
+              squareness: part.shape.squareness,
+              archSides: part.shape.archSides,
+              lobes: part.shape.lobes,
             };
           } else if (part.shape?.kind === "round") {
             shape = {
@@ -2218,6 +1211,7 @@ export function PerspectiveView({
               bevelAngle: part.shape.bevelAngle,
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
+              ...(part.shape.taperSpanMm !== undefined ? { taperSpanMm: part.shape.taperSpanMm * SCALE } : {}),
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
@@ -2256,6 +1250,64 @@ export function PerspectiveView({
               bendMm: (part.shape.bendMm ?? 0) * SCALE,
               bendAxis: part.shape.bendAxis ?? "z",
             };
+          } else if (part.shape?.kind === "mitered-ends") {
+            shape = {
+              kind: "mitered-ends",
+              insetEach: part.shape.insetEach * SCALE,
+              outerSide: part.shape.outerSide,
+              tiltAngle: part.shape.tiltAngle,
+              bevelAngle: part.shape.bevelAngle,
+              vertices: part.shape.vertices?.map(
+                ([x, y, z]) => [x * SCALE, y * SCALE, z * SCALE] as [number, number, number],
+              ),
+            };
+          } else if (part.shape?.kind === "finger-joint-ends") {
+            shape = {
+              kind: "finger-joint-ends",
+              segmentCount: part.shape.segmentCount,
+              phase: part.shape.phase,
+              fingerDepth: part.shape.fingerDepth * SCALE,
+              edgeChamferMm: part.shape.edgeChamferMm !== undefined ? part.shape.edgeChamferMm * SCALE : undefined,
+            };
+          } else if (part.shape?.kind === "dovetail-ends") {
+            shape = {
+              kind: "dovetail-ends",
+              segmentCount: part.shape.segmentCount,
+              phase: part.shape.phase,
+              angleDeg: part.shape.angleDeg,
+              pinDepth: part.shape.pinDepth * SCALE,
+              halfPin: part.shape.halfPin,
+            };
+          } else if (part.shape?.kind === "regular-polygon") {
+            shape = {
+              kind: "regular-polygon",
+              sides: part.shape.sides,
+              outerRadius: part.shape.outerRadius * SCALE,
+              angleOffsetDeg: part.shape.angleOffsetDeg,
+            };
+          } else if (part.shape?.kind === "right-triangle") {
+            shape = { kind: "right-triangle", corner: part.shape.corner };
+          } else if (part.shape?.kind === "mitered-corner") {
+            shape = {
+              kind: "mitered-corner",
+              axis: part.shape.axis,
+              corner: part.shape.corner,
+              depthMm: part.shape.depthMm * SCALE,
+              chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
+            };
+          } else if (part.shape?.kind === "pointed-ends") {
+            // 純 kind tag、沒 mm-scaled params；passthrough 讓 Part 的
+            // edgesGeometry useMemo 內早 return 分支抓得到、跳 ±X tip 兩條
+            // z 軸 side edge（紅酒架菱形 lattice wireframe 不進框關鍵）。
+            shape = { kind: "pointed-ends" };
+          } else if (part.shape?.kind === "french-cleat") {
+            // bevelAngle 是角度（免 SCALE）、orientation 是字串；bevelDrop 由
+            // size（已 scaled 的 thickness/width）算出，故純 passthrough。
+            shape = {
+              kind: "french-cleat",
+              bevelAngle: part.shape.bevelAngle,
+              orientation: part.shape.orientation,
+            };
           }
           // joineryMode：每個 tenon 凸出當小盒子畫，用 part 的 rotation +
           // tenon local center（含 offset）算 world position；box 跟 part 同
@@ -2277,58 +1329,11 @@ export function PerspectiveView({
                 const oW = t.offsetWidth ?? 0;
                 const oT = t.offsetThickness ?? 0;
 
-                // 算 tenon 根面世界座標 + outward 世界軸，給 mortise 配對用
-                const rxP = part.rotation?.x ?? 0;
-                const ryP = part.rotation?.y ?? 0;
-                const rzP = part.rotation?.z ?? 0;
-                let lrx = 0, lry = 0, lrz = 0;
-                let lox = 0, loy = 0, loz = 0;
-                switch (t.position) {
-                  case "start":  lrx = -lx / 2; lry = oT; lrz = oW; lox = -1; break;
-                  case "end":    lrx = +lx / 2; lry = oT; lrz = oW; lox = +1; break;
-                  case "top":    lrx = oW; lry = +ly / 2; lrz = oT; loy = +1; break;
-                  case "bottom": lrx = oW; lry = -ly / 2; lrz = oT; loy = -1; break;
-                  case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
-                  case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
-                }
-                const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
-                const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
-                const wRootX = part.origin.x + rRoot.x;
-                const wRootY = part.origin.y + worldExtents(part).yExt / 2 + rRoot.y;
-                const wRootZ = part.origin.z + rRoot.z;
-                const aX = Math.abs(rOut.x), aY = Math.abs(rOut.y), aZ = Math.abs(rOut.z);
-                let outAxis: "x" | "y" | "z";
-                let outSign: 1 | -1;
-                if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = rOut.x >= 0 ? 1 : -1; }
-                else if (aY >= aZ) { outAxis = "y"; outSign = rOut.y >= 0 ? 1 : -1; }
-                else { outAxis = "z"; outSign = rOut.z >= 0 ? 1 : -1; }
-
-                // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
-                //
-                // Owner-family filter（避免抽屜 part 配到櫃體 part）：
-                //   抽屜 part id 慣例 `{prefix}drawer-{i+1}-{role}`，例：
-                //     `drawer-1-back`（單區）
-                //     `col1-drawer-1-back`（columns）
-                //     `z2-drawer-1-back`（zones）
-                //   如果 tenon owner id 含 `drawer-N-`，只跟同 `…drawer-N-`
-                //   前綴的 mortise 配對；不准跨抽屜也不准爬到櫃體 side panel。
-                //   其它（leg/apron/top/case-side）維持原 1-NN 行為。
-                const drawerMatch = part.id.match(/^(.*?drawer-\d+)-/);
-                const drawerFamily = drawerMatch ? drawerMatch[1] + "-" : null;
-                let bestMort: WorldMortise | null = null;
-                let bestDist = Infinity;
-                for (const mw of worldMortiseIndex) {
-                  if (mw.partId === part.id) continue;
-                  if (mw.axis !== outAxis) continue;
-                  if (mw.sign === outSign) continue;
-                  if (drawerFamily && !mw.partId.startsWith(drawerFamily)) continue;
-                  const dx = mw.entryX - wRootX;
-                  const dy = mw.entryY - wRootY;
-                  const dz = mw.entryZ - wRootZ;
-                  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                  // 50mm 容忍：parts 可能因斜腳 splay/錯位有些距離
-                  if (d < bestDist && d < 50) { bestDist = d; bestMort = mw; }
-                }
+                // 算 tenon 根面世界座標 + outward 世界軸，配對母件榫眼
+                // （邏輯在 lib/assembly/joint-world.ts，組裝動畫共用同一份）
+                const tw = tenonWorld(part, t);
+                const outUnit = tw.outUnit;
+                const bestMort: WorldMortise | null = matchMortiseForTenon(part, t, tw, worldMortiseIndex);
 
                 // 通榫不 clamp（要凸出母件背面）；其它都 clamp 到母件 mortise 深
                 const effLen = bestMort && !bestMort.through
@@ -2372,6 +1377,11 @@ export function PerspectiveView({
                     ez = explodeMm;
                     break;
                 }
+                // Note: with t.axis (compound splay), lcx/lcy/lcz remain at the
+                // position-default local center. The mesh quaternion below
+                // applies a WORLD-frame rotation that orients the box's long
+                // axis onto t.axis; the box stays centred at its nominal
+                // tenon position (visually approximate but acceptable).
                 lcx += ex; lcy += ey; lcz += ez;
                 // 把 local center 經 part Euler XYZ 旋轉 → 加 part 中心 = world center
                 const rx = part.rotation?.x ?? 0;
@@ -2402,37 +1412,325 @@ export function PerspectiveView({
                   part.shape?.kind === "round-tapered" ||
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
-                const useRoundTenon = isRoundLegPart && t.position === "top";
+                const useRoundTenon =
+                  isRoundLegPart && (t.position === "top" || t.position === "bottom");
+
+                // Compound splay: t.axis is WORLD-frame tenon direction.
+                // Composition: meshQuat = extraQ_world * partQ
+                //   - partQ takes geometry from part-local to world (so the
+                //     box's cross-section ends up aligned with the part's
+                //     local W/T — tenon wide-face faces "up" relative to apron)
+                //   - extraQ_world then rotates the post-partQ long-axis
+                //     direction onto t.axis (world)
+                // This preserves cross-section orientation while pointing
+                // the long axis at the world-frame splayed tenon direction.
+                // Compute meshQuat and the world-frame position shift needed
+                // so the tenon's ROOT (the face flush against the parent part)
+                // stays on the parent's exterior face after rotation. Without
+                // the shift the mesh would rotate about its center, lifting
+                // the root off the parent face by `(effLen/2) * (tAxis - geomLongWorld)`.
+                let posShift: { x: number; y: number; z: number } | null = null;
+                const meshQuat = (() => {
+                  if (!t.axis) return null;
+                  const partQ = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  const geomLongLocal: [number, number, number] =
+                    (t.position === "start" || t.position === "end")  ? [1, 0, 0] :
+                    (t.position === "top" || t.position === "bottom") ? [0, 1, 0] :
+                                                                         [0, 0, 1];
+                  const flip = (t.position === "start" || t.position === "bottom" || t.position === "left") ? -1 : 1;
+                  const geomLongLocalV = new Vector3(
+                    geomLongLocal[0] * flip,
+                    geomLongLocal[1] * flip,
+                    geomLongLocal[2] * flip,
+                  );
+                  const geomLongWorld = geomLongLocalV.clone().applyQuaternion(partQ);
+                  const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  const target = new Vector3(t.axis.x / tm, t.axis.y / tm, t.axis.z / tm);
+                  const extraQ = new Quaternion().setFromUnitVectors(geomLongWorld, target);
+                  // Root-anchor shift: position += (effLen/2) * (target - geomLongWorld)
+                  // in world frame. This keeps the tenon's root-face CENTER on the
+                  // parent's exterior face after rotation. But the rotated box's
+                  // bottom-face corners still spread ±(W/2*|perpY|) above/below
+                  // this center, leaving a visible wedge gap on one side and
+                  // overlap on the other.
+                  //
+                  // Second shift: push the mesh further along -target so the
+                  // HIGHEST root-face corner lands at the anchor plane. After
+                  // this, no part of the root face protrudes past the parent's
+                  // exterior; the diagonal cut sinks into the parent (hidden
+                  // in solid render, slightly visible in wireframe).
+                  const composed = extraQ.clone().multiply(partQ);
+                  const rootMesh = new Vector3(
+                    -hx * geomLongLocal[0] * flip,
+                    -hy * geomLongLocal[1] * flip,
+                    -hz * geomLongLocal[2] * flip,
+                  );
+                  // Cross-section half-extents along the two non-long axes.
+                  const isLongX = Math.abs(geomLongLocal[0]) > 0.5;
+                  const isLongY = Math.abs(geomLongLocal[1]) > 0.5;
+                  const halfA = isLongX ? hy : hx;
+                  const halfB = isLongY ? hz : (isLongX ? hz : hy);
+                  const perpAxisA = new Vector3(isLongX ? 0 : 1, isLongX ? 1 : 0, 0);
+                  const perpAxisB = new Vector3(isLongX || isLongY ? 0 : 1, 0, isLongX || isLongY ? 1 : 0);
+                  let maxCornerY = -Infinity;
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const cornerLocal = rootMesh.clone()
+                      .addScaledVector(perpAxisA, sa * halfA)
+                      .addScaledVector(perpAxisB, sb * halfB);
+                    const cornerWorld = cornerLocal.applyQuaternion(composed);
+                    if (cornerWorld.y > maxCornerY) maxCornerY = cornerWorld.y;
+                  }
+                  // sink = excess protrusion above root face CENTER after rotation
+                  // （不能直接扣 maxCornerY，那會把 mesh 整個下推 hy*cosα ≈ 8mm，
+                  //  讓 tenon 整體跟 parent 分離）。應只扣 maxCornerY −
+                  //  rootCenterY_after_rot（≈ 0.7mm，僅角的凸出量），把 corner
+                  //  剛好壓到 anchor、root 中心仍貼 anchor。
+                  const rootCenterRotated = rootMesh.clone().applyQuaternion(composed);
+                  const sinkY = Math.max(0, maxCornerY - rootCenterRotated.y);
+                  // posShift = root-anchor + sink
+                  posShift = {
+                    x: (effLen / 2) * (target.x - geomLongWorld.x) * SCALE,
+                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE - sinkY * SCALE,
+                    z: (effLen / 2) * (target.z - geomLongWorld.z) * SCALE,
+                  };
+                  return extraQ.multiply(partQ);
+                })();
+
+                // When t.axis is present, render as a SHEARED BOX: root + tip
+                // cross-sections stay parallel to the parent's shoulder face
+                // (horizontal for a leg's top face), and the body slides along
+                // t.axis. This matches real woodworking (shoulder cut flat, tenon
+                // body angled to match leg's lean). The mesh uses NO quaternion;
+                // the shear is encoded directly in vertex positions.
+                const useShearedBox = !!t.axis && !useRoundTenon;
+                const shearedGeom = useShearedBox && t.axis ? (() => {
+                  const SHRINK_MM = 0.5;
+                  const ROOT_BURY = 0.1;  // mm, both ends
+                  // A tenon is a PARALLELEPIPED with two independent directions:
+                  //   B = body direction (along wood grain)
+                  //   N = end face normal (perpendicular to cut surface)
+                  // For leg-top tenon: B = t.axis (slanted), N = default outward
+                  //   (= world Y for unrotated legs) — leg lean, horizontal shoulder.
+                  // For apron tenon: B = apron length in world (partQ * default
+                  //   outward), N = t.axis (compound miter plane normal) —
+                  //   apron runs straight between corners, end faces are oblique.
+                  const isTopBottom = (t.position === "top" || t.position === "bottom");
+                  const isStartEnd  = (t.position === "start" || t.position === "end");
+
+                  // Default outward direction in part-local (the direction the
+                  // tenon protrudes naturally before t.axis override).
+                  const defaultLocal: [number, number, number] =
+                    t.position === "start"  ? [-1, 0, 0] :
+                    t.position === "end"    ? [+1, 0, 0] :
+                    t.position === "top"    ? [ 0, +1, 0] :
+                    t.position === "bottom" ? [ 0, -1, 0] :
+                    t.position === "left"   ? [ 0, 0, -1] :
+                                              [ 0, 0, +1];
+                  const partQS = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  const defaultWorld = new Vector3(...defaultLocal).applyQuaternion(partQS).normalize();
+                  const tUnit = new Vector3(t.axis.x, t.axis.y, t.axis.z).normalize();
+
+                  let B: Vector3;
+                  let N: Vector3;
+                  if (isTopBottom) {
+                    // Legs: body along t.axis, end face normal along default outward.
+                    B = tUnit.clone();
+                    N = defaultWorld.clone();
+                  } else {
+                    // Aprons/stretchers: body along apron length, end face normal
+                    // along t.axis (compound miter plane).
+                    B = defaultWorld.clone();
+                    N = tUnit.clone();
+                  }
+
+                  // Cross-section axes: the two part-local axes perpendicular to
+                  // the long axis, transformed to world via partQ, then projected
+                  // onto the plane perpendicular to N (Gram-Schmidt).
+                  const cross1Local =
+                    isStartEnd  ? new Vector3(0, 1, 0) :  // long=X → cross={Y,Z}
+                    isTopBottom ? new Vector3(1, 0, 0) :  // long=Y → cross={X,Z}
+                                  new Vector3(1, 0, 0);   // long=Z → cross={X,Y}
+                  const cross2Local =
+                    isStartEnd  ? new Vector3(0, 0, 1) :
+                    isTopBottom ? new Vector3(0, 0, 1) :
+                                  new Vector3(0, 1, 0);
+                  const c1World = cross1Local.applyQuaternion(partQS);
+                  const c2World = cross2Local.applyQuaternion(partQS);
+                  // Project onto plane ⊥ N
+                  const cross1 = c1World.clone().addScaledVector(N, -c1World.dot(N)).normalize();
+                  const cross2 = c2World.clone().addScaledVector(N, -c2World.dot(N));
+                  cross2.addScaledVector(cross1, -cross2.dot(cross1)).normalize();
+
+                  // Cross-section half-extents (mm).
+                  // For isStartEnd: long=X → perp1=Y (thickness), perp2=Z (width).
+                  // For isTopBottom: long=Y → perp1=X (width), perp2=Z (thickness).
+                  // For left/right: long=Z → perp1=X (width), perp2=Y (thickness).
+                  const halfPerp1 = isStartEnd ? hy : hx;
+                  const halfPerp2 = isStartEnd ? hz : (isTopBottom ? hz : hy);
+                  const h1 = Math.max(0.05, halfPerp1 - SHRINK_MM) * SCALE;
+                  const h2 = Math.max(0.05, halfPerp2 - SHRINK_MM) * SCALE;
+
+                  // Body length: cut-plane normal is N, body direction is B.
+                  // Tip face plane sits at depth effLen from root along N, so
+                  //   L_body * (B · N) = effLen  → L_body = effLen / |B · N|
+                  // Add 2*ROOT_BURY to bury both ends slightly (z-fight masking).
+                  const bDotN = B.dot(N);
+                  const denom = Math.max(0.1, Math.abs(bDotN));
+                  const Lworld = (Math.abs(effLen) / denom + 2 * ROOT_BURY) * SCALE;
+
+                  // Mesh origin sits at the nominal tenon center (wx,wy,wz)
+                  // which was computed as position-default local center —
+                  // i.e. parent-face + (effLen/2) along defaultWorld.
+                  // Place ROOT at -(effLen/2 + bury)*defaultWorld so the root
+                  // face stays flush with the parent shoulder face. Then walk
+                  // tip = root + Lworld * B.
+                  //
+                  // Tilted cross-section corner protrusion correction：
+                  // cross1/cross2 在 N⊥ plane，當 N ≠ defaultWorld 時、
+                  // cross 軸在 defaultWorld 方向有非零投影，角落會比 root center
+                  // 多伸 maxCornerProj 進 parent。把 root 往 defaultWorld 外推
+                  // maxCornerProj 補償。
+                  // rootCenter 放在 parent 實際肩面中心：
+                  // - apron-trapezoid：miter plane 中心 = -lx*avgScale/2 in part-local
+                  //   (avgScale = (topS+botS)/2)
+                  //   → halfLenLocal = lx*(1-avgScale)/2 + effLen/2
+                  // - 其他：parent 肩面就在 nominal end (-lx/2)
+                  //   → halfLenLocal = effLen/2
+                  // 因為 root face 已經在 N⊥ plane（= 平行 miter plane）、
+                  // rootCenter 落在 miter plane 上時、4 個角落都在 miter plane
+                  // 跟 parent 材料貼齊不重疊（不需 maxCornerProj 補償）
+                  // rootCenter 放在 parent miter plane 上（不同 Z 高度位置不同）：
+                  // 推導：apron-trapezoid 端面 4 角在 (-topX, ±hy, -hz) 跟 (-botX, ±hy, +hz)
+                  // miter plane 方程 (in part-local): rootX = -lx*avgScale/2 - lx*(botS-topS)/(4*hz)*lcz
+                  //   - lcz=0 (中央): rootX = -lx*avgScale/2 ✓
+                  //   - lcz!=0 (offset)：考慮 Z 補償
+                  // rootCenter_local.x = mesh_origin_local.x + halfLenLocal (start 方向)
+                  //                    = lcx + halfLenLocal
+                  // halfLenLocal = rootX_target - lcx (for start: lcx = -lx/2 - effLen/2)
+                  let halfLenLocal = Math.abs(effLen) / 2 + ROOT_BURY;
+                  if (part.shape?.kind === "apron-trapezoid" && isStartEnd) {
+                    const topS = part.shape.topLengthScale ?? 1;
+                    const botS = part.shape.bottomLengthScale ?? 1;
+                    const avgScale = (topS + botS) / 2;
+                    const lxPart = part.visible.length;
+                    const hzPart = part.visible.width / 2;
+                    // 端面有 Z 傾斜 → 不同 Z 位置 (lcz) 的 miter X 位置不同
+                    const zCompensation = hzPart > 0 ? lxPart * (botS - topS) / (4 * hzPart) * lcz : 0;
+                    halfLenLocal = lxPart * (1 - avgScale) / 2 + Math.abs(effLen) / 2 - zCompensation + ROOT_BURY;
+                    // taperSpanMm：端面斜度只在 −Z 邊起 span 內 → 直接用「這個 Z 的端面 scale」（無 span 時跟上式代數相等）
+                    const spanMm = part.shape.taperSpanMm;
+                    if (spanMm !== undefined && spanMm > 0 && hzPart > 0) {
+                      const t = Math.min(1, Math.max(0, (lcz + hzPart) / spanMm));
+                      const scaleAtZ = topS + (botS - topS) * t;
+                      halfLenLocal = lxPart * (1 - scaleAtZ) / 2 + Math.abs(effLen) / 2 + ROOT_BURY;
+                    }
+                  }
+                  const halfLenWorld = halfLenLocal * SCALE;
+                  const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
+                  const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
+
+                  const corners: Vector3[] = [];
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const c = rootCenter.clone()
+                      .addScaledVector(cross1, sa * h1)
+                      .addScaledVector(cross2, sb * h2);
+                    corners.push(c);
+                  }
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const c = tipCenter.clone()
+                      .addScaledVector(cross1, sa * h1)
+                      .addScaledVector(cross2, sb * h2);
+                    corners.push(c);
+                  }
+                  // Flatten to Float32Array
+                  const positions = new Float32Array(corners.length * 3);
+                  corners.forEach((v, i) => { positions[i*3] = v.x; positions[i*3+1] = v.y; positions[i*3+2] = v.z; });
+                  // Indices: 6 faces, 2 triangles each = 12 triangles = 36 indices.
+                  // Corner layout (root then tip, both in cross1-cross2 quadrants):
+                  //   0: root (-1,-1)
+                  //   1: root (-1,+1)
+                  //   2: root (+1,-1)
+                  //   3: root (+1,+1)
+                  //   4: tip  (-1,-1)
+                  //   5: tip  (-1,+1)
+                  //   6: tip  (+1,-1)
+                  //   7: tip  (+1,+1)
+                  const indices = new Uint16Array([
+                    // root face (facing -longAxis): 0,2,3 + 0,3,1
+                    0, 2, 3,  0, 3, 1,
+                    // tip face (facing +longAxis): 4,5,7 + 4,7,6
+                    4, 5, 7,  4, 7, 6,
+                    // side cross1 +1: 2,6,7 + 2,7,3
+                    2, 6, 7,  2, 7, 3,
+                    // side cross1 -1: 0,1,5 + 0,5,4
+                    0, 1, 5,  0, 5, 4,
+                    // side cross2 +1: 1,3,7 + 1,7,5
+                    1, 3, 7,  1, 7, 5,
+                    // side cross2 -1: 0,4,6 + 0,6,2
+                    0, 4, 6,  0, 6, 2,
+                  ]);
+                  // 計算 vertex normals（用 BufferGeometry.computeVertexNormals 一次性）
+                  const tmpGeo = new BufferGeometry();
+                  tmpGeo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+                  tmpGeo.setIndex(Array.from(indices));
+                  tmpGeo.computeVertexNormals();
+                  const normalAttr = tmpGeo.getAttribute("normal");
+                  const normals = new Float32Array(normalAttr.array);
+                  return { positions, indices, normals };
+                })() : null;
+
+                const meshPos: [number, number, number] = useShearedBox
+                  ? [wx, wy, wz]                                       // sheared box uses bare wx/wy/wz (no rotation, geometry is pre-shaped)
+                  : (posShift
+                      ? [wx + posShift.x, wy + posShift.y, wz + posShift.z]
+                      : [wx, wy, wz]);
+
                 return (
                   <mesh
                     key={`${part.id}-tenon-${ti}`}
-                    position={[wx, wy, wz]}
-                    rotation={new Euler(rx, ry, rz, "ZYX")}
+                    position={meshPos}
+                    {...(useShearedBox
+                      ? {}                                              // sheared box: identity rotation (shear is in geometry)
+                      : meshQuat
+                        ? { quaternion: meshQuat }
+                        : { rotation: new Euler(rx, ry, rz, "ZYX") })}
                     castShadow
                   >
                     {(() => {
-                      // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
-                      // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
-                      const SHRINK_MM = 0.5;
-                      const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
-                      const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
-                      const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
-                      return useRoundTenon ? (
-                        <cylinderGeometry args={[
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          sy,
-                          24,
-                        ]} />
-                      ) : (
-                        <boxGeometry args={[sx, sy, sz]} />
-                      );
+                      // Only shrink the CROSS-SECTION (real z-fight risk against
+                      // mortise walls). Keep the long axis at full effLen so the
+                      // root face sits flush with the parent's shoulder face —
+                      // shrinking it lifts the root by 0.5mm and shows as a gap.
+                      const primitive = ordinaryTenonPrimitive(t.position, { hx, hy, hz }, useRoundTenon, SCALE);
+                      if (primitive.kind === "round") return <cylinderGeometry args={primitive.args} />;
+                      if (shearedGeom) {
+                        return (
+                          <bufferGeometry>
+                            <bufferAttribute
+                              attach="attributes-position"
+                              args={[shearedGeom.positions, 3]}
+                            />
+                            <bufferAttribute
+                              attach="attributes-normal"
+                              args={[shearedGeom.normals, 3]}
+                            />
+                            <bufferAttribute
+                              attach="index"
+                              args={[shearedGeom.indices, 1]}
+                            />
+                          </bufferGeometry>
+                        );
+                      }
+                      return <boxGeometry args={primitive.args} />;
                     })()}
                     <meshStandardMaterial
                       color="#c0392b"
                       roughness={0.8}
-                      transparent={selectedPartId !== null && selectedPartId !== part.id}
-                      opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
+                      // DoubleSide：tenon 從各角度看都要可見，避免 FrontSide
+                      // culling 在側向視角讓 tenon face 不渲染只剩 edge 一條紅線
+                      side={DoubleSide}
+                      transparent={activeSelectedId !== null && activeSelectedId !== part.id}
+                      opacity={activeSelectedId !== null && activeSelectedId !== part.id ? 0.18 : 1}
                     />
                   </mesh>
                 );
@@ -2440,8 +1738,10 @@ export function PerspectiveView({
             : null;
 
           // 選中：本體 emissive 黃光；其他零件半透明變灰（聚焦選中件）
-          const isSelected = selectedPartId === part.id;
-          const isDimmed = selectedPartId !== null && !isSelected;
+          const isSelected = activeSelectedId === part.id;
+          const isDimmed = activeSelectedId !== null && !isSelected;
+          // Hover 預覽（Bot B）：context 命中即發弱光；不影響 dim 行為（hover 不該讓其他件變灰）
+          const isHovered = hoveredPartIds.has(part.id);
           // Audit mode：overlap part 加紅色半透明 wireframe overlay box
           const auditOverlay = overlapIds.has(part.id) ? (
             <mesh
@@ -2465,9 +1765,43 @@ export function PerspectiveView({
           ) : null;
 
           // mortise CSG：joineryMode 顯示全部；正常 3D 只顯示 cosmetic（無線充電/穿線孔等產品凹槽）
-          const mortisesToCsg = joineryMode
-            ? part.mortises
-            : part.mortises.filter((m) => m.cosmetic);
+          //
+          // splay 腳系列特例 (user 2026-05-26)：splay deform 跟 CSG cut box 軸對齊
+          // 不同步、cut box 永遠開在 undeformed 位置、跟 tenon 對不上、視覺上會看
+          // 到「位置錯的 mortise 洞」。兩種狀況都跳過 CSG（mesh 不挖洞、tenon 進
+          // 入被包住看不到、視覺乾淨）：
+          //   1. part 本身是 splayed leg（leg 接 apron 那面）
+          //   2. mortise 帶 axis field（座板接 splay leg top tenon 的洞、axis CSG
+          //      不認）
+          // Cosmetic mortise（產品凹槽 = 無線充電孔之類非結構性凹槽）不受影響。
+          const isSplayedLeg = part.shape?.kind === "splayed";
+          // 百葉門斜槽（label「百葉槽」）：正常 3D 不挖——挖了會露出方底槽口、圓邊葉片
+          // 填不滿四角呈白色破洞（user 回報「豎梃有奇怪的洞」）。葉片本來就嵌進豎梃 8mm、
+          // 不挖時葉片端藏在豎梃實料內、視覺乾淨；joineryMode 仍挖（接合視圖要看槽）。
+          const isLouverGroove = (m: { label?: string }) =>
+            (m.label ?? "").startsWith("百葉槽");
+          let mortisesToCsg = joineryMode
+            ? part.mortises.filter((m) => {
+                if (m.cosmetic) return true;
+                if (isSplayedLeg) return false;
+                if (m.axis) return false;
+                return true;
+              })
+            : part.mortises.filter((m) => m.cosmetic && !isLouverGroove(m));
+          // 圓形貫穿裝飾孔一多（狗孔 / holdfast / MFT 格陣 ≥ 6 個）就不 CSG，改畫「塞」——
+          // 每個孔一次 sequential subtraction，20 孔 4.7 秒、手機像當機。托盤手把 pill（3 孔）等少量仍走 CSG。
+          // 盲孔也用塞（塞的長度 = 孔深，外露面看起來一樣是深色圓；工作桌桌底鉗座螺栓孔 ×4）
+          const isPlugHole = (m: { cosmetic?: boolean; shape?: string; through?: boolean; rotX?: number }) =>
+            !!m.cosmetic && m.shape === "round" && !m.rotX;
+          const plugCount = mortisesToCsg.filter(isPlugHole).length;
+          const usePlugs = plugCount >= 6;
+          const mortisesToPlug = usePlugs ? mortisesToCsg.filter(isPlugHole) : [];
+          if (usePlugs) mortisesToCsg = mortisesToCsg.filter((m) => !isPlugHole(m));
+          const toScaled = (m: (typeof part.mortises)[number]): LocalBox => {
+            const lb = mortiseLocalBox(part, m);
+            return { cx: lb.cx * SCALE, cy: lb.cy * SCALE, cz: lb.cz * SCALE, hx: lb.hx * SCALE, hy: lb.hy * SCALE, hz: lb.hz * SCALE, rotX: lb.rotX, rotY: lb.rotY, rotZ: lb.rotZ };
+          };
+          const holeDecalsScaled: LocalBox[] | undefined = mortisesToPlug.length > 0 ? mortisesToPlug.map(toScaled) : undefined;
           const mortiseBoxesScaled: LocalBox[] | undefined =
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => {
@@ -2479,6 +1813,9 @@ export function PerspectiveView({
                     hx: lb.hx * SCALE,
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
+                    rotX: lb.rotX,
+                    rotY: lb.rotY,
+                    rotZ: lb.rotZ,
                   };
                 })
               : undefined;
@@ -2486,40 +1823,141 @@ export function PerspectiveView({
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => m.shape === "round" ? "round" : "rect")
               : undefined;
+          // 鳩尾榫 wall-left / wall-right：base box geo 減掉前後板 dovetail tail
+          // brush。lift-off 蓋段側板 wall-*-lid 也要套——但只套同段 brush 避免
+          // Y=cutY 邊界跟另一段 brush 衝突造成 z-fighting。
+          // 抽屜半鳩尾：tail carrier 是側板（shape=dovetail-ends），receiver 是
+          // 前/後板。drawer-row.ts 生的 part id 格式 `${idPrefix}-${i+1}-(front|back)`，
+          // pattern 配 `-\d+-(front|back)$`、跨多 zone / 多 drawer 都對得到。
+          const partDovetailCuts = dovetailCutsForPart(part, dovetailCutBrushes);
           return (
             <group
               key={part.id}
-              onClick={onPartSelect ? (e) => { e.stopPropagation(); onPartSelect(part.id); } : undefined}
+              ref={(g: Group | null) => registerGroup(part.id, g)}
+              /**
+               * ⚠️ 再點同一個零件 = **取消選取**,不要一律 set。
+               *
+               * `MaterialListWithSelection.tsx:25` 一直是這樣寫的
+               * (`id === selectedPartId ? null : id`),3D 這邊卻漏了 ——
+               * 兩邊行為不一致的後果:手機上不小心點到零件,其他零件全被
+               * 打成 18% 半透明(DIM_OPACITY),再點同一個也解不掉,
+               * 看起來就是「表面不見了、變透視」。
+               *
+               * 空白處雖然會清(onPointerMissed),但按「填滿」放大後模型幾乎
+               * 塞滿畫布,手機上根本找不到空白可點。(2026-08-25 木頭仁回報)
+               */
+              onClick={onPartSelect ? (e) => {
+                e.stopPropagation();
+                if (draggedAway(e)) return;   // 轉動模型放手,不是點選
+                onPartSelect(nextPartSelection(activeSelectedId, part.id));
+              } : undefined}
             >
-              <Part
-                position={[px, py, pz]}
-                size={[
-                  part.visible.length * SCALE,
-                  part.visible.thickness * SCALE,
-                  part.visible.width * SCALE,
-                ]}
-                rotation={new Euler(
+              {(() => {
+                /**
+                 * 夾板疊層：**每一層畫成真的一塊板**，不是在整塊上用著色器畫線。
+                 *
+                 * 🩸2026-09-05 木頭仁連續十幾輪回報層數數不對（2 像 3、4 像 5、3 又多一條），
+                 * 而且同一份程式碼前後兩次講的還相反。最後量出來真因是：
+                 *   正視圖 2 層 → 1 條線 ✅；45° 同一台 → 2 條線 ❌
+                 * 多的那條是**桌面上表面與前緣面的交界稜線**，長得跟膠合線一模一樣。
+                 * 只要看得到桌面就會多一條 —— 所以「在著色器上畫線」這條路本身就躲不掉，
+                 * 線畫多粗多深都沒用（前面十幾輪都卡在這裡）。
+                 *
+                 * 改成真實幾何後，每層有自己的稜線與陰影，任何角度、任何縮放數到的都是真層數。
+                 * 只在「方塊 + 沒有鳩尾切割」時拆；其餘（異形件、鳩尾件）維持原本單塊路徑。
+                 */
+                const rot = openRotation ?? new Euler(
                   part.rotation?.x ?? 0,
                   part.rotation?.y ?? 0,
                   part.rotation?.z ?? 0,
                   "ZYX",
-                )}
-                color={color}
-                shape={shape}
-                isGlass={part.visual === "glass"}
-                isBrass={part.visual === "brass-antique"}
-                grainDirection={part.grainDirection}
-                mortiseBoxes={mortiseBoxesScaled}
-                mortiseShapes={mortiseShapesArr}
-                isSelected={isSelected}
-                isDimmed={isDimmed}
-                wireframe={wireframeMode}
-              />
+                );
+                const sizeXZ: [number, number] = [
+                  part.visible.length * SCALE,
+                  part.visible.width * SCALE,
+                ];
+                const commonProps = {
+                  rotation: rot,
+                  isGlass: part.visual === "glass",
+                  isBrass: part.visual === "brass-antique",
+                  grainDirection: part.grainDirection,
+                  isPly: part.materialOverride === "plywood",
+                  mortiseShapes: mortiseShapesArr,
+                  isSelected,
+                  isHovered,
+                  isDimmed,
+                  wireframe: wireframeMode,
+                  polygonOffset: part.id.startsWith("diamond-"),
+                  pushBack: /-louver-\d+$/.test(part.id),
+                } as const;
+                const plyLayers = part.panelSplit === "thickness" ? (part.panelPieces ?? 1) : 1;
+                const canSplit = plyLayers > 1 && !shape && !partDovetailCuts;
+                if (!canSplit) {
+                  return (
+                    <Part
+                      {...commonProps}
+                      position={[px, py, pz]}
+                      size={[sizeXZ[0], part.visible.thickness * SCALE, sizeXZ[1]]}
+                      color={color}
+                      shape={shape}
+                      boardPieces={part.panelPieces}
+                      boardThin={part.panelSplit === "thickness"}
+                      mortiseBoxes={mortiseBoxesScaled}
+                      holeDecals={holeDecalsScaled}
+                      dovetailCuts={partDovetailCuts}
+                    />
+                  );
+                }
+                /**
+                 * ⭐ 疊層要切「**最小的那一維**」，不是 `visible.thickness`。
+                 * 🩸2026-09-05 木頭仁：「腳的層數也不見了」——桌腳的 `visible.thickness`
+                 * 裝的是**腳高**（776mm），照它切等於把腳沿高度剁成幾段，看起來就跟沒切一樣。
+                 * 這條規則跟料單 / cutplan / 原本的著色器是同一套（見 wood-shader 檔頭）。
+                 */
+                const dimsMm: Array<{ i: 0 | 1 | 2; mm: number }> = [
+                  { i: 0, mm: part.visible.length },
+                  { i: 1, mm: part.visible.thickness },
+                  { i: 2, mm: part.visible.width },
+                ];
+                const thinAxis = dimsMm.reduce((a, b) => (b.mm < a.mm ? b : a));
+                const fullSize: [number, number, number] = [
+                  sizeXZ[0], part.visible.thickness * SCALE, sizeXZ[1],
+                ];
+                return plyLayerBoxes(thinAxis.mm * SCALE, plyLayers, SCALE).map(({ dy, thick: layerThick }, i) => {
+                  const dir = new Vector3(0, 0, 0);
+                  dir.setComponent(thinAxis.i, dy);
+                  const off = dir.applyEuler(rot);
+                  const shift = (b: LocalBox): LocalBox => ({
+                    ...b,
+                    cx: thinAxis.i === 0 ? b.cx - dy : b.cx,
+                    cy: thinAxis.i === 1 ? b.cy - dy : b.cy,
+                    cz: thinAxis.i === 2 ? b.cz - dy : b.cz,
+                  });
+                  const layerSize = [...fullSize] as [number, number, number];
+                  layerSize[thinAxis.i] = layerThick;
+                  return (
+                    <Part
+                      key={`ply-${i}`}
+                      {...commonProps}
+                      position={[px + off.x, py + off.y, pz + off.z]}
+                      size={layerSize}
+                      // 真實夾板每層深淺本來就不同；奇偶交替保證相鄰兩層不同色
+                      color={shadeHex(color, i % 2 === 0 ? 1.0 : 0.94)}
+                      mortiseBoxes={mortiseBoxesScaled?.map(shift)}
+                      holeDecals={holeDecalsScaled?.map(shift)}
+                    />
+                  );
+                });
+              })()}
               {tenonMeshes}
               {auditOverlay}
+              {assemblyOn && screwsByMother.get(part.id)?.map((sc) => (
+                <ScrewMesh key={sc.id} spec={sc} scale={SCALE} register={registerGroup} />
+              ))}
             </group>
           );
         })}
+
 
         <OrbitControls
           makeDefault
@@ -2545,21 +1983,416 @@ export function PerspectiveView({
           ]}
           onApplied={() => setViewPreset(null)}
         />
-        <InvalidateOnDep dep={selectedPartId} />
+        <InvalidateOnDep dep={activeSelectedId} />
+        <AssemblyDriver
+          plan={assemblyPlan}
+          playing={assemblyPlaying}
+          clockRef={assemblyClockRef}
+          groups={partGroupRefs}
+          scale={SCALE}
+          scrubNonce={assemblyScrubNonce}
+          canvasRef={glCanvasRef}
+          onTick={onAssemblyTick}
+          orbit={cameraOrbit}
+        />
+        {exportTarget && <RecorderTap target={exportTarget} />}
+        {assemblyOn && duckOn && assemblyPlan && (
+          <CoffeeDuck
+            // 在 +x 側、爆炸零件（travel）再外面一點的走道上沿 z 來回跑；
+            // 路線只到家具前後緣再多一點，太外面會被預設鏡頭切掉
+            path={{
+              x: (design.overall.length / 2 + travelMm(design) + 90) * SCALE,
+              zMin: -(design.overall.width / 2 + 60) * SCALE,
+              zMax: (design.overall.width / 2 + 60) * SCALE,
+            }}
+            perch={(() => {
+              // 有座板（凳 / 椅）→ 坐在座面中央；否則站在家具頂面中央
+              const seat = design.parts.find((p) => p.id === "seat");
+              return seat
+                ? { x: seat.origin.x * SCALE, y: (seat.origin.y + worldExtents(seat).yExt) * SCALE, z: seat.origin.z * SCALE, sit: true }
+                : { x: 0, y: design.overall.thickness * SCALE, z: 0, sit: false };
+            })()}
+            scale={Math.min(480, Math.max(240, design.overall.thickness * 0.5)) * SCALE}
+            playing={assemblyPlaying}
+            clockRef={assemblyClockRef}
+            jumpAtMs={assemblyPlan.steps.length ? assemblyPlan.steps[assemblyPlan.steps.length - 1].endMs : 0}
+          />
+        )}
       </Canvas>
+      {/**
+        * 選了零件時,其他零件會被打成 18% 半透明(DIM_OPACITY)。
+        * 沒有這條提示的話,使用者只會看到「表面不見了、變透視」,
+        * 不知道是自己點到零件、更不知道怎麼取消 ——
+        * 空白處雖然會清,但按「填滿」放大後手機上幾乎沒有空白可點。
+        * (2026-08-25 木頭仁回報)
+        */}
+      {selectedPart && onPartSelect ? (
+        <button
+          type="button"
+          onClick={() => onPartSelect(null)}
+          className="absolute left-2 bottom-2 z-10 max-w-[calc(100%-1rem)] flex items-center gap-1.5 min-h-[36px] max-md:min-h-[44px] px-2.5 rounded-full bg-amber-600/95 text-white text-xs font-medium shadow-lg ring-1 ring-amber-700 hover:bg-amber-700 transition"
+        >
+          <span className="truncate">
+            {tPV("selectedPartChip", {
+              name:
+                (pvLocale === "en" ? selectedPart.nameEn : undefined) ??
+                selectedPart.nameZh,
+            })}
+          </span>
+          <span aria-hidden className="shrink-0 text-sm leading-none">&#10005;</span>
+        </button>
+      ) : null}
       </div>
+    </div>
+  );
+}
+
+/** 整段組裝動畫相機水平轉的總角度 */
+const ORBIT_TOTAL_DEG = 120;
+const ORBIT_UP = new Vector3(0, 1, 0);
+
+/**
+ * 組裝動畫驅動器（掛在 <Canvas> 裡）。
+ * 每幀：推進時鐘 → offsetsAt(t) → 直接改每個零件 <group> 的 position。
+ * 不碰 React state（時鐘在 ref），零件樹不會重 render；UI 文字每 100ms 回報一次。
+ * 播放中每幀 invalidate()，所以 frameloop 在 demand 模式也會一直畫；播完就停，
+ * 不會回到「靜置時空燒」（見 useSmartFrameloop）。
+ */
+function AssemblyDriver({
+  plan,
+  playing,
+  clockRef,
+  groups,
+  scale,
+  scrubNonce,
+  canvasRef,
+  onTick,
+  orbit = true,
+}: {
+  plan: AssemblyPlan | null;
+  playing: boolean;
+  clockRef: MutableRefObject<number>;
+  groups: MutableRefObject<Map<string, Group>>;
+  scale: number;
+  scrubNonce: number;
+  canvasRef: MutableRefObject<HTMLCanvasElement | null>;
+  onTick: (tMs: number, done: boolean) => void;
+  /** 播放期間相機繞 Y 軸慢轉（整段動畫約 ORBIT_TOTAL_DEG 度） */
+  orbit?: boolean;
+}) {
+  const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as { target: Vector3; update: () => void } | null;
+  useEffect(() => { canvasRef.current = gl.domElement; }, [gl, canvasRef]);
+  const lastUi = useRef(0);
+  /**
+   * 還沒輪到的零件先當「虛影」（15% 透明、不投影），輪到時在前 30% 的時間淡入成實體，
+   * 不然堆在爆炸位置的零件會擋住正在組的地方（2026-09-02 木頭仁：「還沒進入組裝程序的
+   * 材料是不是要透明 不然會擋住」）。材質是每個 mesh 自己的（JSX 各建一份），直接改
+   * opacity；React 那邊 opacity prop 沒變就不會蓋回來。關掉動畫時全部還原。
+   */
+  const ghostRef = useRef(new Map<string, number>());
+  const setGhost = useCallback((g: Group, id: string, alpha: number) => {
+    const prev = ghostRef.current.get(id);
+    if (prev !== undefined && Math.abs(prev - alpha) < 0.01) return;
+    ghostRef.current.set(id, alpha);
+    g.traverse((obj) => {
+      if (!(obj instanceof Mesh)) return;
+      // 螺絲掛在母件 group 底下，但它們自己管顯示（appearMs），不跟著變虛影；
+      // 而且一旦被改成 transparent 就會進透明排序、從木頭裡透出來
+      if (obj.userData.isScrew) return;
+      const mats: Material[] = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of mats) {
+        if (!m) continue;
+        if (m.userData.baseOpacity === undefined) {
+          m.userData.baseOpacity = m.opacity;
+          m.userData.baseTransparent = m.transparent;
+          m.userData.baseDepthWrite = m.depthWrite;
+        }
+        const solid = alpha >= 0.999;
+        m.transparent = solid ? (m.userData.baseTransparent as boolean) : true;
+        m.opacity = solid ? (m.userData.baseOpacity as number) : (m.userData.baseOpacity as number) * alpha;
+        m.depthWrite = solid ? (m.userData.baseDepthWrite as boolean) : false;
+        m.needsUpdate = true;
+      }
+      if (obj.userData.baseCastShadow === undefined) obj.userData.baseCastShadow = obj.castShadow;
+      obj.castShadow = alpha >= 0.999 ? (obj.userData.baseCastShadow as boolean) : false;
+    });
+  }, []);
+  const apply = useCallback((t: number) => {
+    const offs = plan ? offsetsAt(plan, t) : null;
+    const screwIds = new Set((plan?.screws ?? []).map((sc) => sc.id));
+    for (const [id, g] of groups.current) {
+      const o = offs?.get(id);
+      if (o) g.position.set(o.x * scale, o.y * scale, o.z * scale);
+      else g.position.set(0, 0, 0);
+      if (screwIds.has(id)) continue;
+      // 虛影：第一筆 move 開始前 0.15，開始後前 30% 淡入
+      let alpha = 1;
+      if (plan) {
+        const idx = plan.partMoves[id];
+        if (idx && idx.length > 0) {
+          const first = plan.moves[idx[0]];
+          const span = Math.max(1, (first.endMs - first.startMs) * 0.3);
+          const p = (t - first.startMs) / span;
+          alpha = p <= 0 ? 0.15 : p >= 1 ? 1 : 0.15 + 0.85 * p;
+        }
+      }
+      setGhost(g, id, alpha);
+    }
+    // 螺絲：鎖入前不顯示
+    for (const sc of plan?.screws ?? []) {
+      const g = groups.current.get(sc.id);
+      if (g) g.visible = t >= sc.appearMs;
+    }
+  }, [plan, groups, scale, setGhost]);
+  // 關掉 / 拖滑桿 / 換設計 → 套一次、重繪一幀
+  useEffect(() => { apply(clockRef.current); invalidate(); }, [apply, scrubNonce, clockRef, invalidate]);
+  useFrame((_, delta) => {
+    if (!plan || !playing) return;
+    const dt = Math.min(delta, 0.1) * 1000;
+    const t = Math.min(plan.totalMs, clockRef.current + dt);
+    clockRef.current = t;
+    apply(t);
+    // 運鏡：繞著 OrbitControls 的 target 水平轉，角速度 = 總角度 / 總時長
+    if (orbit && controls && plan.totalMs > 0) {
+      const ang = (ORBIT_TOTAL_DEG * Math.PI / 180) * (dt / plan.totalMs);
+      const off = camera.position.clone().sub(controls.target);
+      off.applyAxisAngle(ORBIT_UP, ang);
+      camera.position.copy(controls.target).add(off);
+      camera.lookAt(controls.target);
+      controls.update();
+    }
+    invalidate();
+    const now = performance.now();
+    if (t >= plan.totalMs) onTick(t, true);
+    else if (now - lastUi.current > 100) { lastUi.current = now; onTick(t, false); }
+  });
+  return null;
+}
+
+/**
+ * 組裝版的螺絲：外層 group 給動畫位移（跟零件一樣走 offsetsAt），內層擺頭 + 桿。
+ * 圓柱幾何預設沿 local +y，用四元數轉到「鎖入方向」；頭在木頭外面（−y 側）。
+ * `visible={false}` 是常數 prop，React 重繪不會再套回去；顯示與否由 AssemblyDriver 控制。
+ */
+function ScrewMesh({ spec, scale, register }: { spec: ScrewSpec; scale: number; register: (id: string, g: Group | null) => void }) {
+  const quat = useMemo(
+    () => new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(spec.axis.x, spec.axis.y, spec.axis.z).normalize()),
+    [spec.axis.x, spec.axis.y, spec.axis.z],
+  );
+  const L = spec.lengthMm * scale;
+  return (
+    <group ref={(g: Group | null) => register(spec.id, g)} visible={false}>
+      <group position={[spec.head.x * scale, spec.head.y * scale, spec.head.z * scale]} quaternion={quat}>
+        {/* 頭沉進木頭（埋頭）：只露 0.3mm，從側面看不會像一條黑槓突出來；
+            用 userData.isScrew 讓虛影邏輯跳過（2026-09-02 木頭仁：「會看到螺絲 透視進去了」） */}
+        <mesh position={[0, 0.95 * scale, 0]} userData={{ isScrew: true }}>
+          <cylinderGeometry args={[4 * scale, 3.2 * scale, 2.5 * scale, 18]} />
+          <meshStandardMaterial color="#2f2f2f" metalness={0.85} roughness={0.35} />
+        </mesh>
+        <mesh position={[0, L / 2, 0]} userData={{ isScrew: true }}>
+          <cylinderGeometry args={[1.7 * scale, 1.7 * scale, L, 10]} />
+          <meshStandardMaterial color="#565656" metalness={0.85} roughness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * 錄影分接頭：掛著的時候接管渲染（useFrame priority 1 會關掉 R3F 自動 render），
+ * 自己 render 完馬上把 WebGL 畫布複製到 2D 目標畫布——先鋪跟頁面一樣的淺灰漸層底，
+ * 再疊 WebGL 幀。錄的是 2D 畫布：
+ * - WebGL canvas 沒開 preserveDrawingBuffer 時 captureStream 在 Safari 會拿到定格
+ *   （2026-09-02 木頭仁：「輸出的組裝動畫是不會動的」）；同一個 task 內 drawImage 拿得到。
+ * - WebGL 透明背景直接錄出來是黑的（同日：「影片空間是黑色的」）。
+ * 掛載期間把 dpr 拉到 2（畫質），卸載還原。
+ */
+function RecorderTap({ target }: { target: HTMLCanvasElement }) {
+  const gl = useThree((s) => s.gl);
+  const setDpr = useThree((s) => s.setDpr);
+  const prevDpr = useRef<number | null>(null);
+  useEffect(() => {
+    prevDpr.current = gl.getPixelRatio();
+    setDpr(Math.min(2, (typeof window !== "undefined" ? window.devicePixelRatio : 1) * 1.5 || 2));
+    target.dataset.assemblyExport = "1";
+    return () => { if (prevDpr.current !== null) setDpr(prevDpr.current); };
+  }, [gl, setDpr, target]);
+  useFrame(({ gl: r, scene, camera }) => {
+    r.render(scene, camera);
+    const src = r.domElement;
+    if (target.width !== src.width || target.height !== src.height) {
+      target.width = src.width;
+      target.height = src.height;
+    }
+    const ctx = target.getContext("2d");
+    if (!ctx) return;
+    const grad = ctx.createLinearGradient(0, 0, 0, target.height);
+    grad.addColorStop(0, "#fafafa");
+    grad.addColorStop(1, "#e4e4e7");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, target.width, target.height);
+    ctx.drawImage(src, 0, 0, target.width, target.height);
+  }, 1);
+  return null;
+}
+
+function AssemblyControls({
+  plan,
+  design,
+  locale,
+  playing,
+  tMs,
+  compact,
+  exporting,
+  exportAspect,
+  exportMsg,
+  onPlayPause,
+  onReplay,
+  onSeek,
+  onClose,
+  onExport,
+  onAspect,
+  orbit,
+  onOrbit,
+  duck,
+  onDuck,
+}: {
+  plan: AssemblyPlan;
+  design: FurnitureDesign;
+  locale: string;
+  playing: boolean;
+  tMs: number;
+  compact: boolean;
+  exporting: { pct: number } | null;
+  exportAspect: "current" | "portrait" | "square";
+  exportMsg: string | null;
+  onPlayPause: () => void;
+  onReplay: () => void;
+  onSeek: (tMs: number) => void;
+  onClose: () => void;
+  onExport: () => void;
+  onAspect: (a: "current" | "portrait" | "square") => void;
+  orbit: boolean;
+  onOrbit: (v: boolean) => void;
+  duck: boolean;
+  onDuck: (v: boolean) => void;
+}) {
+  const t = useTranslations("perspectiveView");
+  const step = plan.steps[stepIndexAt(plan, tMs)];
+  // 同名零件合併計數：「凳腳 1、凳腳 2、凳腳 3、凳腳 4」→「凳腳 ×4」
+  const counts = new Map<string, number>();
+  for (const id of step.partIds) {
+    const p = design.parts.find((pp) => pp.id === id);
+    const base = (p ? partName(p, locale) : id).replace(/\s*\d+$/, "");
+    counts.set(base, (counts.get(base) ?? 0) + 1);
+  }
+  const names = Array.from(counts, ([n, c]) => (c > 1 ? `${n} ×${c}` : n));
+  const sep = locale === "en" ? ", " : "、";
+  const shown =
+    names.slice(0, 3).join(sep) +
+    (names.length > 3 ? " " + t("assemblyMoreTpl", { n: names.length - 3 }) : "");
+  const label = t("assemblyStepTpl", { n: step.index + 1, total: plan.steps.length, names: shown });
+  const btn = "shrink-0 px-2 py-0.5 text-xs font-medium rounded ring-1 ring-zinc-200 bg-white text-zinc-700 hover:ring-amber-400 hover:bg-amber-50 disabled:opacity-40 transition";
+  return (
+    <div data-testid="assembly-controls" className="shrink-0 border-b border-amber-200/70 bg-amber-50/80 px-2 py-1 text-xs">
+      <div className="flex items-center gap-1.5 overflow-x-auto">
+        <button type="button" className={btn} onClick={onPlayPause} disabled={!!exporting} data-testid="assembly-play">
+          {playing ? t("assemblyPause") : t("assemblyPlay")}
+        </button>
+        <button type="button" className={btn} onClick={onReplay} disabled={!!exporting} title={t("assemblyReplay")}>
+          ↺
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={plan.totalMs}
+          step={10}
+          value={Math.min(tMs, plan.totalMs)}
+          onChange={(e) => onSeek(Number(e.target.value))}
+          disabled={!!exporting}
+          className="flex-1 min-w-[72px] accent-amber-600"
+          aria-label={label}
+          data-testid="assembly-scrub"
+        />
+        <button
+          type="button"
+          className={`${btn} ${orbit ? "bg-amber-100 ring-amber-300" : ""}`}
+          onClick={() => onOrbit(!orbit)}
+          disabled={!!exporting}
+          title={t("assemblyOrbitTitle")}
+          aria-pressed={orbit}
+          data-testid="assembly-orbit"
+        >
+          {t("assemblyOrbit")}
+        </button>
+        <button
+          type="button"
+          className={`${btn} ${duck ? "bg-amber-100 ring-amber-300" : ""}`}
+          onClick={() => onDuck(!duck)}
+          disabled={!!exporting}
+          title={t("assemblyDuckTitle")}
+          aria-pressed={duck}
+          data-testid="assembly-duck"
+        >
+          🦆
+        </button>
+        {!compact && (
+          <select
+            value={exportAspect}
+            onChange={(e) => onAspect(e.target.value as "current" | "portrait" | "square")}
+            disabled={!!exporting}
+            className="shrink-0 rounded ring-1 ring-zinc-200 bg-white px-1 py-0.5 text-xs text-zinc-700"
+            title={t("assemblyAspectLbl")}
+          >
+            <option value="current">{t("assemblyAspectCurrent")}</option>
+            <option value="portrait">{t("assemblyAspectPortrait")}</option>
+            <option value="square">{t("assemblyAspectSquare")}</option>
+          </select>
+        )}
+        <button
+          type="button"
+          className={`${btn} ${exporting ? "" : "text-amber-900 ring-amber-300"}`}
+          onClick={onExport}
+          disabled={!!exporting}
+          title={t("assemblyExportTitle")}
+          data-testid="assembly-export"
+        >
+          {exporting ? t("assemblyExportingTpl", { pct: exporting.pct }) : t("assemblyExport")}
+        </button>
+        <button type="button" className={btn} onClick={onClose} disabled={!!exporting} title={t("assemblyClose")}>
+          ✕
+        </button>
+      </div>
+      {/* 步驟文字獨立一行：塞在滑桿旁邊時文字長度一變滑桿就跟著伸縮（2026-09-02 木頭仁回報「晃動」） */}
+      <div className="mt-0.5 truncate text-[11px] text-zinc-700" data-testid="assembly-step">{label}</div>
+      {exportMsg && <div className="mt-0.5 text-[11px] text-zinc-600" data-testid="assembly-export-msg">{exportMsg}</div>}
     </div>
   );
 }
 
 type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero" | "fit";
 
-function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
+function ViewPresetBar({
+  onSelect,
+  hasLid = false,
+  assemblyOn = false,
+  onToggleAssembly,
+}: {
+  onSelect: (p: ViewPreset) => void;
+  hasLid?: boolean;
+  assemblyOn?: boolean;
+  onToggleAssembly?: () => void;
+}) {
+  const t = useTranslations("perspectiveView");
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const wfOn = sp?.get("wf") === "1" || sp?.get("wf") === "true";
   const xrayCur = sp?.get("xray") ?? "off";
+  const lidLiftCur = Number(sp?.get("lidLift") ?? "0");
 
   const toggleWf = () => {
     const params = new URLSearchParams(sp?.toString() ?? "");
@@ -2579,20 +2412,32 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
     router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
   };
 
+  // 四段循環：蓋上 → 30 mm 微抬 → 80 mm 高抬 → -1（90° 掀開）→ 蓋上
+  // 只 dovetail-box 顯示；用 lidLift URL param 控制（負值 = 鉸鏈 90° 翻開）
+  const cycleLidLift = () => {
+    const params = new URLSearchParams(sp?.toString() ?? "");
+    const cur = lidLiftCur;
+    const next = cur === 0 ? 30 : cur === 30 ? 80 : cur === 80 ? -1 : 0;
+    if (next === 0) params.delete("lidLift");
+    else params.set("lidLift", String(next));
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
+  };
+
   const presets: { id: ViewPreset; label: string; title: string }[] = [
-    { id: "hero", label: "45°", title: "預設立體角度" },
-    { id: "fit", label: "🔍 填滿", title: "縮放至家具充滿視窗（依實際長寬高 + 畫面比例）" },
-    { id: "front", label: "正", title: "正視圖" },
-    { id: "back", label: "背", title: "背視圖" },
-    { id: "left", label: "左", title: "左側視圖" },
-    { id: "right", label: "右", title: "右側視圖" },
-    { id: "top", label: "俯", title: "俯視圖" },
-    { id: "bottom", label: "仰", title: "仰視圖" },
+    { id: "hero", label: "45°", title: t("viewTitleHero") },
+    { id: "fit", label: t("viewLabelFit"), title: t("viewTitleFit") },
+    { id: "front", label: t("viewLabelFront"), title: t("viewTitleFront") },
+    { id: "back", label: t("viewLabelBack"), title: t("viewTitleBack") },
+    { id: "left", label: t("viewLabelLeft"), title: t("viewTitleLeft") },
+    { id: "right", label: t("viewLabelRight"), title: t("viewTitleRight") },
+    { id: "top", label: t("viewLabelTop"), title: t("viewTitleTop") },
+    { id: "bottom", label: t("viewLabelBottom"), title: t("viewTitleBottom") },
   ];
   return (
     <div className="relative shrink-0 border-b border-zinc-200">
       <div className="flex gap-1 px-2 py-1 bg-white/70 backdrop-blur-sm overflow-x-auto">
-        <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">視角</span>
+        <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">{t("viewLbl")}</span>
         {presets.map((p) => (
           <button
             key={p.id}
@@ -2606,7 +2451,7 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
         ))}
         <button
           type="button"
-          title="線框模式（顯示所有 edge / 內部結構）"
+          title={t("wireframeTitle")}
           onClick={toggleWf}
           className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
             wfOn
@@ -2614,11 +2459,32 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
               : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
           }`}
         >
-          ⊞ 線框
+          {t("wireframeLabel")}
         </button>
+        {onToggleAssembly && (
+          <button
+            type="button"
+            title={t("assemblyTitle")}
+            onClick={onToggleAssembly}
+            data-testid="assembly-toggle"
+            className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+              assemblyOn
+                ? "bg-amber-600 text-white ring-amber-700"
+                : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+            }`}
+          >
+            {t("assemblyBtn")}
+          </button>
+        )}
         <button
           type="button"
-          title={`隱藏面板（${xrayCur === "off" ? "點切到只藏門/抽屜面板" : xrayCur === "face" ? "點切到藏整個抽屜+門" : "點關閉"}）`}
+          title={
+            xrayCur === "off"
+              ? t("xrayTitleOffToFace")
+              : xrayCur === "face"
+                ? t("xrayTitleFaceToAll")
+                : t("xrayTitleAllToOff")
+          }
           onClick={cycleXray}
           className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
             xrayCur === "off"
@@ -2626,8 +2492,29 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
               : "bg-amber-600 text-white ring-amber-700"
           }`}
         >
-          🪟 {xrayCur === "off" ? "隱藏面板" : xrayCur === "face" ? "藏面板" : "藏全部"}
+          {xrayCur === "off" ? t("xrayBtnOff") : xrayCur === "face" ? t("xrayBtnFace") : t("xrayBtnAll")}
         </button>
+        {hasLid && (
+          <button
+            type="button"
+            title={t("lidLiftTitleTpl", {
+              state:
+                lidLiftCur < 0
+                  ? t("lidLiftTitleNeg")
+                  : lidLiftCur > 0
+                    ? t("lidLiftTitleFloatTpl", { n: lidLiftCur })
+                    : t("lidLiftTitleClosed"),
+            })}
+            onClick={cycleLidLift}
+            className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+              lidLiftCur !== 0
+                ? "bg-amber-600 text-white ring-amber-700"
+                : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+            }`}
+          >
+            {lidLiftCur < 0 ? t("lidLiftBtnNeg") : lidLiftCur > 0 ? t("lidLiftBtnFloatTpl", { n: lidLiftCur }) : t("lidLiftBtnClosed")}
+          </button>
+        )}
       </div>
       {/* 右側 fade mask 提示橫滑 */}
       <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-6 bg-gradient-to-l from-white/70 to-transparent" />

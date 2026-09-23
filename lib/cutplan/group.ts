@@ -2,6 +2,7 @@ import type { FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { effectiveBillableMaterial } from "@/lib/pricing/catalog";
 import { MATERIALS } from "@/lib/materials";
+import { partName } from "@/lib/templates/part-names";
 import type { CutPiece } from "./types";
 
 /**
@@ -27,19 +28,34 @@ export function buildCutPieces(design: FurnitureDesign): {
     // visible / cut dims 是幾何軸（length→X、thickness→Y 垂直、width→Z），
     // 立柱的長邊在 thickness、面板的長邊在 length，不能直接對應。
     // 拼板下，width 要先除以片數再排序（拆完才是真正單片橫截面）
-    const splitWidth = cut.width / pieces;
-    const [longSide, midSide, shortSide] = [cut.length, splitWidth, cut.thickness].sort(
+    /**
+     * ⛔ 要先排序再除片數，不能先除 `cut.width`。
+     *
+     * `visible` 是幾何軸三元組（§A9.1），立著的零件（壁掛工具牆背板、櫃子背板）
+     * 真正的板厚在 `width`、面寬在 `thickness`。舊碼直接 `cut.width / pieces`
+     * → 把 18mm 板厚切成 5 份變 3.6mm，面寬 1200mm 完全沒拆，裁切照樣排不下。
+     * （2026-08-23；同一個軸假設在 pricing/quote.ts 也踩過一次）
+     *
+     * 拼板是沿「面寬」拼的：最長邊＝順紋長度、中間邊＝面寬（要拆的就是它）、
+     * 最短邊＝板厚。先排序就跟零件怎麼擺無關。
+     */
+    const [longSide, rawMidSide, shortSide] = [cut.length, cut.width, cut.thickness].sort(
       (a, b) => b - a,
     );
+    // 疊層（panelSplit="thickness"）：拼的是厚度不是面寬（工作桌 stack 桌面 = N 層 × 厚/N）
+    const byThickness = part.panelSplit === "thickness";
+    const midSide = byThickness ? rawMidSide : rawMidSide / pieces;
+    const thinSide = byThickness ? shortSide / pieces : shortSide;
 
     for (let i = 0; i < pieces; i++) {
       const suffix = pieces > 1 ? ` (${i + 1}/${pieces})` : "";
       const piece: CutPiece = {
         partId: pieces > 1 ? `${part.id}-piece-${i + 1}` : part.id,
         partNameZh: `${part.nameZh}${suffix}`,
+        partNameEn: `${partName(part, "en")}${suffix}`,
         length: longSide,
         width: midSide,
-        thickness: shortSide,
+        thickness: thinSide,
         material: part.material,
         billable,
       };

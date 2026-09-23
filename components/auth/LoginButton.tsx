@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { detectWebviewApp, isInAppBrowser } from "@/lib/webview";
 
 type Mode = "idle" | "sending" | "sent" | "error";
 
 export function LoginButton({ className = "" }: { className?: string }) {
+  const t = useTranslations("loginButton");
   const [open, setOpen] = useState(false);
   const [webviewApp, setWebviewApp] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,22 +32,33 @@ export function LoginButton({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        className={`inline-flex items-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-800 transition ${className}`}
+        className={`inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-amber-900/10 hover:bg-amber-800 hover:shadow-md active:scale-[0.98] transition ${className}`}
       >
-        登入 / 註冊
+        {/*
+          ⛔ 手機的設計頁上,這顆鈕跟 UnitToggle 一起浮在 `fixed top-4 right-4`,
+             而 MobileTopBar 的標題是置中的。實測 iPhone 390px 開
+             /en/design/chest-of-drawers:這組佔 x=138–374(英文 "Sign in / Sign up"
+             一顆就 142px),**直接蓋掉家具名稱 116px**。中文版「登入 / 註冊」只有 102px,
+             所以只有英文會撞。(2026-08-21 稽核發現。)
+          ✅ 手機顯示短版、桌面維持完整字樣。不是把功能藏起來 —— 鈕還在、位置也沒動。
+        */}
+        <span className="hidden sm:inline">{t("btn")}</span>
+        <span className="sm:hidden">{t("btnShort")}</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white ring-1 ring-zinc-200 shadow-xl overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white ring-1 ring-amber-900/10 shadow-xl overflow-hidden z-50">
           <div className="p-4">
             {webviewApp && <WebviewWarning app={webviewApp} />}
             <MagicLinkForm />
             <div className="my-3 flex items-center gap-2 text-xs text-zinc-400">
               <div className="h-px flex-1 bg-zinc-200" />
-              <span>或</span>
+              <span>{t("divider")}</span>
               <div className="h-px flex-1 bg-zinc-200" />
             </div>
-            <GoogleButton disabledReason={webviewApp ? `${webviewApp} 內無法用 Google 登入` : null} />
+            <GoogleButton
+              disabledReason={webviewApp ? t("googleDisabledTpl", { app: webviewApp }) : null}
+            />
           </div>
         </div>
       )}
@@ -53,22 +66,49 @@ export function LoginButton({ className = "" }: { className?: string }) {
   );
 }
 
-function WebviewWarning({ app }: { app: string }) {
+export function WebviewWarning({ app }: { app: string }) {
+  const t = useTranslations("loginButton");
   return (
-    <div className="mb-3 rounded-md bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900">
-      <div className="font-semibold mb-1">⚠️ 你正在 {app} 內建瀏覽器</div>
+    <div className="mb-3 rounded-xl bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900">
+      <div className="font-semibold mb-1">{t("webviewWarnTpl", { app })}</div>
       <div className="leading-relaxed">
-        Google 登入無法使用。建議：
+        {t("webviewBody")}
         <ul className="mt-1 ml-4 list-disc">
-          <li>用下方 <b>email 登入連結</b>（最方便，Line/FB/IG 都能用）</li>
-          <li>或右上角 ⋯ → 「在 Safari/Chrome 中開啟」</li>
+          <li>
+            {t("webviewBullet1Pre")}
+            <b>{t("webviewBullet1Strong")}</b>
+            {t("webviewBullet1Suffix")}
+          </li>
+          <li>{t("webviewBullet2")}</li>
         </ul>
       </div>
     </div>
   );
 }
 
-function MagicLinkForm() {
+function zhAuthError(
+  msg: string,
+  t: ReturnType<typeof useTranslations<"loginButton">>,
+): string {
+  const m = msg.toLowerCase();
+  if (m.includes("rate limit") || m.includes("too many")) return t("errRate");
+  if (m.includes("invalid email") || m.includes("invalid format") || m.includes("invalid address")) {
+    return t("errInvalid");
+  }
+  if (m.includes("not found") || m.includes("no user")) {
+    return t("errNotFound");
+  }
+  if (m.includes("user not allowed") || m.includes("signup disabled")) {
+    return t("errSignupDisabled");
+  }
+  if (m.includes("network") || m.includes("fetch") || m.includes("timeout")) {
+    return t("errNetwork");
+  }
+  return t("errFallbackTpl", { msg });
+}
+
+export function MagicLinkForm() {
+  const t = useTranslations("loginButton");
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +129,7 @@ function MagicLinkForm() {
     });
     if (error) {
       setMode("error");
-      setError(error.message);
+      setError(zhAuthError(error.message, t));
     } else {
       setMode("sent");
     }
@@ -97,18 +137,20 @@ function MagicLinkForm() {
 
   if (mode === "sent") {
     return (
-      <div className="rounded-md bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-900">
-        <div className="font-semibold mb-1">✅ 登入連結已寄出</div>
+      <div className="rounded-xl bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-900">
+        <div className="font-semibold mb-1">{t("sentH")}</div>
         <div className="text-xs leading-relaxed">
-          請到 <b>{email}</b> 收信，點信內按鈕完成登入（10 分鐘內有效）。
+          {t("sentBodyPre")}
+          <b>{email}</b>
+          {t("sentBodySuffix")}
           <br />
-          沒收到？檢查垃圾信件夾，或
+          {t("sentNoEmail")}
           <button
             type="button"
             className="underline ml-1"
             onClick={() => setMode("idle")}
           >
-            重送
+            {t("resend")}
           </button>
         </div>
       </div>
@@ -118,7 +160,7 @@ function MagicLinkForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-2">
       <label className="block text-sm font-medium text-zinc-700">
-        輸入 Email 收登入連結
+        {t("magicLinkLabel")}
       </label>
       <input
         type="email"
@@ -128,26 +170,27 @@ function MagicLinkForm() {
         autoComplete="email"
         required
         disabled={mode === "sending"}
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-zinc-100"
+        className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-zinc-100"
       />
       <button
         type="submit"
         disabled={mode === "sending"}
-        className="w-full rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60 transition"
+        className="w-full rounded-lg bg-amber-700 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 hover:shadow active:scale-[0.99] disabled:opacity-60 transition"
       >
-        {mode === "sending" ? "寄送中…" : "送出登入連結 →"}
+        {mode === "sending" ? t("sending") : t("magicLinkBtn")}
       </button>
       {error && (
-        <div className="text-xs text-rose-700">寄送失敗：{error}</div>
+        <div className="text-xs text-rose-700">{error}</div>
       )}
       <p className="text-[11px] text-zinc-400 leading-relaxed">
-        首次使用 = 自動註冊。點信內按鈕後登入完成，無需密碼。
+        {t("magicLinkNote")}
       </p>
     </form>
   );
 }
 
-function GoogleButton({ disabledReason }: { disabledReason: string | null }) {
+export function GoogleButton({ disabledReason }: { disabledReason: string | null }) {
+  const t = useTranslations("loginButton");
   const [loading, setLoading] = useState(false);
 
   async function signInWithGoogle() {
@@ -174,10 +217,10 @@ function GoogleButton({ disabledReason }: { disabledReason: string | null }) {
         onClick={signInWithGoogle}
         disabled={loading || !!disabledReason}
         title={disabledReason ?? undefined}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-300 shadow-sm hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-zinc-800 ring-1 ring-zinc-300 shadow-sm hover:bg-zinc-50 hover:ring-zinc-400 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
         <GoogleLogo />
-        <span>{loading ? "跳轉中…" : "使用 Google 登入"}</span>
+        <span>{loading ? t("googleRedirecting") : t("googleBtn")}</span>
       </button>
       {disabledReason && (
         <p className="mt-1 text-[11px] text-zinc-500 text-center">{disabledReason}</p>

@@ -120,8 +120,36 @@ export function packGroupGuillotine(
     }
   }
 
-  function openNewBin(): { idx: number; pool: PoolItem } | null {
-    for (const s of pool) {
+  /**
+   * 開一塊新板。
+   *
+   * ⛔ 原本直接拿 pool 裡**第一個還有剩的**板,不管零件放不放得下。
+   *    cut-plan 頁預設策略就是 guillotine,而庫存表會自動補一列 3000×200 的角料。
+   *    使用者為了桌面另外加一列 1800×600 集成材時,這支會先開那塊 3000×200 的角料,
+   *    桌面塞不下 → `revertEmptyBin` → 直接判定 unplaced,**根本沒去試 1800×600 那塊**。
+   *    畫面於是紅字說「桌面排不下,請拼板」;切到 FFD 策略才會神奇地排得下。
+   *    使用者不是買錯料,就是白做一次拼板分割。(2026-08-21 稽核發現。)
+   *
+   * ✅ 改成「挑真的放得下的」:先過濾尺寸(含允許旋轉的那一面),
+   *    再從放得下的裡面挑**最省的**(面積最小)——避免拿 3000×600 去裝一片小板。
+   */
+  function openNewBin(need?: { w: number; h: number; canRotate: boolean }): {
+    idx: number;
+    pool: PoolItem;
+  } | null {
+    const fits = (s: PoolItem): boolean => {
+      if (!need) return true;
+      if (need.w <= s.length && need.h <= s.width) return true;
+      return need.canRotate && need.h <= s.length && need.w <= s.width;
+    };
+    const candidates = pool.filter((s) => s.remaining > 0 && fits(s));
+    // 放得下的裡面挑面積最小的;都放不下就退回原本的行為(拿第一個有剩的),
+    // 讓後面的 revertEmptyBin + unplaced 照舊處理「零件本身就比任何庫存大」。
+    const chosen =
+      candidates.length > 0
+        ? candidates.reduce((a, b) => (a.length * a.width <= b.length * b.width ? a : b))
+        : pool.find((s) => s.remaining > 0);
+    for (const s of chosen ? [chosen] : []) {
       if (s.remaining <= 0) continue;
       s.remaining -= 1;
       bins.push({
@@ -197,7 +225,7 @@ export function packGroupGuillotine(
     let best = findBestFit(item);
     if (!best) {
       // 開新板
-      const opened = openNewBin();
+      const opened = openNewBin({ w: item.w, h: item.h, canRotate: item.canRotate });
       if (opened === null) {
         unplaced.push(item.piece);
         continue;

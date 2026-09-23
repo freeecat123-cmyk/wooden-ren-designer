@@ -7,61 +7,107 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
+import { formatMm } from "@/lib/units/format";
 
-/** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合 */
+/** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合
+ *  全部統一為「鑲板入溝底板 + 掀蓋式上下分離」style：
+ *  - 上下各 5mm cap/skirt，面板厚度可調但 cap/skirt 不變
+ *  - 蓋段壁高自動 = outerH/5、可調
+ *  - 季節伸縮免裂、視覺對稱 */
 interface BoxPresetConfig {
   wallThickness?: number;
   bottomThickness?: number;
-  dovetailStyle?: string;
+  cornerJoinery?: string;
+  dovetailSegments?: number;
+  dovetailAngle?: number;
+  fingerSegments?: number;
+  bottomAttach?: string;
+  withLid?: boolean;
   lidType?: string;
-  withFeltLining?: boolean;
-  withMagneticClosure?: boolean;
+  lidThickness?: number;
+  /** 蓋段高佔 outerH 的比例（0.1 ~ 0.5）；填了會強制覆寫 liftOffLidH */
+  liftOffRatio?: number;
   withInnerTray?: boolean;
+  dividers?: number;
+  crossDividers?: number;
+  dividerHeight?: number;
 }
 const DOVETAIL_BOX_PRESETS: Record<string, BoxPresetConfig> = {
-  // 首飾盒：薄壁、半隱鳩尾、絨布、磁吸、jewelry 抽板
-  jewelry: { wallThickness: 10, bottomThickness: 6, dovetailStyle: "half-blind", lidType: "hinged", withFeltLining: true, withMagneticClosure: true, withInnerTray: true },
-  // 雪茄盒：較厚壁（保濕）、嵌入式蓋、絨布
-  cigar: { wallThickness: 15, bottomThickness: 8, dovetailStyle: "half-blind", lidType: "rabbeted", withFeltLining: true },
-  // 茶葉盒：厚壁防潮、滑入式蓋、無內襯
-  tea: { wallThickness: 12, bottomThickness: 8, dovetailStyle: "through", lidType: "sliding" },
-  // 手錶盒：薄壁、鉸鏈蓋、絨布、磁吸
-  watch: { wallThickness: 10, bottomThickness: 6, dovetailStyle: "half-blind", lidType: "hinged", withFeltLining: true, withMagneticClosure: true },
-  // 文件盒：厚壁、鉸鏈蓋、無內襯
-  document: { wallThickness: 14, bottomThickness: 8, dovetailStyle: "through", lidType: "hinged" },
+  // 首飾盒：最薄壁 8mm、最密鳩尾 9 段 12°、薄頂板 4mm、低蓋 1/6、活動抽板 + 1縱2橫格
+  jewelry: { wallThickness: 8, bottomThickness: 5, cornerJoinery: "dovetail", dovetailSegments: 9, dovetailAngle: 12, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 4, liftOffRatio: 1 / 6, withInnerTray: true, dividers: 1, crossDividers: 2 },
+  // 手錶盒：薄壁 10mm、鳩尾 5 段、中蓋 1/5、橫向 3 隔（4 格放錶）
+  watch: { wallThickness: 10, bottomThickness: 6, cornerJoinery: "dovetail", dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 6, liftOffRatio: 1 / 5, crossDividers: 3 },
+  // 雪茄盒：厚壁保濕 15mm、指接 7 段（密封性強）、低蓋 1/8、厚頂板 8mm
+  cigar: { wallThickness: 15, bottomThickness: 8, cornerJoinery: "finger-joint", fingerSegments: 7, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 8, liftOffRatio: 1 / 8 },
+  // 茶葉盒：中壁 12mm、鳩尾 5 段 8°（硬木 tight）、高蓋 1/3（深口取茶）、頂板 6mm
+  tea: { wallThickness: 12, bottomThickness: 8, cornerJoinery: "dovetail", dovetailSegments: 5, dovetailAngle: 8, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 6, liftOffRatio: 1 / 3 },
+  // 文件盒：最厚壁 16mm、指接 5 段大段距、低蓋 1/6、厚頂板 10mm
+  document: { wallThickness: 16, bottomThickness: 10, cornerJoinery: "finger-joint", fingerSegments: 5, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 10, liftOffRatio: 1 / 6 },
 };
 
 export const dovetailBoxOptions: OptionSpec[] = [
-  { group: "structure", type: "select", key: "boxShape", label: "盒型", defaultValue: "rect", choices: [
-    { value: "rect", label: "方形 / 長方形（4 鳩尾角，傳統）" },
-    { value: "oct", label: "八角盒（8 段斜接，禮品款）" },
-  ], help: "八角款用 stave 拼接 22.5° 邊接，鳩尾改 mitered-spline；不支援滑入式蓋" },
+  // === Preset 預設 ===
   { group: "preset", type: "select", key: "boxUse", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
-    { value: "jewelry", label: "首飾盒（薄壁+半隱+絨布+磁吸+抽板）" },
-    { value: "cigar", label: "雪茄盒（厚壁保濕+嵌入式蓋+絨布）" },
-    { value: "tea", label: "茶葉盒（厚壁+滑入式+無內襯）" },
-    { value: "watch", label: "手錶盒（薄壁+鉸鏈+絨布+磁吸）" },
-    { value: "document", label: "文件盒（厚壁+鉸鏈+無內襯）" },
-  ], help: "一鍵套適合該用途的壁厚 / 鳩尾 / 蓋型 / 內襯組合，user 後改不蓋。" },
-  { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 8, max: 25, step: 1, unit: "mm" },
-  { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
-  { group: "structure", type: "checkbox", key: "withLid", label: "加蓋", defaultValue: true, help: "上方加滑入式或鉸鏈式蓋板" },
-  { group: "structure", type: "select", key: "dovetailStyle", label: "鳩尾樣式", defaultValue: "through", choices: [
-    { value: "through", label: "通鳩尾（through dovetail）—— 從外面看到指狀鳩尾紋" },
-    { value: "half-blind", label: "半隱鳩尾（half-blind）—— 前面看不到，傳統抽屜做法" },
-    { value: "secret-mitered", label: "暗鳩尾（secret mitered）—— 4 角看起來純斜接，鳩尾完全隱藏（最高難度）" },
-  ] },
-  { group: "structure", type: "select", key: "lidType", label: "蓋子型式", defaultValue: "sliding", choices: [
+    { value: "jewelry", label: "首飾盒（薄壁鳩尾+活動抽板+多格）" },
+    { value: "watch", label: "手錶盒（薄壁鳩尾+橫向 4 格）" },
+    { value: "cigar", label: "雪茄盒（厚壁鳩尾·保濕）" },
+    { value: "tea", label: "茶葉盒（中壁鳩尾·防潮）" },
+    { value: "document", label: "文件盒（厚壁指接·大件）" },
+  ], help: "一鍵套適合該用途的壁厚 / 角接合 / 分格組合。蓋型統一掀蓋式（上下分離 + 鑲入頂板）、底板鑲板入溝；user 後改不蓋。" },
+
+  // === Structure 結構 ===
+  { group: "structure", type: "select", key: "boxShape", label: "盒型", defaultValue: "rect", choices: [
+    { value: "rect", label: "方形 / 長方形（4 鳩尾角，傳統）" },
+    { value: "hex", label: "六角盒（6 段斜接，禮品款）" },
+    { value: "oct", label: "八角盒（8 段斜接，禮品款）" },
+  ], help: "六/八角款用 stave 拼接邊接（六角 60° / 八角 45° 內角），鳩尾改 mitered-spline；不支援滑入式蓋、活動抽板" },
+  { group: "structure", type: "number", key: "wallThickness", label: "壁厚", defaultValue: 12, min: 5, max: 25, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "bottomThickness", label: "底厚", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
+  { group: "structure", type: "select", key: "bottomAttach", label: "底板裝法", defaultValue: "seated", choices: [
+    { value: "seated", label: "底板內縮（壁立其上膠合，最簡單）" },
+    { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
+    { value: "flush-glued", label: "整塊膠合（底板與外框齊邊）" },
+  ], help: "底板內縮=底板嵌入壁內、壁壓在底板邊緣膠合（最簡單）；鑲板入溝=4 壁內側開 5mm 槽、底板浮嵌（季節伸縮免裂）；整塊膠合=底板整塊外緣與框體齊邊、強力膠合。", wide: true },
+
+  // === Joinery 角接合 ===
+  { group: "joinery", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "dovetail", choices: [
+    { value: "stub-joint", label: "搭接（rabbet，最簡單，內側鋸槽再膠合）" },
+    { value: "finger-joint", label: "指接（finger joint，外露指狀，新手練習首選）" },
+    { value: "miter", label: "斜角拼（45°，最隱形但要對齊，膠合 + 細釘加固）" },
+    { value: "dovetail", label: "鳩尾（dovetail，傳統工藝，分通鳩尾 / 半隱 / 暗鳩尾三種）" },
+  ], help: "搭接 → 指接 → 鳩尾，加工難度由低到高。dovetail-box 模板核心是鳩尾，但其他三種也支援。", dependsOn: { key: "boxShape", equals: "rect" } },
+  { group: "joinery", type: "number", key: "dovetailSegments", label: "鳩尾段數（每角）", defaultValue: 0, min: 0, max: 21, step: 1, help: "0=自動（依壁高自動算奇數），1-21=手動指定段數。包含 pin + tail 總段數；建議奇數（5/7/9/11），兩端為半 pin 較穩。", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
+  { group: "joinery", type: "number", key: "dovetailAngle", label: "鳩尾角度 (°)", defaultValue: 10, min: 5, max: 18, step: 1, unit: "°", help: "傳統 1:6 (約 9.5°，軟木) ~ 1:8 (約 7.1°，硬木)。角太小拉力不足、太大易斷。", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
+  { group: "joinery", type: "number", key: "fingerSegments", label: "指接段數（每角）", defaultValue: 0, min: 0, max: 30, step: 1, help: "0=自動（依壁高自動算奇數），1-30=手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "finger-joint" }] } },
+
+  // === Lid 盒蓋 ===
+  { group: "lid", type: "checkbox", key: "withLid", label: "加蓋", defaultValue: true, help: "上方加滑入式或鉸鏈式蓋板" },
+  { group: "lid", type: "select", key: "lidType", label: "蓋子型式", defaultValue: "sliding", choices: [
     { value: "sliding", label: "滑入式（前後壁內側鋸槽，蓋從前滑入）" },
     { value: "hinged", label: "鉸鏈式（後壁裝小銅鉸鏈）" },
-    { value: "lift-off", label: "整片活動蓋（不固定，需用 cleat 卡入）" },
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
-  ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
-  { group: "structure", type: "checkbox", key: "withFeltLining", label: "內襯絨布", defaultValue: false, help: "底面 + 4 壁內側貼絨布（首飾盒、珠寶盒必加），保護內容物 + 提升質感", wide: true },
-  { group: "structure", type: "checkbox", key: "withMagneticClosure", label: "磁吸閉合", defaultValue: false, help: "蓋子前緣埋 2 個 6mm 釹磁鐵（B&Q 五金行有售），蓋上會自動吸合", wide: true },
-  { group: "structure", type: "checkbox", key: "withInnerTray", label: "內部 jewelry 分隔抽板", defaultValue: false, help: "盒內加一片可拆活動隔板（30mm 高 × 6 格），首飾分類用", wide: true },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "外露角倒角，1-2mm 微倒手感佳" },
+    { value: "lift-off", label: "掀蓋式（4 牆水平切兩段、上段為蓋、合頁鎖合）" },
+  ], help: "影響蓋子做法 + 工序（六/八角盒不適用，蓋型由壁面斜角自動處理）", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }] } },
+  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度", defaultValue: 6, min: 0, max: 25, step: 1, unit: "mm", help: "預設 6mm（上蓋 / 頂板常比壁薄一點，例如壁 12mm + 面板 6mm）。0 = 跟壁厚一樣；> 0 自訂面板厚度。六/八角盒鑲入式：面板上緣距盒頂固定 5mm，不隨厚度跑。", dependsOn: { key: "withLid", equals: true } },
+  { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
+    { value: "flat", label: "平頂（lid 下沉 sinkMm、壁頂有 cap）" },
+    { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、邊條維持卡槽厚）" },
+  ], help: "中央凸起 = 一片厚料 lidT+sinkMm，4 邊銑掉 sinkMm 留邊條 lidT 卡進槽；視覺上 lid 中央跟壁頂 flush", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }, { key: "lidType", equals: "sliding" }] } },
+  { group: "lid", type: "number", key: "liftOffLidH", label: "掀蓋段高", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "盒蓋段高度（距盒頂切下來的高度）。0 = 自動 = outerH/5。範圍建議 outerH/6 ~ outerH/3。六/八角盒一律上下蓋分離、此選項共用。", dependsOn: { all: [{ key: "withLid", equals: true }, { any: [{ all: [{ key: "boxShape", equals: "rect" }, { key: "lidType", equals: "lift-off" }] }, { key: "boxShape", oneOf: ["hex", "oct"] }] }] } },
+
+  // === Divider 內隔分格 ===
+  { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
+    { value: "none", label: "無隔板" },
+    { value: "single", label: "單片直徑（穿過中心）" },
+    { value: "cross", label: "十字（2 片穿過中心交叉）", dependsOn: { key: "boxShape", equals: "oct" } },
+  ], dependsOn: { key: "boxShape", notIn: ["rect"] }, help: "六/八角盒專用。單片穿過盒中心；八角還可以選十字（六角因壁間距 60° 不對齊垂直，不支援）。" },
+  { group: "divider", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿長邊方向插入的縱向隔板（把盒內切成數欄）", dependsOn: { key: "boxShape", equals: "rect" } },
+  { group: "divider", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿短邊方向插入的橫向隔板（與縱向隔板交叉可分多格）", dependsOn: { key: "boxShape", equals: "rect" } },
+  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", help: "rect 用縱/橫向隔板、六/八角用穿心隔板共用此厚度", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "dividers", notIn: [0] }] } },
+  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（隔板上緣跟壁頂齊），>0 自訂高度（不可超過壁內高）", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "dividers", notIn: [0] }] } },
+  { group: "divider", type: "number", key: "dividerInset", label: "隔板入溝深度", defaultValue: 3, min: 0, max: 8, step: 1, unit: "mm", help: "隔板兩端嵌入壁內側 dado 的深度（4 壁內面鋸槽嵌入，固定但可拆）", dependsOn: { key: "boxShape", equals: "rect" } },
+  { group: "divider", type: "checkbox", key: "withInnerTray", label: "活動分隔抽板", defaultValue: false, help: "盒內加一片可拆活動隔板（30mm 高 × 6 格），首飾分類用；與固定隔板可共存", wide: true },
 ];
 
 /**
@@ -70,72 +116,287 @@ export const dovetailBoxOptions: OptionSpec[] = [
  */
 export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = dovetailBoxOptions;
   const boxUse = getOption<string>(input, opt(o, "boxUse"));
   const preset = DOVETAIL_BOX_PRESETS[boxUse];
-  // preset 只蓋仍是 default 的 option
+  // preset 是強制的——只要選了使用情境，preset 有定義的欄位一律覆寫使用者輸入
+  // （想自訂請選「自訂（不套 preset）」boxUse=custom）
   const wallTRaw = getOption<number>(input, opt(o, "wallThickness"));
-  const wallT = wallTRaw === 12 && preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
+  const wallT = preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
   const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
-  const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
-  const withLid = getOption<boolean>(input, opt(o, "withLid"));
-  const dovetailStyleRaw = getOption<string>(input, opt(o, "dovetailStyle"));
-  const dovetailStyle = dovetailStyleRaw === "through" && preset?.dovetailStyle ? preset.dovetailStyle : dovetailStyleRaw;
+  const botT = preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
+  const withLid = preset?.withLid !== undefined ? preset.withLid : getOption<boolean>(input, opt(o, "withLid"));
   const lidTypeRaw = getOption<string>(input, opt(o, "lidType"));
-  const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
-  const withFeltLiningRaw = getOption<boolean>(input, opt(o, "withFeltLining"));
-  const withFeltLining = withFeltLiningRaw === false && preset?.withFeltLining !== undefined ? preset.withFeltLining : withFeltLiningRaw;
-  const withMagneticClosureRaw = getOption<boolean>(input, opt(o, "withMagneticClosure"));
-  const withMagneticClosure = withMagneticClosureRaw === false && preset?.withMagneticClosure !== undefined ? preset.withMagneticClosure : withMagneticClosureRaw;
+  const lidType = preset?.lidType ? preset.lidType : lidTypeRaw;
+  const slidingLidStyle = getOption<string>(input, opt(o, "slidingLidStyle"));
+  const liftOffLidHRaw = getOption<number>(input, opt(o, "liftOffLidH"));
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
-  const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
-  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
-  const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "oct";
-
+  const withInnerTray = preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
+  const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
+  const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
+  // 角接合方式：preset 強制覆寫
+  const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
+  const cornerJoinery = (preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
+    | "stub-joint"
+    | "finger-joint"
+    | "miter"
+    | "dovetail";
+  const fingerSegmentsRaw = getOption<number>(input, opt(o, "fingerSegments"));
+  const fingerSegmentsOpt = preset?.fingerSegments !== undefined ? preset.fingerSegments : fingerSegmentsRaw;
+  // 鳩尾段數 / 角度（托盤格式：0=自動算奇數、5-18° number）
+  const dovetailSegmentsRaw = getOption<number>(input, opt(o, "dovetailSegments"));
+  const dovetailSegmentsOpt = preset?.dovetailSegments !== undefined ? preset.dovetailSegments : dovetailSegmentsRaw;
+  const dovetailAngleRaw = getOption<number>(input, opt(o, "dovetailAngle"));
+  const dovetailAngleOpt = preset?.dovetailAngle !== undefined ? preset.dovetailAngle : dovetailAngleRaw;
+  const bottomAttachRaw = getOption<string>(input, opt(o, "bottomAttach"));
+  const bottomAttach = (preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
+  const dividersRaw = getOption<number>(input, opt(o, "dividers"));
+  const dividers = preset?.dividers !== undefined ? preset.dividers : dividersRaw;
+  const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
+  const crossDividers = preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
+  const dividerThickness = getOption<number>(input, opt(o, "dividerThickness"));
+  const dividerHeightRaw = getOption<number>(input, opt(o, "dividerHeight"));
+  const dividerInset = getOption<number>(input, opt(o, "dividerInset"));
   // 蓋板與壁同厚，方便共用同款料
-  const lidT = withLid ? wallT : 0;
+  // 面板厚度：user 可獨立設定（0 = 跟壁厚一樣）；preset 強制覆寫
+  const lidThicknessRaw = getOption<number>(input, opt(o, "lidThickness"));
+  const lidThicknessOpt = preset?.lidThickness !== undefined ? preset.lidThickness : lidThicknessRaw;
+  const lidT = withLid ? (lidThicknessOpt > 0 ? lidThicknessOpt : wallT) : 0;
+  // 蓋段高比例：preset 強制覆寫 liftOffLidH（用 outerH × ratio 算出絕對高度）
+  const effectiveLiftOffH = preset?.liftOffRatio !== undefined
+    ? Math.max(8, Math.round(outerH * preset.liftOffRatio))
+    : liftOffLidHRaw;
 
-  // 八角盒：跳過 buildBox 直接組多邊形 stave + 圓底盤 + (選用) 圓頂蓋
-  if (boxShape === "oct") {
+  // 六/八角盒：跳過 buildBox 直接組多邊形 stave（mitered-ends inset）
+  //            + regular-polygon 底板 + (選用) regular-polygon 頂蓋 + (選用) 穿心隔板
+  if (boxShape === "hex" || boxShape === "oct") {
+    const sides = boxShape === "hex" ? 6 : 8;
     const outerD = Math.min(outerL, outerW);
-    const staves = polygonStaves({ sides: 8, outerD, outerH, wallT, botT, material });
-    const innerD = outerD * Math.cos(Math.PI / 8) - 2 * wallT - 2;
+    const apothem = (outerD / 2) * Math.cos(Math.PI / sides);
+    const outerWallVertexR = outerD / 2;
+
+    // 底板裝法：托盤命名 seated / inset-panel / flush-glued 對應 polygon 三套幾何
+    let stavesOuterH: number; // 傳給 polygonStaves，內部 wallH = stavesOuterH - botT
+    let stavesBaseY: number;
+    let bottomOriginY: number;
+    let bottomVertexR: number;
+    let bottomAttachDesc: string;
+    if (bottomAttach === "inset-panel") {
+      // 鑲板入溝：壁全高（Y=[0, outerH]）、底板邊緣卡進壁內側溝槽（5mm）、底板下緣距盒底固定 5mm（不隨厚度跑）
+      // 注意：polygonStaves wallH = stavesOuterH - botT，所以 stavesOuterH = outerH + botT
+      const polyBotSkirt = 5;
+      stavesOuterH = outerH + botT;
+      stavesBaseY = 0;
+      bottomOriginY = polyBotSkirt;
+      const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const bottomApothem = (apothem - wallT) + grooveDepth;
+      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+      bottomAttachDesc = isEn
+        ? `**panel-in-groove** (full-height walls, bottom edge floats in a ${formatMm(grooveDepth, "inch")} groove on the inside of each stave, ${formatMm(polyBotSkirt, "inch")} reveal under the bottom, room for seasonal movement)`
+        : `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm、底板下緣距盒底 ${polyBotSkirt}mm，季節伸縮免裂）`;
+    } else if (bottomAttach === "flush-glued") {
+      // 整塊膠合：底板外緣與框體齊邊、整面塗膠
+      stavesOuterH = outerH;
+      stavesBaseY = botT;
+      bottomOriginY = 0;
+      bottomVertexR = outerWallVertexR;
+      bottomAttachDesc = isEn
+        ? "**flush-glued** (bottom flush with the outside of the walls, full-face glue-up)"
+        : "**整塊膠合**（底板外緣與框體齊邊，整面塗膠）";
+    } else { // seated
+      // 底板內縮：底板邊緣壓入壁內 wallT/2，N 段壁壓在底板邊緣膠合
+      stavesOuterH = outerH;
+      stavesBaseY = botT;
+      bottomOriginY = 0;
+      const seatOverlap = wallT / 2;
+      const bottomApothem = (apothem - wallT) + seatOverlap;
+      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+      bottomAttachDesc = isEn
+        ? `**seated bottom** (bottom edge recessed ${formatMm(seatOverlap, "inch")} inside the walls, ${sides} staves glued onto the bottom's edge)`
+        : `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，${sides} 段壁壓在底板邊緣膠合）`;
+    }
+    const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
+    // 端面 mitre（角度 = π/N，相鄰兩壁總共 2π/N = 外角）
+    const miterInset = wallT * Math.tan(Math.PI / sides);
+    for (const stave of staves) {
+      stave.shape = { kind: "mitered-ends", insetEach: miterInset, outerSide: "+y" };
+    }
+
+    // 仿矩形 lift-off：壁水平切兩段、上段為蓋、底段為身。蓋段含頂板 + 5mm cap。
+    // liftOffH 預設 outerH/5；最低值含面板厚 + 5mm cap + 3mm 餘裕；
+    // 使用者可透過「掀蓋段高 (liftOffLidH)」option 自訂，0 = 自動。
+    const polyLidPanelT = withLid ? lidT : 0;
+    const polyLiftTopCapH = 5;
+    if (withLid) {
+      const polyLiftMin = Math.max(8, polyLidPanelT + polyLiftTopCapH + 3);
+      const polyLiftAuto = Math.max(polyLiftMin, Math.round(outerH / 5));
+      const polyLiftOffH = effectiveLiftOffH > 0
+        ? Math.max(polyLiftMin, Math.min(Math.floor(outerH / 2), effectiveLiftOffH))
+        : polyLiftAuto;
+      const polyCutY = outerH - polyLiftOffH;
+      const stavesBody: Part[] = [];
+      const stavesLid: Part[] = [];
+      for (const stave of staves) {
+        const baseY = stave.origin.y;
+        const topY = baseY + stave.visible.width;
+        // 身段：origin.y 不變、width = polyCutY - baseY
+        const bodyH = polyCutY - baseY;
+        stavesBody.push({
+          ...stave,
+          nameZh: stave.nameZh + "（盒身段）",
+          nameEn: (stave.nameEn ?? "Stave") + " (body)",
+          visible: { ...stave.visible, width: bodyH },
+        });
+        // 蓋段：origin.y = polyCutY、width = topY - polyCutY
+        const lidH = topY - polyCutY;
+        stavesLid.push({
+          ...stave,
+          id: stave.id + "-lid",
+          nameZh: stave.nameZh.replace("（盒身段）", "") + "（盒蓋段）",
+          nameEn: (stave.nameEn ?? "Stave").replace(" (body)", "") + " (lid)",
+          visible: { ...stave.visible, width: lidH },
+          origin: { ...stave.origin, y: polyCutY },
+        });
+      }
+      // 用 push/pop 改造原 staves array：替換 body、新增 lid
+      staves.length = 0;
+      staves.push(...stavesBody, ...stavesLid);
+    }
+
+    const bottomBbox = 2 * bottomVertexR;
     const polyBottom: Part = {
       id: "bottom",
-      nameZh: "八角底板",
+      nameZh: `${sides} 角底板`,
+      nameEn: `${sides}-sided bottom panel`,
       material,
       grainDirection: "length",
-      visible: { length: innerD, width: innerD, thickness: botT },
-      origin: { x: 0, y: 0, z: 0 },
-      shape: { kind: "round" },
+      visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
+      origin: { x: 0, y: bottomOriginY, z: 0 },
+      shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
       tenons: [],
       mortises: [],
     };
-    const polyParts: Part[] = [polyBottom, ...staves];
-    if (withLid) {
-      polyParts.push({
-        id: "lid",
-        nameZh: "八角頂蓋",
+
+    // 穿心隔板（single / cross）；hex 不支援 cross（壁間距 60° 不對齊垂直）
+    const polygonDividerParts: Part[] = [];
+    const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle as string;
+    if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
+      const innerFlatR = apothem - wallT;
+      const polyDividerGroove = Math.min(5, wallT - 1);
+      const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
+      const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
+      const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY - (withLid ? lidT : 0));
+      const polyDividerH = dividerHeightRaw > 0
+        ? Math.max(1, Math.min(dividerHeightRaw, polyDividerHAuto))
+        : polyDividerHAuto;
+      polygonDividerParts.push({
+        id: "divider-1",
+        nameZh: "穿心隔板 1（縱）",
+        nameEn: "Through divider 1 (longitudinal)",
         material,
         grainDirection: "length",
-        visible: { length: innerD, width: innerD, thickness: lidT },
-        origin: { x: 0, y: outerH - lidT, z: 0 },
-        shape: { kind: "round" },
+        visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThickness },
+        origin: { x: 0, y: polyBottomTopY, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      if (polyDividerStyleStr === "cross") {
+        polygonDividerParts.push({
+          id: "divider-2",
+          nameZh: "穿心隔板 2（橫）",
+          nameEn: "Through divider 2 (transverse)",
+          material,
+          grainDirection: "length",
+          visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThickness },
+          origin: { x: 0, y: polyBottomTopY, z: 0 },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // CSG cosmetic mortise（4 / 8 壁加 dado 槽嵌入隔板）
+      const addStaveMortise = (staveIdx: number) => {
+        const stave = staves[staveIdx];
+        if (!stave) return;
+        stave.mortises.push({
+          origin: { x: 0, y: wallT, z: 0 },
+          depth: polyDividerGroove + 0.3,
+          length: polyDividerH + 0.5,
+          width: dividerThickness + 0.5,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+      };
+      addStaveMortise(0);
+      addStaveMortise(sides / 2);
+      if (polyDividerStyleStr === "cross") {
+        addStaveMortise(sides / 4);
+        addStaveMortise((3 * sides) / 4);
+      }
+    }
+    const polyDividerDesc = isEn
+      ? polyDividerStyleStr === "single"
+        ? ", with 1 through-divider splitting the interior into 2 bays"
+        : polyDividerStyleStr === "cross"
+          ? ", with a cross divider splitting the interior into 4 bays"
+          : ""
+      : polyDividerStyleStr === "single"
+        ? "，內部 1 片穿心隔板分 2 區"
+        : polyDividerStyleStr === "cross"
+          ? "，內部十字隔板分 4 區"
+          : "";
+
+    const polyParts: Part[] = [polyBottom, ...staves, ...polygonDividerParts];
+
+    // 頂蓋：仿 lift-off 風格鑲在框內——頂板邊緣卡進壁內側溝槽、上方留 5mm cap
+    if (withLid) {
+      const topGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const topApothem = (apothem - wallT) + topGrooveDepth;
+      const topVertexR = topApothem / Math.cos(Math.PI / sides);
+      const topBbox = 2 * topVertexR;
+      const polyLiftTopCap = 5;
+      polyParts.push({
+        id: "lid",
+        nameZh: `${sides} 角頂板（鑲板入溝）`,
+        nameEn: `${sides}-sided lid (dadoed panel)`,
+        material,
+        grainDirection: "length",
+        visible: { length: topBbox, width: topBbox, thickness: lidT },
+        origin: { x: 0, y: outerH - polyLiftTopCap - lidT, z: 0 },
+        shape: { kind: "regular-polygon", sides, outerRadius: topVertexR },
         tenons: [],
         mortises: [],
       });
     }
-    return {
-      id: `dovetail-box-oct-${outerD}x${outerH}`,
+
+const polyDesign: FurnitureDesign = {
+      id: `dovetail-box-${boxShape}-${outerD}x${outerH}`,
       category: "dovetail-box",
-      nameZh: "八角鳩尾盒",
+      nameZh: `${sides === 6 ? "六" : "八"}角鳩尾盒`,
       overall: { length: outerD, width: outerD, thickness: outerH },
       parts: polyParts,
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `八角鳩尾盒外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。8 段直立壁邊接 22.5° 斜切（45° 內角），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。${withLid ? "頂蓋圓盤從盒口蓋上。" : ""}${withFeltLining ? " 內側 8 壁 + 底貼絨布。" : ""}${edgeChamfer > 0 ? ` 外露邊倒 ${edgeChamfer}mm 防割手。` : ""}`,
+      notes: isEn
+        ? `${sides === 6 ? "Hexagonal" : "Octagonal"} dovetailed box, outer-circle ⌀${formatMm(outerD, "inch")} × ${formatMm(outerH, "inch")} tall, wall thickness ${formatMm(wallT, "inch")}. ${sides} upright staves meet at ${(180 / sides).toFixed(1)}° miters (${sides === 6 ? "60° interior" : "45° interior"}); adjacent edges are reinforced with mitered-splines (miter + hidden dovetail key) — harder to cut than square-box dovetails but the most striking visually. Bottom uses ${bottomAttachDesc}${polyDividerDesc}.${withLid ? ` Two-part body + lid: the ${sides} staves are crosscut into body + lid sections; the top panel sits in a groove on the inside of the lid wall, 5mm down from the rim.` : ""}`
+        : `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `上下蓋分離式：${sides} 段壁水平切成身段 + 蓋段，頂板鑲入壁內側溝槽、上緣距盒頂 5mm。` : ""}`,
     };
+
+    // polygon 也跑壁厚 / 尺寸合理性檢查
+    const polyWarnings: string[] = [];
+    if (outerD > 400 || outerH > 250) {
+      polyWarnings.push(`${sides === 6 ? "六" : "八"}角盒 ⌀${outerD}×${outerH}mm 超過合理範圍（max ⌀400×250mm）。再大就是收納箱級別`);
+    }
+    if (wallT < 10 && outerD > 250) {
+      polyWarnings.push(`壁厚 ${wallT}mm 對 ⌀${outerD}mm 太薄——多邊形斜接需要足夠端面承黏，建議加厚到 12mm 以上`);
+    }
+    if (polyWarnings.length) polyDesign.warnings = polyWarnings;
+    return polyDesign;
   }
 
   const built = buildBox({
@@ -146,138 +407,617 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     botT,
     lidT,
     material,
-    cornerJoinery: "dovetail",
-    bottomFit: "grooved",
+    // miter 由 shape 自己畫斜切，buildBox 走 stub-joint base
+    cornerJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
+    // bottomFit 對應 bottomAttach：flush-glued → floating（底板齊邊整面塗膠），
+    //                             else（seated / inset-panel） → grooved（buildBox 預設 inset）
+    bottomFit: bottomAttach === "flush-glued" ? "floating" : "grooved",
   });
 
-  // 半隱鳩尾的 mortise 不貫穿
-  if (dovetailStyle === "half-blind") {
-    for (const p of built.parts) {
-      if (p.id === "wall-left" || p.id === "wall-right") {
-        for (const m of p.mortises) m.through = false;
+  // 底板裝法後處理（仿托盤）：蓋掉 buildBox 預設幾何
+  const bottomPart = built.parts.find((p) => p.id === "bottom");
+  if (bottomPart) {
+    if (bottomAttach === "inset-panel") {
+      // 鑲板入溝：4 壁全高（從 y=0 起到 outerH）、底板浮嵌於壁內側 5mm 槽中
+      // 底板下緣距盒底固定 5mm（不隨厚度跑），對稱頂板 5mm cap
+      const grooveDepth = 5;
+      const rectBotSkirt = 5;
+      const insetEach = Math.max(2, wallT - grooveDepth);
+      bottomPart.visible = {
+        length: outerL - 2 * insetEach,
+        width: outerW - 2 * insetEach,
+        thickness: botT,
+      };
+      bottomPart.origin = { x: 0, y: rectBotSkirt, z: 0 };
+      for (const part of built.parts) {
+        if (part.id.startsWith("wall-")) {
+          part.visible = { ...part.visible, width: outerH - (withLid ? lidT : 0) };
+          part.origin = { ...part.origin, y: 0 };
+        }
+      }
+    } else if (bottomAttach === "flush-glued") {
+      // 整塊膠合：底板外緣與框體齊
+      bottomPart.visible = { length: outerL, width: outerW, thickness: botT };
+      bottomPart.origin = { x: 0, y: 0, z: 0 };
+    }
+    // seated 不動，保留 buildBox 既有結果（底板嵌入壁內 + 壁立其上）
+  }
+
+  // miter / finger-joint / dovetail：短壁也延伸到外角全長（搭接才夾在長壁之間）
+  // 並清除 buildBox 預先產的榫頭，改由 shape 屬性表達榫接幾何
+  if (cornerJoinery === "miter" || cornerJoinery === "finger-joint" || cornerJoinery === "dovetail") {
+    for (const part of built.parts) {
+      if (part.id === "wall-front" || part.id === "wall-back") {
+        part.visible = { ...part.visible, length: outerL };
+        part.tenons = [];
+      } else if (part.id === "wall-left" || part.id === "wall-right") {
+        part.visible = { ...part.visible, length: outerW };
+        part.tenons = [];
       }
     }
   }
 
-  // 重新貼上鳩尾盒的中文零件名（box-builder 預設叫 前壁/後壁/左壁/右壁）
+  // miter 4 壁掛 mitered-ends shape：3D / 三視圖端面渲成 45° 斜切。
+  if (cornerJoinery === "miter") {
+    for (const part of built.parts) {
+      let outerSide: "+y" | "-y" | null = null;
+      if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
+      else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
+      if (outerSide) {
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
+      }
+    }
+  }
+
+  // finger-joint 4 壁掛 finger-joint-ends shape：comb 沿 wallH 方向交錯。
+  let fingerJointInfo: { segmentCount: number; fingerW: number } | null = null;
+  if (cornerJoinery === "finger-joint") {
+    let segmentCount: number;
+    if (fingerSegmentsOpt > 0) {
+      segmentCount = Math.max(2, Math.min(30, Math.floor(fingerSegmentsOpt)));
+    } else {
+      const totalH = outerH - botT;
+      segmentCount = Math.max(3, Math.round(totalH / (1.5 * wallT)));
+      if (segmentCount % 2 === 0) segmentCount += 1;
+      segmentCount = Math.min(13, segmentCount);
+    }
+    const wallActualH = outerH - botT - (withLid ? lidT : 0);
+    fingerJointInfo = { segmentCount, fingerW: Math.max(1, wallActualH / segmentCount) };
+    for (const part of built.parts) {
+      let phase: 0 | 1 | null = null;
+      if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
+      else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
+      if (phase !== null) {
+        part.shape = {
+          kind: "finger-joint-ends",
+          segmentCount,
+          phase,
+          fingerDepth: wallT,
+        };
+      }
+    }
+  }
+
+  // dovetail 4 壁掛 dovetail-ends shape：trapezoid 段沿 wallH 方向交錯。
+  // 仿托盤：前後板切 tail 凸齒（dovetail-ends phase=0 halfPin），左右板維持
+  // plain box，組裝後 CSG 把左右板跟 tail 重疊處挖掉（比硬算 pin 形狀對齊 tail 簡單可靠）。
+  let dovetailInfo: { segmentCount: number; segH: number; angleDeg: number; bumped: boolean } | null = null;
+  if (cornerJoinery === "dovetail") {
+    let segmentCount: number;
+    let bumped = false;
+    if (dovetailSegmentsOpt > 0) {
+      segmentCount = Math.max(3, Math.min(21, Math.floor(dovetailSegmentsOpt)));
+      // phase=0 halfPin=true 要求奇數段（不然 s=N-2 s=N-1 兩個都是 pin → 渲染破口）
+      if (segmentCount % 2 === 0) {
+        segmentCount += 1;
+        bumped = true;
+      }
+    } else {
+      const totalH = outerH - botT;
+      segmentCount = Math.max(3, Math.round(totalH / (1.8 * wallT)));
+      if (segmentCount % 2 === 0) segmentCount += 1;
+      segmentCount = Math.min(11, segmentCount);
+    }
+    const angleDeg = Math.max(5, Math.min(18, dovetailAngleOpt));
+    const wallActualH = outerH - botT - (withLid ? lidT : 0);
+    dovetailInfo = { segmentCount, segH: Math.max(1, wallActualH / segmentCount), angleDeg, bumped };
+    for (const part of built.parts) {
+      if (part.id === "wall-front" || part.id === "wall-back") {
+        part.shape = {
+          kind: "dovetail-ends",
+          segmentCount,
+          phase: 0,
+          angleDeg,
+          pinDepth: wallT,
+          halfPin: true,
+        };
+      }
+      // wall-left/right：維持 buildBox 給的 default box，CSG 在 3D 那層挖
+    }
+  }
+
+  // 重新貼上中文零件名（box-builder 預設叫 前壁/後壁/左壁/右壁）
+  // 隨 cornerJoinery 帶上接合角色提示
+  const roleFM = cornerJoinery === "dovetail" ? "（鳩尾公）"
+              : cornerJoinery === "finger-joint" ? "（指接 phase 0）"
+              : cornerJoinery === "miter" ? "（45° 斜接）"
+              : "（搭接）";
+  const roleLR = cornerJoinery === "dovetail" ? "（鳩尾母）"
+              : cornerJoinery === "finger-joint" ? "（指接 phase 1）"
+              : cornerJoinery === "miter" ? "（45° 斜接）"
+              : "（搭接）";
   const nameMap: Record<string, string> = {
-    "wall-front": "前壁（鳩尾公）",
-    "wall-back": "後壁（鳩尾公）",
-    "wall-left": "左壁（鳩尾母）",
-    "wall-right": "右壁（鳩尾母）",
+    "wall-front": `前壁${roleFM}`,
+    "wall-back": `後壁${roleFM}`,
+    "wall-left": `左壁${roleLR}`,
+    "wall-right": `右壁${roleLR}`,
   };
   for (const p of built.parts) {
     if (nameMap[p.id]) p.nameZh = nameMap[p.id];
   }
 
+// 接合文案：四套說法依 cornerJoinery 分支
+  const joineryDesc = isEn
+    ? cornerJoinery === "dovetail"
+      ? `**dovetails**${dovetailInfo ? ` (${dovetailInfo.segmentCount} per corner, ${dovetailInfo.angleDeg}° slope)` : ""} — traditional show-joint, the pin/tail pattern is visible from outside.`
+      : cornerJoinery === "finger-joint"
+        ? `**finger joints** (box joints${fingerJointInfo ? `, ${fingerJointInfo.segmentCount} per corner, ${formatMm(fingerJointInfo.fingerW, "inch")} per finger` : ""}) — exposed interlocking fingers, the best practice joint before tackling dovetails.`
+        : cornerJoinery === "miter"
+          ? "**miter** (45° butt — the cleanest look but demands precise tablesaw or sled cuts; reinforce with glue + brads or biscuits)."
+          : "**rabbet** (simplest — cut a wallT/2 rebate on the long walls, the short walls drop in; just glue)."
+    : cornerJoinery === "dovetail"
+      ? `**鳩尾接合**（dovetail，${dovetailInfo ? `每角 ${dovetailInfo.segmentCount} 段、傾角 ${dovetailInfo.angleDeg}°` : ""}），傳統工藝展示款，從盒外能看到指狀鳩尾紋路。`
+      : cornerJoinery === "finger-joint"
+        ? `**指接**（finger joint，${fingerJointInfo ? `每角 ${fingerJointInfo.segmentCount} 段、每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}），外露指狀紋路，新手練習鳩尾前的最佳基本款。`
+        : cornerJoinery === "miter"
+          ? "**斜角拼**（45° 對接，最隱形但需鋸台或斜切片切精準對齊，膠合 + 細釘 / 餅乾榫加固）。"
+          : "**搭接**（rabbet，最簡單：長壁端面銑 wallT/2 深的槽，短壁端面留厚塊嵌入，膠合即可）。";
+  const joineryClosing = isEn
+    ? cornerJoinery === "dovetail"
+      ? "**A dovetailed box is the gateway to drawer-making** — nail this one and you've got every dovetail skill you'll ever need."
+      : cornerJoinery === "finger-joint"
+        ? "**Finger joints are the warm-up for dovetails** — get fluent here, then graduate."
+        : cornerJoinery === "miter"
+          ? "**Miters reward precision** — half a degree off and you'll see the gap; use a dedicated miter sled."
+          : "**Rabbets get you running fast** — perfect for tool totes and shop storage where looks don't matter."
+    : cornerJoinery === "dovetail"
+      ? "**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。"
+      : cornerJoinery === "finger-joint"
+        ? "**指接是鳩尾的入門練習**——熟練後可進階到鳩尾。"
+        : cornerJoinery === "miter"
+          ? "**斜角拼最考驗精度**——鋸切角度差 0.5° 就會留縫，建議用斜切片切。"
+          : "**搭接最快上手**——適合工具盒 / 收納箱等不講究外觀的用途。";
+
   const design: FurnitureDesign = {
     id: `dovetail-box-${outerL}x${outerW}x${outerH}`,
     category: "dovetail-box",
-    nameZh: "鳩尾盒",
+    nameZh: cornerJoinery === "dovetail" ? "鳩尾盒" : "木盒",
     overall: { length: outerL, width: outerW, thickness: outerH },
     parts: built.parts,
-    defaultJoinery: "dovetail",
+    defaultJoinery: cornerJoinery === "miter" ? "mitered-spline" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `鳩尾盒 ${outerL}×${outerW}×${outerH}mm，${
-      dovetailStyle === "through"
-        ? "**通鳩尾**接合，從盒外能看到指狀鳩尾紋路，傳統工藝展示款。"
-        : dovetailStyle === "half-blind"
-          ? "**半隱鳩尾**接合，從正面看不到鳩尾，盒身視覺乾淨——傳統抽屜做法。"
-          : "**暗鳩尾**接合（secret mitered dovetail），4 角看起來純斜接，鳩尾完全藏在內部，最高難度。"
-    }底板槽接 4 壁內側下緣，不上膠（讓底板可熱漲冷縮）。${withLid ? `蓋子做${
-      lidType === "sliding"
-        ? "**滑入式**（蓋兩側下緣鋸凸條，前後壁內側上緣鋸對應槽，從前面滑入）"
-        : lidType === "hinged"
-          ? "**鉸鏈式**（後壁裝小銅鉸鏈一對，B&Q 有售 NT$ 50/對）"
-          : lidType === "lift-off"
-            ? "**整片活動蓋**（不固定，蓋內側加 4 條 cleat 卡入盒口防滑）"
-            : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
-    }。` : ""}${withFeltLining ? "內側 4 壁 + 底面貼絨布（B&Q / 美術社買 1mm 自黏絨布，剪好後黏入），珠寶 / 首飾盒必加。" : ""}${withMagneticClosure ? "蓋子前緣埋 2 個 6mm 釹磁鐵（鑽 6mm 圓孔嵌入 + AB 膠固定），蓋下時自動吸合。" : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。`,
+    notes: isEn
+      ? `Wooden box ${formatMm(outerL, "inch")}×${formatMm(outerW, "inch")}×${formatMm(outerH, "inch")}, ${joineryDesc}${
+          bottomAttach === "inset-panel"
+            ? " Bottom is a floating panel in a 5mm groove on the inside of all 4 walls (no glue — lets the bottom move seasonally without splitting)."
+            : bottomAttach === "flush-glued"
+              ? " Bottom is flush-glued to all 4 walls (full-face glue-up, solid but not removable)."
+              : " Bottom seated inside the walls — the 4 walls press down onto the bottom's edge and glue."
+        }${withLid ? ` Lid is ${
+          lidType === "sliding"
+            ? "**sliding** — tongue cut on each long edge of the lid, matching grooves in the inside top of the front and back walls; slides on from the front"
+            : lidType === "hinged"
+              ? "**hinged** — pair of small brass butt hinges on the back wall (~$2/pair at hardware stores)"
+              : "**lift-off rebated** — a 4mm rebate around the lid edge forms a lip that drops into the box opening for self-aligning fit"
+        }.` : ""}${withInnerTray ? " A removable inner tray (30mm tall, 6 compartments) sits inside as a jewelry tray; add 4 rubber feet underneath so it doesn't scratch the bottom." : ""}${(dividers > 0 || crossDividers > 0) ? ` Interior gets${dividers > 0 ? ` ${dividers} lengthwise divider${dividers > 1 ? "s" : ""}` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} crosswise divider${crossDividers > 1 ? "s" : ""}` : ""} (${formatMm(dividerThickness, "inch")} thick, seated ${formatMm(dividerInset, "inch")} into dadoes on the inside of all 4 walls).` : ""} ${joineryClosing}`
+      : `木盒 ${outerL}×${outerW}×${outerH}mm，${joineryDesc}${
+          bottomAttach === "inset-panel"
+            ? "底板鑲板入溝：4 壁全高，內側鋸 5mm 槽、底板浮嵌（季節伸縮免裂，不上膠）。"
+            : bottomAttach === "flush-glued"
+              ? "底板與 4 壁齊邊整塊膠合（整面塗膠，固定但不可拆）。"
+              : "底板內縮：底板嵌入壁內、4 壁壓在底板邊緣膠合（最簡單）。"
+        }${withLid ? `蓋子做${
+          lidType === "sliding"
+            ? "**滑入式**（蓋兩側下緣鋸凸條，前後壁內側上緣鋸對應槽，從前面滑入）"
+            : lidType === "hinged"
+              ? "**鉸鏈式**（後壁裝小銅鉸鏈一對，B&Q 有售 NT$ 50/對）"
+              : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝形成凸唇，蓋下扣盒口、凸唇伸入盒內登錄對位）"
+        }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${joineryClosing}`,
   };
-  // 絨布內襯：4 壁 + 底面 5 片 visual-only part（給 BOM 計料用，不入材積）
-  if (withFeltLining) {
-    const feltL = outerL - 2 * wallT - 2;
-    const feltW = outerW - 2 * wallT - 2;
-    const feltWallH = outerH - botT - (withLid ? lidT : 0) - 2;
-    design.parts.push({
-      id: "felt-bottom",
-      nameZh: "絨布內襯（底）",
-      material,
-      grainDirection: "length",
-      visible: { length: feltL, width: feltW, thickness: 1 },
-      origin: { x: 0, y: botT, z: 0 },
-      tenons: [],
-      mortises: [],
-      visual: "fabric",
-    });
-    // 4 片絨布壁
-    design.parts.push({
-      id: "felt-front",
-      nameZh: "絨布內襯（前壁）",
-      material,
-      grainDirection: "length",
-      visible: { length: feltL, width: feltWallH, thickness: 1 },
-      origin: { x: 0, y: botT + feltWallH / 2, z: -outerW / 2 + wallT + 1 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-      visual: "fabric",
-    });
-    design.parts.push({
-      id: "felt-back",
-      nameZh: "絨布內襯（後壁）",
-      material,
-      grainDirection: "length",
-      visible: { length: feltL, width: feltWallH, thickness: 1 },
-      origin: { x: 0, y: botT + feltWallH / 2, z: outerW / 2 - wallT - 1 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-      visual: "fabric",
-    });
-    design.parts.push({
-      id: "felt-left",
-      nameZh: "絨布內襯（左壁）",
-      material,
-      grainDirection: "length",
-      visible: { length: feltW, width: feltWallH, thickness: 1 },
-      origin: { x: -outerL / 2 + wallT + 1, y: botT + feltWallH / 2, z: 0 },
-      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      tenons: [],
-      mortises: [],
-      visual: "fabric",
-    });
-    design.parts.push({
-      id: "felt-right",
-      nameZh: "絨布內襯（右壁）",
-      material,
-      grainDirection: "length",
-      visible: { length: feltW, width: feltWallH, thickness: 1 },
-      origin: { x: outerL / 2 - wallT - 1, y: botT + feltWallH / 2, z: 0 },
-      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      tenons: [],
-      mortises: [],
-      visual: "fabric",
-    });
-  }
-  // 磁吸閉合：2 個釹磁鐵（visual-only，hint 給 BOM 採購）
-  if (withMagneticClosure && withLid) {
-    for (let i = 0; i < 2; i++) {
-      design.parts.push({
-        id: `magnet-${i + 1}`,
-        nameZh: `釹磁鐵 ⌀6×3mm（${i === 0 ? "左" : "右"}）`,
-        material,
-        grainDirection: "length",
-        visible: { length: 6, width: 6, thickness: 3 },
-        origin: { x: (i === 0 ? -1 : 1) * (outerL / 4), y: outerH - lidT - 3, z: -outerW / 2 + wallT + 3 },
-        shape: { kind: "round" },
-        tenons: [],
-        mortises: [],
-        visual: "metal",
+  // 蓋型差異化：sliding / rabbeted / hinged 各做出特徵零件
+  // buildBox 給的 lid 是 outerL × outerW × lidT 純 box，依 lidType 改 lid + 加配件
+  const lidPart = design.parts.find((p) => p.id === "lid");
+  if (withLid && lidPart) {
+    if (lidType === "sliding") {
+      // 滑入式（跟底板 inset-panel 對偶 · 完整對偶版）：
+      // 底板：plate 在 y=botT~2·botT、距箱底 botT 厚的「下緣 cap」、4 壁全高
+      // 蓋板（鏡像）：lid 在 y=outerH-2·lidT ~ outerH-lidT、距箱頂 lidT 厚的「上緣 cap」
+      //
+      // 結構：
+      // - lid 縮成 outerL-2·insetEach × outerW-2·insetEach × lidT
+      // - lid 下沉 lidT：origin.y = outerH - 2·lidT（top 在 outerH - lidT）
+      // - 前 / 後 / 右 三壁延伸 lidT 到 outerH（壁體單塊涵蓋 lid 區 + 上 cap）
+      // - 左壁（短邊）縮短 lidT：頂面停在 outerH - 2·lidT（= lid 底）
+      //   + 加 wall-left-cap（outerH - lidT ~ outerH）= 上方 cap
+      //   兩段之間留 lidT 缺口 = 滑入口（lid 從這縫滑出）
+      const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const insetEach = Math.max(2, wallT - grooveDepth);
+      const sinkMm = 5; // lid 距箱頂緣的距離（跟底板槽深 5mm 對偶）
+      // lid 在 X 軸（length，從左壁滑入）：左邊延伸到外緣 -outerL/2 補上短壁缺口
+      // 右邊仍 inset 進槽（insetEach）
+      // → lid 長度 = outerL - insetEach（單側 inset），中心向左偏 insetEach/2
+      lidPart.visible = {
+        length: outerL - insetEach,
+        width: outerW - 2 * insetEach,
+        thickness: lidT,
+      };
+      lidPart.origin = { ...lidPart.origin, x: -insetEach / 2, y: outerH - lidT - sinkMm };
+      lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉 5mm + 拉孔）";
+      // 抽蓋拉孔：lid 左緣（滑入側）⌀18mm 圓形穿透孔，手指鉤起拉開
+      // origin.y = lidT/2（lid 厚度中心）讓 cosmetic+through cyL=oyC=0、孔正確
+      // 穿透整個 lid（不是只佔底半）
+      const pullDia = 18;
+      const pullMarginFromLeft = 18;
+      const lidLocalLength = outerL - insetEach;
+      lidPart.mortises.push({
+        origin: {
+          x: -lidLocalLength / 2 + pullMarginFromLeft + pullDia / 2,
+          y: lidT / 2,
+          z: 0,
+        },
+        depth: lidT + 0.5,
+        length: pullDia,
+        width: pullDia,
+        through: true,
+        shape: "round",
+        cosmetic: true,
       });
+      // 框體上切實際滑槽 cosmetic mortise + 壁延伸
+      // 槽位於壁內側面、lid Y 區、深 grooveDepth（5mm）、高 lidT+0.5、長 = 壁全長
+      // part-local Z 軸 = world -Y（rotation x=π/2 後）：
+      //   lid 世界 Y 中心 = outerH - lidT/2 - sinkMm
+      //   壁 mesh 世界 Y 中心 = botT + visible.width/2 = (botT + outerH)/2（延伸後）
+      //   local Z = -(lid_Y - 壁_mesh_Y) = (lidT + 2·sinkMm + botT - outerH)/2
+      // 壁延伸 + 滑槽：
+      // - wall-front / wall-back 延伸 lidT 到 outerH（蓋上方 5mm cap 在前後存在）
+      // - wall-right 只延伸 (lidT - sinkMm) 到 lid top = outerH - sinkMm
+      //   （沒上 cap、降到 lid top 讓蓋可以放進槽、視覺不擋蓋）
+      // groove Z 動態算：每壁 mesh center 不同 → grooveLocalZ = meshCenterY - lidCenterY
+      // origin.y 用 from-bottom 慣例（0 = 一面、wallT = 另一面）
+      const lidWorldYCenter = outerH - lidT / 2 - sinkMm;
+      for (const p of design.parts) {
+        if (p.id === "wall-front" || p.id === "wall-back") {
+          p.visible = { ...p.visible, width: p.visible.width + lidT };
+        } else if (p.id === "wall-right") {
+          p.visible = { ...p.visible, width: p.visible.width + lidT };
+        } else {
+          continue;
+        }
+        const meshCenterY = p.origin.y + p.visible.width / 2;
+        const grooveLocalZ = meshCenterY - lidWorldYCenter;
+        // 內側面 (from-bottom)：wall-front 內面 = +Y_local = ly；其餘 = -Y_local = 0
+        const innerFromBottom =
+          p.id === "wall-front" ? wallT - grooveDepth / 2 : grooveDepth / 2;
+        // F/B 槽從 wall-left 外側面（lid 滑入口，-X 全開）延伸到 wall-right 槽底（+X 多進 grooveDepth）：
+        // X 範圍 = [-outerL/2, outerL/2 - wallT + grooveDepth]
+        // 槽長 = visible.length - wallT + grooveDepth、origin.x = (grooveDepth - wallT)/2
+        const isLong = p.id === "wall-front" || p.id === "wall-back";
+        const grooveLen = isLong ? p.visible.length - wallT + grooveDepth : p.visible.length;
+        const grooveOriginX = isLong ? (grooveDepth - wallT) / 2 : 0;
+        p.mortises.push({
+          origin: { x: grooveOriginX, y: innerFromBottom, z: grooveLocalZ },
+          depth: grooveDepth + 0.3,
+          length: grooveLen,
+          width: lidT + 0.5,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+          label: "滑蓋槽",
+        });
+      }
+      // 左壁（=正視圖右邊）縮短 sinkMm + 0.25mm（頂在 lid 底再低 0.25mm 避免 z-fighting）
+      // 左壁上方完全留空（無 cap）讓 lid 從上方滑入
+      const wallLeft = design.parts.find((p) => p.id === "wall-left");
+      if (wallLeft) {
+        const shrink = sinkMm + 0.25;
+        const newWidth = wallLeft.visible.width - shrink;
+        /**
+         * ⛔ 這裡只改了 `visible.width`,**沒有同步它身上的角榫眼與對面的公榫**。
+         *    `box-builder.ts:109` 是用建構當下的 wallH 算 `cornerTenonW = wallH − 2×2`,
+         *    這裡事後把左壁縮 5.25mm,榫眼長度沒跟著縮 →
+         *    **榫眼比板還高**(§A10.9:mortise 必須落在母件範圍內),
+         *    三視圖畫出來會凸出板外,照圖鑿會鑿穿。(2026-08-21 稽核發現。)
+         * ✅ 板縮多少,落在它身上的榫眼與對面要插進來的公榫就縮多少;
+         *    夾 0 下限避免極端參數算出負值。
+         */
+        wallLeft.visible = { ...wallLeft.visible, width: newWidth };
+        /**
+         * ⚠️ 縮的是**沿板高**的那一維。左壁的角榫眼是 `length` 沿板高走
+         *    (實測:榫眼 length=62、而板高 visible.width=60.75 → 榫眼比板高 1.25mm),
+         *    不是 `width`(4.75,那是榫眼的厚度方向)。動這種地方前要先印出實際數字確認軸向。
+         */
+        for (const m of wallLeft.mortises ?? []) {
+          m.length = Math.max(0, m.length - shrink);
+        }
+        // 對面要插進來的公榫同步縮,不然榫頭比榫眼長、插不到底
+        for (const id of ["wall-front", "wall-back"]) {
+          const w = design.parts.find((p) => p.id === id);
+          for (const t of w?.tenons ?? []) {
+            if (t.position === "start" || t.position === "end") {
+              t.length = Math.max(0, t.length - shrink);
+            }
+          }
+        }
+      }
+      // v2 中央凸起：lid 加厚 sinkMm 到 fullT，4 邊銑掉 sinkMm 留邊條卡進槽
+      // - F/B 滑槽、壁延伸、cap 全部跟 v1 一樣不動
+      // - lid 整片厚料 17mm = lidT(12) + sinkMm(5)，origin.y 下移到 outerH-fullT
+      // - 4 邊銑掉頂 sinkMm 留邊條 lidT 厚卡進槽
+      // - 邊寬：前/後/右 = grooveDepth（槽深度，5mm）；左 = wallT（lid 延伸到 box outer 補滑入口）
+      if (slidingLidStyle === "raised-center") {
+        const fullT = lidT + sinkMm;
+        lidPart.visible = { ...lidPart.visible, thickness: fullT };
+        lidPart.origin = { ...lidPart.origin, y: outerH - fullT };
+        lidPart.nameZh = "盒蓋（滑入式 · 中央凸起 raised panel · 一塊厚料銑邊）";
+        // 拉孔深度自動穿透 fullT，y 中心改 fullT/2
+        const lidHole = lidPart.mortises[lidPart.mortises.length - 1];
+        if (lidHole && lidHole.cosmetic && lidHole.through) {
+          lidHole.depth = fullT + 0.5;
+          lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
+        }
+        // 3 邊銑掉 top sinkMm（cosmetic + through 把 slot top 推到 part 外）
+        // 用 through=true 走 oyC formula 路徑、slot 可以延伸到 part top 外避開 CSG hairline
+        // slot 雙端各加 epsilon：上 2mm 超出 part top、下 0.3mm 進邊條（容忍邊條 11.7mm）
+        const lidLenLocal = lidPart.visible.length;
+        const lidWidLocal = lidPart.visible.width;
+        const cutEpsilonTop = 2;
+        const cutEpsilonBottom = 1;
+        // slot from-bottom = [fullT - sinkMm - epsBot, fullT + epsTop] = [11.7, 19]
+        const cutD = sinkMm + cutEpsilonTop + cutEpsilonBottom;  // 7.3
+        const cutCenterY = fullT + (cutEpsilonTop - sinkMm - cutEpsilonBottom) / 2 + sinkMm / 2;  // 14.85
+        // 更直接：center = (top + bottom) / 2 = (fullT + epsTop + fullT - sinkMm - epsBot) / 2
+        const cutCenterYDirect = (fullT + cutEpsilonTop + (fullT - sinkMm - cutEpsilonBottom)) / 2;
+        void cutCenterY;
+        const zEdgeW = grooveDepth;
+        const rightEdgeW = grooveDepth;
+        // 前/後 Z 邊銑切 X 範圍縮 rightEdgeW，避免跟右 X 邊銑切重疊（CSG 非 manifold 殘留）
+        const frontBackLen = lidLenLocal - rightEdgeW;
+        const frontBackOriginX = -rightEdgeW / 2;
+        // 前 Z 邊（不含右邊區）
+        lidPart.mortises.push({
+          origin: { x: frontBackOriginX, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: frontBackLen,
+          width: zEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 後 Z 邊
+        lidPart.mortises.push({
+          origin: { x: frontBackOriginX, y: cutCenterYDirect, z: (lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: frontBackLen,
+          width: zEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 右 X 邊（含背後/前面跟右邊的角落、覆蓋整個右邊條全 Z）
+        lidPart.mortises.push({
+          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
+          depth: cutD,
+          length: lidWidLocal,
+          width: rightEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+      }
+    } else if (lidType === "rabbeted") {
+      // 嵌入式：一片蓋，4 周底面銑 L 形搭接槽（rebate）→ 中央留凸唇伸進盒口對位。
+      // 蓋總厚 = lidT；下段 plugT = 凸唇深（四周底邊銑掉 wallT 寬×plugT 深，凸唇縮成
+      // 內口尺寸伸進盒內），上段 = 全尺寸 cap 坐在壁頂。不再拆成主蓋+凸唇兩片。
+      const plugT = Math.max(2, Math.min(4, lidT - 2));
+      lidPart.visible = { length: outerL, width: outerW, thickness: lidT };
+      lidPart.origin = { ...lidPart.origin, y: outerH - lidT - plugT };
+      lidPart.nameZh = "盒蓋（嵌入式 · 四周搭接槽）";
+      // 4 周底邊搭接槽（cosmetic）：from-bottom y∈[−eps, plugT]、深 plugT、邊寬 wallT，
+      // through 讓切口穿出底面/側面 → CSG 削掉底邊角落 = 真實 rebate。
+      // 左右 X 邊吃滿全 Z（含 4 角）、前後 Z 邊 X 範圍縮掉左右邊條避免角落 double-cut。
+      const rebW = Math.max(2, wallT);
+      // 零件圖：側/正視輪廓畫成 L 階梯（cap 滿尺寸 + plug 縮 rebW、深 plugT）。
+      // 3D 仍走下面的 cosmetic through-mortise CSG，不重複表現。
+      lidPart.peripheralRebate = { widthMm: rebW, depthMm: plugT };
+      const epsBot = 1;
+      const cutH = plugT + epsBot;          // Y 方向切深（含底面 overshoot）
+      const cutCY = (plugT - epsBot) / 2;   // from-bottom 中心（靠底）
+      for (const sx of [-1, 1]) {
+        lidPart.mortises.push({
+          origin: { x: (sx * (outerL - rebW)) / 2, y: cutCY, z: 0 },
+          depth: cutH,
+          length: outerW,
+          width: rebW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+      }
+      for (const sz of [-1, 1]) {
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCY, z: (sz * (outerW - rebW)) / 2 },
+          depth: cutH,
+          length: Math.max(1, outerL - 2 * rebW),
+          width: rebW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+      }
+    } else if (lidType === "hinged") {
+      // 鉸鏈式：lid 不變 + 後緣 2 個小銅鉸鏈
+      lidPart.nameZh = "盒蓋（鉸鏈式）";
+      const hingeL = 25, hingeW = 8, hingeT = 3;
+      for (let i = 0; i < 2; i++) {
+        design.parts.push({
+          id: `lid-hinge-${i + 1}`,
+          nameZh: `小銅鉸鏈 ${i + 1}`,
+          nameEn: `Brass hinge ${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: hingeL, width: hingeW, thickness: hingeT },
+          origin: {
+            x: (i === 0 ? -1 : 1) * (outerL * 0.25),
+            y: outerH - lidT - 1,
+            z: outerW / 2 - hingeW / 2 - 1,
+          },
+          tenons: [],
+          mortises: [],
+          visual: "metal",
+        });
+      }
+    } else if (lidType === "lift-off") {
+      // 掀蓋式：4 牆水平切兩段、上段=蓋（含 top 板）、下段=身（含 bottom 板）、合頁鎖合
+      // - 切分位置 = outerH - liftOffH（從盒頂往下 liftOffH 切一刀）
+      // - top 板跟 bottom 板一樣 inset-panel 風格（4 牆內側上緣切 grooveDepth 槽接 top 板）
+      // - 4 牆上段（蓋段）跟下段（身段）共用 wallT / 角接合方式
+      // - 鳩尾段數依高度比例分配（同密度）
+      // - 合頁 2 個鎖在「後壁切線」位置
+      const liftGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      // 頂板厚度：lidThicknessOpt > 0 用 user 給的、否則跟全域 lidT 同
+      // （= 上層 lidT 已經做了 wallT fallback，避免兩處 fallback 不一致導致
+      //   dovetailInfo wallActualH 估計跟實際 lid 厚度漂移）
+      const topPanelT = lidThicknessOpt > 0 ? lidThicknessOpt : lidT;
+      // 掀蓋段高至少 = topPanelT + liftTopCap + 3mm 餘裕，避免面板底面穿進身段
+      const liftTopCap = 5;
+      const liftOffMin = Math.max(8, topPanelT + liftTopCap + 3);
+      const liftOffAuto = Math.max(liftOffMin, Math.round(outerH / 5));
+      const liftOffH = effectiveLiftOffH > 0 ? Math.max(liftOffMin, Math.min(Math.floor(outerH / 2), effectiveLiftOffH)) : liftOffAuto;
+      const cutY = outerH - liftOffH;  // 切線 Y（從底算）
+
+      // 1. lid 物件改成 top 板（inset-panel 鏡像底板）：
+      //    底板 Y=[botT, 2·botT]（嵌進牆內、牆底有 botT 裙）
+      //    頂板上緣距牆頂固定 5mm（不隨面板厚度跑），面板厚 = topPanelT
+      //    → 頂板 Y=[outerH-5-topPanelT, outerH-5]、牆頂 cap = 5mm
+      lidPart.visible = {
+        length: outerL - 2 * wallT + 2 * liftGrooveDepth,
+        width: outerW - 2 * wallT + 2 * liftGrooveDepth,
+        thickness: topPanelT,
+      };
+      lidPart.origin = { x: 0, y: outerH - liftTopCap - topPanelT, z: 0 };
+      lidPart.nameZh = "盒蓋頂板（鑲板入溝）";
+      // 拉孔搬到 top 板中心（手指掀起用）
+      const liftLidHole = lidPart.mortises[lidPart.mortises.length - 1];
+      if (liftLidHole && liftLidHole.cosmetic && liftLidHole.through) {
+        liftLidHole.origin = { x: 0, y: topPanelT / 2, z: 0 };
+        liftLidHole.depth = topPanelT + 0.5;
+      }
+
+      // 2. 4 牆切兩段：身段 Y=[0, cutY]、蓋段 Y=[cutY, outerH] — 各段內含自己的板裙/cap
+      // 段數比例依高度：身段 = totalSeg × bodyH/wallH、蓋段 = totalSeg × liftH/wallH
+      // 蓋段比例小（outerH/5）容易 round 成 1 → 視覺上看不出鳩尾，給最低保底 3 奇 / 2 finger。
+      // body = total - lid 沒做奇數 bump，dovetail 偶數段渲染會破口，加上 odd-bump。
+      // 注意：body 不能直接吃 totalOriginalSegs（dovetailInfo 是按完整牆高算的，
+      // 套到較短的身段牆會讓 tail/pinDepth 比例失衡、CSG 切口在邊界漏細縫）。
+      const totalOriginalSegs = dovetailInfo?.segmentCount ?? (fingerJointInfo?.segmentCount ?? 0);
+      const liftSegRaw = Math.max(1, Math.round(totalOriginalSegs * liftOffH / Math.max(1, outerH - botT - lidT)));
+      // dovetail / finger-joint 都要奇數段（dovetail 是 halfPin 對稱要求、
+      // finger-joint 是 phase 0/1 互鎖端點視覺對稱）
+      const needsOddSegs = cornerJoinery === "dovetail" || cornerJoinery === "finger-joint";
+      let lidCornerSegs: number;
+      if (cornerJoinery === "dovetail") {
+        lidCornerSegs = Math.max(3, liftSegRaw);
+      } else {
+        lidCornerSegs = Math.max(2, liftSegRaw);
+      }
+      if (needsOddSegs && lidCornerSegs % 2 === 0) lidCornerSegs += 1;
+      let bodyCornerSegs = Math.max(1, totalOriginalSegs - lidCornerSegs);
+      if (needsOddSegs && bodyCornerSegs % 2 === 0) bodyCornerSegs += 1;
+
+      // 身段牆高 = cutY（從 Y=0 上來到切線、含底部 botT 板裙 + 內高）
+      // 蓋段牆高 = liftOffH（從切線上來到 outerH、含頂部 botT cap + 內高）
+      const bodyWallH = cutY;
+      const lidWallH = liftOffH;
+
+      for (const wallId of ["wall-front", "wall-back", "wall-left", "wall-right"] as const) {
+        const wall = design.parts.find((p) => p.id === wallId);
+        if (!wall) continue;
+        // 身段：改高度到 cutY、origin.y=0（從盒底起算、含底板裙）
+        wall.visible = { ...wall.visible, width: bodyWallH };
+        wall.origin = { ...wall.origin, y: 0 };
+        wall.nameZh = wall.nameZh.replace(/（[^）]*$/, "") + "（盒身段）";
+        if (wall.shape?.kind === "dovetail-ends" || wall.shape?.kind === "finger-joint-ends") {
+          wall.shape = { ...wall.shape, segmentCount: bodyCornerSegs };
+        }
+        // 新增蓋段：origin.y=cutY、高度=liftOffH
+        const lidWallShape = wall.shape && (wall.shape.kind === "dovetail-ends" || wall.shape.kind === "finger-joint-ends" || wall.shape.kind === "mitered-ends")
+          ? { ...wall.shape, ...(wall.shape.kind !== "mitered-ends" ? { segmentCount: lidCornerSegs } : {}) }
+          : undefined;
+        design.parts.push({
+          id: wallId + "-lid",
+          nameZh: wall.nameZh.replace("盒身段", "蓋段"),
+          nameEn: (wall.nameEn ?? wall.nameZh).replace(" (body)", " (lid)"),
+          material: wall.material,
+          grainDirection: wall.grainDirection,
+          visible: { ...wall.visible, width: lidWallH },
+          origin: { ...wall.origin, y: cutY },
+          rotation: wall.rotation,
+          tenons: [],
+          mortises: [],
+          ...(lidWallShape ? { shape: lidWallShape } : {}),
+        });
+      }
+
+      // 3. 底板強制 inset-panel 風格（user 想要「上下板都做等底版一樣」）
+      const bottomP = design.parts.find((p) => p.id === "bottom");
+      if (bottomP) {
+        // 底板下緣距盒底固定 5mm（不隨厚度跑），對稱頂板 5mm cap
+        const liftBotSkirt = 5;
+        bottomP.visible = {
+          length: outerL - 2 * wallT + 2 * liftGrooveDepth,
+          width: outerW - 2 * wallT + 2 * liftGrooveDepth,
+          thickness: botT,
+        };
+        bottomP.origin = { x: 0, y: liftBotSkirt, z: 0 };
+      }
+
+      // 4. 面板入溝槽（cosmetic 虛線）：身段牆內側畫底板槽、蓋段牆內側畫頂板槽。
+      //    panel 邊緣浮嵌牆內側 liftGrooveDepth 深的槽（鑲板入溝），上下對稱。
+      //    user 2026-06-15「盒蓋段沒顯示上蓋板槽、盒身段沒顯示底板槽」。
+      //    比照下方 generic「底板槽」block，但用 liftGrooveDepth（panel 是用它算
+      //    尺寸的）；generic block 已排除 lift-off 避免重複。
+      const liftBottomYC = 5 + botT / 2;                       // 底板世界 Y 中心（裙 5mm）
+      const liftTopYC = outerH - liftTopCap - topPanelT / 2;   // 頂板世界 Y 中心
+      const addLiftPanelGroove = (panelYC: number, panelT: number, label: string) => {
+        for (const p of design.parts) {
+          if (!p.id.startsWith("wall-")) continue;
+          // 只在涵蓋該 panel 高度的牆段加（身段→底板、蓋段→頂板，另一段自動跳過）
+          if (panelYC < p.origin.y || panelYC > p.origin.y + p.visible.width) continue;
+          const meshCenterY = p.origin.y + p.visible.width / 2;
+          const grooveLocalZ = meshCenterY - panelYC;
+          // 內側面（from-bottom）：front / left（含 -lid 段）內面在 +Y；back / right 在 0
+          const innerFromBottom = /^wall-(front|left)/.test(p.id)
+            ? wallT - liftGrooveDepth / 2
+            : liftGrooveDepth / 2;
+          const grooveLen = Math.max(1, p.visible.length - 2 * wallT + 2 * liftGrooveDepth);
+          p.mortises.push({
+            origin: { x: 0, y: innerFromBottom, z: grooveLocalZ },
+            depth: liftGrooveDepth + 0.3,
+            length: grooveLen,
+            width: panelT + 0.5,
+            through: false,
+            shape: "rect",
+            cosmetic: true,
+            label,
+          });
+        }
+      };
+      addLiftPanelGroove(liftBottomYC, botT, "底板槽");
+      addLiftPanelGroove(liftTopYC, topPanelT, "頂板槽");
     }
   }
+
   // 內部 jewelry 抽板（活動隔板）
   if (withInnerTray) {
     const trayH = 30;
@@ -285,6 +1025,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     design.parts.push({
       id: "inner-tray",
       nameZh: "內部活動隔板（jewelry tray）",
+      nameEn: "Inner jewelry tray",
       material,
       grainDirection: "length",
       visible: {
@@ -298,14 +1039,138 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
+  // 固定內隔板：縱向（沿 X 軸延伸，沿 Z 分布） + 橫向（沿 Z 軸延伸，沿 X 分布）
+  // 兩端嵌入 4 壁內側 dado 槽（深 dividerInset mm），高度可自訂或自動（跟壁頂齊）。
+  // origin.y = from-bottom 慣例 → 隔板底面 y 座標 = dividerBaseY（不能 + H/2）。
+  // inset-panel 模式：底板上緣在 2*botT；其他模式（seated / flush-glued）底板上緣在 botT。
+  const dividerBaseY = bottomAttach === "inset-panel" ? 5 + botT : botT;
+  // 滑入式：隔板頂上緣比「滑槽下緣 = lid 底」再低 1mm（讓 lid 順過、避免 z-fighting）
+  // 其他蓋型：頂上緣齊壁內頂 = outerH - lidT
+  const slidingSinkMm = 5;
+  const slidingClearance = lidType === "sliding" ? slidingSinkMm + 1 : 0;
+  // lift-off：隔板停在切線 cutY (= outerH - liftOffH)、跟 lidT 無關
+  // 其他蓋型：依 lidT + sliding 額外 clearance
+  const liftOffHForDivider = lidType === "lift-off"
+    ? (effectiveLiftOffH > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), effectiveLiftOffH)) : Math.max(8, Math.round(outerH / 5)))
+    : 0;
+  const wallTopY = lidType === "lift-off"
+    ? outerH - liftOffHForDivider
+    : outerH - (withLid ? lidT + slidingClearance : 0);
+  const dividerMaxH = Math.max(1, wallTopY - dividerBaseY);
+  const actualDividerH = dividerHeightRaw > 0 ? Math.min(dividerHeightRaw, dividerMaxH) : dividerMaxH;
+  const innerLDim = outerL - 2 * wallT;
+  const innerWDim = outerW - 2 * wallT;
+  // 縱向隔板：沿 X 延伸（length = innerL + 2 * dividerInset，兩端伸進壁 dado），
+  // 沿 Z 軸等距分布，把盒內切成 (dividers + 1) 欄
+  if (dividers > 0) {
+    const divL = innerLDim + 2 * dividerInset;
+    for (let i = 0; i < dividers; i++) {
+      const zPos = -innerWDim / 2 + ((i + 1) * innerWDim) / (dividers + 1);
+      design.parts.push({
+        id: `divider-lengthwise-${i + 1}`,
+        nameZh: `縱向隔板 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: divL, width: actualDividerH, thickness: dividerThickness },
+        origin: { x: 0, y: dividerBaseY, z: zPos },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+  // 橫向隔板：沿 Z 延伸（length = innerW + 2 * dividerInset），沿 X 軸等距分布
+  if (crossDividers > 0) {
+    const divW = innerWDim + 2 * dividerInset;
+    for (let i = 0; i < crossDividers; i++) {
+      const xPos = -innerLDim / 2 + ((i + 1) * innerLDim) / (crossDividers + 1);
+      design.parts.push({
+        id: `divider-crosswise-${i + 1}`,
+        nameZh: `橫向隔板 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: divW, width: actualDividerH, thickness: dividerThickness },
+        origin: { x: xPos, y: dividerBaseY, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // 鑲板入溝底板（rect）：原本只縮小底板 + 壁做全高，卻沒在壁件畫底板槽 →
+  // 3D / 三視圖 / 零件圖都看不到底板入溝。這裡對 4 壁底部內側補一條「底板槽」
+  // cosmetic mortise（比照滑蓋槽 + 六角盒 inset-panel），三處一致顯示。
+  // 放在所有蓋處理之後 → 讀每壁「最終」origin.y + visible.width 算高度位置，
+  // 對 sliding / hinged / 無蓋一致。lift-off 自己在上面 branch 內畫底板槽 + 頂板槽
+  // （用 liftGrooveDepth），這裡排除避免重複加。
+  if (boxShape === "rect" && bottomAttach === "inset-panel" && lidType !== "lift-off") {
+    const bGrooveDepth = 5;
+    const bSkirt = 5; // 底板下緣距盒底 5mm（同上方 rect inset-panel 設定）
+    const bottomWorldYCenter = bSkirt + botT / 2;
+    for (const p of design.parts) {
+      if (!p.id.startsWith("wall-")) continue;
+      // 只在「涵蓋底板高度」的壁段加（lift-off 的蓋段不含底板區 → 自動跳過）
+      if (bottomWorldYCenter < p.origin.y || bottomWorldYCenter > p.origin.y + p.visible.width) continue;
+      const meshCenterY = p.origin.y + p.visible.width / 2;
+      const grooveLocalZ = meshCenterY - bottomWorldYCenter;
+      // 內側面（from-bottom）：wall-front / wall-left 內面在 +Y；wall-back / wall-right 在 0
+      const innerFromBottom =
+        p.id === "wall-front" || p.id === "wall-left" ? wallT - bGrooveDepth / 2 : bGrooveDepth / 2;
+      const grooveLen = Math.max(1, p.visible.length - 2 * wallT + 2 * bGrooveDepth);
+      p.mortises.push({
+        origin: { x: 0, y: innerFromBottom, z: grooveLocalZ },
+        depth: bGrooveDepth + 0.3,
+        length: grooveLen,
+        width: botT + 0.5,
+        through: false,
+        shape: "rect",
+        cosmetic: true,
+        label: "底板槽",
+      });
+    }
+  }
+
   if (built.warnings.length) design.warnings = built.warnings;
   // max bounds + suggestions
   const extraWarnings: string[] = [];
   if (outerL > 400 || outerW > 300 || outerH > 250) {
-    extraWarnings.push(`鳩尾盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重 / 鳩尾要切很多齒`);
+    extraWarnings.push(
+      isEn
+        ? `Wooden box ${outerL}×${outerW}×${outerH} mm exceeds reasonable range (max 400×300×250 mm). Larger sizes count as storage chests and require heavier joinery.`
+        : `木盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重`,
+    );
   }
-  if (wallT < 10 && outerL > 250) {
-    extraWarnings.push(`壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`);
+  if (cornerJoinery === "dovetail" && wallT < 10 && outerL > 250) {
+    extraWarnings.push(
+      isEn
+        ? `Wall thickness ${wallT} mm is too thin for a ${outerL} mm long box — dovetail pins/tails get too small to cut cleanly; recommend ≥ 12 mm.`
+        : `壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`,
+    );
+  }
+  // 段數對盒高的合理性
+  if (cornerJoinery === "dovetail" && dovetailInfo && dovetailInfo.segmentCount >= 9 && outerH < 80) {
+    extraWarnings.push(
+      isEn
+        ? `Box height ${outerH} mm with ${dovetailInfo.segmentCount} segments is too dense; each segment is too narrow. Reduce to 5–7 segments.`
+        : `盒高 ${outerH}mm 配 ${dovetailInfo.segmentCount} 段太密，每段寬度不足；建議減到 5-7 段`,
+    );
+  }
+  // 鳩尾段數偶數 → bump 到奇數（phase=0 halfPin 渲染要求奇數）
+  if (cornerJoinery === "dovetail" && dovetailInfo?.bumped) {
+    extraWarnings.push(
+      isEn
+        ? `Dovetail segment count ${dovetailSegmentsOpt} is even, auto-bumped to ${dovetailInfo.segmentCount} (halfPin layout with half-pins on both ends requires an odd count for symmetry).`
+        : `鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`,
+    );
+  }
+  // 隔板高度檢查
+  if (dividerHeightRaw > dividerMaxH) {
+    extraWarnings.push(
+      isEn
+        ? `Divider height ${dividerHeightRaw} mm exceeds available interior space ${dividerMaxH} mm; auto-clamped to the maximum.`
+        : `隔板高度 ${dividerHeightRaw}mm 超過壁內可容空間 ${dividerMaxH}mm，已自動截到上限`,
+    );
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   return design;

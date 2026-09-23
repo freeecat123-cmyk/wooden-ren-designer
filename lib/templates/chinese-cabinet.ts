@@ -1,6 +1,9 @@
-import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
+import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part, Tenon } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
+import { formatMm } from "@/lib/units/format";
+import { cabinetHoofNotches, cabinetPanelGroove, orientCabinetSideRail, rakeCabinetRail } from "./chinese-cabinet-machining";
+import { shelfClearanceMortises } from "../geometry/shelf-clearance";
 
 /**
  * 中式方角櫃（Chinese square-corner cabinet）
@@ -78,6 +81,10 @@ const CABINET_PRESETS: Record<string, CabinetPresetConfig> = {
 };
 
 export const chineseCabinetOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [
+    { value: "1", label: "原版" },
+    { value: "2", label: "修正版" },
+  ] },
   // 配置預設（最頂端，影響後續 layer 設定）
   { group: "preset", type: "select", key: "cabinetPreset", label: "配置預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（依下方層配置）" },
@@ -105,7 +112,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "round", label: "圓角櫃（側腳上窄下寬、噴面、木軸門）" },
   ], dependsOn: { key: "__hidden__", equals: true } },
   { group: "form", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1.0, min: 0.3, max: 3.0, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度。frame（門/側板/背板）已套 tapered shape 同步斜不留縫。0.5° 微噴 / 1° 標準 / 2° 明顯 / 3° 極限。", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
-  { group: "form", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
+  { group: "form", type: "number", key: "capOverhangExtra", label: "噴面額外外伸", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   // 比例風格（一鍵切換明清整體比例）
   { group: "form", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
     { value: "ming", label: "明式（瘦高 H:W ≈ 1.8）" },
@@ -113,7 +120,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "free", label: "自訂（依整體尺寸輸入）" },
   ], help: "明式瘦高典雅、清式矮寬厚實。自訂 = 你輸入的寬深高比例" },
   // 立柱
-  { group: "leg", type: "number", key: "postSize", label: "立柱粗 (mm)", defaultValue: 40, min: 30, max: 60, step: 1, unit: "mm" },
+  { group: "leg", type: "number", key: "postSize", label: "立柱粗", defaultValue: 40, min: 30, max: 60, step: 1, unit: "mm" },
   { group: "leg", type: "select", key: "postEndStyle", label: "立柱頂端", defaultValue: "flush", choices: [
     { value: "flush", label: "平頂（隱藏）" },
     { value: "exposedTenon", label: "露明榫（裝飾）" },
@@ -124,7 +131,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "inward-hoof", label: "內翻馬蹄足（明式典型）" },
     { value: "outward-hoof", label: "外翻馬蹄足（清式厚實）" },
   ], help: "馬蹄足 = 明清家具靈魂——立柱底端腳趾朝內/外翻起" },
-  { group: "leg", type: "number", key: "hoofMm", label: "馬蹄高 (mm)", defaultValue: 80, min: 50, max: 140, step: 5, unit: "mm", help: "馬蹄區段從柱底往上的高度", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
+  { group: "leg", type: "number", key: "hoofMm", label: "馬蹄高", defaultValue: 80, min: 50, max: 140, step: 5, unit: "mm", help: "馬蹄區段從柱底往上的高度", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
   { group: "leg", type: "number", key: "hoofScale", label: "馬蹄外撇倍率", defaultValue: 1.35, min: 1.05, max: 1.6, step: 0.05, help: "腳趾相對直料寬的倍率（1=不撇、1.5=撇半倍）", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
   // 背板
   { group: "panel", type: "select", key: "backPanelStyle", label: "背板樣式", defaultValue: "framed", choices: [
@@ -142,7 +149,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "vertical", label: "直櫺欄（垂直細櫺杆 5 根）" },
     { value: "scroll", label: "卷草欄（雲頭曲線櫺）" },
   ], help: "圍欄裝在最上層 shelf 前緣，3 面圍——上方變敞格放古玩。配合 layerCount 把最上層設為 shelf 即成万歷櫃" },
-  { group: "balustrade", type: "number", key: "balustradeHeight", label: "圍欄高 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", dependsOn: { key: "balustradeStyle", notIn: ["none"] } },
+  { group: "balustrade", type: "number", key: "balustradeHeight", label: "圍欄高", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", dependsOn: { key: "balustradeStyle", notIn: ["none"] } },
   // 屏心嵌飾：板心中央嵌石 / 嵌格 / 留字框（明清板心開光裝飾）
   { group: "panel", type: "select", key: "panelInlay", label: "板心嵌飾（屏心）", defaultValue: "none", choices: [
     { value: "none", label: "無嵌飾（純板心）" },
@@ -151,16 +158,16 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "calligraphy-frame", label: "留字框（中央留出書法 / 對聯框）" },
   ], help: "明清板心常嵌大理石 / 雲石 / 瘿木做圓形開光，或中央格紋裝飾。只在 panelStyle=flat 時生效", dependsOn: { key: "panelStyle", oneOf: ["flat"] } },
   // 邊抹（rails）
-  { group: "rail", type: "number", key: "railWidth", label: "邊抹寬 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
-  { group: "rail", type: "number", key: "railThickness", label: "邊抹厚 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
+  { group: "rail", type: "number", key: "railWidth", label: "邊抹寬", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
+  { group: "rail", type: "number", key: "railThickness", label: "邊抹厚", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
   // 板心
-  { group: "panel", type: "number", key: "panelThickness", label: "板心厚 (mm)", defaultValue: 12, min: 8, max: 18, step: 1, unit: "mm", help: "嵌入框內側槽，浮放（不黏死讓木材吐縮）" },
+  { group: "panel", type: "number", key: "panelThickness", label: "板心厚", defaultValue: 12, min: 8, max: 18, step: 1, unit: "mm", help: "嵌入框內側槽，浮放（不黏死讓木材吐縮）" },
   // 頂蓋
-  { group: "top", type: "number", key: "topThickness", label: "頂蓋厚 (mm)", defaultValue: 22, min: 18, max: 35, step: 1, unit: "mm" },
-  { group: "top", type: "number", key: "topOverhang", label: "頂蓋外伸 (mm)", defaultValue: 20, min: 0, max: 40, step: 5, unit: "mm", help: "頂蓋四周外伸量" },
+  { group: "top", type: "number", key: "topThickness", label: "頂蓋厚", defaultValue: 22, min: 18, max: 35, step: 1, unit: "mm" },
+  { group: "top", type: "number", key: "topOverhang", label: "頂蓋外伸", defaultValue: 20, min: 0, max: 40, step: 5, unit: "mm", help: "頂蓋四周外伸量" },
   // 牙條
-  { group: "skirt", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條" },
-  { group: "skirt", type: "number", key: "skirtThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
+  { group: "skirt", type: "number", key: "skirtHeight", label: "牙條高", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條" },
+  { group: "skirt", type: "number", key: "skirtThickness", label: "牙條厚", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
   { group: "skirt", type: "select", key: "skirtStyle", label: "牙條樣式", defaultValue: "auto", choices: [
     { value: "auto", label: "依比例風格（明=壼門、清=雲頭）" },
     { value: "straight", label: "直線素牙（最簡）" },
@@ -173,21 +180,21 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "cloud-head", label: "雲頭牙頭（清式厚實）" },
     { value: "ruyi", label: "如意牙頭（明式典雅）" },
   ], help: "牙頭 = 立柱跟牙條交角的小三角雕飾，雲頭/如意是中式櫃靈魂" },
-  { group: "skirt", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", notIn: ["none"] } },
+  { group: "skirt", type: "number", key: "spandrelSize", label: "牙頭尺寸", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", notIn: ["none"] } },
   // 站牙：立柱底端內側朝內延伸的三角穩定撐木（明清文人櫃站立感）
   { group: "skirt", type: "select", key: "standingBraceStyle", label: "站牙", defaultValue: "none", choices: [
     { value: "none", label: "無站牙" },
     { value: "scroll", label: "卷草站牙（明式典雅）" },
     { value: "cloud", label: "雲頭站牙（清式厚實）" },
   ], help: "站牙 = 立柱底外側朝外的三角撐木，補強站立感。spandrelStyle=ruyi 時自動隱藏避免擠在一起" },
-  { group: "skirt", type: "number", key: "standingBraceSize", label: "站牙尺寸 (mm)", defaultValue: 100, min: 60, max: 200, step: 10, unit: "mm", help: "站牙沿立柱往上的高度", dependsOn: { key: "standingBraceStyle", notIn: ["none"] } },
+  { group: "skirt", type: "number", key: "standingBraceSize", label: "站牙尺寸", defaultValue: 100, min: 60, max: 200, step: 10, unit: "mm", help: "站牙沿立柱往上的高度", dependsOn: { key: "standingBraceStyle", notIn: ["none"] } },
   // 絛環板：頂蓋下方一條裝飾橫帶（清式櫃常見「華而不空」橫條）
   { group: "skirt", type: "select", key: "friezePanel", label: "絛環板", defaultValue: "none", choices: [
     { value: "none", label: "無絛環板" },
     { value: "lattice", label: "格紋絛環（田字 / 十字格）" },
     { value: "openwork", label: "透雕絛環（雲紋 / 卷草）" },
   ], help: "絛環板 = 頂蓋下方 30–60mm 的薄板，內嵌 lattice / 透雕，清式櫃裝飾語彙" },
-  { group: "skirt", type: "number", key: "friezeHeight", label: "絛環板高 (mm)", defaultValue: 50, min: 30, max: 80, step: 5, unit: "mm", dependsOn: { key: "friezePanel", notIn: ["none"] } },
+  { group: "skirt", type: "number", key: "friezeHeight", label: "絛環板高", defaultValue: 50, min: 30, max: 80, step: 5, unit: "mm", dependsOn: { key: "friezePanel", notIn: ["none"] } },
   // 層數（1-8）
   { group: "layers", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "layers", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
@@ -199,16 +206,16 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "layers", type: "select", key: "layer7Type", label: "第 7 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [7, 8] } },
   { group: "layers", type: "select", key: "layer8Type", label: "第 8 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [8] } },
   // 各層高度（mm，0 = 自動等分，> 0 = 指定該層高度）
-  { group: "layers", type: "number", key: "layer1HeightMm", label: "第 1 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", help: "0 = 自動等分；其他層加總過大會自動縮放" },
-  { group: "layers", type: "number", key: "layer2HeightMm", label: "第 2 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
-  { group: "layers", type: "number", key: "layer3HeightMm", label: "第 3 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
-  { group: "layers", type: "number", key: "layer4HeightMm", label: "第 4 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
-  { group: "layers", type: "number", key: "layer5HeightMm", label: "第 5 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
-  { group: "layers", type: "number", key: "layer6HeightMm", label: "第 6 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
-  { group: "layers", type: "number", key: "layer7HeightMm", label: "第 7 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
-  { group: "layers", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
+  { group: "layers", type: "number", key: "layer1HeightMm", label: "第 1 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", help: "0 = 自動等分；其他層加總過大會自動縮放" },
+  { group: "layers", type: "number", key: "layer2HeightMm", label: "第 2 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer3HeightMm", label: "第 3 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer4HeightMm", label: "第 4 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer5HeightMm", label: "第 5 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer6HeightMm", label: "第 6 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer7HeightMm", label: "第 7 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
+  { group: "layers", type: "number", key: "layer8HeightMm", label: "第 8 層高", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
   // 門細部
-  { group: "door", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度（傳統明清家具講究緊密貼合，預設 1mm 視覺幾乎看不到）", dependsOn: { any: [
+  { group: "door", type: "number", key: "doorGap", label: "門中縫", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度（傳統明清家具講究緊密貼合，預設 1mm 視覺幾乎看不到）", dependsOn: { any: [
     { key: "layer1Type", equals: "door" }, { key: "layer2Type", equals: "door" }, { key: "layer3Type", equals: "door" }, { key: "layer4Type", equals: "door" },
     { key: "layer5Type", equals: "door" }, { key: "layer6Type", equals: "door" }, { key: "layer7Type", equals: "door" }, { key: "layer8Type", equals: "door" },
   ] } },
@@ -222,8 +229,8 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { key: "layer1Type", equals: "door" }, { key: "layer2Type", equals: "door" }, { key: "layer3Type", equals: "door" }, { key: "layer4Type", equals: "door" },
     { key: "layer5Type", equals: "door" }, { key: "layer6Type", equals: "door" }, { key: "layer7Type", equals: "door" }, { key: "layer8Type", equals: "door" },
   ] } },
-  { group: "door", type: "number", key: "doorFrameRailWidth", label: "門框木條寬 (mm)", defaultValue: 18, min: 12, max: 40, step: 1, unit: "mm", help: "格扇/玻璃門櫺條斷面寬度。明清傳統 15-22mm，現代款可粗到 30+mm", dependsOn: { key: "doorStyle", oneOf: ["lattice-cross", "lattice-lantern", "glass", "glass-lattice"] } },
-  { group: "door", type: "number", key: "doorFrameThickness", label: "門框木條厚 (mm)", defaultValue: 8, min: 5, max: 18, step: 1, unit: "mm", help: "櫺條凸貼門面的厚度。8mm 傳統淺刻、12+ 較立體", dependsOn: { key: "doorStyle", oneOf: ["lattice-cross", "lattice-lantern", "glass", "glass-lattice"] } },
+  { group: "door", type: "number", key: "doorFrameRailWidth", label: "門框木條寬", defaultValue: 18, min: 12, max: 40, step: 1, unit: "mm", help: "格扇/玻璃門櫺條斷面寬度。明清傳統 15-22mm，現代款可粗到 30+mm", dependsOn: { key: "doorStyle", oneOf: ["lattice-cross", "lattice-lantern", "glass", "glass-lattice"] } },
+  { group: "door", type: "number", key: "doorFrameThickness", label: "門框木條厚", defaultValue: 8, min: 5, max: 18, step: 1, unit: "mm", help: "櫺條凸貼門面的厚度。8mm 傳統淺刻、12+ 較立體", dependsOn: { key: "doorStyle", oneOf: ["lattice-cross", "lattice-lantern", "glass", "glass-lattice"] } },
   { group: "door", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
@@ -273,9 +280,12 @@ export const chineseCabinetOptions: OptionSpec[] = [
 ];
 
 export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
+  const revisedConstruction = String(input.options?.constructionVersion) === "2";
   const o = chineseCabinetOptions;
   const { length, width, material } = input;
   const heightInput = input.height;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const cabinetPresetEarly = getOption<string>(input, opt(o, "cabinetPreset"));
   const presetEarly = CABINET_PRESETS[cabinetPresetEarly];
   // preset 帶的 compoundMode / cabinetCorner 等高階形制：user 沒主動選非 default 時就以 preset 為準
@@ -427,13 +437,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const layerHeightsRaw = userLayerHeightsMm.slice(0, layerCount);
 
   // 幾何規劃：4 立柱接地貫穿全高，牙條外掛在立柱底外側（傳統明式）
-  // 立柱：Y [0, height − topThickness]
+  // 立柱：Y [0, height − topThickness]（直柱 / 馬蹄足）
+  //       Y [skirtHeight, height − topThickness]（圓角櫃側腳 splay：立柱底端齊牙條頂面，
+  //       避免 splay shift 在 y=0 把立柱底角推出牙條下緣造成穿模；
+  //       splayMmGlobal / splayShiftAt 仍以 y=0 作參考錨點，讓 rail/skirt/panel
+  //       共用同一條 splay 斜線、跟立柱對齊不留縫）
   // 牙條：Y [0, skirtHeight]，跟立柱底外側共存
   // 上下抹：上抹底面 = postTopY − railWidth；下抹底面 = skirtHeight（牙條頂）
   // 內部空間 = 上下抹之間
   const postTopY = height - topThickness;
-  const postBottomY = 0;
+  // postHeight 保持全高（splayShiftAt 斜線參考錨點 = 地板 y=0）；
+  // 圓角櫃 splay 模式 postBottomY 抬到牙條頂、實際立柱長度為 postRenderHeight。
+  const postBottomY = isRoundCorner ? skirtHeight : 0;
   const postHeight = postTopY;
+  const postRenderHeight = postTopY - postBottomY;
   // 圓角櫃 splay：立柱底端外擴 splayMm。所有 frame / rail / 牙條 / 層板都按
   // 各自的 Y 高度算實際 X/Z 跨距，確保跟 splayed 立柱對齊不留縫。
   const splayMmGlobal = isRoundCorner
@@ -453,8 +470,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const innerSpanXat = (y: number): number => 2 * (postOuterXat(y) - postSize / 2);
   const innerSpanZat = (y: number): number => 2 * (postOuterZat(y) - postSize / 2);
   // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × outer face）
-  const railLenXat = (y: number): number => 2 * postOuterFaceXat(y);
-  const railLenZat = (y: number): number => 2 * postOuterFaceZat(y);
+  // §A10.2: revised stock stops at the post inner faces; tenons add cut allowance.
+  const railLenXat = (y: number): number => revisedConstruction ? innerSpanXat(y) : 2 * postOuterFaceXat(y);
+  const railLenZat = (y: number): number => revisedConstruction ? innerSpanZat(y) : 2 * postOuterFaceZat(y);
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -478,6 +496,31 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const scale = innerHeight / totalH;
     layerHeights = layerHeights.map(h => h * scale);
   }
+
+  /**
+   * 🧷 每層高度的正值下限 —— 否則整層的門 / 抽屜 / 層板全是負尺寸零件。
+   *
+   * ⛔ 上面 `autoHeight = max(0, innerHeight − 指定值總和) / 自動層數`:
+   *    只要使用者指定的幾層加起來就吃光內高(例:第 1、3 層各設 800mm),
+   *    剩下沒指定的層就分到 **0mm**,而後面的等比縮放只會讓 0 還是 0。
+   *    那層的門板 / 抽屜面板長寬就變成負的,直接進裁切單跟報價,毫無提示。
+   *
+   * MIN_LAYER_H = 60mm:再矮連一個薄抽屜都放不下(§N 五金孔位)。
+   * 撐開後總高會超過內高,所以要同時發警告 —— 不能默默做出一個裝不下的櫃子。
+   */
+  // Allow the divider thickness, 6mm bottom, two 3mm gaps and 18mm box wall.
+  const MIN_LAYER_H = revisedConstruction && layerTypes.includes("drawer") ? Math.max(60, railWidth + 30) : 60;
+  const squeezedLayers: number[] = [];
+  layerHeights = layerHeights.map((h, i) => {
+    if (h >= MIN_LAYER_H) return h;
+    squeezedLayers.push(i + 1);
+    return MIN_LAYER_H;
+  });
+  const layerWarnings: string[] = squeezedLayers.length > 0
+    ? [`第 ${squeezedLayers.join("、")} 層被擠到不足 ${MIN_LAYER_H}mm，已自動撐開。` +
+       `其他層指定的高度加起來已經吃掉整個內高 ${Math.round(innerHeight)}mm，` +
+       `請把某幾層的高度調小、或改成 0 讓它自動分配。`]
+    : [];
   // 累積：每層底端 Y 位置 = innerBottomY + 前 i 層高度之和
   const layerBottomYs: number[] = [];
   let acc = innerBottomY;
@@ -527,8 +570,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const fbLabel = sz < 0 ? "前" : "後";
       const lrLabel = sx < 0 ? "左" : "右";
       // 上抹/下抹 Y 中心位置（rail 中心 Y）
+      // 注意：mortise.origin.y 慣例是「part-local from-bottom」，所以圓角櫃 splay
+      // 下 postBottomY=skirtHeight 時要扣掉。非圓角 postBottomY=0 直接用 world Y。
+      const yLocal = (worldY: number): number => worldY - postBottomY;
       const upperRailCY = postTopY - railWidth / 2;
       const lowerRailCY = skirtHeight + railWidth / 2;
+      // 牙條中心 Y（接立柱底部 4 面內側）
+      const skirtCY = skirtHeight / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
       const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
       // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
@@ -536,8 +584,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const postShape: Part["shape"] | undefined = isRoundCorner
         ? {
             kind: "splayed",
-            dxMm: sx * splayMmGlobal,
-            dzMm: sz * splayMmGlobal,
+            dxMm: sx * (revisedConstruction ? splayShiftAt(postBottomY) : splayMmGlobal),
+            dzMm: sz * (revisedConstruction ? splayShiftAt(postBottomY) : splayMmGlobal),
           }
         : effectiveLegShape === "box"
           ? undefined
@@ -548,22 +596,50 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               dirX: (sx * hoofDirSign) as -1 | 1,
               dirZ: (sz * hoofDirSign) as -1 | 1,
             };
+      // 牙條榫眼（沿立柱底部 X/Z 內面各 1 個——牙條從中央往兩立柱外掛接腳）
+      const skirtMortiseT = Math.max(6, Math.round(skirtThickness / 3));
+      const skirtMortiseW = Math.max(20, skirtHeight - 20);
+      const skirtMortises = (skirtHeight >= 30)
+        ? [
+            // 左/右牙條（沿 Z 延伸）進立柱 Z 內面
+            { origin: { x: 0, y: yLocal(skirtCY), z: -sz * postSize / 2 }, depth: tenonLen, length: skirtMortiseW, width: skirtMortiseT, through: false },
+            // 前/後牙條（沿 X 延伸）進立柱 X 內面
+            { origin: { x: -sx * postSize / 2, y: yLocal(skirtCY), z: 0 }, depth: tenonLen, length: skirtMortiseW, width: skirtMortiseT, through: false },
+          ]
+        : [];
+      // 內部分隔板（dividers）榫眼：每層之間水平 divider 接 4 立柱
+      // 每片 divider 在每根立柱上開 2 個榫眼（X 內面 + Z 內面）= 雙向銜接
+      const dividerMortises: Array<{ origin: { x: number; y: number; z: number }; depth: number; length: number; width: number; through: boolean }> = [];
+      for (let i = 0; i < layerCount - 1; i++) {
+        const dividerWorldY = layerBottomYs[i + 1] - railWidth / 2;
+        const dividerYLocal = yLocal(dividerWorldY);
+        // divider Y 必須落在 post 範圍內（圓角櫃 splay 下 postBottomY>0，dividerY<postBottomY 的就跳過）
+        if (dividerYLocal < 0 || dividerYLocal > postRenderHeight) continue;
+        // Z 內面（divider 沿 Z 軸的端面 → 進入立柱 Z 內面）
+        dividerMortises.push({ origin: { x: 0, y: dividerYLocal, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false });
+        // X 內面（divider 沿 X 軸的端面 → 進入立柱 X 內面）
+        dividerMortises.push({ origin: { x: -sx * postSize / 2, y: dividerYLocal, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false });
+      }
       parts.push({
         id: `post-${fbId}-${lrId}`,
         nameZh: `${fbLabel}${lrLabel}立柱`,
         material,
         grainDirection: "length",
-        visible: { length: postSize, width: postSize, thickness: postHeight },
+        visible: { length: postSize, width: postSize, thickness: postRenderHeight },
         origin: { x: sx * postX, y: postBottomY, z: sz * postZ },
         ...(postShape ? { shape: postShape } : {}),
         tenons: postExposedTenon,
         mortises: [
           // 側面 rail 進立柱（Z 內面，朝對面立柱方向）
-          { origin: { x: 0, y: upperRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
-          { origin: { x: 0, y: lowerRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: 0, y: yLocal(upperRailCY), z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: 0, y: yLocal(lowerRailCY), z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
           // 前/後 rail 進立柱（X 內面，朝對面立柱方向）
-          { origin: { x: -sx * postSize / 2, y: upperRailCY, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
-          { origin: { x: -sx * postSize / 2, y: lowerRailCY, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: -sx * postSize / 2, y: yLocal(upperRailCY), z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: -sx * postSize / 2, y: yLocal(lowerRailCY), z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          // 牙條進立柱（底部 X/Z 內面，明式抱肩榫接點）
+          ...skirtMortises,
+          // 內部水平分隔板（層板）進立柱（每層分界 X/Z 雙面）
+          ...dividerMortises,
         ],
       });
     }
@@ -1202,10 +1278,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           }
           void hingeX;  // hingeX 保留供後續其他位置設計
         }
-        // 門拉手（朝中縫一側 30mm）
+        // 門拉手（朝中縫一側 30mm；§N4：門距底 2/3 = 門中央上方 1/6 處）
         if (doorPullType !== "none") {
           const pullX = sx * (doorGap / 2 + 30);
-          const pullY = layerCenterY;
+          const pullY = layerCenterY + doorHeight / 6;
           const pullZ = doorFrontZ - doorThickness / 2 - 4;  // 凸出門面 4mm
           if (doorPullType === "round-brass") {
             // 圓銅環：直徑 30mm 圓盤、高 8mm（凸出門面 4mm 在門外側）
@@ -1216,7 +1292,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               grainDirection: "length",
               shape: { kind: "round" },
               visible: { length: 30, width: 30, thickness: 8 },
-              origin: { x: pullX, y: pullY - 4, z: pullZ },
+              origin: { x: pullX, y: pullY - (revisedConstruction ? 15 : 4), z: pullZ },
+              ...(revisedConstruction ? { rotation: { x: Math.PI / 2, y: 0, z: 0 } } : {}),
               visual: "brass-antique",
               tenons: [],
               mortises: [],
@@ -1276,7 +1353,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               grainDirection: "length",
               shape: { kind: "round" },
               visible: { length: 28, width: 28, thickness: 8 },
-              origin: { x: cxOffset, y: pullY - 4, z: pullZ },
+              origin: { x: cxOffset, y: pullY - (revisedConstruction ? 14 : 4), z: pullZ },
+              ...(revisedConstruction ? { rotation: { x: Math.PI / 2, y: 0, z: 0 } } : {}),
               visual: "brass-antique",
               tenons: [],
               mortises: [],
@@ -1298,6 +1376,11 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       }
       // 抽屜底（簡化用 1 片底板）— 圓角櫃 splay：用該層 Y 算 Z 跨距
       const drawerBottomThickness = 6;
+      // §A10.5: the drawer box fits the clear opening, not the layer pitch.
+      const drawerBoxBottomY = revisedConstruction
+        ? layerBottomY + (i === 0 ? 18 : railWidth / 2) + 3
+        : layerBottomY + 5;
+      const drawerBoxTopY = layerTopY - (i === layerCount - 1 ? 0 : railWidth / 2) - 3;
       const drawerLayerCenterY = layerBottomY + drawerHeight / 2;
       const drawerInnerSpanZ = innerSpanZat(drawerLayerCenterY);
       parts.push({
@@ -1306,13 +1389,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: drawerWidth - 20, width: drawerInnerSpanZ - 30, thickness: drawerBottomThickness },
-        origin: { x: 0, y: layerBottomY + 5, z: 0 },
+        origin: { x: 0, y: drawerBoxBottomY, z: 0 },
         tenons: [],
         mortises: [],
       });
       // 抽屜兩側（立著的板，沿 Z 延伸）：X=厚, Y=高, Z=長
       const drawerSideThickness = 12;
-      const drawerSideHeight = drawerHeight - 12;
+      const drawerSideHeight = revisedConstruction
+        ? drawerBoxTopY - drawerBoxBottomY - drawerBottomThickness
+        : drawerHeight - 12;
       const drawerSideLength = drawerInnerSpanZ - 30;
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
@@ -1322,7 +1407,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: drawerSideThickness, width: drawerSideLength, thickness: drawerSideHeight },
-          origin: { x: sx * (drawerWidth / 2 - 10 - drawerSideThickness / 2), y: layerBottomY + 5 + drawerBottomThickness, z: 0 },
+          origin: { x: sx * (drawerWidth / 2 - 10 - drawerSideThickness / 2), y: drawerBoxBottomY + drawerBottomThickness, z: 0 },
           tenons: [],
           mortises: [],
         });
@@ -1334,7 +1419,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: drawerWidth - 20 - drawerSideThickness * 2, width: drawerSideThickness, thickness: drawerSideHeight },
-        origin: { x: 0, y: layerBottomY + 5 + drawerBottomThickness, z: postOuterZat(drawerLayerCenterY) - postSize / 2 - 20 },
+        origin: { x: 0, y: drawerBoxBottomY + drawerBottomThickness, z: postOuterZat(drawerLayerCenterY) - postSize / 2 - 20 },
         tenons: [],
         mortises: [],
       });
@@ -1343,7 +1428,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         const dividerThickness = 8;
         const innerWidth = drawerWidth - 20 - drawerSideThickness * 2;     // 兩側板內寬
         const innerLength = drawerSideLength - drawerSideThickness * 2;    // 後板到前抽屜面內深
-        const innerY = layerBottomY + 5 + drawerBottomThickness;
+        const innerY = drawerBoxBottomY + drawerBottomThickness;
         // 縱向分隔板（沿 Z 軸延伸，把抽屜分成左右兩格）
         parts.push({
           id: `layer${i + 1}-drawer-divider-vert`,
@@ -1416,41 +1501,62 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 牙條 shape（雲頭 / 壼門用 face-rounded 的 archMm 表示弧度）
   // arched 走純底凹強弧（壼門深弧），cloud-head 同時帶上凸+下凹（雲頭起翹）
   const skirtShape: Part["shape"] | undefined =
-    skirtStyle === "arched"
+    revisedConstruction && spandrelStyle !== "none" && !isRoundCorner
+      ? { kind: "face-rounded", cornerR: Math.min(spandrelSize * 0.35, skirtHeight * 0.25),
+          bottomArchMm: Math.min(skirtHeight - 18, skirtHeight * (spandrelStyle === "ruyi" ? 0.55 : 0.45), spandrelSize * 0.5) }
+      : skirtStyle === "arched"
       ? { kind: "face-rounded", cornerR: 8, bottomArchMm: skirtHeight * 0.55 }
       : skirtStyle === "cloud-head"
         ? { kind: "face-rounded", cornerR: 18, topArchMm: skirtHeight * 0.32, bottomArchMm: skirtHeight * 0.45 }
         : undefined;
 
+  // 牙條兩端公榫（接立柱 skirtMortises；尺寸對應上面 立柱 skirtMortise* 公式）
+  const skirtTenonW = Math.max(20, skirtHeight - 20);     // = skirtMortiseW
+  const skirtTenonT = Math.max(6, Math.round(skirtThickness / 3)); // = skirtMortiseT
+  const skirtBlindTenon = (pos: "start" | "end" | "left" | "right"): Tenon => ({
+    position: pos,
+    type: "blind-tenon",
+    length: tenonLen,
+    width: skirtTenonW,
+    thickness: skirtTenonT,
+  });
+  const skirtTenons: Tenon[] = skirtHeight >= 30
+    ? [skirtBlindTenon("start"), skirtBlindTenon("end")]
+    : [];
   // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚
   for (const sz of [-1, 1] as const) {
     const fbId = sz < 0 ? "front" : "back";
     const fbLabel = sz < 0 ? "前" : "後";
     parts.push({
       id: `skirt-${fbId}`,
-      nameZh: `${fbLabel}牙條`,
+      nameZh: `${fbLabel}牙條${revisedConstruction && spandrelStyle !== "none" && !isRoundCorner ? "（連體牙頭）" : ""}`,
       material,
       grainDirection: "length",
       visible: { length: skirtSpanXatY, width: skirtThickness, thickness: skirtHeight },
       origin: { x: 0, y: 0, z: sz * skirtOffsetZ },
       ...(skirtShape ? { shape: skirtShape } : {}),
-      tenons: [],
+      tenons: skirtTenons,
       mortises: [],
     });
   }
   // 左右牙條（沿 Z 延伸）：X=厚, Y=高, Z=長（接到兩立柱內面）
+  // length=skirtThickness 跟註解「沿 Z 延伸」設計上矛盾，是既有 build；
+  // tenons 用 start/end audit 對 dim 就好，cut-length 慣例由 useButtJointConvention 處理。
   for (const sx of [-1, 1] as const) {
     const lrId = sx < 0 ? "left" : "right";
     const lrLabel = sx < 0 ? "左" : "右";
     parts.push({
       id: `skirt-${lrId}`,
-      nameZh: `${lrLabel}牙條`,
+      nameZh: `${lrLabel}牙條${revisedConstruction && spandrelStyle !== "none" && !isRoundCorner ? "（連體牙頭）" : ""}`,
       material,
       grainDirection: "length",
-      visible: { length: skirtThickness, width: skirtSpanZatY, thickness: skirtHeight },
+      visible: revisedConstruction
+        ? { length: skirtSpanZatY, width: skirtThickness, thickness: skirtHeight }
+        : { length: skirtThickness, width: skirtSpanZatY, thickness: skirtHeight },
       origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
+      ...(revisedConstruction ? { rotation: { x: 0, y: Math.PI / 2, z: 0 } } : {}),
       ...(skirtShape ? { shape: skirtShape } : {}),
-      tenons: [],
+      tenons: skirtTenons,
       mortises: [],
     });
   }
@@ -1458,7 +1564,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 牙頭裝飾（spandrel）：立柱跟牙條交角的小三角雕飾
   // ruyi 如意紋（明式）尖頂高弧、cloud-head 雲頭（清式）厚實圓弧
   // 圓角櫃不該有牙頭（裝飾構件衝突明式四大櫃形 sleek 形式）
-  if (spandrelStyle !== "none" && !isRoundCorner) {
+  // V2 carves the decorative ends integrally from each apron blank. Separate
+  // spandrel solids at these coordinates duplicate the same physical wood.
+  if (spandrelStyle !== "none" && !isRoundCorner && !revisedConstruction) {
     // ruyi 如意：尖頂高弧（如意紋上端尖凸），cornerR 大、topArch 強、bottomArch 也凹下露出花邊
     // cloud-head 雲頭：圓潤厚實（卷雲），cornerR 小、topArch 中等、bottomArch 不凹
     const spandrelShape: Part["shape"] =
@@ -1747,8 +1855,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const tbPostX = tbLength / 2 - tbPostSize / 2;
     const tbPostZ = tbWidth / 2 - tbPostSize / 2;
     const tbPostTopY = tbBaseY + topBoxHeight - tbTopThickness;
-    const tbRailLenX = 2 * (tbPostX + tbPostSize / 2);
-    const tbRailLenZ = 2 * (tbPostZ + tbPostSize / 2);
+    const tbRailLenX = 2 * (tbPostX + (revisedConstruction ? -1 : 1) * tbPostSize / 2);
+    const tbRailLenZ = 2 * (tbPostZ + (revisedConstruction ? -1 : 1) * tbPostSize / 2);
     const tbInnerSpanX = 2 * (tbPostX - tbPostSize / 2);
     const tbInnerSpanZ = 2 * (tbPostZ - tbPostSize / 2);
     const tbPanelInnerW_Z = tbInnerSpanZ - 10;
@@ -1874,7 +1982,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const tbDrawerY = tbDoorBottomY + tbDoorActualH + 2;
       const tbDrawerW = tbDrawerH - 4;
       const tbDrawerLen = tbInnerSpanX - 4;
-      const tbDrawerDepth = tbWidth - 30;  // 抽屜深 = 頂箱內深 - 30mm 餘量
+      const tbDrawerDepth = revisedConstruction
+        ? tbFbRailOffsetZ - panelThickness / 2 - 3 - (tbDoorZ + tbDoorThickness / 2)
+        : tbWidth - 30;
       // 1. 抽屜面板
       parts.push({
         id: "tb-drawer-front",
@@ -1908,7 +2018,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerBackT, thickness: tbDrawerW - 8 },
-        origin: { x: 0, y: tbDrawerY + 4, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth - tbDrawerBackT / 2 },
+        origin: { x: 0, y: tbDrawerY + (revisedConstruction ? 8 : 4), z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth - tbDrawerBackT / 2 },
         tenons: [],
         mortises: [],
       });
@@ -1918,8 +2028,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: "頂箱抽屜底板",
         material,
         grainDirection: "length",
-        visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerDepth - 8, thickness: tbDrawerBottomT },
-        origin: { x: 0, y: tbDrawerY + 2, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth / 2 },
+        visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerDepth - (revisedConstruction ? tbDrawerBackT : 8), thickness: tbDrawerBottomT },
+        origin: { x: 0, y: tbDrawerY + 2, z: tbDoorZ + tbDoorThickness / 2 + (tbDrawerDepth - (revisedConstruction ? tbDrawerBackT : 0)) / 2 },
         tenons: [],
         mortises: [],
       });
@@ -1954,6 +2064,55 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
+  if (revisedConstruction) {
+    const posts = parts.filter(p => p.id.startsWith("post-"));
+    // Floating panels retain their full blanks, including 5mm engagement at
+    // each end. Machine the receivers, with 0.5mm total thickness clearance.
+    if (isRoundCorner) {
+      for (const shelf of parts.filter(p => p.id.startsWith("divider-") || p.id === "bottom-board" || p.id.includes("extra-shelf"))) {
+        shelf.mortises.push(...shelfClearanceMortises(shelf, posts, "側腳避讓"));
+      }
+      for (const rail of parts.filter(p => /^(left-side|right-side|front|back)-(upper|lower)-rail$/.test(p.id))) {
+        const side = rail.id.includes("side");
+        const sign = Math.sign(side ? rail.origin.x : rail.origin.z);
+        const bottom = rail.origin.y, top = bottom + rail.visible.thickness;
+        rakeCabinetRail(rail, side, side ? innerSpanZat(bottom) : innerSpanXat(bottom),
+          side ? innerSpanZat(top) : innerSpanXat(top), sign * (splayShiftAt(bottom) - splayShiftAt(top)) / 2);
+      }
+    }
+    for (const rail of parts.filter(p => /side-(upper|lower)-rail$/.test(p.id))) orientCabinetSideRail(rail);
+    for (const receiver of parts.filter(p => p.id.startsWith("skirt-") || p.id.endsWith("lower-rail"))) {
+      receiver.mortises.push(...cabinetHoofNotches(receiver, posts));
+    }
+    for (const face of ["left-side", "right-side", "back", ...(isCompound ? ["tb-left-side", "tb-right-side", "tb-back"] : [])]) {
+      const panel = parts.find(p => p.id === `${face}-panel`)!;
+      for (const role of ["upper", "lower"]) {
+        const rail = parts.find(p => p.id === `${face}-${role}-rail`);
+        if (!rail || (face === "back" && backPanelStyle !== "framed")) continue;
+        const side = face.includes("side");
+        rail.mortises.push(cabinetPanelGroove(rail, panel, side, role === "upper"));
+      }
+    }
+    for (const rail of parts.filter(p => /^tb-.*-rail$/.test(p.id))) {
+      const tbPost = parts.find(p => p.id === "tb-post-front-left")!;
+      rail.tenons = (["start", "end"] as const).map(position => ({
+        position, type: "shouldered-tenon", length: Math.min(20, Math.round(tbPost.visible.length / 2 - 2)),
+        width: Math.max(15, rail.visible.thickness - 16), thickness: tenonT,
+      }));
+      const side = rail.id.includes("side");
+      const face = rail.id.split("-")[1];
+      const receivers = parts.filter(p => p.id.startsWith("tb-post-") && p.id.includes(`-${face}`));
+      for (const post of receivers) {
+        const tenon = rail.tenons[0];
+        post.mortises.push({ origin: {
+          x: side ? rail.origin.x - post.origin.x : -Math.sign(post.origin.x) * post.visible.length / 2,
+          y: rail.origin.y + rail.visible.thickness / 2 - post.origin.y,
+          z: side ? -Math.sign(post.origin.z) * post.visible.width / 2 : rail.origin.z - post.origin.z,
+        }, depth: tenon.length, length: tenon.width, width: tenon.thickness, through: false });
+      }
+    }
+  }
+
   const design: FurnitureDesign = {
     id: `chinese-cabinet-${length}x${width}x${heightInput}`,
     category: "chinese-cabinet",
@@ -1963,9 +2122,28 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `${isCompound ? "中式頂箱櫃（compound）" : isRoundCorner ? "中式圓角櫃（splay-leg）" : "中式方角櫃"}（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ ${skirtStyle === "arched" ? "壼門" : skirtStyle === "cloud-head" ? "雲頭" : "直線素牙"}（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；4 立柱頂角為粽角榫（三向交會：上抹+側抹+頂蓋）—明式櫃靈魂榫卯，傳統做法是立柱頂端開十字槽容納兩條抹頭+頂蓋；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。${balustradeStyle !== "none" ? "頂層設 shelf 配圍欄即成万歷櫃形制。" : ""}${standingBraceStyle !== "none" ? "立柱底加站牙穩固。" : ""}${friezePanel !== "none" ? "頂蓋下絛環板裝飾橫帶。" : ""}${panelInlayActive ? "板心嵌屏心（中央開光）。" : ""}`,
+    notes: isEn
+      ? `${isCompound ? "Ming/Qing compound cabinet (top chest + base)" : isRoundCorner ? "Ming round-corner cabinet (splay-leg)" : "Ming square-corner cabinet"} — frame-and-panel construction: 4 posts ${formatMm(postSize, "inch")} + 6 framed sides (rails ${formatMm(railWidth, "inch")}×${formatMm(railThickness, "inch")} + floating panel ${formatMm(panelThickness, "inch")}) + ${skirtStyle === "arched" ? "arched (humen) skirt" : skirtStyle === "cloud-head" ? "cloud-head skirt" : "plain straight skirt"} (height ${formatMm(skirtHeight, "inch")}). ${layerCount}-tier layout: ${layerSummary}. All frames use shouldered tenons; the four top corners use the three-way mitered-and-tenoned joint (zòngjiǎo) tying upper rails + side rails + top board — the signature Ming joint. Panels float in 5mm-deep grooves, never glued, so seasonal movement won't split them. ${balustradeStyle !== "none" ? "Top tier has an open shelf with gallery rail (wanli-style display)." : ""}${standingBraceStyle !== "none" ? "Standing braces at the post bases for stability." : ""}${friezePanel !== "none" ? "Decorative frieze panel beneath the top." : ""}${panelInlayActive ? "Door panels feature a center-medallion (kaiguang) inlay." : ""}`
+      : `${isCompound ? "中式頂箱櫃（compound）" : isRoundCorner ? "中式圓角櫃（splay-leg）" : "中式方角櫃"}（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ ${skirtStyle === "arched" ? "壼門" : skirtStyle === "cloud-head" ? "雲頭" : "直線素牙"}（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；4 立柱頂角為粽角榫（三向交會：上抹+側抹+頂蓋）—明式櫃靈魂榫卯，傳統做法是立柱頂端開十字槽容納兩條抹頭+頂蓋；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。${balustradeStyle !== "none" ? "頂層設 shelf 配圍欄即成万歷櫃形制。" : ""}${standingBraceStyle !== "none" ? "立柱底加站牙穩固。" : ""}${friezePanel !== "none" ? "頂蓋下絛環板裝飾橫帶。" : ""}${panelInlayActive ? "板心嵌屏心（中央開光）。" : ""}`,
   };
 
+  if (layerWarnings.length > 0) design.warnings = [...(design.warnings ?? []), ...layerWarnings];
+  if (revisedConstruction) {
+    design.notes += isEn
+      ? " Construction v2 uses inner-post rail shoulders and separate tenon allowances. Floating-panel grooves are 5mm deep, enclosing the panel over its full engagement band plus 0.5mm total thickness clearance; groove removal does not reduce blank dimensions."
+      : " 結構 v2：邊抹採立柱內面肩距，榫長另計。板心槽深 5mm，槽寬包絡整段入槽板形並另留厚向總間隙 0.5mm；開槽不扣減毛料尺寸。";
+    if (parts.some(p => p.mortises.some(m => m.label?.startsWith("馬蹄避讓")))) {
+      design.notes += isEn
+        ? " Hoof relief follows the directional foot profile in steps of at most 0.25mm plus 0.25mm clearance. End-connected cuts open through the broad faces; overlapping tool paths represent one removal union and are counted once per receiver/post, not once per cutter box."
+        : " 馬蹄避讓依方向性足形分階加工，輪廓階差不超過 0.25mm，另留 0.25mm 間隙；切口連通端面並穿透大面。重疊刀路僅表達同一切除聯集，按零件與立柱組合計一次加工，不按刀塊逐筆計工。";
+    }
+    if (spandrelStyle !== "none" && !isRoundCorner) {
+      const removedBlankMm3 = 8 * spandrelSize * skirtThickness * skirtHeight;
+      design.notes += isEn
+        ? ` The eight separate spandrels in v1 duplicated the apron stock. V2 carves integral decorative ends into four apron blanks, eliminating eight parts and ${removedBlankMm3}mm3 of duplicate blank allowance, not reducing the four apron blanks. The central apron web remains at least 18mm high.`
+        : ` v1 的 8 塊獨立牙頭與牙條重複佔料；v2 改由 4 支牙條毛料雕成連體牙頭，移除 8 個重複零件及 ${removedBlankMm3}mm³ 重複毛料，並非縮小 4 支牙條毛料。牙條中央保留至少 18mm 肉高。`;
+    }
+  }
   applyStandardChecks(design, {
     minLength: 500, minWidth: 250, minHeight: 600,
     maxLength: 1500, maxWidth: 600, maxHeight: isCompound ? 2600 : 2200,

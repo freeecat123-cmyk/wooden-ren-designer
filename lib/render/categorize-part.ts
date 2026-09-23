@@ -1,0 +1,73 @@
+// 純函式：用 part id 前綴判斷分類。無 React / DOM 依賴，server / client 皆可。
+// svg-views.tsx 因為含 client-only SVG 元件被標 "use client"，因此把這支
+// 純邏輯抽出來獨立檔，讓 server component（print page、part-drawing/grouping
+// 等）可以安全呼叫。
+
+export type PartCategory =
+  | "case"
+  | "divider"
+  | "drawer"
+  | "door"
+  | "apron"
+  | "seat"
+  | "leg"
+  | "misc";
+
+export function categorizePart(id: string): PartCategory {
+  // 抽屜箱件（面板/前後板/側板/底板）：id 慣例 `{prefix}drawer-{i}-{role}`，prefix
+  // 可空（drawer-1-）、含 zone（z2-drawer-1-）、含欄（col1-drawer-1-），也可能整段
+  // 前綴在別的家具裡（書桌 desk-pedestal-z1-drawer-1-、desk-apron-drawer-1-）。
+  // 原本 `^z?\d*-?drawer` 錨在開頭 → 書桌那種長前綴的抽屜件全落 misc 不出零件圖
+  // （user 回報「桌子抽屜功能不齊全、要對齊櫃子抽屜」）。改成「開頭或 - 後接 drawer」
+  // 讓任何前綴的抽屜件都認得。
+  if (/(^|-)drawer-?\d*-(face|front|back|side|bottom)/.test(id))
+    return "drawer";
+  if (/drawer-col-partition/.test(id)) return "divider";
+  // door 子件：框（rail/stile）、木鑲板(panel)、玻璃(glass)、夾板平板門(slab)、
+  // 百葉條(louver)。slab/louver 都是木工要下料的真實門板件（slab=整片夾板貼皮門、
+  // louver=斜放實心葉片 ×N），漏掉它們 → 平板門 / 百葉門完全沒零件圖（user 回報）。
+  if (/-door-.*-(rail|stile|panel|glass|slab|louver)/.test(id)) return "door";
+  // 木盒：盒蓋主板（lid）+ 嵌入式凸唇（lid-plug）是純方板，但跟 top/bottom 一樣
+  // 是核心結構件、木工要看下料尺寸 → 歸 case 才會出零件圖（rabbeted 純方蓋原本漏掉）。
+  // lid-hinge-N 是五金（visual=metal）維持 misc、不出圖。
+  if (id === "top" || id === "bottom" || id === "back" || id === "lid" || id === "lid-plug") return "case";
+  if (/^side-(left|right)$/.test(id)) return "case";
+  // 木盒 4 壁（wall-front/back/left/right、lift-off 的 -lid 蓋段、sliding 的
+  // -cap）都是核心結構件。鳩尾盒的左右壁是「鳩尾母（pin board）」純方板、靠
+  // CSG 挖鳩尾、本身 shape=box 無榫，category 不歸 case 就會漏出零件圖
+  // （user 2026-06-15：掀蓋式盒零件圖太少，少了左右壁身段 / 蓋段）。
+  if (/^wall-(front|back|left|right)(-lid|-cap)?$/.test(id)) return "case";
+  // 工具牆：法式斜切條（牆條/掛條）+ 三帶側立板歸結構（case）
+  if (/-cleat-\d+$/.test(id) || /^tool-\w+-cleat$/.test(id)) return "case";
+  if (/-side-(left|right)$/.test(id)) return "case";
+  if (
+    /^shelf-/.test(id) ||
+    /-shelf-/.test(id) ||
+    /-divider-/.test(id) ||
+    /-boundary/.test(id) ||
+    /^col-partition/.test(id) ||
+    /col-partition-/.test(id)
+  )
+    return "divider";
+  if (
+    /^apron/.test(id) ||
+    /^stretcher/.test(id) ||
+    /^ls-/.test(id) ||
+    id === "center-stretcher" ||
+    id === "back-rail" ||
+    id === "back-top-rail"
+  )
+    return "apron";
+  if (id === "seat" || /^seat-/.test(id)) return "seat";
+  if (/^back-slat/.test(id) || /^back-splat/.test(id) || /^splat/.test(id))
+    return "seat";
+  if (/^slat/.test(id) || /^rung/.test(id)) return "seat";
+  if (
+    /^leg-/.test(id) ||
+    /^bracket-/.test(id) ||
+    /^plinth/.test(id) ||
+    /^side-extension/.test(id)
+  )
+    return "leg";
+  return "misc";
+}

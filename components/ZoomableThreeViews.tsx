@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
 import { OrthoView } from "@/lib/render/svg-views";
 import type { FurnitureDesign } from "@/lib/types";
 
@@ -24,6 +26,11 @@ export function ZoomableThreeViews({
   design: FurnitureDesign;
   joineryMode?: boolean;
 }) {
+  const locale = useLocale();
+  const isEn = locale === "en";
+  const unit = useUnit();
+  const titleFor = (v: ViewKind) => isEn ? VIEW_TITLES[v].en : VIEW_TITLES[v].zh;
+  const titleEnFor = (v: ViewKind) => isEn ? "" : VIEW_TITLES[v].en;
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,18 +75,20 @@ export function ZoomableThreeViews({
             type="button"
             onClick={() => setZoomed(view)}
             className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm cursor-zoom-in hover:border-amber-400 hover:shadow-md transition relative group text-left"
-            aria-label={`點擊放大${VIEW_TITLES[view].zh}`}
-            title="點擊放大"
+            aria-label={isEn ? `Tap to zoom ${VIEW_TITLES[view].en}` : `點擊放大${VIEW_TITLES[view].zh}`}
+            title={isEn ? "Tap to zoom" : "點擊放大"}
           >
             <OrthoView
               design={design}
               view={view}
-              title={VIEW_TITLES[view].zh}
-              titleEn={VIEW_TITLES[view].en}
+              title={titleFor(view)}
+              titleEn={titleEnFor(view)}
               joineryMode={joineryMode}
+              locale={locale}
+              unit={unit}
             />
             <span className="absolute top-1.5 right-1.5 text-xs bg-zinc-900/70 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
-              🔍 點擊放大
+              {isEn ? "🔍 Tap to zoom" : "🔍 點擊放大"}
             </span>
           </button>
         ))}
@@ -92,11 +101,11 @@ export function ZoomableThreeViews({
           role="dialog"
           aria-modal="true"
         >
-          {/* 永遠浮在最上面：左側 3 視圖切換 chip + 右側 X，
+          {/* 永遠浮在最上面：3 視圖切換 chip + 縮放整合成同一個 pill，
               手機 390px header 一排塞不下時也找得到、按得到。
               用 -mt 把 safe-area inset 拉進來，瀏海下也露 */}
           <div
-            className="fixed top-3 left-3 z-[60] flex gap-1 bg-white/95 rounded-full shadow-lg ring-1 ring-zinc-300 p-1"
+            className="fixed top-3 left-3 z-[60] flex items-center gap-1 bg-white/95 rounded-full shadow-lg ring-1 ring-zinc-300 p-1"
             onClick={(e) => e.stopPropagation()}
             style={{ marginTop: "env(safe-area-inset-top)" }}
           >
@@ -105,22 +114,43 @@ export function ZoomableThreeViews({
                 key={v}
                 type="button"
                 onClick={() => setZoomed(v)}
-                className={`min-h-[36px] min-w-[44px] px-3 py-1 rounded-full text-sm font-medium ${
+                className={`min-h-[32px] min-w-[40px] px-2.5 py-1 rounded-full text-xs font-medium ${
                   v === zoomed
                     ? "bg-amber-500 text-white"
                     : "text-zinc-700 hover:bg-zinc-100"
                 }`}
               >
-                {VIEW_TITLES[v].zh}
+                {titleFor(v)}
               </button>
             ))}
+            <span className="w-px h-5 bg-zinc-300 mx-0.5" aria-hidden />
+            <button
+              type="button"
+              onClick={() => setScale((s) => Math.max(1, s - 0.25))}
+              disabled={scale <= 1}
+              className="min-h-[32px] min-w-[32px] rounded-full text-zinc-700 hover:bg-zinc-100 disabled:opacity-30 text-base leading-none"
+              title={isEn ? "Zoom out (−)" : "縮小 (−)"}
+            >−</button>
+            <button
+              type="button"
+              onClick={() => setScale(1)}
+              className="min-h-[32px] px-1.5 rounded-full text-[11px] text-zinc-700 hover:bg-zinc-100 tabular-nums min-w-[42px]"
+              title={isEn ? "Reset (0)" : "重設 (0)"}
+            >{Math.round(scale * 100)}%</button>
+            <button
+              type="button"
+              onClick={() => setScale((s) => Math.min(4, s + 0.25))}
+              disabled={scale >= 4}
+              className="min-h-[32px] min-w-[32px] rounded-full text-zinc-700 hover:bg-zinc-100 disabled:opacity-30 text-base leading-none"
+              title={isEn ? "Zoom in (+)" : "放大 (+)"}
+            >＋</button>
           </div>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoomed(null); }}
             className="fixed top-3 right-3 z-[60] w-11 h-11 rounded-full bg-white/95 shadow-lg ring-1 ring-zinc-300 text-zinc-800 text-xl font-bold flex items-center justify-center hover:bg-white"
-            aria-label="關閉放大檢視"
-            title="關閉 (ESC)"
+            aria-label={isEn ? "Close zoomed view" : "關閉放大檢視"}
+            title={isEn ? "Close (ESC)" : "關閉 (ESC)"}
             style={{ marginTop: "env(safe-area-inset-top)" }}
           >
             ×
@@ -129,31 +159,7 @@ export function ZoomableThreeViews({
             className="relative bg-white shadow-2xl w-screen h-screen flex flex-col cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 視圖切換 + X 移到上面 floating，只留 title + 縮放在 header 留白讓 SVG 多空間 */}
-            <div className="flex items-center justify-end px-4 py-2 border-b border-zinc-200">
-              <div className="flex items-center gap-1 bg-zinc-100 rounded px-1 py-0.5">
-                <button
-                  type="button"
-                  onClick={() => setScale((s) => Math.max(1, s - 0.25))}
-                  disabled={scale <= 1}
-                  className="w-7 h-7 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                  title="縮小 (−)"
-                >−</button>
-                <button
-                  type="button"
-                  onClick={() => setScale(1)}
-                  className="px-1.5 h-7 rounded text-[11px] text-zinc-700 hover:bg-white tabular-nums min-w-[42px]"
-                  title="重設 (0)"
-                >{Math.round(scale * 100)}%</button>
-                <button
-                  type="button"
-                  onClick={() => setScale((s) => Math.min(4, s + 0.25))}
-                  disabled={scale >= 4}
-                  className="w-7 h-7 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                  title="放大 (+)"
-                >＋</button>
-              </div>
-            </div>
+            {/* 視圖切換 + 縮放 + X 都搬到上面 floating，header 整條移除讓 SVG 吃滿 viewport */}
             <div
               ref={scrollRef}
               className="flex-1 min-h-0 overflow-auto flex bg-zinc-50 [align-items:safe_center] [justify-content:safe_center]"
@@ -170,10 +176,12 @@ export function ZoomableThreeViews({
                 <OrthoView
                   design={design}
                   view={zoomed}
-                  title={VIEW_TITLES[zoomed].zh}
-                  titleEn={VIEW_TITLES[zoomed].en}
+                  title={titleFor(zoomed)}
+                  titleEn={titleEnFor(zoomed)}
                   className="bg-white w-full h-full"
                   joineryMode={joineryMode}
+                  locale={locale}
+                  unit={unit}
                 />
               </div>
             </div>

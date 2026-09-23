@@ -1,0 +1,502 @@
+/**
+ * 階段 2 — 木作天花板骨架俯視 SVG
+ *
+ * 純元件,只吃 CeilingBom → 畫俯視排版圖。
+ *
+ * 視覺層級(由下到上):
+ *   1. 房間外框(虛線,zinc-300)
+ *   2. 矽酸鈣板分割線(虛線,slate-400)
+ *   3. 邊框角材(實心矩形,amber-700)
+ *   4. 主支角材(實心矩形,amber-600;若被邊框 absorb 則淡化)
+ *   5. 副支角材(實心細矩形,zinc-500)
+ *   6. 尺寸標註(amber-900 on top + left)
+ *
+ * 座標慣例:
+ *   - SVG units = cm(1:1)
+ *   - viewBox 含 PAD cm 邊距留給尺寸標註
+ *   - 房間 top-left at (PAD, PAD),長邊水平、短邊垂直
+ *   - 主支沿長邊方向排列,單支跨短邊方向(垂直線)
+ *   - 副支垂直主支(水平短線),夾在 supports[] 之間
+ *
+ * 「畫幾根 = 算幾根」:每組數量都對應 trace 裡的值,可肉眼比對。
+ */
+
+import type { CeilingBom } from "./types";
+import type { Fixture, FixtureCollision } from "./fixtures";
+
+const PAD_TOP = 50;     // cm,給上方長邊尺寸 + 主支間距 tick
+const PAD_LEFT = 60;    // cm,給左方短邊尺寸
+const PAD_RIGHT = 40;
+const PAD_BOTTOM = 40;
+
+export type HighlightCategory = "frame" | "main" | "sub" | "board" | "hanger" | null;
+
+export function CeilingOverviewSvg({
+  bom,
+  highlight = null,
+  subLengthFilter = null,
+  boardKindFilter = null,
+  fixtures = [],
+  collisions = [],
+  locale = "zh-TW",
+}: {
+  bom: CeilingBom;
+  highlight?: HighlightCategory;
+  subLengthFilter?: number | null;
+  boardKindFilter?: "full" | "cut" | null;
+  fixtures?: Fixture[];
+  collisions?: FixtureCollision[];
+  locale?: string;
+}) {
+  const isEn = locale === "en";
+  const LBL = isEn
+    ? {
+        longSide: "Long side",
+        shortSide: "Short side",
+        frame: "Perimeter",
+        main: "Main",
+        sub: "Sub",
+        boardEdgeMain: "Board edge · main center",
+        boardEdge180: "Board edge · 180 long",
+      }
+    : {
+        longSide: "長邊",
+        shortSide: "短邊",
+        frame: "邊框",
+        main: "主支",
+        sub: "副支",
+        boardEdgeMain: "板邊·主支中心",
+        boardEdge180: "板邊·長 180",
+      };
+  const { input, trace } = bom;
+  // 高亮邏輯:有 highlight 時非匹配的 group 變淡
+  const dim = (key: Exclude<HighlightCategory, null>) =>
+    highlight && highlight !== key ? 0.12 : 1;
+  const L = input.longSideCm;
+  const S = input.shortSideCm;
+  const tw = input.timberWidthCm;
+
+  const viewW = L + PAD_LEFT + PAD_RIGHT;
+  const viewH = S + PAD_TOP + PAD_BOTTOM;
+
+  // SVG 內房間範圍
+  const x0 = PAD_LEFT;
+  const y0 = PAD_TOP;
+  const x1 = x0 + L;
+  const y1 = y0 + S;
+
+  // 邊框內側面位置(主支對接到這裡)
+  const innerY0 = y0 + tw;
+  const innerY1 = y1 - tw;
+
+  // 預先算「哪些主支被邊框 absorb」(僅 frameDoublesAsSupport=true 時)
+  const absorbed = new Set<number>();
+  if (input.frameDoublesAsSupport) {
+    const tol = tw / 2 + 0.01;
+    trace.mainJoistCentersCm.forEach((c, idx) => {
+      if (Math.abs(c - 0) <= tol || Math.abs(c - L) <= tol) absorbed.add(idx);
+    });
+    // 若 alignment 不貼邊框,仍視兩端為 absorb(對齊 calc.ts 邏輯)
+    if (absorbed.size === 0 && trace.mainJoistCentersCm.length >= 2) {
+      absorbed.add(0);
+      absorbed.add(trace.mainJoistCentersCm.length - 1);
+    }
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${viewW} ${viewH}`}
+      className="w-full h-auto bg-amber-50/30 rounded border border-zinc-200"
+      preserveAspectRatio="xMidYMid meet"
+      style={{ maxHeight: "70vh" }}
+    >
+      <defs>
+        {/* 矽酸鈣板斜紋(實心 hatch 替代填色,給整片區分視覺) */}
+        <pattern id="board-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+          <rect width="6" height="6" fill="#fef3c7" opacity="0.35" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#fbbf24" strokeWidth="0.4" opacity="0.4" />
+        </pattern>
+      </defs>
+
+      {/* ────── 1. 矽酸鈣板每片 rect(per-board,可分 整/裁 高亮) ────── */}
+      {renderBoardCells(input, trace.mainJoistCentersCm, x0, y0, dim("board"), boardKindFilter)}
+
+      {/* ────── 2. 矽酸鈣板分割線(虛線) ────── */}
+      <g opacity={dim("board")}>
+        {renderBoardCutLines(input, trace, x0, y0, x1, y1)}
+      </g>
+
+      {/* ────── 3. 房間外框(虛線,牆面) ────── */}
+      <rect
+        x={x0} y={y0} width={L} height={S}
+        fill="none" stroke="#71717a" strokeWidth={0.8}
+        strokeDasharray="3 2"
+      />
+
+      {/* ────── 4. 邊框角材(4 條實心矩形,沿牆內側) ────── */}
+      <g opacity={dim("frame")}>
+        <rect x={x0} y={y0} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+        <rect x={x0} y={y1 - tw} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+        <rect x={x0} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+        <rect x={x1 - tw} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+      </g>
+
+      {/* ────── 5. 主支角材(垂直矩形,跨短邊內側) ────── */}
+      <g opacity={dim("main")}>
+      {trace.mainJoistCentersCm.map((c, idx) => {
+        const cx = x0 + c;
+        const isAbsorbed = absorbed.has(idx);
+        return (
+          <g key={`main-${idx}`}>
+            <rect
+              x={cx - tw / 2}
+              y={innerY0}
+              width={tw}
+              height={innerY1 - innerY0}
+              fill={isAbsorbed ? "#d6d3d1" : "#d97706"}
+              stroke={isAbsorbed ? "#a8a29e" : "#92400e"}
+              strokeWidth={0.3}
+              opacity={isAbsorbed ? 0.5 : 1}
+            />
+            {/* 主支中心線小 tick(上方) */}
+            <line
+              x1={cx} y1={y0 - 4} x2={cx} y2={y0 - 1}
+              stroke="#a16207" strokeWidth={0.6}
+            />
+          </g>
+        );
+      })}
+      </g>
+
+      {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
+      {renderSubJoists(trace, x0, innerY0, tw, dim("sub"), subLengthFilter)}
+
+      {/* ────── 6b. 吊筋俯視點(每主支沿 Z 軸 N 個粗體十字) ────── */}
+      {renderHangerDots(trace, x0, innerY0, innerY1, tw, viewW, dim("hanger"))}
+
+      {/* ────── 6c. 燈具 / 開孔(紅圓圈,碰撞變實心紅) ────── */}
+      {fixtures.map((f) => {
+        const isCollide = collisions.some((c) => c.fixtureId === f.id);
+        return (
+          <g key={f.id}>
+            <circle cx={x0 + f.xCm} cy={y0 + f.zCm} r={f.rCm}
+              fill={isCollide ? "#fda4af" : "none"}
+              stroke={isCollide ? "#be123c" : "#0891b2"}
+              strokeWidth={1.0}
+              opacity={isCollide ? 0.5 : 0.9}
+            />
+            <circle cx={x0 + f.xCm} cy={y0 + f.zCm} r={1.5}
+              fill={isCollide ? "#be123c" : "#0891b2"} />
+            <text x={x0 + f.xCm + f.rCm + 2} y={y0 + f.zCm + 3}
+              fontSize={8} fill={isCollide ? "#be123c" : "#155e75"}
+              fontWeight="600">
+              {f.label || ""}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* ────── 7. 尺寸標註 ────── */}
+      {/* 長邊 — 頂部 */}
+      <DimLine
+        x1={x0} y1={y0 - 24}
+        x2={x1} y2={y0 - 24}
+        label={`${LBL.longSide} ${L} cm`}
+        color="#78350f"
+      />
+      {/* 短邊 — 左側 */}
+      <DimLineVertical
+        x1={x0 - 30} y1={y0}
+        x2={x0 - 30} y2={y1}
+        label={`${LBL.shortSide} ${S} cm`}
+        color="#78350f"
+      />
+
+      {/* 剩餘收邊提示(僅 alignment != center 時) */}
+      {bom.auto.leftoverCm > 1 && (
+        <text
+          x={x0 + (input.alignmentBase === "left" ? L - bom.auto.leftoverCm / 2 : input.alignmentBase === "right" ? bom.auto.leftoverCm / 2 : L / 2)}
+          y={y1 + 14}
+          fontSize={11}
+          fill="#9a3412"
+          textAnchor="middle"
+        >
+          剩餘收邊 {round1(bom.auto.leftoverCm)} cm
+          {input.alignmentBase === "center" ? "(置中分配)" : ""}
+        </text>
+      )}
+
+      {/* ────── 8. 圖例 ────── */}
+      <g transform={`translate(${PAD_LEFT}, ${y1 + 22})`}>
+        <LegendBox color="#a16207" label={LBL.frame} x={0} />
+        <LegendBox color="#d97706" label={LBL.main} x={70} />
+        <LegendBox color="#52525b" label={LBL.sub} x={140} />
+        <LegendDash color="#1d4ed8" label={LBL.boardEdgeMain} x={210} />
+        <LegendDash color="#475569" label={LBL.boardEdge180} x={360} />
+      </g>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// 副支渲染:每 slot 在 supports[i] 和 supports[i+1] 之間
+// 放 subJoistCount 根水平短矩形,沿短邊均分
+// ─────────────────────────────────────────────────────────
+function renderSubJoists(
+  trace: CeilingBom["trace"],
+  x0: number,
+  innerY0: number,
+  tw: number,
+  baseOpacity: number,
+  subLengthFilter: number | null,
+) {
+  // 副支 Y 位置由 calc.ts trace 給,SVG 不再自算
+  const subThickness = Math.max(0.8, tw * 0.6);
+  const elements: React.ReactNode[] = [];
+
+  for (let si = 0; si < trace.slots.length; si++) {
+    const slot = trace.slots[si];
+    const xStart = x0 + slot.fromCm;
+    const xEnd = x0 + slot.toCm;
+    // 長度 filter:選了特定長度時,其他長度副支變淡(在 baseOpacity 基礎上再 × 0.12)
+    const matchesLengthFilter =
+      subLengthFilter == null || Math.abs(slot.subJoistLengthCm - subLengthFilter) < 0.5;
+    const op = baseOpacity * (matchesLengthFilter ? 1 : 0.12);
+    for (let i = 0; i < trace.subJoistYOffsetsCm.length; i++) {
+      const yCenter = innerY0 + trace.subJoistYOffsetsCm[i];
+      elements.push(
+        <rect
+          key={`sub-${si}-${i}`}
+          x={xStart}
+          y={yCenter - subThickness / 2}
+          width={xEnd - xStart}
+          height={subThickness}
+          fill="#71717a"
+          stroke="#3f3f46"
+          strokeWidth={0.2}
+          opacity={op}
+        />,
+      );
+    }
+  }
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────
+// 吊筋俯視點:每主支沿 Z 軸 hangerPerJoist 個位置畫粗體十字
+// ─────────────────────────────────────────────────────────
+function renderHangerDots(
+  trace: CeilingBom["trace"],
+  x0: number,
+  innerY0: number,
+  innerY1: number,
+  tw: number,
+  viewW: number,
+  baseOpacity: number,
+) {
+  const N = trace.hangerPerMainJoist;
+  if (N <= 0) return null;
+  const usableZ = innerY1 - innerY0;
+  // 跟 3D HangersLayer 同邏輯:1=中、2=1/3+2/3、3+=均分含端點
+  const positions: number[] = (() => {
+    if (N <= 1) return [innerY0 + usableZ / 2];
+    if (N === 2) return [innerY0 + usableZ / 3, innerY0 + (2 * usableZ) / 3];
+    const step = usableZ / (N - 1);
+    return Array.from({ length: N }, (_, i) => innerY0 + i * step);
+  })();
+  // 十字半臂:取 max(角材寬比例, 圖寬比例)→ 不論房間多大,螢幕視覺大小一致
+  const armLen = Math.max(tw * 1.4, viewW * 0.014);
+  const sw = 2.4; // 螢幕像素粗細(配 non-scaling-stroke,手機縮圖也不會變細)
+  const dots: React.ReactNode[] = [];
+  let k = 0;
+  for (const c of trace.mainJoistCentersCm) {
+    const cx = x0 + c;
+    for (const cy of positions) {
+      dots.push(
+        <g key={`hd-${k++}`} opacity={baseOpacity}>
+          {/* 白底圓盤墊在十字下,留白邊讓十字在密圖上更清楚 */}
+          <circle cx={cx} cy={cy} r={armLen * 1.2} fill="#fff" opacity={0.92} />
+          {/* 粗體 + 十字(non-scaling-stroke:縮圖仍維持粗細) */}
+          <line x1={cx - armLen} y1={cy} x2={cx + armLen} y2={cy}
+            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round"
+            vectorEffect="non-scaling-stroke" />
+          <line x1={cx} y1={cy - armLen} x2={cx} y2={cy + armLen}
+            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round"
+            vectorEffect="non-scaling-stroke" />
+        </g>,
+      );
+    }
+  }
+  return dots;
+}
+
+// ─────────────────────────────────────────────────────────
+// 矽酸鈣板 per-cell rect:每片板獨立 rect,支援 boardKindFilter 分整/裁高亮
+// ─────────────────────────────────────────────────────────
+function renderBoardCells(
+  input: CeilingBom["input"],
+  mainCenters: number[],
+  x0: number,
+  y0: number,
+  baseOpacity: number,
+  boardKindFilter: "full" | "cut" | null,
+) {
+  // 視覺:板邊對齊主支中心(per spec「中間板邊落主支中心」)
+  // 計算:整 / 裁 判斷用「欄寬接近 boardShortCm」容差(細邊欄判定 cut)
+  const FULL_TOL_CM = 5;
+  const L = input.longSideCm;
+  const S = input.shortSideCm;
+  const colEdges: number[] = mainCenters.length === 0
+    ? [0, L]
+    : [0, ...mainCenters, L];
+  const rowEdges: number[] = [0];
+  let z = input.boardLongCm;
+  while (z < S) { rowEdges.push(z); z += input.boardLongCm; }
+  rowEdges.push(S);
+  const fullRowCount = Math.floor(input.shortSideCm / input.boardLongCm);
+
+  const cells: React.ReactNode[] = [];
+  let key = 0;
+  for (let ci = 0; ci < colEdges.length - 1; ci++) {
+    const xL = colEdges[ci];
+    const xR = colEdges[ci + 1];
+    const colW = xR - xL;
+    const colFull = Math.abs(colW - input.boardShortCm) <= FULL_TOL_CM;
+    for (let ri = 0; ri < rowEdges.length - 1; ri++) {
+      const zT = rowEdges[ri];
+      const zB = rowEdges[ri + 1];
+      const rowFull = ri < fullRowCount;
+      const isFullBoard = colFull && rowFull;
+      const matchesKind =
+        !boardKindFilter ||
+        (boardKindFilter === "full" && isFullBoard) ||
+        (boardKindFilter === "cut" && !isFullBoard);
+      const op = baseOpacity * (matchesKind ? 1 : 0.12);
+      cells.push(
+        <rect
+          key={`board-${key++}`}
+          x={x0 + xL}
+          y={y0 + zT}
+          width={colW}
+          height={zB - zT}
+          fill={isFullBoard ? "url(#board-hatch)" : "#fda4af33"}
+          stroke="#94a3b8"
+          strokeWidth={0.3}
+          strokeDasharray="2 1"
+          opacity={op}
+        />,
+      );
+    }
+  }
+  return cells;
+}
+
+// ─────────────────────────────────────────────────────────
+// 矽酸鈣板分割線(虛線)
+//   沿長邊方向板邊「落在主支中心」(施工 step 5)
+//   → 不再每 90 cm 切,改用 trace.mainJoistCentersCm 切欄
+//   → 因為跟主支位置重疊,改畫 above/below 房間外短 ticks,內部不畫(避免跟主支撞色)
+//
+//   沿短邊方向板邊每 boardLong (180) 一條(無主支對齊)
+// ─────────────────────────────────────────────────────────
+function renderBoardCutLines(
+  input: { boardLongCm: number; boardShortCm: number; longSideCm: number; shortSideCm: number },
+  trace: CeilingBom["trace"],
+  x0: number, y0: number, x1: number, y1: number,
+) {
+  const lines: React.ReactNode[] = [];
+  let key = 0;
+  // 沿長邊:在主支中心線上方/下方各畫一段藍色虛線 tick,標示「此處 = 板邊」
+  for (const c of trace.mainJoistCentersCm) {
+    const cx = x0 + c;
+    // 上方 tick
+    lines.push(
+      <line key={`bv-top-${key++}`}
+        x1={cx} y1={y0 - 12} x2={cx} y2={y0 - 1}
+        stroke="#1d4ed8" strokeWidth={0.7} strokeDasharray="2 1.5" opacity={0.9}
+      />,
+    );
+    // 下方 tick
+    lines.push(
+      <line key={`bv-bot-${key++}`}
+        x1={cx} y1={y1 + 1} x2={cx} y2={y1 + 12}
+        stroke="#1d4ed8" strokeWidth={0.7} strokeDasharray="2 1.5" opacity={0.9}
+      />,
+    );
+  }
+  // 沿短邊方向的板邊(水平線,間距 = boardLong)
+  for (let cy = input.boardLongCm; cy < input.shortSideCm; cy += input.boardLongCm) {
+    lines.push(
+      <line key={`bh-${key++}`}
+        x1={x0} y1={y0 + cy} x2={x1} y2={y0 + cy}
+        stroke="#475569" strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85}
+      />,
+    );
+  }
+  return lines;
+}
+
+// ─────────────────────────────────────────────────────────
+// 尺寸標註元件
+// ─────────────────────────────────────────────────────────
+function DimLine({
+  x1, y1, x2, y2, label, color,
+}: { x1: number; y1: number; x2: number; y2: number; label: string; color: string }) {
+  const mid = (x1 + x2) / 2;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={0.5} />
+      {/* 兩端短刻線 */}
+      <line x1={x1} y1={y1 - 4} x2={x1} y2={y1 + 4} stroke={color} strokeWidth={0.5} />
+      <line x1={x2} y1={y2 - 4} x2={x2} y2={y2 + 4} stroke={color} strokeWidth={0.5} />
+      {/* 兩端箭頭(三角) */}
+      <polygon points={`${x1},${y1} ${x1 + 4},${y1 - 1.5} ${x1 + 4},${y1 + 1.5}`} fill={color} />
+      <polygon points={`${x2},${y2} ${x2 - 4},${y2 - 1.5} ${x2 - 4},${y2 + 1.5}`} fill={color} />
+      <text x={mid} y={y1 - 4} fontSize={13} fill={color} textAnchor="middle" fontWeight="600">{label}</text>
+    </g>
+  );
+}
+
+function DimLineVertical({
+  x1, y1, x2, y2, label, color,
+}: { x1: number; y1: number; x2: number; y2: number; label: string; color: string }) {
+  const mid = (y1 + y2) / 2;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={0.5} />
+      <line x1={x1 - 4} y1={y1} x2={x1 + 4} y2={y1} stroke={color} strokeWidth={0.5} />
+      <line x1={x2 - 4} y1={y2} x2={x2 + 4} y2={y2} stroke={color} strokeWidth={0.5} />
+      <polygon points={`${x1},${y1} ${x1 - 1.5},${y1 + 4} ${x1 + 1.5},${y1 + 4}`} fill={color} />
+      <polygon points={`${x2},${y2} ${x2 - 1.5},${y2 - 4} ${x2 + 1.5},${y2 - 4}`} fill={color} />
+      <text
+        x={x1 - 4} y={mid}
+        fontSize={13} fill={color} textAnchor="middle" fontWeight="600"
+        transform={`rotate(-90 ${x1 - 4} ${mid})`}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function LegendBox({ color, label, x }: { color: string; label: string; x: number }) {
+  return (
+    <g transform={`translate(${x}, 0)`}>
+      <rect width={6} height={4} fill={color} stroke="#000" strokeWidth={0.15} />
+      <text x={8} y={3.5} fontSize={9} fill="#52525b">{label}</text>
+    </g>
+  );
+}
+
+function LegendDash({ color, label, x }: { color: string; label: string; x: number }) {
+  return (
+    <g transform={`translate(${x}, 0)`}>
+      <line x1={0} y1={2} x2={8} y2={2} stroke={color} strokeWidth={0.5} strokeDasharray="1.5 1.5" />
+      <text x={10} y={3.5} fontSize={9} fill="#52525b">{label}</text>
+    </g>
+  );
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}

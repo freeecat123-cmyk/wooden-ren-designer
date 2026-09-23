@@ -130,7 +130,7 @@ export function adaptStyleParams(
   // ── 規則 5：材質衝突柔性提示（不改 params，只記 note） ──────────────
   if (ctx.material) {
     const darkWoods = ["walnut", "teak"];
-    const lightWoods = ["maple", "ash", "pine", "douglas-fir", "taiwan-cypress"];
+    const lightWoods = ["maple", "ash", "pine", "southern-pine", "douglas-fir", "taiwan-cypress"];
     const oakish = ["white-oak"];
     const styleId = String(params._styleId ?? "");
     if (styleId === "shaker" && darkWoods.includes(ctx.material)) {

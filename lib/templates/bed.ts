@@ -18,10 +18,12 @@ import {
   parseLegChamferMm,
   legBottomScale,
   legScaleAt,
+  computeCompoundSplayNormal,
 } from "./_helpers";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 /**
  * 床（bed）—— 木製傳統 4 腳床架
@@ -105,9 +107,9 @@ export const bedOptions: OptionSpec[] = [
 
   // ---------- 腳 ----------
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", help: "床腳要承重，建議 70mm 起跳；明式架子床常 90~100mm" },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 100, step: 5, unit: "mm", help: "腳中心離側板外緣的內縮量；0 = 腳貼齊外緣" },
-  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: "斜腳系列才有效；床腳通常直立（0°）以便對牆。" },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", help: "床腳要承重，建議 70mm 起跳；明式架子床常 90~100mm" },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮", defaultValue: 0, min: 0, max: 100, step: 5, unit: "mm", help: "腳中心離側板外緣的內縮量；0 = 腳貼齊外緣" },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 0, min: 0, max: SPLAY_ANGLE.stoolMaxDeg, step: 0.5, unit: "°", help: "斜腳系列才有效；床腳通常直立（0°）以便對牆。", dependsOn: { key: "legShape", oneOf: ["splayed", "splayed-length", "splayed-width"] } },
   legEdgeOption("leg", 0),
   legEdgeStyleOption("leg"),
 
@@ -122,34 +124,36 @@ export const bedOptions: OptionSpec[] = [
     { value: "crested", label: "中央高冠（中段凸起，維多利亞）" },
     { value: "fielded", label: "起線板（板心凸出有斜邊框）" },
   ], help: "8 種床頭樣式。spindled / panel-frame 用多塊木料拼接，其他用單片板加 silhouette 變化。" },
-  { group: "back", type: "number", key: "headboardHeight", label: "床頭板高 (mm)", defaultValue: 800, min: 400, max: 1500, step: 10, unit: "mm", help: "從地板到床頭板頂端的總高度。常見 700~1000；高背床 1100+" },
-  { group: "back", type: "number", key: "headboardThickness", label: "床頭板厚 (mm)", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm" },
+  { group: "back", type: "number", key: "headboardHeight", label: "床頭板高", defaultValue: 800, min: 400, max: 1500, step: 10, unit: "mm", help: "從地板到床頭板頂端的總高度。常見 700~1000；高背床 1100+" },
+  { group: "back", type: "number", key: "headboardThickness", label: "床頭板厚", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm" },
   { group: "back", type: "number", key: "headSpindleCount", label: "直柵欄數", defaultValue: 7, min: 3, max: 15, step: 1, help: "spindled 樣式的直立木條數量", dependsOn: { key: "headStyle", equals: "spindled" } },
-  { group: "back", type: "number", key: "headSpindleSize", label: "直柵欄粗 (mm)", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "spindled 直立木條的粗細（方料）", dependsOn: { key: "headStyle", equals: "spindled" } },
+  { group: "back", type: "number", key: "headSpindleSize", label: "直柵欄粗", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "spindled 直立木條的粗細（方料）", dependsOn: { key: "headStyle", equals: "spindled" } },
 
   // ---------- 床尾板 ----------
   { group: "back", type: "checkbox", key: "withFootboard", label: "加床尾板", defaultValue: false, help: "傳統明式有，現代款常省略。勾選後尾端立板高 = 床尾板高" },
-  { group: "back", type: "number", key: "footboardHeight", label: "床尾板高 (mm)", defaultValue: 500, min: 250, max: 1000, step: 10, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
-  { group: "back", type: "number", key: "footboardThickness", label: "床尾板厚 (mm)", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
+  { group: "back", type: "number", key: "footboardHeight", label: "床尾板高", defaultValue: 500, min: 250, max: 1000, step: 10, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
+  { group: "back", type: "number", key: "footboardThickness", label: "床尾板厚", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm", dependsOn: { key: "withFootboard", equals: true } },
 
   // ---------- 側板 ----------
-  { group: "apron", type: "number", key: "sideRailWidth", label: "側板高 (mm)", defaultValue: 180, min: 120, max: 300, step: 10, unit: "mm", help: "側板上下方向的高度（= 牙板高度）。床承重大，建議 150mm 起跳" },
-  { group: "apron", type: "number", key: "sideRailThickness", label: "側板厚 (mm)", defaultValue: 30, min: 20, max: 50, step: 1, unit: "mm" },
-  { group: "apron", type: "number", key: "mattressClearanceMm", label: "床板距地高 (mm)", defaultValue: 250, min: 150, max: 500, step: 10, unit: "mm", help: "從地板到床板頂面的高度；mattress 上緣 = 此值 + 床墊厚（約 200~300mm）" },
+  { group: "apron", type: "number", key: "sideRailWidth", label: "側板高", defaultValue: 180, min: 120, max: 300, step: 10, unit: "mm", help: "側板上下方向的高度（= 牙條高度）。床承重大，建議 150mm 起跳" },
+  { group: "apron", type: "number", key: "sideRailThickness", label: "側板厚", defaultValue: 30, min: 20, max: 50, step: 1, unit: "mm" },
+  { group: "apron", type: "number", key: "mattressClearanceMm", label: "床板距地高", defaultValue: 250, min: 150, max: 500, step: 10, unit: "mm", help: "從地板到床板頂面的高度；mattress 上緣 = 此值 + 床墊厚（約 200~300mm）" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：側板/床頭板進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
 
   // ---------- 床板條 ----------
-  { group: "stretcher", type: "number", key: "slatGapMm", label: "床板條間距 (mm)", defaultValue: 80, min: 30, max: 100, step: 5, unit: "mm", help: "相鄰 slats 中心距減去 slat 寬。≤100mm 才能護腰避免床墊塌陷" },
-  { group: "stretcher", type: "number", key: "slatWidthMm", label: "床板條寬 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm" },
-  { group: "stretcher", type: "number", key: "slatThicknessMm", label: "床板條厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
-  { group: "stretcher", type: "number", key: "ledgerWidthMm", label: "ledger 撐條寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "釘在側板內側下緣，slats 擱上去。寬度 = 上下方向高度" },
-  { group: "stretcher", type: "number", key: "ledgerThicknessMm", label: "ledger 撐條厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1, unit: "mm", help: "從側板向床中心凸出的厚度" },
+  { group: "stretcher", type: "number", key: "slatGapMm", label: "床板條間距", defaultValue: 80, min: 30, max: 100, step: 5, unit: "mm", help: "相鄰 slats 中心距減去 slat 寬。≤100mm 才能護腰避免床墊塌陷" },
+  { group: "stretcher", type: "number", key: "slatWidthMm", label: "床板條寬", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm" },
+  { group: "stretcher", type: "number", key: "slatThicknessMm", label: "床板條厚", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
+  { group: "stretcher", type: "number", key: "ledgerWidthMm", label: "ledger 撐條寬", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "釘在側板內側下緣，slats 擱上去。寬度 = 上下方向高度" },
+  { group: "stretcher", type: "number", key: "ledgerThicknessMm", label: "ledger 撐條厚", defaultValue: 25, min: 18, max: 40, step: 1, unit: "mm", help: "從側板向床中心凸出的厚度" },
   stretcherEdgeOption("stretcher", 0),
   stretcherEdgeStyleOption("stretcher"),
 ];
 
 export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
 
   const o = bedOptions;
   const bedPreset = getOption<string>(input, opt(o, "bedPreset"));
@@ -180,6 +184,30 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const sideRailThickness = getOption<number>(input, opt(o, "sideRailThickness"));
   const mattressClearanceMmRaw = getOption<number>(input, opt(o, "mattressClearanceMm"));
   const mattressClearanceMm = mattressClearanceMmRaw === 250 && preset?.mattressClearanceMm !== undefined ? preset.mattressClearanceMm : mattressClearanceMmRaw;
+
+  /**
+   * 🧷 側板高不能超過「床板離地高 − 腳底留料」。
+   *
+   * ⛔ 床腳只做到側板頂面(`legHeight = mattressClearanceMm`,見下方),
+   *    而側板的榫眼是以側板中心 `mattressClearanceMm − sideRailWidth/2` 定位、
+   *    垂直尺寸等於側板高。側板一旦比床板離地高還大,榫眼就整段穿出腳的頂面:
+   *    - 側板高 300 + 床板離地 250(兩個都在滑桿範圍內)→ 榫眼超出腳頂 **40mm**
+   *    - 床板離地 150 + 側板高 180(預設)→ 超出 20mm
+   *    「榫孔加工面 ZIP」匯出的 SVG 會把切線畫到料件外面,拿去 CNC 是直接
+   *    打到夾具 / 犧牲板,手工鑿則是把整支腳鑿斷。
+   *    (2026-08-24 大軍稽核抓到;全站 17,214 張加工圖只有床中招)
+   *
+   * MIN_LEG_STOCK 取 40mm:榫眼下緣到腳底至少要留這麼多料,不然腳會從榫眼處斷。
+   */
+  const MIN_LEG_STOCK = 40;
+  const sideRailWidthCapped = Math.max(60, mattressClearanceMm - MIN_LEG_STOCK);
+  const sideRailWidthWanted = sideRailWidth;
+  const sideRailWidthFinal = Math.min(sideRailWidthWanted, sideRailWidthCapped);
+  const sideRailWidthWarnings: string[] = sideRailWidthFinal < sideRailWidthWanted
+    ? [`側板高 ${sideRailWidthWanted}mm 超過床板離地高 ${mattressClearanceMm}mm 能容納的上限，` +
+       `已收到 ${sideRailWidthFinal}mm（腳底要留 ${MIN_LEG_STOCK}mm 料，否則榫眼會穿出腳頂、腳會從那裡斷）。` +
+       `想要更高的側板，請把「床板距地高」一起調高。`]
+    : [];
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const slatGapMmRaw = getOption<number>(input, opt(o, "slatGapMm"));
   const slatGapMm = slatGapMmRaw === 80 && preset?.slatGapMm !== undefined ? preset.slatGapMm : slatGapMmRaw;
@@ -206,7 +234,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const sideRailTenonStd = standardTenon({
     type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: sideRailThickness,
-    childWidth: sideRailWidth,
+    childWidth: sideRailWidthFinal,
     motherThickness: legSize,
   });
   // 通榫 +5mm 補償（即使床通常直立 splay=0，仍套用一致規則）
@@ -220,7 +248,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const headboardTenonStd = standardTenon({
     type: headboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: headboardThickness,
-    childWidth: Math.min(legHeight - 20, sideRailWidth), // 進腳的有效榫高 ≤ side-rail width
+    childWidth: Math.min(legHeight - 20, sideRailWidthFinal), // 進腳的有效榫高 ≤ side-rail width
     motherThickness: legSize,
   });
   const headboardTenonLength = headboardTenonStd.length + (headboardTenonType === "through-tenon" ? 5 : 0);
@@ -230,7 +258,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const footboardTenonStd = standardTenon({
     type: footboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: footboardThickness,
-    childWidth: Math.min(legHeight - 20, sideRailWidth),
+    childWidth: Math.min(legHeight - 20, sideRailWidthFinal),
     motherThickness: legSize,
   });
   const footboardTenonLength = footboardTenonStd.length + (footboardTenonType === "through-tenon" ? 5 : 0);
@@ -261,11 +289,20 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       }) ?? legEdgeShape(legEdge, legEdgeStyle),
       tenons: [],
       // mortises：side-rail（X 面，朝家具中心）+ headboard/footboard（Z 面對齊）
-      // side rail 中心 Y = mattressClearance - sideRailWidth/2
+      // side rail 中心 Y = mattressClearance - sideRailWidthFinal/2
+      // splay 公約（b3f09ad）：Z 面 rotX 跟 splayDz、X 面 rotZ 跟 -sign(corner.x)×splayDx
       mortises: (() => {
         const mortises: Part["mortises"] = [];
-        const sideRailCenterY_local = mattressClearanceMm - sideRailWidth / 2;
-        // side-rail mortise 在腳的 X 面（接 side rail 沿 X 軸跑）
+        const sideRailCenterY_local = mattressClearanceMm - sideRailWidthFinal / 2;
+        const _splayDx = (legShape === "splayed" || legShape === "splayed-length") ? splayMm : 0;
+        const _splayDz = (legShape === "splayed" || legShape === "splayed-width") ? splayMm : 0;
+        const _zRotX = (_splayDz !== 0 && legHeight > 0)
+          ? Math.sign(c.z || 1) * Math.atan(_splayDz / legHeight)
+          : 0;
+        const _xRotZ = (_splayDx !== 0 && legHeight > 0)
+          ? -Math.sign(c.x || 1) * Math.atan(_splayDx / legHeight)
+          : 0;
+        // side-rail mortise 在腳的 X 面（接 side rail 沿 X 軸跑），rotZ 跟 splayDx
         // origin.x = ±1 朝家具中心（c.x > 0 → -1）
         mortises.push({
           origin: { x: c.x > 0 ? -1 : 1, y: sideRailCenterY_local, z: 0 },
@@ -273,8 +310,9 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           length: sideRailTenonStd.width,
           width: sideRailTenonStd.thickness,
           through: sideRailTenonType === "through-tenon",
+          ...(Math.abs(_xRotZ) > 0.001 ? { rotZ: _xRotZ } : {}),
         });
-        // headboard mortise 在頭端腳的 Z 面（接 headboard 沿 Z 軸跑）
+        // headboard mortise 在頭端腳的 Z 面（接 headboard 沿 Z 軸跑），rotX 跟 splayDz
         if (isHead) {
           mortises.push({
             origin: { x: 0, y: sideRailCenterY_local, z: c.z > 0 ? -1 : 1 },
@@ -282,9 +320,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
             length: headboardTenonStd.width,
             width: headboardTenonStd.thickness,
             through: headboardTenonType === "through-tenon",
+            ...(Math.abs(_zRotX) > 0.001 ? { rotX: _zRotX } : {}),
           });
         }
-        // footboard mortise（可選）
+        // footboard mortise（可選），Z 面同 headboard
         if (isFoot && withFootboard) {
           mortises.push({
             origin: { x: 0, y: sideRailCenterY_local, z: c.z > 0 ? -1 : 1 },
@@ -292,6 +331,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
             length: footboardTenonStd.width,
             width: footboardTenonStd.thickness,
             through: footboardTenonType === "through-tenon",
+            ...(Math.abs(_zRotX) > 0.001 ? { rotX: _zRotX } : {}),
           });
         }
         return mortises;
@@ -304,51 +344,86 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   // tapered 補償：腳 cross-section 隨 Y 線性變化，rail 端面要對到 rail Y 處實際腳寬
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
-  const sideRailY = mattressClearanceMm - sideRailWidth;
-  const sideRailCenterY = mattressClearanceMm - sideRailWidth / 2;
+  const sideRailY = mattressClearanceMm - sideRailWidthFinal;
+  const sideRailCenterY = mattressClearanceMm - sideRailWidthFinal / 2;
   const bottomScale = legBottomScale(legShape);
   const railLegSizeAtCenter = legSize * legScaleAt(sideRailCenterY, legHeight, bottomScale);
   const railLegSizeAtTop = legSize * legScaleAt(mattressClearanceMm, legHeight, bottomScale);
   const railLegSizeAtBot = legSize * legScaleAt(sideRailY, legHeight, bottomScale);
   // rail Y 區間內腳的「最大」cross-section — 用來算 rail span，避免 tapered/inverted 任一方向腳寬都不會跟 rail 干涉
   const railLegSizeMax = Math.max(railLegSizeAtTop, railLegSizeAtBot, railLegSizeAtCenter);
-  const sideRailInnerSpan = 2 * apronEdgeX - railLegSizeMax;
+  /**
+   * 🩸 舊寫法 side rail 長度取「rail 高度區間內腳最寬處」且端面直切 → 錐腳/倒錐腳時
+   *    只有一個角碰到腳，另一角開口成楔形縫（倒錐腳上緣 7.2mm、錐腳下緣 13mm；
+   *    2026-09-02 三視圖實畫稽核）。改成跟桌類牙條一樣：長度對到 rail 中心高度的腳面，
+   *    端面做 apron-trapezoid 貼著腳的斜面。bottomScale=1（直腳）時三個值相同 → byte 不變。
+   */
+  const sideRailInnerSpan = 2 * apronEdgeX - railLegSizeAtCenter;
+  const sideRailTrapTop = sideRailInnerSpan > 0 ? (2 * apronEdgeX - railLegSizeAtTop) / sideRailInnerSpan : 1;
+  const sideRailTrapBot = sideRailInnerSpan > 0 ? (2 * apronEdgeX - railLegSizeAtBot) / sideRailInnerSpan : 1;
+  const sideRailIsTrap = bottomScale !== 1;
+  // ledger 貼在 rail 內側、比 rail 矮；它自己高度區間內取腳最寬處（直切端，楔形縫 ≤ ledger 高 × 斜率）
+  const ledgerY0 = mattressClearanceMm - slatThicknessMm - ledgerWidthMm;
+  const ledgerLegSizeMax = Math.max(
+    legSize * legScaleAt(ledgerY0, legHeight, bottomScale),
+    legSize * legScaleAt(ledgerY0 + ledgerWidthMm, legHeight, bottomScale),
+  );
+  const ledgerInnerSpan = 2 * apronEdgeX - ledgerLegSizeMax;
   // headboard / footboard 從地板 y=0 到頂端橫跨整個腳高，要考慮 y=0 的腳底寬（inverted 腳底較寬）
   const headLegSizeAtFloor = legSize * legScaleAt(0, legHeight, bottomScale);
   const headLegSizeMax = Math.max(railLegSizeMax, headLegSizeAtFloor);
 
+  // splay tenon axis：side rail 是 axis="x"，splay 模式下端面跟著腳斜
+  // 沿用 stool/bench 同 convention（axis="x" 牙條不需反轉 cornerSx）
+  const splayDx = legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+  const splayDz = legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+  const railHasAxisSplay = splayDx > 0 || splayDz > 0;
+  const railSplayAngleDeg = legHeight > 0 ? Math.atan(splayMm / legHeight) * 180 / Math.PI : 0;
   const sideRails: Part[] = [
-    { id: "side-rail-left", nameZh: "左側板", sz: -1 },
-    { id: "side-rail-right", nameZh: "右側板", sz: 1 },
-  ].map(({ id, nameZh, sz }): Part => ({
-    id,
-    nameZh,
-    material,
-    grainDirection: "length",
-    visible: { length: sideRailInnerSpan, width: sideRailWidth, thickness: sideRailThickness },
-    origin: { x: 0, y: sideRailY, z: sz * apronEdgeZ },
-    rotation: { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    tenons: [
-      {
-        position: "start",
-        type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: sideRailTenonLength,
-        width: sideRailTenonStd.width,
-        thickness: sideRailTenonStd.thickness,
-        shoulderOn: [...sideRailTenonStd.shoulderOn],
-      },
-      {
-        position: "end",
-        type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: sideRailTenonLength,
-        width: sideRailTenonStd.width,
-        thickness: sideRailTenonStd.thickness,
-        shoulderOn: [...sideRailTenonStd.shoulderOn],
-      },
-    ],
-    mortises: [],
-  }));
+    { id: "side-rail-left", nameZh: "左側板", sz: -1 as -1 | 1 },
+    { id: "side-rail-right", nameZh: "右側板", sz: 1 as -1 | 1 },
+  ].map(({ id, nameZh, sz }): Part => {
+    const railTenonAxisStart = railHasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: "x", cornerSx: -1, cornerSz: sz, splayAngleDeg: railSplayAngleDeg })
+      : null;
+    const railTenonAxisEnd = railHasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: "x", cornerSx: +1, cornerSz: sz, splayAngleDeg: railSplayAngleDeg })
+      : null;
+    return {
+      id,
+      nameZh,
+      material,
+      grainDirection: "length",
+      visible: { length: sideRailInnerSpan, width: sideRailWidthFinal, thickness: sideRailThickness },
+      origin: { x: 0, y: sideRailY, z: sz * apronEdgeZ },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      // 錐腳/倒錐腳：端面梯形貼腳斜面（同桌類牙條）；直腳維持原造型邊
+      shape: sideRailIsTrap
+        ? { kind: "apron-trapezoid" as const, topLengthScale: sideRailTrapTop, bottomLengthScale: sideRailTrapBot }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+      tenons: [
+        {
+          position: "start",
+          type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+          length: sideRailTenonLength,
+          width: sideRailTenonStd.width,
+          thickness: sideRailTenonStd.thickness,
+          shoulderOn: [...sideRailTenonStd.shoulderOn],
+          ...(railTenonAxisStart ? { axis: railTenonAxisStart } : {}),
+        },
+        {
+          position: "end",
+          type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+          length: sideRailTenonLength,
+          width: sideRailTenonStd.width,
+          thickness: sideRailTenonStd.thickness,
+          shoulderOn: [...sideRailTenonStd.shoulderOn],
+          ...(railTenonAxisEnd ? { axis: railTenonAxisEnd } : {}),
+        },
+      ],
+      mortises: [],
+    };
+  });
 
   // ---------- ledger strips（內側下緣，slats 擱上去） ----------
   // 黏在 side rail 內側下緣，slat 頂面 = side rail 頂面 = mattressClearance
@@ -368,7 +443,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh,
       material,
       grainDirection: "length",
-      visible: { length: sideRailInnerSpan, width: ledgerWidthMm, thickness: ledgerThicknessMm },
+      visible: { length: ledgerInnerSpan, width: ledgerWidthMm, thickness: ledgerThicknessMm },
       origin: { x: 0, y: ledgerY, z: ledgerCenterZ },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
@@ -380,6 +455,16 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   // 跨在頭端兩腳之間（Z 軸長度 = 兩頭腳內面距離）
   // headStyle="panel" 整片立板；"spindled" 改頂底兩橫木 + N 直柵欄；其他 silhouette 變化共用 panel 結構
   const headLegInnerSpan = 2 * apronEdgeZ - headLegSizeMax;
+  /**
+   * 床頭板／床尾板本體（panel 系）：板從地板立到腳頂以上。錐腳/倒錐腳時腳的內面是斜的，
+   * 舊寫法拿「腳最寬處」直切端面 → 倒錐腳在腳頂 10mm 楔形縫、錐腳在地板 18mm（2026-09-02）。
+   * 改成：長度對到**腳頂**的內面、端面用 apron-trapezoid 且只在 0~腳高 這段貼斜面（taperSpanMm），
+   * 腳頂以上維持垂直邊。直腳時三個值相同 → byte 不變。其他 head 樣式的橫檔仍走 headLegInnerSpan。
+   */
+  const headPanelSpan = 2 * apronEdgeZ - railLegSizeAtTop;
+  const headPanelShape: Part["shape"] = bottomScale !== 1 && headPanelSpan > 0
+    ? { kind: "apron-trapezoid", topLengthScale: (2 * apronEdgeZ - headLegSizeAtFloor) / headPanelSpan, bottomLengthScale: 1, taperSpanMm: legHeight }
+    : undefined;
   const headboardX = -apronEdgeX; // 頭端
 
   const headParts: Part[] = [];
@@ -501,9 +586,17 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "床頭板",
       material,
       grainDirection: "length",
-      visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
+      visible: { length: headPanelSpan, width: headboardPlateHeight, thickness: headboardThickness },
       // origin.y = 板底（renderer 把 origin.y 當底部）；板從地板 0 到 headboardPlateHeight
       origin: { x: headboardX, y: 0, z: 0 },
+      // local −Z = 地板那邊（Rx(-π/2)Ry(-π/2) 後 local +Z → world +Y），所以 topLengthScale = 地板處
+      ...(headPanelShape ? { shape: headPanelShape } : {}),
+      // 雙軸 Rx(-π/2) Ry(-π/2)：依 pushPoint 的 Rx→Ry→Rz 順序計算：
+      // - local +X(length=headLegInnerSpan) → world +Z（跨床寬）
+      // - local +Y(thickness=25) → world +X（朝 head 端薄厚）
+      // - local +Z(width=800) → world +Y（垂直）↑
+      // 跟 `36ada22` 訂的 origin.y=0(板底) + yExt=800 慣例搭配，板從地板立到 800mm。
+      // 單軸 Ry(π/2) 會把 width 留在 local +Z → world +X，板平躺 25mm 厚（前 `a06f6ad` 反例）。
       rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
       tenons: [
         {
@@ -513,7 +606,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: headboardTenonStd.width,
           thickness: headboardTenonStd.thickness,
           shoulderOn: [...headboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - headboardPlateHeight / 2,
         },
         {
           position: "end",
@@ -522,7 +615,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: headboardTenonStd.width,
           thickness: headboardTenonStd.thickness,
           shoulderOn: [...headboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - headboardPlateHeight / 2,
         },
       ],
       mortises: [],
@@ -620,9 +713,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "床尾板",
       material,
       grainDirection: "length",
-      visible: { length: headLegInnerSpan, width: footPlateHeight, thickness: footboardThickness },
+      visible: { length: headPanelSpan, width: footPlateHeight, thickness: footboardThickness },
       origin: { x: apronEdgeX, y: 0, z: 0 },
       rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+      ...(headPanelShape ? { shape: headPanelShape } : {}),
       tenons: [
         {
           position: "start",
@@ -631,7 +725,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: footboardTenonStd.width,
           thickness: footboardTenonStd.thickness,
           shoulderOn: [...footboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - footPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - footPlateHeight / 2,
         },
         {
           position: "end",
@@ -640,7 +734,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
           width: footboardTenonStd.width,
           thickness: footboardTenonStd.thickness,
           shoulderOn: [...footboardTenonStd.shoulderOn],
-          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - footPlateHeight / 2,
+          offsetWidth: (mattressClearanceMm - sideRailWidthFinal / 2) - footPlateHeight / 2,
         },
       ],
       mortises: [],
@@ -655,8 +749,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const ledgerInnerSpanZ = 2 * apronEdgeZ - 2 * (sideRailThickness) - 2 * (ledgerThicknessMm / 2);
   // slat 跨距（簡化）：從一邊 ledger 中心線到另一邊，= 2 × (apronEdgeZ - sideRailThickness/2 - ledgerThickness/2)
   const slatLengthZ = 2 * apronEdgeZ - 2 * sideRailThickness; // 留 ledger 上面足夠承接
-  const slatCount = Math.max(3, Math.floor((sideRailInnerSpan - slatWidthMm) / (slatWidthMm + slatGapMm)) + 1);
-  const slatPitch = slatCount > 1 ? (sideRailInnerSpan - slatWidthMm) / (slatCount - 1) : 0;
+  // 床板排在腳頂面之間（床板在 rail 頂緣高度，錐腳那裡最寬）；直腳時＝sideRailInnerSpan，byte 不變
+  const slatLayoutSpan = 2 * apronEdgeX - railLegSizeAtTop;
+  const slatCount = Math.max(3, Math.floor((slatLayoutSpan - slatWidthMm) / (slatWidthMm + slatGapMm)) + 1);
+  const slatPitch = slatCount > 1 ? (slatLayoutSpan - slatWidthMm) / (slatCount - 1) : 0;
   const slatTopY = mattressClearanceMm;
   const slatOriginY = slatTopY - slatThicknessMm / 2;
 
@@ -664,7 +760,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   for (let i = 0; i < slatCount; i++) {
     const x = slatCount === 1
       ? 0
-      : -sideRailInnerSpan / 2 + slatWidthMm / 2 + i * slatPitch;
+      : -slatLayoutSpan / 2 + slatWidthMm / 2 + i * slatPitch;
     slats.push({
       id: `slat-${i + 1}`,
       nameZh: `床板條 ${i + 1}`,
@@ -703,11 +799,15 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: sideRailTenonType === "through-tenon" ? "through-tenon" : "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes:
-      `腳樣式：${legShapeLabel(legShape)}。側板與床頭板皆套用方凳基礎榫卯規則` +
-      `（≤25mm 通榫 +5mm、>25mm 盲榫 2/3 深）。${withFootboard ? "含床尾板。" : "純床頭款（無床尾板）。"}` +
-      ` 床板條 ${slatCount} 片擱在 ledger 上（不開榫，可拆換洗）。` +
-      ` 床板距地 ${mattressClearanceMm}mm，床頭板總高 ${headboardPlateHeight}mm。`,
+    notes: isEn
+      ? `Leg style: ${legShapeLabel(legShape)}. Side rails and headboard follow the square-stool joinery rules` +
+        ` (through-tenon +5mm for legs ≤25mm, blind tenon 2/3 depth for >25mm). ${withFootboard ? "Includes footboard." : "Headboard-only (no footboard)."}` +
+        ` ${slatCount} slats rest on ledger strips (not joined — lift out to air mattress).` +
+        ` Slat surface ${formatMm(mattressClearanceMm, "inch")} off the floor; headboard total height ${formatMm(headboardPlateHeight, "inch")}.`
+      : `腳樣式：${legShapeLabel(legShape)}。側板與床頭板皆套用方凳基礎榫卯規則` +
+        `（≤25mm 通榫 +5mm、>25mm 盲榫 2/3 深）。${withFootboard ? "含床尾板。" : "純床頭款（無床尾板）。"}` +
+        ` 床板條 ${slatCount} 片擱在 ledger 上（不開榫，可拆換洗）。` +
+        ` 床板距地 ${mattressClearanceMm}mm，床頭板總高 ${headboardPlateHeight}mm。`,
   };
 
   applyStandardChecks(design, {
@@ -716,15 +816,15 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // 床特有警告
-  const warnings: string[] = [];
+  const warnings: string[] = [...sideRailWidthWarnings];
   if (slatGapMm > 100) {
     warnings.push(`床板條間距 ${slatGapMm}mm 超過 100mm — 床墊容易塌陷且護腰不足，建議 ≤100mm。`);
   }
   if (legSize < 60) {
     warnings.push(`床腳 ${legSize}mm 偏細 — 雙人床建議 70mm 起跳，承重才穩固。`);
   }
-  if (sideRailWidth < 120) {
-    warnings.push(`側板高 ${sideRailWidth}mm 偏窄 — 床承重大，建議 150mm 起跳避免長期下垂。`);
+  if (sideRailWidthFinal < 120) {
+    warnings.push(`側板高 ${sideRailWidthFinal}mm 偏窄 — 床承重大，建議 150mm 起跳避免長期下垂。`);
   }
   if (mattressClearanceMm < headboardPlateHeight && headboardPlateHeight - mattressClearanceMm < 200) {
     warnings.push(`床頭板高 ${headboardPlateHeight}mm 比床板高 ${mattressClearanceMm}mm 高出不到 200mm — 靠背效果有限，建議床頭板總高 ≥ ${mattressClearanceMm + 400}mm。`);

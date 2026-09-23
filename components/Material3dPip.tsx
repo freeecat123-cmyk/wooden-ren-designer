@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * 材料單區的浮動 3D 縮圖（PIP）。
@@ -18,6 +19,7 @@ import { useEffect, useRef, useState, ReactNode } from "react";
  *   ... 然後在材料清單外層加 data-pip-area
  */
 export function Material3dPip({ children }: { children: ReactNode }) {
+  const t = useTranslations("material3dPip");
   const [visible, setVisible] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -47,7 +49,7 @@ export function Material3dPip({ children }: { children: ReactNode }) {
     >
       <div className="px-2 py-1 border-b border-zinc-200 text-[10px] font-semibold text-zinc-600 flex items-center gap-1.5 shrink-0">
         <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
-        3D 同步高亮
+        {t("syncLabel")}
       </div>
       <div className="h-[32vh] flex-1 min-h-0">{children}</div>
     </div>

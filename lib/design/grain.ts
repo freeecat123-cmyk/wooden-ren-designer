@@ -10,7 +10,7 @@
  * 這份檢查主要是 future-proof（防止自由設計模式或新模板寫錯）。
  */
 
-import { categorizePart } from "@/lib/render/svg-views";
+import { categorizePart } from "@/lib/render/categorize-part";
 
 export interface GrainWarning {
   partId: string;

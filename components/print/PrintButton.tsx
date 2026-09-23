@@ -1,11 +1,14 @@
 "use client";
 
+import { useLocale } from "next-intl";
+
 interface Props {
   /** 若提供，列印前會把 document.title 暫改成這個，讓「存成 PDF」預填有意義的檔名 */
   suggestedFilename?: string;
 }
 
 export function PrintButton({ suggestedFilename }: Props) {
+  const locale = useLocale();
   const handleClick = () => {
     if (suggestedFilename) {
       const prev = document.title;
@@ -29,7 +32,7 @@ export function PrintButton({ suggestedFilename }: Props) {
       onClick={handleClick}
       className="px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"
     >
-      🖨️ 列印 / 存成 PDF
+      {locale === "en" ? "🖨️ Print / Save as PDF" : "🖨️ 列印 / 存成 PDF"}
     </button>
   );
 }

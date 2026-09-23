@@ -5,6 +5,9 @@ import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import type { ProjectLaborOpts } from "@/lib/projects/types";
+import { designFingerprint, savedDesignQuery } from "@/lib/design/saved-query";
+import type { ModelSnapshot } from "@/lib/design/model-snapshot";
+import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
 /**
  * 用 template + 工資 / 材料單價估出單件未稅報價，給專案項目帶入預設單價。
@@ -31,15 +34,16 @@ export function estimateUnitPriceFromParams(
     ? params.material
     : "maple") as MaterialId;
 
-  const spLike: Record<string, string> = {};
-  for (const [k, v] of Object.entries(params)) {
-    if (v == null) continue;
-    spLike[k] = String(v);
-  }
+  const spLike = Object.fromEntries(savedDesignQuery("", params));
   const options = parseOptionsFromQuery(entry.optionSchema ?? [], spLike);
 
   try {
-    const design = entry.template({ length, width, height, material, options });
+    // This is a client-side price suggestion, not signature verification.
+    // Official project quote/purchase pages verify archives on the server.
+    const snapshot = params._modelSnapshot as ModelSnapshot | undefined;
+    if (snapshot && (snapshot.schema !== 1 || snapshot.category !== slug || snapshot.input !== designFingerprint(params))) return null;
+    const raw = snapshot?.design ?? entry.template({ length, width, height, material, options });
+    const design = snapshot || ["true", "1"].includes(spLike.joineryMode) || spLike.beginnerMode === "false" ? raw : toBeginnerMode(raw);
     const primaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
     const merged = {
       ...LABOR_DEFAULTS,

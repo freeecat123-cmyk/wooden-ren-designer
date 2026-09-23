@@ -5,9 +5,11 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { addConstructionHousing, enforceConstructionLimits } from "@/lib/geometry/construction-cuts";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt } from "./_helpers";
+import { apronSetbackOption, resolveApronSetbackForLeg, apronMortiseOffset, legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom, xFaceApronMortiseRotZ } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
+import { formatMm } from "@/lib/units/format";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
 const TABLE_TYPE_LABEL: Record<string, string> = {
@@ -27,8 +29,13 @@ function buildPedestalRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
   footLengthOverride?: number; footWidth?: number; footThickness?: number;
+  seatChamferMm?: number; seatEdgeStyle?: string;
+  locale?: string;
 }): FurnitureDesign {
+  const isEn = p.locale === "en";
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
+  const seatChamferMm = p.seatChamferMm ?? 0;
+  const chamferStyle = p.seatEdgeStyle === "rounded" ? "rounded" : "chamfered";
   // 柱粗 = legSize × 2.5，太細看起來會像柱頂頂著桌面要倒
   const columnSize = Math.round(legSize * 2.5);
   // 底盤爪：override > 0 直接用，否則自動 = 半徑 × 0.6
@@ -44,11 +51,25 @@ function buildPedestalRoundTable(p: {
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
+    nameEn: "Round top",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
+    /**
+     * 🧷 拼板片數要跟說明文字用同一條公式。
+     *
+     * ⛔ 說明裡的 topPanelPiecingHint() 已經在跟使用者說「建議分 N 片拼板」，
+     *    但零件本身沒宣告 panelPieces → 材料單寫「1 片 1000×1000 實木」、
+     *    裁切計算器直接報「排不下」（市面最寬集成材 800mm）。說明跟產出對不起來。
+     *
+     * 總材積不變，只影響材料單顯示與裁切拆片。（2026-08-23）
+     */
+    panelPieces: diameter >= 600 ? Math.ceil(diameter / 280) : 1,
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? { kind: "round", chamferMm: seatChamferMm, chamferStyle }
+        : { kind: "round" },
     tenons: [],
     mortises: [],
   };
@@ -58,6 +79,7 @@ function buildPedestalRoundTable(p: {
   const column: Part = {
     id: "pedestal-column",
     nameZh: "中央柱",
+    nameEn: "Central pedestal column",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: columnSize, width: columnSize, thickness: legHeight - topCleatThickness },
@@ -74,6 +96,7 @@ function buildPedestalRoundTable(p: {
   const topCleat: Part = {
     id: "pedestal-top-cleat",
     nameZh: "柱頂連接板",
+    nameEn: "Pedestal top cleat",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: topCleatSize, width: topCleatSize, thickness: topCleatThickness },
@@ -87,10 +110,10 @@ function buildPedestalRoundTable(p: {
   // 慣例：part-X 0→length 對應「從柱面往外」，tenon "start"（X=0 端）= 朝柱
   // mesh center = origin、Y 沿 thickness：爪坐地面 → origin.y = footThickness/2
   const feet: Part[] = [
-    { id: "pedestal-foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1 },
-    { id: "pedestal-foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1 },
-    { id: "pedestal-foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1 },
-    { id: "pedestal-foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1 },
+    { id: "pedestal-foot-front", nameZh: "前底爪", nameEn: "Front pedestal foot", axis: "z" as const, sign: -1 },
+    { id: "pedestal-foot-back", nameZh: "後底爪", nameEn: "Back pedestal foot", axis: "z" as const, sign: 1 },
+    { id: "pedestal-foot-left", nameZh: "左底爪", nameEn: "Left pedestal foot", axis: "x" as const, sign: -1 },
+    { id: "pedestal-foot-right", nameZh: "右底爪", nameEn: "Right pedestal foot", axis: "x" as const, sign: 1 },
   ].map((f) => {
     const isXAxis = f.axis === "x";
     // rotation y 把 part-X 對到「從柱中心往 +sign 方向」
@@ -101,6 +124,7 @@ function buildPedestalRoundTable(p: {
     return {
       id: f.id,
       nameZh: f.nameZh,
+      nameEn: f.nameEn,
       material: material as "maple",
       grainDirection: "length" as const,
       visible: { length: footLength, width: footWidth, thickness: footThickness },
@@ -131,7 +155,11 @@ function buildPedestalRoundTable(p: {
 
   const warnings: string[] = [];
   if (diameter > 1100) {
-    warnings.push("獨柱結構承重極限：直徑 > 1100mm 桌面壓力超過單柱接合安全範圍，建議改用端梁（trestle）兩柱結構分散負載。");
+    warnings.push(
+      isEn
+        ? `Single-pedestal load limit: diameter > 1100 mm exceeds the safe range of a single-column joint; switch to a trestle (two-column) structure to spread the load.`
+        : "獨柱結構承重極限：直徑 > 1100mm 桌面壓力超過單柱接合安全範圍，建議改用端梁（trestle）兩柱結構分散負載。",
+    );
   }
   return {
     id: `round-table-pedestal-${diameter}x${height}`,
@@ -143,7 +171,9 @@ function buildPedestalRoundTable(p: {
     primaryMaterial: material as "maple",
     useButtJointConvention: true,
     warnings: warnings.length ? warnings : undefined,
-    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}`,
+    notes: isEn
+      ? `Pedestal round table: ${formatMm(columnSize, "inch")} central column + 4 feet ${formatMm(footLength, "inch")} long. Column = legSize × 2.5 (${formatMm(legSize, "inch")} → ${formatMm(columnSize, "inch")}) for visual support. The ${formatMm(topCleatSize, "inch")} cleat at the column top is **glued + 8 screws** under the top (round tops have radial grain — never use tenons or seasonal movement will crack the top). Feet shoulder-tenoned into the column in 4 directions.${diameter >= 1100 ? ` Tops ≥ 43" dia. should switch to a 2-pillar (trestle) base — too much load for a single-column joint.` : ""}${topPanelPiecingHint(diameter, "en")}`
+      : `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}${topPanelPiecingHint(diameter)}`,
   };
 }
 
@@ -157,8 +187,14 @@ function buildPedestalRoundTable(p: {
 function buildTrestleRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
+  seatChamferMm?: number; seatEdgeStyle?: string;
+  locale?: string;
 }): FurnitureDesign {
+  const isEn = p.locale === "en";
+  const locale = p.locale ?? "zh-TW";
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
+  const seatChamferMm = p.seatChamferMm ?? 0;
+  const chamferStyle = p.seatEdgeStyle === "rounded" ? "rounded" : "chamfered";
   // 端框位置：z = ±frameZ
   const frameZ = Math.round(radius * 0.55);
   // 每框 2 支腳間距 = 半徑 × 0.5
@@ -184,11 +220,17 @@ function buildTrestleRoundTable(p: {
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
+    nameEn: "Round top",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
+    // 拼板片數跟說明文字 topPanelPiecingHint() 用同一條公式（見上方 pedestal 版註解）
+    panelPieces: diameter >= 600 ? Math.ceil(diameter / 280) : 1,
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? { kind: "round", chamferMm: seatChamferMm, chamferStyle }
+        : { kind: "round" },
     tenons: [],
     mortises: [],
   };
@@ -215,6 +257,7 @@ function buildTrestleRoundTable(p: {
       parts.push({
         id: `trestle-${fid}-${sid}-leg`,
         nameZh: `${fLabel}框${sLabel}腳`,
+        nameEn: `${fid === "front" ? "Front" : "Back"} frame ${sid} leg`,
         material: material as "maple",
         grainDirection: "length",
         visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeightInner },
@@ -230,6 +273,7 @@ function buildTrestleRoundTable(p: {
     parts.push({
       id: `trestle-${fid}-top-rail`,
       nameZh: `${fLabel}框頂橫木`,
+      nameEn: `${fid === "front" ? "Front" : "Back"} frame top rail`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
@@ -248,6 +292,7 @@ function buildTrestleRoundTable(p: {
     parts.push({
       id: `trestle-${fid}-foot`,
       nameZh: `${fLabel}框底足`,
+      nameEn: `${fid === "front" ? "Front" : "Back"} frame foot`,
       material: material as "maple",
       grainDirection: "length",
       visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
@@ -277,6 +322,7 @@ function buildTrestleRoundTable(p: {
   parts.push({
     id: "trestle-center-stretcher",
     nameZh: "中央連接橫木",
+    nameEn: "Center connecting stretcher",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
@@ -302,20 +348,28 @@ function buildTrestleRoundTable(p: {
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
     warnings: trestleWarnings.length ? trestleWarnings : undefined,
-    notes: `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。`,
+    notes: isEn
+      ? `Trestle round table: two end frames (front / back, each 2 legs + top rail + foot) + center stretcher. Leg ${formatMm(trestleLegSize, "inch")} (base × 1.3). Frame length ${formatMm(frameRailLen, "inch")}, frame spacing ${formatMm(2 * frameZ, "inch")}. Use this structure for tops ≥ 40" dia. — smaller tops look frame-heavy.${topPanelPiecingHint(diameter, locale)}`
+      : `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。${topPanelPiecingHint(diameter, locale)}`,
   };
 }
 
 export const roundTableOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
+  seatEdgeOption("top", 1),
+  seatEdgeStyleOption("top"),
+  { group: "leg", type: "number", key: "legSize", label: "腳粗", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
+  // 圓腳/夏克/車旋/獨柱/端梁腳沒有 4 條長邊可倒角；只在 box / tapered / fluted-square 顯示
+  legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
+  // stretcher 倒角只在「直腳 box」時有效（其他腳形會把橫撐做成梯形 / 斜面，
+  // 走 apron-trapezoid / apron-half-beveled 沒吃 chamfer），避免使用者拉了沒反應
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配。獨柱／端梁桌型不適用", wide: true, dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑", defaultValue: 600, unit: "mm", min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳離邊", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "方錐腳（方料下方收窄）" },
@@ -325,7 +379,6 @@ export const roundTableOptions: OptionSpec[] = [
     { value: "round-taper-up", label: "倒圓錐腳（上細下粗）" },
     { value: "heavy-round-taper", label: "重型圓錐腳（大幅下收）" },
     { value: "shaker", label: "夏克風腳（方頂 + 圓錐）" },
-    { value: "lathe-turned", label: "車旋腳（古典花瓶輪廓）" },
     { value: "splayed-tapered", label: "外斜方錐腳（整支外傾）" },
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
@@ -334,19 +387,23 @@ export const roundTableOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 5, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立。僅外斜系列有效（餐桌 5° 內最自然，避免絆腳）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   // 獨柱餐桌底爪參數
-  { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬 (mm)", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚 (mm)", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  apronSetbackOption("apron"),
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  // 牙條倒角：跟橫撐一樣，只有直腳 box 時牙條才是直方料、能吃 chamfer
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "apronEdge", notIn: [0] }] } },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 120, min: 30, max: 500, step: 10, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 22, min: 12, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地", defaultValue: 120, min: 30, max: 500, step: 10, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
 ];
 
 /**
@@ -355,17 +412,36 @@ export const roundTableOptions: OptionSpec[] = [
  * 尺寸：input.length = 直徑，預設 1000×1000×750mm（100cm 直徑、75cm 桌高）
  * 桌面 >= 900mm 通常需 4-5 片實木拼板（避免單片過寬翹曲）。
  */
+/**
+ * 圓桌面拼板提示：直徑 ≥ 600mm 提醒木工分片拼板。
+ * 市場很難買到 > 300mm 寬的整片實木，硬訂單片寬料會嚴重翹曲。
+ * 規則：每片寬度約 250~300mm，計算需要幾片。
+ */
+function topPanelPiecingHint(diameter: number, locale: string = "zh-TW"): string {
+  if (diameter < 600) return "";
+  const pieces = Math.ceil(diameter / 280);
+  return locale === "en"
+    ? ` ⚠️ Top dia. ${formatMm(diameter, "inch")} — glue up from ${pieces} boards (each ~${formatMm(Math.ceil(diameter / pieces), "inch")} wide) to keep any single board from cupping.`
+    : ` ⚠️ 桌面直徑 ${diameter}mm，建議分 ${pieces} 片實木拼板膠合（每片寬度約 ${Math.ceil(diameter / pieces)}mm，避免單片寬度過大翹曲）。`;
+}
+
 export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const diameter = input.length;
 
   const o = roundTableOptions;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<string | number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const withLazySusan = getOption<boolean>(input, opt(o, "withLazySusan"));
   const lazySusanDiameter = getOption<number>(input, opt(o, "lazySusanDiameter"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -390,20 +466,46 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const radius = diameter / 2;
   const legHeight = height - topThickness;
 
+  const seatChamferMmEarly = parseSeatChamferMm(seatEdge);
   // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
   if (legShape === "pedestal") {
-    return buildPedestalRoundTable({
+    const pedestal = buildPedestalRoundTable({
       diameter, height, material, topThickness, legSize, legHeight, radius,
       footLengthOverride: getOption<number>(input, opt(o, "pedestalFootLength")),
       footWidth: getOption<number>(input, opt(o, "pedestalFootWidth")),
       footThickness: getOption<number>(input, opt(o, "pedestalFootThickness")),
+      seatChamferMm: seatChamferMmEarly,
+      seatEdgeStyle,
+      locale,
     });
+    if (String(input.options?.constructionVersion) === "2") {
+      const column = pedestal.parts.find(p => p.id === "pedestal-column")!;
+      for (const foot of pedestal.parts.filter(p => p.id.startsWith("pedestal-foot-"))) {
+        addConstructionHousing(column, foot, locale === "en" ? "Pedestal foot housing" : "獨柱底爪嵌槽");
+      }
+      enforceConstructionLimits(pedestal, locale);
+    }
+    return pedestal;
   }
   if (legShape === "trestle") {
-    return buildTrestleRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+    return buildTrestleRoundTable({
+      diameter, height, material, topThickness, legSize, legHeight, radius,
+      seatChamferMm: seatChamferMmEarly,
+      seatEdgeStyle,
+      locale,
+    });
   }
 
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
+  /**
+   * 牙條自己的中心線(受「牙條縮進」影響),只用在 origin;長度計算仍用 cornerOffset。
+   * 0 = 齊腳外面(腳外面 = cornerOffset + legSize/2)。
+   */
+  const _apronSetbackRaw2 = getOption<number>(input, opt(o, "apronSetback"));
+  const apronSetback = resolveApronSetbackForLeg(_apronSetbackRaw2, legShape, legSize, apronThickness);
+  const apronAxis = cornerOffset + legSize / 2 - apronThickness / 2 - apronSetback;
+  /** 腳上的牙條榫眼要離開腳中心軸多少(腳的外側為正) */
+  const apronMortiseOff = apronMortiseOffset(legSize, apronThickness, apronSetback);
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter0 = apronY0 + apronWidth / 2;
@@ -467,15 +569,25 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? topThickness
     : Math.round(Math.min(topThickness * (2 / 3), topThickness - 6));
 
-  // 圓桌面
+  // 圓桌面（seatEdge > 0 時頂面外緣加倒角）
+  const seatChamferMm = parseSeatChamferMm(seatEdge);
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
     material,
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
+    // 拼板片數跟說明文字 topPanelPiecingHint() 用同一條公式（見上方 pedestal 版註解）
+    panelPieces: diameter >= 600 ? Math.ceil(diameter / 280) : 1,
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? {
+            kind: "round",
+            chamferMm: seatChamferMm,
+            chamferStyle: seatEdgeStyle === "rounded" ? "rounded" : "chamfered",
+          }
+        : { kind: "round" },
     tenons: [],
     mortises: [
       ...[-1, 1].flatMap((sx) =>
@@ -491,20 +603,47 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
+  // Apron mortise（b3f09ad 公約）：Z 面 rotX 跟 splayDz；X 面 rotZ 跟 splayDx
+  const isSplayedLeg = legShape.startsWith("splayed-");
+  const legSplayDxForMortise = isSplayedLeg ? splayDx : 0;
+  const legSplayDzForMortise = isSplayedLeg ? splayDz : 0;
+
   // 4 隻腳
   const legs: Part[] = [-1, 1].flatMap((sx) =>
-    [-1, 1].map((sz) => ({
+    [-1, 1].map((sz) => {
+      const corner = { x: sx * cornerOffset, z: sz * cornerOffset };
+      const zFaceGeom = splayedLegMortiseGeom({
+        corner,
+        splayDz: legSplayDzForMortise,
+        legHeight,
+        legSize,
+        zCenterY: apronYCenter0,
+        tenonOffset: apronUpperTenonOffset,
+      });
+      const xFaceRotZApron = xFaceApronMortiseRotZ(corner, legSplayDxForMortise, legHeight);
+      return ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
       nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+      nameEn: `${sz < 0 ? "Front" : "Back"} ${sx < 0 ? "left" : "right"} leg`,
       material,
       grainDirection: "length" as const,
       visible: { length: legSize, width: legSize, thickness: legHeight },
       origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
       shape:
         legShape === "tapered"
-          ? ({ kind: "tapered", bottomScale: 0.55 } as const)
+          ? ({
+              kind: "tapered",
+              bottomScale: 0.55,
+              chamferMm: parseLegChamferMm(legEdge),
+              chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+            } as const)
           : legShape === "fluted-square"
-            ? ({ kind: "tapered", bottomScale: 1 } as const)
+            ? ({
+                kind: "tapered",
+                bottomScale: 1,
+                chamferMm: parseLegChamferMm(legEdge),
+                chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+              } as const)
             : legShape === "round"
               ? ({ kind: "round" } as const)
               : legShape === "round-taper-down"
@@ -534,19 +673,16 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         },
       ],
       mortises: [
-        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
+        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫，rotX 跟 splayDz
         {
-          origin: {
-            x: 0,
-            y: apronYCenter0 + apronUpperTenonOffset,
-            z: -sz * (legSize / 2),
-          },
+          origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
           depth: apronTenonLen,
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(zFaceGeom.rotX !== undefined && Math.abs(zFaceGeom.rotX) > 0.001 ? { rotX: zFaceGeom.rotX } : {}),
         },
-        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
+        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫，rotZ 跟 splayDx
         {
           origin: {
             x: -sx * (legSize / 2),
@@ -557,37 +693,47 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(Math.abs(xFaceRotZApron) > 0.001 ? { rotZ: xFaceRotZApron } : {}),
         },
         ...(withLowerStretcher
-          ? [
-              // X 面（前後對, 靜止）— 下半榫
-              {
-                origin: {
-                  x: -sx * (legSize / 2),
-                  y: lsYCenter0 + lowerLowerTenonOffset,
-                  z: 0,
+          ? (() => {
+              const lsZRotX = (legSplayDzForMortise !== 0 && legHeight > 0)
+                ? Math.sign(corner.z || 1) * Math.atan(Math.abs(legSplayDzForMortise) / legHeight)
+                : 0;
+              const lsXRotZ = xFaceApronMortiseRotZ(corner, legSplayDxForMortise, legHeight);
+              return [
+                // X 面（前後對, 靜止）— 下半榫，rotZ 跟 splayDx
+                {
+                  origin: {
+                    x: -sx * (legSize / 2),
+                    y: lsYCenter0 + lowerLowerTenonOffset,
+                    z: 0,
+                  },
+                  depth: lsTenonLen,
+                  length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
+                  width: lsTenonThick,
+                  through: lowerTenonType === "through-tenon",
+                  ...(Math.abs(lsXRotZ) > 0.001 ? { rotZ: lsXRotZ } : {}),
                 },
-                depth: lsTenonLen,
-                length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
-                width: lsTenonThick,
-                through: lowerTenonType === "through-tenon",
-              },
-              // Z 面（左右對, 上移）— 上半榫
-              {
-                origin: {
-                  x: 0,
-                  y: lsYCenter0 + lowerUpperTenonOffset + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0),
-                  z: -sz * (legSize / 2),
+                // Z 面（左右對, 上移）— 上半榫，rotX 跟 splayDz
+                {
+                  origin: {
+                    x: 0,
+                    y: lsYCenter0 + lowerUpperTenonOffset + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0),
+                    z: -sz * (legSize / 2),
+                  },
+                  depth: lsTenonLen,
+                  length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
+                  width: lsTenonThick,
+                  through: lowerTenonType === "through-tenon",
+                  ...(Math.abs(lsZRotX) > 0.001 ? { rotX: lsZRotX } : {}),
                 },
-                depth: lsTenonLen,
-                length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
-                width: lsTenonThick,
-                through: lowerTenonType === "through-tenon",
-              },
-            ]
+              ];
+            })()
           : []),
       ],
-    })),
+      });
+    })
   );
 
   // 4 條牙板（餐桌結構承重，用帶肩榫）
@@ -595,7 +741,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const isSplayed = legShape.startsWith("splayed-");
   // 圓家具腳對角線 splay，apron 在前/側視平面看到的 Z 斜率 = tan(α)/√2
   const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
-  const apronBottomScale = legBottomScale(legShape);
+  /**
+   * 圓桌自己的錐腳幾何是 0.55（下面 legs 的 shape mapping），共用的 legBottomScale 是 0.6 →
+   * 補償跟腳對不上，下橫撐兩端短 1.2mm（2026-09-02 三視圖實畫稽核）。這裡照 shape mapping 回同一個值。
+   */
+  const rtBottomScale: number | undefined =
+    legShape === "tapered" || legShape === "round-taper-down" || legShape === "splayed-tapered" || legShape === "splayed-round-taper-down"
+      ? 0.55
+      : undefined;
+  const apronBottomScale = rtBottomScale ?? legBottomScale(legShape);
   const hasTaper = apronBottomScale !== 1;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處外傾更多——
   // X 軸 / Z 軸 各用各自的 Y 中心算 splay/span/trapezoid，否則接不到腳
@@ -606,9 +760,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const dz = isSplayed ? splayDz * shift : 0;
     const yTop = yCenter + apronWidth / 2;
     const yBot = yCenter - apronWidth / 2;
-    const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight);
-    const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight);
-    const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight);
+    const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight, rtBottomScale);
+    const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight, rtBottomScale);
+    const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight, rtBottomScale);
     const span = 2 * (cornerOffset + dx) - legSizeC;
     const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
     const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
@@ -622,12 +776,26 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronYCenter0);
   const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+    { id: "apron-front", nameZh: "前牙條", nameEn: "Front apron", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronAxis + apronGeomX.dz) } },
+    { id: "apron-back", nameZh: "後牙條", nameEn: "Back apron", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronAxis + apronGeomX.dz } },
+    { id: "apron-left", nameZh: "左牙條", nameEn: "Left apron", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronAxis + apronGeomZ.dx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙條", nameEn: "Right apron", axis: "z" as const, sx: 1, sz: 0, origin: { x: apronAxis + apronGeomZ.dx, z: 0 } },
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
+    // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響
+    // 必 gate isSplayed：splayAngle 預設 8°、即使 legShape=box splayDx/Dz 仍 > 0
+    const hasAxisSplay = isSplayed && ((s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0));
+    // axis="z" 牙條 start at part-local -X → world +Z（Rx π/2 + Ry π/2 後）
+    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const tenonAxisStart = hasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
+      : null;
+    const tenonAxisEnd = hasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
+      : null;
     const bevelAngle = isSplayed ? (s.axis === "x" ? -s.sz * tilt : -s.sx * tilt) : 0;
     const apronTopAtSeat = apronDropFromTop === 0;
     const useTopBevel = isSplayed && apronTopAtSeat;
@@ -641,7 +809,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         })
       : isSplayed && apronTopAtSeat
         ? ({ kind: "apron-half-beveled" as const, bevelAngle })
-        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+        : legEdgeShape(apronEdge, apronEdgeStyle);
     const tenonType: "through-tenon" | "shouldered-tenon" =
       apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const tenons = (() => {
@@ -653,6 +821,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonW,
           thickness: apronTenonThick,
           shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
+          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
+          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       }
@@ -669,12 +839,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         thickness: apronTenonThick,
         shoulderOn,
         offsetWidth: -worldOffset,
+        ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
+        ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
       });
       return [mk("start"), mk("end")];
     })();
     return {
       id: s.id,
       nameZh: s.nameZh,
+      nameEn: s.nameEn,
       material,
       grainDirection: "length" as const,
       visible: { length: geom.span, width: apronWidth, thickness: apronThickness },
@@ -701,9 +874,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       const dz = isSplayed ? splayDz * shift : 0;
       const yTop = yCenter + lowerStretcherWidth / 2;
       const yBot = yCenter - lowerStretcherWidth / 2;
-      const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight);
-      const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight);
-      const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight);
+      const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight, rtBottomScale);
+      const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight, rtBottomScale);
+      const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight, rtBottomScale);
       const span = 2 * (cornerOffset + dx) - legSizeC;
       const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
       const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
@@ -717,10 +890,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const lsGeomX = lsGeomFor(lsYCenter0);
     const lsGeomZ = lsGeomFor(lsYCenter0_z);
     const lsSides = [
-      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
-      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
-      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
-      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", nameEn: "Front lower stretcher", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", nameEn: "Back lower stretcher", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", nameEn: "Left lower stretcher", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", nameEn: "Right lower stretcher", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
     ];
     // 下橫撐：trapezoid 但無 bevel；左右（Z）整支上移 staggerMm
     for (const s of lsSides) {
@@ -759,6 +932,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       lowerStretchers.push({
         id: s.id,
         nameZh: s.nameZh,
+        nameEn: s.nameEn,
         material,
         grainDirection: "length",
         visible: { length: geom.span, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
@@ -779,12 +953,13 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const dia = Math.min(lazySusanDiameter, diameter - 200);
     lazySusanParts.push({
       id: "lazy-susan",
-      nameZh: `旋轉盤 (${dia}mm)`,
+      nameZh: `旋轉盤`,
+      nameEn: `Lazy susan`,
       material,
       grainDirection: "length",
       visible: { length: dia, width: dia, thickness: 22 },
-      // 桌面頂面 = legHeight + topThickness；軸承約 25mm 高
-      origin: { x: 0, y: legHeight + 25, z: 0 },
+      // 桌面頂面 = legHeight + topThickness；軸承約 25mm 高，轉盤坐在軸承上
+      origin: { x: 0, y: legHeight + topThickness + 25, z: 0 },
       shape: { kind: "round" },
       tenons: [],
       mortises: [],
@@ -800,21 +975,32 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。${
-      legShape === "fluted-square"
-        ? `古典方腿：腳的 4 面各刨 3-5 道垂直凹槽（reed/flute），凹槽寬 5-8mm、深 3-5mm，從腳頂下 30mm 起到地面上 50mm 止（端不通到底，留實木）。`
-        : ""
-    }${
-      legShape === "lathe-turned"
-        ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
-        : ""
-    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}`.trim(),
+    notes: (isEn
+      ? `Round dining table dia. ${formatMm(diameter, "inch")} × H ${formatMm(height, "inch")}, 4 ${legShapeLabel(legShape)} legs with shouldered apron.${
+          legShape === "fluted-square"
+            ? ` Classical square leg: plane 3–5 vertical flutes on each of the 4 faces, 5–8 mm wide × 3–5 mm deep, starting 30 mm below the top and stopping 50 mm above the floor (stopped, not through).`
+            : ""
+        }${
+          legShape === "lathe-turned"
+            ? ` Turned leg: turn a stack of beads/balls + main shaft on the lathe — start from blanks ≥ legSize (${formatMm(legSize, "inch")} or thicker) so there's stock to remove.`
+            : ""
+        }${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${withLazySusan ? ` Center lazy susan dia. ${formatMm(Math.min(lazySusanDiameter, diameter - 200), "inch")}, fits a 12–16" metal bearing (sized to the susan).` : ""}${topPanelPiecingHint(diameter, locale)}`
+      : `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。${
+          legShape === "fluted-square"
+            ? `古典方腿：腳的 4 面各刨 3-5 道垂直凹槽（reed/flute），凹槽寬 5-8mm、深 3-5mm，從腳頂下 30mm 起到地面上 50mm 止（端不通到底，留實木）。`
+            : ""
+        }${
+          legShape === "lathe-turned"
+            ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
+            : ""
+        }${seatEdgeNote(seatEdge, seatEdgeStyle, locale)}${legEdgeNote(legEdge, legEdgeStyle, locale)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle, locale)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter, locale)}`
+    ).trim(),
   };
-  const w = validateRoundLegJoinery(design);
+  const w = validateRoundLegJoinery(design, locale);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
   applyStandardChecks(design, {
     minLength: 700, minWidth: 700, minHeight: 600,
     maxLength: 1500, maxWidth: 1500, maxHeight: 800,
-  });
+  }, locale);
   return design;
 };

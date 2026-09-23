@@ -1,7 +1,10 @@
 "use client";
 
 import type { OptionSpec, OptionDependency } from "@/lib/types";
+import { useTranslations, useLocale } from "next-intl";
+import { specLabel, choiceLabel, specHelp } from "@/lib/templates/spec-labels";
 import { RangeInput } from "./RangeInput";
+import { resolvePartIds } from "@/lib/design/option-part-map";
 
 export function evalDep(
   dep: OptionDependency,
@@ -28,6 +31,8 @@ interface MobileOptionFieldProps {
   overallHeight?: number;
   /** 家具整體長度（mm）。給橫向欄寬欄位（leftWidthMm 等）動態夾 max 用。 */
   overallLength?: number;
+  /** 所有 3D part.id，用於把 spec.key 對應到部件 hover 高亮。 */
+  allPartIds?: string[];
 }
 
 /** key 看起來是「高度類」欄位嗎？用來決定是否要夾 overallHeight 上限。
@@ -88,7 +93,11 @@ function computeColumnWidthMax(
   return null;
 }
 
-export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength }: MobileOptionFieldProps) {
+export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength, allPartIds }: MobileOptionFieldProps) {
+  const t = useTranslations("mobile.optionField");
+  const locale = useLocale();
+  const label = specLabel(spec, locale);
+  const help = specHelp(spec, locale);
   if (spec.type === "number") {
     const rawMax = spec.max ?? 9999;
     let cappedMax =
@@ -125,16 +134,21 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
       const dynamicMax = Math.max(spec.min ?? 80, innerCap - otherSum);
       cappedMax = Math.min(cappedMax, dynamicMax);
     }
+    const partIds = allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined;
+    const dynamicMaxHint =
+      cappedMax < rawMax ? t("maxLocked", { max: cappedMax }) : undefined;
     return (
       <RangeInput
         name={spec.key}
-        label={spec.label}
+        label={label}
         defaultValue={Number(value)}
         unit={spec.unit ?? ""}
         min={spec.min ?? 0}
         max={cappedMax}
         step={spec.step ?? 1}
-        help={spec.help}
+        help={help}
+        partIds={partIds}
+        dynamicMaxHint={dynamicMaxHint}
       />
     );
   }
@@ -148,8 +162,8 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
       ? currentValue
       : visibleChoices[0]?.value ?? currentValue;
     return (
-      <fieldset className="flex flex-col gap-1.5 text-sm" title={spec.help}>
-        <legend className="text-zinc-700 font-medium mb-1">{spec.label}</legend>
+      <fieldset className="flex flex-col gap-1.5 text-sm" title={help}>
+        <legend className="text-zinc-700 font-medium mb-1">{label}</legend>
         <div className="flex flex-wrap gap-1.5">
           {visibleChoices.map((c) => {
             const checked = fallbackValue === c.value;
@@ -169,12 +183,12 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
                   defaultChecked={checked}
                   className="sr-only"
                 />
-                {c.label}
+                {choiceLabel(spec.key, c.value, c.label, locale)}
               </label>
             );
           })}
         </div>
-        {spec.help && <span className="text-xs text-zinc-500">{spec.help}</span>}
+        {help && <span className="text-xs text-zinc-500">{help}</span>}
       </fieldset>
     );
   }
@@ -201,14 +215,14 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
     <div className="flex flex-col gap-0.5">
       <label
         className="flex items-center justify-between gap-2 min-h-[44px] text-sm"
-        title={spec.help}
+        title={help}
       >
-        <span className="text-zinc-800 flex-1">{spec.label}</span>
+        <span className="text-zinc-800 flex-1">{label}</span>
         <input
           type="checkbox"
           name={spec.key}
           defaultChecked={Boolean(value)}
-          className="w-12 h-6 accent-violet-600"
+          className="w-12 h-6 accent-amber-600"
         />
       </label>
       {legReadout && (
@@ -219,14 +233,14 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
               : "bg-amber-50 ring-amber-200 text-amber-900"
           }`}
         >
-          <span className="font-medium">計算後腳高</span>
+          <span className="font-medium">{t("calcLegHeight")}</span>
           <span className="font-mono tabular-nums text-base">
             {legReadout.leg}<span className="text-xs ml-0.5 opacity-70">mm</span>
           </span>
         </div>
       )}
       {legReadout?.clamped && (
-        <span className="text-xs text-red-600 pl-0.5">已夾到最低 30mm，請降低層高或加大總高</span>
+        <span className="text-xs text-red-600 pl-0.5">{t("clampedMin")}</span>
       )}
     </div>
   );

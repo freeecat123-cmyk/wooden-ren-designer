@@ -31,7 +31,8 @@ interface RequestBody {
   currentParams: Record<string, string | number | boolean>;
   designSize: { length: number; width: number; height: number };
   material?: string;
-  userIntent?: string; // 可選：「腳要粗一點」「我做小孩用」等
+  userIntent?: string; // 可選:「腳要粗一點」「我做小孩用」等
+  locale?: string;
 }
 
 interface SuggestResponse {
@@ -79,27 +80,28 @@ export function GET() {
 
 export async function POST(req: NextRequest) {
   if (!aiFeaturesEnabled()) {
-    return NextResponse.json({ error: "AI 功能已關閉（成本控制中）" }, { status: 503 });
+    return NextResponse.json({ errorCode: "ai-disabled" }, { status: 503 });
   }
   try {
     const body = (await req.json()) as RequestBody;
-    const { styleId, category, currentParams, designSize, material, userIntent } = body;
+    const { styleId, category, currentParams, designSize, material, userIntent, locale } = body;
+    const isEn = locale === "en";
 
     // 簡單驗證
     if (!styleId || !category || !designSize) {
-      return NextResponse.json({ error: "缺必要欄位" }, { status: 400 });
+      return NextResponse.json({ errorCode: "missing-fields" }, { status: 400 });
     }
 
     // 防爆量：currentParams 太大就拒
     const paramCount = Object.keys(currentParams ?? {}).length;
     if (paramCount > 80) {
-      return NextResponse.json({ error: "參數過多" }, { status: 400 });
+      return NextResponse.json({ errorCode: "too-many-params" }, { status: 400 });
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "AI 微調功能尚未配置 (缺 ANTHROPIC_API_KEY)" },
+        { errorCode: "no-api-key" },
         { status: 503 },
       );
     }
@@ -108,16 +110,25 @@ export async function POST(req: NextRequest) {
     if (!gate.allowed) {
       if (gate.reason === "unauthenticated") {
         return NextResponse.json(
-          { error: "請先登入才能使用 AI 微調" },
+          { errorCode: "unauthenticated" },
           { status: 401 },
+        );
+      }
+      // 讀不到今日用量 ≠ 已達上限。回 503,不要顯示成「額度用完請升級」(誤導)。
+      if (gate.reason === "quota_unknown") {
+        return NextResponse.json(
+          { errorCode: "unavailable" },
+          { status: 503 },
         );
       }
       return NextResponse.json(
         {
-          error: `今日 AI 用量已達上限（${gate.used}/${gate.limit}），明日凌晨重置或升級方案`,
+          errorCode: "rate-limited",
+          errorValues: { used: gate.used, limit: gate.limit },
           plan: gate.plan,
           used: gate.used,
           limit: gate.limit,
+          upgradeUrl: "/pricing",
         },
         { status: 429 },
       );
@@ -136,10 +147,13 @@ ${JSON.stringify(currentParams, null, 2)}
 
 請依「判斷原則」給出 5-10 個 key 的微調建議。回傳純 JSON、不要包 markdown code fence。`;
 
+    const systemForLocale = isEn
+      ? `${SYSTEM_PROMPT}\n\n---\n\n# Language\nThe user is on the English site. Write the "rationale" and "warnings" fields in English. The suggestions object's keys / values stay as-is (OptionSpec keys are technical IDs). Use imperial-friendly wording when discussing dimensions (e.g. "≈ 12 in / 300 mm").`
+      : SYSTEM_PROMPT;
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
-      system: SYSTEM_PROMPT,
+      system: systemForLocale,
       messages: [{ role: "user", content: userMessage }],
     });
 
@@ -156,14 +170,14 @@ ${JSON.stringify(currentParams, null, 2)}
       parsed = JSON.parse(cleaned);
     } catch {
       return NextResponse.json(
-        { error: "AI 回傳格式錯誤", raw: text },
+        { errorCode: "bad-ai-format", raw: text },
         { status: 502 },
       );
     }
 
     if (!parsed.suggestions || !parsed.rationale) {
       return NextResponse.json(
-        { error: "AI 回傳缺欄位", raw: text },
+        { errorCode: "bad-ai-fields", raw: text },
         { status: 502 },
       );
     }
@@ -171,7 +185,6 @@ ${JSON.stringify(currentParams, null, 2)}
     return NextResponse.json(parsed);
   } catch (err) {
     console.error("[style-suggest]", err);
-    const msg = err instanceof Error ? err.message : "未知錯誤";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ errorCode: "unknown" }, { status: 500 });
   }
 }

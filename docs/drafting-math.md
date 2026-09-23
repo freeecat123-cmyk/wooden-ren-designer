@@ -29,9 +29,31 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 我要做的事 | grep keyword | 對應 section |
 |---|---|---|
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
+| 重疊例外掩蓋新碰撞 / 逐對基線 | `"overlap-baseline\|known-defect"` | §A10.7 |
+| Half-lap / blind rebate cut coverage | `"rectangular cut coverage\|coplanar"` | §A10.7 |
+| Revised construction / frame rear rebate | `"constructionVersion\|A10.15"` | §A10.15 |
+| 側視座標還原 / 外框深度錯誤 | `"world-bounds\|negative world Z"` | §A10.7 |
+| 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
+| 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
+| 弧肩要圓弧還是 S 形 / 肩根太利 | `"sCurve\|smoothstep\|弧肩曲線"` | §A9.9c |
+| 勾了選項報價沒變 / 挖弧肩工時 | `"coveFaces\|lowerCoveFaces\|挖弧肩"` | §A9.9d |
+| 新選項英文站看到中文 | `"SPEC_LABEL_EN\|audit-en-labels"` | §A9.9d |
+| 牙條放不進接撐段 / 跟接撐段不等高 | `"牙條可用高度\|ctApronMaxH\|resolveCtBlockForApron"` | §A11.8 |
+| 弧肩看起來是幾片平面 | `"ARC = 24\|取樣高度要照輪廓轉折點"` | §A9.9, §A11.8 |
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
 | 端面側單肩 / mortise 邊緣保護 | `"端面側單肩\|edge-protection\|10mm 留材"` | §A10.10 |
+| 零件算成負尺寸 / 滑桿拉到底就爆 | `"負尺寸\|clampLegInset\|MIN_ZONE_H"` | §A10.11 |
+| 板材算錯板厚 / 報價爆掉 / 排不下 | `"幾何三軸\|panelPieces\|先排序再取"` | §A10.12 |
 | 錐形腳 / 倒錐腳 → 牙條/橫撐補償 | `"tapered 補償\|legScaleAt\|legBottomScale"` | §A11 |
+| 俯視圖腳只畫頂面 / 外斜弧肩腳、倒錐腳的腳底投影 | `"腳底投影\|ctFoot\|invFoot"` | §A9.9e |
+| 兩向弧肩時沿 Z 的零件短一截（吧檯椅腳踏） | `"legSizeScaleAtZ\|footrest"` | §A11.8 |
+| 錐腳橫撐差 1mm 的縫 / 0.55 vs 0.6 | `"bottomScale 必須跟\|rtBottomScale\|TAPERED_BOTTOM_SCALE"` | §A11.10 |
+| 床頭板貼錐腳 / 梯形只到腳高 / 膝點 | `"taperSpanMm\|膝點\|headPanelSpan"` | §A11.11 |
+| 椅背條穿座板 / 通孔再入母件 / 榫頭 = 板厚 + 15 | `"backBottomTenonLen\|seatBackSlots\|consumeFor"` | §A10.13 |
+| 掛鉤浮在柱頂 / 圓料 origin.y 是底面 | `"hookCenterY\|HOOK_TOP_INSET"` | §A10.14 |
+| 三視圖實畫稽核（量畫出來的 SVG 不是量 3D） | `"audit-2d-joints\|data-part-id"` | §A12 |
+| 弧肩斜腳左右下橫撐凸出腳外 / 外挪量 | `"ctZShift\|ctStretcherOutwardShift\|外挪"` | §A11.9 |
+| 腿與牙條交界的「肩」/ 夾頭榫 / 插肩榫 | `"夾頭榫\|插肩榫\|I_剩"` | §JT1–JT3 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
 | hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
 | 中心線 / 對稱軸 | `"中心線\|centerline"` | §A5 |
@@ -40,7 +62,9 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 局部放大圖（detail view） | `"局部放大\|detail view"` | §A8 |
 | 榫卯細節圖 / 公榫位置 / 強度 | `"榫\|joinery\|tenon\|mortise"` | §B §G |
 | 爆炸圖 / 立體拆解 | `"爆炸\|exploded"` | §H |
+| 組裝動畫 / 組裝順序 / 影片輸出 | `"組裝動畫\|assembly\|planAssembly\|captureStream"` | §H8 |
 | 自動標註生成 | `"自動標註\|auto-dim"` | §I |
+| 主三視圖標註槽位 / 覆蓋矩陣 / 補標 id 慣例 | `"槽位\|覆蓋矩陣"` | §I8 |
 | 板材展開 / 攤平 / 折線 | `"展開\|unfolding"` | §J |
 | 派系預設（中式 / 日式 / 北歐） | `"派系\|preset"` | §K |
 | 木紋方向結構 | `"木紋\|grain"` | §L |
@@ -56,6 +80,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 椅子穩定性力學 | `"穩定\|stability\|tip-over"` | §V |
 | AI 看圖推薦模板 | `"vision\|GPT-4\|看圖"` | §W |
 | 報價工時演算法 | `"報價\|工時\|labor"` | §X §AG |
+| 報價參數從網址進來 / 印出爛單 | `"sanitizeLaborOpts\|ENG_RATE_BOUNDS"` | §X1b |
 | 3D 渲染（PBR / IBL / AO） | `"PBR\|IBL\|AO\|render"` | §Y |
 | 打包出貨 / 紙箱規格 | `"打包\|出貨\|紙箱"` | §Z |
 | 訂單管線 | `"訂單\|order pipeline"` | §AA |
@@ -66,6 +91,15 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 競品分析 | `"競品\|wrd 定位"` | §AF |
 | 木工數位行銷 / SEO | `"SEO\|行銷\|關鍵字"` | §AH |
 | 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
+| 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
+| 工作桌 / 狗孔 / holdfast / 前鉗 / 刨擋 / 工具槽 / 可拆 | `"工作桌\|workbench\|狗孔\|dog hole\|holdfast\|前鉗\|vise\|刨擋\|planing stop\|工具槽\|tool well\|knockdown"` | §AU |
+| 工作桌 v2：尾鉗 / 長板靠板 / 抽屜櫃 / 雙面桌 / 封邊板 / 出料台 | `"尾鉗\|wagon\|deadman\|靠板\|抽屜櫃\|雙面桌\|封邊板\|breadboard\|出料台\|outfeed"` | §AU13~AU21 |
+| 工作桌：夾板疊層版 / 搭接槽 / 層數 / 免榫卯 / 夾板木紋 / 穿帶 | `"夾板疊層\|plywood\|搭接槽\|materialStyle\|legLayers\|lsLayers\|battenLayers\|ply-layers"` | §AU23、§AU23.1 |
+| 3D 圓孔畫不出來 / 拼板看不出片數 / 中縫擋條 / 中央槽端塞 | `"孔軸\|holeAxisOf\|膠合線\|中縫擋條\|端塞"` | §AU24 |
+| 穿帶騎腳頂 / 抽屜橫向分格 | `"穿帶\|batten\|drawerCols"` | §AU25 |
+| 穿帶尺寸可調 / 腳頂破口 / 疊層分層方向 | `"battenWidth\|apronTopShoulderMm\|BoardSplit\|疊層軸"` | §AU26 |
+| 長方腳（腳寬≠腳厚）/ 桌高用途自動套用 | `"legDepthMm\|depthRatio\|workbenchHeightFor"` | §AU27 |
+| 選了沒反應（靠板/穿帶）/ 圖上分件線 / 鉗位置 | `"panelSplitWorld\|viseInset\|deadmanNeedsOverhang"` | §AU28 |
 
 ---
 
@@ -208,6 +242,38 @@ zMax = bendMm > 0 ? +lzL/2 + bendMm : +lzL/2
 ex: 椅腳 / 後仰靠背的圓柱支撐）會跑出三角形怪形狀。這 case 走 A9 公式手算
 silhouette polygon 就對了。
 
+**A9.5b round 圓盤：判軸看「哪兩邊相等」，不是「哪邊最長」（2026-08-21）**
+A9.5 的修法在 `projectPartSilhouette` 用 `longestIsY`（thickness 最長 = 圓柱腳）
+判「圓截面在 X-Z、沿 Y 擠出」。**圓盤（圓桌面 700×700×25、圓座板 350×350×25）的
+thickness 是最短邊**，判不出來 → 掉進通用 bbox 角採樣 → 俯視輪廓變成一個正方形。
+
+3D 跟三視圖看起來沒事，是因為 `svg-views.tsx` 在繪圖層自己改畫圓
+（`projectPartPolygon` 的 round 分支註解寫著「俯視維持矩形，caller 改畫圓」），
+**但任何吃幾何資料的下游拿到的就是那個正方形** —— 1:1 實尺樣板照著印出一張
+正方形，木工描著切就是錯的。
+
+判軸的正確依據：圓截面所在的那兩軸必然等長。
+```
+axisIsY = |lx − lz| ≤ 0.5mm      → 圓截面在 X-Z（腳、立柱、圓盤都算）
+（ly ≈ lz → 軸 = X，橫桿／紡錘，走主 sample loop 舊路徑）
+條件：isRound && (round-tapered || longestIsY || axisIsY)
+```
+保留 `longestIsY` 是為了不動到「ly 最長但 lx≠lz」的橢圓截面既有行為。
+
+**圓的採樣點數要跟半徑走**：弦中點誤差 = `R(1 − cos(π/N))`。固定 16 點對腳、
+把手夠用，對 700mm 圓盤是 `350×(1−cos(π/16)) ≈ 6.7mm` —— 一般用途（AABB /
+overlap）看不出差別，但 1:1 樣板是照著描的，6.7mm 直接變成切錯 6.7mm。
+```
+N = clamp(⌈π / acos(1 − 0.2mm / R)⌉, 16, 128)
+R = median(lx, ly, lz) / 2   ← 圓截面在兩個相等的邊上，擠出方向是第三邊，
+                                所以中位數必然是圓的直徑
+```
+用 `max` 會把 450mm 高的圓腳誤判成 R=225 而過度採樣；用 `min` 會把圓盤誤判成板厚。
+
+⚠️ **尚未處理**（同一類「幾何資料是外接矩形」的問題，2026-08-21 盤點）：
+`shape.axis:"z"` 的圓件（黃銅圓把手）silhouette 忽略 axis 欄位、`hoof` 馬蹄足與
+`lathe-turned` 車旋輪廓在 silhouette 沒有分支，三者拿到的都還是矩形。
+
 **A9.6 三視圖必須同步**
 改任一視圖 transform 前確認另兩個視圖會跟著對。X 旋轉只動 YZ，所以：
 - 正視：X 不變、Y 範圍會拉寬（max yR − min yR）
@@ -215,6 +281,220 @@ silhouette polygon 就對了。
 - 俯視：X 不變、Z 範圍會拉寬
 
 實作參考：`lib/render/svg-views.tsx` 在 default rect path 之前的 isXTilt 兜底。
+
+**A9.7 夏克風腳（`shaker`）橫躺 silhouette = 第 5 條 leg 分支**
+`shaker` 是複合料：上方 `squareFrac`（預設 0.25）方截面方頂 + 下方圓錐（圓截面 taper
+到 `bottomScale`，預設 0.6）。零件圖 isolate 把腳放平（tall part → `rotation.z=-π/2`），
+`projectPartPolygon` 的 shaker 分支是「直立 view-name 硬畫」梯形，假設 taper 沿垂直
+`r.h` 軸——橫躺後 taper 其實沿世界 X 漸變，硬畫會變成怪形（user 2026-06-16 邊桌夏克腳
+回報：俯視雙錐紡錘、側視梯形杯、正視矩形，三視圖全錯）。
+
+修法跟 `tapered` / `round-tapered` / `splayed-tapered` / `splayed-round-tapered` 四條
+同款（§A10.7 通則「橫躺 delegate 給 silhouette」），shaker 是**第 5 條**：
+- `projectPartPolygon` shaker 分支：有 rotation → `return projectPartSilhouette(part, view)`
+- ⚠ `projectPartSilhouette` 原本把 shaker **delegate 回** `projectPartPolygon`（直立 polygon），
+  橫躺會無限遞迴 → 必須在 silhouette 加 **native shaker 採樣**（方頂 4 角 × 2 個 Y level +
+  圓錐 2 圈 `ROUND_SAMPLES` 圓採樣，交界面 `junctionY = ly/2 − ly·squareFrac`）並從上方
+  delegate block 的條件移除 shaker。直立（無 rotation）case 仍由 delegate block 走
+  `projectPartPolygon` 直立 polygon（不變）。
+- geometry.ts 改 silhouette **不觸發 pre-push audit hook**，改完手動跑 `audit-overlaps.ts`
+  確認 0 new overlap（native 採樣只影響投影輪廓、不動 AABB，但仍要驗）。
+
+**A9.8 弧肩斜腳（`curved-taper`）三視圖投影 = 側面凹弧輪廓（2026-08-03）**
+`curved-taper` 是「側面 2D 輪廓沿厚度 Z 擠出的一體成型腳」：外面（+dir 側）垂直 plumb；
+內面（-dir 側）＝接撐段全寬（高 `blockHeightMm`）→ 內凹圓弧肩（半徑 `shoulderMm`，凹向腳身）
+→ 直線斜降到腳底再往內收 `insetMm`。`size=[legW, legHeight, legD]`。
+
+原本 `projectPartSilhouette` / `projectPartPolygon` 沒有 curved-taper 分支 → 落到通用
+bbox 4 角採樣 / 尾端 `return box` → 正視/側視/俯視腳全畫成方框（user 回報「正視圖沒正確顯示」）。
+
+修法（`lib/render/geometry.ts`）：
+- 新增純 2D helper `curvedTaperProfilePoints(lx, ly, blockH, shoulder, inset, dir)`，
+  **逐點複製** `part-geometry.ts:buildCurvedTaperGeometry` 的 `pts`（同 clamp 相對係數
+  `ly*0.9 / lx*0.45 / lx*0.05`、同弧參數 `x=-hx+shoulder·cos(th)`、`y=yCoveEnd+coveSpan·sin(th)`、
+  同 dir 鏡射 s）。⚠️ 這裡是原始 mm（SCALE 只在 3D 路徑），故絕對 clamp OK。
+- `projectPartSilhouette`：正視（無旋轉）→ **直接輸出有序輪廓、不跑 convex hull**（凹弧會被 hull 填平回方框）；
+  其他視角 / 帶旋轉 → 兩個 Z 端各採一圈 → hull（側/俯視本為矩形、audit 只用 min/max，皆正確；
+  橫躺零件卡凹弧被 hull 填平屬可接受細節損失）。
+- `projectPartPolygon`：正視 → 用 helper 有序輪廓映進 view rect（`screenX = cx − localX`，
+  `screenY = r.y + r.h/2 + localY`，`cx = r.x + r.w/2`）；側視 → box；帶旋轉 → delegate silhouette。
+  俯視在 svg-views `useShape` 白名單本就排除 curved-taper → 走 box path（正確，俯視是矩形）。
+- 副效果：audit 的 Y-segmented silhouette 路徑現在看得到「隨高度收窄的實際內面」，
+  AABB-at-Y 正確 → `stool:curved-taper` 不再誤報，已從 `SHAPE_AWARE_CASES` allowlist 移除。
+- 驗證：helper 頂點對 `buildCurvedTaperGeometry` cap 頂點 max dist = 0.0000mm；
+  正視多邊形 13 頂點（凹）、側視 4 頂點（矩形）。純視覺需 user 在瀏覽器確認。
+
+**A9.9 兩向弧肩（`curved-taper` + `twoWay`，2026-08-24）**
+
+`curved-taper` 是「一個 2D 側面輪廓沿厚度 Z 擠出」→ **只有一面有造型**。
+但腳站在家具角落，兩個方向都有牙條進來，本來就該有兩道弧肩；
+現況從側面看就是一根方料，三視圖裡有一張是錯的（而客人照三視圖做）。
+
+`twoWay: true` 時，把同一道「方肩→凹弧→斜降」同時做在兩個相鄰內面（−X 與 −Z）。
+
+**幾何：從「擠出」改成「逐層矩形放樣」**
+- `ExtrudeGeometry` 不能用了（它只吃一個 2D 輪廓）
+- 改 `buildTwoWayCurvedTaperGeometry()`：每個高度取一個矩形環，
+  斷面 = 從兩個相鄰邊各往內縮 `insetAtY`，內側立稜隨高度往對角線移動
+- 取樣 40 層（弧段最密，視覺上看不出稜線）
+
+**輪廓函式抽出來共用**
+`curvedTaperInsetAtY(lx, ly, blockH, shoulder, inset, y)` → 該高度的內縮量。
+⚠️ **clamp 必須跟 `buildCurvedTaperGeometry` 逐字一致**，否則單向 / 兩向會長得不一樣。
+有測試逐點比對兩者（誤差 < 0.001mm）。
+
+**投影（這是最容易漏的一半）**
+| 視角 | 單向 | 兩向 |
+|---|---|---|
+| 正視 | 有序輪廓（13 點） | 同左，**不變** |
+| 側視 | 方框（4 點） | **有序輪廓（13 點）** |
+| 俯視 | 矩形 | 同左，**不變**（斷面最寬處在頂部） |
+
+側視那面的法線是 **local X**，所以判「哪個視角看得到」要用 `m = R·(1,0,0)`
+（`= (cy·cz, cy·sz, −sy)`），**不是**上面那組管 X-Y 面的 `n = R·(0,0,1)`。
+`projectPartSilhouette` 與 `projectPartPolygon` 兩條路徑都要改，
+只改一條的話三視圖跟零件圖會對不起來。
+
+**相容性**：預設 `false`。實測 28 款家具在預設值下的 501 件零件與改動前逐件比對 100% 相同。
+測試見 `lib/render/two-way-cove.test.ts`（14 條，最重要的一條就是「關掉時輸出必須一致」）。
+
+**⭐ 取樣高度要照輪廓轉折點放，不能整支平均分（2026-08-25）**
+
+原本寫 `y = hy − ly·i/40`（整支腳平均 40 層）。腳 425mm 高 → 每層間隔 10.6mm，
+而弧只有 8mm 高 ⇒ **弧段裡一個取樣點都沒有**，被跨過去、切成一刀斜面。
+（木頭仁：「這個弧肩的弧是好幾個平面組成，不是順順的弧」。）
+
+正解：方肩段與斜降段都是直的（斜降含 splay 也是線性），各兩層就精確；
+省下來的層數全給弧段。**總層數還比原本少（27 < 41），弧卻順很多。**
+
+```
+ys = [hy, yBlockBot, …弧段 24 等分…, −hy]
+```
+
+驗證方式：數「落在弧段高度範圍內的三角形有幾種不同法線」——
+0 = 整段被跳過；修好後單向 24、兩向 50。
+
+**⭐ A9.9b 橫撐處的第二道弧肩 `lowerCove`（2026-08-26）**
+
+木頭仁：「在來想接橫撐的位置也增加弧肩」→ 選 A 案（保留斜降、橫撐處另做一節接撐段）。
+
+輪廓由上而下（`curvedTaperInsetAtY` 是全站**唯一**一份）：
+
+```
+方肩(接撐段1) → 弧1 → 斜降(拿 inset/2) → 弧1′(上下顛倒) → 方肩(接撐段2) → 弧2 → 斜降(剩下的一半) → 腳底
+```
+
+- `lowerCove: { botMm, topMm }` = **從腳底量**的高度區間，直接等於下橫撐佔的高度
+  （template 端 `ctLowerCoveRange`，要跟算橫撐位置用**同一條式子**，不然弧會跑到橫撐旁邊）。
+- ⭐ **上下要成對**。第一版只做了下緣那道弧，木頭仁：「腳接橫撐只有下面有弧 上面沒有」——
+  只有一邊的話腳中間只是忽然變寬，不成「肩」。
+  上緣那道是同一條式子的**鏡射**：`coveInset(y, yRef, span, shoulder, flip=true)`，
+  `yRef` 處 = shoulder、`yRef − span` 處 = 0。⚠️ 不可以另抄一支（測試會數
+  `shoulder * Math.cos` 的出現次數；歷史上抄成 4 份，改一個忘三份）。
+- ⭐ **腳底總內縮仍是 `shoulder + inset`**，跟單道弧一樣 —— 上緣那道鏡射弧把 shoulder
+  還回去了。第一版扣 `2×shoulder` → 35mm 的腳底只剩 7mm，腳尖細到不能用。
+- 取樣點：上緣弧沿 θ 均分 `y = upStart − upSpan·sin(θ)`（θ: 0 → π/2），
+  下緣弧 `y = cove2End + coveSpan·sin(θ)`（θ: π/2 → 0）。漏掉上緣那組 → 3D 切成一刀斜面。
+- 🩸 **3D 預覽會漏欄位**：`PerspectiveView.tsx` 逐欄位重組 shape 給 three.js，
+  新欄位沒加進去就完全收不到（`dirZ` 8/25 漏過一次、`lowerCove` 8/26 再漏一次，
+  兩次都是「幾何對、三視圖對、稽核全綠，只有 3D 錯」）。已加守衛測試逐欄位比對。
+
+稽核：`scripts/audit-lower-cove.ts`（9 款勾了都要真的多一道弧、沒勾的完全不受影響）。
+
+**⭐ A9.9c 弧肩曲線 `sCurve`：圓弧 vs S 形（2026-08-26）**
+
+木頭仁從三件待辦裡挑的第 1 件。**是選項,預設仍是圓弧**（既有設計 0 變動）。
+
+| | 圓弧（預設） | S 形 |
+|---|---|---|
+| 式子 | `inset = shoulder·cos θ`，`y = yCoveEnd + coveSpan·sin θ` | `inset = shoulder·t²(3−2t)`，t = 從方肩往斜降的比例 |
+| 方肩那端的切線 | **水平**（d inset/dy → ∞）→ 肩根是利落的 90° 直角 | **垂直**（一階導數 = 0）→ 順著腳面化開 |
+| 斜降那端的切線 | 垂直 | 垂直 |
+| 深度 / 跨距 / 用料 / 榫位 / 報價 | 完全一樣 | 完全一樣 |
+
+- 只換曲線,兩端點與 shoulder 深度都不動 ⇒ 橫撐長度補償（`curvedTaperInnerScaleAt`）
+  吃同一個旗標就好,不用另外算。
+- 弧的算式**全站只有一份**（`coveInset(y, yRef, span, shoulder, flip, sCurve)`）。
+  鏡射版（下接撐段上緣）加 `flip`、S 形加 `sCurve`，**都不准另抄一支**
+  —— 測試會數 `shoulder * Math.cos` 的出現次數。
+- 取樣：圓弧沿 θ 均分、S 形沿高度均分。實測折線離真實曲線的最大偏離
+  圓弧 0.131mm / S 形 0.010mm（θ 均分套在 S 形上是 0.024mm，也看不出來 ——
+  所以「取樣方式換了」不算缺陷，不要為它寫測試）。
+- 🩸 **測試不要只數取樣點個數**：那擋不住「點數夠但分佈很爛」。
+  第一版就是這樣寫的，刻意把取樣改爛它還是綠的。
+  正解是量**折線離真實曲線最遠多少**，門檻照圓弧自己的實測值校準（0.15mm）。
+
+稽核：`scripts/audit-shoulder-curve.ts`（9 款選 S 形都要真的換曲線、選圓弧要跟
+「沒有這個選項」時逐件一致）。
+
+**⭐ A9.9d 挖弧肩的工時 = 面數 × 道數（2026-08-26）**
+
+```
+挖弧肩分鐘數 = 25 × 面數  +  18 × (有第二道弧的面數)
+```
+
+- 每一面**第一道** 25 分：鋸廢料 + 夾持對位 + 靠模銑 + 修弧
+- 同一面的**第二道**（`lowerCove`）18 分：料還在夾具上、換模板位置就好，
+  只省掉「夾持對位」；鋸廢料 / 銑 / 修弧照做
+- 兩向的第二**面**不打折（25 分）：要翻面重新對位，那是不同的事
+
+🩸 原本只數「面數」⇒ 勾了「橫撐處也做弧肩」總工時**一分鐘都沒變**。
+`quote.ts` 直接吃 `totalEstimatedHours()` 算工資 ⇒ 這道工白做、報價少報。
+（方凳 4 腳兩向：+144 分 = +2.40 小時。）
+
+⚠️ **S 形不加工時，是刻意的**：這道工序是「靠模板 + 修邊機一次成形」，
+模板做好之後圓弧與 S 形的機器時間一樣。差別在「做模板」（一次性，目前工時模型
+沒有這一段）與手工順線 —— 不要憑感覺塞數字進報價，改成在工序 bullet 裡提醒。
+
+⚠️ **測工時不要用 `totalEstimatedHours()` 斷言**：它會四捨五入到 0.1 小時（6 分鐘），
+2 分鐘的差會被吃掉。要精確就直接量該工序的 `estimatedMinutes`。
+
+
+**⭐ `dirZ` 一定要跟 `dir` 用完全一樣的式子（2026-08-24 上線後回報的 bug）**
+
+```ts
+const dir  = (Math.sign(c.x) || 1) as -1 | 0 | 1;   // 既有、正確
+const dirZ = (Math.sign(c.z) || 1) as -1 | 0 | 1;   // ⛔ 不可以多乘 -1
+```
+
+第一版寫成 `(Math.sign(c.z) || 1) * -1`，症狀有**兩個**、但根因只有一個：
+1. 「新做的那面看不到弧」——弧被挖到**朝外**那面（背對觀察者）
+2. 「透視穿了」——朝中心那面沒退，橫撐卻照「已退」的長度做 → 插進腳裡 **15.6mm**
+
+⚠️ 別像我第一輪那樣去改橫撐長度公式（治症狀）。判斷方向對不對，
+**量四支腳的 side / front silhouette**，看退的是「朝中心」還是「朝外」那面：
+
+```
+X 朝中心面 退 14.7   X 朝外面 ─      ← 對（單向弧肩既有行為）
+Z 朝中心面 ─         Z 朝外面 退 14.7 ← 錯（符號反了）
+```
+
+⚠️ **`side` 投影是 `vx = -worldZ`**（`geometry.ts:422`）。
+`lib/geometry/overlap.ts` 開頭的註解寫成 `vx = worldZ`，是**錯的**
+（它自己取 min/max 對稱所以沒事，但照抄去量單一面會看到反面）。
+
+**已知殘留：茶几四根下橫撐在腳的內角互切 1.6 × 50 × 1.6mm**
+
+四根下橫撐同高度圍成一圈，兩個方向都補償到弧面後，在腳的內角搶同一塊被挖掉的
+空間：y=120 時腳斷面被挖成 34.4×34.4（名目 50×50），而橫撐 22mm 厚、對齊腳的
+**名目**中心線 → 內側緣超出腳 1.6mm，楔形，到 y≈163 收斂為 0。
+腳 × 橫撐本身是 0 重疊 0 縫。沒修是因為兩條解法都會動到既有外觀
+（縮短 X 向橫撐會連單向一起變；橫撐移離腳中心線會讓直腳 / 錐形腳全部位移）。
+真家具這個角落是格肩榫互讓，本來就不是兩塊實體對撞。
+在 `scripts/audit-overlaps.ts` 的白名單裡，有完整理由。
+
+
+**A9.9e 俯視圖的「腳底投影」（2026-09-02）**：
+
+俯視只畫腳頂面的小方塊，對兩種腳是錯的：腳底不在頂面正下方，接在下半段的橫撐／腳踏
+在圖上會懸空 3~27mm（三視圖實畫稽核 §A12 抓到，3D 本來就對）。
+
+| 腳 | 腳底相對頂面 | 畫法 |
+|---|---|---|
+| `curved-taper` 帶 `dxMm/dzMm`（ctSplay 外斜） | 整個外移 (−dx, −dz)（俯視鏡像慣例同 splayed-tapered），且內面在腳底縮進 `insetMm + shoulderMm`（`dir` 那側；兩向時 `dirZ` 側也縮） | 頂面實線 + 腳底虛線 + 4 條角對角線（`svg-views` `ctFoot` 分支） |
+| `tapered` 且 `bottomScale > 1`（倒錐腳） | 以中心放大 bottomScale 倍 | 同上（`invFoot` 分支）。bottomScale < 1 的腳底在頂面裡面，本來就看不到，不畫、byte 不變 |
+
+不走這條的：零件圖（`isolatePartId`，腳橫躺）、帶 rotation 的件、帶 `chamferMm` 的倒錐腳（走八邊形 polygon 路徑，暫不補腳底）。
 
 ### A10. Part visible 慣例（butt-joint vs joinery）
 
@@ -251,6 +531,16 @@ visible.length = 2 × (cornerOffset + splay) − legSize
 
 圓腳（round leg）跟方腳沿軸方向的接合公式相同（直徑 = legSize）；圓腳沿斜角的
 butt-joint 由 cope cut（弧形端面）處理，但 visible.length 仍用同一公式。
+
+櫃類 `full-depth-panel` 腳（兩片整深度板腳）：
+```
+footT = max(12, legSize)                  // 板腳厚度，沿櫃寬 X
+footCenterX = length / 2 - legInset - footT / 2
+visible.length = cabinetDepth             // 板腳從前到後吃滿整個櫃深
+visible.width = legHeight                 // 垂直高度
+visible.thickness = footT                 // 左右方向板厚
+```
+`legInset` 表示板腳外側離櫃體左右外側的距離；左右對稱。
 
 **A10.3 弧面 / 斜角接合（coat-rack 底爪、windsor 椅）**：
 
@@ -298,6 +588,67 @@ butt-joint 模式下**會過度縮窄**（每端少 legSize/2 的權重）。
 等問題（見 A10.1）。
 
 **A10.7 Audit 工具**：
+
+2026-09-06 workbench follow-up: `notched-shelf.test.ts` verifies all four corner
+cutouts against the actual 3D mesh, plus four real workbench variants with
+missing-cut negative controls. Overlap checks recognize a corner only when the
+entire obstacle/shelf intersection is within it. Restrict this to requested
+notches <=45% of each blank dimension: 2D clamps at 45%, 3D at 47.5%; outside the
+shared range retain warnings rather than silently choose a geometry convention.
+The mesh test exposed cap fan triangles crossing concave cutouts. Use Three.js
+Earcut triangulation for both caps; verify empty corners, outward cap winding,
+and cap area (400x200 minus four 40x30 cuts, twice = 150400 mm2).
+After this mesh fix, remove 16 corner-cut pairs from the baseline (30 cases/394
+pairs remain). Furniture templates, blank dimensions and outlines stay unchanged.
+
+2026-09-06: `world-bounds.test.ts` verifies off-center box bounds and slice
+coordinates. Side silhouette X is negative world Z, so both `worldAABB` and
+`partAabbAtY` must negate/reverse that coordinate. Previously a box at Z=100
+with depth 20 incorrectly had world bounds [-110,110] instead of [90,110].
+The fix changes audit helpers only, not template geometry or renderer rotation.
+All 236 baseline cases retain the same overlap results after this correction.
+
+2026-09-05: `scripts/overlap-baseline.json` now records individual part pairs and
+their measured X/Y/Z intersection bounds. Historical case exceptions do not
+permit a new pair or an increase of 0.1mm on any axis. The comparison allowance
+is 0.05mm (measurements are rounded to 0.1mm). `--inject-collision` must exit 1
+even in a historically exempt case. `--write-baseline` is an explicit maintenance
+operation, not a way to fix regressions; review the geometry before updating it.
+`--report=<path>` exports every pair and review status as JSON.
+
+`confirmed-defect` is distinct from `documented-joint` and `unreviewed`. Passing
+the regression baseline does not establish manufacturability. Tea-table's six
+warning variants were missing leg-clearance cuts; these are now resolved with
+full-thickness cosmetic mortises while preserving blank sizes and positions.
+`shelf-clearance.ts` bounds each leg across the shelf's entire height, including
+silhouette vertex heights, and adds 0.5mm internal clearance. Side-view X is
+negative world Z. The overlap audit checks the actual `mortiseLocalBox` and only
+excludes a collision fully contained by a rectangular, full-thickness cut.
+Removed the resolved 24 pairs from the baseline so reintroduction fails.
+
+2026-09-06: `wine-rack-half-lap.test.ts` checks complementary cutter coverage in
+the current renderer's world coordinates (explicit Three.js `ZYX`). Covers seven
+leg styles and three grid/thickness combinations; missing/shifted/same-side cuts
+must fail. This is not full CSG validation. The historical OBB `XYZ` description
+below differs from the renderer; do not silently change either convention based
+on this test. Simplified `partExportGeometry` still omits mortise subtraction.
+
+2026-09-06: rectangular cut coverage now also recognizes complementary half-laps
+and blind rebates. Only rendered cosmetic rectangular cuts in undeformed stock
+with quarter-turn rotations qualify. Cutter placement uses renderer ZYX, and
+its transformed stock bounds must agree with the existing audit bounds within
+0.001mm; this does not change either rotation convention. A cut must cover the
+entire intersection cross-section. Its intervals, together with cuts from the
+other part, must continuously cover the remaining axis. Missing, shifted,
+shallow, same-side and 0.2mm-gapped cuts must still report a collision.
+Wine-rack tests additionally check actual renderer CSG mesh volumes and interior
+ray occupancy at scale 0.01, including deliberately broken cuts. Sampling is not
+a general solid-intersection proof; analytical coverage remains required. A
+second CSG intersection of exactly coplanar touching meshes produces unreliable
+open surfaces and is not used as the acceptance oracle. Workbench lap/deadman
+and box-lid tests check cutter coverage without claiming STL machining support.
+No template blanks, positions, pricing or saved model data change. The remaining
+deadman-board / under-shelf interference is not excused by the rail grooves.
 
 `scripts/audit-overlaps.ts` 跑遍所有 `FURNITURE_CATALOG`，組裝版（預設）下偵測
 零件穿模，輸出 markdown 表。每改家具模板執行：
@@ -386,6 +737,152 @@ mortise 跟外側端面距離 = 5mm < 10，自動觸發 5mm 偏移；對 legInse
 公榫件（tenon 所在）也要。Apron 等旋轉零件目前不在自動偏移範圍。
 
 ---
+
+**A10.11 零件尺寸不准是零或負數（滑桿上限 ≠ 幾何上限）**
+
+OptionSpec 的 `max` 是**寫死的常數**，跟這件家具實際多大無關。使用者把滑桿拉到底，
+下游公式就可能算出 ≤ 0 的零件尺寸 —— 而且**不會丟例外**，會安安靜靜流進裁切單、
+報價、3D 匯出。2026-08-21 全站掃描：28 款裡 14 款中招。
+
+已知會產生負尺寸的四條公式（都在「讀選項的地方」夾，不要在下游補）：
+
+| 公式 | 何時變負 | 夾在哪 |
+|---|---|---|
+| `牙板長 = length − 2×legW − 2×legInset`（§A10.2） | 窄家具 + 大腳內縮 | `clampLegInset()` @ `_helpers.ts` |
+| `門框開口 = 門寬 − 2×梃寬`、`門高 − 2×檔寬` | 矮區 / 多扇門 | `stileW`/`railW` effective @ `case-furniture.ts` |
+| `perDoorW = (區寬 − 縫) / 門扇數` | 窄櫃塞多扇門 | `doorCount` @ `case-furniture.ts` |
+| zone / layer 高度分配 | 某幾層吃光內高 | `MIN_ZONE_H=60` @ `case-furniture.ts`、`MIN_LAYER_H=60` @ `chinese-cabinet.ts` |
+
+三條規則：
+
+1. **夾輸入不夾輸出。** 在 `getOption()` 讀進來的那一行就夾，下游全部自動安全；
+   在某個 use-site 夾，同一個變數的其他 use-site 還是會爆（square-stool 就踩過）。
+2. **夾了要留痕。** 靜默把使用者設的 4 欄改成 3 欄本身就是 bug。走 `warnOnce(kind, msg)`
+   （用**類別**當 key，訊息帶尺寸所以整句去重沒用）或 `design.warnings`。
+3. **有效值不等於名目值。** `legSize` 可能被 `legWidthOverride` / `legDepthOverride`
+   蓋掉（最大 120mm > legSize），夾制要用 `Math.max()` 取實際會用到的值。
+
+**驗證：** `npm run audit:negative-dims`（基線 **0 / 28**，跟 audit-overlaps 不同，
+這支是硬 0、不是比對前後）＋ `lib/templates/__tests__/negative-dims.test.ts`
+（單選項極值 × 三種尺寸、任兩選項同時推極值）。
+
+⚠️ **只夾證明得出來的。** 加夾制前先拆掉它跑一次掃描確認會紅 —— 抽屜欄數那條當初
+加了，但任何組合都證不出它修到東西，就拿掉了（沒壞硬改 = 平白限制功能）。
+
+**A10.12 `visible` 是幾何三軸，不是「長寬厚」——凡是要拿板厚 / 面寬的地方一律先排序**
+
+`visible = { length, width, thickness }` 對應的是 **X / Z / Y 三根軸**（§A9.1），
+不是零件的長寬厚。**立著的零件**（櫃子背板、側板、壁掛工具牆背板）真正的板厚
+存在 `width`，`thickness` 存的是它的高度。
+
+⛔ 已經踩過兩次，都是同一個假設：
+
+| 地方 | 症狀 | 錢的影響 |
+|---|---|---|
+| `pricing/quote.ts` 板材分組 | 把 1920mm 高度當板厚 → 一片 3mm 背板算成「1 張 1920mm 厚的夾板」 | 衣櫃報價 NT$54,571 → **NT$211,760**，勾夾板反而比實木貴 3 倍 |
+| `cutplan/group.ts` 拼板拆片 | `cut.width / pieces` 把 18mm 板厚切 5 份變 3.6mm，1200mm 面寬完全沒拆 | 裁切計算器照樣報「排不下」 |
+
+✅ **通則：先排序，再取。** 跟零件怎麼擺無關：
+
+```ts
+const [thin, mid, long] = [cut.length, cut.width, cut.thickness].sort((a, b) => a - b);
+// 板材：板厚 = thin、板面 = mid × long
+// 拼板：順紋長 = long、面寬 = mid（要除片數的是它）、板厚 = thin
+```
+
+**其他同源規則：**
+- **薄板一定是合板。** 厚度 ≤ 6mm 的零件不可以算實木——市面沒有這種商品（§T1，1 分 = 3mm 是薄合板規格）。`case-furniture.ts` 的 3mm「釘背」背板已強制 `materialOverride: "plywood"`。
+- **寬板一定要宣告 `panelPieces`。** 集成材最寬 800mm、角料最寬 180mm（§T3 / §T4）。超過就得拼板，否則材料單叫人買不存在的整片寬板、裁切計算器直接報「排不下」。⚠️ 說明文字如果已經在講「建議分 N 片拼」，`panelPieces` 就要用**同一條公式**，不要各說各話（round-table 踩過）。
+
+**驗證：** `lib/pricing/quote.test.ts`（同一片板三種擺法金額必須相等）＋
+`lib/cutplan/buyable-stock.test.ts`（全模板材料單逐件檢查台灣買不買得到）。
+
+
+**A10.13 椅背直立件穿座板（餐椅 slat / splat / curved-splat / windsor 圓棒，2026-09-02）**：
+
+分離模式（`rearPostMode = split`）下這些件站在座板**上面**、後牙板在座板**下面**，
+榫頭一律 15mm 時連 25mm 座板都穿不過——後牙板上那排榫眼從來是空的、座板也沒開孔。規則：
+
+- 下端榫頭長 `backBottomTenonLen = slatTenonLen + seatThickness`（一木連做維持 15，因為直接坐在後牙板上緣）。
+- 座板開**通槽** `seatBackSlots`：`origin.y = seatThickness`（＝從頂面進，joint-world 才會判成頂面開口）、`through: true`、
+  位置跟後牙板榫眼同一組 X（`backVerticalXs()`，兩邊共用同一支，不准各算各的）、同一個 `backZ`。
+- 後牙板的終點榫眼維持 15；曲面中板與 windsor 圓棒以前沒有終點榫眼，補上。
+- `resolveTopOutlineShape` 只吃腳的榫眼（`seatMortisesLegs`）：椅背通槽貼後緣是本來的設計，不該把橢圓座板退成方形。
+- `lib/joinery/audit-joints.ts` 認得「穿越」：榫長 = 通孔深 + 終點母榫深 → 三顆都算對到（`consumeFor`）。
+- 背柱下端榫頭 `axis` 的 y 要是 **−cos**（朝下）——舊值 +cos 是朝上的，以前沒人跟它比方向；
+  椅背條也插座板後，排程器看到同一片板被一上一下鎖住就會硬拆。
+
+**A10.14 衣帽架掛鉤高度（2026-09-02）**：圓料 `origin.y` 是**底面**、柱上榫眼 `origin.y` 是**中心**，
+兩者不能共用同一個數。先定中心線 `hookCenterY = min(height − HOOK_TOP_INSET, columnHeight − HOOK_TOP_INSET)`，
+本體 `origin.y = hookCenterY − HOOK_SIZE/2`，榫眼 y = 中心。舊寫法讓掛鉤本體 1663~1681 浮在 1664 的柱頂上方。
+另：非 90° 倍數旋轉的圓料（掛鉤繞 Y 轉 60°）正／側視要走 `projectPartSilhouette`（縮短的圓棒），
+不能用 `|sin| > 0.5` 當成「端面朝你」畫成圓圈（`isTiltedRound`）。
+
+### A10.15 Versioned construction (approved 2026-09-07)
+
+`options.constructionVersion` uses "1" for legacy and "2" for revised work.
+Direct template defaults stay "1". Only blank editor requests without a saved
+reference or structural query start at "2"; legacy links and saved parameters
+remain "1" until selected explicitly. Output links serialize the version. Old
+signed snapshots without this newly introduced field mean version "1".
+
+Photo-frame version 2: front is world +Y, rear Y=0. Glass and backer share the
+rear rebate on all four inside rail edges. Rebate inset = glassGrooveDepth;
+rear depth = glassThickness + backThickness + 2mm fitting space. Keep at least
+2mm front stock: miter frameThickness >= glassThickness + backThickness + 4mm.
+For butt corners, choose the corner tenon before increasing stock thickness,
+then require frameThickness >= rear depth + tenon thickness + 2mm. Place the
+whole tenon ahead of the rebate, with its matching mortise at the same Y and
+2mm stock remaining at the front. Insufficient requested thickness is raised
+with an explicit warning. Backer
+occupies Y=[0,backT], glass Y=[backT,backT+glassT]. Both cut sizes equal photo
+opening + 2*(rebate inset - 1mm per-edge clearance). Rail stock lengths stay
+unchanged; only version-2 butt corner tenon placement changes. Miter rails use the same world-space rebate,
+transformed to their existing rotated local coordinates; no rotation convention
+is changed. Glass ordering notes must give actual glass cut sizes, not opening.
+
+Chinese-cabinet version 2 uses inside-post shoulder spans for rails with tenon
+extensions counted separately. Version 1 remains untouched, including notes.
+Panel receivers have actual 5mm engagement grooves with 0.5mm total normal
+clearance. Raked rail ends follow the inner post planes at both end heights.
+Hoof receivers follow the renderer's directional rings with <=0.25mm profile
+steps plus 0.25mm running clearance, so excess removal stays <=0.5mm. The audit
+uses continuous endpoint envelopes between mesh/cutter Y boundaries: a single
+physical cutter must cover each whole intersection envelope. Labels and part IDs
+never establish clearance. Missing, shallow, shifted and mid-span gaps stay errors.
+
+Explicit version-2 construction cuts use the centered local millimetre box
+`[cx+-hx] x [cy+-hy] x [cz+-hz]`. Transform with the renderer's ZYX rotation and
+the part's centered origin, not a second face-location heuristic. Generated
+receiver envelopes expand the actual stock intersection by 0.25mm; complementary
+half laps split the world-Y intersection at its midpoint first. `depthAxis`
+must reach the corresponding exterior face; unverified enclosed cuts are rejected.
+
+Remaining-stock guards are geometric limits, not structural load certification:
+- Rails: at every cutter-X interval and boundary, compute the exact YZ rectangle
+  union. Remaining area must be >=50% of T*W and continuous Y web >=6mm in every
+  Z strip, including opposing cuts and adjacent half-lap boundary sections.
+- Splayed round posts: radius R(t)=D/2*(bottomScale+(1-bottomScale)*t),
+  t=(y+H/2)/H for centered local Y.
+  Preserve an outer square spine centered 0.65R/sqrt(2) along each outward axis,
+  half-width 0.15R. Every cut must miss this spine, whose width must be >=6mm;
+  cutter depth along its entry axis is <=0.6D.
+- Turned columns: preserve the central 0.3D by 0.3D square hub and keep housing
+  tops within the bottom 0.2H. Rejected cuts are removed with a fabrication warning,
+  and cannot be excused by another collision-clearance proof.
+
+Machining time counts only actual retained operations: construction housings
+8min/cut, rear frame rebates 6min/rail, deadman shelf relief 8min/cut. These are
+added before fitting/gluing and scale linearly without increasing blank volume.
+Cabinet additions: panel grooves 6min/cut; hoof reliefs 8min per unique
+receiver/post site (not per overlapping cutter pass); integral spandrels
+12min/apron; raked shoulders 4min/end. Default v2 cabinet has six grooves,
+16 hoof-relief sites and four integral aprons; the round-cabinet preset has
+eight raked rails / 16 ends. Removing duplicate v1 spandrel solids corrects
+double-counted stock; carving the four remaining apron blanks does not shrink
+their purchasing dimensions.
+Round-cabinet shelf-to-post clearance adds 6min/notch; the tested 3-degree,
+1000x550x2000mm case has 12 notches (72min).
 
 ### A11. Tapered 腳跟橫撐／牙條對齊
 
@@ -520,6 +1017,70 @@ Y-slice 把 OBB 的「常數截面」死角解掉——tapered 腳的 cross-sect
 - **gap 不偵測**：audit 只報 overlap、不報 gap。沒接觸的 case 仍可能有縫，
   靠 unit 測試 / 視覺 review 抓。
 
+**A11.8 弧肩斜腳（`curved-taper`）補償（2026-08-03）**：
+
+curved-taper 只有**內面（-dir 側，接橫撐那面）沿高度收窄**（接撐段全寬 → 內凹弧肩 → 斜降），
+外面垂直、Z 面（前後厚度）任何高度全寬不收。補償規則因此**軸別不對稱**（`square-stool.ts`）：
+
+- `curvedTaperInnerScaleAt(Y, legHeight, legSize, blockH, shoulder, inset)` 回等效對稱 scale
+  `= 1 − 2·recession/legSize`（下限 −0.9，讓內面可收過腳中線；recession 超半寬時橫撐長度不被壓平）。
+- **弧肩段 recession 必須與幾何逐點一致**：`buildCurvedTaperGeometry` 的弧為
+  `y = yCoveEnd + coveSpan·sin(th)`，即高度正比 `sin(th)`（**非 th 線性**）。故在給定高度反解
+  `sin(th) = 1 − frac`（`frac = (depthFromTop − blockH)/coveSpan`），
+  `recession = shoulder·√(1 − (1−frac)²) = shoulder·cos(th)`。
+  ⚠️ 舊版誤用 `th = (π/2)(1−frac)` 線性映射，只在弧兩端吻合、弧中段最大偏離 ~29% shoulder → 已修。
+- **X 牙板/橫撐（前後）補償、Z 牙板/橫撐（左右）不補償**：X 端面接腳的內面（會收窄）→ 走
+  `curvedTaperInnerScaleAt`；Z 端面接腳的 Z 面（平的全寬擠出蓋、不收）→ 走
+  `legScaleAt(y, legHeight, legBottomScale)`（curved-taper 的 bottomScale=1＝不補償）。
+  `apronGeomFor(yCenter, legDim, compensate)` 的 `compensate` 旗標即此拆分；Z 牙板傳 `false`
+  （否則 `apronDropFromTop>0` 時左右牙板每端多伸插進腳）。對非 curved-taper 腳兩者等價＝無迴歸。
+- ⭐ **接撐段高跟著牙條長，不要反過來砍牙條（2026-08-26 定案，前後推翻兩次）**：
+
+  ```
+  接撐段高 = max(使用者設的接撐段高, 牙條下垂 + 牙條錯開 + 牙條高)
+  牙條可用高度 = 接撐段高 − 牙條下垂 − 牙條錯開          ← 不再扣弧肩跨距
+  ```
+
+  演進（三個版本，每一版都是木頭仁打回來的）：
+
+  | 版本 | 規則 | 症狀 |
+  |---|---|---|
+  | v1 | 牙條 ≤ 接撐段 − 下垂 | 錯開 2mm → 牙條底緣懸空 5.3mm |
+  | v2 | 再扣「錯開 + 弧肩跨距」 | 接撐段預設 40、弧肩 8 → **牙條一律被砍成 32**（餐桌 100→32、書桌 90→32） |
+  | v3 ✅ | **接撐段長高去容納牙條**，且**不再多讓弧肩** | 接撐段 40 / 牙條 40 → 下緣切齊，落差 0 |
+
+  ⚠️ **為什麼不用讓開弧肩**：弧的上端切線是**水平**的（`inset = shoulder·cos(θ)`，θ=π/2 時
+  d(inset)/dy = ∞），所以牙條底緣貼齊接撐段下緣時，它底下那一層仍是**全寬的方肩**，
+  不是「架在刀口上」。v2 的直覺（1mm 內縮 3.8mm）算的是弧**中段**的斜率，套錯位置。
+
+  🧷 三個地方要同步，改一個忘兩個就會反過來砍牙條 8mm：
+  `resolveCtBlockForApron()`、各 template 的 `ctApronMaxH`、
+  `_builders/simple-table.ts` 與 `desk.ts` 的 `min(apronWanted, ctBlockEff)`。
+
+  🧷 **錯開本身也要夾**（`ctBlockHeight − 下垂 − 10mm`），否則
+  「錯開 80 vs 接撐段 40」會把牙條夾成**高度 0 的零件**。
+  🧷 夾過的錯開值要**當成唯一來源**往下傳；只夾「算高度那份」而位移仍讀原值，
+  兩邊對不起來、照樣懸空。
+  🧷 牙條高被夾成 0 時**不要產零件**（材料單會出現 0mm 的料）。
+
+  稽核：`scripts/audit-apron-block.ts`（9 款 × 每個會影響牙條位置的選項推極值）。
+
+- ⭐ **弧段取樣數 `ARC = 24`，而且有兩份（2026-08-25）**：
+
+  `lib/render/part-geometry.ts`（3D 網格）與 `lib/render/geometry.ts`
+  （三視圖／零件圖輪廓）**各有一份 `const ARC`，必須一樣**，否則畫面跟圖紙的弧對不起來。
+
+  ⚠️ 只改 3D 那份時，`audit-leg-shapes` 的 165 組指紋**完全沒反應** ——
+  因為它量的是輪廓那一份。有測試釘住兩份一致（`two-way-cove.test.ts`）。
+
+  8 段在 8mm 的弧上 = 每段 1mm，放大看就是「好幾個平面」；24 段每段 0.33mm。
+
+- **左右（Z）橫撐 `ctZShift`**：內面收過腳中線時 Z 橫撐坐腳中線會踩空 → 往外挪
+  `legW·(1−scale)/4` 坐到收窄後實際 X 料中點。
+- **非方腳（legW≠legD）榫接母厚按軸別取**：X 牙板/橫撐接腳母厚=legW、Z 的=legD，各軸各判
+  through/blind + 榫長（用 `min(legW,legD)` 共用會讓較厚軸那面通榫長不足/型別誤標）。
+  榫厚/榫寬只看牙板斷面、與母厚無關 → 共用。legMortisesForApron 的 X 面/Z 面榫眼也各取對應軸值。
+
 **Audit parametrize**：對每個 template 的 `legShape` select 選項所有
 choice 各跑一次（不只 default），把 26 case 擴成約 120 case。
 
@@ -529,6 +1090,58 @@ choice 各跑一次（不只 default），把 26 case 擴成約 120 case。
 ---
 
 ## B. 榫卯細節圖（Joinery Detail）
+
+
+#### A11.9 弧肩斜腳「左右下橫撐」的外挪量（2026-09-02）
+
+腳在橫撐高度的 X 內面已收進 `recession = legW × (1 − scale) / 2`；左右（Z 向）橫撐若停在名目位置，
+內側那一截會懸在凹弧裡。舊規則固定往外挪 `recession / 2`，**前提是橫撐坐在腳中線**——後來牙條／橫撐
+改成貼齊腳外面（`resolveApronSetbackForLeg`）這個前提就沒了，再挪就純粹多挪，端頭凸出腳外 7.9mm
+（木頭仁：「弧肩斜腳打開 左右下橫撐會比腳還凸出」）。
+
+現行（`ctStretcherOutwardShift`，square-stool 與 dining-chair 共用）：
+```
+legOuter     = legCenter + legW/2
+legInnerAtY  = legCenter − legW/2 + recession
+need = max(0, legInnerAtY − (lsAxis − t/2))   # 要挪多少才不懸空
+room = max(0, legOuter − (lsAxis + t/2))      # 最多能挪多少才不出腳
+shift = min(need, room)
+```
+方凳預設（legW 35、t 20、lsAxis 165、legCenter 157.5、scale 0.10 → recession 15.76）：need 0.76、room 0
+→ shift 0（剩 0.76mm 懸在弧裡，肉眼看不到）。坐中線的舊配置（lsAxis 157.5）：need 8.26、room 7.5 → 7.5（舊 7.88）。
+榫眼跟著同一個 `ctZShift` 挪，肩才蓋得住榫眼口。
+
+**A11.10 補償用的 bottomScale 必須跟腳自己的 shape 同一個值（2026-09-02）**：
+
+`legBottomScale("tapered")` 是 0.6，但 simple-table / tea-table / round-table 的錐腳幾何寫 0.55
+（simple-table 的 inverted 是 1.3 vs 1.25）。兩邊各算各的 → 下橫撐兩端短 0.7~1.2mm 的縫。
+規則：**從 shape 讀**（simple-table 讀 `legShapeFor().bottomScale`；tea-table `TAPERED_BOTTOM_SCALE`；
+round-table `rtBottomScale` 傳給 `legProfileScaleAt(…, override)`）。腳的幾何不動（`audit:legs` 指紋才不會變）。
+
+**A11.11 床側板／床頭板貼錐腳（`apron-trapezoid.taperSpanMm`，2026-09-02）**：
+
+- 側板：跟桌類牙條一樣，長度對到 rail 中心高度的腳面、端面 `apron-trapezoid`（top/bottom = rail 上/下緣的腳面）。
+  舊寫法取「rail 高度區間內腳最寬處」直切 → 倒錐腳上緣 7.2mm、錐腳下緣 13mm 楔形縫。ledger 取自己高度區間的最寬處直切（楔形 ≤ 30 × 斜率）。
+- 床頭板／床尾板從地板立到腳頂以上，只有 0~腳高 這段要貼斜面 → `taperSpanMm = legHeight`：
+  梯形從 local −Z 邊（地板）線性到 span 處＝`bottomLengthScale`（=1，腳頂寬），再往上端面垂直。
+  `visible.length = headPanelSpan = 2·apronEdgeZ − 腳頂寬`，`topLengthScale = (2·apronEdgeZ − 腳底寬)/headPanelSpan`。
+- 幾何：3D 三圈 12 頂點（`buildApronTrapezoidGeometry`）；2D 面對板面是**六邊形**，錐腳時膝點是凹角，
+  convex hull 會填平（實測 y=250 差 11mm）→ `projectPartSilhouette` 直接輸出有序輪廓，看側邊（面積≈0）才退回 hull。
+- 3D 榫頭根位置（PerspectiveView）用「該 Z 的端面 scale」而不是 avg；無 span 時代數等價、走舊式。
+- 其他 head 樣式（橫檔／柵欄／框）仍用 `headLegInnerSpan`（最寬處），未補。
+
+### A12. 三視圖實畫稽核（`npm run audit:2d-joints`，2026-09-02）
+
+13 支稽核全量 3D 座標，沒一支量「畫出來的圖」。這支把每款 × 每個腳型 × 新設定的三視圖用
+`renderToString(<OrthoView>)` 真的渲染成 SVG，切出 `<g data-part-id>`（svg-views 每個零件的 group 都掛了）
+的線段，對「榫頭↔榫眼配對」的零件對量最短距離，> 0.5mm ＝圖上接不上。434 個設計／16,483 個接合×視圖，約 8~10 分鐘，
+所以不進 `npm run audit` 預設鏈，改三視圖或模板長度後手動跑。
+
+- 負向對照：`NEG_CTL=1`（方凳 apron-front 推 30mm 要紅）。`ONLY=stool,bed`、`DEBUG=1`。
+- 會誤判的兩個坑：①橫撐端面藏在腳後面＝整個被包住 → 用 hull 包含判定（否則 7.5mm 假縫）；
+  ②楔形縫（一角碰到、另一角開口）正／側視最短距離＝0 抓不到，只有俯視抓得到 → 楔形要另外量兩個角。
+- 首跑 314 條 → 修完剩 7 條：衣帽架底爪 vs 車旋柱收腰 1.7mm（`LATHE_SEG` 底段 0.8，共用資料不能動；底爪榫進柱心，3D 上是縫在造型裡）。
+- 零件圖：`npm run audit:iso-ct-legs`（弧肩腳在新設定下的榫眼標記不出輪廓）。
 
 ### B1. 渲染慣例
 - 主視圖：榫頭水平向右，公榫從左件伸出，母榫在右件
@@ -541,7 +1154,7 @@ choice 各跑一次（不只 default），把 26 case 擴成約 120 case。
 
 | 榫卯 | 關鍵尺寸 | 公式 |
 |------|---------|------|
-| **直榫** | 榫厚 t | `T/3`（硬木 1/3，軟木可到 1/2） |
+| **直榫** | 榫厚 t | `T ≤ 30mm → T/2`（薄料牙條/橫撐，避免 T/3 掉到 6mm 下限）；`T > 30mm → T/3`（厚料桌腳） |
 |  | 榫寬 w | `W − 2×肩寬`，肩寬 4–6mm |
 |  | 通榫長 | = 對方件厚度 |
 |  | 盲榫長 L | `(2/3) × 對方件厚度`，最少 25mm |
@@ -843,6 +1456,66 @@ ISO 128-50 規範材料，但木材**沒有強制統一規格**。常見：
 - 斜肩 45°；榫脊上下寬比 ≈ 2:3；牙條厚 ≈ 腿料 0.6–0.7
 - 必畫剖面，否則「上小下大」鎖緊邏輯講不清
 
+#### 夾頭榫 / 插肩榫（案類的「肩」，2026-08-24 補）
+
+> ⚠️ 這一節的**比例慣例**接自本文既有的 §1014-1015（抱肩榫）與 §716（榫厚），
+> **結構數字全部是從幾何算出來的**（推導寫在下面，可自行驗算）。
+> 沒有引用外部文獻——需要古籍實測比例時要另外查證再補。
+
+**要解的問題跟弧肩斜腳（`curved-taper`）是同一個：腿與牙條交界那個「肩」怎麼收。**
+弧肩的答案是「把交界磨圓」——凹弧純裝飾、不受力，兩塊料仍是硬碰硬。
+夾頭榫家族的答案是「讓牙條嵌進腿裡，並且讓它承重」。
+
+| | 夾頭榫 | 插肩榫 |
+|---|---|---|
+| 腿上端 | 開通槽，分成兩片「頰」 | 同左，再把外側肩斜切 |
+| 牙條 | 連牙頭整組插進槽裡被夾住 | 端頭做成對應斜楔 |
+| 外觀 | 腿仍凸出於牙條表面 | **外表面齊平連續**，看不出兩塊料 |
+| 受力 | 靠夾持 | 桌面壓下 → 楔越緊（同 §1014 抱肩榫「受壓越緊」原理） |
+
+**JT1. 腿開槽後的抗彎剛度（⭐ 這條會直接改變腳料尺寸）**
+
+角腿要接兩根牙條 → 兩道槽在角上交會。保守模型：剩下的有效斷面視為兩片頰，
+每片厚 `(W − t)/2`、全深 `W`（角上殘料不計）：
+
+```
+I_剩 / I_原 = 1 − t/W        （W = 腿料寬，t = 牙條厚）
+```
+
+**這個比值只跟「牙條厚 ÷ 腿料」有關，跟腿多粗完全無關。** 因為 `I ∝ W⁴`，
+要把剛度補回原值，腿料要放大 `(1 − t/W)^(−1/4)`：
+
+| 牙條厚 / 腿料 | 剛度剩 | 腿料要放大 | 60mm 腿 → |
+|---|---|---|---|
+| 0.50 | 50% | ×1.19 | 72mm |
+| 0.60 | 40% | ×1.26 | 76mm |
+| **0.65**（§1015 抱肩榫慣例） | **35%** | **×1.30** | **79mm** |
+| 0.70 | 30% | ×1.35 | 82mm |
+
+⛔ **不能沿用弧肩斜腳的腳料尺寸直接換成插肩榫。** 同樣 60mm 的腿，
+開兩道槽之後抗彎剛度只剩三分之一。要嘛把腿加粗約 30%，要嘛降低牙條厚比。
+
+**JT2. 斜肩角上限——限制在牙條，不在腿**
+
+斜肩把牙條端頭削成楔形。腿頸在合理角度內都還夠厚，真正先出事的是
+**牙條那片楔尖**：
+
+```
+楔尖殘留厚度 = t − h_s · tan(α)      （h_s = 斜肩垂直高度）
+```
+
+硬木刨到 3mm 以下就壓不住、一夾就碎。以 `t=39mm、h_s=40mm` 為例，
+α 到 **40° 剩 5.4mm**、**45° 直接變負值（幾何上不成立）**。
+
+→ 規則：`α` 上限由 `t − h_s·tan(α) ≥ 3mm` 反解，**不要寫死角度**。
+　（§1015 的抱肩榫用 45°，但那是束腰家具的三角眼，跟這裡不是同一個幾何，不可套用。）
+
+**JT3. 還沒定案、實作前要補的**
+- 牙頭（牙條端的雲頭 / 如意）外形——目前只有 `chinese-cabinet` 有，而且是**另外貼上去的一片**，不是與牙條一體
+- 槽深 `d` 的慣例比（本文推導只用到 `t`；`d` 影響夾持力與剩餘面積，尚無來源）
+- 通槽 vs 半槽（open vs stopped）對外觀與強度的取捨
+
+
 #### 楔釘榫
 - 兩弧形件「手掌形」上下交疊搭口，前端各留小直榫互鎖，中央方孔打入木楔
 - 搭口長 ≈ 件徑 2–3 倍；中央楔孔正方形（≈ 件徑 0.3 倍）；楔長:厚 = 6:1
@@ -963,6 +1636,100 @@ type='drawer' → +z (front)
 - react-three-fiber + GSAP 自己組（DevDojo 範例 30 行 demo 完）
 - 結論：**自己寫 ~150 行**比找 lib 快，wrd 的 part metadata 是優勢
 
+### H8. 組裝動畫（Assembly Animation，2026-09-02 上線，同日第二版）
+
+木頭仁：「木作藍圖有辦法增加組合動畫嗎？」→「2 還要能輸出」。第一版上線後他一口氣打回六條：
+**沒考慮榫卯的組合方向**、鳩尾有方向性、滑蓋要從缺口滑入、抽屜/門要在外面組好整組滑進、
+組裝版要有鎖螺絲、層板從背板穿過來很怪；另外輸出影片不會動、底色黑、進度條晃。第二版全部處理。
+程式：`lib/assembly/joint-world.ts`（榫接世界座標，從 3D 抽出的唯一一份）、
+`lib/assembly/plan.ts`（拆解反推排程）、`lib/assembly/record.ts`（錄影）、
+`components/PerspectiveView.tsx`（AssemblyDriver / AssemblyControls / ScrewMesh / RecorderTap）。
+排程在 `app/[locale]/design/[type]/page.tsx` 用**還帶榫頭榫眼的 rawDesign** 算好傳進 3D
+（組裝版的 design 已被 `toBeginnerMode` 拔掉榫接，client 端自己算會排不出方向）。
+
+#### H8.1 核心：零件只能沿榫的軸向移動 → 拆解反推（assembly-by-disassembly）
+牙條兩端各一支榫插進兩支腳，不可能側著塞進兩支站好的腳。所以不是「排順序再找方向」，
+而是反過來：先找**合法的拆法**，反轉就是組法。
+1. 對零件集合 S 找子集合 G 與方向 d：G 沿 d 平移離開時，所有跨越 G/其餘的接合都平行於 d
+   且方向正確（公榫件往 −axis、母件往 +axis）。做法：把不平行於 d 的接合當「黏死」的邊做連通
+   分量，從每個分量出發做閉包（方向不對的那一頭連同分量併進 G）。G = S 就不算。
+2. 每個接合有一組**允許的插入方向 axes**：
+   - 榫頭：只有 out（榫頭伸出方向）
+   - 鳩尾（`dovetail-ends` 公榫板）：只有「公榫板板面法線、朝母板那側」一個方向
+     （鳩尾只能從母板端面套上去）
+   - 指接（`finger-joint-ends`）：板面法線 ± 與板長 ± 四個都行
+   - 滑蓋：`lid` 卡在 ≥2 片壁的槽裡 → 只准水平，從沒被壁擋住的那側（缺口）
+   鳩尾／指接模板裡沒有 Tenon 資料，靠 shape 推：公榫板兩端端面中心落在誰的 AABB 裡誰就是母板。
+3. 挑最該先拆的 G（越前面越優先）：不會撞到東西 → 優先序低的先（五金→門→抽屜→座板→層板
+   →箱體板→牙條→腳）→（沒接合的）上面的先 → 件數少的先 → 含錨件（優先序最高、id 最小）的
+   最後 → 軸向順序。同方向、同層、互不相鄰的其他候選同一步一起拆（四支牙條同時）。
+4. 拆掉的 G 遞迴再拆，剩下的 S∖G 遞迴再拆 → 一棵樹。組裝 = 後序反轉：先組好「剩下的」、
+   再在爆炸位置組好 G（子組件內部動作 ×0.6 速）、最後 G 整組沿 −d 滑入。
+   方凳實際跑出來：leg-1 → 左牙條/橫撐沿 z 插入 → leg-3 沿 z 套上 → 前後牙條/橫撐 ×4 沿 x 插入
+   → 右框（leg-2 / 右牙條 / leg-4）在爆炸位置組好 → 右框整組沿 x 滑上 → 座板從上壓下。
+5. **抽屜 / 門 / 掀蓋（family）永遠是一個單位**：在外面組好、整組水平滑進櫃體（只考慮水平
+   方向；正好在中心的以正面 −z 為先）。**把手（-pull / -knob）不算家族、歸五金、最後才裝**
+   （「把手應該是最後」），也是水平貼上去。
+6. 沒有接合跨越（S 不連通）：G = 一個分量，方向 = 六軸裡「離中心往外」且 **AABB 掃掠不撞到**
+   別的零件的那個。掃掠是 **G 裡每一件各自掃**，不用 G 的聯集盒（抽屜面板比箱體寬，聯集盒靜止
+   時就跟側板交疊、會把側板誤當本來就咬合，抽屜就往側邊穿出去）。靜止時就交疊的零件
+   （鳩尾互咬、滑蓋在槽裡）算「本來就咬合」不算撞。
+7. 找不到合法拆法（互鎖）：硬拆優先序最低的一件，標 `forced`（全目錄 28 款預設值 0 件）。
+8. 位移量 `travel = clamp(0.4 × max(overall), 80, 450)` mm；只改 3D 的 group.position，
+   幾何 / 材質 / 家具定義完全不碰（165 組腳型指紋不受影響）。
+
+#### H8.2 時間軸
+每件 800ms、步內錯開 100ms、步間停 200ms、子組件內部 ×0.6（480/120）、尾端 500ms；
+ease = easeInOutCubic。方凳 9 步 8.6s（榫接版）；五斗櫃 56 件 45 步 35s。
+`offsetsAt(t)` = 每個 id 所有 move 位移的總和（子組件裡的零件 = 自己 + 所在子組件）。
+
+#### H8.3 組裝版的螺絲
+`planAssembly(raw, { screws: true })`：每個**榫頭型**接合合上的那一步之後，從母件外側鎖入
+（頭在母件外表面、埋頭只露 0.3mm，長 = 母件沿軸厚度(≤60) + 30，榫寬 ≥ 40 排兩支，鎖入 350ms、
+支間 70ms、鎖入前隱藏）。鳩尾／指接／滑蓋不鎖。
+**椅面 / 桌面例外**：腳頂榫頭 → 面板這種接合不從面板上方鎖進腳，改成找所有「頂面貼著面板底面」
+的牙條，每支牙條在 1/4、3/4 處各一支從底下往上鎖，長 = 牙條高 + 進面板 ≤20mm（留 6mm 不穿出）
+（「固定椅面跟桌面的 應該是從牙條底下往上鎖到椅面 一個牙條２隻螺絲」）。
+3D：`ScrewMesh` 掛在母件 group 底下，外層 group 吃位移、`visible` 由 AssemblyDriver 依 `appearMs`
+控；mesh 標 `userData.isScrew`，虛影邏輯跳過（一被改成 transparent 就進透明排序、從木頭裡透出來）。
+**組裝版工具清單**（`lib/tools/derive.ts`）：榫頭被拔掉後 seenJoinery 空 → 退用 `defaultJoinery`
+（pocket-hole），TENZ 螺絲 / 電鑽 / 斜孔治具 / 白橡膠槌才會列進去。
+
+#### H8.4 3D 接法（不重建幾何）
+- 每個零件 / 螺絲的 `<group>` 掛 ref 進 Map；`AssemblyDriver` 在 `useFrame` 裡寫
+  `group.position`（mm × SCALE）。時鐘放 ref，零件樹不重 render。
+- 播放中每幀 `invalidate()`；播完停，不回到「靜置空燒」。滑桿 / 關閉走 `scrubNonce`。
+- 步驟文字獨立一行（塞在滑桿旁邊會讓滑桿隨文字長度伸縮 → 晃）。
+- **虛影**：還沒輪到（第一筆 move 未開始）的零件 opacity ×0.15、depthWrite 關、不投影，
+  輪到時在前 30% 淡入（「還沒進入組裝程序的材料是不是要透明 不然會擋住」）。直接改 mesh 自己
+  的材質（JSX 各建一份，React 的 opacity prop 沒變不會蓋回來）；關掉動畫全部還原。
+- **🦆 拿鋸子的鴨子**（`components/viewer/CoffeeDuck.tsx`，預設開、控制列可關）：照木頭仁女兒的手繪
+  用基本幾何堆的吉祥物，白色部件外套放大 6% 的黑色反面殼當描邊。組裝中在 +x 側走道沿 z 來回跑
+  （腳手擺、上下顛、跑到底轉身），最後一步結束（`steps[last].endMs`）從當下位置拋物線跳上 perch
+  （有 `seat` → 坐座面中央、腳往前伸；否則站頂面中央），之後每 5 秒舉鋸子揮兩下。
+  姿勢全由組裝時鐘算、不累積：拖滑桿倒回去會重跑，錄影錄得到；只在播放時要求下一幀。
+  `TAIL_MS` 因此 500 → 1600（跳 900ms + 收尾）。歷程：咖啡杯→跑來跑去→蒸氣加大→腮幫收窄→改拿鋸子。
+- **運鏡**（預設開、控制列可關）：播放 / 錄影期間相機繞 OrbitControls 的 target 水平轉，
+  角速度 = 120° / 總時長；使用者拖曳照樣有效。驗法：播 4 秒後拉回 t=0 的截圖跟一開始比，
+  PSNR 開著 ≈ 30dB（有轉）、關著 ≈ 65dB（只剩渲染雜訊，不能用 bytes 相等判）。
+
+#### H8.5 影片輸出
+- 錄的不是 WebGL canvas，是 `RecorderTap`（useFrame priority 1 接管渲染）每幀複製出來的
+  **2D 畫布**：先鋪頁面同款淺灰漸層底，再疊 WebGL 幀。理由：WebGL 沒開 preserveDrawingBuffer
+  時 `captureStream` 在 Safari 拿到定格（「輸出的組裝動畫是不會動的」）、透明背景錄出來是黑的。
+  錄影期間 dpr 拉到 2。
+- 格式：WebM(VP9) 優先、MP4 墊後。Chrome 的 MP4(avc1) 實測 ffmpeg 解碼滿滿錯誤，VP9 乾淨；
+  Safari 只能 MP4 且乾淨。直式 9:16 / 方形 1:1 = 錄影期間暫改 canvas 容器比例。
+- 驗法：Playwright 下載 → `ffprobe -count_frames`（幀數 > 100）、抽三個時間點的幀 md5 要不同、
+  角落像素要是淺色（249,249,249）。
+
+#### H8.6 已知取捨
+- 順序是合法的組法但不是唯一解；相機不運鏡，播放中可自己拖曳旋轉，錄影照錄。
+- 抽屜五塊板之間沒有接合資料 → 在爆炸位置用「往外」方向合攏，不是真的鳩尾套入。
+- `matchMortiseForTenon` 的母件榫眼入口原本只看「離哪個面最近」，餐桌側牙條的榫眼（腳頂下 31mm、
+  離側面 35mm）被判成頂面榫眼永遠配不到 → 現在每個榫眼另外兩個面也各給一筆候選入口，
+  配對本來就取「方向相反且 < 60mm 最近」那筆，多給的入口只有真的對得上才會被選到。
+
 ---
 
 ## I. 自動標註（Auto-Dimensioning）
@@ -1040,6 +1807,42 @@ if 尺寸數 > 5                         → baseline
 5. Leader line 只用直線 + L 形
 
 > JS 生態這塊幾乎空白（OpenCASCADE/CadQuery 都沒自動標註），自幹 600 行內可拿到 80% 效果。
+
+### I8. 主三視圖標註覆蓋矩陣 + 槽位表（2026-06-10 全模板補標）
+
+`lib/render/svg-views.tsx` OrthoView 的標註系統（畫面 /design、列印 /print、報價 /quote 三處共用一份）。
+
+**座標槽位**（PADDING=220 內；新標一律放空槽，§A6 平行條 ≥5mm）：
+
+| 槽位 | 用途 |
+|------|------|
+| 底部 y+28 | 外寬/深（圓面家具掛 Ø，§I6 寬=深冗餘標一次） |
+| 底部 y+80 | 內寬（櫃/箱盒）/ 腳外距（桌椅；=外寬時冗餘跳過） |
+| 底部 y+94 | 腳粗 text（錐形上/下端、圓料 Ø） |
+| 右 x+28 | 總高/深（generic） |
+| 右 x+96 | 主面厚 / 內高 / 內深（矮件與 x+28 標籤同 Y 時 labelY 錯開 18） |
+| 右 x+140 | 淨高 / 腳高 / 底厚 |
+| 右貼邊 x=w/2+4 | 橫撐厚＋層板厚＋蓋厚 text 帶（同帶 Y 防撞、同名同厚去重含方向前後綴剝除） |
+| 左 -28 | 櫃 zone 高度鏈 |
+| 左 -36-i*44 | 非櫃高度堆疊（座面/層板/橫撐 topY） |
+| 左 -72/-116 | 吊衣桿高（雙桿錯欄，§I2 短內長外） |
+| 圖內 text | 門/抽面 W×H（棕字置面板中央、門放上 1/3 避中梃）、紅酒架格、壁厚、床板條規格、內框口 |
+
+**提取函式**（同檔）：
+- `extractFurnitureDims()` — main/cabinet/shelves/crossPieces/legFootprint/legProfile/isRoundMain/drawerFaces/doors/rods/sidePanelT/backPanelT
+- `extractBoxDims()` — 箱盒（bottom+wall-front 偵測；六/八角 polygonStaves 落空優雅降級）
+- `extractFrameDims()` — 相框（平躺建模 → 內框口標俯視）
+
+**id 慣例（提取依賴，改 builder 命名要同步這裡）**：
+- 腳：`leg-N` ＋ `leg-lf/lb/rf/rb` 兩種
+- 抽面：`*-face`；inset 抽屜無面板時抓 `*-drawer-N-front`（有 -face 兄弟則跳過）
+- 門成員白名單：`-(slab|stile-left|stile-right|rail-top|rail-bottom|panel|glass|door)$` 且 id 含 "door"（把手 `-door-pull`/`-slab-pull` 自然排除）；門 W×H = 成員 AABB 聯集（doorOuterW/H 是 builder local 不在 part 上）
+- 吊衣桿：`hanging-rod` / `zN-rod` / `zN-hang-rod` / `*-colN-rod`
+- 床板條：`slat-N`（排列軸動態判斷 origins 分佈，別硬猜 X/Z）
+- 衣帽架：`column` + `hook-N`
+- 尺寸一律 `worldExtents()` 世界座標（drawer-row rot.x=π/2 與中式櫃直立板慣例不同，visible 軸會踩雷）
+
+**§I6 冗餘跳過案例**：腳外距=外寬、圓面俯視深=寬、側板滿深時內深=外深。
 
 ---
 
@@ -1410,6 +2213,7 @@ function generateHolePattern(board, hardware): Hole[] {
 | 餐桌 | 720-760 | 750-1100 | 椅桌差 270-310 |
 | 書桌（坐） | 730-760 | 600-800 | |
 | 站姿工作桌 | 950-1100 | — | 立姿肘高 −50~100 |
+| 手刨工作桌 | 760-880 | — | 掌根高 ≈ H×0.49（§AU2；站姿那列是機具/精細模式） |
 | 吧台 | 900-1100 | — | 配吧椅 600-800 |
 | 茶几 | 380-460 | — | 沙發座面 −50~+25 |
 | 邊桌 | 550-650 | 400-500 | 沙發扶手齊 |
@@ -1879,6 +2683,21 @@ surface(u, v) = path(v) + frame(v) · profile(u)
 - 簡記：1 才 ≈ 2782 cc，1 m³ ≈ 360 才
 - 才數 = 厚(寸) × 寬(寸) × 長(尺)
 
+⚠️ **這是台才，wrd 的報價用的不是這個。**
+
+`lib/pricing/catalog.ts` 的 `MM3_PER_BDFT` 用的是**美制 board foot**
+（1" × 12" × 12" = 144 in³ ≈ **2,359,737 mm³**），UI 上寫「板才」指的就是它。
+兩者差 **17.9%**。2026-08-23 已跟木頭仁確認：**單價表是照 board foot 報的，維持現狀**。
+
+| | 體積 | 1 m³ 換算 |
+|---|---|---|
+| 台才（木材行口語的「才」） | 2,781,870 mm³ | ≈ 360 才 |
+| **板才 / board foot（wrd 報價用）** | **2,359,737 mm³** | ≈ 424 板才 |
+
+⛔ 看到這一節就去把 `MM3_PER_BDFT` 改成 2,781,870 的話，材料成本會整站錯 17.9%。
+要換單位的話，常數 + 單價表 + 使用者已存的自填單價**三個要一起換**。
+有 `lib/pricing/catalog.test.ts` 釘住這個常數。
+
 ### T3. 板材規格
 | 板材 | 標準 (mm) | 常見厚度 |
 |------|----------|---------|
@@ -2175,6 +2994,48 @@ Claude Sonnet 4 vision：input ~1500 tokens（含圖）+ output ~300 tokens ≈ 
 | | 現場組裝+調水平 | 0.5-2 hr/件 |
 
 > 業界俗語「三分木工、七分油工」— 表面處理工時容易被低估，**獨立科目不要併入塗裝固定金額**。
+
+### X1b. 報價參數一律在「進來的那一層」洗過
+
+grep keyword：`sanitizeLaborOpts|sanitizeEngQuoteOpts|LABOR_BOUNDS|ENG_RATE_BOUNDS`
+
+報價的費用參數（毛利 / 折扣 / 時薪 / 訂金 / 稅率…）**全部藏在網址裡**：
+家具走 query（`?hourlyRate=…`），裝潢工具走 base64 的 `?o=`。
+
+⛔ 表單元件有擋（`NumField` 的 `Math.max(0, …)`、`LABOR_BOUNDS` 的 min/max），
+**但列印頁完全繞過表單**——它直接從網址解析。而列印頁正是**要交到客戶手上**的那張單。
+報價連結本來就是分享出去的，被轉手、被手改、或是舊版留下的過期連結都會走到這條路。
+
+2026-08-23 實測做得出來的單：
+
+| 網址改成 | 印出來的結果 |
+|---|---|
+| `?discountRate=5` | 總價 **−73,198**、訂金 **−21,959** |
+| `?depositRate=3` | 訂金 54,897 **比總價 18,299 還多 3 倍** |
+| `?marginRate=abc` | 整張單 **NaN** |
+| `?hourlyRate=-500` | 家具報價 19,650 → **163** |
+| `?marginRate=-1` | 總價 **NT$0** |
+
+✅ **通則：夾在解析的那一層，不要改計算函式的語意。**
+- 家具：`sanitizeLaborOpts()` @ `lib/pricing/labor.ts`（用既有的 `LABOR_BOUNDS`）
+- 裝潢：`sanitizeEngQuoteOpts()` @ `lib/engineering-quote/defaults.ts`（`ENG_RATE_BOUNDS`）
+- 不是有限數字 → 退回預設值；是數字 → 夾進範圍；不認得的欄位 → 直接無視。
+- **不丟例外**：列印頁寧可印出一張合理的單，也不要整頁掛掉。
+
+⚠️ **「手動覆寫單價造成負毛利」（賠本接單）是正常功能，不可以順手夾掉。**
+夾的是 `marginRate`，不是 `overrideUnitPrice` 算出來的 `margin`。有測試釘住這條界線。
+
+**驗證：** `lib/pricing/quote.test.ts` + `lib/engineering-quote/sanitize.test.ts`
+（每個費用參數被亂改後，客戶拿到的單都不准有負數或 NaN，且訂金 + 尾款 = 總價）。
+
+
+### X1c. 報價與列印幣別一致
+
+`getCurrencyFromCookies` 與 `useCurrency` 採同一既有規則：`zh-TW` 顯示 TWD，
+`en` 顯示 USD；舊 `wr-currency` cookie 不得蓋過語系規則。金額仍以 TWD
+計算、儲存，顯示時才經 `formatPrice` 換算，不變更計價公式或固定匯率。
+2026-09-06 實測舊 USD cookie 使中文報價表為 USD，但付款條件為 TWD；
+由 `lib/units/server-currency.test.ts` 釘住兩語系與相反 cookie 的回歸案例。
 
 ### X2. 損料率分級
 - 實木 10%
@@ -4185,7 +5046,513 @@ Windsor resultant + sightline (rake/splay 為角度):
 
 ---
 
+## AU. 木工工作桌（workbench）
+
+> 2026-09-03 五位專家（手工具木匠 / 台灣公寓玩家 / 人因安全 / 產品經理 / 實作工程師）兩輪詰問定案的 v1 規則。
+> 實作在 `lib/templates/workbench.ts`；骨架走 `simpleTable()`（方料直腳），工作桌獨有零件全部 post-process。
+> ⚠️ 本節數字直接對應 code：`y = 高、z = 深（前 = −z）`；使用者說的「左」= 世界 +x。
+
+### AU1. 剛性只有兩條路（不能各取一半）
+
+| 路線 | 桌面厚 | 抗晃構件 | 代表 |
+|---|---|---|---|
+| 質量式 | **≥ 75**（Roubo 原版 5–6"；Sellers 最少 63、常規 75） | 粗腳 ≥ 100 + 腳頂通榫 + 下橫撐 | Roubo（Schwarz《Workbenches》2007） |
+| 箱體式 | 38–65（兩層 2×12 或夾板疊） | **裙板 ≥ 250**（Sellers cutting list 40×290；Nicholson 前板 1½–2" × 寬板） | Nicholson / Sellers |
+
+60mm 桌面配 90mm 牙條 = 台灣網友抱怨「短邊晃、桌面彎」（Mobile01 4230771）的那種桌。
+code：`withApron=false` 時 `topThickness` 預設 75、`legSize` 預設 100；`withApron=true` 時裙板高預設 250。
+撓度（§M1 公式，南方松 E=9000、跨 1800、中央 300N）：兩層 38 膠合 δ≈0.18mm、單層 38 也只有 1.5mm →
+**撓度不是薄桌面的限制，holdfast 咬合與 racking 才是**。
+
+### AU2. 桌高三模式（只給建議，不覆寫 `height`）
+
+| 模式 | 係數 | 170cm → | 依據 |
+|---|---|---|---|
+| 手刨 `plane` | **H × 0.49** | 833 | Schwarz 小指根法；`lib/knowledge/ergonomics.ts:workbenchByHeight` 同係數 |
+| 機具 / 組裝 `machine` | **H × 0.55** | 935 | 勞研所 2016 站姿肘高（男 50th 1050）− 100~150 |
+| 精細 `fine` | **H × 0.60** | 1020 | 勞研所精密作業肘上 +50~100；English Woodworker 38–39" |
+
+規則：`height < 建議 − 60` → warning「會彎腰」；`height > 建議 + 80` → warning「用不上體重」。
+不填身高用 170（台灣男中位；國健署 2013–16 男 172.8 / 女 159.7）。預設桌高 850 = 手刨上緣、機具下緣的交點，
+也是台灣自製桌實測帶（DaviDIY 800、教室桌 810）。§O2 的「站姿工作桌 950–1100」是機具 / 精細那兩檔。
+
+### AU3. 腳距桌端 = 桌長 / 5（§AT4.5）
+
+`endOverhang = 0` → 自動 `round(L/5)`（Roubo Plate 11；Schwarz 250cm 台 → 腳距端 50cm）。
+上限 `floor((L − 2·legSize − 300)/2)`（兩腳之間至少留 300）。實作：`simpleTable` 用 `length = L − 2·overhang`
+蓋腳架，再把 `top.visible.length` 拉回 L（腳頂榫眼座標相對桌面中心不變）。前腳一律齊桌面前緣（`legInset=0`），
+這是鉗 / deadman / 夾長板的前提（Benchcrafted 說明書）。
+
+### AU4. 桌面拼法與片數
+
+| `topBuild` | 片數公式 | 用途 |
+|---|---|---|
+| `plank` 寬板平拼 | `ceil(工作面深 / 280)` | 硬木拼板（280 = 單片實木上限，同 round-table / 工具牆慣例） |
+| `stave` 窄條側立拼 | `ceil(工作面深 / max(38, 厚))` | 台灣 2×4 / 角料立起來膠合（Schwarz 2×12 對剖、Sellers 38×63 側立） |
+| `stack` 疊層 | `= topLayers` | 18mm 樺木夾板 × 3 ≈ 54、25mm 橡膠木指接板 × 3 = 75 |
+
+只寫進 `Part.panelPieces`，3D 不變。
+
+### AU5. 狗孔與 holdfast 孔
+
+- 表示法：桌面 `Mortise{shape:"round", cosmetic:true, through:true, length=width=Ø}`，origin 用 §M1 mesh-local
+  （`y = topT` 從上面鑽入）。三視圖 / 零件圖（自動標 Ø）/ CNC 加工面 / 3D CSG 全部免費支援。
+- 孔徑：**Ø19**（3/4"，台灣桌狗 / holdfast 主流，木頭仁自家規範）；**Ø20** 給 MFT 配件（3/4" 桌狗插得進 20 孔，反之不行）。
+- 前列：`z = −工作面深/2 + max(離前緣設定, 2·Ø + 10)`（Schwarz 2–4"；太靠邊沿木紋裂）。端頭留 100。
+  從鉗那端起算：第一孔 `x = viseX − sign·(jaw/2 + 50)`（鉗座 250 區段不打孔，木匠裁定），往另一端每 `pitch`（預設 100）一孔。
+  刨擋佔掉第一格。上限 **60 孔**，超過自動 `pitch = ceil(span/59/10)·10` 並出聲。
+  **09-04**：起算點改成木顎中心 x 減整數個孔距（跟鉗口桌狗同一條 x 格線）。
+- **3D 不 CSG**：同零件 ≥6 個 cosmetic round through 孔時 `PerspectiveView` 改畫深色圓柱塞（`holeDecals`），
+  不做 sequential subtraction（20 孔一次 4.7 秒、手機像當機；2026-09-03 木頭仁「參數都沒辦法點」）。
+  ⭐ 以後任何模板的「一排孔」都別走 CSG。
+- **零件圖合併標註**（`annotation.tsx` holeSeries）：同零件 cosmetic + round + through、同 Ø、同 `origin.z` 一列、
+  孔距固定（±0.5）且 ≥3 孔 → 只在首孔標「Ø19 穿 ×15 @100」；多列同 x 集合、列距固定 → 合併成「Ø20 穿 18×6 @96」。
+  孔本身每顆照畫。托盤手把 pill（2~3 孔）不受影響。
+- holdfast 後排：只在桌面 **44 ≤ t ≤ 89** 才打（Gramercy 1¾"~3½"、Lee Valley 1½"~4"）；`t < 44` 自動取消並出聲；
+  `t > 89` 出聲「孔底反鑽 Ø30、深 t−70」。位置 `z = +工作面深/2 − 100`，孔距 `max(2·pitch, 300)`，跟前排錯開半格
+  （Schwarz：16" apart, staggered），上限 12 孔。
+- MFT 格陣：Ø20、96 間距、離邊 60（Ø20 / 96 = Festool MFT/3 規格；邊距是自定）；`cols = floor((L−120)/96)+1`、`rows` 以 **200 孔**為上限從前排往後保留，砍掉的排數出聲。
+  鉗那一塊（`|x − viseX| < jaw/2 + 30` 且 z 在前 200）跳過。
+
+### AU5b. 流派 preset 的語意（09-04 改）
+
+`benchStyle` 切換時由 `components/design/DesignFormShell.tsx` 把 `lib/templates/workbench-presets.ts` 的整組值
+寫進表單／網址（select / radio 晶片 / checkbox / hidden 都處理），模板**不再**用「值等於預設就吃 preset」覆寫。
+唯一例外：網址只有 `benchStyle`、preset 管的 key 一個都沒出現（舊分享連結）→ 模板套一次。
+⛔ 原本的寫法會讓 preset 帶到的 key 永遠選不回 spec 預設、表單顯示跟 3D 對不上（bedPreset / chinese-cabinet 仍是舊寫法，同雷）。
+
+### AU5c. 買現成的東西不畫成零件（09-04 木頭仁）
+
+「很多功能都沒必要，像是擋塊、桌上面的鉗子，那都是買現成的；虎鉗不該算進料單，通常都是買金屬的。」
+- **拿掉**：刨擋方柱（`planingStop`）、桌上加高小鉗（`moxon`）、附件 V 口壓板／鋸切靠板（`accessories`）、尾鉗滑塊狗頭（`dog-block`）。
+- **留在 3D 但不進料單**：鉗身、手把、尾鉗螺桿與手輪、腳鉗手把——一律 `visual:"metal"`。
+  材料單（`MaterialList`）把 `visual` 有值的零件歸到「五金（外購）」區、不計件數、不計材積；裁切圖／CSV／報價材積本來就跳過。
+  設計頁「N 件」、列印頁零件數、報價 BOM 都改成只數木料。
+- **留下的木件**（使用者自己做的）：前鉗木顎、內顎板、鉗座墊塊、腳鉗木顎與平行導件、尾鉗端蓋、長板靠板三件、中縫擋條。
+
+### AU5d. 09-04 木頭仁：「更專業的做法」三條
+1. **中央凹槽放工具**（`topSplit=center-well`）：兩片桌面各 (workW − 槽寬)/2（各要 ≥ 腳 + 40），槽底板 24 厚、頂面 = H − 槽深（**槽深 ≤ 桌面厚 − 24**，桌面 < 60 整個略過出聲），
+   底板嵌在兩片桌面內側各 10 深的溝裡，**整片在桌面厚度內、桌底維持平的**（09-04 全面檢查：原本掛在桌底的兩條墊條會跟裙板、穿帶互穿，已拿掉）。腳頂榫眼照 z 分到各片。
+2. **正面看得到孔**（`legHoles`，預設開）：兩支前腳正面一列 Ø19（Roubo：長料一端夾前鉗、另一端用 holdfast／插銷靠腳），
+   從腳頂下 120 到下橫撐上 120 均分、間距 ≤ 150。腳零件 mesh-local 前面 = −z。
+3. **會左右拖的洞洞板** = 長板靠板（deadman）：它需要前下橫撐，原預設 H 形沒有 → 一般人看不到。
+   **下橫撐預設改 4 邊框**（Roubo 原版本來就是前後長撐 + 兩端短撐），H 形留選項。
+
+### AU5e. 桌面底穿帶（`topBattens`，09-04 他：「加上，但可選」）
+
+- 兩端各一條 60×30，`rotation.y = π/2` 跨桌面深度，長 = 工作面深 + 前緣凸出 − 40（兩端各留 20 止燕尾）。
+- 位置：腳外面 + 40（鉗那端若鉗本體太近，往內縮到本體 − 40；不夠 30 就略過那端出聲）。
+- 燕尾槽：深 15、槽口 40、槽底 50（≈1:6）；只在中央 100 上膠。槽在圖上**不畫成榫眼**（沿 z 的長槽沒有穩定的 mortise 表示法，smart-fit 會把長邊轉到 x）——規格寫在 notes 與工序 `step-10e-top-battens`。
+- 疊層桌面（`topBuild=stack`）不做並出聲。⭐ 他說的「穿帶」＝下橫撐；桌面底這種在木工術語也叫穿帶，UI 標「桌面底穿帶」避免混。
+
+### AU6. 鑄鐵快速鉗（前鉗）
+
+| 項目 | 值 | 來源 |
+|---|---|---|
+| 鉗口寬 | 7" = 180、9" = 225 | 台灣建成 / SKC 規格（NT$2,200 / 2,990） |
+| 前緣木料厚 | **≥ 60**，不足加 `vise-spacer` 墊塊（jaw × 160 × (60−t)）並出聲 | 廠商標「桌板厚度約 60mm、4 孔」 |
+| 位置 | `endOverhang ≥ jaw + 80` → 裝腳外側 `x = ±(L/2 − 60 − jaw/2)`；否則腳內側 `x = ±(legInner − 20 − jaw/2)` | 木匠裁定「鉗中心距端 ≥ 350 避腳」 |
+| 本體 | `visual:"metal"` 箱 jaw × 160 × 70，頂貼桌底（或墊塊底）；有裙板且裙板蓋到鉗 → 躲在裙板**後面**（builder 把裙板置中在腳裡，用實際零件算後面在哪） | — |
+| 木顎 | jaw × 30 × (t + spacer + 70)，頂齊桌面、往下包住本體；螺桿 Ø30 + 兩導桿 Ø20 圓孔（mesh-local 從前面進） | — |
+| 手把 | Ø20 × 220 圓棒 `axis:"x"`、`visual:"metal"`，在木顎前 45 | — |
+| 裙板穿孔 | 裙板蓋到鉗時，`apron-front`（rotation.x=π/2）用 mesh-local `y=0`、`z = screwY − 裙板中心 y` 打同三孔 | §M1 |
+
+螺桿中心 `y = 本體頂 − 35`。五金列進 notes：鉗 + 4 支木牙螺栓。
+
+
+**2026-09-04 補（木頭仁：「孔位怎麼沒跟虎鉗有相應的孔」）**
+- 內顎板 `vise-inner-jaw`：jaw × 20 × chopH 貼桌面前緣（`z = edge ± 10`），跟木顎同樣三孔（Ø30 螺桿 + 兩 Ø20 導桿）一對一對應；木顎再往外 20。
+- 木顎加厚 30 → **45**，頂面一個 Ø19「鉗口桌狗孔」（盲孔深 60，label `鉗口桌狗孔`）。
+- 桌面底面 4 個 Ø8 深 40「鉗座螺栓孔」（本體四角內縮 20；cosmetic + round 盲孔 → 3D 走圓柱塞、零件圖標 Ø8）。
+- 前排狗孔列改**從鉗口桌狗（木顎中心 x）起算整數個孔距**，跳過落在鉗本體上方（jaw/2 + 20）的格：7" 鉗 → 第一孔在木顎中心 −200。
+- 腳鉗補**平行導件** `leg-vise-guide`：25 × 40 木條，visible 120（露出腳後）+ `end` 通榫 legSize 穿腳（腳上 25×40 通榫眼改非 cosmetic），Ø10 銷孔 @25；rotation.y = π/2。
+- 尾鉗看得見：手輪 Ø150 × 30、螺桿露出 60、滑塊狗露頭 25；**選尾鉗時另一端（自動模式）縮到 max(300, jaw+80)** 把腳距補回來（1800 桌：470 + 300 → 腳距 930 / 830 = 1.12，不再觸發腳距警告）。
+
+### AU7. 腳鉗簡版（v1 不做 criss-cross / 銷孔列）
+
+木顎 `max(150, legSize + 40)` × **64** × (H − 100)，貼前腳前面；螺桿孔 Ø32 在 `y = H − 200`（Benchcrafted：螺桿約 8" 在桌面下）；
+那支腳同高打 Ø32 貫穿孔，另在 `y = 下橫撐頂 + 40` 打 25 × 40 平行導件槽（避開橫撐榫）。`legSize < 64` 夾到 64 出聲。
+手把 Ø24 × 300。五金 notes：自製 Ø70 木螺桿或進口套件 + 平行導件木條。
+
+### AU8. 刨擋
+
+64 方木柱（AWB 2½"），`visible = 64×64×20` 站在桌面上，**榫在柱底**（`position:"bottom"`, through, 長 = t）插進桌面
+64×64 貫穿榫孔（非 cosmetic，是真接合 → 組裝動畫從上方插入）。位置 = 狗孔第一格；`z = max(狗孔列, −深/2 + 72)`。
+桌面 < 75 出聲「靠摩擦卡住，建議 ≥75」。落在中縫裡就略過並出聲。
+
+### AU9. 工具槽（Sellers well board）
+
+`workW = W − wellWidth`（腳只在工作面下）；槽深 `≤ t − 10`（槽底要能鎖桌面後緣）出聲夾制；槽寬上限 `W − 2·legSize − 200`。
+零件：槽底 18（L−36 × wellWidth−18）、後擋板 18 × (wellDepth+18)（L−36 長，在兩端板之間）、兩端板 18 × wellWidth。
+全部 push 完把**所有零件 z −= wellWidth/2**，讓桌子在自己的 `overall` 裡置中。
+
+### AU10. 螺栓可拆（knockdown = bolt）
+
+腳上每個「橫撐 / 裙板」榫眼（非 cosmetic、非圓孔）中心再穿一個 **Ø11 貫穿圓孔**（`label: M10 床螺栓孔`），
+origin 沿用該榫眼的 origin → depthAxis 跟榫同軸 = 床螺栓（bed bolt）從腳外面鎖進橫撐端。榫頭不上膠。
+沒有橫撐也沒裙板卻選了可拆 → 出聲。Moravian 楔形通榫沒有表示法（榫頭伸出母件外違反 §A10），v2。
+
+### AU11. 警告閾值（全部只出聲，不改使用者的值）
+
+| 條件 | 訊息 | 來源 |
+|---|---|---|
+| `height` 偏離 AU2 建議 −60 / +80 | 會彎腰 / 用不上體重 | 勞研所 2016、Schwarz |
+| 無裙板（<150）且無下橫撐且桌面 < 60 | 沒有任何抗晃構件 | AU1 |
+| 腳 < 80 且無裙板 | 腳偏細，建議 ≥80（厚板桌 ≥100） | Schwarz 5×5" |
+| 估算重量 < 40 kg / < 70 kg | 一刨就滑 / ≥70 才不會被推著走 | Schwarz 250 lb；木頭仁教室規格整台 ≥80kg、桌板 ≥40 |
+| 深 ≥ 800 | 房門推不出（門寬 −7cm），建議可拆 | 山小日子實測 |
+| 長 ≥ 2000 且無裙板且非 H 形 | 用 H 形擋長向扭動 | — |
+
+重量 = Σ(非 `visual:"metal"` 零件 visible 體積 × `MATERIALS[material].density`)（`lib/materials/index.ts`；
+南方松 / 橡膠木 / 樺木夾板不在表裡，用 pine 420 會低估 25%，是已知缺口）。
+
+### AU12. v3 待辦（沒有幾何表示法，別硬塞）
+
+Moravian 16° 斜腳 + 楔形通榫（`splayed-length` 的 40mm 寫死、tusk 無 shape）、滑入鳩尾（Roubo 原版腿榫另一半）、
+trestle 端框、日式低台（另一種家具）、腳輪（跟 ≥80kg 矛盾，木匠 / 玩家兩票反對）、犧牲面板、Veritas 滑軌尾鉗（台灣無通路）、
+**裙板齊腳前面**（`resolveApronSetbackForLeg` 對非弧肩腳一律置中在腳裡）、橡膠木 / 樺木夾板進 `lib/materials`。
+（尾鉗、deadman、抽屜櫃、封邊板、雙面桌、出料台模式 2026-09-04 v2 已做，見 AU13~AU21。）
+
+### AU13. 桌端懸出不對稱（v2）
+
+`endOverhang` 仍是同一個值（0 = L/5，§AT4.5），但**尾鉗那一端**要拉到 `WAGON_MIN_OVERHANG = 470`
+（Benchcrafted：懸出 ≥ 18½"），另一端維持原值——兩端都留 470 的話 1800 桌腳距只剩 860（Schwarz：會晃）。
+
+```
+ovPlus  = 尾鉗在 +X 端 ? max(endOverhang, 470) : endOverhang
+ovMinus = 尾鉗在 −X 端 ? max(endOverhang, 470) : endOverhang
+frameL  = L − ovPlus − ovMinus
+frameDx = (ovMinus − ovPlus) / 2          ← 腳架中心相對桌面中心（桌面留在 x = 0）
+```
+
+builder 產完後：**除桌面外**所有零件 `origin.x += frameDx`；桌面拉到 `topLen`（見 AU14 / AU18）、
+`origin.x = topOriginX`；腳頂榫眼要先跟腳走再換回桌面 mesh-local（§M1）：
+`m.origin.x += frameDx − topOriginX`；`m.origin.z −= top.origin.z`（AU15 前緣加寬時 origin.z ≠ 0）。
+尾鉗端 = 前鉗的另一端（`wagonSign = −sideSign`）。
+
+### AU14. 尾鉗 wagon（endVise = wagon）
+
+來源：Benchcrafted Tail Vise 說明書——懸出 ≥ 18½"、端蓋 ≥ 4" 厚、行程 12¼"、桌面設計給 4"。
+
+| 項目 | 值 |
+|---|---|
+| 端蓋 `end-cap` | 100 厚 × 桌深（含前緣凸出）× 桌面厚，**從桌面長度扣掉**（`topLen = L − 100`），`origin.x = 桌端 − sign·50`；螺桿孔 Ø25 從外端面進 |
+| 槽 `wagon vise slot` | 桌面上 cosmetic rect through mortise **365 × 52**（行程 310 + dog 45 + 端隙 10；滑塊 44.5 + 兩側 3.5），中心 `x = 桌端 − sign·(100 + 30 + 182.5)`、`z = rowZ`（跟狗孔同軸） |
+| 狗孔列 | 尾鉗那端在 `L/2 − (100 + 30 + 365 + 60)` 停（`farLimit`），另一端照舊 100 |
+| 滑塊狗 `dog-block` | 45×45×20 露頭在桌面上、在槽靠端蓋那一頭（滑塊本身是五金，不畫） |
+| 螺桿 / 手輪 | 只畫端蓋外露段：`wagon-screw` Ø25×40（axis x，`visual:metal`）、`wagon-wheel` Ø120×20 |
+| 出聲 | 桌面 < 95 →「導軌要從桌底墊高到 95」；腳距/桌高看 AU20 |
+| 略過 | 桌長 < 1800、分片桌面（gap / well）、雙面桌（對側鉗跟端蓋撞）→ 不生、出聲 |
+
+### AU15. 桌面前緣凸出腳／裙板（frontOverhang）
+
+後悔榜第一名「沒留 overhang 夾具夾不到」。`frontOverhang` 0~100，**預設 0**（厚板桌齊平是腳鉗與 deadman 的前提），
+裙板桌 preset 帶 **50**。幾何（09-04 全面檢查後改）：**桌深 W 是桌面總深**（跟桌長 L 同一套語意），腳架深 `workW = W − 後槽 − fo`；
+桌面 `width = workW + fo`、先以 `origin.z = −fo/2` 畫，收尾時整體 `+fo/2` 平移讓外框（深 W）置中，前緣 `topFrontZ = −workW/2 − fo`（平移前）；
+`fo ≤ W − 後槽 − 2×腳 − 100`（極端 400 深 + 150 腳會把左右橫撐算成 0 長，收了要出聲）。修前是「加在 W 外面」→ 桌面比外框深 fo、三視圖外框漏掉前緣（audit-floating 抓到）。
+狗孔列 / 刨擋 / 前鉗木顎全部**從新前緣量**（`rowZ = topFrontZ + max(離前緣設定, 2Ø+10)`）。
+腳鉗 → 強制 0 出聲；工具槽桌不給（隱藏）。
+
+### AU16. 長板靠板 sliding deadman
+
+前提（缺一就略過並出聲）：前鉗裝在**腳外側**（`fitsOutside`）或腳鉗、有前下橫撐（box-frame / pair-x）、
+`frontOverhang = 0`、沒有抽屜櫃。三件零件：
+
+| 零件 | 尺寸 / 位置 |
+|---|---|
+| `deadman-ridge` 脊條 | 25×25 × 前橫撐長，`chamfered-top` chamferMm 11（圖上兩側 45°，說明寫「刨成 V 脊」），放前橫撐頂 `y = lsTop`、`z = 橫撐前緣 + 12.5` |
+| `deadman-rail` 上軌 | 25×25 × (frameL − 2·leg − 50)，`y = legHeight − 25`、同 z |
+| `deadman-board` 滑板 | 180 寬 × 40 厚 × `boardH = (legHeight − 25) − (lsTop + 25) − 2`，底 `y = lsTop + 26`，`x = 鉗那支腳內面 − sign·120`；Ø19 @100 從 60 到 boardH − 60，孔軸 z |
+
+下層板同時存在時前緣讓 25（`shelfWid −= 25`、`origin.z += 12.5`）給脊條。
+
+### AU17. 桌下抽屜櫃（drawerCount 0~3）
+
+借 `caseFurniture()`（同 desk pedestal），**只有 `drawerMount: "overlay-3"` + `drawerBottomMode: "surface"` + 無滑軌才 0 穿模**——
+inset 無滑軌時抽屜箱比櫃深 3mm、會穿背板（`_probe-cab-m.ts` 實測：inset+gap0 = 14 對；overlay-3 / overlay-6 = 0）。
+
+```
+caseY   = lsTop                                    ← 坐在下橫撐上
+caseTop = min(legHeight − 210, 裙板底 − 5)          ← 210 = holdfast 桿露出 ~8" + 餘裕
+caseH   = caseTop − caseY；< 120 → 不生櫃、出聲
+caseW   = frameL − 2·legSize − 6；caseD = workW − legSize + lsT − 4
+零件 id 前綴 drawer-cab-、x += frameDx、y += caseY
+```
+有抽屜櫃就**不做下層板**（櫃底板已蓋住橫撐，出聲）；抽屜 + 裙板同勾 → 出聲「夾具沒地方夾」。
+
+### AU18. 兩端封邊板 breadboard ends
+
+`breadboardEnds`：桌面長度扣 120，兩片 60 × (workW + fo) × topT 在 `x = ±(L/2 − 30)`、`rotation.y = π/2`（同 simpleTable 端板慣例）。
+只准整片實木桌面（stack / gap / well 不給），**與尾鉗端蓋互斥**（尾鉗優先）。說明寫：只在中央 15cm 上膠、外側銷孔做 ΔW 長孔（AU20）。
+
+### AU19. 雙面教室桌（doubleSided / benchStyle = classroom）
+
+前提：快速前鉗 + 整片桌面。對側那支鉗 `x2 = −viseX`、放**後緣** `z = +workW/2`（`addQuickVise(x, zSign=+1, "vise2-")`，
+木顎 / 本體 / 手把 / 裙板穿孔全部鏡像 z）；後緣一列狗孔從對側鉗往另一端走（`rearRowZ = workW/2 − 離前緣設定`）；
+holdfast 孔改**中央一列 z = 0**。深 < 800 出聲；Moxon / 附件在雙面桌不放（後緣被佔）。木頭仁教室 1800×900。
+
+### AU20. v2 警告表（全部只出聲，不改使用者的值）
+
+| 條件 | 等級 | 依據 |
+|---|---|---|
+| heightMode = outfeed 且 H > 桌鋸台面 | ERROR 語氣 | 木料尾端被抬起反彈；只能同高或低 1~2 |
+| outfeed 且 H < 台面 − 15 | WARN | 長板下垂卡住 |
+| outfeed 且有前鉗 / 刨擋 / 尾鉗 | WARN | 靠桌鋸那 30cm 前緣不能有凸出物 |
+| heightMode = assembly | 建議 = 身高 × **0.44**（170 → 750），兼餐桌 730；有狗孔提醒塞木塞 | FWW 20–24"、人因專家 |
+| 建議桌高 | 身高 × 係數；偏離 −60 / +80 出聲，文案「先做高 25mm 用兩週再鋸腳」 | Sellers |
+| 房間 | `L + 900 > roomLengthCm×10` 或 `W + 900 > roomWidthCm×10` → 放不下（走道 90cm） | 玩家 |
+| 腳距 ÷ 桌高（`legSpan = frameL − legSize`） | < 0.95 ERROR「會被推倒」；< 1.05 WARN | Schwarz 6 呎桌 860/850 = 1.01 會晃；預設 980/830 = 1.18 不響 |
+| 深 > 700（非雙面） / < 450 | WARN / 提示 | 搆不到後緣 / 寬板放不平 |
+| 裙板 ≥ 150 且 frontOverhang < 50 | WARN | 4 吋 C 夾夾不到 |
+| 裙板 > 250 | 提示 | 裙板本身是夾持面 |
+| holdfast 且桌面 44~74 | 提示 | 咬得住但易彈出，甜蜜點 75~90 |
+| 非雙面、一列狗孔 > 20 | WARN | Schwarz「孔太多」 |
+| 伸縮 `ΔW = W × S_T/100 × ΔMC/30` | 弦向 S_T（USDA Wood Handbook：櫸 11.9 / 楓 9.9 / 白橡 10.5 / 南方松 7.4 / 松 6.1…）、側立拼 ×0.55（近徑向）、疊層 0；ΔMC 取 6% | 600 寬櫸木 ≈ 14.3 |
+| ΔW > 6 且（封邊板或尾鉗） | WARN | 只膠中央 15cm、外側孔做 ⌈ΔW⌉ 長孔 |
+| ΔW > 10 且腳頂貫穿榫 | **只寫進 notes**（後排榫眼沿深度放寬 ⌈ΔW/2⌉），預設櫸木桌就會中，不當警告 | 反向測試：合理輸入不亂噴 |
+| 可拆桌（knockdown ≠ none）單件 > 25 / > 40 kg | 提示兩人搬 / WARN 樓梯搬不上去；疊層桌面除以層數 | 勞動部 25kg |
+| 南方松 / 松木 | 無防腐、陰乾 2~4 週、別鎖死；側立拼料單 **×1.15**，狗孔列挑無節 | 木匠 |
+| 抽屜 + 裙板、抽屜放不下、尾鉗桌面 < 95、deadman 前提不足、封邊板前提不足 | 各自出聲 | — |
+
+### AU21. 3D 與稽核（v2）
+
+- `scripts/audit-overlaps.ts` 新增 `EXTRA_VARIANTS[category]`：沒有 legShape 的模板也能掃「會長出零件」的選項；
+  變體字串語法 `default+flag` 或 `default+key=value`（數字自動轉型）。工作桌列了 15 個變體（尾鉗 / 靠板 / 抽屜 / 四流派 / 雙面 / 封邊 / 小鉗附件 / 左撇子組合…）。
+- 下層板 `notched-corners` 缺角 silhouette 看不到 → 腳 × 層板 4 對是假警報（同 tea-table），那 4 個變體進 `SHAPE_AWARE_CASES`。
+- Moxon 顎板 140、附件 38 放在桌面上 → `overall.thickness` 要加上去，否則 `audit-floating-parts` 會報。
+- 圓孔一律圓柱塞不 CSG（AU5）；尾鉗槽是矩形 cosmetic through，數量 1，走 CSG 無妨。
+- 09-04 起矩形 cosmetic 盲槽多了幾個（穿帶燕尾槽 ×2、封邊板舌槽 ×2、靠板 V 槽／頂槽 ×2、木顎導件榫眼）：都是個位數，CSG 無妨。
+
+### AU22. 09-04 全面檢查（參數 × 三視圖 × 榫接 × 零件圖 × 裁切圖）
+
+跑法：`scratchpad/probes/_probe-fullaudit.tsx`（6 個情境 × 每個選項每個值 + 60 組隨機 + 鏡像 + 極端值，747 組、374 組 SSR 三視圖／零件圖／裁切圖），
+檢查 9 項：穿模、尺寸有限且榫眼在零件內、零件出外框、榫頭榫眼配對、三視圖 / 零件圖 SSR、裁切圖、工序 / 工具、警告自相矛盾、選項無效果。修掉的：
+
+1. **孔算到桌面外**（`[mortise spec]` 60 次）：格陣 / holdfast 列 / 雙面桌後列都用桌長 L 算，尾鉗端蓋把桌面縮短 100 又平移後，孔落在端蓋裡或桌面外。
+   → `holeFits(piece, x, Ø)`：孔心離那片桌面兩端 ≥ Ø/2 + 30，且不進尾鉗槽那段（`wagonKeepOut`），四處打孔都經過它。
+2. **裙板榫眼被橫撐排列拉走**（共用 `applyLowerStretcherArrangement`，餐桌 / 書桌 / 工作桌都中）：`widenLsTenons` 把「同一腳面上所有榫眼」拉到橫撐高度，
+   有裙板時裙板那顆消失、橫撐那裡疊兩顆 → audit-joints 報 4 顆對不到。→ 只動 `isLowerStretcherMortise` 那顆。
+3. **H 形左右橫撐上的中央榫眼寫錯座標**：`y = lsW/2、z = ±(lsT/2 − 1)` 在橫撐寬 > 2×厚時超出零件厚度，且右邊那顆會被畫到外側面。
+   → §M1：ls-* 的 rotation (x:π/2, y:π/2) 讓 local +Y = 世界 +X，朝中心的面 = ls-left 的 `y = lsT`、ls-right 的 `y = 0`，`z = 0` 垂直置中。
+4. **料比腳粗**：80 厚橫撐配 60 腳，前後撐在腳角互穿；裙板同理。→ `clampToLeg`：≤ 腳 − 20（頰壁各 ≥ 10）、5 進位、出聲。
+5. **腳鉗平行導件撞裙板**：導件槽只避開橫撐（橫撐頂 + 40），寬裙板時槽頂進到裙板裡。→ `guideY = min(橫撐頂 + 40, 腳高 − 裙板寬 − 80)`；壓到橫撐上方放不下就略過導件、建議交叉連桿五金。
+6. **中央槽墊條吊在桌底**撞裙板 / 穿帶（AU5d 已改：底板嵌溝、槽深 ≤ 厚 − 24、桌面 < 60 略過）。
+7. **前緣凸出加在外框外**（AU15 已改：從 W 扣、整體置中）。
+8. **極矮桌 + 橫撐離地 300** 撞到桌底的快速鉗本體 → 橫撐頂 ≤ 鉗本體底 − 20。
+9. **穿帶被鉗本體擠掉**：沒裙板、沒靠板時改放腳內側（桌底那段是空的）；有裙板 / 靠板才只做另一端。
+10. 極端 400 深 + 150 腳 + 凸出 100 → 左右橫撐 0 長（AU15 的 fo 上限）。
+
+同日視覺審查（fork 開本機 prod、12 變體 × 組裝／榫接版逐張看 3D、三視圖、材料單、零件圖）再補 5 條：
+
+11. **尾鉗槽切進前腳的桌面貫穿榫眼 15mm**：槽從端蓋內側面多留了 30 才起算。→ 槽從端蓋內側面起算（`slotCx = xE − sign·(100 + 365/2)`），狗孔列 / keep-out 同步；`WAGON_MIN_OVERHANG=470 = 100 + 365 + 5` 現在剛好對上。
+12. **疊層桌面料單照面寬切**（2 片 × 1800×325×65）：`panelPieces` 只有「沿面寬拼」一種語意。→ `Part.panelSplit = "thickness"`（`lib/types`）：`cutplan/group.ts` 與材料單改除厚度（2 層 × 1800×600×32.5、標「疊 N 層」）。
+13. **腳鉗三件對不上**：(a) 那支腳的 holdfast 孔跟 Ø32 螺桿孔同心 → 孔列避開螺桿孔 / 導件槽 ±60；(b) 導件只有露出 120 + 穿腳，木顎端沒接法 → 榫長 = 腳粗 + 40，木顎背面（mesh-local +z 面）開 40×25×40 榫眼，走 audit-joints 的「穿越」規則（先穿腳通槽再進木顎盲榫）；導件可見長 = 120 + 行程（150，受 `workW − 2腳 − 20 − 120` 限制不撞後腳）；(c) 木顎頂補一顆桌狗孔。
+14. **穿帶／封邊板只有備註沒有槽**：桌面每片底面開 cosmetic 燕尾槽（口 40、深 15、兩端留 20，`y=0` 底面入）；封邊板朝桌面那面開 12×30 舌槽（rotation.y=π/2 → 朝桌面 = local `z = −sx·30`）。穿帶另外夾在「桌端 − 20 − 15」內（懸出 10 時原本會跑到桌面外）。
+15. **長板靠板只是「貼著」**：滑板底沒 V 槽、上軌疊在板頂上而不是咬住。→ 滑板底 V 槽 12 深騎在脊條尖上（板底 = 脊條頂 − 11）、頂直槽 12 深咬住 25×25 上軌（板頂 = 桌底 − 13）；兩處各「咬進」12 → overlap 稽核看到 2 對結構性重疊，deadman 那 5 個變體列 allowlist（同紅酒架半搭接）。
+
+另外：外購五金（`visual="metal"`）不再出零件圖（`needsPartDrawing`）；材料單五金群組標題改中性「五金（外購，不入裁切）」；模板列表描述拿掉「刨擋」。沒改（共用邏輯，非本模板）：抽屜分隔板不置中、純方料不出零件圖、組裝版頁面零件圖是無榫版、`audit:2d-joints` 的方凳弧肩噪音與 `audit:floating-parts` 的前鉗木顎伸出前緣（HEAD 就有）。
+
+沒改的（確認不是錯）：`roomLengthCm / roomWidthCm` 只有塞不下才出警告（500 / 1000 cm 一律放得下）；鏡像檢查報 `top-batten-l` 只在一邊——穿帶 id 是照左右邊命名，
+換慣用手後被略過的那條本來就換邊，幾何是對的。SSR 三視圖 / 零件圖 374 組、裁切圖、工序、工具清單 0 例外。
+
+---
+
 ## §M. Mortise spec 慣例（mesh local，不是 post-rotation world）
+
+
+### AU23. 夾板疊層版（materialStyle = plywood，2026-09-04）
+
+> **2026-09-05 補（§AU23.1 層數與夾板長相）**
+>
+> 1. **層數可調的三個零件**：桌面 `plyTopLayers`(2–4)、桌腳 `legLayers`(3–5)、
+>    **下橫撐 `lsLayers`(1–3，預設 2)**、**穿帶 `battenLayers`(1–3，預設 2)**。
+>    厚度一律 = 層數 × 18；1 層不算疊層（不標 `panelPieces`）。
+> 2. **搭接槽深度只能是 18 的倍數**——它是「疊層時少疊幾層」做出來的。
+>    兩個方向的橫撐都進同一支腳時深度被 `(腳寬 − 厚)/2` 夾住，
+>    例如 72 腳 + 54 撐 → 只剩 9mm，做不出來 → **必須出聲**（提示改用修邊機挖，
+>    或腳加一層／撐減一層）。⛔ 不准靜默夾。
+> 3. **穿帶開放給夾板**（2026-09-05 木頭仁）。舊行為是「夾板不做穿帶」，
+>    理由寫「沒地方批燕尾」——但 09-04 穿帶就已改成**騎在腳頂**、沒有燕尾槽了，
+>    那條理由是過期的。夾板桌面不會翹，但穿帶仍把同一端兩支腳的頂端拉在一起。
+>    封邊板（breadboard）仍然只給實木（那是給木材伸縮用的）。
+>    ⚠️ `topBuild` 是實木專屬選項，判斷「疊層桌面不做穿帶」時要先 `!ply`，
+>    否則網址殘留的 `topBuild=stack` 會讓夾板穿帶靜默消失。
+> 4. **3D 的層數用真實幾何，不是著色器畫線**（見 `lib/render/ply-layers.ts`）：
+>    45° 下「桌面上表面與前緣面的交界稜線」跟膠合線長得一樣，畫線永遠會被多數一條。
+>    每層畫成獨立的板、層間 0.4mm 縫、相鄰層深淺差 6%。
+>    ⭐ 拆層要切**最小的那一維**（桌腳的 `visible.thickness` 裝的是腳高）。
+> 5. **夾板要有自己的木紋**（`GrainMode = "ply"`）：淡、細、直，沒有 cathedral 拱。
+>    夾板零件跟實木共用山形年輪的話，整台看起來像實木，層線也會被木紋蓋掉。
+
+木頭仁拍板：工作桌是最重要的免費鉤子，所以要有一款「不會鑿榫也做得出來」的。18mm 夾板一層層疊，全部螺絲加膠，整台零榫頭。
+
+**選項**（`lib/templates/workbench.ts`）
+| key | 值 | 意義 |
+|---|---|---|
+| `materialStyle` | `solid`（預設）/ `plywood` | 預設一定是 solid：舊設計、舊網址、165 組腳型指紋一格都不能動 |
+| `plyTopLayers` | 2 / 3 / 4 | 桌面厚 = 層數 × 18 = 36 / 54 / 72 |
+| `legLayers` | 3 / 4 / 5 | 腳粗 = 層數 × 18 = 54 / 72 / 90 方 |
+
+`plyTopLayers` / `legLayers` 只在 `materialStyle=plywood` 時出現（`dependsOn`）；反過來，
+`topThickness` / `topBuild` / `topLayers` / `legSize` / `legTopJoint` / `apronThickness` /
+`lowerStretcherThickness` / `legPenetratingTenon` / `topBattens` / `breadboardEnds`
+在 plywood 時全部藏起來——它們的值改由層數推導，留著會變成「滑桿動了沒反應」。
+
+**層數建議（寫在選項標籤裡給使用者看）**
+- 桌面 2 層 36：輕量 / MFT 夾具台，holdfast 咬不住（§AU9 的 44~89 咬合區間），要用 F 夾。
+- 桌面 3 層 54：建議值，手刨、holdfast 都夠。
+- 桌面 4 層 72：重刨、重敲。
+- 腳 3 層 54 輕量／4 層 72 建議／5 層 90 重型。腳鉗要 ≥ `LEG_VISE_CHOP_T`(64)，選 3 層會自動提到 4 層並出聲。
+
+**接合＝疊層時預留的搭接槽**（不是榫）
+- 腳上原本的榫眼改成 cosmetic 矩形盲槽，label 前綴 `搭接槽`，尺寸 = 料的（寬 × 厚）。
+- 槽深：同一帶（裙板帶 / 橫撐帶）**兩向都有料**時，每向 ≤ `(腳 − 料厚)/2`，兩向才不會在腳裡互撞；只有一向 → 一層 18。
+  例：72 腳配 36 橫撐 → 18；54 腳配 36 → (54−36)/2 = 9。
+- 橫撐 / 裙板的 `visible.length`（§A10：可見長 = 實際切料長）**加上兩端槽深**，因為料真的伸進槽裡。
+- 腳頂不接榫：從腳內側兩面各斜鑽 2 個口袋孔螺絲鎖桌面底層（共 16 支）。
+- ⚠️ 稽核：料伸進槽裡 = 結構性重疊（同紅酒架半搭接），槽是 cosmetic mortise、OBB 不扣，
+  所以這些變體列在 `scripts/audit-overlaps.ts` 的允許清單，重疊厚度必須恰等於槽深。
+
+**料與五金**
+- 骨架件（top / leg-* / ls-* / apron-* / under-shelf / well-*）設 `materialOverride: "plywood"` → 料單與報價走夾板計價。
+- 4×8 呎（1220×2440）張數 = ⌈總面積 × 1.15 ÷ 單張面積⌉（面積法 +15% 損耗，寫在說明裡）。
+- 螺絲：疊層 4×40 每 250mm 一支、搭接槽每處 3 支 6×80、腳頂口袋孔 6×63 共 16 支 + L 角鐵 4 片。都是外購五金，不進料單件數。
+- 桌面厚度**不套** solid 的「最薄 40」夾制：2 層 36 是合法的，硬夾到 40 會讓層厚變 20、料單對不上 18mm 夾板。
+
+**不做的事**
+- 穿帶、兩端封邊板：疊層桌面不會翹、也批不出燕尾槽 → 略過並出聲。
+- ⛔ MFT 流派**不預選** plywood：那會把使用者自己填的腳粗 / 橫撐厚吃掉（舊指紋與兩條測試都會變）。想整台夾板自己切材料樣式。
+
+**工序**：`step-10f-ply-laminate`（`lib/steps/derive.ts`），工時 = 20 + 12 × 膠合面數 + 6 × 搭接槽數，英文在 `STEP_OVERRIDE_EN`。
+
+
+
+### AU24. 09-04 木頭仁看 3D 回報的四條（孔軸、拼板顯示、中縫、中央槽端）
+
+1. **前腳 holdfast／長板靠板的孔在 3D 沒顯示**（幾何一直都在，是畫不出來）。
+   `subtractMortisesFromGeometry` 的圓孔一律拿 local Y 當孔軸：`CylinderGeometry(m.hz, m.hz, 2*m.hy)`。
+   桌面狗孔往下鑽（深度落在 local Y）剛好對；腳／靠板的孔往側面鑽，深度落在 local Z
+   → 半徑拿到「半個孔深」（50）、長度拿到「孔半徑」（19），挖出來是一塊餅不是孔。
+   → 孔軸改成「half-extent 最大那軸」，抽成 `lib/render/part-geometry.ts` 的
+   `holeAxisOf` / `holeRadiusOf`，CSG 與「塞」（孔 ≥ 6 個時走的畫法）共用同一支。
+   rotX≠0（外撇牆斜孔）維持原本的 Y 軸 slice 數學。
+2. **拼板／疊層在 3D 看不出片數**（`panelPieces` 以前只影響料單與裁切）。
+   不動幾何，改在木紋著色器裡按「第幾片」錯開紋路起點與樹心位置，交界壓一條膠合線。
+   `components/wood-shader.ts` 的 `getWoodCompile(grainDirection, mode, board)`，
+   `board = { pieces, spanMm, split }`；`split = "thin"` 是疊層（沿厚度）、`"cross"` 是拼板（沿跨紋）。
+   ⭐膠合線寬度 1.6mm 不是寫實值：0.7mm 在預覽縮放下不到一個像素＝等於沒畫。
+3. **中縫擋條**以前做成整條桌長又跟桌面齊平 → 看起來就是一整片，縫也失去意義。
+   改成 Benchcrafted 作法：一小塊（桌長/5，夾在 200~360）擺在鉗那一端，其餘留空給夾具穿過。
+4. **中央凹槽兩端要補實木端塞**：以前槽通到兩個端面，兩片桌面只剩底下腳架連著（木頭仁：「這樣很弱」）。
+   端塞跟桌面同厚、頂面齊平、長 = 桌長/12（夾在 100~200），把凹槽做成「不通到端面的口袋」；
+   槽底板長度縮成 `topLen − 2 × endLen` 卡在兩端塞之間（不然會疊在端塞上，overlap 稽核會紅）。
+   後側工具槽（`wellWidth > 0`）本來就有兩端板，這條是把中央槽補齊到同一個水準。
+
+
+
+### AU25. 穿帶騎腳頂 / 抽屜橫向分格 / 腳墊選項正名（2026-09-04 晚，木頭仁）
+
+**穿帶改成騎在腳頂**（他：「桌面底穿帶 腳就應該接在穿帶才對吧」，選了「腳榫穿過穿帶再進桌面」）
+- 舊：穿帶放在腳外側 40mm，靠桌底 15 深的燕尾槽滑進去，跟腳完全不相干（Roubo 寫法）。
+- 新：穿帶擺在**腳中心 x**、寬 = `max(60, legSize)`（腳頂榫 90 寬要穿得過去）、厚 30，
+  夾在腳肩與桌面之間；腳 `visible.thickness −= 30`、腳頂榫 `length += 30`（**總高不變**），
+  穿帶上兩顆貫穿榫眼直接抄桌面上那兩顆的尺寸（世界 X↔local Z、世界 Z↔local X）。
+  桌底不再開燕尾槽。
+- 三種情況整組略過並出聲（只做一端會讓兩端的腳不一樣長）：疊層桌面 / 有裙板（裙板本來就在防翹）/
+  長板靠板（上軌佔住桌底）。前鉗裝在腳內側且壓到腳頂那一段也略過。
+
+**抽屜橫向分格**：新選項 `drawerCols` 1~3（`caseFurniture` 的 zone 本來就吃 `cols`，只是一直寫死 1）。
+每格淨寬 < 180（手伸不進去）就自動收格數並出聲：`maxCols = ⌊(caseW + 15) / 195⌋`（分隔板 15 厚）。
+⚠️ `drawerCols` 是**跨模板共用的 key**（電視櫃 / 開放書櫃 / 紅酒架也用），改 `SPEC_LABEL_EN` 會一起動到。
+
+**`shoeAllowanceMm` 已整個刪除**：他回報「腳墊加厚看不出來」。它本來只影響「建議桌高」（833 → 863）、
+不畫任何東西；我先改名想講清楚，他直接裁示「直接刪除腳墊這選項」→ 選項、讀值、建議高的加項、
+英文標籤與 help 全部拿掉。建議桌高現在單純是 `身高 × 係數`。
+⭐通則：**一個只會改建議文字、圖上看不到的選項，不值得留在表單上**——與其解釋，不如刪掉。
+⚠️ 舊網址還帶 `shoeAllowanceMm=` 也不會壞（沒有這個 key 就被忽略），只是建議桌高會少那幾 mm。
+
+
+
+### AU26. 09-04 深夜他逐條打回的四件（穿帶尺寸、腳頂破口、疊層方向）
+
+1. **穿帶長度沒跟腳齊**（「腳比穿帶還突出 沒有齊」）：舊值 `workW + frontOverhang − 40`
+   是燕尾槽時代的包袱（槽要止在桌面邊緣內才不會破邊）。改成**逐支量那一端的腳**：
+   `zLo/zHi = min/max(腳 origin.z ∓ 腳寬/2)`，長度 = zHi − zLo、中心 = (zLo+zHi)/2。
+   前緣凸出時前腳會往後縮，所以不能用 `workW` 反推。
+2. **穿帶寬 / 厚可調**（`battenWidth` 0=跟腳同寬、`battenThickness` 預設 30）。
+   腳一定落在穿帶寬度正中間 → 寬度不准小於 `legSize`（填小了自動加寬並出聲）。
+   厚度改多少，腳就短多少、腳頂榫就長多少，**總高恆等於 `height`**。
+3. **裙板榫眼在腳頂破口**（他看榫接視圖抓到）：`APRON_TOP_SHOULDER` 一般桌子是 10，
+   但工作桌的裙板頂跟腳頂齊平、腳頂又有貫穿榫 → 榫眼上方只剩 10mm 薄殼。
+   simple-table 新增 `apronTopShoulderMm`（預設 10，其他模板一格不動），工作桌傳 **25**。
+   ⭐驗法：`腳高 − max(榫眼上緣)` ≥ 25，通榫／盲榫都要測。
+4. **疊層要沿「最小的那一維」切**（「桌腳這些零件也要看得出分層」）：
+   3D 原本用 `size[1]`（= `visible.thickness`）當疊層軸，但**腳的 thickness 是腳高**
+   → 腳被沿高度切成 4 段。改成挑三維裡最小那一維（跟料單 / cutplan 同一套規則），
+   `BoardSplit.axis` 改成明確的零件 local 軸 `"x"|"y"|"z"`。
+   夾板桌面本來就只沿厚度分層、寬度整片，這條確認過沒問題。
+5. **`shoeAllowanceMm` 整個刪掉**（見 §AU25 尾）。
+
+
+
+### AU27. 桌腳長方形（腳寬 ≠ 腳厚）＋ 桌高用途直接套用（2026-09-04 深夜）
+
+**長方腳**（他：「桌腳可以控制寬度跟厚度」「只有夾板拼的不能控制厚度 因為是夾板的倍數」）
+- `simple-table` 新增 `legDepthMm`（**只支援 `legShape: "box"`**，造型腳的補償公式都假設方腳）。
+  省略 / 等於 legSize = 方腳 → 28 款舊模板輸出一格不變（165 腳型指紋驗過）。
+- 沿 X 跑的件（前後裙板 / 前後撐）吃 `legSize`；沿 Z 跑的件（左右裙板 / 左右撐）吃 `legDepth`：
+  `apronEdgeZ`、`apronInnerSpan.z`、`buttHalfZ*`、`sInnerSpan.z`、`sButtHalfZ*` 全部乘 `depthRatio`。
+  `corners()` 多一個 `legDepth` 參數（預設 = legSize）。
+- 榫進腳的可用深度取 `min(legSize, legDepth)`（兩向都合法的保守值）；腳頂榫厚（Z）吃 legDepth。
+- 工作桌選項 `legDepth`（0 = 方腳），夾回 `[60, legSize]` 並出聲；**夾板疊層強制忽略**（腳厚是 18 的倍數）。
+- 下層板缺角：X 向用 `(legSize + lsT)/2`、Z 向用 `(legDepth + lsT)/2`，不然層板會插進腳裡。
+  ⚠️ notched-corners 的缺角 silhouette 看不到 → overlap 稽核誤報，變體要進允許清單（同既有那組）。
+
+**桌高用途直接套用**（他：「選桌高用途 高度也沒變」）
+- 公式抽到 `lib/knowledge/ergonomics.ts` 的 `workbenchHeightFor(mode, cm, sawTop)`，模板與表單共用。
+- `DesignFormShell`：改 `heightMode` / `userHeightCm` / `sawTableHeightMm` 就把算出來的高度寫進
+  `height` 欄位並帶進網址（套用後仍可自己再調）。標籤改成「會直接套用桌高」。
+- ⭐同一輪學到的：**「只影響建議文字」的選項使用者一律當成壞掉**。要嘛真的動幾何，要嘛刪掉
+  （`shoeAllowanceMm` 就是被他裁示刪掉的）。
+
+
+
+### AU28. 「選了沒反應」的三個真兇 + 桌面做法要畫在圖上（2026-09-04 深夜）
+
+木頭仁連續回報三個「勾了／選了沒作用」，逐個查證後都是**條件不成立時靜默略過、但選項還在**：
+
+1. **長板靠板**：`deadman` 需要前鉗裝在腳外側（`fitsOutside = ovVise ≥ jaw + 80`），
+   而 `dependsOn` 只擋了前緣凸出、橫撐排列、抽屜，**沒擋桌端懸出**。
+   他那台懸出 170（7" 鉗要 260）→ 勾了只出一句警告。
+   → 改成**自動把那一端的懸出拉到 `jaw + 80` 並出聲**，選項就一定有作用。
+   ⭐ 這是「要嘛真的動幾何，要嘛別給選項」的第二個例子（第一個是 `shoeAllowanceMm`）。
+2. **桌面底穿帶**：有裙板 / 長板靠板時穿帶會撞到它們（AU25 起就整組略過）→
+   選項加上 `withApron notIn [true]`、`deadman notIn [true]`，那些情況下直接不顯示。
+3. **桌高用途**：見 §AU27。
+
+**桌面做法要從圖上看得出來**（他：「桌面做法從圖上都要看得出來」）
+- `lib/render/geometry.ts` 新增 `panelSplitWorld(part)`：把「分件方向」換算到世界軸
+  （疊層 = 最小那一維、拼板 = 跨紋方向，再依 quarter 旋轉換軸），
+  回傳 `{axis, lo, hi, pieces}`。3D 木紋、料單、三視圖共用這一套判斷。
+- 三視圖多一層分件線（`#666`、0.6 寬）：分件方向跟視線同軸的那個視圖不畫
+  （俯視看不到疊層、正視看不到沿深度的拼縫）。
+  實畫確認：寬板平拼→俯視兩條線分三片；夾板疊層→正視桌面邊三層、腳四層。
+
+**窄條側立拼 / 薄板疊層在 3D 要看得出來**（他：「窄條側立拼要能看出來」「薄板層疊也要能看出來」）
+- 山形紋 vs 直紋改用「**每一片自己的跨紋寬**」判：側立拼一條 60mm（＝桌面厚）→ 直紋（真實長相），
+  以前用整片 600 判就整面山形紋，跟寬板平拼看起來一樣。疊層不分（每層都是整片寬）。
+- 只靠膠合線不夠：18mm 一層、60mm 一條，在預覽縮放下線寬不到一個像素。加**每片色差**
+  `bTone = 亂數 ±0.05 + 奇偶交替 ±0.05`——交替那項保證相鄰兩片一定不同色（純亂數會有相鄰同深淺糊在一起）。
+- 🩸夾板疊層只在**側邊**看得到層線，而側邊在預設縮放只有幾像素 → 18mm 一層照 mm 畫一定小於一個像素。
+  解法：膠合線寬度用 `fwidth(bT)` 取「這個像素跨了幾片」，把線寬夾到 **至少 1.3 個像素**
+  （`max(想要的寬, fwidth × 1.3)`）。縮放到多小都畫得出一條線，放大時又回到真實寬度。
+  ⭐通則：**3D 上要「一定看得到」的細節，線寬要用螢幕空間夾下限，不能只用 mm**。
+- ⭐驗法：眼睛跟「量亮度」都會騙人（我一度量到只有 3 段）。**在著色器裡塞一個暫時的紅色記號**
+  （`step(4.5, pieces)` 染紅）截圖，才確定片數真的傳到 shader；確認後再把記號拿掉。
+
+**前鉗位置可調**：新選項 `viseInset`（鉗中心離桌端，0 = 自動）。可行位置是**兩段**
+（腳外側靠桌端、腳內側靠桌中心），落在腳身上會吸到最近的邊界並出聲。
+
 
 ### M1. 座標系統
 
@@ -4239,9 +5606,26 @@ depthAxis = 三者最小那個
 ```
 
 **特例**：當 `origin.y === 0 || origin.y === ly`（from-bottom 慣例的「便利
-預設值」）+ X 或 Z 軸有 origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為入榫軸。
-這修正「template 把 origin.y=0 當作不在乎 Y 預設」但 mortiseLocalBox 誤判
-的場合。
+預設值」）+ X 或 Z 軸有 origin **嚴格更靠近 face（< yToFace）** 時，優先選
+X/Z 為入榫軸。這修正「template 把 origin.y=0 當作不在乎 Y 預設」但
+mortiseLocalBox 誤判的場合。
+
+⚠️ 2026-06-11 修正：條件曾是 `xToFace < ly/2 || zToFace < ly/2`，對「真的從
+底/頂面入榫」的薄高件會誤判——椅背頂橫木 ly=50、直料榫眼 zToFace 11~17 < 25
+→ 被改判 Z 面入榫、紅榫框畫到零件外。svg-views `mortiseLocalBox` 2026-05-21
+已改嚴格條件（canonical 時 yToFace=0、嚴格小於不可能成立 → 底/頂面入榫永遠
+保留 Y），但 part-drawing `annotation.tsx` 的三份拷貝（mortiseFaceHint /
+mortiseEntryBox / round-mortise view check）漏同步，2026-06-11 補齊。
+**通則：depthAxis heuristic 有四份拷貝（svg-views 1 + annotation 3），改任何
+一份都要 grep `yIsCanonical` 全部同步。**
+
+另兩條 part-drawing 配套（同日）：
+- hidden（虛線）榫眼只畫輪廓不標尺寸——尺寸由「入榫面朝鏡頭」的視圖標
+  （§I6 不冗餘；否則側視圖會把沿弧分佈的 8 顆榫眼疊標到圖外）。tall-iso 件
+  depthAxis="y" 無對應視圖 → 例外保留。
+- arch-bent 零件圖 ghost 虛線框 = 毛料含弧高（W + bendMm），彎向 mesh +Z →
+  top/bottom 視圖往 SVG −y 擴、side 視圖往 SVG −x 擴；不然直料弦框斜切過
+  弧帶、看起來像兩條線交叉。
 
 ### M3. Mortise.length / .width 慣例
 
@@ -4295,3 +5679,306 @@ runtime 也有 dev mode `console.warn`（mortiseLocalBox 入口）。
 | `b5a5a40` | SHRINK 對齊（M4） |
 | `5e1c58f` | depthAxis canonical Y 修正（M2） |
 | `5434e41` | side panel shelf mortise side-aware（M6） |
+
+
+---
+
+## §CE. 木作天花板骨架算料引擎
+
+階段 1 純算料引擎(無 UI、無 3D)。所有公式都在 `lib/ceiling/calc.ts`,
+這份文件是公式書面對照,改算料前先 grep 此節。
+
+### §CE.0 軸與單位慣例
+
+- 單位:**cm**(全模組,UI 與內部一致)
+- 長邊方向 = 沿房間長軸,主支沿此方向排列(每根主支間中心距 `mainSpacingCm`)
+- 短邊方向 = 沿房間短軸,主支單支跨此方向(主支長 = 短邊 − 2 × 邊框寬)
+- 副支垂直主支(=沿長邊方向),夾在主支之間
+
+### §CE.1 自動算
+
+```
+hangerHeightCm  = slabHeightCm − ceilingHeightCm
+roomAreaM2      = longSideCm × shortSideCm / 10000
+pingShu         = roomAreaM2 / 3.305         (1 坪 = 3.305 m²)
+nMainPositions  = floor(longSideCm / mainSpacingCm) + 1
+usedSpan        = (nMainPositions − 1) × mainSpacingCm
+leftoverCm      = longSideCm − usedSpan       (剩餘收邊)
+```
+
+### §CE.2 主支位置(centerlines 沿長邊,單位 cm,從 0 = 左牆內側起算)
+
+```
+// Issue 4 fix 2026-05-18 — firstCenter 必確保主支貼邊框內側不重疊
+halfTw = timberWidthCm / 2
+
+firstCenter = match alignmentBase:
+  "left"   → frameW + halfTw            // 主支貼左邊框內側
+  "center" → leftoverCm / 2             // 對稱
+  "right"  → (L − frameW − halfTw) − (n−1) × mainSpacing
+                                        // 主支貼右邊框內側,反推 first
+
+centers = [firstCenter + i × mainSpacingCm  for i in 0..nMainPositions−1]
+```
+
+修正前 "left" 用 `firstCenter = 0` 把主支中心放在邊框 outside 位置(物理不可能,
+主支半在牆內);修正後 "left" 主支緊鄰邊框內側面。
+
+### §CE.3 主支單支長度與下料根數
+
+```
+mainJoistLengthCm = shortSideCm − 2 × timberWidthCm
+                                    (對接邊框內側,扣兩端邊框寬)
+
+if frameDoublesAsSupport == false:
+   mainJoistTimberCount = nMainPositions
+else:
+   // 與兩端邊框重疊處用邊框替代,不另下料
+   // 重疊定義:|center − 0| ≤ timberWidth/2 + EPS  OR  |center − longSide| 同樣
+   mainJoistTimberCount = nMainPositions − (重疊處數,通常 2)
+```
+
+### §CE.4 支撐排序(邊框 + 主支去重)
+
+```
+supports = sortUniq([0, ...centers, longSideCm])
+           // 容差 EPS = 0.01 cm
+```
+
+注意:`supports` 永遠包含 0 與 longSideCm(邊框內側),無論
+`frameDoublesAsSupport`,因為**副支必須兩端有東西可頂**,邊框就算不負重也是
+副支的對接面。
+
+### §CE.5 副支(依 slot 分組,同長度合併)
+
+```
+shortInnerCm = shortSideCm − 2 × timberWidthCm
+subPerSlot   = floor(shortInnerCm / subSpacingCm) + 1
+               // 跟主支 §CE.2 同公式邏輯:N 根對應 N-1 個間距、
+               // 極大化覆蓋短邊內側,靠上/靠下模式對應邊不會空一截
+```
+
+**Model B face-based(2026-05-18 修正):** slot.from/to 用「對接面」位置:
+
+```
+// Edge slot 0 — 左邊框內側面 → 第一支主支左面
+edgeSlot[0]: from = frameW,
+             to   = mainCenters[0] − tw/2
+             subJoistLength = to − from
+
+// Inner slot i — 主支[i] 右面 → 主支[i+1] 左面
+innerSlot[i]: from = mainCenters[i] + tw/2,
+              to   = mainCenters[i+1] − tw/2
+              subJoistLength = to − from = mainSpacing − tw
+
+// Edge slot last — 最後主支右面 → 右邊框內側面
+edgeSlot[last]: from = mainCenters[end] + tw/2,
+                to   = longSideCm − frameW
+                subJoistLength = to − from
+
+subJoistCount per slot = subPerSlot
+```
+
+`slotWidthCm` 已直接 = 副支長度,不再扣 timberWidth。修正前(Model A)edge slot
+把 `0` / `longSideCm` 當邊框 center,subLength 多 tw/2 = 1.8 cm,**師傅切料會切長**。
+
+最後依 `round1(subJoistLengthCm)` 為 key 把所有 slot group by 合併成材料表。
+
+### §CE.5b 副支 Y 位置(沿短邊,套 subAlignmentBase)
+
+副支根數 N 算完後,N 根的 Y 中心位置依 `subAlignmentBase` 決定:
+
+```
+usedSpan   = (N − 1) × subSpacingCm
+leftoverCm = shortInnerCm − usedSpan
+
+firstOffset = match subAlignmentBase:
+  "top"    → 0
+  "middle" → leftoverCm / 2
+  "bottom" → leftoverCm
+
+yOffsets[i] = firstOffset + i × subSpacingCm   for i in 0..N-1
+```
+
+`yOffsets` 是相對 `innerY0`(= 邊框內側面)的距離。SVG 與 3D 直接從 `trace.subJoistYOffsetsCm` 讀,不再各自重算。
+
+跟主支 `alignmentBase`(沿長邊)對稱:`alignmentBase` 管長邊剩餘收邊,`subAlignmentBase` 管短邊剩餘空間。
+
+**預設 `top` 而非 `middle`(2026-05-18 改):** 板長方向 180 cm 接縫位需要副支
+支撐(板邊不能懸空)。Top 對齊讓首副支貼邊框,板邊接縫位 ≈ 副支位置(差 ≤ 邊框寬
+3.6 cm,可接受)。Middle 對齊雖視覺對稱,但板邊離副支 12+ cm,結構上需補一根副支
+撐板邊。Top 是結構安全的合理預設。
+
+### §CE.6 吊筋
+
+```
+hangerLengthCm = hangerHeightCm   (吊筋長度 = 板高 − 天花板高)
+
+if hangerDensity == "standard":
+   hangerPerMainJoist = ceil(mainJoistLengthCm / hangerSpacingCm) + 1
+                        // BUG 1 fix 2026-05-18:floor+1 會讓實際間距 > user 設定
+                        // ceil+1 保證 N-1 個區段每段 ≤ hangerSpacing
+else // "minimal":
+   hangerPerMainJoist = 2
+
+totalHangers = hangerPerMainJoist × mainJoistTimberCount
+```
+
+**邊框吊筋未計**:邊框另有牆面釘固定 + 四角輔助吊筋,規格因案場不同,v1 不算。
+
+### §CE.7 矽酸鈣板鋪法
+
+**修正版**(2026-05-18):板邊**落在主支中心**(施工 step 5),不再用固定 90 cm
+切欄。沿長邊欄寬由 `mainJoistCentersCm` + 邊框外側決定。
+
+```
+// 沿長邊欄寬(板邊落主支中心):
+colWidthsCm = [
+  mainCenters[0],                                  // 邊框外側 → 第一根主支
+  mainCenters[1] − mainCenters[0],                 // 主支間距 (≈90.9)
+  ...,
+  longSideCm − mainCenters[last]                   // 最後主支 → 邊框外側
+]
+cols       = colWidthsCm.length                   // = mainPositionCount + 1
+fullCols   = count(w | |w − boardShortCm| ≤ TOL)  // TOL = 5 cm
+cutCols    = cols − fullCols
+
+// 沿短邊(無主支對齊,每板長一列):
+rows       = ceil(shortSideCm / boardLongCm)
+fullRows   = floor(shortSideCm / boardLongCm)
+
+totalPositions = cols × rows
+boardFullCount = fullCols × fullRows
+boardCutCount  = totalPositions − boardFullCount
+```
+
+**0.9 cm 板縫:** 板寬 90 cm < 主支間距 90.9 cm,中間欄板擺進去剩 0.9 cm 空隙,
+實務以 AB 膠 / 矽利康 / 接縫帶封填。本算料不另計矽利康用量,假設 1 條 / 板由師傅
+習慣抓量。
+
+**短邊未對副支:** 副支間距 36.36 cm × 5 = 181.8 ≠ 板長 180 cm。v1 短邊每 180 cm
+切列,不對齊副支。v2 可加副支對齊優化(取最近副支中心當板邊)。
+
+**baseline 500×320 中置驗算:**
+```
+mainCenters = [22.75, 113.65, 204.55, 295.45, 386.35, 477.25]
+colWidths   = [22.75, 90.9, 90.9, 90.9, 90.9, 90.9, 22.75]  // 7 欄
+fullCols    = 5(90.9 在容差內)/ cutCols = 2(22.75 太小)
+rows = 2, fullRows = 1
+totalPositions = 14, fullCount = 5 × 1 = 5, cutCount = 9
+```
+
+### §CE.8 邊框
+
+```
+frameTotalCm = 2 × (longSideCm + shortSideCm)   (周長)
+frameTotalM  = frameTotalCm / 100
+```
+
+材料表用「總長 m」呈現,不切根數(現場依出貨長度自行切)。
+
+### §CE.9 階段 1 v1 假設清單(user 核對後鎖定)
+
+1. 角材寬度全模型統一(邊框 / 主支 / 副支同 `timberWidthCm`)
+2. 副支與兩端對接 = butt joint,長度 = slot 寬 − `timberWidthCm`
+3. 矽酸鈣板長對齊短邊,板寬對齊長邊(板邊落主支中心)
+4. **預設公制間距**:主支 90 cm、副支 36 cm,跟板 90/180 完美對齊 0 累積縫
+   (老派台尺 90.9 / 36.36 form 內可改回,會有 0.9 / 1.8 cm 累積縫)
+4.b **`useAutoSpacing` 預設 true** — 板規 / 接縫變,間距自動跟著算:
+    - `effectiveMainSpacing = boardShortCm + jointGapMm/10`
+      (板放間距裡 + 接縫,例:90 + 0.3 = 90.3 cm)
+    - `effectiveSubSpacing = boardLongCm / round(boardLongCm / 36)`
+      (板長均分目標 36 cm 鄰近,例:180/round(5)= 180/5 = 36 cm)
+    切手動模式可用 form 自填值(老派台尺或客製案場)
+5. **板邊預留接縫 `jointGapMm`(預設 3 mm,業界規範 3-6 mm)**;不論縫多寬皆需
+   環氧樹脂填縫 + 48 mm 寬纖維接縫帶 + 批土收尾(防天花板熱脹冷縮 / 結構振動裂)
+6. 邊框吊筋未計(僅主支吊筋);邊框另有牆面固定 + 四角輔助
+7. 吊筋 standard 模式:每主支 `floor(mainJoistLength / hangerSpacing) + 1`
+8. 吊筋 minimal 模式:每主支固定 2 支
+9. 主支單支長 = 短邊 − 2 × 邊框寬
+10. 螺絲距板邊 ≥ 15 mm 防裂(v1 不另算螺絲量,v2 加)
+
+### §CE.10 驗證
+
+baseline 500×320(預設值,板 90/180 + 縫 3mm + auto spacing → 主支 90.3 / 副支 36)
+→ 跑 `npx tsx lib/ceiling/calc.test.ts`:
+
+| 項目 | 值 |
+|---|---|
+| 吊筋高度 | 20 cm |
+| 房間面積 | 16 m² |
+| 坪數 | 4.84 坪 |
+| 剩餘收邊 | 48.5 cm |
+| 主支 | 312.8 cm × 6 支 |
+| 副支(內 slot face-to-face 86.7) | 86.7 cm × 45 支 |
+| 副支(邊 slot face-to-face 18.85) | 18.8 cm × 18 支 |
+| 吊筋(standard,ceil+1) | 20 cm × 30 支(6×5) |
+| 矽酸鈣板整張 | 5 張 |
+| 矽酸鈣板裁切 | 7 張(2026-05-18 改 naive 估算,9→7) |
+| 邊框 | 16.4 m |
+
+### §CE.11 板數雙軌策略(2026-05-18)
+
+「**視覺**」vs「**採購**」分開算:
+- **視覺(SVG / 3D BoardsLayer)**:cells 按 mainCenters 切(板邊精準落主支中心,符合 spec)
+  → baseline 7 cols × 2 rows = 14 cells(5 整 + 9 細邊 rose 區分)
+- **採購(BOM count)**:naive 面積估算
+  - `cols = ceil(L / boardShortCm)`、`fullCols = floor(L / boardShortCm)`
+  - `rows = ceil(S / boardLongCm)`、`fullRows = floor(S / boardLongCm)`
+  - `fullCount = fullCols × fullRows`、`cutCount = cols × rows − fullCount`
+  - baseline = 5 整 + 7 裁 = 12 板(細邊條合併採購)
+
+**通則:** 算料工具的「視覺意義(師傅看哪邊有縫)」vs「採購意義(買幾張板)」可分流,
+不要硬讓一個數字兼顧兩種。
+
+### §CE.12 自動間距(useAutoSpacing,2026-05-18)
+
+`useAutoSpacing: true` 預設 → 改板規/接縫,主支/副支中心距自動換算:
+- `mainSpacing = boardShortCm + jointGapMm / 10`(板寬 + 接縫,板邊落主支中心)
+- `subSpacing = boardLongCm / round(boardLongCm / 36)`(板長均分到目標 ~36 cm)
+
+預設 90/180 + 3mm → main 90.3 / sub 36;改 60/120 → 60.3 / 40。
+切手動可用老派台尺 90.9 / 36.36。
+
+### §CE.13 簡化吊筋分布(2026-05-18)
+
+吊筋密度 = "minimal" 時,固定 2 支但**不貼牆**(邊框已接牆,貼牆沒結構意義):
+- 1 支 → 中心(1/2)
+- 2 支(簡化)→ 1/3、2/3(主支三等分)
+- 3+ 支(業界標準)→ ceil(L/spacing)+1,均分含端點
+
+baseline 簡化 = 6 主支 × 2 = 12 吊筋,各間 104.27 cm。
+
+### §CE.14 裁料計算器(`lib/ceiling/cutting.ts`)
+
+1D 裁料 FFD(First Fit Decreasing)+ 超 stock 自動拼接:
+- **預處理 splitLongPieces:** 超 `stockLengthCm` 的 piece 切 N=ceil(len/stock) 段,
+  前 N-1 段 = stockLength 全用,最後段 = remainder + (N-1) × spliceOverlapCm
+- spliceOverlapCm 預設 10 cm(實務交接放邊框上強固)
+- FFD 排入 stocks,記每根 stock 切法、kerf、剩料
+- 利用率 / 總料 / 廢料 / 訂料總 stock 數
+
+baseline 邊框 500 cm + stock 360 + overlap 10 → [360][150] 拼接,2 段。
+
+### §CE.15 燈具 / 開孔碰撞(`lib/ceiling/fixtures.ts`)
+
+燈具 = 圓(中心 x/z, 半徑 r),檢查 vs 主支/副支/邊框矩形:
+- 圓 vs rect closestPoint 距離法
+- penetration > 0 = 撞,回 collisions list 含 hitWith 描述
+- 5 種燈具預設半徑:LED 5 / 出風口 15 / 喇叭 8 / 灑水頭 3 / 其他 5
+
+### §CE.16 短碼分享(`app/api/ceiling/share/route.ts`)
+
+Upstash Redis 短碼分享:
+- POST { input: { input, fixtures, customer } } → { code }(8 字元 nanoid,base62 去易混)
+- GET ?code=xxx → { input }
+- 30 天 TTL(SHORT_TTL_SECONDS,跟 quote 短碼共用)
+- URL `/ceiling?c=CODE` 自動載入
+
+### §CE.17 階段 4 整合(2026-05-18 完工)
+
+- `lib/permissions.ts` 加 `canUseCeilingTool`(pro/student/lifetime=true、free/personal=false)
+- `app/ceiling/page.tsx` admin OR canUseCeilingTool 檢查,未通過導 `/pricing?upgrade=ceiling`
+- 5 步施工步驟 collapsible(spec 文字硬編)放公式對照前
+- `app/page.tsx` 加「🔨 木作工具」section 在 catalog 第一個位置(永遠在最上)
+- 列印 PDF:`BrandedHeader`(wrd 共用 LOGO) + 客戶 TO + 案場短碼 + 日期 + 3 欄簽收

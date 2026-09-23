@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
  * 走 client component 是為了能抓 window.location.href（server 不知道 host）。
  */
 export function QrCode({ url, size = 120, showCaption = true }: Props) {
+  const t = useTranslations("qrCode");
   const [dataUrl, setDataUrl] = useState<string>("");
   const [target, setTarget] = useState<string>("");
 
@@ -55,14 +57,14 @@ export function QrCode({ url, size = 120, showCaption = true }: Props) {
     <div className="flex flex-col items-center gap-1">
       <img
         src={dataUrl}
-        alt="掃碼看線上報價"
+        alt={t("alt")}
         width={size}
         height={size}
         className="block"
       />
       {showCaption && (
         <div className="text-[8px] text-zinc-500 text-center leading-tight">
-          <div className="font-medium">📱 掃碼看線上報價</div>
+          <div className="font-medium">{t("caption")}</div>
           {host && <div className="font-mono text-zinc-400">{host}</div>}
         </div>
       )}

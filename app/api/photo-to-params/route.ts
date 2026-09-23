@@ -21,7 +21,7 @@ const VALID_CATEGORIES = [
   "chest-of-drawers", "shoe-cabinet", "display-cabinet", "dining-table", "desk",
   "dining-chair", "wardrobe", "bar-stool", "media-console", "nightstand",
   "round-stool", "round-tea-table", "round-table", "pencil-holder", "bookend",
-  "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack",
+  "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack", "workbench",
 ] as const;
 
 const VALID_STYLES = [
@@ -43,7 +43,7 @@ interface PhotoResponse {
   warnings?: string[];
 }
 
-const SYSTEM_PROMPT = `你是台灣 woodworking YouTuber 木頭仁的家具識別助手。使用者上傳一張家具照，你要回出可以丟進「木頭仁家具設計器」的 JSON 參數。
+const SYSTEM_PROMPT = `你是台灣 woodworking YouTuber 木頭仁 木作藍圖的家具識別助手。使用者上傳一張家具照，你要回出可以丟進「木頭仁 木作藍圖」的 JSON 參數。
 
 可選 category（必填，只能挑一個）：
 ${VALID_CATEGORIES.join(", ")}
@@ -83,29 +83,29 @@ export function GET() {
 
 export async function POST(req: NextRequest) {
   if (!aiFeaturesEnabled()) {
-    return NextResponse.json({ error: "AI 功能已關閉（成本控制中）" }, { status: 503 });
+    return NextResponse.json({ error: "ai-disabled" }, { status: 503 });
   }
   try {
     const body = (await req.json()) as { imageBase64: string; mediaType?: string };
     const { imageBase64, mediaType = "image/jpeg" } = body;
 
     if (!imageBase64 || typeof imageBase64 !== "string") {
-      return NextResponse.json({ error: "缺 imageBase64" }, { status: 400 });
+      return NextResponse.json({ error: "missing-image" }, { status: 400 });
     }
 
     // 防爆量：base64 上限 ~6MB（壓縮後 jpeg 應該 <1MB）
     if (imageBase64.length > 6_000_000) {
-      return NextResponse.json({ error: "圖檔太大（請壓到 1MB 以下）" }, { status: 413 });
+      return NextResponse.json({ error: "file-too-large" }, { status: 413 });
     }
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(mediaType)) {
-      return NextResponse.json({ error: "格式只接受 jpeg/png/webp" }, { status: 400 });
+      return NextResponse.json({ error: "invalid-format" }, { status: 400 });
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "照片轉設計功能尚未配置 (缺 ANTHROPIC_API_KEY)" },
+        { error: "ai-not-configured" },
         { status: 503 },
       );
     }
@@ -114,16 +114,26 @@ export async function POST(req: NextRequest) {
     if (!gate.allowed) {
       if (gate.reason === "unauthenticated") {
         return NextResponse.json(
-          { error: "請先登入才能使用照片轉設計" },
+          { error: "unauthenticated" },
           { status: 401 },
+        );
+      }
+      // 讀不到今日用量 ≠ 已達上限。回 503 讓使用者知道是系統問題、稍後可再試,
+      // 不要顯示成「你的額度用完了,請升級」——那是誤導,而且他升級了也一樣壞。
+      if (gate.reason === "quota_unknown") {
+        return NextResponse.json(
+          { error: "unavailable", message: "系統忙碌中,請稍後再試一次。" },
+          { status: 503 },
         );
       }
       return NextResponse.json(
         {
-          error: `今日 AI 用量已達上限（${gate.used}/${gate.limit}），明日凌晨重置或升級方案`,
+          error: "rate-limited",
+          errorParams: { used: gate.used, limit: gate.limit },
           plan: gate.plan,
           used: gate.used,
           limit: gate.limit,
+          upgradeUrl: "/pricing",
         },
         { status: 429 },
       );
@@ -166,13 +176,17 @@ export async function POST(req: NextRequest) {
       const cleaned = text.replace(/^```json\n?|\n?```$/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      return NextResponse.json({ error: "AI 回傳格式錯誤", raw: text }, { status: 502 });
+      return NextResponse.json({ error: "ai-response-malformed", raw: text }, { status: 502 });
     }
 
     // 驗證 category 在白名單
     if (!parsed.category || !(VALID_CATEGORIES as readonly string[]).includes(parsed.category)) {
       return NextResponse.json(
-        { error: `AI 回的 category 不在白名單: ${parsed.category}`, raw: text },
+        {
+          error: "invalid-category",
+          errorParams: { category: String(parsed.category ?? "") },
+          raw: text,
+        },
         { status: 502 },
       );
     }
@@ -187,7 +201,11 @@ export async function POST(req: NextRequest) {
       const v = parsed[k];
       if (typeof v !== "number" || v < 50 || v > 5000) {
         return NextResponse.json(
-          { error: `尺寸不合理: ${k}=${v}`, raw: text },
+          {
+            error: "invalid-dimension",
+            errorParams: { key: k, value: String(v) },
+            raw: text,
+          },
           { status: 502 },
         );
       }
@@ -196,7 +214,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (err) {
     console.error("[photo-to-params]", err);
-    const msg = err instanceof Error ? err.message : "未知錯誤";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "server-error" }, { status: 500 });
   }
 }

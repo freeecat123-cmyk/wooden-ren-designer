@@ -1,7 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { getSizePresets } from "@/lib/design/size-presets";
+import { useTranslations, useLocale } from "next-intl";
+import { getSizePresetsLocalized } from "@/lib/design/size-presets";
+import { formatInchFraction, formatDimensions } from "@/lib/units/format";
+import { useUnit } from "@/hooks/useUnit";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -13,6 +16,8 @@ import type { FurnitureCategory } from "@/lib/types";
  */
 interface SizePresetButtonsProps {
   category: FurnitureCategory;
+  /** 該家具的 limits；任一維超過上限的 preset 不顯示，避免按了被 server clamp */
+  limits?: { length: number; width: number; height: number };
   /**
    * compact=true 用於手機版：減少 margin、縮字級，適合尺寸 card 內嵌。
    * 不影響 desktop 預設視覺。
@@ -20,14 +25,24 @@ interface SizePresetButtonsProps {
   compact?: boolean;
 }
 
-export function SizePresetButtons({ category, compact }: SizePresetButtonsProps) {
+export function SizePresetButtons({ category, limits, compact }: SizePresetButtonsProps) {
+  const t = useTranslations("sizePreset");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const presets = getSizePresets(category);
+  const allPresets = getSizePresetsLocalized(category, locale);
+  // tooltip 顯示單位：用 useUnit() 取得真正的單位偏好（geo cookie / localStorage / fallback）。
+  // inch → 1/16" 分數（24"×18"×30"），mm → 直接 mm。
+  // 過去用 `locale === "en"` 當代理是錯的：EN 訪客在歐洲也可能想看 mm。
+  const unit = useUnit();
+  const dim = (mm: number) => (unit === "inch" ? formatInchFraction(mm) : `${mm} mm`);
+  const presets = limits
+    ? allPresets.filter((p) => p.length <= limits.length && p.width <= limits.width && p.height <= limits.height)
+    : allPresets;
   if (presets.length === 0) return null;
 
   const handleClick = (l: number, w: number, h: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("length", String(l));
     params.set("width", String(w));
     params.set("height", String(h));
@@ -43,7 +58,7 @@ export function SizePresetButtons({ category, compact }: SizePresetButtonsProps)
             key={p.label}
             type="button"
             onClick={() => handleClick(p.length, p.width, p.height)}
-            title={`${p.length}×${p.width}×${p.height} mm${p.hint ? " · " + p.hint : ""}`}
+            title={`${dim(p.length)}×${dim(p.width)}×${dim(p.height)}${p.hint ? " · " + p.hint : ""}`}
             className="shrink-0 px-2.5 py-1 rounded text-[11px] bg-amber-50 text-amber-900 border border-amber-200 active:bg-amber-100 active:border-amber-300"
           >
             {p.label}
@@ -56,14 +71,14 @@ export function SizePresetButtons({ category, compact }: SizePresetButtonsProps)
   return (
     <div className="mb-3 flex flex-wrap gap-1.5 items-center">
       <span className="text-[10px] text-zinc-500 font-medium tracking-wide mr-1">
-        🎯 業界常用：
+        {t("commonLabel")}
       </span>
       {presets.map((p) => (
         <button
           key={p.label}
           type="button"
           onClick={() => handleClick(p.length, p.width, p.height)}
-          title={`${p.length}×${p.width}×${p.height} mm${p.hint ? " · " + p.hint : ""}`}
+          title={`${formatDimensions(p.length, p.width, p.height, unit)}${p.hint ? " · " + p.hint : ""}`}
           className="px-2.5 py-1 rounded text-[11px] bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 hover:border-amber-300"
         >
           {p.label}

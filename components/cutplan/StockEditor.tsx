@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
 import type { StockItem } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
-import { MATERIALS } from "@/lib/materials";
+import { MATERIALS, materialName } from "@/lib/materials";
 import type { MaterialId } from "@/lib/types";
 
 export function StockEditor({
@@ -14,8 +15,8 @@ export function StockEditor({
   inventory: StockItem[];
   onChange: (next: StockItem[]) => void;
 }) {
-  // 偵測零件用到但庫存沒列的 (kind, material?) 組合——給快速加按鈕
-  // 不再依厚度匹配：庫存不綁厚度，一筆 maple 1818×200 可同時供應 25/38mm 零件
+  const t = useTranslations("cutPlanApp.stock");
+  const locale = useLocale();
   const usedKeys = new Set<string>();
   const usedMeta = new Map<
     string,
@@ -40,7 +41,6 @@ export function StockEditor({
   }
 
   const addRow = () => {
-    // 有上一筆就 clone（只重設 count 為 null，省得使用者每次重選材質尺寸）
     const last = inventory[inventory.length - 1];
     const newRow: StockItem = last
       ? { ...last, count: null }
@@ -99,22 +99,16 @@ export function StockEditor({
     <section className="border border-zinc-200 rounded-lg overflow-hidden">
       <header className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-700">
-            原料庫存（實木 + 板材）
-          </h2>
+          <h2 className="text-sm font-semibold text-zinc-700">{t("h")}</h2>
           <p className="text-[11px] text-zinc-500 mt-1">
             {inventory.length === 0 ? (
-              <span className="text-amber-700 font-semibold">
-                還沒列任何板才——下面不會出現排料圖。請先加入你實際有的原料。
-              </span>
+              <span className="text-amber-700 font-semibold">{t("warnEmpty")}</span>
             ) : (
               <>
-                依「類別＋材質＋長寬」記錄實際庫存，
-                <span className="font-semibold">不綁厚度</span>
-                ；同一筆可同時供應不同厚度的零件。
-                <span className="ml-2 text-emerald-700">
-                  ✓ 已自動存到本機，下次進頁面自動帶入
-                </span>
+                {t("introNotEmpty1")}
+                <span className="font-semibold">{t("introNotEmpty2")}</span>
+                {t("introNotEmpty3")}
+                <span className="ml-2 text-emerald-700">{t("introNotEmptyAuto")}</span>
               </>
             )}
           </p>
@@ -123,18 +117,18 @@ export function StockEditor({
           {inventory.length > 0 && (
             <button
               onClick={() => {
-                if (confirm("清空所有庫存？存檔也會一起清掉。")) onChange([]);
+                if (confirm(t("confirmClear"))) onChange([]);
               }}
               className="px-3 py-1 text-xs bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200"
             >
-              清空
+              {t("clearBtn")}
             </button>
           )}
           <button
             onClick={addRow}
             className="px-3 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
           >
-            ＋ 加一筆
+            {t("addRow")}
           </button>
         </div>
       </header>
@@ -144,11 +138,11 @@ export function StockEditor({
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
-                <th className="text-left px-2 py-2 w-20">類別</th>
-                <th className="text-left px-2 py-2 w-24">材質</th>
-                <th className="text-right px-2 py-2 w-24">長 (mm)</th>
-                <th className="text-right px-2 py-2 w-24">寬 (mm)</th>
-                <th className="text-right px-2 py-2 w-16">支數</th>
+                <th className="text-left px-2 py-2 w-20">{t("thKind")}</th>
+                <th className="text-left px-2 py-2 w-24">{t("thMaterial")}</th>
+                <th className="text-right px-2 py-2 w-24">{t("thLength")}</th>
+                <th className="text-right px-2 py-2 w-24">{t("thWidth")}</th>
+                <th className="text-right px-2 py-2 w-16">{t("thCount")}</th>
                 <th className="px-1 py-2 w-10"></th>
               </tr>
             </thead>
@@ -169,7 +163,6 @@ export function StockEditor({
                             thickness: s.thickness || 0,
                           });
                         } else {
-                          // 夾板 / 中纖板：台灣市場常見 4×8 ft ≈ 2400×1200、厚 18mm
                           patchRow(idx, {
                             kind,
                             material: undefined,
@@ -181,9 +174,9 @@ export function StockEditor({
                       }}
                       className="w-full px-2 py-1 border border-zinc-200 rounded text-sm"
                     >
-                      <option value="solid">實木</option>
-                      <option value="plywood">夾板</option>
-                      <option value="mdf">中纖板</option>
+                      <option value="solid">{t("kindSolid")}</option>
+                      <option value="plywood">{t("kindPlywood")}</option>
+                      <option value="mdf">{t("kindMdf")}</option>
                     </select>
                   </td>
                   <td className="px-2 py-1">
@@ -197,7 +190,7 @@ export function StockEditor({
                       >
                         {Object.values(MATERIALS).map((m) => (
                           <option key={m.id} value={m.id}>
-                            {m.nameZh}
+                            {materialName(m.id, locale)}
                           </option>
                         ))}
                       </select>
@@ -231,7 +224,7 @@ export function StockEditor({
                     <input
                       type="number"
                       min={0}
-                      placeholder="不限"
+                      placeholder={t("countUnlimited")}
                       value={s.count ?? ""}
                       onChange={(e) => {
                         const n = Number(e.target.value);
@@ -259,13 +252,14 @@ export function StockEditor({
           </table>
         </div>
       )}
-      {/* mobile：每筆庫存 card 化，欄位垂直堆疊不裁字 */}
       {inventory.length > 0 && (
         <div className="md:hidden divide-y divide-zinc-200">
           {inventory.map((s, idx) => (
             <div key={idx} className="p-3 space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-zinc-400 w-10 shrink-0">類別</span>
+                <span className="text-[10px] font-semibold text-zinc-400 w-10 shrink-0">
+                  {t("mobileLblKind")}
+                </span>
                 <select
                   value={s.kind}
                   onChange={(e) => {
@@ -278,35 +272,37 @@ export function StockEditor({
                   }}
                   className="flex-1 px-2 py-1.5 border border-zinc-200 rounded text-sm"
                 >
-                  <option value="solid">實木</option>
-                  <option value="plywood">夾板</option>
-                  <option value="mdf">中纖板</option>
+                  <option value="solid">{t("kindSolid")}</option>
+                  <option value="plywood">{t("kindPlywood")}</option>
+                  <option value="mdf">{t("kindMdf")}</option>
                 </select>
                 <button
                   onClick={() => removeRow(idx)}
                   className="px-2 py-1.5 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100 shrink-0"
-                  aria-label="刪除"
+                  aria-label={t("removeAria")}
                 >
                   ✕
                 </button>
               </div>
               {s.kind === "solid" && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-zinc-400 w-10 shrink-0">材質</span>
+                  <span className="text-[10px] font-semibold text-zinc-400 w-10 shrink-0">
+                    {t("mobileLblMaterial")}
+                  </span>
                   <select
                     value={s.material ?? "maple"}
                     onChange={(e) => patchRow(idx, { material: e.target.value as MaterialId })}
                     className="flex-1 px-2 py-1.5 border border-zinc-200 rounded text-sm"
                   >
                     {Object.values(MATERIALS).map((m) => (
-                      <option key={m.id} value={m.id}>{m.nameZh}</option>
+                      <option key={m.id} value={m.id}>{materialName(m.id, locale)}</option>
                     ))}
                   </select>
                 </div>
               )}
               <div className="grid grid-cols-3 gap-2">
                 <label className="block">
-                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">長 (mm)</span>
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">{t("mobileLblLength")}</span>
                   <input
                     type="number"
                     value={s.length}
@@ -315,7 +311,7 @@ export function StockEditor({
                   />
                 </label>
                 <label className="block">
-                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">寬 (mm)</span>
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">{t("mobileLblWidth")}</span>
                   <input
                     type="number"
                     value={s.width}
@@ -324,11 +320,11 @@ export function StockEditor({
                   />
                 </label>
                 <label className="block">
-                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">支數</span>
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">{t("mobileLblCount")}</span>
                   <input
                     type="number"
                     min={0}
-                    placeholder="不限"
+                    placeholder={t("countUnlimited")}
                     value={s.count ?? ""}
                     onChange={(e) => {
                       const n = Number(e.target.value);
@@ -345,25 +341,25 @@ export function StockEditor({
 
       {uncovered.length > 0 && (
         <div className="border-t border-zinc-100 bg-amber-50/40 p-3">
-          <p className="text-xs text-zinc-600 mb-2">
-            以下零件用到的類別還沒列原料（沒加就會排不下）：
-          </p>
+          <p className="text-xs text-zinc-600 mb-2">{t("uncoveredHint")}</p>
           <div className="flex flex-wrap gap-2">
             {uncovered.map((k) => {
               const meta = usedMeta.get(k)!;
               const label =
                 meta.kind === "solid"
-                  ? MATERIALS[meta.material!]?.nameZh ?? meta.material
+                  ? meta.material
+                    ? materialName(meta.material, locale)
+                    : ""
                   : meta.kind === "plywood"
-                  ? "夾板"
-                  : "中纖板";
+                  ? t("kindPlywood")
+                  : t("kindMdf");
               return (
                 <button
                   key={k}
                   onClick={() => quickAdd(meta)}
                   className="px-2 py-1 text-xs bg-emerald-100 text-emerald-800 rounded hover:bg-emerald-200"
                 >
-                  ＋ {label}
+                  {t("quickAddPrefix")}{label}
                 </button>
               );
             })}
@@ -371,11 +367,10 @@ export function StockEditor({
         </div>
       )}
 
-      {/* HTML5 datalist 快選 — input 聚焦時顯示常見尺寸下拉 */}
       <datalist id="stock-length-solid">
-        <option value="1818">6 尺（1818mm）</option>
+        <option value="1818">{t("dataListLengthSolid6ft")}</option>
         <option value="2000">2m</option>
-        <option value="2438">8 尺（2438mm）</option>
+        <option value="2438">{t("dataListLengthSolid8ft")}</option>
         <option value="3000">3m</option>
         <option value="4000">4m</option>
         <option value="5000">5m</option>
@@ -391,16 +386,15 @@ export function StockEditor({
         <option value="400" />
       </datalist>
       <datalist id="stock-length-sheet">
-        <option value="2400">4×8 ft（2440mm）</option>
+        <option value="2400">{t("dataListLengthSheet48ft")}</option>
         <option value="2440">2440mm</option>
-        <option value="2745">9 尺（2745mm）</option>
+        <option value="2745">{t("dataListLengthSheet9ft")}</option>
       </datalist>
       <datalist id="stock-width-sheet">
-        <option value="1220">4 尺（1220mm）</option>
+        <option value="1220">{t("dataListWidthSheet4ft")}</option>
         <option value="1200">1200mm</option>
         <option value="900" />
       </datalist>
     </section>
   );
 }
-

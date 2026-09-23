@@ -1,33 +1,51 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
-import { MATERIALS } from "@/lib/materials";
+import { MATERIALS, materialName } from "@/lib/materials";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
 import {
   MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
   effectiveBillableMaterial,
 } from "@/lib/pricing/catalog";
+import { useUnit } from "@/hooks/useUnit";
+import { formatMm } from "@/lib/units/format";
 
 interface Props {
   design: FurnitureDesign;
 }
 
-export function CsvExportButton({ design }: Props) {
-  const download = () => {
+/**
+ * 產生並下載材料 CSV。
+ *
+ * ⭐ 從 `CsvExportButton` 抽出來的**唯一一份實作**:手機版的「📋 材料 CSV」以前是死控制項
+ *   (點了只跳「phase 2 整合」的 alert),而桌面版早就能用。
+ *   抽成函式而不是在手機那邊再寫一份 —— 這個 repo 今天已經因為
+ *   「同一個概念兩份實作」出過好幾次包(零件卡 vs 切料尺寸、BOM vs 裁切表)。
+ *   (2026-08-21 稽核發現。)
+ *
+ * 需要 t / locale / unit 三個 hook 的值,所以由呼叫端(client component)取好傳進來。
+ */
+export function downloadPartsCsv(
+  design: Props["design"],
+  deps: { t: (k: string, v?: Record<string, string>) => string; locale: string; unit: ReturnType<typeof useUnit> },
+) {
+  const { t, locale, unit } = deps;
+
     const rows: string[][] = [];
     rows.push([
-      "零件",
-      "材質",
-      "可見長 (mm)",
-      "可見寬 (mm)",
-      "可見厚 (mm)",
-      "切料長 (mm)",
-      "切料寬 (mm)",
-      "切料厚 (mm)",
-      "材積 (板才)",
-      "榫頭備註",
+      t("colPart"),
+      t("colMaterial"),
+      t("colVisL"),
+      t("colVisW"),
+      t("colVisT"),
+      t("colCutL"),
+      t("colCutW"),
+      t("colCutT"),
+      t("colBdft"),
+      t("colTenon"),
     ]);
 
     // 尺寸依數值降冪排序輸出為 長/寬/厚，避免背板那類 visible 欄位
@@ -40,16 +58,17 @@ export function CsvExportButton({ design }: Props) {
       const cut = calculateCutDimensions(part);
       const bdft = (cut.length * cut.width * cut.thickness) / MM3_PER_BDFT;
       const billable = effectiveBillableMaterial(part);
+      const matName = materialName(part.material, locale);
       const materialLabel =
         billable === "plywood" || billable === "mdf"
-          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-          : MATERIALS[part.material].nameZh;
+          ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
+          : matName;
 
       const tenonNotes = part.tenons.length
         ? part.tenons
             .map(
               (t) =>
-                `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+                `${t.position} ${formatMm(t.length, unit)} ${JOINERY_LABEL[t.type] ?? t.type}`,
             )
             .join("；")
         : "";
@@ -93,7 +112,7 @@ export function CsvExportButton({ design }: Props) {
         .join("\r\n");
 
     const today = new Date().toISOString().slice(0, 10);
-    const fname = `${design.nameZh}_材料單_${today}.csv`;
+    const fname = t("filenameTpl", { name: design.nameZh, date: today });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -104,7 +123,14 @@ export function CsvExportButton({ design }: Props) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
+}
+
+export function CsvExportButton({ design }: Props) {
+  const t = useTranslations("csvExport");
+  const locale = useLocale();
+  const unit = useUnit();
+  const download = () => downloadPartsCsv(design, { t, locale, unit });
+
 
   return (
     <button
@@ -112,7 +138,7 @@ export function CsvExportButton({ design }: Props) {
       onClick={download}
       className="mt-4 inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-zinc-300 rounded bg-white hover:bg-zinc-50 text-zinc-700"
     >
-      📋 材料單 CSV 下載
+      {t("btn")}
     </button>
   );
 }

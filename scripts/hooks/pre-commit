@@ -5,9 +5,11 @@
 
 # 只在 lib/templates/、lib/geometry/、lib/joinery/、相關 audit script 有改動時跑
 changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(lib/templates/|lib/geometry/overlap\.ts$|lib/joinery/|scripts/audit-overlaps\.ts$|scripts/audit-joints\.ts$)')
-if [ -z "$changed" ]; then
-  exit 0
-fi
+# ⛔ 這裡以前是 `exit 0` —— 那會把**整支 hook 都短路掉**,
+#    導致後面「一律要跑」的單元測試永遠不會執行(2026-08-21 實測發現:
+#    故意把 lib/pricing/prorate.ts 改壞,commit 照樣過)。
+#    改成只跳過幾何 audit,不要中止整支 hook。
+if [ -n "$changed" ]; then
 
 echo "🔍 Running overlap audit (template / overlap / joinery code changed)..."
 if ! npx tsx scripts/audit-overlaps.ts > /tmp/wrd-audit.log 2>&1; then
@@ -36,3 +38,33 @@ if ! npx tsx scripts/audit-joints.ts > /tmp/wrd-joint-audit.log 2>&1; then
 fi
 echo "✅ Joint audit passed."
 exit 0
+
+fi
+
+# ── 單元測試（2026-08-21 加）──────────────────────────────────────────
+# ⭐ 為什麼:這個 repo 有 364 條 vitest 測試,但在此之前**沒有任何機制會跑它們**
+#   (package.json 沒有 test 指令、CI 只跑幾何 audit 且路徑過濾很窄)。
+#   跑一次約 2 秒,沒有理由不擋在 commit 前面。
+# ⚠️ 故意不做路徑過濾:上面的幾何 audit 因為過濾,金流/權限/匯出的改動一直沒被驗到。
+echo "🧪 Running unit tests..."
+# ⛔ 這裡以前是裸的 `npx vitest run` —— 它會連**工作區裡的殘留目錄**一起掃：
+#    `.claude/worktrees/*`（agent 用完沒清的整份 repo 副本）與 `node_modules.pnpm-old/`
+#    （改用 npm 前的 pnpm 殘骸，裡面有 zod 自帶的測試，缺 peer dep 必定載入失敗）。
+#    2026-08-22 實測：60 個 FAIL 全數來自這兩處、主樹 0 失敗，
+#    但 hook 只看 exit code → **在這種工作區裡任何 commit 都被擋死**，
+#    逼人改用 --no-verify（等於整層保護失效）或把檔案改名閃開。
+#    注意 vitest 的 --exclude 會**覆蓋**內建預設，所以 node_modules 要自己列回來。
+if ! npx vitest run \
+  --exclude '**/node_modules/**' \
+  --exclude '**/node_modules.pnpm-old/**' \
+  --exclude '**/.claude/**' \
+  > /tmp/wrd-test.log 2>&1; then
+  echo ""
+  echo "❌ Unit tests failed:"
+  echo ""
+  tail -40 /tmp/wrd-test.log
+  echo ""
+  echo "To bypass for emergencies: git commit --no-verify"
+  exit 1
+fi
+echo "✅ Unit tests passed."

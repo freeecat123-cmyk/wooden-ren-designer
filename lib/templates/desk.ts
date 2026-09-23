@@ -1,34 +1,60 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { simpleTable } from "./_builders/simple-table";
+import { addConstructionHousing, addConstructionHalfLap, enforceConstructionLimits } from "@/lib/geometry/construction-cuts";
+import { simpleTable, LEG_FACE_INSET } from "./_builders/simple-table";
+import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 import { caseFurniture } from "./_builders/case-furniture";
 import { renderDrawerZone as renderDrawerZoneShared } from "./_builders/drawer-row";
 import { applyLowerStretcherArrangement } from "./dining-table";
-import { applyStandardChecks } from "./_validators";
-import {
+import { applyStandardChecks, appendWarnings } from "./_validators";
+import { formatMm } from "@/lib/units/format";
+import { resolveCtBlockForApron, apronSetbackOption,
   seatEdgeOption,
+  seatEdgeBottomOption,
   seatEdgeStyleOption,
+  seatOutlineOption,
+  seatOutlineSizeOption,
+  seatOutlineNote,
+  seatOutlineDetailOptions,
+  readSeatOutlineParams,
+  resolveTopOutlineShape,
+  ovalMinLegInset,
   legEdgeOption,
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  apronEdgeOption,
+  apronEdgeStyleOption,
+  apronProfileOptions,
+  stretcherProfileOptions,
   pullStyleOption,
+  legEdgeShape,
+  curvedTaperLegOptions,
+  clampLegInset,
 } from "./_helpers";
 import {
   drawerBottomModeOption,
+  drawerBoxJoineryOption,
   drawerMountOption,
   drawerSlideOption,
   resolveDrawerBottomMode,
+  resolveDrawerBoxJoinery,
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
 
 export const deskOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "constructionVersion", label: "結構版本", defaultValue: "1", choices: [{ value: "1", label: "原版" }, { value: "2", label: "修正版" }] },
   // ───────────── ① 桌面 ─────────────
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
-  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚", defaultValue: 28, unit: "mm", min: 12, max: 60, step: 2 },
+  // 桌面俯視輪廓造型（top-outline）：與 liveEdge 互斥、非方形時倒角欄隱藏（一件一 shape）
+  { ...seatOutlineOption("top", "桌面"), dependsOn: { key: "liveEdge", notIn: [true] } },
+  seatOutlineSizeOption("top"),
+  ...seatOutlineDetailOptions("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { all: [{ key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }, { key: "liveEdge", notIn: [true] }, { key: "seatOutline", oneOf: ["rect"] }] } },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true, dependsOn: { key: "seatOutline", oneOf: ["rect"] } },
 
   // ───────────── ② 桌腳 ─────────────
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", help: "選「牙板位置抽屜」時只支援：直腳、方斜腳（沿寬邊單向）、夏克腳—其他腳型自動隱藏", choices: [
@@ -41,21 +67,29 @@ export const deskOptions: OptionSpec[] = [
     { value: "splayed-tapered", label: "方錐斜腳（下收 + 外傾）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
     { value: "splayed-round-tapered", label: "圓錐斜腳（圓料下收 + 外傾）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
     { value: "shaker", label: "夏克腳（上 1/4 方料、下 3/4 圓錐收）" },
+    { value: "curved-taper", label: "弧肩斜腳（上段全寬→內凹弧肩→斜降）", dependsOn: { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] } },
   ] },
-  { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 20, max: 120, step: 2 },
-  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
+  ...curvedTaperLegOptions("leg"),
+  { group: "leg", type: "number", key: "legSize", label: "桌腳粗", defaultValue: 55, unit: "mm", min: 20, max: 120, step: 2 },
+  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮", defaultValue: 0, unit: "mm", min: 0, max: 400, step: 5 },
+  // shaker / splayed-round-tapered 是圓料、沒有 4 條長邊；只在方料/方錐/方斜腳顯示
+  legEdgeOption("leg", 1, { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
 
-  // ───────────── ③ 牙板 ─────────────
-  { group: "apron", type: "checkbox", key: "withApron", label: "加牙板", defaultValue: true, help: "牙板連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
+  // ───────────── ③ 牙條 ─────────────
+  { group: "apron", type: "checkbox", key: "withApron", label: "加牙條", defaultValue: true, help: "牙條連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
+  apronSetbackOption("apron"),
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高", defaultValue: 90, unit: "mm", min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚", defaultValue: 25, unit: "mm", min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面", defaultValue: 0, unit: "mm", min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
+  // 牙板抽屜模式（drawerStyle=apron 且有抽屜）前牙板換抽屜帶，造型不適用 → 隱藏
+  ...apronProfileOptions("apron", { all: [{ key: "withApron", equals: true }, { any: [{ key: "drawerStyle", notIn: ["apron"] }, { key: "drawerCount", equals: 0 }] }] }),
+  { ...apronEdgeOption("apron", 1), dependsOn: { key: "apronProfile", oneOf: ["none"] } },
+  { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "apronEdge", notIn: [0] }, { key: "apronProfile", oneOf: ["none"] }] } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
 
   // ───────────── ④ 橫撐 ─────────────
-  { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙板。pedestal 中央抽屜跟牙板抽屜會跟中央橫撐衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
+  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙條。pedestal 中央抽屜跟牙條抽屜會跟中央牙條衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
   { group: "stretcher", type: "select", key: "lowerStretcherArrangement", label: "下橫撐排列", defaultValue: "box-frame", choices: [
     { value: "box-frame", label: "4 邊框（最穩，預設）" },
@@ -63,15 +97,16 @@ export const deskOptions: OptionSpec[] = [
     { value: "pair-x", label: "雙條（前/後 2 條，無左右）" },
     { value: "pair-z", label: "雙條（左/右 2 條，無前後）" },
   ], dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 28, min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高", defaultValue: 50, unit: "mm", min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚", defaultValue: 28, unit: "mm", min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
+  ...stretcherProfileOptions("stretcher", { key: "withLowerStretchers", equals: true }),
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "stretcherProfile", oneOf: ["none"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "stretcherEdge", notIn: [0] }, { key: "stretcherProfile", oneOf: ["none"] }] } },
   { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 0, min: 0, max: 20, step: 1, help: "0 = 自動依桌長算（每 150mm 一條）", dependsOn: { key: "withSlatRack", equals: true } },
-  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬 (mm)", defaultValue: 35, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
-  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚 (mm)", defaultValue: 18, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬", defaultValue: 35, unit: "mm", min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚", defaultValue: 18, unit: "mm", min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
 
   // ───────────── ⑤ 抽屜 ─────────────
   { group: "drawer", type: "select", key: "drawerStyle", label: "抽屜形式", defaultValue: "none", choices: [
@@ -88,6 +123,7 @@ export const deskOptions: OptionSpec[] = [
   // 抽屜細部（同櫃類）—— 跟櫃類同款 helper 共用
   { ...drawerMountOption, dependsOn: { key: "drawerStyle", equals: "pedestal" }, help: "牙板抽屜形式只能入柱（強制）" },
   { ...drawerBottomModeOption, dependsOn: { key: "drawerStyle", notIn: ["none"] } },
+  { ...drawerBoxJoineryOption, dependsOn: { key: "drawerStyle", notIn: ["none"] } },
   { ...drawerSlideOption, dependsOn: { key: "drawerStyle", notIn: ["none"] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerStyle", notIn: ["none"] } },
   // 抽屜櫃結構：接桌底方式 + 深度/間距 + H 框（僅 pedestal 形式）
@@ -97,15 +133,15 @@ export const deskOptions: OptionSpec[] = [
     { value: "none", label: "不接桌底（純靠 H 框支撐）" },
     { value: "brass-pillars", label: "4 隻黃銅柱（現代極簡）" },
   ], dependsOn: { key: "drawerStyle", equals: "pedestal" } },
-  { group: "drawer", type: "number", key: "brassPillarInset", label: "黃銅柱內縮 (mm)", defaultValue: 80, min: 0, max: 200, step: 5, help: "從櫃邊往內縮的距離（前後 + 左右都套用）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "pedestalTopAttach", equals: "brass-pillars" }] } },
-  { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
-  { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度 (mm)", defaultValue: 0, min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
+  { group: "drawer", type: "number", key: "brassPillarInset", label: "黃銅柱內縮", defaultValue: 80, unit: "mm", min: 0, max: 200, step: 5, help: "從櫃邊往內縮的距離（前後 + 左右都套用）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "pedestalTopAttach", equals: "brass-pillars" }] } },
+  { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底", defaultValue: 5, unit: "mm", min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
+  { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度", defaultValue: 0, unit: "mm", min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerStyle", equals: "pedestal" }] } },
   { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerStyle", equals: "pedestal" } },
-  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "withHFrame", equals: true }] } },
+  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高", defaultValue: 0, unit: "mm", min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerStyle", equals: "pedestal" }, { key: "withHFrame", equals: true }] } },
   // 牙板抽屜形式（apron）— 面板可微內縮做層次
-  { group: "drawer", type: "number", key: "apronDrawerFrontInset", label: "抽屜面板內縮 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, help: "面板從牙板外面往內推幾 mm（0 = 跟牙板齊平；3~6 = 微凹陷有層次；max 15 因面板厚 18mm）", dependsOn: { key: "drawerStyle", equals: "apron" } },
+  { group: "drawer", type: "number", key: "apronDrawerFrontInset", label: "抽屜面板內縮", defaultValue: 0, unit: "mm", min: 0, max: 15, step: 1, help: "面板從牙板外面往內推幾 mm（0 = 跟牙板齊平；3~6 = 微凹陷有層次；max 15 因面板厚 18mm）", dependsOn: { key: "drawerStyle", equals: "apron" } },
   // 單抽情況：寬度可調 + 位置（左/中/右）；多抽預設等寬橫向併滿牙板
-  { group: "drawer", type: "number", key: "apronDrawerWidth", label: "牙板抽屜寬 (mm)", defaultValue: 400, min: 150, max: 1500, step: 10, help: "單抽時可調寬度；預設 400mm（A4 紙橫向約 297mm 放得進去 + 邊距）", dependsOn: { all: [{ key: "drawerCount", equals: 1 }, { key: "drawerStyle", equals: "apron" }] } },
+  { group: "drawer", type: "number", key: "apronDrawerWidth", label: "牙板抽屜寬", defaultValue: 400, unit: "mm", min: 150, max: 800, step: 10, help: "單抽時可調寬度；預設 400mm（A4 紙橫向約 297mm 放得進去 + 邊距）；上限 800 適合大多桌寬", dependsOn: { all: [{ key: "drawerCount", equals: 1 }, { key: "drawerStyle", equals: "apron" }] } },
   { group: "drawer", type: "select", key: "apronDrawerPosition", label: "牙板抽屜位置", defaultValue: "center", choices: [
     { value: "left", label: "左側" },
     { value: "center", label: "中央" },
@@ -117,16 +153,21 @@ export const deskOptions: OptionSpec[] = [
 ];
 
 export const desk: FurnitureTemplate = (input) => {
+  const locale = input.locale ?? "zh-TW";
+  const isEn = locale === "en";
   const o = deskOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const withModestyPanelRaw = getOption<boolean>(input, opt(o, "withModestyPanel"));
   // 斜腳 / 夏克腳款 modesty 板會跟外傾腳 / 下半圓錐幾何衝突，強制取消
@@ -136,7 +177,35 @@ export const desk: FurnitureTemplate = (input) => {
   const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
   // withApron / apronThickness 已在下方 declare 用 raw → 0；此處先用同樣邏輯
   // 但 withApron 變數還沒讀，先暫定後續會 reassign。為避免重複，直接讀。
-  const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthRaw : 0);
+  /**
+   * ⚠️ **這裡的 apronWidth 必須跟共用 builder 實際產出的牙板一致。**
+   *
+   * `_builders/simple-table.ts` 在 `legShape === "curved-taper"` 時會把牙板高
+   * 夾到 `ctBlockHeight`(牙板要整片落在腳頂的全寬接撐段內,否則榫眼會切到已收弧的斜面)。
+   * 但 desk 自己的抽屜區(前檔板 :720、抽屜面板、drawer-runner、apronY :589)
+   * 用的是**這個未夾的區域變數** → 兩邊各算各的。
+   *
+   * ⛔ 實測 /design/desk?legShape=curved-taper&drawerStyle=apron:
+   *      builder 產的牙條 width = **40**,desk 的前牙條填補板 width = **90** —— 差 50mm。
+   *    前檔板下緣兩端因此懸空,抽屜面板也跟牙條對不齊。(2026-08-21 稽核發現。)
+   *
+   * ✅ 用同一條夾制規則,不要各寫一份。
+   */
+  /**
+   * 🩸 2026-08-25 更新:規則從「把牙條砍到接撐段」改成「**接撐段長高去容納牙條**」
+   *    (木頭仁「牙條高度又卡住了」)。這裡是 desk 為了跟 builder 同步而抄的一份 ——
+   *    規則一改它就過期了(builder 不再砍,desk 還在砍 → 書桌牙條被砍成 40)。
+   *    ⇒ 改成呼叫**同一支** `resolveCtBlockForApron()`,不要再抄邏輯。
+   */
+  const ctBlockHeightForApron = getOption<number>(input, opt(o, "ctBlockHeight"));
+  const apronWidthClamped =
+    legShape === "curved-taper"
+      ? Math.min(
+          apronWidthRaw,
+          resolveCtBlockForApron(ctBlockHeightForApron, apronWidthRaw, 0, 0, input.height),
+        )
+      : apronWidthRaw;
+  const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthClamped : 0);
   const apronThicknessRaw = getOption<number>(input, opt(o, "apronThickness"));
   const withApron = getOption<boolean>(input, opt(o, "withApron"));
   const apronThickness = withApron ? apronThicknessRaw : 0;
@@ -157,7 +226,31 @@ export const desk: FurnitureTemplate = (input) => {
   const apronDrawerWidth = getOption<number>(input, opt(o, "apronDrawerWidth"));
   const apronDrawerPosition = getOption<string>(input, opt(o, "apronDrawerPosition"));
   const apronDrawerFrontInset = getOption<number>(input, opt(o, "apronDrawerFrontInset"));
-  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const legInsetRaw = getOption<number>(input, opt(o, "legInset"));
+  const { outline: seatOutline, params: seatOutlineParams } = readSeatOutlineParams(input, o);
+  // 滿版圓／橢圓桌面：自動抬高桌腳內縮讓腳（含頂榫）落在橢圓內、防露榫
+  const _legInsetWanted = (seatOutline === "oval" || seatOutline === "petal") && !liveEdge
+    ? ovalMinLegInset(input.length, input.width, legInsetRaw, 5 + (seatOutline === "petal" ? seatOutlineParams.sizeMm : 0))
+    : legInsetRaw;
+  /**
+   * 🧷 夾住腳內縮 —— 否則牙條會被算成**負長度**。
+   *
+   * §A10.2:`visible.length = length − 2×legSize − 2×legInset (+2×splay)`。
+   * doc 沒給 legInset 上限,而 OptionSpec 的 max 是**寫死的常數**(150~400)跟家具尺寸無關,
+   * 小尺寸家具把滑桿拉到底就會產出負長度的牙條 —— 完全沒有警告,
+   * 負值一路流進材料單、裁切與報價(負材積、負價格)。
+   * (2026-08-21 稽核只報了「床頭櫃抽屜」一條;實際全掃發現 10 個模板都中。)
+   *
+   * ⚠️ 夾的是**輸入**不是輸出:把零件長度夾成 0 只會生出沒厚度的鬼零件,
+   *    使用者看不出哪裡不對;夾內縮量則是「拉到底就是貼著極限」,畫面看得見也做得出來。
+   */
+  const legInset = clampLegInset(_legInsetWanted, {
+    length: input.length,
+    width: input.width,
+    legW: legSize,
+    legD: legSize,
+  });
+  const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const lowerStretcherArrangement = getOption<string>(input, opt(o, "lowerStretcherArrangement"));
@@ -173,6 +266,7 @@ export const desk: FurnitureTemplate = (input) => {
     material: input.material,
     legSize,
     topThickness,
+    apronSetback: getOption<number>(input, opt(o, "apronSetback")),
     apronWidth,
     apronThickness,
     legPenetratingTenon,
@@ -191,15 +285,31 @@ export const desk: FurnitureTemplate = (input) => {
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "splayed-tapered" | "splayed-round-tapered" | "shaker",
+    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "splayed-tapered" | "splayed-round-tapered" | "shaker" | "curved-taper",
+    ctBlockHeight: getOption<number>(input, opt(o, "ctBlockHeight")),
+    ctShoulder: getOption<number>(input, opt(o, "ctShoulder")),
+    ctInset: getOption<number>(input, opt(o, "ctInset")),
+    ctLowerCove: getOption<boolean>(input, opt(o, "ctLowerCove")),
+    ctSCurve: getOption<string>(input, opt(o, "ctShoulderCurve")) === "s-curve",
+    ctTwoWay: getOption<boolean>(input, opt(o, "ctTwoWay")),
+    ctSplay: getOption<number>(input, opt(o, "ctSplay")),
     seatEdge,
     seatEdgeStyle,
+    seatEdgeBottom: seatEdgeBottomClamped,
     legEdge,
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
+    apronEdge,
+    apronEdgeStyle,
+    apronProfile: getOption<string>(input, opt(o, "apronProfile")) as "none" | "arch" | "arch-out" | "kunmen" | "wave" | "double-arch",
+    apronProfileDepth: getOption<number>(input, opt(o, "apronProfileDepth")),
+    stretcherProfile: getOption<string>(input, opt(o, "stretcherProfile")) as "none" | "arch" | "top-arch" | "kunmen" | "wave" | "double-arch",
+    stretcherProfileDepth: getOption<number>(input, opt(o, "stretcherProfileDepth")),
     liveEdge,
-    notes: `書桌/辦公桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : legShape === "shaker" ? "（夏克）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerStyle === "pedestal" ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : drawerStyle === "apron" ? `、牙板抽屜 ${drawerCount} 個` : "、無抽屜"}。${liveEdge ? " Live edge 原木邊。" : ""}${withModestyPanel ? " 後方加 350mm 高 modesty 飾遮腿板。" : ""}`,
+    notes: isEn
+      ? `Desk / writing table: ${formatMm(legSize, "inch")} legs${legShape === "tapered" ? " (tapered)" : legShape === "shaker" ? " (Shaker)" : ""}, apron ${formatMm(apronWidth, "inch")}×${formatMm(apronThickness, "inch")}${drawerStyle === "pedestal" ? `, ${drawerSide === "center" ? "center" : drawerSide === "left" ? "left" : "right"} pedestal with ${drawerCount} drawer${drawerCount > 1 ? "s" : ""}` : drawerStyle === "apron" ? `, ${drawerCount} apron drawer${drawerCount > 1 ? "s" : ""}` : ", no drawer"}.${liveEdge ? " Live edge." : ""}${withModestyPanel ? ` Modesty panel ${formatMm(350, "inch")} tall behind the legs.` : ""}`
+      : `書桌/辦公桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : legShape === "shaker" ? "（夏克）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerStyle === "pedestal" ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : drawerStyle === "apron" ? `、牙板抽屜 ${drawerCount} 個` : "、無抽屜"}。${liveEdge ? " Live edge 原木邊。" : ""}${withModestyPanel ? " 後方加 350mm 高 modesty 飾遮腿板。" : ""}`,
   });
 
   // 下橫撐排列方式（box-frame 預設無動作，跟 dining-table 同一條 post-process）
@@ -256,6 +366,7 @@ export const desk: FurnitureTemplate = (input) => {
     const drawerMount = resolveDrawerMount(input, o);
     const drawerBottomMode = resolveDrawerBottomMode(input, o);
     const drawerSlideGap = resolveDrawerSlideGap(input, o);
+    const drawerBoxJoinery = resolveDrawerBoxJoinery(input, o);
     const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
 
     // 用 caseFurniture builder 蓋一個迷你抽屜櫃（無腳），再 translate 進 desk 座標
@@ -272,6 +383,7 @@ export const desk: FurnitureTemplate = (input) => {
       drawerMount,
       drawerBottomMode,
       drawerSlideGap,
+      drawerBoxJoinery,
       pullStyle,
       backMode: "surface",
       panelThickness: 15,
@@ -308,6 +420,7 @@ export const desk: FurnitureTemplate = (input) => {
             design.parts.push({
               id: `desk-pedestal-pillar-${sx < 0 ? "L" : "R"}${sz < 0 ? "F" : "B"}`,
               nameZh: `黃銅柱（${sx < 0 ? "左" : "右"}${sz < 0 ? "前" : "後"}）`,
+              nameEn: `Brass pillar (${sx < 0 ? "left" : "right"} ${sz < 0 ? "front" : "back"})`,
               material: input.material,
               materialOverride: "plywood",
               grainDirection: "length",
@@ -337,6 +450,7 @@ export const desk: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `desk-pedestal-extension-${sx < 0 ? "left" : "right"}`,
             nameZh: `懸吊櫃延伸側板（${sx < 0 ? "左" : "右"}）`,
+            nameEn: `Pedestal extension side panel (${sx < 0 ? "left" : "right"})`,
             material: input.material,
             grainDirection: "length",
             visible: { length: PANEL_T, width: caseD, thickness: extensionH },
@@ -365,7 +479,9 @@ export const desk: FurnitureTemplate = (input) => {
     if (pedestalStretcherHeight > maxStretcherY) {
       design.warnings = [
         ...(design.warnings ?? []),
-        `H 框離地高 ${pedestalStretcherHeight}mm 超過上限——已自動縮回 ${maxStretcherY}mm（不能高過櫃底）`,
+        isEn
+          ? `H-frame floor clearance ${pedestalStretcherHeight} mm exceeds the maximum — auto-clamped to ${maxStretcherY} mm (cannot rise above the case bottom).`
+          : `H 框離地高 ${pedestalStretcherHeight}mm 超過上限——已自動縮回 ${maxStretcherY}mm（不能高過櫃底）`,
       ];
     }
     // 縱向橫撐：X 中心在腳中心軸上 + 斜腳補償（splayed 系列腳底比頂位移）
@@ -418,39 +534,95 @@ export const desk: FurnitureTemplate = (input) => {
     const trapBotScale = halfLenBot / halfLenCenter;
     const sideStretcherShape = (Math.abs(trapTopScale - 1) > 0.001 || Math.abs(trapBotScale - 1) > 0.001)
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
-      : undefined;
+      : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
     void TENON;
+    // ── H 框榫接（比照 simple-table 下橫撐 §A10）──
+    // 縱向橫撐兩端盲榫進前後腳、腳補對應母眼；橫向橫撐兩端盲榫進左右縱撐、縱撐補母眼。
+    // Euler ZYX (x:π/2, y:π/2)：local X(length)→world Z、local Y(thickness=STRETCHER_T)
+    // →world X、local Z(width=STRETCHER_H)→world Y。tenon start/end 沿 local X→world Z
+    // 鑽進前後腳；榫 width(W)→local Z=世界 Y(高)、thickness(T)→local Y=世界 X(厚)。
+    const hTenonType = autoTenonType(legSize);
+    const hTenonStd = standardTenon({ type: hTenonType, childThickness: STRETCHER_T, childWidth: STRETCHER_H, motherThickness: legSize });
+    const hTenonLen = hTenonStd.length;       // 盲榫 ≈ 2/3 腳厚
+    const hTenonW = hTenonStd.width;          // 榫寬：沿 STRETCHER_H（高 = 世界 Y）
+    const hTenonThick = hTenonStd.thickness;  // 榫厚：沿 STRETCHER_T（厚 = 世界 X）
+    const hThrough = hTenonType === "through-tenon";
+    const sideStretchers: typeof design.parts = [];
     for (const sx of [-1, +1] as const) {
-      // Euler ZYX (x:π/2, y:π/2)：local X→world -Z（length 沿 Z 方向）、
-      // local +z→world -Y（trapezoid bot=stretcher 下緣，更長）、
-      // local -z→world +Y（trapezoid top=stretcher 上緣，更短）
-      // 端面就會跟腳斜面平行，下緣接到腳上、上緣斜切回避內收的腳
-      design.parts.push({
+      // local +z→world -Y（trapezoid bot=stretcher 下緣，更長）、local -z→world +Y
+      // （trapezoid top=stretcher 上緣，更短）→ 端面跟腳斜面平行。
+      const part: (typeof design.parts)[number] = {
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
+        nameEn: `H-frame ${sx < 0 ? "left" : "right"} longitudinal stretcher`,
         material: input.material,
         grainDirection: "length",
         visible: { length: sideStretcherLen, width: STRETCHER_H, thickness: STRETCHER_T },
         origin: { x: sx * legCenterX, y: stretcherY, z: 0 },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         shape: sideStretcherShape,
-        tenons: [],
+        tenons: [
+          { position: "start", type: hTenonType, length: hTenonLen, width: hTenonW, thickness: hTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+          { position: "end", type: hTenonType, length: hTenonLen, width: hTenonW, thickness: hTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+        ],
         mortises: [],
+      };
+      design.parts.push(part);
+      sideStretchers.push(part);
+    }
+    // 縱向橫撐母眼補進四隻腳（內側 Z 面、stretcher 中心高）
+    for (const leg of design.parts) {
+      if (!/^leg-/.test(leg.id)) continue;
+      const cz = leg.origin.z;
+      leg.mortises.push({
+        origin: { x: 0, y: stretcherCenterY, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
+        depth: hTenonLen,
+        length: hTenonW,    // 沿世界 Y（榫高 30）— auto-fit 落腳 local Y(長軸)
+        width: hTenonThick, // 沿世界 X（榫厚 12）— 落腳 local X
+        through: hThrough,
       });
     }
     // 橫向長橫撐：只在 drawerCount > 1 才需要（單抽櫃輕、左右兩條已夠）
     if (drawerCount > 1) {
-      const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2 + TENON);
+      // butt 到左右縱向橫撐內面（縱撐世界 X 厚 = STRETCHER_T）；兩端盲榫進縱撐。
+      // cross 無 rotation：local Y(thickness=STRETCHER_H)→世界 Y(高)、
+      // local Z(width=STRETCHER_T)→世界 Z(深)。榫沿 local X→世界 X 鑽進縱撐。
+      const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2);
+      const crossTenonLen = 15;                        // 盲榫進 STRETCHER_T(25) 厚縱撐
+      // 榫高（世界 Y）要留足肩、避免縱撐母眼上下破邊：縱撐高 STRETCHER_H=40，
+      // 榫 24 → 上下各留 8mm 壁（先前 34 只剩 3mm，user 回報「旁邊快破」）。
+      const crossTenonThick = STRETCHER_H - 16;        // 24：沿 thickness=世界 Y(高)
+      const crossTenonW = Math.round(STRETCHER_T / 2); // 13：沿 width=世界 Z(深)，6mm 頰
       design.parts.push({
         id: "desk-h-cross",
         nameZh: "H 框橫向長橫撐",
+        nameEn: "H-frame cross stretcher",
         material: input.material,
         grainDirection: "length",
         visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
         origin: { x: 0, y: stretcherY, z: 0 },
-        tenons: [],
+        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        tenons: [
+          { position: "start", type: "blind-tenon", length: crossTenonLen, width: crossTenonW, thickness: crossTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+          { position: "end", type: "blind-tenon", length: crossTenonLen, width: crossTenonW, thickness: crossTenonThick, shoulderOn: ["top", "bottom", "left", "right"] },
+        ],
         mortises: [],
       });
+      // 縱向橫撐母眼（cross 兩端入榫）：縱撐 local Y 面 = 世界 X 內面。
+      // 左縱撐(world -X) 內面=world +X=local +Y(y=ly)；右縱撐 內面=world -X=local -Y(y=0)。
+      // ⚠️ 榫高 24 < 32 → mortiseLocalBox auto-fit 會把長軸(24)誤放 local X(縱撐長 490)
+      //    而非 local Z(縱撐高 40=世界 Y)。比照筆筒 divider dado 用 rotY=π/2 把 cut box
+      //    繞深度軸轉 90°、(longDim,D,shortDim)→(shortDim,D,longDim) 對正世界 Y(高)。
+      for (const ss of sideStretchers) {
+        ss.mortises.push({
+          origin: { x: 0, y: ss.origin.x < 0 ? STRETCHER_T - LEG_FACE_INSET : LEG_FACE_INSET, z: 0 },
+          depth: crossTenonLen,
+          length: crossTenonThick, // 24 → 沿世界 Y(高)
+          width: crossTenonW,      // 13 → 沿世界 Z(深)
+          through: false,
+          rotY: Math.PI / 2,
+        });
+      }
     }
     } // end withHFrame
   }
@@ -461,7 +633,9 @@ export const desk: FurnitureTemplate = (input) => {
   if (drawerStyle === "apron" && !withApron) {
     design.warnings = [
       ...(design.warnings ?? []),
-      "選了「牙板位置抽屜」但沒勾「加牙板」— 牙板抽屜需要有牙板帶才能放，請勾起來",
+      isEn
+        ? `"Apron drawer" style selected but "add apron" is off — apron drawers need an apron band to sit in; please enable it.`
+        : "選了「牙板位置抽屜」但沒勾「加牙板」— 牙板抽屜需要有牙板帶才能放，請勾起來",
     ];
   }
   if (drawerCount > 0 && drawerStyle === "apron" && withApron) {
@@ -494,6 +668,7 @@ export const desk: FurnitureTemplate = (input) => {
     const drawerMount = "inset" as const;
     const drawerBottomMode = resolveDrawerBottomMode(input, o);
     const drawerSlideGap = resolveDrawerSlideGap(input, o);
+    const drawerBoxJoinery = resolveDrawerBoxJoinery(input, o);
     const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
     // 單抽：寬度 + 左/中/右位置可調；多抽：等寬併滿牙板帶
     // 注意 front 相機在 -Z，世界 +X 顯示在螢幕左 → 直覺「左」對應 +X、「右」對應 -X
@@ -533,6 +708,7 @@ export const desk: FurnitureTemplate = (input) => {
       drawerMount,
       drawerBottomMode,
       drawerSlideGap,
+      drawerBoxJoinery,
       pullStyle,
       skipCaseDividers: true,
     }, design.parts);
@@ -591,7 +767,8 @@ export const desk: FurnitureTemplate = (input) => {
     if (gapLeftW > 5) {
       design.parts.push({
         id: "desk-apron-front-filler-left",
-        nameZh: "前牙板填補（左）",
+        nameZh: "前牙條填補（左）",
+        nameEn: "Front apron filler (left)",
         material: input.material,
         grainDirection: "length",
         visible: { length: gapLeftW, width: apronWidth, thickness: apronThickness },
@@ -604,7 +781,8 @@ export const desk: FurnitureTemplate = (input) => {
     if (gapRightW > 5) {
       design.parts.push({
         id: "desk-apron-front-filler-right",
-        nameZh: "前牙板填補（右）",
+        nameZh: "前牙條填補（右）",
+        nameEn: "Front apron filler (right)",
         material: input.material,
         grainDirection: "length",
         visible: { length: gapRightW, width: apronWidth, thickness: apronThickness },
@@ -628,6 +806,7 @@ export const desk: FurnitureTemplate = (input) => {
       design.parts.push({
         id: `desk-apron-drawer-runner-${r === 0 ? "left" : "right"}`,
         nameZh: `抽屜跑條（${r === 0 ? "左" : "右"}）`,
+        nameEn: `Drawer runner (${r === 0 ? "left" : "right"})`,
         material: input.material,
         grainDirection: "length",
         visible: { length: runnerLen, width: apronWidth, thickness: apronThickness },
@@ -644,6 +823,7 @@ export const desk: FurnitureTemplate = (input) => {
     design.parts.push({
       id: "modesty-panel",
       nameZh: "後飾遮腿板",
+      nameEn: "Modesty panel",
       material: input.material,
       grainDirection: "length",
       visible: { length: input.length - 100, width: 350, thickness: 18 },
@@ -653,9 +833,45 @@ export const desk: FurnitureTemplate = (input) => {
       mortises: [],
     });
   }
+  // 桌面俯視輪廓造型：對 top part 的「最終榫眼」clamp 後套用
+  // （octagon/arch 縮尺寸防露榫;oval 塞不下退方形＋警告;liveEdge 已由 UI 互斥）
+  if (!liveEdge && seatOutline !== "rect") {
+    const topPartOutline = design.parts.find((p) => p.id === "top");
+    if (topPartOutline) {
+      const resolvedOutline = resolveTopOutlineShape(
+        seatOutline,
+        seatOutlineParams,
+        topPartOutline.visible.length,
+        topPartOutline.visible.width,
+        topPartOutline.mortises,
+      );
+      if (resolvedOutline !== null) {
+        topPartOutline.shape = resolvedOutline;
+        design.notes += seatOutlineNote(seatOutline, resolvedOutline.sizeMm, locale, "桌面");
+      } else {
+        appendWarnings(design, [
+          isEn
+            ? "The full-span curved top outline (oval / petal) conflicts with existing top mortises — reverted to a rectangular top. Increase leg inset to enable it."
+            : "滿版曲線桌面（圓／橢圓／海棠）與桌面既有榫眼衝突，已退回方形。加大「桌腳內縮」即可啟用。",
+        ]);
+      }
+    }
+  }
+  if (String(input.options?.constructionVersion) === "2" && legShape === "splayed-round-tapered") {
+    const rails = design.parts.filter(p => /^(apron-|ls-|desk-h-side-)/.test(p.id));
+    for (const leg of design.parts.filter(p => /^leg-\d+$/.test(p.id))) {
+      for (const rail of rails) addConstructionHousing(leg, rail, isEn ? "Round leg rail housing" : "圓斜腳牙撐嵌槽");
+    }
+    for (const rail of rails.filter(p => /^(apron|ls)-(front|back)$/.test(p.id))) {
+      for (const side of rails.filter(p => /^(apron|ls)-(left|right)$/.test(p.id))) {
+        addConstructionHalfLap(rail, side, isEn ? "Rail corner half lap" : "牙撐交角半搭槽");
+      }
+    }
+  }
+  if (String(input.options?.constructionVersion) === "2") enforceConstructionLimits(design, locale);
   applyStandardChecks(design, {
     minLength: 900, minWidth: 400, minHeight: 650,
     maxLength: 2000, maxWidth: 900, maxHeight: 800,
-  });
+  }, locale);
   return design;
 };

@@ -1,20 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
-import { JOINERY_LABEL, JOINERY_DESCRIPTION } from "@/lib/joinery/details";
+import { joineryLabel, joineryDescription } from "@/lib/joinery/details";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { WorkbenchOptionGroups } from "@/components/design/WorkbenchOptionGroups";
+import { DesignHistoryControls } from "@/components/design/DesignHistoryControls";
+import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
+import { useUnit } from "@/hooks/useUnit";
+import { formatDimensions } from "@/lib/units/format";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
+import { ShareDesignButton } from "@/components/design/ShareDesignButton";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
+import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
 import { MobileTopBar } from "./MobileTopBar";
 import { StickyBottomBar } from "./StickyBottomBar";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -26,7 +34,9 @@ import type { FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
-import { groupSpecsByGroup } from "@/lib/design/option-groups";
+import { groupSpecsByGroup, groupLabel } from "@/lib/design/option-groups";
+import { resolvePartIds } from "@/lib/design/option-part-map";
+import { downloadPartsCsv } from "@/components/CsvExportButton";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
 // serialised when passing from Server → Client Component. MobileShell
@@ -49,16 +59,53 @@ interface MobileShellProps {
   printUrl: string;
   lineShareText: string;
   formAction: string;
+  currentDesignId?: string | null;
+  savedRevision?: string | null;
+  hasUnsavedChanges?: boolean;
+  saveParams?: Record<string, unknown>;
   wireframeMode?: boolean;
   joineryMode?: boolean;
   designerMode?: boolean;
   canUseDesignerMode?: boolean;
+  /** 範例預覽鎖：免費版進付費模板時鎖尺寸/結構選項，只能換材料 */
+  previewLocked?: boolean;
   /** 初始場景 ID（由 server 從 URL ?scene= 解析後傳入） */
   sceneId?: SceneThemeId;
+  /** 掀蓋浮起 mm；正 = 抬起，-1 = 鉸鏈翻開。從 URL ?lidLift= 解析後傳入 */
+  lidLiftMm?: number;
+  /** 爆炸視圖偏移 mm（joineryMode 才有意義） */
+  explodeMm?: number;
+  /** X-ray 透視模式 */
+  xrayMode?: "off" | "face" | "full";
+  /** 組裝動畫排程（server 用原始設計算好） */
+  assemblyPlan?: import("@/lib/assembly/plan").AssemblyPlan | null;
 }
 
 export function MobileShell(props: MobileShellProps) {
+  const t = useTranslations("mobile");
+  // 材料 CSV 的欄位標題走 csvExport namespace(與桌面版共用同一份實作與字串)
+  const tCsv = useTranslations("csvExport");
+  const locale = useLocale();
+  const isEn = locale === "en";
+  const unit = useUnit();
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  /**
+   * 🧷 進階面板開著時,在 <body> 掛一個旗標,讓右下角的浮動鈕自己讓開。
+   *
+   * ⛔ BugReportFab 是 `fixed bottom-24 right-4 z-50`,位置剛好壓在進階面板
+   *    右側那一欄控制項上。實測 iPhone 13:面板裡 91 個互動元件有 **21 個被它蓋住**,
+   *    點下去拿到的是浮動鈕不是控制項 —— 使用者會覺得「這個選項點不動 / 根本沒看到」。
+   *    (2026-08-24 木頭仁回報「手機版怎麼沒看到」,追出來是這個。)
+   *
+   * 用 body 旗標而不是 props:FAB 掛在全站 layout、面板狀態在這支,兩邊沒有父子關係。
+   */
+  useEffect(() => {
+    const cls = "wr-sheet-open";
+    if (advancedOpen) document.body.classList.add(cls);
+    else document.body.classList.remove(cls);
+    return () => document.body.classList.remove(cls);
+  }, [advancedOpen]);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
   // 場景切換：URL ?scene= 控制，初始值由 server 傳入；
@@ -85,20 +132,60 @@ export function MobileShell(props: MobileShellProps) {
   const activeSceneTheme = SCENE_THEMES[activeSceneId];
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
+  const previewLocked = props.previewLocked ?? false;
+  // 範例預覽鎖：尺寸/選項包進 disabled fieldset（不進 FormData → 不送出），材料留外面可改。
+  // 不用 pointer-events-none：使用者仍能打開「進階設定」瀏覽有哪些可調項目（看得到、改不了）。
+  const lockCls = previewLocked
+    ? "min-w-0 border-0 m-0 p-0 opacity-70 select-none"
+    : "min-w-0 border-0 m-0 p-0";
+  const pricingHref = `${isEn ? "/en" : ""}/pricing?locked=${entry.category}`;
+  // 進階設定 sheet 內頂端的鎖定提示（讓使用者知道：能看、升級才能改）
+  const lockHint = previewLocked ? (
+    <a
+      href={pricingHref}
+      className="block rounded-lg bg-amber-50 ring-1 ring-amber-300 px-3 py-2 text-xs text-amber-900 font-medium"
+    >
+      🔒 {t("previewLockSheetHint")}
+    </a>
+  ) : null;
+  const entryName = isEn && entry.nameEn ? entry.nameEn : entry.nameZh;
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
+  const allPartIds: string[] = design.parts.map((p) => p.id);
 
-  // limits: flat { length, width, height } — each is the max value; use 200 as min floor.
+  // 目標 6~8 條 ticks。算出乾淨間距（100/200/250/500/1000mm 階梯），避免擠成一坨
+  const makeTicks = (minV: number, maxV: number, step: number): number[] => {
+    const span = maxV - minV;
+    if (span <= 0) return [];
+    const targetCount = 7;
+    const rawInterval = span / targetCount;
+    const candidates = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+    const interval = candidates.find((c) => c >= rawInterval) ?? Math.ceil(rawInterval / step) * step;
+    const out: number[] = [];
+    const start = Math.ceil(minV / interval) * interval;
+    for (let t = start; t <= maxV; t += interval) {
+      if (t > minV && t < maxV) out.push(t);
+    }
+    return out;
+  };
+
+  // limits: flat { length, width, height } — each is the max value.
   const lMax = entry.limits?.length ?? 3000;
   const wMax = entry.limits?.width ?? 3000;
   const hMax = entry.limits?.height ?? 3000;
+  // 滑桿下限：跟桌面版一樣 20mm 地板，但若當前值更小（筆筒 80、相框厚 18 等小物件）
+  // 就降到該值，否則 RangeInput 會把值 clamp 上去（min===max 還會整條拉不動）。
+  const lMin = Math.min(20, length);
+  const wMin = Math.min(20, width);
+  const hMin = Math.min(20, height);
 
   // 分流 spec 到 4 tab。先匹配美學 / 榫接，剩下的全進「結構」當 catch-all（避免漏選項）。
   const inGroup = (s: OptionSpec, keywords: string[]) =>
     keywords.some((k) => s.key.toLowerCase().includes(k));
-  const styleSpecs = optionSchema.filter((s) =>
+  const isWorkbench = entry.category === "workbench";
+  const styleSpecs = isWorkbench ? [] : optionSchema.filter((s) =>
     inGroup(s, ["edge", "handle", "grain", "pull", "hardware", "knob", "finish"]),
   );
-  const joinerySpecs = optionSchema.filter((s) =>
+  const joinerySpecs = isWorkbench ? [] : optionSchema.filter((s) =>
     inGroup(s, ["joinery", "tenon", "mortise", "joint"]) && !styleSpecs.includes(s),
   );
   const structureSpecs = optionSchema.filter(
@@ -119,21 +206,28 @@ export function MobileShell(props: MobileShellProps) {
   // 榫接 tab：從 design 抽出所有榫卯使用情況（同桌面版 JoinerySection 邏輯）
   const joineryUsages = extractJoineryUsages(design);
 
-  // SaveDesignButton params
+  // SaveDesignButton params —— 必須跟 desktop (page.tsx) 同形狀：options 巢狀在
+  // `options` key 底下，不能攤平。buildEditHref(重開) 讀的是 p.options；攤平存的話
+  // p.options=undefined → 重開只還原 length/width/height/material、所有進階選項
+  // (腳型/抽屜/門板…) 全部 fallback 回模板預設 → 「存了重開又變了」(user 2026-06-25
+  // 手機端回報，desktop 因 nested 正常)。
   const saveParams: Record<string, unknown> = {
     length,
     width,
     height,
     material,
-    ...optionValues,
+    joineryMode: props.joineryMode,
+    designerMode: props.designerMode ?? false,
+    options: optionValues,
   };
   const saveName = `${entry.nameZh} ${length}×${width}×${height}`;
 
   return (
     <SelectedPartProvider>
-    <div className="md:hidden min-h-screen bg-zinc-50 pb-24">
+    <HoveredPartsProvider>
+    <div className="md:hidden min-h-screen pb-24">
       <MobileTopBar
-        title={entry.nameZh}
+        title={entryName}
         backHref="/"
         onOverflow={() => setOverflowOpen(true)}
       />
@@ -146,127 +240,232 @@ export function MobileShell(props: MobileShellProps) {
         {Object.entries(optionValues).map(([k, v]) => (
           <input key={`main-hidden-${k}`} type="hidden" name={k} value={String(v)} />
         ))}
-        {/* 3D viewer：sticky 釘在 TopBar (56px) 下；3D + TopBar 合計約 1/3 viewport */}
-        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
-          <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
-            <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} />
+        {/* 3D viewer：sticky 釘在 TopBar (56px) 下。
+            原本固定 220px（3D + TopBar 約 1/3 viewport），2026-09-02 木頭仁：「手機版圖面太小了 再拉高一些」
+            → 跟螢幕高走：52vh，夾在 320~460px（iPhone 13 Safari 視窗約 664px → 345px，扣掉視角列後畫布約 290px，原本 167px；組裝動畫控制列還會吃掉約 46px） */}
+        <div className={`${advancedOpen ? "sticky top-[56px] z-10" : "relative"} -mx-4 px-4 py-1`}>
+          <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
+            {/* 進階設定面板（AdvancedSheet）打開時 3D 縮成 clamp(220px, 36dvh, 320px)，
+                面板頂端 = 這個高度 + 76（TopBar 56 + padding 8 + 外框 12），兩邊同一條式子、要一起改。
+                （2026-09-02 木頭仁先說「進階設定點出來會蓋住圖」，縮到面板上方後又說「圖就變得太小了」
+                → 改成 3D 保留 36dvh、面板往下讓；iPhone 13：3D 239 / 畫布約 186 / 面板高 349） */}
+            <div style={{ height: advancedOpen ? "clamp(220px, 36dvh, 320px)" : "clamp(320px, 52vh, 460px)", transition: "height 200ms ease" }}>
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} lidLiftMm={props.lidLiftMm} explodeMm={props.explodeMm} xrayMode={props.xrayMode} assemblyPlan={props.assemblyPlan} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg bg-white px-3 py-2 border border-zinc-200">
-          <div className="text-[11px] text-zinc-500 mb-1.5">風格</div>
-          <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
+        {previewLocked && (
+          <div className="rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100/60 p-3.5">
+            <div className="flex items-start gap-2">
+              <span className="text-lg leading-none mt-0.5" aria-hidden>🔒</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-950">
+                  {t("previewLockTitle", { dims: formatDimensions(length, width, height, unit) })}
+                </p>
+                <p className="mt-1 text-xs text-amber-900/90 leading-relaxed">
+                  {t("previewLockBody")}
+                </p>
+                <a
+                  href={pricingHref}
+                  className="mt-2.5 inline-flex items-center gap-1 rounded-lg bg-amber-700 px-3.5 py-2 text-xs font-semibold text-white shadow-sm active:scale-[0.98]"
+                >
+                  {t("previewLockCta")}
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-xl bg-white px-3 py-2.5 ring-1 ring-amber-900/10 shadow-sm">
+          <div className="text-[11px] font-semibold text-zinc-500 mb-1.5">{t("form.style")}</div>
+          <fieldset disabled={previewLocked} className={lockCls}>
+            {/*
+              ⛔ 這裡以前沒傳 `designSize` —— 而 `applyStylePreset` 沒有 ctx 時
+                 **變體完全失效**(4 個 seed 產出同一組參數)。
+                 症狀:手機連按同一個風格,chip 上的 #1 #2 一直加、URL 的 styleVariant 也在加,
+                 但除了那個計數以外的參數一字不差 —— 看起來就是「按了沒用」的死控制項。
+                 桌面版(design/[type]/page.tsx:1212)一直都有傳,只有手機漏了。
+                 (2026-08-21 稽核發現;稽核描述成「手機版的 bug」,真因是漏傳一個 prop。)
+            */}
+            <StylePresetButtons
+              optionSchema={optionSchema}
+              category={entry.category}
+              designSize={{ length, width, height }}
+              compact
+            />
+          </fieldset>
         </div>
 
-        <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
-          <SizePresetButtons category={entry.category} compact />
+        <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
+          <fieldset disabled={previewLocked} className={lockCls}>
+            <SizePresetButtons category={entry.category} limits={entry.limits} compact />
+          </fieldset>
           <div className="space-y-1.5">
-            <RangeInput name="length" label="長" defaultValue={length} min={200} max={lMax} step={10} />
-            <RangeInput name="width" label="寬" defaultValue={width} min={200} max={wMax} step={10} />
-            <RangeInput name="height" label="高" defaultValue={height} min={200} max={hMax} step={10} />
+            <fieldset disabled={previewLocked} className={`${lockCls} space-y-1.5`}>
+            <RangeInput
+              name="length"
+              label={
+                entry.category === "round-stool" ||
+                entry.category === "round-table" ||
+                entry.category === "round-tea-table"
+                  ? t("form.diameter")
+                  : t("form.length")
+              }
+              defaultValue={length}
+              min={lMin}
+              max={lMax}
+              step={10}
+              ticks={makeTicks(lMin, lMax, 10)}
+              showRange
+              partIds={resolvePartIds("length", allPartIds)}
+            />
+            {entry.category !== "round-stool" &&
+              entry.category !== "round-table" &&
+              entry.category !== "round-tea-table" && (
+                <RangeInput
+                  name="width"
+                  label={t("form.width")}
+                  defaultValue={width}
+                  min={wMin}
+                  max={wMax}
+                  step={10}
+                  ticks={makeTicks(wMin, wMax, 10)}
+                  showRange
+                  partIds={resolvePartIds("width", allPartIds)}
+                />
+              )}
+            <RangeInput
+              name="height"
+              label={t("form.height")}
+              defaultValue={height}
+              min={hMin}
+              max={hMax}
+              step={10}
+              ticks={makeTicks(hMin, hMax, 10)}
+              showRange
+              partIds={resolvePartIds("height", allPartIds)}
+            />
+            </fieldset>
             <label className="flex items-center gap-3 text-sm pt-1">
-              <span className="text-zinc-700 font-medium shrink-0 w-8">材料</span>
+              <span className="text-zinc-700 font-medium shrink-0 w-8">{t("form.material")}</span>
               <select
                 name="material"
                 defaultValue={material}
                 className="flex-1 min-h-[36px] border border-zinc-300 rounded-md px-2 py-1 bg-white text-zinc-900 text-sm"
               >
                 {Object.entries(MATERIALS).map(([id, m]) => (
-                  <option key={id} value={id}>{m.nameZh}</option>
+                  <option key={id} value={id}>{isEn ? m.nameEn : m.nameZh}</option>
                 ))}
               </select>
             </label>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
+            <DesignHistoryControls
+              className="col-span-2 flex w-full"
+              buttonClassName="min-h-[44px] w-full"
+            />
             <SaveDesignButton
               furnitureType={entry.category}
               defaultName={saveName}
-              params={saveParams}
+              currentDesignId={props.currentDesignId}
+              params={props.saveParams ?? saveParams}
+            />
+            <ShareDesignButton
+              savedDesignId={props.currentDesignId}
+              savedRevision={props.savedRevision}
+              hasUnsavedChanges={props.hasUnsavedChanges}
             />
             <button
               type="button"
               onClick={() => setAdvancedOpen(true)}
-              className="min-h-[44px] rounded-md bg-zinc-800 hover:bg-zinc-900 text-white text-sm font-semibold"
+              className="col-span-2 min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
             >
-              ⚙ 進階設定
+              {t("form.advanced")}
             </button>
           </div>
         </div>
 
-        {/* 工法 + 設計師模式：核心 toggle，放主表單下方 */}
-        <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
-          <div className="text-[11px] text-zinc-500">工法</div>
-          <div className="grid grid-cols-2 gap-2">
-            <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${!props.joineryMode ? "ring-emerald-500 bg-emerald-50 text-emerald-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
-              <input type="radio" name="joineryMode" value="" defaultChecked={!props.joineryMode} className="sr-only" />
-              🔩 組裝版
-            </label>
-            <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${props.joineryMode ? "ring-amber-500 bg-amber-50 text-amber-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
-              <input type="radio" name="joineryMode" value="true" defaultChecked={props.joineryMode} className="sr-only" />
-              🪵 榫接版
-            </label>
-          </div>
+        {/* 工法 + 設計師模式：核心 toggle，放主表單下方。pencil-holder 隱藏工法切換 */}
+        <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
+          {entry.category !== "pencil-holder" && entry.category !== "tray" && entry.category !== "dovetail-box" && (
+            <>
+              <div className="text-[11px] text-zinc-500">{t("form.method")}</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${!props.joineryMode ? "ring-emerald-500 bg-emerald-50 text-emerald-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
+                  <input type="radio" name="joineryMode" value="" defaultChecked={!props.joineryMode} className="sr-only" />
+                  {t("form.assembly")}
+                </label>
+                <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${props.joineryMode ? "ring-amber-500 bg-amber-50 text-amber-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
+                  <input type="radio" name="joineryMode" value="true" defaultChecked={props.joineryMode} className="sr-only" />
+                  {t("form.joinery")}
+                </label>
+              </div>
+            </>
+          )}
           {props.canUseDesignerMode ? (
             <label className="flex items-center gap-2 min-h-[36px] px-1 pt-1 text-sm cursor-pointer border-t border-zinc-100">
               <input type="checkbox" name="designerMode" value="true" defaultChecked={props.designerMode} className="h-4 w-4 accent-amber-600" />
-              <span className="text-zinc-800">🎨 設計師模式</span>
-              <span className="text-[10px] text-zinc-500">自由尺寸到 mm</span>
+              <span className="text-zinc-800">{t("form.designerMode")}</span>
+              <span className="text-[10px] text-zinc-500">{t("form.designerHint")}</span>
             </label>
           ) : null}
         </div>
 
-        <CollapsibleSection title="三視圖" badge="點圖放大">
+        <CollapsibleSection title={t("section.threeView")} badge={t("section.threeViewBadge")}>
           <ZoomableThreeViews design={design} joineryMode={props.joineryMode} />
         </CollapsibleSection>
 
-        <CollapsibleSection title="材料清單" badge={`${design.parts.length} 件`}>
+        {/* 零件圖：手機版上線（2026-06-08）。桌面版在 hidden md:block 區、手機版缺，
+            補進 MobileShell。面板自身已響應式(grid-cols-2)、含 modal 全圖。 */}
+        <PartDrawingsPanel design={design} />
+
+        <CollapsibleSection title={t("section.cutList")} badge={t("section.cutListBadge", { count: design.parts.filter((p) => p.visual === undefined).length })}>
           <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
-            <span className="leading-snug">切料尺寸已含榫頭凸出長度</span>
+            <span className="leading-snug">{t("section.cutListNotice")}</span>
             <a
               href={props.cutPlanUrl}
               target="_blank"
               rel="noreferrer"
               className="shrink-0 px-2.5 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700"
             >
-              🪚 裁切計算器
+              {t("section.cutPlan")}
             </a>
           </div>
           <MaterialListWithSelection design={design} />
         </CollapsibleSection>
 
         {joineryUsages.length > 0 && (
-          <CollapsibleSection title="工法（榫卯說明）" badge={`${joineryUsages.length} 處`}>
+          <CollapsibleSection title={t("section.joineryNote")} badge={t("section.joineryNoteBadge", { count: joineryUsages.length })}>
             <div className="space-y-3">
               {joineryUsages.map((u, i) => (
                 <div key={i} className="rounded-md border border-zinc-200 bg-white p-3">
                   <div className="flex items-baseline justify-between flex-wrap gap-1 mb-1">
                     <h4 className="font-semibold text-sm text-zinc-900">
-                      {JOINERY_LABEL[u.type]}
+                      {joineryLabel(u.type, locale)}
                       <span className="text-xs font-normal text-zinc-500 ml-1">
-                        · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : "母件"} · 共 {u.count} 處
+                        · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : t("joinery.motherPart")} · {t("joinery.spotsCount", { count: u.count })}
                       </span>
                     </h4>
                   </div>
                   <p className="text-xs text-zinc-500 mb-2">
-                    榫頭 {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                    {t("joinery.tenon")} {formatDimensions(u.tenon.length, u.tenon.width, u.tenon.thickness, unit)}
                   </p>
-                  <p className="text-xs text-zinc-700 leading-relaxed">{JOINERY_DESCRIPTION[u.type]}</p>
+                  <p className="text-xs text-zinc-700 leading-relaxed">{joineryDescription(u.type, locale)}</p>
                 </div>
               ))}
-              <p className="text-[11px] text-zinc-500">完整榫卯細節圖：⚙ 進階設定 → 榫接 tab</p>
+              <p className="text-[11px] text-zinc-500">{t("section.joineryFootnote")}</p>
             </div>
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection title="製作工序">
-          <BuildSteps design={design} />
+        <CollapsibleSection title={t("section.buildSteps")}>
+          <BuildSteps design={design} locale={locale} />
         </CollapsibleSection>
 
-        <CollapsibleSection title="工具清單">
-          <ToolList design={design} />
+        <CollapsibleSection title={t("section.toolList")}>
+          <ToolList design={design} locale={locale} />
         </CollapsibleSection>
       </DesignFormShell>
 
@@ -290,11 +489,14 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStructureSpecs.map((s) => s.key)}
             />
+            {lockHint}
+            <fieldset disabled={previewLocked} className={lockCls}>
             {visibleStructureSpecs.length === 0 ? (
-              <div className="text-sm text-zinc-500">此家具無結構選項</div>
+              <div className="text-sm text-zinc-500">{t("advancedSheet.noStructure")}</div>
             ) : (
-              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
+              <GroupedSpecs workbench={isWorkbench} specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
             )}
+            </fieldset>
           </DesignFormShell>
         }
         styleContent={
@@ -307,7 +509,10 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
-            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
+            {lockHint}
+            <fieldset disabled={previewLocked} className={lockCls}>
+            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
+            </fieldset>
           </DesignFormShell>
         }
         joineryContent={
@@ -322,24 +527,27 @@ export function MobileShell(props: MobileShellProps) {
                 optionValues={optionValues}
                 exceptKeys={visibleJoinerySpecs.map((s) => s.key)}
               />
+              {lockHint}
+              <fieldset disabled={previewLocked} className={lockCls}>
               {visibleJoinerySpecs.length === 0 ? (
-                <div className="text-sm text-zinc-500">此家具無榫接選項</div>
+                <div className="text-sm text-zinc-500">{t("advancedSheet.noJoineryOption")}</div>
               ) : (
-                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
+                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
               )}
+              </fieldset>
             </DesignFormShell>
 
             {/* 榫卯細節圖：zModal="z-[70]" 讓放大 modal 蓋過 AdvancedSheet (z-50) */}
             {joineryUsages.length === 0 ? (
               <div className="text-sm text-zinc-500">
                 {props.joineryMode
-                  ? "此家具無可顯示的榫卯。"
-                  : "切換到「🪵 榫接版」可顯示榫卯細節圖。"}
+                  ? t("joinery.noJoinery")
+                  : t("joinery.switchHint")}
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide pt-1 border-t border-zinc-100">
-                  榫卯細節圖
+                  {t("joinery.detailTitle")}
                 </div>
                 {joineryUsages.map((u, i) => (
                   <div
@@ -348,20 +556,20 @@ export function MobileShell(props: MobileShellProps) {
                   >
                     <div className="flex items-baseline justify-between flex-wrap gap-1 mb-1">
                       <h3 className="text-sm font-semibold text-zinc-800">
-                        {JOINERY_LABEL[u.type]}{" "}
+                        {joineryLabel(u.type, locale)}{" "}
                         <span className="text-xs font-normal text-zinc-500">
                           · {u.partNameZh}
                           {u.motherPartNames.length > 0
                             ? ` ↔ ${u.motherPartNames.join(" / ")}`
-                            : " ↔ 母件"}
-                          {" "}· 共 {u.count} 處
+                            : ` ↔ ${t("joinery.motherPart")}`}
+                          {" "}· {t("joinery.spotsCount", { count: u.count })}
                         </span>
                       </h3>
                       <p className="text-[10px] text-zinc-400">
-                        {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                        {formatDimensions(u.tenon.length, u.tenon.width, u.tenon.thickness, unit)}
                       </p>
                     </div>
-                    <p className="text-xs text-zinc-500 mb-2">{JOINERY_DESCRIPTION[u.type]}</p>
+                    <p className="text-xs text-zinc-500 mb-2">{joineryDescription(u.type, locale)}</p>
                     <ZoomableJoineryDetail
                       type={u.type}
                       params={{
@@ -385,7 +593,7 @@ export function MobileShell(props: MobileShellProps) {
         sceneContent={
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-zinc-500 mb-3">選擇擺放場景，3D 視圖即時更新背景與燈光氛圍</p>
+              <p className="text-xs text-zinc-500 mb-3">{t("advancedSheet.sceneHint")}</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {SCENE_THEME_LIST.map((t) => {
                   const active = t.id === activeSceneId;
@@ -396,7 +604,7 @@ export function MobileShell(props: MobileShellProps) {
                       onClick={() => handleSceneSelect(t.id)}
                       className={`flex items-center gap-2 min-h-[52px] px-3 py-2 rounded-xl text-sm font-medium transition-colors border-2 ${
                         active
-                          ? "border-violet-600 bg-violet-50 text-violet-900"
+                          ? "border-amber-600 bg-amber-50 text-amber-900"
                           : "border-zinc-200 bg-white text-zinc-700 active:bg-zinc-50"
                       }`}
                     >
@@ -405,7 +613,7 @@ export function MobileShell(props: MobileShellProps) {
                         style={{ backgroundColor: t.swatch }}
                       />
                       <span>{t.nameZh}</span>
-                      {active && <span className="ml-auto text-violet-600 text-xs">✓</span>}
+                      {active && <span className="ml-auto text-amber-600 text-xs">✓</span>}
                     </button>
                   );
                 })}
@@ -459,19 +667,24 @@ export function MobileShell(props: MobileShellProps) {
                 navigator as Navigator & {
                   share: (d: { title: string; url: string }) => Promise<void>;
                 }
-              ).share({ title: "木頭仁家具設計器", url: shortUrl });
+              ).share({ title: t("share.title"), url: shortUrl });
               return;
             } catch {
               // 使用者取消 → fallback 到 alert
             }
           }
-          alert(`短碼已複製：\n${shortUrl}`);
+          alert(`${t("share.copied")}\n${shortUrl}`);
         }}
         onDownloadCsv={() => {
-          alert("材料 CSV phase 2 整合");
+          // ⛔ 這裡以前只跳一個「phase 2 整合」的 alert = 死控制項,
+          //    而桌面版(components/CsvExportButton.tsx)早就能用。
+          //    改成呼叫抽出來的**同一份實作**,不要在手機再寫一份。
+          //    (2026-08-21 稽核發現。)
+          downloadPartsCsv(design, { t: tCsv, locale, unit });
         }}
       />
     </div>
+    </HoveredPartsProvider>
     </SelectedPartProvider>
   );
 }
@@ -481,16 +694,26 @@ export function MobileShell(props: MobileShellProps) {
  * 解決手機進階設定一連串選項看不出哪幾項屬於上層 / 中層 / 下層 / 抽屜 / 門板 的問題。
  */
 function GroupedSpecs({
+  workbench = false,
   specs,
   optionValues,
   overallHeight,
   overallLength,
+  allPartIds,
 }: {
+  workbench?: boolean;
   specs: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   overallHeight?: number;
   overallLength?: number;
+  allPartIds?: string[];
 }) {
+  const locale = useLocale();
+  if (workbench) return (
+    <WorkbenchOptionGroups specs={specs} locale={locale} mobile renderField={(s) => (
+      <MobileOptionField key={`${s.key}-${String(optionValues[s.key])}`} spec={s} value={optionValues[s.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} allPartIds={allPartIds} />
+    )} />
+  );
   const groups = groupSpecsByGroup(specs);
   return (
     <>
@@ -500,7 +723,7 @@ function GroupedSpecs({
             <span className={`inline-block w-1 h-4 rounded-full ${g.meta.bar}`} />
             <span className="text-sm font-semibold text-zinc-800">
               <span className="mr-1">{g.meta.icon}</span>
-              {g.meta.label}
+              {groupLabel(g.meta, locale)}
             </span>
           </div>
           <div className="space-y-3 pl-3 border-l-2 border-zinc-100">
@@ -512,6 +735,7 @@ function GroupedSpecs({
                 allValues={optionValues}
                 overallHeight={overallHeight}
                 overallLength={overallLength}
+                allPartIds={allPartIds}
               />
             ))}
           </div>

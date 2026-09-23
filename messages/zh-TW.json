@@ -1,0 +1,5471 @@
+{
+  "$comment": "Phase 1+2 累積；新增 key 必須同步加到 en.json，CI 將擋差集。",
+  "common": {
+    "siteName": "木頭仁 木作藍圖",
+    "siteTagline": "把腦中的家具，畫成可以動手做的圖"
+  },
+  "nav": {
+    "about": "認識木作藍圖",
+    "templates": "範本介紹",
+    "app": "家具範本",
+    "pricing": "方案定價",
+    "help": "常見問題",
+    "changelog": "更新日誌",
+    "terms": "服務條款",
+    "privacy": "隱私權政策",
+    "refund": "退費政策",
+    "contact": "聯絡我們",
+    "install": "安裝 App"
+  },
+  "logo": {
+    "short": "木作藍圖",
+    "alt": "木頭仁",
+    "menuOpen": "開啟選單",
+    "menuClose": "關閉選單"
+  },
+  "footer": {
+    "brand": "木頭仁木匠學院",
+    "tagline": "木作藍圖 · 把腦中的家具，畫成可以動手做的圖",
+    "academyLabel": "木匠學院",
+    "academyHandle": "課程網站",
+    "copyrightSuffix": "Wooden Ren Education Co., Ltd."
+  },
+  "cta": {
+    "start": "開始設計",
+    "learnMore": "了解更多",
+    "subscribe": "訂閱方案"
+  },
+  "difficulty": {
+    "beginner": "入門",
+    "intermediate": "中階",
+    "advanced": "進階"
+  },
+  "furniture": {
+    "stool": "方凳",
+    "bench": "長凳",
+    "tea-table": "邊桌",
+    "side-table": "床邊桌",
+    "low-table": "矮桌",
+    "open-bookshelf": "開放書櫃",
+    "chest-of-drawers": "斗櫃",
+    "shoe-cabinet": "鞋櫃",
+    "display-cabinet": "玻璃展示櫃",
+    "dining-table": "餐桌",
+    "desk": "書桌",
+    "dining-chair": "餐椅",
+    "wardrobe": "衣櫃",
+    "bar-stool": "吧檯椅",
+    "media-console": "電視櫃",
+    "nightstand": "床頭櫃",
+    "round-stool": "圓凳",
+    "round-tea-table": "圓茶几",
+    "round-table": "圓餐桌",
+    "pencil-holder": "筆筒",
+    "bookend": "書擋",
+    "photo-frame": "相框",
+    "tray": "托盤",
+    "dovetail-box": "木盒",
+    "wine-rack": "紅酒架",
+    "coat-rack": "立式衣帽架",
+    "chinese-cabinet": "明式櫃",
+    "bed": "床架",
+    "wall-mounted-tool-storage": "木工工具牆",
+    "workbench": "木工工作桌"
+  },
+  "error": {
+    "emoji": "⚠️",
+    "h1": "系統發生錯誤",
+    "body": "木作藍圖當機了。你可以重試，或回報這個問題給木頭仁。",
+    "unknown": "Unknown error",
+    "retry": "重試",
+    "home": "回首頁",
+    "report": "回報這個錯誤",
+    "mailSubject": "[木作藍圖] 系統錯誤回報",
+    "mailBody": "（請描述你剛剛做了什麼）"
+  },
+  "notFound": {
+    "emoji": "🪚",
+    "h1": "這個頁面不存在",
+    "body": "你可能點到失效連結，或路徑打錯了。回首頁挑一個家具開始設計吧。",
+    "home": "回首頁"
+  },
+  "login": {
+    "metadata": {
+      "title": "登入 ｜ 木頭仁 木作藍圖",
+      "description": "用 Google 或 Email 登入木頭仁 木作藍圖"
+    },
+    "brandAlt": "木頭仁 木作藍圖",
+    "brandName": "木頭仁 木作藍圖",
+    "subtitle": "登入後可儲存設計、生成報價、分享連結",
+    "footnote": "首次使用 = 自動註冊。不用設密碼，用 Google 帳號或 Email 收信件登入。",
+    "helpPrefix": "需要協助？",
+    "lineLabel": "LINE 官方加好友",
+    "divider": "或",
+    "googleDisabledTpl": "{app} 內無法用 Google 登入"
+  },
+  "pricingStub": {
+    "metadata": {
+      "title": "Pricing · Wooden Ren Designer",
+      "description": "International USD pricing launching later in 2026 via LemonSqueezy. Join the waitlist for early access."
+    },
+    "badge": "International pricing",
+    "h1": "USD billing coming soon",
+    "intro": "Wooden Ren Designer is currently available with TWD billing only (via ECPay, Taiwan's primary payment processor).",
+    "intro2": "International USD billing via LemonSqueezy is scheduled for launch later in 2026, with regional pricing for the US, EU, UK, and Australia.",
+    "highlights": "While you wait, the free tier already includes:",
+    "h1Free": "Free tier",
+    "f1": "Square stool + pencil holder + workbench templates",
+    "f2": "Full 3D, joinery details, three-view drawings, cut list",
+    "f3": "Watermark-free PDF export, Letter / A4 paper sizes",
+    "f4": "No signup required to try",
+    "ctaTryFree": "Try free now →",
+    "ctaBack": "Back to home",
+    "ctaContact": "Contact us about international",
+    "tw": "If you can read Chinese and are based in Taiwan, see the <link>full TWD pricing</link>."
+  },
+  "help": {
+    "metadata": {
+      "title": "常見問題 FAQ · 木頭仁 木作藍圖",
+      "description": "木頭仁 木作藍圖常見問題：登入、訂閱、付款、發票、退費、PWA 安裝、3D 顯示等使用疑難。",
+      "ogTitle": "常見問題 FAQ · 木頭仁 木作藍圖",
+      "ogDescription": "登入、訂閱、付款、退費、PWA 安裝、3D 顯示等常見疑難。"
+    },
+    "h1": "常見問題",
+    "introPrefix": "找不到答案？直接聯絡客服：",
+    "introOr": "或加",
+    "lineOaLabel": "LINE 官方帳號",
+    "stillStuckH2": "還是沒解決？",
+    "stillStuckBody": "直接寫信給我們，附上你的註冊 email + 出問題的螢幕截圖，3 個工作天內回覆。",
+    "stillStuckEmail": "✉️ Email 客服",
+    "stillStuckLine": "💬 LINE 官方帳號",
+    "footerLinksIntro": "本站連結：",
+    "linkHome": "首頁",
+    "linkPricing": "方案",
+    "linkSubscription": "我的訂閱",
+    "linkRefund": "退費",
+    "linkPrivacy": "隱私權",
+    "linkTerms": "使用條款",
+    "account": {
+      "title": "帳號與登入",
+      "q1Q": "在 LINE / FB / IG 點連結，登入按鈕沒反應",
+      "q1A": "Line / FB / IG 內建瀏覽器不支援 Google 登入。請按右上角「⋯」選「<b>用瀏覽器開啟</b>」，或複製連結貼到 Chrome / Safari 再點。<br/>或直接用 <b>Email 登入信</b>：登入頁輸入 email，10 分鐘內到信箱點連結即可，不需 Google 帳號。",
+      "q2Q": "Email 登入信點了顯示「連結已過期」",
+      "q2A": "Email 登入連結只有 <b>1 小時</b>效期，過期請回 <linkLogin>登入頁</linkLogin> 重新請求一封新的。請<b>不要把連結轉貼給別人</b>（只能本人點一次）。"
+    },
+    "billing": {
+      "title": "訂閱與付款",
+      "q1Q": "月扣方案會自動扣款嗎？怎麼取消？",
+      "q1A": "<b>會自動續扣</b>，每 30 天扣一次直到取消。想停請到 <linkSub>我的訂閱</linkSub> 按「取消訂閱」（仍可用到本期結束、不退已扣款）。<br/>年付方案不會自動續，到期前 7 天會收提醒信。",
+      "q2Q": "刷卡完成但功能還沒解鎖",
+      "q2Intro": "金流回呼通常在 1-5 分鐘內完成。如果超過 10 分鐘還沒解鎖：",
+      "q2Step1": "先重新整理頁面 / 重新登入",
+      "q2Step2": "檢查 email 有沒有收到「付款成功」通知信",
+      "q2Step3": "仍未解鎖請聯絡客服，附上信用卡末 4 碼 + 刷卡時間",
+      "q3Q": "月扣跟年付差別？",
+      "q3A": "月扣 = 每月自動續扣，要主動取消才停。年付 = 一次付一年、到期不自動續、可享折扣。看詳細費率到 <linkPricing>方案頁</linkPricing>。",
+      "q4Q": "可以中途升級 / 降級方案嗎？",
+      "q4A": "可以升級。在 <linkPricing>方案頁</linkPricing> 點目標方案會自動算 prorate 退款（舊方案未用天數會自動退回信用卡），同時取消舊定期定額。降級請等舊方案到期後再選新方案。"
+    },
+    "invoice": {
+      "title": "電子發票",
+      "q1Q": "我的發票會怎麼開？",
+      "q1A": "付款成功後系統自動開立綠界 B2C 電子發票，寄到註冊 email。設定請到 <linkSub>我的訂閱</linkSub> → 發票偏好。",
+      "q2Q": "發票抬頭 / 統編寫錯了",
+      "q2A": "<b>24 小時內</b>請立刻聯絡客服，我們會作廢重開新發票（這個流程系統自動跑）。<br/><b>超過 24 小時</b>就要走折讓單流程，客服會手動處理（需要 1-3 個工作天）。",
+      "q3Q": "沒收到發票通知信",
+      "q3A": "先檢查垃圾信件夾跟促銷分頁。如果都沒有，請聯絡客服，我們會手動重寄。發票本身已在<b>財政部電子發票整合服務平台</b>有紀錄、不會遺失。"
+    },
+    "design": {
+      "title": "設計與使用",
+      "q1Q": "我儲存的設計不見了",
+      "q1A": "如果你<b>沒登入</b>就直接設計，資料只存在當下瀏覽器，換裝置 / 清快取就會消失。請<b>先登入</b>再儲存，會同步到雲端跨裝置可看（在 <linkDesigns>我的設計</linkDesigns>）。",
+      "q2Q": "手機看不到 3D 模型 / 卡住",
+      "q2A": "3D 模型對舊手機 / 舊瀏覽器較吃資源。建議用<b>桌機 + Chrome / Edge</b> 或<b>最新版 iOS Safari</b>。或試「組裝版」減少 3D 元件數量。",
+      "q3Q": "列印 PDF 跑出空白頁",
+      "q3A": "請用 <b>Chrome 列印 → 另存 PDF</b>，邊界設「無」，背景圖形勾起來。其他瀏覽器排版可能不準。"
+    },
+    "pwa": {
+      "title": "桌面 App 安裝（PWA）",
+      "q1Q": "怎麼把 App 裝到手機桌面 / 電腦",
+      "q1A": "登入後右上選單會出現「<b>📲 安裝 App 到主畫面</b>」。第一次進站後可能要互動幾秒才會出現。<br/><b>iOS Safari</b>：點下方分享按鈕 ⬆️ → 加到主畫面（必須用 Safari、不能用 Chrome）。<br/><b>Android / 桌面 Chrome / Edge</b>：直接按按鈕。<br/><b>Line / FB 內建瀏覽器</b>：不支援，請改用系統瀏覽器。"
+    },
+    "refundSec": {
+      "title": "退費",
+      "q1Q": "可以退費嗎？",
+      "q1Intro": "木作藍圖屬於 <b>數位虛擬商品</b>，依《通訊交易解除權合理例外情事適用準則》第 5 條，付款完成後 <b>原則上恕不退費</b>（你在結帳時也勾選了「同意拋棄七日鑑賞期」）。",
+      "q1ListIntro": "但以下情形可來信申請<b>個案處理</b>：",
+      "q1Case1": "系統重大瑕疵導致<b>無法使用</b>（且我們無法 7 個工作天內修復）",
+      "q1Case2": "因本公司主動終止服務，導致已付費期間未使用之部分",
+      "q1Case3": "其他符合消保法強制規定的情形",
+      "q1Outro": "詳細條款看 <linkRefund>退費政策頁</linkRefund>。申請方式：email 寄到 <linkEmail>客服信箱</linkEmail> 主旨「退費申請 - 註冊 Email」，附訂單編號、付款日期、退費原因。",
+      "q2Q": "怎樣避免後悔？",
+      "q2Intro": "既然原則上不退費，建議：",
+      "q2Tip1": "先用<b>免費版</b>完整試做方凳、筆筒、木工工作桌，其餘模板也能免費預覽完整圖，確認用得順手再升級",
+      "q2Tip2": "不確定要月扣還年扣的話，<b>先月扣 NT$390</b> 試一個月，覺得 OK 再轉年付",
+      "q2Tip3": "月扣可<linkSub>隨時取消</linkSub>，當期權限保留到到期日"
+    }
+  },
+  "contact": {
+    "metadata": {
+      "title": "聯絡我們 · 木頭仁 木作藍圖",
+      "description": "木頭仁 木作藍圖（designer.woodenren.com）聯絡資訊 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+      "ogTitle": "聯絡我們 · 木頭仁 木作藍圖",
+      "ogDescription": "木頭仁木匠學院聯絡資訊與客服管道。"
+    },
+    "h1": "聯絡我們",
+    "lastUpdated": "最後更新：2026 年 5 月 13 日",
+    "companyH2": "🏢 公司資訊",
+    "companyName": "公司名稱：Wooden Ren Education Co., Ltd.（木頭仁木匠學院）",
+    "companyAddress": "登記地址：基隆市暖暖區東勢街 6-34 號 4 樓",
+    "companyOwner": "負責人：翁彬仁（木頭仁）",
+    "officialSiteLabel": "官方網站：",
+    "designerSiteLabel": "本服務網址：",
+    "supportH2": "✉️ 客服聯絡",
+    "supportEmailLabel": "客服信箱：",
+    "supportHours": "客服時間：週一至週五 10:00–18:00（國定假日休）",
+    "supportSla": "回覆時間：一般 1~3 個工作日內回覆。",
+    "topicsH2": "📨 問題類型",
+    "topicBilling": "付款／開通／發票問題 → 主旨請註明「付款問題 - 訂單編號」",
+    "topicRefund": "退費申請 → 請參考 <link>退費政策</link> 後來信",
+    "topicOther": "功能 bug、設計建議、教學合作 → 直接信件說明即可",
+    "socialH2": "📺 社群",
+    "ytLabel": "YouTube：",
+    "ytHandle": "@woodenren（木頭仁 Wooden Ren）",
+    "academyLabel": "木匠學院："
+  },
+  "about": {
+    "metadata": {
+      "title": "關於 木頭仁 木作藍圖｜輸入尺寸 3 分鐘生工程圖",
+      "description": "木頭仁木匠學院出品。超過 25 種家具範本，輸入長寬高自動產出三視圖、透視圖、榫卯細節、材料單、工序、A4 PDF 工程圖。給 DIY 木工愛好者、木匠師傅、設計接案、學員用。",
+      "ogTitle": "關於 木頭仁 木作藍圖｜輸入尺寸 3 分鐘生工程圖",
+      "ogDescription": "木頭仁木匠學院出品。25+ 家具範本、自動三視圖、榫卯、材料單、PDF 工程圖。",
+      "twitterTitle": "關於 木頭仁 木作藍圖",
+      "twitterDescription": "輸入尺寸 3 分鐘生工程圖、材料單、報價。木頭仁木匠學院出品。"
+    },
+    "hero": {
+      "logoAlt": "木頭仁 木作藍圖",
+      "badge": "木頭仁木匠學院出品",
+      "h1Line1": "畫圖算料的時間",
+      "h1Highlight": "交給工具",
+      "intro": "選一件家具、填長寬高，<b>3 分鐘</b>自動產出 3D 透視圖、工程三視圖、榫卯細節、材料單、工序與 A4 PDF 工程圖。",
+      "statSubsCount": "20 萬",
+      "statSubsLabel": "YouTube 訂閱",
+      "statStudentsCount": "600+",
+      "statStudentsLabel": "學員教過",
+      "statTemplatesCount": "25+",
+      "statTemplatesLabel": "家具範本",
+      "ctaPrimary": "開始設計（免費試用）→",
+      "ctaSecondary": "看付費方案",
+      "triptychCaption": "↑ 同一件家具，三分鐘同步產出 3D 透視 · 工程三視圖 · 切料清單"
+    },
+    "triptych": {
+      "inputBadge": "📏 一次輸入長寬高",
+      "outputBadge": "⚡ 3 分鐘同步生成",
+      "panel1Label": "① 3D 透視",
+      "panel1Sub": "拖曳旋轉、看清榫卯",
+      "panel1Alt": "3D 透視 — 胡桃色電視櫃實際生成畫面",
+      "panel2Label": "② 工程三視圖",
+      "panel2Sub": "正/側/俯，全尺寸標註",
+      "panel2Alt": "工程三視圖含尺寸標註",
+      "panel3Label": "③ 切料清單",
+      "panel3Sub": "編號 + 長寬厚，直接開鋸",
+      "panel3Alt": "切料清單與排板"
+    },
+    "mosaic": {
+      "intro": "目前內建 <b>超過 25 種</b>家具範本，從筆筒到衣櫃，都能直接拖滑桿改尺寸——",
+      "outro": "這只是其中 12 件，<link>看完整圖庫</link>"
+    },
+    "pain": {
+      "eyebrow": "為什麼做這個工具",
+      "h2": "做木工最花時間的，從來不是動手。",
+      "intro": "是先把圖畫對、料算準、工序排好。一張凳子的設計圖通常要花 2~3 小時、一個櫃子半天起跳——還沒進工坊，就已經先燒掉一個下午。",
+      "drawing": {
+        "title": "畫圖卡關",
+        "desc": "尺寸算來算去總有一個數字怪怪的，三視圖跟透視圖兜不起來。"
+      },
+      "material": {
+        "title": "算料卡關",
+        "desc": "長度、寬度、厚度三個一組，加上榫頭預留、損耗、刨光——掐指一算半天就過了。"
+      },
+      "process": {
+        "title": "工序卡關",
+        "desc": "先做哪、後做哪，哪一步先上膠哪一步先夾——做錯順序拆都拆不開。"
+      },
+      "conclusion": "木作藍圖把這三件事壓進 3 分鐘 ——省下的兩個晚上，夠你多接一張單。"
+    },
+    "steps": {
+      "eyebrow": "怎麼用",
+      "h2": "三步驟，從零到工坊",
+      "step1Title": "選範本",
+      "step1Desc": "從超過 25 種家具範本選一件。方凳、餐椅、書桌、衣櫃、紅酒架、筆筒…從入門到進階都有。",
+      "step2Title": "填尺寸",
+      "step2Desc": "長寬高、木材厚度、榫卯類型，拖滑桿即時看到 3D 模型變形。",
+      "step2Alt": "設定面板拉滑桿、3D 即時更新",
+      "step3Title": "拿設計圖進工坊",
+      "step3Desc": "A4 PDF 工程圖、切料尺寸表、工具清單、製作工序——印出來就能動鋸。",
+      "step3Alt": "工程三視圖含尺寸標註"
+    },
+    "outputs": {
+      "eyebrow": "產出內容",
+      "h2": "每一件家具都附這些",
+      "intro": "不只是設計圖，是一整套可以直接開工的施作包。",
+      "threeview": {
+        "title": "📐 工程三視圖",
+        "desc": "正視、側視、俯視圖，含完整尺寸標註——符合台灣木匠製圖慣例，印出來就能照做。"
+      },
+      "cutlist": {
+        "title": "📋 切料清單",
+        "desc": "每塊料的長寬厚、編號、3D 對應位置一目瞭然，工坊裡邊裁邊勾，不會出錯。"
+      },
+      "cutplan": {
+        "title": "🪵 排板裁切圖",
+        "desc": "自動算出最省料的排板方式並顯示利用率，連 5 米德製升級捲尺要從哪邊下刀都標好。"
+      },
+      "process": {
+        "title": "📑 製作工序",
+        "desc": "完整 19 步工序、預估工時、選料注意事項、含水率、刨削方向——比自學書還細。"
+      },
+      "quote": {
+        "title": "💰 客製報價",
+        "desc": "家具報價、含稅金額、訂金尾款分配、付款分期、客戶資料表，接案直接列印當報價單。"
+      },
+      "perspective": {
+        "title": "🪑 3D 透視預覽",
+        "desc": "逼真木紋渲染，可拖曳旋轉檢視任何角度，把成品先看清楚再下鋸。"
+      },
+      "joinery": {
+        "title": "榫卯細節",
+        "desc": "通榫、盲榫、半榫位置自動計算，含公榫母榫對位圖。"
+      },
+      "tools": {
+        "title": "工具清單",
+        "desc": "這件家具會用到哪些工具，新手不用瞎買。"
+      },
+      "stl": {
+        "title": "STL 3D 輸出",
+        "desc": "可在 SketchUp、3D 列印機開啟，做縮小模型先打樣。"
+      }
+    },
+    "decor": {
+      "tag": "🔨 裝潢專區",
+      "h2": "量房一次、清單一次列印",
+      "intro": "裝潢師傅最常燒時間的不是釘工——是現場拿筆估料、回家畫圖、隔天還要二次跑工地補料。從天花板到收納櫃，輸入空間尺寸就出整套清單。",
+      "ceilingPlanBadge": "個人版",
+      "ceilingLive": "已上線",
+      "ceilingTitle": "🪜 天花板骨架計算",
+      "ceilingDesc": "量好房型輸入長寬高，自動配主骨 / 副骨 / 吊筋，算出每根料長度、矽酸鈣板切幾片、釘子幾顆、整套用料與工時——清單列印帶到工地，不再現場拿筆算到頭暈。",
+      "ceilingAlt": "天花板骨架 3D 爆炸圖",
+      "cabinetsTitle": "裝潢櫃體一條龍 — {count} 種常用櫃自動產設計圖 + 切料單"
+    },
+    "persona": {
+      "eyebrow": "適合誰",
+      "h2": "給這五種人用",
+      "diy": {
+        "title": "DIY 木工愛好者",
+        "desc": "不會畫工程圖也想做家具給家裡用。範本選下去、尺寸對自家環境調一調，剩下交給工具產出。"
+      },
+      "pro": {
+        "title": "木匠師傅 / 接案",
+        "desc": "客戶 LINE 問「做一個這樣的櫃子多少」，5 分鐘出設計 + 報價 + 工序——回得比同行快，單就是你的。算料一次到位，也不會多訂虧本。"
+      },
+      "interior": {
+        "title": "裝潢師傅 / 室內裝修",
+        "desc": "量好房型、輸入長寬高，天花板骨架（主骨/副骨/支撐）自動算料、矽酸鈣板用幾片、釘子幾顆，整套清單列印帶到工地。"
+      },
+      "designer": {
+        "title": "設計師",
+        "desc": "家具設計拿到工程圖、切料表，可以直接外包給木工施作，溝通成本降到最低。"
+      },
+      "student": {
+        "title": "木匠學院學員 / 自學者",
+        "desc": "課堂作品改變尺寸、改用不同榫卯，立刻看到 3D 怎麼變化——比書本快十倍。"
+      }
+    },
+    "bio": {
+      "h2": "我是木頭仁",
+      "p1": "YouTube <b>二十萬人</b>看我做木工，木匠學院線上+實體教過<b>六百多位學員</b>。",
+      "p2": "這十年我最常被問的就是——",
+      "quote": "「仁哥，這個尺寸要怎麼抓？」",
+      "p3": "木作藍圖就是我把那些「<b>怎麼抓</b>」寫成的工具。家具尺寸慣例、榫卯規則、工序邏輯——每一條背後都有實際做過、被學員問到爛的經驗。",
+      "ytLabel": "YouTube",
+      "fbLabel": "Facebook",
+      "igLabel": "Instagram",
+      "academyLabel": "木匠學院",
+      "ytAria": "木頭仁 YouTube 頻道",
+      "fbAria": "木頭仁 Facebook 粉絲團",
+      "igAria": "木頭仁 Instagram",
+      "academyAria": "木匠學院"
+    },
+    "plans": {
+      "eyebrow": "方案",
+      "h2": "先免費試，需要再升級",
+      "intro": "月付 NT$390 起，年付直接省兩個月。接案多接一張單、或算錯一次料 ——訂閱費早就回本。",
+      "popular": "最多人選",
+      "free": {
+        "name": "免費版",
+        "price": "$0",
+        "unit": "",
+        "f1": "3 件範本不限次",
+        "f2": "3D 預覽 + 三視圖",
+        "f3": "材料單 + 工序",
+        "cta": "開始試做"
+      },
+      "personal": {
+        "name": "個人版",
+        "price": "$390",
+        "unit": "/月",
+        "f1": "全部家具範本解鎖",
+        "f2": "天花板骨架 / 地板模擬器",
+        "f3": "PDF 列印 / 雲端儲存",
+        "cta": "升級個人版"
+      },
+      "pro": {
+        "name": "專業版",
+        "price": "$890",
+        "unit": "/月",
+        "f1": "個人版全部內容",
+        "f2": "客製報價 + 客戶資料管理",
+        "f3": "STL / OBJ 輸出 + 尺寸無上限",
+        "cta": "升級專業版"
+      },
+      "customTitle": "🪵 不想訂閱？單範本永久買斷",
+      "customBody": "只想做某張椅子？一次買斷，永久擁有那張藍圖。不訂閱也能用。",
+      "customSeeAll": "→ 看全部 26 個範本買斷價",
+      "perkNoCC": "免費版不用信用卡",
+      "perkCancel": "月扣可隨時取消",
+      "perkRetention": "取消後當期權限保留到到期",
+      "perkYearMath": "年付 = 月付 × 10",
+      "needHelp": "有問題？看 <link1>常見問題</link1> · 或<link2>聯絡我們</link2>",
+      "bugLogoAlt": "木頭仁圖示",
+      "bugReport": "用到 bug 或卡關？點頁面<b>右下角的木頭仁圖示</b><dim> (像左邊這個) </dim>直接回報，會自動帶上當前頁面跟瀏覽器資訊，我看到信就知道怎麼修。"
+    }
+  },
+  "landing": {
+    "metadata": {
+      "title": "木頭仁 木作藍圖｜輸入尺寸，3 分鐘生工程圖、材料單、報價單",
+      "description": "做木工最花時間的從來不是動手，是先把圖畫對、料算準、工序排好。輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、A4 PDF。免費試用方凳、筆筒與木工工作桌，付費 NT$390/月起。",
+      "ogTitle": "木頭仁 木作藍圖｜輸入尺寸 3 分鐘生工程圖",
+      "ogDescription": "把畫圖、算料、報價壓進 3 分鐘。免費試做方凳、筆筒、木工工作桌。木頭仁木匠學院出品。"
+    },
+    "hero": {
+      "badge": "木頭仁木匠學院 · 木作藍圖 v0.5",
+      "h1Line1": "從尺寸到設計圖",
+      "h1Highlight": "三分鐘完成",
+      "subtitleA": "每個木工的第一件作品，都該是自己的工作桌——一張能刨、能夾、不會走路的桌，之後每件家具都在它上面做出來。",
+      "subtitleB": "填身高、選流派，3 分鐘畫成三視圖、材料單、零件圖。免費，不用註冊。",
+      "ctaPrimary": "免費畫你的工作桌 →",
+      "ctaSecondary": "查看方案",
+      "note": "免註冊免登入即可試做 · 方凳 + 筆筒 + 木工工作桌永遠免費",
+      "heroAlt": "木頭仁木作藍圖實際產出 — 木工工作桌 3D 透視（厚板桌、前鉗與狗孔）",
+      "heroCaption": "實際產出畫面",
+      "heroBadgeFast": "⚡ 3 分鐘生成"
+    },
+    "pain": {
+      "h2": "你是不是這樣？",
+      "subtitle": "這三件事，我們聽木工朋友抱怨了三年。",
+      "drawing": {
+        "title": "想做但畫不出來",
+        "body": "腦袋有畫面，比例怎麼抓？腳要多粗？牙板要多深？開 SketchUp 半小時還在轉視角。"
+      },
+      "material": {
+        "title": "材料算不準，怕浪費",
+        "body": "板才怎麼換台才？切下來會剩多少邊料？報價怎麼算才不會虧？每次都重算一遍。"
+      },
+      "quote": {
+        "title": "客戶要報價，沒效率",
+        "body": "客人 LINE 問「這張餐桌多少？」總要回家算半天。當場開圖、當場報，才有專業感。"
+      }
+    },
+    "outputs": {
+      "h2": "輸入尺寸，自動產出三件事",
+      "subtitle": "拿著材料單就能直接進工坊開鋸。",
+      "drawings": {
+        "title": "三視圖 + 榫卯細節",
+        "body": "前視、側視、俯視自動標尺寸；榫頭通榫／盲榫／半榫錯位都算好位置。"
+      },
+      "cutplan": {
+        "title": "材料單 + 切割圖",
+        "body": "自動換算板才／台才，列出每片木料尺寸與裁切順序，邊料最少。"
+      },
+      "quote": {
+        "title": "報價單 + 工時",
+        "body": "板材 × 厚度 × 塗裝 × 工時自動算總價，專業版可帶客戶抬頭、margin。"
+      }
+    },
+    "templates": {
+      "h2": "26 件家具範本",
+      "subtitle": "點任一張看「能幫你做什麼」、設計重點、實際畫面。",
+      "seeAll": "看全部範本介紹 →",
+      "freeBadge": "免費",
+      "previewAlt": "{name} 3D 預覽"
+    },
+    "scenarios": {
+      "h2": "什麼時候會用到？",
+      "subtitle": "六個真實情境——你最像哪一個？",
+      "morning": {
+        "tag": "清晨咖啡",
+        "body": "沙發上滑手機畫一張床邊桌，無摩擦、輕巧、生活感。"
+      },
+      "workshop": {
+        "tag": "工作室實戰",
+        "body": "拿著剛印的 PDF 對木料，精準到 mm，減少報廢。"
+      },
+      "classroom": {
+        "tag": "教室上課",
+        "body": "每人一支手機開 designer，抽象變具象，學員秒懂榫卯。"
+      },
+      "customer": {
+        "tag": "客戶接單",
+        "body": "客人 LINE 來訊「能不能做張餐桌」，當場開圖邊聊邊改。"
+      },
+      "midnight": {
+        "tag": "半夜靈感",
+        "body": "靈感來了不流失，半夢半醒做設計，明天再優化細節。"
+      },
+      "kid": {
+        "tag": "小孩生日",
+        "body": "30 分鐘和孩子一起設計筆筒，把木工變親子工具。"
+      }
+    },
+    "pricing": {
+      "h2": "選一個適合你的方案",
+      "subtitle": "先免費試做，覺得對胃口再升級。",
+      "popular": "最多人選",
+      "free": {
+        "tier": "免費",
+        "f1": "方凳 + 筆筒 + 木工工作桌 完整客製到底",
+        "f2": "其餘所有模板免費完整預覽（3D／三視圖／榫卯／材料單）",
+        "f3": "改成你的尺寸、報價、列印再升級",
+        "f4": "免註冊免登入即可試做",
+        "cta": "免費試做"
+      },
+      "personal": {
+        "tier": "個人版",
+        "f1": "全 26 個家具模板",
+        "f2": "天花板骨架 + 地板 + 和室架高平台",
+        "f3": "PDF 列印 + 雲端儲存無限",
+        "f4": "適合 DIY、自家裝潢、週末做家具的人",
+        "cta": "升級個人版"
+      },
+      "pro": {
+        "tier": "專業版",
+        "f1": "個人版全部功能",
+        "f2": "客戶報價系統 + 客戶資料管理",
+        "f3": "STL / OBJ 輸出（CNC、雷射）",
+        "f4": "設計師模式：尺寸無上限",
+        "cta": "靠木工接案就上這個"
+      },
+      "perMonth": "/月",
+      "perYear": "/年",
+      "yearNote": "年繳再省一個多月 · 木匠學院終身會員私訊拿專屬碼",
+      "custom": {
+        "title": "🪵 不想訂閱？單範本永久買斷",
+        "body": "只想做某張椅子？一次買斷，永久擁有那張藍圖。不訂閱也能用。",
+        "seeAll": "→ 看全部 26 個範本買斷價"
+      }
+    },
+    "faq": {
+      "h2": "常見問題",
+      "freeQ": "免費版到底能做什麼？",
+      "freeA": "方凳、筆筒、木工工作桌三個模板可以完整客製、自由出圖。其餘所有家具模板都能免費完整預覽——3D、榫卯、三視圖、材料單全部看得到，只有改成你自己的尺寸、產生報價與列印工程包才需要升級（材料隨時可換著預覽）。",
+      "cadQ": "跟 SketchUp / Fusion 360 差在哪？",
+      "cadA": "designer 是給「想做木工但不想學 CAD」的人用的。5 分鐘上手，榫卯／三視圖／材料單／切割圖全部自動，不是要取代專業 CAD。",
+      "tierQ": "個人版跟專業版差在哪？",
+      "tierA": "不接案就買個人版（NT$390／月，全 26 模板＋裝潢工具）；要靠木工賺錢就上專業版（NT$890／月，多了客戶報價系統＋CNC 輸出＋尺寸無上限）。",
+      "cancelQ": "可以隨時取消嗎？",
+      "cancelA": "可以。月扣方案隨時取消，當月仍可使用到期。年扣方案 7 天內不滿意可全額退費。",
+      "cncQ": "可以拿產出的圖去 CNC 嗎？",
+      "cncA": "可以。專業版支援 STL / OBJ 輸出，能接 CNC、雷射切割。免費版／個人版產出的 PDF 三視圖足夠手作。",
+      "seeAll": "看完整 FAQ →"
+    },
+    "bottomCta": {
+      "h2Line1": "先把你的工作桌畫出來",
+      "h2Highlight": "再決定要不要付費。",
+      "subtitle": "這是我覺得最公平的方式——你先用，覺得真的有幫到你，再付。",
+      "ctaPrimary": "開始設計 →",
+      "ctaSecondary": "關於木頭仁"
+    }
+  },
+  "templates": {
+    "metadata": {
+      "title": "26 件家具範本 完整介紹｜木頭仁 木作藍圖",
+      "description": "從方凳、筆筒、邊桌到衣櫃、書桌、餐椅——26 件可參數化的家具範本完整介紹。每張家具都告訴你：能做什麼、適合誰、需要哪些工具、有什麼變化。"
+    },
+    "filter": {
+      "label": "篩選",
+      "all": "全部",
+      "free": "免費",
+      "beginner": "入門",
+      "intermediate": "中階",
+      "advanced": "進階",
+      "count": "{count} 件"
+    },
+    "jumpTo": "跳到",
+    "header": {
+      "badge": "模板完整介紹 · 含適用情境 + FAQ",
+      "h1": "26 件家具範本 + 3 套裝潢工具",
+      "h1En": "26 Furniture Templates",
+      "subtitle1": "每張家具背後都有它的工法、適用場景、變化方式。",
+      "subtitle2": "天花板、地板、和室架高三套裝潢工具也都收在這裡。",
+      "subtitle3": "先看介紹搞懂，再決定要不要動手做。",
+      "ctaPrimary": "直接看貨架 →",
+      "ctaSecondary": "查看方案"
+    },
+    "group": {
+      "seating": "椅凳",
+      "table": "桌",
+      "cabinet": "櫃",
+      "small": "小物",
+      "large": "大件",
+      "interiorTools": "裝潢工具",
+      "interiorToolsCount": "{count} 套 · 算料、估價、出 A4 報價單一條龍",
+      "itemsCount": "{count} 件範本"
+    },
+    "interior": {
+      "ceilingName": "天花板骨架",
+      "ceilingTagline": "畫房間 → 算骨架角材 + 矽酸鈣板 → 出施工圖跟報價單。",
+      "floorName": "地板施工模擬器",
+      "floorTagline": "畫房間 → 直鋪/錯縫/人字拼自動排版 → 算超耐磨片數跟損耗。",
+      "raisedFloorName": "和室架高平台",
+      "raisedFloorTagline": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。",
+      "cncName": "CNC 刀路產生器",
+      "cncTagline": "拖 SVG/DXF/圖片 → 選加工排刀路 → 出 CNC 能直接跑的 G-code。免費試用 7 天。",
+      "ctaIntro": "了解更多",
+      "ctaStart": "開始試算"
+    },
+    "badge": {
+      "free": "免費",
+      "wip": "🚧 開發中"
+    },
+    "empty": {
+      "title": "這個篩選沒有對應的範本 · ",
+      "clear": "清除篩選"
+    },
+    "card": {
+      "learnMore": "了解更多",
+      "startDesign": "開始設計",
+      "comingSoon": "敬請期待",
+      "previewAlt": "{name} 3D 預覽"
+    },
+    "bottomCta": {
+      "h2": "選一張開始",
+      "subtitle": "方凳、筆筒和木工工作桌永遠免費完整使用。其他模板都能免費預覽完整圖，改成你的尺寸再訂閱解鎖。",
+      "ctaPrimary": "開始設計 →",
+      "ctaSecondary": "查看方案"
+    }
+  },
+  "design": {
+    "metadata": {
+      "notFoundTitle": "找不到家具範本",
+      "titleTemplate": "{name}設計圖｜輸入尺寸自動產出三視圖、材料單、報價",
+      "descriptionTemplate": "{description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖。木頭仁木匠學院出品。"
+    },
+    "back": "← 回家具列表",
+    "detailedIntro": "這支{name}的詳細介紹",
+    "wipTemplate": "這個家具模板還在開發中，目前先支援「方凳」。",
+    "header": {
+      "piecesCount": "{count} 件",
+      "weightApprox": "約 {kg} kg",
+      "weightTitle": "實重 = 各部件 體積×木材密度 + 12% 包裝重",
+      "quoteBtn": "💰 產生報價",
+      "printBtn": "🖨️ 列印 / PDF"
+    },
+    "clamp": {
+      "title": "已達免費版尺寸上限——已自動縮回",
+      "row": "{dim}：{from} → {to}",
+      "footer": "想做更大尺寸？開啟「設計師模式」自由輸入到 mm 級——",
+      "upgrade": "升級專業版 →",
+      "dimWidth": "寬",
+      "dimDepth": "深",
+      "dimHeight": "高",
+      "dimDiameter": "直徑"
+    },
+    "warnings": {
+      "title": "設計參數有問題（已自動修正後續渲染）："
+    },
+    "templatePack": {
+      "lockedCta": "升級後可下載 1:1 實尺樣板 →"
+    },
+    "section": {
+      "perspective": "透視圖",
+      "perspectiveHint": "3D · 拖曳旋轉、滾輪縮放",
+      "threeView": "工程三視圖",
+      "threeViewHint": "標示為組裝後肩到肩可見尺寸",
+      "cutList": "🪵 材料單",
+      "cutListHint": "{count} 件 · 切料尺寸已含榫頭",
+      "cutListNotice": "切料尺寸已含榫頭凸出長度。母榫（凹）不影響零件外形尺寸。",
+      "cutPlanBtn": "🪚 裁切計算器",
+      "preview3d": "3D 預覽（同步高亮選中零件）",
+      "joineryDetail": "🪚 榫卯細節圖",
+      "joineryAssembly": "🔩 組裝接合說明",
+      "toolList": "🛠️ 工具清單",
+      "buildSteps": "📋 製作工序",
+      "related": "想做類似的？相關範本"
+    },
+    "noJoinery": {
+      "h": "📐 無榫卯組裝方式（擇一或混用）",
+      "row1Lead": "斜孔螺絲",
+      "row1Body": "—— 板材垂直接合（頂板↔側板、層板↔側板）。用斜孔器夾具鑽 15° 斜孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。",
+      "row2Lead": "木釘拼接",
+      "row2Body": "—— 板材拼寬或結構補強，用木板打孔定位器 + 8mm 木釘。",
+      "row3Lead": "DOMINO 圓榫",
+      "row3Body": "—— 想要更接近榫接強度可用 DOMINO 系統（機具另備）。",
+      "row4Lead": "木工螺絲 + 白膠",
+      "row4Body": "—— 框架類（椅腳↔牙板、橫撐↔椅腳）最簡單。先鑽先導孔避免劈裂。",
+      "row5Lead": "所有接點務必上白膠",
+      "row5Body": "—— 機械緊固 + 膠合才是真正牢固。螺絲木釘只是夾緊工具。",
+      "tools": "建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 夾具×4、砂紙 120/240/400。",
+      "switchHint": "如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選左側「榫接模式」。"
+    },
+    "related": {
+      "linkSuffix": "設計圖 →"
+    },
+    "joinery": {
+      "noToShow": "這個設計沒有可顯示的榫卯。",
+      "motherPart": "母件",
+      "spotsLabel": "共 {n} 處",
+      "tenon": "榫頭"
+    },
+    "form": {
+      "joineryMethodLegend": "工法選擇",
+      "joineryMethodHint": "— 影響材料單與接合工序",
+      "modeAssemblyLabel": "🔩 組裝版",
+      "modeAssemblyBadge": "推薦新手",
+      "modeAssemblyDesc": "螺絲 / 木釘 / DOMINO / 斜孔系統。施作快、強度約榫接版 60–70%，日常家具夠用。",
+      "modeJoineryLabel": "🪵 榫接版",
+      "modeJoineryBadge": "傳統工法",
+      "modeJoineryDesc": "傳統榫卯接合，含榫頭榫眼細節圖、精緻工序。難度較高、做工較久。",
+      "designerLegend": "🎨 設計師模式（自由尺寸）",
+      "designerOnDesc": "開啟後解除範本上限，可輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。",
+      "designerOnWarning": "⚠️ 已啟用：尺寸不再受範本上限限制。極端尺寸下範本可能產生不合理結果（樑深不足、榫接無法成立），請務必以三視圖檢核。",
+      "designerLockedDesc": "解除範本尺寸上限，輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。",
+      "designerProPrefix": "這是 ",
+      "designerProName": "專業版",
+      "designerProSuffix": " 功能。",
+      "designerProLink": "看方案 →",
+      "overallSize": "整體尺寸",
+      "designerNoLimit": "無上限",
+      "diameter": "直徑",
+      "width": "寬",
+      "depth": "深",
+      "height": "高",
+      "wood": "木材",
+      "detailSettings": "細部設定",
+      "previewLockTitle": "這是 {dims} 的範例",
+      "previewLockBody": "免費版可完整瀏覽這個範本的 3D、三視圖、榫卯細節圖與材料單。想改成你自己的尺寸、解鎖報價與列印工程包,升級即可（材料仍可自由切換預覽）。",
+      "previewLockCta": "升級解鎖你的尺寸 →",
+      "autoUpdate": "改參數 0.5 秒後自動更新設計",
+      "dynamicMaxHint": "上限 {max}",
+      "dynamicMaxHintLocked": "上限 {max}（鎖總高）",
+      "legReadoutLabel": "計算後腳高",
+      "legReadoutUnit": "·mm",
+      "legReadoutClamped": "已夾到最低 30mm，請降低層高或加大總高",
+      "upperLimit": "上限 {max}"
+    },
+    "heightPreset": {
+      "diningTable": "餐桌",
+      "workbench": "工作",
+      "bar": "吧台",
+      "diningChair": "餐椅",
+      "barStool": "吧凳",
+      "coffeeTable": "茶几",
+      "nightstand": "床頭",
+      "tallCab": "高櫃",
+      "shortCab": "矮櫃"
+    },
+    "jsonLd": {
+      "homeCrumb": "首頁",
+      "catalogCrumb": "家具範本",
+      "designCrumb": "{name}設計圖",
+      "howToName": "如何製作{name}：{dims}",
+      "howToDesc": "{name}（{length}×{width}×{height}mm，{material}）的製作工序，含選料、切料、榫接、組裝、塗裝完整步驟。",
+      "shareText": "木頭仁設計：{name} {length}×{width}×{height}mm"
+    }
+  },
+  "mobile": {
+    "previewLockTitle": "這是 {dims} 的範例",
+    "previewLockBody": "免費版可完整瀏覽 3D、三視圖、榫卯圖與材料單。想改成你自己的尺寸、解鎖報價與列印,升級即可（材料仍可換）。",
+    "previewLockCta": "升級解鎖你的尺寸 →",
+    "previewLockSheetHint": "這些細部設定都能看——升級後就能改成你要的",
+    "topBar": {
+      "back": "返回",
+      "more": "更多動作",
+      "moreTitle": "本頁更多動作（裁切單 / CSV / 列印）"
+    },
+    "overflow": {
+      "header": "本頁更多動作",
+      "cutPlan": "📐 裁切單",
+      "csv": "📋 材料 CSV",
+      "copy": "🔗 複製連結",
+      "print": "🖨 列印 / PDF"
+    },
+    "bottom": {
+      "totalLabel": "參考總價",
+      "weight": "約 {kg} kg",
+      "quoteBtn": "💰 報價"
+    },
+    "form": {
+      "style": "風格",
+      "diameter": "直徑",
+      "length": "長",
+      "width": "寬",
+      "height": "高",
+      "material": "材料",
+      "advanced": "⚙ 進階設定",
+      "method": "工法",
+      "assembly": "🔩 組裝版",
+      "joinery": "🪵 榫接版",
+      "designerMode": "🎨 設計師模式",
+      "designerHint": "自由尺寸到 mm"
+    },
+    "section": {
+      "threeView": "三視圖",
+      "threeViewBadge": "點圖放大",
+      "cutList": "材料清單",
+      "cutListBadge": "{count} 件",
+      "cutListNotice": "切料尺寸已含榫頭凸出長度",
+      "cutPlan": "🪚 裁切計算器",
+      "joineryNote": "工法（榫卯說明）",
+      "joineryNoteBadge": "{count} 處",
+      "joineryFootnote": "完整榫卯細節圖：⚙ 進階設定 → 榫接 tab",
+      "buildSteps": "製作工序",
+      "toolList": "工具清單"
+    },
+    "joinery": {
+      "tenon": "榫頭",
+      "motherPart": "母件",
+      "spotsCount": "共 {count} 處",
+      "detailTitle": "榫卯細節圖",
+      "noJoinery": "此家具無可顯示的榫卯。",
+      "switchHint": "切換到「🪵 榫接版」可顯示榫卯細節圖。"
+    },
+    "advancedSheet": {
+      "title": "⚙ 進階設定",
+      "aria": "進階設定",
+      "close": "關閉",
+      "tab": {
+        "structure": "結構",
+        "style": "美學",
+        "joinery": "榫接",
+        "scene": "場景"
+      },
+      "noStructure": "此家具無結構選項",
+      "noJoineryOption": "此家具無榫接選項",
+      "sceneHint": "選擇擺放場景，3D 視圖即時更新背景與燈光氛圍"
+    },
+    "share": {
+      "title": "木頭仁 木作藍圖",
+      "copied": "短碼已複製：",
+      "csvWip": "材料 CSV phase 2 整合"
+    },
+    "range": {
+      "minus": "減",
+      "plus": "加"
+    },
+    "optionField": {
+      "calcLegHeight": "計算後腳高",
+      "clampedMin": "已夾到最低 30mm，請降低層高或加大總高",
+      "maxLocked": "上限 {max}（鎖總高）"
+    }
+  },
+  "cncMarketing": {
+    "breadcrumb": {
+      "home": "首頁",
+      "templates": "範本介紹",
+      "current": "CNC 刀路產生器"
+    },
+    "hero": {
+      "badge1": "CNC 工具",
+      "badge2": "免費試用 7 天",
+      "h1": "SVG 拖進去，G-code 直接跑",
+      "leadLine1": "省掉 Fusion 360 那一整套 CAM 設定，",
+      "leadLine2": "3 秒生出 CNC 能吃的刀路。",
+      "body": "離線的桌上型 CNC 刀路產生器。畫好的向量圖或掃描稿拖進去，選加工方式與刀具，直接下載 .nc 檔上機——外形、挖槽、鑽孔、V 刻、浮雕、描圖十種加工一次到位。",
+      "ctaGuest": "免費試用 7 天",
+      "ctaUpgrade": "解鎖 CNC 工具",
+      "ctaSecondary": "看方案與單買",
+      "footnote": "工具完全離線運算，圖檔不上傳。訂閱個人版以上即免費使用，或單買 NT$499 永久解鎖。",
+      "shareTitle": "CNC 刀路產生器 — SVG/DXF 轉 CNC G-code",
+      "diagramLabel1": "拖入 SVG / DXF / 圖片",
+      "diagramLabel2": "選加工 + 刀具，排刀路",
+      "diagramLabel3": "下載 .nc 上機切"
+    },
+    "trial": {
+      "ctaStart": "開始 7 天免費試用",
+      "ctaBuy": "解鎖完整版 NT$499",
+      "noCard": "不用信用卡。7 天內功能不打折，可以真的產出 .nc 上機切。",
+      "activeTitle": "免費試用進行中",
+      "activeBody": "直接進工具就可以了。試用期間隨時可以買斷，剩下的天數不會被吃掉。",
+      "expiredTitle": "你的 7 天免費試用已經結束",
+      "expiredBody": "畫圖、排版、刀路預覽都還能繼續用；產生 G-code 需要解鎖。買斷 NT$499 一次付清、永久使用，工具日後更新也照拿。",
+      "usedNotice": "這個帳號的免費試用已經用過了。",
+      "errorNotice": "試用啟用失敗，請重新整理再試一次。",
+      "unavailableNotice": "暫時查不到你的授權狀態（可能是連線問題）。如果你已經訂閱或買斷，請稍後重新整理，權限不會消失，也不會佔用你的免費試用資格。"
+    },
+    "painSection": {
+      "h2": "還在為了切一塊板，開 Fusion 摸半天？",
+      "items": [
+        {
+          "emoji": "🐌",
+          "title": "CAM 設定又臭又長",
+          "body": "匯入、對座標、設刀具、排順序、貼後處理器…做一個簡單外形要點十幾個選單，光學就勸退。"
+        },
+        {
+          "emoji": "🧩",
+          "title": "後處理器對不上機台",
+          "body": "通用 CAM 產的碼常常餵不進你的機台：轉速超規、缺換刀暫停、圓弧亂跑，上機才發現。"
+        },
+        {
+          "emoji": "💥",
+          "title": "一失手就毀料撞刀",
+          "body": "切太深、忘了留料橋、鑽穿沒墊犧牲板——木料和刀具都是錢，錯一次很痛。"
+        }
+      ]
+    },
+    "featureSection": {
+      "h2": "十種加工，一個檔全包",
+      "items": [
+        {
+          "emoji": "✂️",
+          "title": "外形切割",
+          "body": "內/外/線上偏移，自動留料橋(tabs)、下刀走斜坡(ramp)不悶刀，分層切深。"
+        },
+        {
+          "emoji": "🕳️",
+          "title": "挖槽 Pocket",
+          "body": "螺旋偏移清料、自動避讓島嶼，殘料一次清乾淨。"
+        },
+        {
+          "emoji": "🔩",
+          "title": "鑽孔啄鑽",
+          "body": "圓孔自動轉鑽孔點、展開啄鑽，貫穿孔會提醒你墊犧牲板。"
+        },
+        {
+          "emoji": "🔤",
+          "title": "V 刻字 / 描線",
+          "body": "V 刀固定深度描線刻字，適合門牌、招牌、logo。"
+        },
+        {
+          "emoji": "🏔️",
+          "title": "浮雕 Relief",
+          "body": "灰階圖轉高低起伏 3D 浮雕刀路，亮度/對比/平滑可調。"
+        },
+        {
+          "emoji": "🖊️",
+          "title": "圖片描圖 + 向量補縫",
+          "body": "照片/掃描稿自動描成向量，還能只描外輪廓、用運算把斷掉的線接回來。"
+        }
+      ]
+    },
+    "outputsSection": {
+      "h2": "上機前，先幫你守住安全",
+      "items": [
+        {
+          "icon": "🛡️",
+          "title": "G-code 自檢護欄",
+          "body": "下載前把產出的 .nc 重新 parse 一遍，抓轉速超規、料中快移撞刀、圓弧缺圓心、無進給乾磨等毀料寫法。"
+        },
+        {
+          "icon": "📏",
+          "title": "切穿板厚警告",
+          "body": "切深超過板厚、鑽孔貫穿都會醒目提示，並提醒墊好犧牲板，別切到工作台。"
+        },
+        {
+          "icon": "🔁",
+          "title": "換刀順序卡",
+          "body": "依刀具自動分組排序、切換處插 M6 自動暫停，附一張『第幾段換哪把刀』說明卡。"
+        },
+        {
+          "icon": "📴",
+          "title": "完全離線、免安裝",
+          "body": "單一 HTML 在你瀏覽器裡跑，圖檔不上傳雲端；斷網也能用，商業圖稿不外流。"
+        }
+      ]
+    },
+    "audienceSection": {
+      "h2": "適合誰用",
+      "items": [
+        {
+          "emoji": "🪵",
+          "title": "有桌上型 CNC 的自造者",
+          "body": "常見桌上型 CNC 要顧的都內建:M6/M0 兩種換刀方式、轉速上限、工作範圍上限。機型清單直接選 GRBL／Mach3／LinuxCNC／FluidNC/Smoothieware,或 Shapeoko、X-Carve、LongMill、Onefinity、3018、6040 等常見機種,尺寸都預先填好。"
+        },
+        {
+          "emoji": "🎨",
+          "title": "做客製小物 / 招牌",
+          "body": "門牌、名牌、logo、托盤、木盒——這類 2.5D 切刻，拖 SVG 進來比開 CAD/CAM 快十倍。"
+        },
+        {
+          "emoji": "🧑‍🏫",
+          "title": "想少走冤枉路的新手",
+          "body": "預設參數都標好『首切進給 50% 起步』，附上機檢查清單，不用把撞刀學費繳一輪。"
+        }
+      ],
+      "notForTitle": "這些情況它還幫不上：",
+      "notForItems": [
+        "任何機器第一份檔都建議先空跑驗證軌跡—這是 CNC 的通則,不是這個工具的限制",
+        "複雜 3D 曲面雕刻(多軸/球刀等高)—目前聚焦 2.5D 切刻",
+        "金屬加工—參數與策略是為木料/合板/壓克力調的"
+      ]
+    },
+    "scenariosSection": {
+      "h2": "實際這樣用",
+      "items": [
+        {
+          "tag": "招牌木牌",
+          "body": "Illustrator 排好字轉外框存 SVG → 拖進來 → 字用 V 刻、邊框外形切割留料橋 → 下載一個 .nc，M6 換刀點自動排好。"
+        },
+        {
+          "tag": "托盤 / 木盒",
+          "body": "畫底板輪廓 + 內凹槽 → 外形切外圈、挖槽清中間 → 分層切深、四角留 tab，切完不飛料。"
+        },
+        {
+          "tag": "logo 浮雕",
+          "body": "品牌 logo 灰階圖 → 浮雕加工 → 調亮度對比平滑試幾次 → 產出 3D 起伏刀路。"
+        },
+        {
+          "tag": "掃描稿還原",
+          "body": "手繪或舊圖掃描 → 圖片描圖轉向量 → 只描外輪廓 + 補縫接回斷線 → 直接變可切的路徑。"
+        }
+      ]
+    },
+    "pricingSection": {
+      "h2": "兩種方式解鎖",
+      "sub": "訂閱個人版以上就免費用；只想要這個工具也能單買永久解鎖。",
+      "tierSingle": {
+        "badge": "單買",
+        "title": "CNC 工具永久買斷",
+        "price": "NT$499",
+        "unit": "一次性",
+        "features": [
+          "永久解鎖 CNC 刀路產生器",
+          "不訂閱也能用",
+          "工具日後更新自動拿到",
+          "國際版 US$9.99"
+        ],
+        "cta": "單買解鎖"
+      },
+      "tierPersonal": {
+        "badge": "最划算",
+        "title": "個人版訂閱",
+        "price": "NT$390",
+        "unit": "/月起",
+        "features": [
+          "含 CNC 刀路產生器",
+          "＋ 全 26 種家具設計範本",
+          "＋ 天花板/地板/架高工具",
+          "PDF 施工圖與料單下載"
+        ],
+        "cta": "看個人版"
+      },
+      "tierPro": {
+        "badge": "接案用",
+        "title": "專業版訂閱",
+        "price": "NT$890",
+        "unit": "/月起",
+        "features": [
+          "個人版全部功能",
+          "＋ 客戶報價系統",
+          "＋ 家具 STL / CNC 匯出",
+          "＋ 尺寸無上限"
+        ],
+        "cta": "看專業版"
+      },
+      "footnoteText": "所有方案與單買品項都在",
+      "footnoteLink": "定價頁"
+    },
+    "faqSection": {
+      "h2": "常見問題",
+      "items": [
+        {
+          "q": "這跟家具設計器的『CNC 匯出』一樣嗎？",
+          "a": "不一樣。家具設計器是把你設計的家具零件匯出；這個工具是獨立的 SVG/DXF→G-code 產生器，任何向量圖或圖片都能轉刀路，用途更廣。"
+        },
+        {
+          "q": "支援哪些 CNC 機台？",
+          "a": "絕大多數都可以。工具只輸出各家控制器的共同交集(G17 G21 G90 G94、G0/G1/G2/G3、M3/M5、M0/M6、M30),刻意避開固定循環、刀徑補償、G28 那些各家語意不同的指令。機型清單內建 GRBL(兩種主軸模式)、Mach3/Mach4、LinuxCNC、FluidNC、Smoothieware(Carvera)、Marlin(Snapmaker 那類),以及 Shapeoko、X-Carve、LongMill、Onefinity、3018、6040 等常見機種;沒列到的用「自訂機型」自己填規格。任何機器的第一份檔都建議先空跑一次確認軌跡。"
+        },
+        {
+          "q": "圖檔會上傳到雲端嗎？",
+          "a": "不會。整個工具是一份 HTML 在你瀏覽器裡運算，圖檔和 G-code 都留在本機，斷網也能用，商業圖稿不外流。"
+        },
+        {
+          "q": "單買和訂閱差在哪？",
+          "a": "單買 NT$499 一次性、永久解鎖這一個工具。訂閱個人版 NT$390/月起則除了這個工具，還包含全部家具設計範本與其他裝潢工具，划算很多。"
+        },
+        {
+          "q": "我是新手，會不會很難？",
+          "a": "預設刀具參數都幫你調好、標明『首切進給先開 50%』，還附上機檢查清單。但 CNC 有一定風險，務必先照清單空跑、淺切測試再正式切。"
+        },
+        {
+          "q": "買了之後功能會更新嗎？",
+          "a": "會。工具持續在改進(加工方式、安全護欄)，買斷或訂閱期間的更新都自動拿到，不用再付費。"
+        }
+      ]
+    },
+    "relatedSection": {
+      "h2": "也看看這些工具",
+      "items": [
+        {
+          "href": "/ceiling",
+          "emoji": "🏗️",
+          "title": "天花板骨架模擬器",
+          "body": "輸入長寬高，3 秒算主骨副骨矽酸鈣板螺絲，印 A4 帶上工地。"
+        },
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "地板排版計算器",
+          "body": "自動排版估超耐磨/海島型/實木用料，含人字拼演算。"
+        },
+        {
+          "href": "/templates",
+          "emoji": "📐",
+          "title": "全部家具設計範本",
+          "body": "26 種家具參數化設計，出三視圖、榫卯爆炸圖、材料單。"
+        }
+      ]
+    },
+    "finalCta": {
+      "h2": "下一塊板，別再開 Fusion 了",
+      "body": "拖一張 SVG 進去，3 秒拿到能上機的 G-code。訂閱個人版以上免費用，或單買永久解鎖。",
+      "cta": "開始用 CNC 刀路產生器"
+    },
+    "schema": {
+      "productName": "CNC 刀路產生器",
+      "productDescription": "把 SVG／DXF／圖片轉成 CNC 能直接跑的標準 G-code。外形切割、挖槽、鑽孔、V 刻、浮雕、圖片描圖十種加工，內建切穿警告與換刀順序卡。",
+      "brandName": "木頭仁木匠學院",
+      "breadcrumbHome": "首頁",
+      "breadcrumbTemplates": "範本介紹",
+      "breadcrumbCurrent": "CNC 刀路產生器"
+    },
+    "machinesSection": {
+      "h2": "你的 CNC 就在清單裡",
+      "sub": "產出的是標準 ISO G-code 子集(G0/G1/G2/G3 + M3/M5 + M0/M6 + M30)——刻意不用各家語意會分岔的固定循環、刀徑補償、G28。所以「支援哪些機器」不是靠一堆特例,是靠只用交集。",
+      "groups": [
+        {
+          "label": "控制器通用(找不到你的機器就選這裡)",
+          "items": [
+            "GRBL(主軸可調速)",
+            "GRBL(旋鈕調速)",
+            "Mach3 / Mach4",
+            "LinuxCNC",
+            "FluidNC",
+            "Marlin 系(Snapmaker・3D 印表機改機)"
+          ]
+        },
+        {
+          "label": "常見桌上型機(尺寸已預先填好)",
+          "items": [
+            "Shapeoko",
+            "X-Carve",
+            "LongMill",
+            "Onefinity Woodworker",
+            "Genmitsu 4040 / FoxAlien",
+            "CNC 3018 / 3018 PRO",
+            "6040 / 6090 鋁架機"
+          ]
+        },
+        {
+          "label": "特定機型(方言不同,已個別處理)",
+          "items": [
+            "Carvera Air",
+            "Carvera(大台)",
+            "GORDIX 自走 CNC"
+          ]
+        }
+      ],
+      "customNote": "清單上沒有?選「自訂機型」自己填行程、轉速上限、換刀方式與結束碼即可——不必等我們支援。"
+    }
+  },
+  "ceilingMarketing": {
+    "breadcrumb": {
+      "home": "首頁",
+      "templates": "範本介紹",
+      "current": "木作天花板骨架"
+    },
+    "hero": {
+      "badgeInterior": "🔨 裝潢工具",
+      "badgePlan": "個人版 / 專業版",
+      "h1": "木作天花板骨架施工模擬器",
+      "leadLine1": "畫出房間 → 自動算角材、矽酸鈣板、吊筋 →",
+      "leadLine2": "直接出 A4 估價單。",
+      "body": "客廳一張、餐廳一張、走廊一張——以前一個下午算的料,現在 30 秒。井字主副角材自動對齊矽酸鈣板拼縫,吊筋等分自動分佈,連 4×8 / 3×6 兩種規格的板都能比一比哪個省料。",
+      "ctaGuest": "登入開始試算",
+      "ctaUpgrade": "升級個人版解鎖",
+      "ctaSecondary": "查看方案",
+      "footnote": "個人版開放,跟全 26 家具範本一起用一把鑰匙。",
+      "shareTitle": "木作天花板骨架施工模擬器｜畫房間 → 算角材矽酸鈣板吊筋 → 出 A4 估價單",
+      "diagramAria": "天花板骨架剖視示意",
+      "diagramLabel1": "主角材 + 副角材 + 矽酸鈣板",
+      "diagramLabel2": "吊筋固定到樓板",
+      "diagramLabel3": "房間平面 → 自動排骨架"
+    },
+    "painSection": {
+      "h2": "做木作天花板,你最頭痛這 4 件事",
+      "sub": "這工具就是衝著它們做的",
+      "items": [
+        {
+          "emoji": "🧮",
+          "title": "算角材總公尺,加得頭暈",
+          "body": "主角材一支 12 尺、副角材井字一條一條加,房間還不是規矩矩形。漏一條就要再跑一趟料行。"
+        },
+        {
+          "emoji": "📐",
+          "title": "板拼縫沒對到角材",
+          "body": "矽酸鈣板拼縫飄在角材之間 → 板邊沒支撐、年底就裂。要拼準得手算間距、累。"
+        },
+        {
+          "emoji": "📦",
+          "title": "板要訂 4×8 還是 3×6?",
+          "body": "兩種規格價差、損耗都不同。光憑直覺訂常多 20%。"
+        },
+        {
+          "emoji": "📄",
+          "title": "估價要再開 Excel 排",
+          "body": "算完料還要打 Excel、貼 LOGO、排 A4。改個尺寸又重排,半天就過了。"
+        }
+      ]
+    },
+    "featureSection": {
+      "h2": "這支工具做什麼",
+      "sub": "從房間形狀 → 角材 BOM → 估價單,一條龍",
+      "items": [
+        {
+          "emoji": "📐",
+          "title": "房間形狀:矩形 / L / ㄇ / 凸窗",
+          "body": "拉長寬、L 形凹角、ㄇ 字形,凸窗單獨拉出來,2D 即時算料、3D 即時看結構。"
+        },
+        {
+          "emoji": "🪵",
+          "title": "主副角材自動井字",
+          "body": "主角材 60×30、副角材 30×30、間距 30/45/60cm 可調,自動鋪滿房間。"
+        },
+        {
+          "emoji": "📦",
+          "title": "矽酸鈣板自動拼板",
+          "body": "4×8 / 3×6 兩種規格切換比比看,拼縫自動落在角材中心線上,板邊永遠有支撐。"
+        },
+        {
+          "emoji": "🔗",
+          "title": "吊筋等分自動分佈",
+          "body": "依房間長寬自動排吊筋,間距 60–90cm 一抓,十字接頭加粗強化視覺,3D 真看得見。"
+        },
+        {
+          "emoji": "🎛️",
+          "title": "3D 8 圖層獨立 toggle",
+          "body": "樓板 / 吊筋 / 主角材 / 副角材 / 板 / 接點全可開關。施工順序客戶看一遍就懂。"
+        },
+        {
+          "emoji": "🧾",
+          "title": "A4 估價單 + CSV 下料表",
+          "body": "客戶資料、品項、總計、條款,一頁 A4 印出。BOM 同步匯 CSV 給工班。"
+        }
+      ]
+    },
+    "paramsSection": {
+      "h2": "你可以調整這些參數",
+      "sub": "演算法自動算角材、板拼縫、吊筋分佈。",
+      "items": [
+        {
+          "label": "房間形狀（矩形 / L / ㄇ / 凸窗）",
+          "desc": "拉長寬即時看 3D,L/ㄇ 凹角可調,凸窗單獨拉出。"
+        },
+        {
+          "label": "天花板高度",
+          "desc": "從原樓板到木作天花的距離,自動算吊筋長度。"
+        },
+        {
+          "label": "主角材間距",
+          "desc": "30 / 45 / 60cm 三檔。系統用矽酸鈣板短邊反推間距,板拼縫永遠落在主角材中心。"
+        },
+        {
+          "label": "副角材間距",
+          "desc": "30 / 45cm 兩檔。跨距越大用越粗角材,自動換規格。"
+        },
+        {
+          "label": "矽酸鈣板規格(4×8 / 3×6)",
+          "desc": "兩種規格切換比比看哪款省料,4×8 大張少廢料、3×6 好搬。"
+        },
+        {
+          "label": "吊筋間距",
+          "desc": "60–90cm 範圍自動等分分佈,超過 90cm 系統會跳警告。"
+        },
+        {
+          "label": "邊條 / 線板(選配)",
+          "desc": "天花周邊可加線板(PS / 木線板),自動算米數扣門洞長。"
+        },
+        {
+          "label": "燈具開孔(預留)",
+          "desc": "嵌燈位置標記後,系統會在 BOM 註記開孔片數,避免裁過頭。"
+        }
+      ]
+    },
+    "outputsSection": {
+      "h2": "輸入完成,自動產出",
+      "sub": "6 件事一次出齊,列印 A4 直接帶進工坊或交給客戶。",
+      "items": [
+        {
+          "icon": "🪵",
+          "title": "角材 BOM",
+          "body": "主角材、副角材各幾米幾根,12 尺 / 8 尺料切法自動排。"
+        },
+        {
+          "icon": "📦",
+          "title": "矽酸鈣板拼板圖",
+          "body": "4×8 / 3×6 兩種規格比一比哪款剩料少,2D 拼板自動標號。"
+        },
+        {
+          "icon": "🔗",
+          "title": "吊筋等分表",
+          "body": "依房間長寬自動排吊筋,間距 60–90cm 範圍內等分分佈。"
+        },
+        {
+          "icon": "🎛️",
+          "title": "3D 8 圖層可拆解",
+          "body": "樓板 / 吊筋 / 主角材 / 副角材 / 板 / 接點全可開關。"
+        },
+        {
+          "icon": "🧾",
+          "title": "A4 估價單",
+          "body": "客戶資料 + 品項 + 總計 + 條款一頁印出,瀏覽器另存 PDF。"
+        },
+        {
+          "icon": "📊",
+          "title": "BOM CSV 匯出",
+          "body": "Excel 開沒亂碼,工班直接抓料用。"
+        }
+      ]
+    },
+    "showcaseSection": {
+      "h2": "實際輸出畫面",
+      "sub": "以下都是工具實際生成的畫面,套你的尺寸後即時更新。",
+      "items": [
+        {
+          "img": "/showcase/ceiling-overview.png",
+          "label": "2D 平面 + 主副角材井字",
+          "desc": "拉房間尺寸,系統自動排骨架,板拼縫永遠落在角材中心。"
+        },
+        {
+          "img": "/showcase/ceiling-3d.png",
+          "label": "3D 立體 8 圖層拆解",
+          "desc": "樓板 / 吊筋 / 主角材 / 副角材 / 板 / 接點全可開關,客戶秒懂施工順序。"
+        },
+        {
+          "img": "/showcase/ceiling-bom.png",
+          "label": "裁料計算 + BOM",
+          "desc": "每支 12 尺角材怎麼切、剩多少邊料,自動列出讓料行直接照鋸。"
+        }
+      ],
+      "footnote": "※ 改尺寸 / 換板規格 / 切換角材間距時,這些圖都會即時重算"
+    },
+    "audienceSection": {
+      "h2": "適合哪些人",
+      "items": [
+        {
+          "emoji": "🔨",
+          "title": "木工 / 輕鋼架師傅",
+          "body": "客戶問「客廳天花一坪多少」當場掏手機算,改尺寸馬上重出估價單。"
+        },
+        {
+          "emoji": "🪜",
+          "title": "裝潢統包 / 室內設計",
+          "body": "提案時放一張 3D + 估價單,客戶當場 close。改方案不用重畫。"
+        },
+        {
+          "emoji": "🏠",
+          "title": "DIY 自己做木作天花",
+          "body": "畫房間 → 系統告訴你要訂幾支 12 尺角材、幾片矽酸鈣板,直接去料行。"
+        },
+        {
+          "emoji": "🎓",
+          "title": "木匠學院學員",
+          "body": "把課程學到的木作骨架算一遍,從練手到接案無縫接軌。"
+        }
+      ],
+      "notForTitle": "⚠️ 這幾種狀況不要用",
+      "notForItems": [
+        "輕鋼架(石膏板系統)— 本工具算的是木作骨架,不算輕鋼架 T-bar",
+        "非正交多邊形房間(斜牆、圓弧、大量凸窗)— v1 只支援矩形、L 形跟少量凸出",
+        "需要算冷氣出風口/燈具開孔位置精算 — 本工具算骨架跟板,不算開孔",
+        "已有 CAD/Revit 工作流程 — 本工具補的是「沒 CAD 但要算料」的洞"
+      ]
+    },
+    "scenariosSection": {
+      "h2": "什麼時候會用到",
+      "items": [
+        {
+          "tag": "🔨 接案現場",
+          "body": "客戶問「客廳天花一坪多少」當場掏手機算,井字骨架 + 板拼板 + 吊筋 30 秒掃出 A4 估價單,立刻 close。"
+        },
+        {
+          "tag": "🪜 統包 / 設計師提案",
+          "body": "天花、地板、架高三套一起提,3D + 估價單擺在一張紙,客戶看圖比看 Excel 快十倍,提案不過夜。"
+        },
+        {
+          "tag": "🏠 DIY 翻修老家",
+          "body": "舊家拆吊頂、重做木作天花,畫房間 → 系統告訴你要訂幾支 12 尺角材、幾片矽酸鈣板,直接去料行不再問師傅。"
+        },
+        {
+          "tag": "🎓 木匠學院學員",
+          "body": "課程學的骨架邏輯、板拼縫對齊原理,這支工具讓你看「演算法怎麼算」,從練手到接案無縫接軌。"
+        }
+      ]
+    },
+    "faqSection": {
+      "h2": "常見問題",
+      "items": [
+        {
+          "q": "木作天花板跟輕鋼架天花板差在哪?",
+          "a": "木作走「角材井字 + 矽酸鈣板」,角材一支 12 尺木料,板用螺絲鎖上去,可承重燈具、可造型。輕鋼架走 T-bar + 礦纖板,模組化好拆,但載重弱、不耐造型。本工具算的是木作。"
+        },
+        {
+          "q": "矽酸鈣板要訂 4×8 還是 3×6?",
+          "a": "4×8(122×244cm)是台灣最通用、單張面積大、適合大客廳餐廳;3×6(91×183cm)單張小、小空間少廢料、車載好搬。本工具兩種規格都能切換看哪個剩料少,自動比給你看。"
+        },
+        {
+          "q": "拼縫真的會自動對齊角材嗎?",
+          "a": "會。系統用「夾板短邊 ÷ N」反算主角材間距,確保板拼縫剛好落在角材中心線上,板邊永遠有支撐、不會年底裂。換板規格(4×8 / 3×6)主角材間距自動跟著變。"
+        },
+        {
+          "q": "可以匯出 PDF / CSV 嗎?",
+          "a": "A4 估價單直接走瀏覽器列印 → 另存 PDF,LOGO / 公司資料 / 條款都在「品牌客製」面板填過一次就一直用。BOM 走 CSV 匯出,Excel 開沒亂碼。"
+        },
+        {
+          "q": "工具錢多少?",
+          "a": "個人版 NT$ 390/月,含全 26 個家具範本 + 天花板骨架 + 地板模擬器 + 和室架高平台,所有工具全給。專業版 NT$ 890/月 多了客戶報價系統 + STL/CNC 輸出 + 尺寸無上限。"
+        },
+        {
+          "q": "可以單買這個工具嗎?",
+          "a": "可以。在 /pricing 頁面找天花板單買斷選項。但個人版含全 26 家具 + 3 套裝潢工具更划算,大部分人會直接訂個人版。"
+        },
+        {
+          "q": "我家凸窗、斜牆怎麼算?",
+          "a": "目前 v1 支援矩形、L 形 + 少量凸出。非正交多邊形(斜牆、圓弧)正在排路線圖,屆時無痛升級。"
+        },
+        {
+          "q": "工具會持續更新嗎?",
+          "a": "會。從 3D 圖層 toggle、矽酸鈣板拼板、十字接頭強化都是上線後逐步補進去的。改進方向:多燈具/出風口開孔、自動算載重、整合 RC 樓板實測數據。"
+        }
+      ]
+    },
+    "pricingSection": {
+      "h2": "如何取得「天花板骨架」",
+      "sub": "三種解鎖方式擇一",
+      "tierSingle": {
+        "badge": "單買",
+        "title": "單工具買斷",
+        "price": "NT$590",
+        "unit": "永久",
+        "features": [
+          "永久解鎖天花板骨架工具",
+          "不訂閱也能用",
+          "未來功能改進自動拿到"
+        ],
+        "cta": "看單買方案"
+      },
+      "tierPersonal": {
+        "badge": "最多人選",
+        "title": "個人版訂閱",
+        "price": "NT$390",
+        "unit": "/月",
+        "features": [
+          "全 26 家具範本解鎖",
+          "天花板 + 地板 + 架高平台",
+          "PDF 列印 + 雲端儲存無限"
+        ],
+        "cta": "升級個人版"
+      },
+      "tierPro": {
+        "badge": "接案級",
+        "title": "專業版訂閱",
+        "price": "NT$890",
+        "unit": "/月",
+        "features": [
+          "個人版全部功能",
+          "客戶報價 + 客戶資料管理",
+          "STL/OBJ 輸出 + 尺寸無上限"
+        ],
+        "cta": "升級專業版"
+      },
+      "footnoteText": "年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 ·",
+      "footnoteLink": "看完整方案比較"
+    },
+    "relatedSection": {
+      "h2": "你可能也想看",
+      "sub": "一起接案、一起算料的好搭擋",
+      "cta": "看詳細介紹 →",
+      "items": [
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "地板施工模擬器",
+          "body": "平鋪木地板算料 + 5 種拼板款式 + A4 報價單。天地一起提案最香。"
+        },
+        {
+          "href": "/raised-floor",
+          "emoji": "🏯",
+          "title": "和室架高平台估價",
+          "body": "30cm 以上的台座,骨架 + 夾板 + 防潮 + 踢腳一條龍。"
+        },
+        {
+          "href": "/templates",
+          "emoji": "🪑",
+          "title": "26 件家具範本",
+          "body": "從筆筒到衣櫃,裝潢工程常搭一起出。"
+        }
+      ]
+    },
+    "finalCta": {
+      "h2": "少一個下午算料、多一張報價單",
+      "bodyLine1": "一杯咖啡的錢,一整套工具帶走。",
+      "bodyLine2": "含家具範本 + 地板 + 架高平台,所有裝潢算料一站搞定。",
+      "ctaSecondary": "看完整方案",
+      "footnote": "個人版 NT$ 390/月 · 含全 26 家具模板 + 天花板 + 地板 + 架高平台"
+    },
+    "schema": {
+      "productName": "木作天花板骨架施工模擬器",
+      "productDescription": "畫房間 → 算角材、矽酸鈣板、吊筋 → 出 A4 估價單。木作天花算料 30 秒搞定。",
+      "brandName": "木頭仁木匠學院",
+      "breadcrumbHome": "首頁",
+      "breadcrumbTemplates": "範本介紹",
+      "breadcrumbCurrent": "木作天花板骨架施工模擬器"
+    }
+  },
+  "floorMarketing": {
+    "breadcrumb": {
+      "home": "首頁",
+      "templates": "範本介紹",
+      "current": "地板施工模擬器"
+    },
+    "hero": {
+      "badgeInterior": "🪵 裝潢工具",
+      "badgePlan": "個人版 / 專業版",
+      "h1": "地板施工模擬器",
+      "leadLine1": "畫出房間 → 直鋪 / 錯縫 / 人字拼自動排版 →",
+      "leadLine2": "算片數、損耗、估價一頁出。",
+      "body": "超耐磨、海島型、實木 3 大材路都吃。9 種房間形狀(矩形 / L / ㄇ / 十字 / Z / 六角)拉一拉,人字拼斜切餘料一刀兩用,起鋪角中央置中自動算對稱餘量。",
+      "ctaGuest": "登入開始試算",
+      "ctaUpgrade": "升級個人版解鎖",
+      "ctaSecondary": "查看方案",
+      "footnote": "跟「和室架高平台」共用解鎖鑰匙,買一個解兩個。",
+      "shareTitle": "地板施工模擬器｜畫房間 → 5 種拼板自動排版 → 算片數損耗估價",
+      "diagramAria": "地板錯縫鋪設示意"
+    },
+    "painSection": {
+      "h2": "鋪地板算料,你最頭痛這 4 件事",
+      "sub": "這工具就是衝著它們做的",
+      "items": [
+        {
+          "emoji": "🤯",
+          "title": "算片數常多訂或漏訂",
+          "body": "房間 4 米 × 3 米、地板片 121×19.5cm,到底要訂幾片?半天加完還忘了算門洞。"
+        },
+        {
+          "emoji": "🌀",
+          "title": "人字拼算料燒腦,料行喊不出價",
+          "body": "人字拼的損耗到底是 15% 還是 22%?斜切餘料能不能拼回去?光想就頭痛,料行通常隨便加 20%。"
+        },
+        {
+          "emoji": "📐",
+          "title": "起鋪角設錯,整片要重排",
+          "body": "從左上角還是中央起鋪? 60cm 還是 40cm 錯縫?設一次錯就要全部重畫一遍,看圖才知道對不對。"
+        },
+        {
+          "emoji": "📄",
+          "title": "估價要再開 Excel 排",
+          "body": "算完片數還要打 Excel、貼 LOGO、排 A4。客戶改尺寸又要重排,半天就過了。"
+        }
+      ]
+    },
+    "featureSection": {
+      "h2": "這支工具做什麼",
+      "sub": "從房間形狀 → 排版 → 估價單,一條龍",
+      "items": [
+        {
+          "emoji": "📐",
+          "title": "9 種房間形狀",
+          "body": "矩形 / L / T / ㄇ / 十字 / Z / 六角 / 自訂多邊形,拉長寬即時算料。"
+        },
+        {
+          "emoji": "🪵",
+          "title": "3 大材路 + 多規格",
+          "body": "超耐磨 121×19.5、海島型、實木 3寸 / 5寸 / 2寸,單價單位都跟料行對齊。"
+        },
+        {
+          "emoji": "🌀",
+          "title": "4 種排版方式",
+          "body": "直鋪、half 錯縫、random 錯縫、人字拼。人字拼斜切餘料一刀切兩片共板。"
+        },
+        {
+          "emoji": "🎯",
+          "title": "5 種起鋪角",
+          "body": "左上 / 右上 / 左下 / 右下 / 中央置中(對稱餘量自動算)。每片配料告訴你從哪邊鋸。"
+        },
+        {
+          "emoji": "🚪",
+          "title": "門洞 / 收邊扣料",
+          "body": "門口扣多少 cm、踢腳板要不要算,直接設,系統幫你扣完算淨用量。"
+        },
+        {
+          "emoji": "🧾",
+          "title": "A4 估價單 + CSV 下料表",
+          "body": "客戶資料、品項、總計、條款,一頁 A4 印出。BOM 同步匯 CSV 給工班。"
+        }
+      ]
+    },
+    "paramsSection": {
+      "h2": "你可以調整這些參數",
+      "sub": "演算法自動算片數、廢料、踢腳板米數。",
+      "items": [
+        {
+          "label": "房間形狀(9 種)",
+          "desc": "矩形、L 形、ㄇ 形、十字、凸窗 + 挨柱 0–2 根,2D 編輯器拉一拉就好。"
+        },
+        {
+          "label": "面材規格",
+          "desc": "超耐磨 / 海島型 / 實木,片長片寬 mm 級調整,比比看哪款省料。"
+        },
+        {
+          "label": "拼板款式(5 種)",
+          "desc": "直鋪、1/2 錯縫、1/3 錯縫、人字拼 Herringbone、Chevron V 型。"
+        },
+        {
+          "label": "起鋪角度",
+          "desc": "0° / 30° / 45° / 90° 四檔,自動算切角廢料。"
+        },
+        {
+          "label": "長軸方向",
+          "desc": "依房間長邊或短邊鋪,視覺延伸感不同,損耗也不同。"
+        },
+        {
+          "label": "伸縮縫 mm 級",
+          "desc": "牆邊預留縫從 8mm 到 15mm 自由設,影響邊條材料用量。"
+        },
+        {
+          "label": "踢腳板(高度 / 門洞)",
+          "desc": "踢腳板高度可設,門洞位置標出後系統自動扣總長。"
+        },
+        {
+          "label": "防潮墊規格(選配)",
+          "desc": "PE / EPE / Tyvek 三種選一,卷長卷寬不同自動算卷數。"
+        }
+      ]
+    },
+    "outputsSection": {
+      "h2": "輸入完成,自動產出",
+      "sub": "6 件事一次出齊,列印 A4 直接帶進工坊或交給客戶。",
+      "items": [
+        {
+          "icon": "🪵",
+          "title": "面材片數",
+          "body": "起鋪角、伸縮縫、5 種拼板都算進損耗,超耐磨 / 海島型 / 實木同一條演算法。"
+        },
+        {
+          "icon": "📐",
+          "title": "排版預覽",
+          "body": "2D 即時顯示拼板效果,3D 透視看真實質感,客戶不用想像。"
+        },
+        {
+          "icon": "🔁",
+          "title": "5 種款式即比即看",
+          "body": "切換拼板款式 1 秒重算,「人字拼比直鋪多多少廢料」秒答。"
+        },
+        {
+          "icon": "📏",
+          "title": "踢腳板米數",
+          "body": "依房間周長自動算,門洞自動扣,木質 / PVC 線板都算。"
+        },
+        {
+          "icon": "🧾",
+          "title": "A4 估價單",
+          "body": "客戶資料 + 品項 + 總計 + 條款一頁印出,另存 PDF 直接寄客戶。"
+        },
+        {
+          "icon": "📊",
+          "title": "BOM CSV 匯出",
+          "body": "Excel 開沒亂碼,工班直接抓料用。"
+        }
+      ]
+    },
+    "showcaseSection": {
+      "h2": "實際輸出畫面",
+      "sub": "以下都是工具實際生成的畫面,套你的尺寸後即時更新。",
+      "items": [
+        {
+          "img": "/showcase/floor-overview.png",
+          "label": "9 種房間 + 5 種拼板款式",
+          "desc": "拉房間外框 → 即時看排版,直鋪/錯縫/人字拼一鍵切換比。"
+        },
+        {
+          "img": "/showcase/floor-patterns.png",
+          "label": "面材規格 + 起鋪角",
+          "desc": "8 種常用面材一鍵套,起鋪角 / 伸縮縫 / 長軸方向都可調。"
+        }
+      ],
+      "footnote": "※ 改尺寸 / 換款式 / 切換面材時,這些圖都會即時重算"
+    },
+    "audienceSection": {
+      "h2": "適合哪些人",
+      "items": [
+        {
+          "emoji": "🔨",
+          "title": "木地板師傅 / 統包",
+          "body": "客戶問「客廳鋪到底要幾箱」當場掏手機算,改尺寸馬上重出估價單。"
+        },
+        {
+          "emoji": "🏠",
+          "title": "DIY 自己換地板",
+          "body": "看完料表直接去 HOLA / 特力屋,不用問師傅、不用 Excel,連起鋪角都告訴你。"
+        },
+        {
+          "emoji": "🪜",
+          "title": "裝潢設計師",
+          "body": "提案放一張排版圖 + 估價單,客戶當場 close。改材路不用重畫。"
+        },
+        {
+          "emoji": "🎓",
+          "title": "木匠學院學員",
+          "body": "課程學的鋪設工法實際算一次,從練手到接案無縫接軌。"
+        }
+      ],
+      "notForTitle": "⚠️ 這幾種狀況不要用",
+      "notForItems": [
+        "磁磚、石材、塑膠地板 — 本工具算木地板,不算硬質材料",
+        "樓梯、踢腳板專案 — 本工具算地板鋪設,踢腳板只能扣長度",
+        "圓弧形/不規則房間 — v1 支援正交多邊形 9 種,圓弧未支援",
+        "已有 CAD/Revit 工作流程 — 本工具補的是「沒 CAD 但要算料」的洞"
+      ]
+    },
+    "scenariosSection": {
+      "h2": "什麼時候會用到",
+      "items": [
+        {
+          "tag": "🔨 接案現場",
+          "body": "客戶問「客廳鋪人字拼貴多少」當場切換款式比給看,2D 預覽 + 估價單秒重算,客戶當場決定花樣。"
+        },
+        {
+          "tag": "🪜 統包 / 設計師",
+          "body": "提案 3 房 2 廳,每間切不同款式、不同色,一頁 A4 全打包。改尺寸不用重畫,半小時的事 5 分鐘搞定。"
+        },
+        {
+          "tag": "🏠 DIY 換木地板",
+          "body": "舊房翻新自己鋪,畫房間 → 系統告訴你要訂幾片超耐磨、幾條踢腳板,直接去料行不用問人。"
+        },
+        {
+          "tag": "🎓 木匠學院學員",
+          "body": "課程學的鋪設邏輯、起鋪角、伸縮縫,這支工具讓你看「演算法怎麼算」,從練手到接案無縫接軌。"
+        }
+      ]
+    },
+    "faqSection": {
+      "h2": "常見問題",
+      "items": [
+        {
+          "q": "超耐磨、海島型、實木有什麼差?",
+          "a": "超耐磨是密集板印木紋表層,耐磨耐刮便宜,但泡水會壞;海島型是密集板上貼 1-2mm 實木皮,有實木質感、耐潮,主流選擇;實木地板是 100% 實木,最有質感但最貴、會脹縮。本工具 3 種都吃,自動套對應規格跟單價。"
+        },
+        {
+          "q": "人字拼的損耗真的會這麼高嗎?",
+          "a": "人字拼直鋪損耗 12-22%,直鋪只有 1.5-6.6%。但人字拼好看貴氣、客單價高。本工具算人字拼會把斜切餘料反向拼回去(一刀切兩片共板),實際損耗算給你看,料行報價隨便加 20% 你能省下 5-10%。"
+        },
+        {
+          "q": "中央起鋪是什麼意思?要不要選?",
+          "a": "中央起鋪 = 從房間中心線往兩邊鋪,首末排寬度對稱。優點:左右兩邊餘量等寬,視覺最平衡。缺點:中間有一條接縫。一般客廳推薦中央起鋪,小房間就左上起鋪即可。"
+        },
+        {
+          "q": "跟「和室架高平台估價」差在哪?",
+          "a": "地板模擬器算的是平鋪木地板(超耐磨 / 海島型 / 實木)、無骨架,貼地直接鋪。架高平台是 30cm 以上的台座,有頂框、底框、主支、副支、夾板、防潮墊、踢腳板。兩者共用同一把解鎖鑰匙,買一個解兩個。"
+        },
+        {
+          "q": "可以匯出 PDF / CSV 嗎?",
+          "a": "A4 估價單直接走瀏覽器列印 → 另存 PDF,LOGO / 公司資料 / 條款都在「品牌客製」面板填過一次就一直用。BOM 走 CSV 匯出,Excel 開沒亂碼。"
+        },
+        {
+          "q": "工具錢多少?",
+          "a": "個人版 NT$ 390/月,含全 26 個家具範本 + 天花板骨架 + 地板模擬器 + 和室架高平台,所有工具全給。專業版 NT$ 890/月 多了客戶報價系統 + STL/CNC 輸出 + 尺寸無上限。"
+        },
+        {
+          "q": "可以單買地板模擬器嗎?",
+          "a": "可以。地板模擬器跟和室架高平台共用「floor」這把解鎖鑰匙,單買解鎖兩個工具。價格在 /pricing 頁面。"
+        },
+        {
+          "q": "我家不是規矩矩形,L 形以外能算嗎?",
+          "a": "v1 已支援矩形、L、T、ㄇ、十字、Z、六角 7 種正交多邊形,以及自訂多邊形。斜牆、圓弧未支援,但正在排路線圖。"
+        },
+        {
+          "q": "工具會持續更新嗎?",
+          "a": "會。人字拼演算法、9 房間形狀、5 起鋪角、餘料 2D 配對都是上線後逐步補進去的。改進方向:斜牆/圓弧、3D 透視、地板熱漲冷縮提示、整合廠商規格資料庫。"
+        }
+      ]
+    },
+    "pricingSection": {
+      "h2": "如何取得「地板施工模擬器」",
+      "sub": "三種解鎖方式擇一,跟和室架高共用鑰匙",
+      "tierSingle": {
+        "badge": "單買",
+        "title": "單工具買斷",
+        "price": "NT$590",
+        "unit": "永久",
+        "features": [
+          "永久解鎖地板 + 架高平台",
+          "不訂閱也能用",
+          "未來功能改進自動拿到"
+        ],
+        "cta": "看單買方案"
+      },
+      "tierPersonal": {
+        "badge": "最多人選",
+        "title": "個人版訂閱",
+        "price": "NT$390",
+        "unit": "/月",
+        "features": [
+          "全 26 家具範本解鎖",
+          "天花板 + 地板 + 架高平台",
+          "PDF 列印 + 雲端儲存無限"
+        ],
+        "cta": "升級個人版"
+      },
+      "tierPro": {
+        "badge": "接案級",
+        "title": "專業版訂閱",
+        "price": "NT$890",
+        "unit": "/月",
+        "features": [
+          "個人版全部功能",
+          "客戶報價 + 客戶資料管理",
+          "STL/OBJ 輸出 + 尺寸無上限"
+        ],
+        "cta": "升級專業版"
+      },
+      "footnoteText": "年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 ·",
+      "footnoteLink": "看完整方案比較"
+    },
+    "relatedSection": {
+      "h2": "你可能也想看",
+      "sub": "一起接案、一起算料的好搭擋",
+      "cta": "看詳細介紹 →",
+      "items": [
+        {
+          "href": "/raised-floor",
+          "emoji": "🏯",
+          "title": "和室架高平台估價",
+          "body": "30cm 以上的台座,骨架 + 夾板 + 防潮 + 踢腳一條龍。跟地板共用一把鑰匙。"
+        },
+        {
+          "href": "/ceiling",
+          "emoji": "🔨",
+          "title": "天花板骨架施工模擬器",
+          "body": "角材井字 + 矽酸鈣板拼板。客戶要「天地一起做」一站搞定。"
+        },
+        {
+          "href": "/templates",
+          "emoji": "🪑",
+          "title": "26 件家具範本",
+          "body": "從筆筒到衣櫃,裝潢工程常搭一起出。"
+        }
+      ]
+    },
+    "finalCta": {
+      "h2": "少花半天算料、多接一個案子",
+      "bodyLine1": "客廳一張、餐廳一張、書房一張——每月多接幾個案子,訂閱費當場回本。",
+      "bodyLine2": "一杯咖啡的錢,一整套裝潢工具帶走。",
+      "ctaSecondary": "看完整方案",
+      "footnote": "個人版 NT$ 390/月 · 含全 26 家具模板 + 天花板 + 地板 + 架高平台"
+    },
+    "schema": {
+      "productName": "地板施工模擬器",
+      "productDescription": "畫房間 → 直鋪 / 錯縫 / 人字拼自動排版 → 算片數、損耗、估價一頁出。木地板算料 30 秒搞定。",
+      "brandName": "木頭仁木匠學院",
+      "breadcrumbHome": "首頁",
+      "breadcrumbTemplates": "範本介紹",
+      "breadcrumbCurrent": "地板施工模擬器"
+    }
+  },
+  "raisedFloorMarketing": {
+    "breadcrumb": {
+      "home": "首頁",
+      "templates": "範本介紹",
+      "current": "和室架高平台估價"
+    },
+    "hero": {
+      "badgeInterior": "🏯 裝潢工具",
+      "badgePlan": "個人版 / 專業版",
+      "h1": "和室架高平台估價工具",
+      "leadLine1": "畫出平台 → 自動算骨架、夾板、面材、防潮、踢腳板 →",
+      "leadLine2": "直接出 A4 客戶報價單。",
+      "body": "師傅算料一張紙慢慢加 30 分鐘的事,在這 30 秒結束。主支對齊夾板、2D 拼板自動湊餘料、防潮墊卷數無條件進位,連門洞扣踢腳板都自動算。",
+      "ctaGuest": "登入開始試算",
+      "ctaUpgrade": "升級個人版解鎖",
+      "ctaSecondary": "查看方案",
+      "footnote": "跟「地板施工模擬器」共用解鎖鑰匙,買一個解兩個。",
+      "shareTitle": "和室架高平台估價工具｜畫平台 → 算骨架夾板防潮 → 出 A4 報價單",
+      "diagramAria": "架高平台側視示意",
+      "diagramTotalLabel": "總長 W",
+      "diagramHeightLabel": "H"
+    },
+    "painSection": {
+      "h2": "做和室、架高平台,你最頭痛這 4 件事",
+      "sub": "這工具就是衝著它們做的",
+      "items": [
+        {
+          "emoji": "🤯",
+          "title": "算料燒腦,常多訂或漏訂",
+          "body": "主支幾根、副支幾根、夾板幾片、防潮墊幾卷,每樣不同單位、不同邏輯。一根筆一張紙加 30 分鐘還可能算錯。"
+        },
+        {
+          "emoji": "📐",
+          "title": "夾板接縫不落在骨架上",
+          "body": "主副支間距亂設,夾板拼到一半接縫飄在半空中、要再加角材補,木料浪費還浪費工時。"
+        },
+        {
+          "emoji": "📦",
+          "title": "夾板訂太多,剩料堆倉庫",
+          "body": "11 片裁切片明明可以拼 4 張新料,沒系統算 2D packing 就照「片數 × 1.2 損耗」訂 → 多訂 30%。"
+        },
+        {
+          "emoji": "📄",
+          "title": "客戶報價單還要 Excel 慢慢排",
+          "body": "算完料還要打 Excel、貼 LOGO、排 A4,大半天才一張。改個尺寸全部重來。"
+        }
+      ]
+    },
+    "featureSection": {
+      "h2": "這支工具做什麼",
+      "sub": "從平台形狀 → BOM → 報價單,一條龍",
+      "items": [
+        {
+          "emoji": "📐",
+          "title": "平台形狀:矩形 / L 形 + 挨柱",
+          "body": "拉長寬高、L 形凹角、0–2 根室內柱往內凹挖,3D 即時跟著變。"
+        },
+        {
+          "emoji": "🪵",
+          "title": "面材:超耐磨 / 海島型 / 實木",
+          "body": "片長片寬可調、5 種起鋪角、長短軸轉向、伸縮縫 mm 級設定。"
+        },
+        {
+          "emoji": "🧱",
+          "title": "骨架自動對齊夾板",
+          "body": "主支沿夾板短邊等分、副支沿長邊等分,夾板接縫剛好落在骨架中心,zero snap waste。"
+        },
+        {
+          "emoji": "📦",
+          "title": "夾板 2D 智慧拼板",
+          "body": "11 片裁切片自動 guillotine FFD 拼進 4 張新料,標料 1-2-3 編號,料行直接讀。"
+        },
+        {
+          "emoji": "🛡️",
+          "title": "防潮墊 + 踢腳板",
+          "body": "PE / EPE / Tyvek 三規格,卷數自動算。踢腳板自動扣門洞長度。"
+        },
+        {
+          "emoji": "🧾",
+          "title": "A4 報價單一鍵出",
+          "body": "客戶資料、品項、總計、條款、簽章,4 欄三表格一頁搞定。CSV 匯出 BOM 給工人。"
+        }
+      ]
+    },
+    "paramsSection": {
+      "h2": "你可以調整這些參數",
+      "sub": "演算法自動算骨架、夾板拼縫、面材排版、防潮卷數。",
+      "items": [
+        {
+          "label": "平台形狀(矩形 / L 形)",
+          "desc": "拉長寬即時看 3D,L 形可加凹角閃柱、樑、窗框。"
+        },
+        {
+          "label": "平台高度(H)",
+          "desc": "30–60cm 自由設,超過 60cm 系統會提示加副柱避免晃動。"
+        },
+        {
+          "label": "挨柱(0–2 根)",
+          "desc": "室內柱位置往內凹挖一塊矩形,柱邊預留 5mm 縫不卡。"
+        },
+        {
+          "label": "面材規格",
+          "desc": "超耐磨 / 海島型 / 實木三選一,片長片寬可調,比比看哪款省料。"
+        },
+        {
+          "label": "拼板款式(5 種)",
+          "desc": "直鋪、1/2 錯縫、1/3 錯縫、人字拼、Herringbone V 型,起鋪角獨立設。"
+        },
+        {
+          "label": "骨架主支間距",
+          "desc": "依夾板短邊 ÷ N 反推間距,板拼縫剛好落在主支中心線。"
+        },
+        {
+          "label": "骨架副支間距",
+          "desc": "30 / 40 / 45cm 三檔,跨距越大用越粗的角材。"
+        },
+        {
+          "label": "夾板規格(4×8 / 3×6)",
+          "desc": "兩種規格都能切換看哪款省料,自動 2D 拼板。"
+        },
+        {
+          "label": "防潮墊規格",
+          "desc": "PE / EPE / Tyvek 三種選一,卷長卷寬不同自動算卷數。"
+        },
+        {
+          "label": "踢腳板(高度 / 門洞)",
+          "desc": "踢腳板高度可設,門洞位置標出後系統自動扣總長。"
+        }
+      ]
+    },
+    "outputsSection": {
+      "h2": "輸入完成,自動產出",
+      "sub": "6 件事一次出齊,列印 A4 直接帶進工坊或交給客戶。",
+      "items": [
+        {
+          "icon": "🪵",
+          "title": "骨架 BOM",
+          "body": "頂框、底框、主支、副支各幾米幾根,台尺/英呎雙標。"
+        },
+        {
+          "icon": "📦",
+          "title": "夾板拼板圖",
+          "body": "2D guillotine FFD 自動拼,標料 1-2-3 編號,料行直接讀。"
+        },
+        {
+          "icon": "🛡️",
+          "title": "防潮墊卷數",
+          "body": "依平台坪數+卷規格無條件進位,門洞自動扣。"
+        },
+        {
+          "icon": "🎨",
+          "title": "面材片數",
+          "body": "起鋪角、伸縮縫、5 種拼板款式都算進損耗。"
+        },
+        {
+          "icon": "🧾",
+          "title": "A4 客戶報價單",
+          "body": "客戶資料 + 品項 + 總計 + 條款 + 簽章,一頁印出。"
+        },
+        {
+          "icon": "📊",
+          "title": "BOM CSV 匯出",
+          "body": "Excel 開沒亂碼,工班直接抓料用。"
+        }
+      ]
+    },
+    "showcaseSection": {
+      "h2": "實際輸出畫面",
+      "sub": "以下都是工具實際生成的畫面,套你的尺寸後即時更新。",
+      "items": [
+        {
+          "img": "/showcase/raised-floor-overview.png",
+          "label": "骨架 2D + 挨柱",
+          "desc": "矩形 / L 形 + 0~2 根挨柱凹陷,主支沿短邊、副支沿長邊自動等分。"
+        },
+        {
+          "img": "/showcase/raised-floor-3d.png",
+          "label": "3D 爆炸圖",
+          "desc": "頂框、底框、夾板、面材分層展開,客戶秒懂為什麼一坪要 NT$ 8,000+。"
+        },
+        {
+          "img": "/showcase/raised-floor-surface.png",
+          "label": "面材拼花 2D",
+          "desc": "起鋪角、伸縮縫、長短軸方向自動算進去,客戶選款式直接看。"
+        }
+      ],
+      "footnote": "※ 改尺寸 / 換面材 / 挨柱數量變化時,這些圖都會即時重算"
+    },
+    "audienceSection": {
+      "h2": "適合哪些人",
+      "items": [
+        {
+          "emoji": "🔨",
+          "title": "木工師傅 / 統包",
+          "body": "客戶問「和室一坪多少」當場掏手機算,改尺寸馬上重出報價單。"
+        },
+        {
+          "emoji": "🏠",
+          "title": "DIY 自己做和室",
+          "body": "看完料表直接去料行,不用問師傅、不用 Excel,連夾板怎麼拼都告訴你。"
+        },
+        {
+          "emoji": "🪜",
+          "title": "裝潢設計師",
+          "body": "提案時放一張 3D + 報價單,客戶當場 close。"
+        },
+        {
+          "emoji": "🎓",
+          "title": "木匠學院學員",
+          "body": "把課程學到的骨架邏輯實際算一遍,從練手到接案無縫接軌。"
+        }
+      ],
+      "notForTitle": "⚠️ 這幾種狀況不要用",
+      "notForItems": [
+        "非正交多邊形平台(斜牆、圓弧、不規則邊)— 目前只支援矩形跟 L 形",
+        "挨柱超過 2 根 — 多柱要手動拆段",
+        "需要榻榻米/疊蓆專用尺寸精算 — 本工具算骨架夾板,不算榻榻米",
+        "已有 CAD/Revit 工作流程 — 本工具補的是「沒 CAD 但要算料」的洞"
+      ]
+    },
+    "scenariosSection": {
+      "h2": "什麼時候會用到",
+      "items": [
+        {
+          "tag": "🔨 接案現場",
+          "body": "客戶問「3 米 × 4 米和室一坪多少」,你掏手機 30 秒掃出 3D 跟 A4 報價單,當場 close。改尺寸馬上重算,不用回工作室再開 Excel。"
+        },
+        {
+          "tag": "🏠 DIY 自己做",
+          "body": "想做臥鋪、客房和室、收納地台,自己畫平台 → 系統告訴你要訂幾根 12 尺角材、幾片夾板、防潮墊幾卷,直接去料行不再問師傅。"
+        },
+        {
+          "tag": "🪜 設計師提案",
+          "body": "和室提案放 3D + 報價單,比競爭對手多一頁紙就贏一單。客戶喊「我要改 50cm 高」當場改,提案不過夜。"
+        },
+        {
+          "tag": "🎓 木匠學院學員",
+          "body": "課程學的骨架邏輯、夾板拼縫對齊、防潮層原理,這支工具讓你看「演算法怎麼算」,從練手到接案無縫接軌。"
+        }
+      ]
+    },
+    "faqSection": {
+      "h2": "常見問題",
+      "items": [
+        {
+          "q": "跟「地板施工模擬器」差在哪?",
+          "a": "地板模擬器算的是平鋪木地板(超耐磨 / 海島型)、無骨架。架高平台是 30cm 以上的台座,有頂框、底框、主支、副支、夾板、防潮墊、踢腳板,屬於和室 / 榻榻米下層 / 客房臥鋪的木工工法。兩者共用同一把解鎖鑰匙,買一個解兩個。"
+        },
+        {
+          "q": "夾板拼板真的省得到料嗎?",
+          "a": "實測:11 片裁切片走 2D guillotine 自動湊,3 米 × 4 米和室原本「8 片整片 + 11 片裁切」會被料行報「19 片夾板」,系統算完是「8 片整片 + 4 張新料切 11 片」共 12 張。省 7 張(約 35%),金額 NT$ 3,500 起跳。"
+        },
+        {
+          "q": "報價會準嗎?",
+          "a": "材料量算到的是 BOM 級準度(主支幾米、夾板幾片、防潮墊幾卷,單位都對)。單價用你自己料行的進價、工錢自己設。系統不偷塞「行情價」灌水,所有單價欄都是空白讓你填——你填多少就算多少。"
+        },
+        {
+          "q": "可以匯出 PDF / CSV 嗎?",
+          "a": "A4 報價單直接走瀏覽器列印 → 另存 PDF,LOGO / 公司資料 / 條款都在「品牌客製」面板填過一次就一直用。BOM 走 CSV 匯出,Excel 開沒亂碼。"
+        },
+        {
+          "q": "工具錢多少?",
+          "a": "個人版 NT$ 390/月,含全 26 個家具範本 + 天花板骨架 + 地板模擬器 + 架高平台,所有工具全給。專業版 NT$ 890/月 多了客戶報價系統 + STL/CNC 輸出 + 尺寸無上限。"
+        },
+        {
+          "q": "可以單買架高平台這個工具嗎?",
+          "a": "可以。架高平台跟地板模擬器共用「floor」這個解鎖鑰匙,單買解鎖兩個工具。價格在 /pricing 頁面。"
+        },
+        {
+          "q": "我家不是規矩矩形,L 形以外能算嗎?",
+          "a": "目前 v1 只支援矩形、L 形 + 最多 2 個挨柱凹陷。非正交多邊形(斜牆、ㄇ 字形、十字形)正在排,跟地板模擬器同一波會補上,屆時無痛升級。"
+        },
+        {
+          "q": "工具會持續更新嗎?",
+          "a": "會。本工具 2026-05 才上線,3D 圖層、夾板拼板演算法、施工步驟卡片、防潮墊 catalog 都是上線 2 週內補進去的。改進方向:多挨柱、斜邊平台、人字拼面材、現場開孔(燈具/插座)。"
+        }
+      ]
+    },
+    "pricingSection": {
+      "h2": "如何取得「架高平台估價」",
+      "sub": "三種解鎖方式擇一,跟地板模擬器共用鑰匙",
+      "tierSingle": {
+        "badge": "單買",
+        "title": "單工具買斷",
+        "price": "NT$590",
+        "unit": "永久",
+        "features": [
+          "永久解鎖架高平台 + 地板模擬器",
+          "不訂閱也能用",
+          "未來功能改進自動拿到"
+        ],
+        "cta": "看單買方案"
+      },
+      "tierPersonal": {
+        "badge": "最多人選",
+        "title": "個人版訂閱",
+        "price": "NT$390",
+        "unit": "/月",
+        "features": [
+          "全 26 家具範本解鎖",
+          "天花板 + 地板 + 架高平台",
+          "PDF 列印 + 雲端儲存無限"
+        ],
+        "cta": "升級個人版"
+      },
+      "tierPro": {
+        "badge": "接案級",
+        "title": "專業版訂閱",
+        "price": "NT$890",
+        "unit": "/月",
+        "features": [
+          "個人版全部功能",
+          "客戶報價 + 客戶資料管理",
+          "STL/OBJ 輸出 + 尺寸無上限"
+        ],
+        "cta": "升級專業版"
+      },
+      "footnoteText": "年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 ·",
+      "footnoteLink": "看完整方案比較"
+    },
+    "relatedSection": {
+      "h2": "你可能也想看",
+      "sub": "一起接案、一起算料的好搭擋",
+      "cta": "看詳細介紹 →",
+      "items": [
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "地板施工模擬器",
+          "body": "平鋪木地板算料 + 5 種拼板款式 + A4 報價單。跟架高平台共用一把鑰匙。"
+        },
+        {
+          "href": "/ceiling",
+          "emoji": "🔨",
+          "title": "天花板骨架施工模擬器",
+          "body": "角材井字 + 矽酸鈣板拼板 + 吊筋。客戶要「天地一起做」一站搞定。"
+        },
+        {
+          "href": "/templates",
+          "emoji": "🪑",
+          "title": "26 件家具範本",
+          "body": "從筆筒到衣櫃,設計師接案常搭一起出。"
+        }
+      ]
+    },
+    "finalCta": {
+      "h2": "少花 30 分鐘算料、多賺一張報價單",
+      "bodyLine1": "和室一張、客房一張、臥鋪一張——每月省幾小時、客戶 close 速度翻倍。",
+      "bodyLine2": "一杯咖啡的錢,一整套工具帶走。",
+      "ctaSecondary": "看完整方案",
+      "footnote": "個人版 NT$ 390/月 · 含全 26 家具模板 + 天花板 + 地板 + 架高平台",
+      "marketRefNote": "參考:台灣和室架高市場行情約 NT$ {price}/坪起,算錯一坪料就大於這工具半年訂閱費。"
+    },
+    "schema": {
+      "productName": "和室架高平台估價工具",
+      "productDescription": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。木工師傅、統包、DIY 一次搞定。",
+      "brandName": "木頭仁木匠學院",
+      "breadcrumbHome": "首頁",
+      "breadcrumbTemplates": "範本介紹",
+      "breadcrumbCurrent": "和室架高平台估價"
+    }
+  },
+  "home": {
+    "metaTitle": "木頭仁 木作藍圖｜輸入尺寸 3 分鐘生工程圖、材料單、報價",
+    "metaDescription": "26 種家具範本：方凳、茶几、書桌、衣櫃、餐椅、鞋櫃、紅酒架… 輸入長寬高選木材，自動產出三視圖、透視圖、榫卯細節、材料單、A4 PDF 工程圖。木頭仁木匠學院出品。",
+    "chipAll": "全部",
+    "chipSeating": "椅凳",
+    "chipTable": "桌",
+    "chipCabinet": "櫃",
+    "chipTool": "裝潢師工具",
+    "chipAccessories": "小物",
+    "chipDev": "開發中",
+    "diffBeginner": "入門",
+    "diffIntermediate": "中階",
+    "diffAdvanced": "進階",
+    "heroBadge": "木頭仁木匠學院 · 木作藍圖 v0.5",
+    "heroH1": "從尺寸到設計圖",
+    "heroH1Amber": ",三分鐘完成",
+    "heroBody": "做木工最花時間的從來不是動手——是先把圖畫對、料算準、工序排好。這個工具把這三件事壓進 3 分鐘。",
+    "miniItem1": "3D 透視圖",
+    "miniItem2": "工程三視圖 + 榫卯細節",
+    "miniItem3": "切料尺寸 · 工具 · 工序",
+    "heroHint": "切料長度已內建台灣木匠慣例,拿著材料單就能直接進工坊開鋸。",
+    "introLink": "先看每張家具的詳細介紹",
+    "countingShown": "顯示",
+    "countingPieces": "件",
+    "diffLegend": "難度",
+    "paidBadge": "🔒 付費版",
+    "owned": "✓ 已擁有",
+    "paidTitle": "付費版",
+    "wip": "🚧 敬請期待",
+    "diffTitle": "難度:{diff}",
+    "cardTitleFree": " · 免費",
+    "cardTitlePaid": " · 付費版",
+    "toolCeilingName": "🔨 天花板骨架",
+    "toolCeilingAlt": "天花板骨架 3D 爆炸圖",
+    "toolFloorName": "🪵 地板施工模擬器",
+    "toolRaisedFloorName": "🏯 和室架高平台",
+    "toolCncName": "🔧 CNC 刀路產生器",
+    "preview3dAlt": "{name} 3D preview"
+  },
+  "mySubscription": {
+    "metaTitle": "我的訂閱 · 木頭仁 木作藍圖",
+    "metaDescription": "查看你目前生效的訂閱方案與到期狀態。",
+    "loading": "載入中…",
+    "h1": "我的訂閱",
+    "loginRequired": "請先登入才能看訂閱狀態（右上角點「使用 Google 登入」）。",
+    "backHome": "← 回家具列表",
+    "justPaidH": "✅ 付款成功",
+    "justPaidBody": "綠界已收到款項，方案已生效。若以 ATM / 超商繳款，可能延遲幾分鐘才會升級——請重新整理或稍後再看。",
+    "paymentPendingH": "⏳ 這筆付款還沒完成",
+    "paymentPendingBody": "我們還沒收到綠界的付款成功通知，所以方案還沒開通。若你選的是 ATM／超商繳款，請完成繳費後再回來（可能延遲幾分鐘）。若你是刷卡而且銀行已經扣款，請直接聯絡我們，我們會馬上幫你處理。",
+    "paymentPendingRefresh": "重新檢查",
+    "currentPlanPre": "目前生效的方案：",
+    "freeH": "免費版",
+    "freeBody": "還沒訂閱付費方案。",
+    "seePlans": "看方案 →",
+    "lifetimeH": "終身版",
+    "lifetimeBody": "你已購買終身版，所有付費功能永久可用。",
+    "subStatus": {
+      "active": "使用中",
+      "inactive": "未啟用",
+      "cancelled": "已取消",
+      "expired": "已到期",
+      "cancelledStillValid": "已取消（到期前仍可用）"
+    },
+    "pending": {
+      "h": "⏳ 等待繳費",
+      "bodyTpl": "應繳 NT$ {amount}，請於 {deadline} 前完成繳費，繳費後訂閱會自動啟用。",
+      "rowMethod": "付款方式",
+      "methodAtm": "ATM 轉帳",
+      "methodCvs": "超商代碼繳費",
+      "methodBarcode": "超商條碼繳費",
+      "rowBankCode": "銀行代碼",
+      "rowVAccount": "虛擬帳號",
+      "rowPaymentNo": "繳費代碼",
+      "rowBarcode1": "條碼一",
+      "rowBarcode2": "條碼二",
+      "rowBarcode3": "條碼三",
+      "barcodeHint": "請至超商出示三段條碼繳費。"
+    },
+    "unlocks": {
+      "h": "🎫 永久買斷清單",
+      "intro": "這些是你一次買斷的內容，永久使用，不會跟訂閱一起到期。",
+      "toolsH": "裝潢工具",
+      "templatesH": "家具範本",
+      "open": "開啟 →",
+      "toolCeiling": "🔨 天花板骨架施工模擬器",
+      "toolFloor": "🪵 地板施工模擬器"
+    },
+    "paidPlan": {
+      "expiresAtLbl": "到期日：{date}",
+      "statusLbl": "狀態：{status}",
+      "confirmCancel": "取消後將停止下個月自動扣款。\n目前到期日內方案仍可正常使用，到期後自動降為免費版。\n\n確定要取消訂閱嗎？",
+      "cancelFail": "取消失敗，請稍後再試",
+      "cancelling": "取消中…",
+      "cancelCta": "取消訂閱（停止下個月自動扣款）",
+      "expiringSoonTpl": "⏰ 還剩 {days} 天到期。月扣方案會自動續扣，無需操作；如果是年付或想換方案，可以",
+      "reSubscribe": "重新訂閱",
+      "expiringSoonSuffix": "。",
+      "graceH": "⚠️ 訂閱已到期 — 寬限期剩 {days} 天",
+      "graceBody": "付費功能仍可使用，請於 {days} 天內續訂、否則自動降回免費版。常見原因：信用卡到期、額度不足、銀行驗證失敗。",
+      "resubLink": "立即續訂 →",
+      "pastGraceTpl": "訂閱已到期超過 {days} 天寬限期，系統會在下次掃描時自動降為免費版。要恢復付費功能可至",
+      "pastGraceSuffix": "重新訂閱。",
+      "cancelledBodyTpl": "已停止自動扣款。{date} 之前仍可使用，之後自動降為免費版。想恢復可隨時到",
+      "plansPage": "方案頁",
+      "cancelledBodySuffix": "重新訂閱。"
+    },
+    "student": {
+      "h": "木匠學院 學員專屬版",
+      "rowActivated": "開通日",
+      "rowExpires": "到期日",
+      "expired": "（已過期）",
+      "daysLeftTpl": "（還剩 {n} 天）",
+      "expiringH": "⚠️ 還剩 {n} 天到期",
+      "expiringBody": "第 3 年起可享學員專屬價（DIY 自家用 NT$ 219、接案/工作室 NT$ 690 / 月）。",
+      "renewBtn": "續訂學員續用版",
+      "expiredH": "已過期",
+      "expiredBody": "學員專屬版 2 年免費期已結束，已自動降為免費版。可選學員續用版（個人 NT$ 219 / 專業 NT$ 690 / 月）延續使用。",
+      "expiredBtn": "看續用方案",
+      "futurePriceNote": "到期後可享學員續用價：個人 NT$ 219、專業 NT$ 690 / 月。"
+    }
+  },
+  "myDesigns": {
+    "metaTitle": "我的設計 · 木頭仁 木作藍圖",
+    "metaDescription": "你在木頭仁 木作藍圖儲存的家具設計清單——尺寸、木材、樣式、估價、PDF 一鍵打開繼續做。"
+  },
+  "settingsBranding": {
+    "metaTitle": "報價單抬頭設定",
+    "metaDescription": "設定報價單上的公司名稱、LOGO、匯款帳戶、付款分期、條款等資料。",
+    "h1": "報價單抬頭設定",
+    "hint": "這些設定會套用到所有報價單。一次設好之後不用每次填。",
+    "backHome": "← 回首頁"
+  },
+  "authError": {
+    "metaTitle": "登入失敗 ｜ 木頭仁 木作藍圖",
+    "expiredTitle": "登入連結已失效",
+    "expiredBody": "你點的這封 Email 登入連結已經過期或被使用過了。",
+    "expiredHint": "為了安全，登入連結通常 10 分鐘內有效，且只能使用一次。",
+    "usedTitle": "登入連結已被使用",
+    "usedBody": "這個登入連結之前已經點過了，每個連結只能使用一次。",
+    "usedHint": "請重新請求一封新的登入信。",
+    "missingTitle": "缺少登入驗證碼",
+    "missingBody": "請從信箱裡的登入連結點進來，不要直接打網址。",
+    "unknownTitle": "登入時發生錯誤",
+    "unknownBody": "系統處理你的登入時發生未預期的錯誤。",
+    "unknownHint": "請再試一次，若持續發生請從首頁聯絡我們。",
+    "btnRelogin": "重新登入",
+    "btnHome": "回首頁"
+  },
+  "chat": {
+    "metaTitle": "木頭仁 AI 木工大師 · 24h 木工問答客服",
+    "metaDescription": "問木工問題的 AI 客服，背後是木頭仁本人 19 份知識庫——榫卯、木材、塗裝、安全、機械、修補、明式家具、Windsor 椅、雕刻、車旋全包。",
+    "unavailableH": "AI 木工大師暫不可用",
+    "unavailableBody": "服務尚未配置 ANTHROPIC_API_KEY，請聯絡管理員。",
+    "headerH1": "🪵 木頭仁 AI 木工大師",
+    "headerSubtitle": "榫卯 / 木材 / 塗裝 / 安全 / 機械 / 修補 / 明式 / Windsor / 雕刻 / 車旋",
+    "remaining": "今日剩 {n} 題",
+    "btnReset": "重新對話",
+    "emptyIntro1": "我是木頭仁的 AI 分身。",
+    "emptyIntro2": "木工問題我來答（19 份知識庫 / 13952 行）",
+    "thinking": "思考中⋯",
+    "placeholderStreaming": "回答中⋯",
+    "placeholderIdle": "問木工題目，例：6 分板幾 mm？",
+    "btnSendDots": "⋯",
+    "btnSend": "送出",
+    "disclaimerLine1": "AI 答案僅供參考。涉及安全或結構請以實際工法書 / 廠商說明為準。",
+    "disclaimerLine2": "Powered by Claude Haiku 4.5 · 木頭仁木匠學院出品",
+    "errUnknown": "未知錯誤",
+    "errReadStream": "無法讀取串流",
+    "suggestedQ1": "桌鋸 kickback 怎麼防？",
+    "suggestedQ2": "6 分板實際是幾 mm？",
+    "suggestedQ3": "鳩尾榫角度 1:6 跟 1:8 怎麼選？",
+    "suggestedQ4": "亞麻仁油布為什麼會自燃？",
+    "suggestedQ5": "Wegner Y 椅是不是抄明式圈椅？",
+    "suggestedQ6": "蒸彎要蒸多久？1 hour per inch 怎麼算？"
+  },
+  "woodMaster": {
+    "errors": {
+      "invalid-json": "JSON 格式錯誤",
+      "messages-required": "請先輸入訊息",
+      "conversation-too-long": "對話過長，請重新開始",
+      "messages-invalid": "訊息欄位錯誤",
+      "message-too-long": "單則訊息超過 2000 字"
+    }
+  },
+  "changelog": {
+    "metaTitle": "更新日誌｜木頭仁 木作藍圖",
+    "metaDescription": "木作藍圖每一版的功能新增與改進。介紹頁、新模板、AI 功能、結帳系統的所有變化都在這。",
+    "badgeNew": "新功能",
+    "badgeImprove": "改進",
+    "badgeFix": "修正",
+    "badgeDesign": "介面",
+    "heroChip": "木作藍圖 更新日誌",
+    "heroH1": "我們改了什麼",
+    "heroBodyLine1": "木作藍圖每次有用戶會感受到的新功能、改進、修正都會記在這。",
+    "heroBodyLine2": "最新的在最上面。",
+    "footerAsk": "想要新功能或回報問題？",
+    "footerContactLink": "聯絡我們 →",
+    "footerTemplates": "範本介紹",
+    "footerStart": "開始設計 →"
+  },
+  "cutPlan": {
+    "backLink": "← 回{name}設計",
+    "h1": "裁切計算器",
+    "subtitle": "{name} · {length}×{width}×{height}mm · {material}．左邊輸入庫存 → 右邊立刻看排料圖"
+  },
+  "designLoading": {
+    "h2": "正在生成 3D 模型⋯",
+    "body": "第一次載入需要幾秒鐘，請稍候。"
+  },
+  "designError": {
+    "subjectTpl": "[木作藍圖] 設計頁渲染錯誤 (build {sha})",
+    "bodyTpl": "發生時間：{time}\nbuild：{sha}\n設計連結：{url}\n錯誤訊息：{message}\ndigest：{digest}\n\n（請描述你剛剛做了什麼，例如：「我把腳高調到 500mm 就壞了」）",
+    "h1": "這組設計參數導致渲染失敗",
+    "body": "通常是某個尺寸組合超出合理範圍。你可以：重設預設值、或回報這個 bug 給木頭仁修。",
+    "unknownError": "Unknown error",
+    "btnRetry": "重試",
+    "btnReset": "重設預設值",
+    "btnReport": "回報這個錯誤",
+    "btnHome": "回首頁"
+  },
+  "quote": {
+    "backLink": "← 回{name}設計",
+    "customQuote": "客製報價",
+    "weightTitle": "實重 = 各部件 體積×木材密度 + 12% 包裝重",
+    "weightApprox": "· 約 {kg} kg",
+    "previewTitle": "📐 設計預覽（三視圖）",
+    "previewHint": "點擊任一視圖放大",
+    "totalWithVat": "含稅總計",
+    "totalNoVat": "總計",
+    "unitPriceLine": "{qty} 件 · 單件 {price}（未稅）",
+    "deposit": "訂金（{pct}%）",
+    "balance": "尾款（{pct}%）",
+    "deliveryEst": "預計交期",
+    "buildDays": "實做 {n} 天",
+    "qtyCombined": "（{n} 件合計）",
+    "bufferDays": " + 乾燥/出貨 {n} 天",
+    "laborHours": " · 工時 {hours}h（6hr/天）",
+    "expiryNote": "📅 報價有效至 {date}",
+    "expiryDays": "({days} 天)",
+    "sanityH": "⚠️ 報價檢查",
+    "lowHoursWarn": "工時極低（{hours}h）— 可能 template 估算異常，建議手動覆寫工時",
+    "negMarginWarn": "議價 {price} 低於成本 {cost}，賠 {loss}/件",
+    "internalDetailH": "📊 成本明細（內部）— 材料 + 工資 + 毛利 拆解",
+    "expandCollapse": "展開 / 收合",
+    "thItem": "項目",
+    "thMethod": "計算方式",
+    "thAmount": "金額",
+    "subtotalPerUnit": "單件成本小計",
+    "margin": "毛利",
+    "marginAfterQuote": "議價後實際 {pct}%",
+    "marginPct": "毛利（{pct}%）",
+    "designerMarkup": "🎨 設計師加成（{pct}%）",
+    "designerMarkupHint": "在木匠出貨價 {price} 之上再加",
+    "unitPriceExclVat": "單件未稅報價",
+    "qtyMultiplier": "數量 × {n}",
+    "discount": "折扣（{pct}% off）",
+    "subtotalExclVat": "報價（未稅）",
+    "vat": "營業稅（{pct}%）",
+    "exclusionShipping": "運費",
+    "exclusionInstall": "現場安裝、上牆、水平調整",
+    "exclusionHardware": "五金件：滑軌、鉸鏈、把手、鎖具（如有需求另計）",
+    "exclusionChange": "確認下訂後變更設計／尺寸／材質：每次需重新報價並酌收變更費",
+    "termsOnly": "📌 條款：",
+    "exclusionsH": "⚠️ 本報價不含",
+    "brandingNote": "🏢 公司抬頭、匯款、分期、條款都搬到設定頁了，一次設好不用每次填",
+    "brandingBtn": "⚙️ 抬頭設定",
+    "helpH": "ℹ️ 報價說明（材料計法、工時來源）",
+    "helpItem1": "材料以「板才」計（1 板才 = 1\" × 12\" × 12\" ≈ 2,360 cm³ ≈ 8.5 台才），已含切料損耗（小件 25%、一般家具 10%）",
+    "helpItem2": "工時從製作工序與倒角加工自動加總；如案件難度高/客戶有特殊要求，可在表單「工時覆寫」直接打總工時",
+    "helpItem3": "一個工作天以實際產出 6 小時計（扣除溝通、整理工作台、換刀、休息等隱形時間）",
+    "helpItem4": "本工具估算值僅供參考，實際報價請師傅依現場條件微調",
+    "print": {
+      "previewHint": "A4 報價單預覽 — 按下按鈕後在系統對話框選擇「另存為 PDF」",
+      "metaQuoteNo": "報價單號",
+      "metaIssueDate": "開立日期",
+      "metaExpiry": "有效期限",
+      "metaDelivery": "預計交期",
+      "metaDeliveryDays": " （約 {days} 工作天）",
+      "customerTo": "客戶 TO",
+      "fieldCompany": "公司／姓名",
+      "fieldContact": "聯絡人",
+      "fieldPhone": "電話",
+      "fieldAddress": "送貨地址",
+      "fieldTaxId": "統編",
+      "fieldEmail": "email",
+      "designSection": "設計圖",
+      "designId": "設計編號：{id}",
+      "designCaption": "三視圖顯示家具尺寸與比例，實際成品木紋、色差依天然木材狀態而定。",
+      "thItem": "品項",
+      "thSpec": "規格",
+      "thQty": "數量",
+      "thAmount": "金額 NT$",
+      "specDimension": "尺寸 {dims}",
+      "specMaterial": "木材：{name}",
+      "specPartCount": "零件數：{n} 件",
+      "amountPerUnit": "{price} / 件",
+      "amountEquals": "= {price}",
+      "internalDetailH": "成本明細（內部存檔用）",
+      "rowCostPerUnit": "單件成本",
+      "rowMargin": "毛利（{pct}%）",
+      "rowDesignerMarkup": "🎨 設計師加成（{pct}%）",
+      "rowUnitQuote": "單件報價",
+      "rowQtyMultiplier": "× {n} 件",
+      "rowDiscount": "折扣（{pct}% off）",
+      "rowSubtotalExclVat": "報價（未稅）",
+      "rowVat": "營業稅（{pct}%）",
+      "rowGrandTotal": "含稅總計 TOTAL",
+      "rowDeposit": "訂金（下訂時付 {pct}%）",
+      "rowBalance": "尾款（交貨時付 {pct}%）",
+      "termShippingIncluded": "本報價含運費。",
+      "termShippingExcluded": "運費另計，依實際送貨地點報價。",
+      "termInstallIncluded": "本報價含現場安裝（工坊北北基區域內）。",
+      "termInstallExcluded": "不含現場安裝；如需到府組裝請另議。",
+      "signCustomer": "客戶簽章",
+      "signDate": "日期：＿＿＿＿ / ＿＿ / ＿＿",
+      "companySeal": "（本公司用印）",
+      "pdfFilenameFallback": "報價單",
+      "watermark": "木頭仁 · woodenren.com"
+    }
+  },
+  "templateDetail": {
+    "metadataTitleFallback": "找不到範本介紹",
+    "breadcrumbHome": "首頁",
+    "breadcrumbTemplates": "範本介紹",
+    "schemaProductName": "{name} 設計範本",
+    "schemaBrand": "木頭仁木匠學院",
+    "schemaHowToName": "如何製作{name}",
+    "freeBadge": "免費模板",
+    "difficultyBeginner": "入門",
+    "difficultyIntermediate": "中階",
+    "difficultyAdvanced": "進階",
+    "heroCtaTryFree": "免費試做",
+    "heroCtaStartDesign": "開始設計",
+    "heroCtaUnlockAll": "升級全部模板",
+    "heroCtaViewPlans": "查看方案",
+    "shareTitle": "{name}設計圖｜{tagline}",
+    "preview3dAlt": "{name} 3D 預覽",
+    "galleryH2": "{name} 設計細節",
+    "gallerySubtitle": "這支模板獨有的視覺重點",
+    "highlightsH2": "設計重點",
+    "highlightsSubtitle": "這支模板的演算法幫你顧到的事",
+    "whatItDoesH2": "這支模板能幫你做什麼",
+    "fitForH2": "這支模板適合誰",
+    "fitForGood": "推薦給你",
+    "fitForNotFor": "不適合",
+    "paramsH2": "你可以調整這些參數",
+    "paramsSubtitle": "演算法自動算尺寸、榫卯、材料用量。",
+    "sizingH2": "{name}常見尺寸",
+    "sizingSubtitle": "表格數字直接來自這個範本程式的可調範圍與預設值，範本更新會自動跟著變。",
+    "sizingColDimension": "尺寸",
+    "sizingColRange": "可調範圍",
+    "sizingColDefault": "範本預設",
+    "sizingNotesH3": "怎麼抓尺寸",
+    "sizingFootnote": "主尺寸只列上限：範本沒有語意上的下限，小到 2 cm 都能畫。單位 mm，括號內為 cm。",
+    "outputsH2": "輸入完成，自動產出",
+    "outputsSubtitle": "5 件事一次出齊，列印 A4 直接帶進工坊。",
+    "outputs": [
+      {
+        "icon": "📐",
+        "title": "三視圖",
+        "body": "前 / 側 / 俯三向自動標尺寸"
+      },
+      {
+        "icon": "🪵",
+        "title": "透視圖",
+        "body": "3D 可旋轉、可拆解、看內部結構"
+      },
+      {
+        "icon": "🔧",
+        "title": "榫卯細節",
+        "body": "每個榫接點放大圖、尺寸標註"
+      },
+      {
+        "icon": "📊",
+        "title": "材料單",
+        "body": "每片木料尺寸、台才換算、邊料試算"
+      },
+      {
+        "icon": "✂️",
+        "title": "切割圖",
+        "body": "排料最佳化、邊料最少"
+      },
+      {
+        "icon": "📄",
+        "title": "A4 PDF",
+        "body": "一鍵列印帶進工坊"
+      }
+    ],
+    "showcaseH2": "實際輸出畫面",
+    "showcaseSubtitle": "以下都是「{name}」實際生成的畫面，套你的尺寸後會即時更新。",
+    "showcase": [
+      {
+        "label": "工程三視圖",
+        "desc": "前 / 側 / 俯三向尺寸全自動標註"
+      },
+      {
+        "label": "排板裁切圖",
+        "desc": "演算法排料、邊料最少，材料行直接照鋸"
+      },
+      {
+        "label": "切料清單",
+        "desc": "每片木料尺寸、含台才換算、可列印帶進工坊"
+      },
+      {
+        "label": "製作工序",
+        "desc": "從備料、開料、組裝到塗裝，每步都標時間"
+      },
+      {
+        "label": "3D 透視預覽",
+        "desc": "可旋轉、可拆解、可看內部榫卯結構"
+      }
+    ],
+    "showcaseFootnote": "※ 改尺寸 / 換木料 / 切換款式時，這幾張圖都會即時重算",
+    "scenariosH2": "什麼時候會用到",
+    "presetsH2": "{count} 種預設變體",
+    "presetsSubtitle": "一鍵切換不同風格、不用每次從頭調參數。",
+    "faqH2": "常見問題",
+    "pricingH2": "如何取得「{name}」",
+    "pricingSubtitleFree": "免費模板，直接開始用",
+    "pricingSubtitlePaid": "{difficulty}模板，三種解鎖方式擇一",
+    "freeBadgeForever": "完全免費",
+    "freeBadgeUnlimited": "永久使用",
+    "freeTitle": "{name} 是入門練手模板，木頭仁送你",
+    "freeFeature1": "不用註冊、不用付費、不限次數",
+    "freeFeature2": "3D、榫卯、三視圖、材料單、PDF 全給，跟付費用戶一樣",
+    "freeFeature3": "唯一限制：尺寸有上限（適合練手小品）",
+    "freeCta": "免費試做 →",
+    "tierSingleBadge": "單買",
+    "tierSingleTitle": "單範本買斷",
+    "tierSingleUnit": "永久",
+    "tierSingleFeature1": "永久解鎖這支模板",
+    "tierSingleFeature2": "不訂閱也能用",
+    "tierSingleFeature3": "未來功能改進也自動拿到",
+    "tierSingleCta": "立即購買",
+    "tierPersonalBadge": "最多人選",
+    "tierPersonalTitle": "個人版訂閱",
+    "tierPersonalPrice": "NT$390",
+    "tierPersonalUnit": "/月",
+    "tierPersonalFeature1": "全 26 模板解鎖",
+    "tierPersonalFeature2": "天花板 + 地板模擬器",
+    "tierPersonalFeature3": "PDF 列印 + 雲端儲存無限",
+    "tierPersonalCta": "升級個人版",
+    "tierProBadge": "接案級",
+    "tierProTitle": "專業版訂閱",
+    "tierProPrice": "NT$890",
+    "tierProUnit": "/月",
+    "tierProFeature1": "個人版全部功能",
+    "tierProFeature2": "客戶報價 + 客戶資料管理",
+    "tierProFeature3": "STL/OBJ 輸出（CNC）+ 尺寸無上限",
+    "tierProCta": "升級專業版",
+    "pricingFootnoteText": "年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 · ",
+    "pricingFootnoteLink": "看完整方案比較",
+    "relatedH2": "你可能也想看",
+    "relatedSubtitle": "同類別或互補的家具範本",
+    "relatedFreeBadge": "免費",
+    "relatedFullGuide": "看詳細介紹 →",
+    "relatedViewAll": "看全部 26 件範本 →",
+    "bottomCtaH2": "開始設計這張 {name}",
+    "bottomCtaBodyFree": "免費模板，不用註冊不用付費，直接開始。",
+    "bottomCtaBodyPaid": "訂閱個人版 NT$390/月，解鎖全 26 模板＋裝潢工具。",
+    "bottomCtaTryFree": "免費試做 →",
+    "bottomCtaStartDesign": "開始設計 →",
+    "bottomCtaBrowse": "看其他範本"
+  },
+  "ceilingTool": {
+    "header": {
+      "h1": "天花板骨架施工模擬器",
+      "adminBadge": "admin",
+      "subtitle": "木匠學院 · v0.4",
+      "view2d": "📐 平面",
+      "view3d": "🧊 立體",
+      "shareLoading": "...",
+      "shareCopied": "✓ 連結已複製",
+      "shareIdle": "🔗 分享",
+      "csv": "⬇ CSV",
+      "print": "🖨 列印"
+    },
+    "shareError": "分享失敗,請稍後重試(或檢查 Upstash 設定)",
+    "printHeader": {
+      "title": "天花板骨架材料採購清單",
+      "dateLabel": "日期:",
+      "caseLabel": "案場 #",
+      "clientLabel": "客戶:",
+      "siteLabel": "案場:",
+      "notesLabel": "備註:",
+      "missingValue": "—",
+      "dimensionSummary": "長 {long} × 短 {short} × 板高 {slab} × 天花板高 {ceiling} cm · {ping} 坪"
+    },
+    "view3dToolbar": {
+      "iso": "軸測",
+      "top": "俯視",
+      "explode": "💥 爆炸",
+      "layersLabel": "圖層",
+      "layerRoom": "房間",
+      "layerFrame": "邊框",
+      "layerMain": "主支+吊筋",
+      "layerSub": "副支",
+      "layerBoards": "矽酸鈣板"
+    },
+    "roomSize": {
+      "h2": "📐 房間尺寸",
+      "hint": "拖拉條調整,圖與材料表即時重算",
+      "longSide": "長邊",
+      "shortSide": "短邊",
+      "slabHeight": "板高",
+      "slabHeightSub": "樓板到地",
+      "ceilingHeight": "天花板高",
+      "ceilingHeightSub": "完成面"
+    },
+    "stats": {
+      "ping": "坪數",
+      "pingUnit": "坪",
+      "frame": "邊框",
+      "frameUnit": "m",
+      "framePerimHint": "周長 {perim}×2",
+      "mainJoist": "主支",
+      "joistUnit": "支",
+      "mainJoistHint": "{len} cm",
+      "subJoist": "副支",
+      "subJoistHintTwo": "{a}/{b} cm",
+      "subJoistHintOne": "{a} cm",
+      "hanger": "吊筋",
+      "hangerHint": "長 {len} cm",
+      "boards": "矽酸鈣板",
+      "boardsUnit": "張",
+      "boardsHint": "{full} 整 / {cut} 裁"
+    },
+    "params": {
+      "h2": "⚙ 參數",
+      "subtitle": "改任何值,圖與材料表即時重算",
+      "alignmentTitle": "排版基準",
+      "alignMainLabel": "主支(沿長邊)",
+      "alignLeft": "靠左",
+      "alignCenter": "置中",
+      "alignRight": "靠右",
+      "alignSubLabel": "副支(沿短邊)",
+      "alignTop": "靠上",
+      "alignMiddle": "置中",
+      "alignBottom": "靠下",
+      "frameDoublesAsSupport": "邊框兼當支撐 (−2 主支)",
+      "boardTitle": "矽酸鈣板",
+      "boardLong": "板長",
+      "boardShort": "板寬",
+      "jointGap": "接縫",
+      "jointGapHint": "業界 3-6 mm,9 mm 板取 3 mm",
+      "timberTitle": "角材 + 間距",
+      "autoSpacing": "🔒 依板規自動算間距",
+      "mainSpacing": "主支中心距",
+      "subSpacing": "副支中心距",
+      "autoSpacingLockHelp": "已鎖定:依板規自動算。取消上方勾選即可手動拖拉",
+      "timberWidth": "角材寬",
+      "timberThickness": "角材厚",
+      "hangerTitle": "吊筋",
+      "hangerDensity": "密度",
+      "hangerStandard": "業界標準",
+      "hangerMinimal": "簡化",
+      "hangerSpacing": "中心距",
+      "hangerMinimalHelp": "簡化模式下不適用(每根主支只在兩端各一支)"
+    },
+    "bom": {
+      "h2": "📋 材料清單",
+      "subtitle": "總計 {count} 項 · 點任一行高亮對應視覺",
+      "clearHighlight": "清除高亮 ×",
+      "thCategory": "類別",
+      "thName": "名稱",
+      "thSpec": "規格",
+      "thUnitLen": "單長",
+      "thTotalLen": "總長",
+      "thCount": "數量",
+      "dash": "—"
+    },
+    "category": {
+      "frame": "邊框",
+      "mainJoist": "主支",
+      "subJoist": "副支",
+      "hanger": "吊筋",
+      "boardFull": "板·整",
+      "boardCut": "板·裁"
+    },
+    "tips": {
+      "h3": "💡 施作提示",
+      "jointLabel": "板邊接縫:",
+      "jointDesc": "預設 {gap} mm,環氧樹脂填縫 + 48 mm 接縫帶 + 批土收尾",
+      "alignLabel": "板邊對齊:",
+      "alignDesc": "中間板邊落主支中心(藍色 tick),周邊板邊落邊框外線",
+      "screwLabel": "螺絲:",
+      "screwDesc": "距板邊 ≥ 15 mm,沿板邊每 20-30 cm 一支",
+      "wasteLabel": "材料餘量:",
+      "wasteDescPrefix": "建議多訂 ",
+      "wasteDescBold": "5-10% 餘料",
+      "wasteDescSuffix": "(現場切割損耗、量錯、板材瑕疵備用)"
+    },
+    "fixtures": {
+      "h2": "🔦 燈具 / 開孔",
+      "countSummary": "{count} 個",
+      "collisionSummary": "⚠ {count} 處撞主/副支",
+      "emptyHint": "點上方按鈕加開孔。位置 X(沿長邊)/ Z(沿短邊)從房間左上(0,0)起算 cm。",
+      "thCategory": "類別",
+      "thName": "名稱",
+      "thX": "X cm",
+      "thZ": "Z cm",
+      "thR": "半徑 cm",
+      "thStatus": "狀態",
+      "statusOk": "✓ OK",
+      "statusHit": "⚠ 撞 {parts}",
+      "collisionTitle": "⚠ {count} 處碰撞 — 燈具會卡到主/副支。",
+      "collisionFix": "解法:挪燈具位置 / 改尺寸 / 改主支對齊基準(讓主支位置避開燈具)。"
+    },
+    "fixtureKind": {
+      "led": "LED 燈孔",
+      "vent": "出風口",
+      "speaker": "喇叭",
+      "sprinkler": "灑水頭",
+      "other": "其他開孔"
+    },
+    "cutting": {
+      "h2": "🪚 裁料計算(角材)",
+      "summary": "共 {count} 支角材 · 利用率 {pct}% · 剩料 {remain} m",
+      "stockLengthLabel": "原料一支長",
+      "stockLengthHint": "(360=12 尺、300=10 尺、600=20 尺)",
+      "sawKerfLabel": "鋸路",
+      "sawKerfHint": "(鋸條切一刀的損耗)",
+      "spliceLabel": "接點搭接",
+      "spliceHint": "(超原料一支的長段自動切多段、接點疊長)",
+      "splicedTitle": "🔗 太長要分段接({groups} 件 → {pieces} 段,每接點搭接 {overlap} cm)",
+      "splicedSum": "合 {len} cm",
+      "splicedFooter": "實務:接點放在邊框上強固(或鎖鐵片補強)。",
+      "thStock": "第幾支",
+      "thCut": "切法",
+      "thUsed": "已用",
+      "thKerf": "鋸路",
+      "thRemain": "剩料",
+      "oversize": "要分段接",
+      "footStockCount": "訂料",
+      "footStockSuffix": "支 {len} cm 角材",
+      "footTotalLen": "總長",
+      "footUsed": "實用",
+      "footRemain": "剩料",
+      "footUtilization": "利用率",
+      "footMeter": "{n} m",
+      "footPercent": "{n}%"
+    },
+    "steps": {
+      "h2": "📐 施工步驟",
+      "subtitle": "5 步流程",
+      "step1Title": "牆面指定高度做邊框",
+      "step1Desc": "靠牆邊緣為基準,角材往室內生成",
+      "step2Title": "主支跨短邊平接",
+      "step2Desc": "主支中心距等於矽酸鈣板寬度",
+      "step3Title": "副支置入主支間",
+      "step3Desc": "副支中心距一尺二,全部對齊",
+      "step4Title": "確認框架水平",
+      "step4Desc": "以天花板作完成面基準,固定吊筋",
+      "step5Title": "封矽酸鈣板",
+      "step5Desc": "中間板邊落在主支中心,周邊板邊落在邊框外線"
+    },
+    "customer": {
+      "h2": "📇 客戶資料",
+      "emptyHint": "未填(列印不顯示)",
+      "nameLabel": "客戶姓名",
+      "namePlaceholder": "王先生 / 林設計師",
+      "phoneLabel": "聯絡電話",
+      "phonePlaceholder": "09xx-xxx-xxx",
+      "addressLabel": "案場地址",
+      "addressPlaceholder": "台北市信義區 ___ 路 ___ 號",
+      "notesLabel": "備註",
+      "notesPlaceholder": "施作期 / 特別需求 / 收費對象...",
+      "footnotePart1": "客戶資料只用於 PDF 列印 + 短碼分享(讓師傅/客戶確認案場)。LOGO/公司資訊請去 ",
+      "footnoteLink": "設定頁",
+      "footnotePart2": " 自訂。"
+    },
+    "generateQuote": "🧾 產生報價單",
+    "trace": {
+      "label": "🔬 公式對照 trace",
+      "adminTag": "admin debug",
+      "rowMainCenters": "主支中心位置(沿長邊 cm)",
+      "rowMainLenCount": "主支單支長度 × 實際根數",
+      "rowMainLenCountValue": "{len} cm × {count}",
+      "rowSupportPositions": "支撐排序(含邊框內側,cm)",
+      "subSlotsTitle": "副支 slot 明細",
+      "thSlot": "slot",
+      "thWidth": "寬",
+      "thSubLen": "副支長",
+      "thCount": "數",
+      "rowHangerPerMain": "每主支吊筋數",
+      "rowSubYOffsets": "副支 Y 偏移(從 innerY0,cm)",
+      "rowBoardLayout": "矽酸鈣板鋪法"
+    },
+    "printSignature": {
+      "carpenter": "師傅 / 木工:",
+      "client": "客戶 / 業主:",
+      "dateLine": "日期:______ / ____ / ____",
+      "signLabel": "簽名",
+      "confirmLabel": "確認"
+    },
+    "footerDisclaimer": {
+      "title": "⚠ 使用提醒",
+      "line1Prefix": "本工具計算結果為 ",
+      "line1Bold": "估算值",
+      "line1Suffix": ",實際施工請依現場狀況(樓板高低、樑柱位置、管線走向)調整。",
+      "line2Prefix": "材料用量建議 ",
+      "line2Bold": "多備 5-10% 餘量",
+      "line2Suffix": ",涵蓋現場切割損耗、量錯、板材瑕疵備用。",
+      "line3Prefix": "結構承重、防火、防水、隔音等專業評估,請洽合格 ",
+      "line3Bold": "結構技師 / 室內裝修專業技術人員",
+      "line3Suffix": "。",
+      "line4Prefix": "使用本工具產生之施工結果造成之損失,本工具與木匠學院 ",
+      "line4Bold": "概不負責",
+      "line4Suffix": "。"
+    },
+    "csvFilename": "天花板算料_{long}x{short}.csv"
+  },
+  "floorTool": {
+    "h1": "地板施工模擬器",
+    "subtitle": "超耐磨/海島型木地板 · 直鋪與人字拼排版算料、材料估價",
+    "section1Room": "① 房間",
+    "section2Plank": "② 地板",
+    "section3Detail": "③ 鋪法細節",
+    "section4Price": "④ 估價 / 門洞",
+    "totalWidth": "總寬",
+    "totalDepth": "總深",
+    "unitCm": "cm",
+    "unitMm": "mm",
+    "unitYuan": "元",
+    "unitPiece": "片",
+    "unitCount": "個",
+    "unitPercent": "%",
+    "unitPing": "坪",
+    "unitMeter": "m",
+    "unitSquareMeter": "m²",
+    "canvasHint": "拉桿或打字設定外框,缺口比例隨之等比;拖角點微調,或點邊上的數字直接輸入該邊長度。",
+    "selfIntersectWarning": "⚠ 房間外框線交叉了(自交多邊形),算料與預覽會失準。請把形狀調正常。",
+    "presetLabel": "常用地板尺寸",
+    "presetSpecFormat": "{lengthCm}×{widthCm}cm · 縫{gapMm}mm",
+    "plankLength": "地板片長",
+    "plankWidth": "地板片寬",
+    "patternLabel": "鋪設樣式",
+    "patternStraight": "直鋪錯縫",
+    "patternHerringbone": "人字拼(對牆 45°)",
+    "expansionGap": "伸縮縫",
+    "wasteModeLabel": "損耗計法",
+    "wasteModeComputed": "實算",
+    "wasteModeEmpirical": "經驗+10%",
+    "directionLabel": "鋪設方向",
+    "directionLongAxis": "沿長邊",
+    "directionShortAxis": "沿短邊",
+    "staggerLabel": "錯縫",
+    "staggerHalf": "1/2",
+    "staggerThird": "1/3",
+    "staggerRandom": "亂縫",
+    "startCornerLabel": "起鋪角",
+    "startTopLeft": "左上",
+    "startTopRight": "右上",
+    "startBottomLeft": "左下",
+    "startBottomRight": "右下",
+    "startCenter": "中央置中",
+    "statTotalPlanks": "總片數",
+    "statWaste": "損耗",
+    "statPing": "坪數",
+    "doorCount": "門洞數量",
+    "doorWidth": "門洞寬度",
+    "plankPricePerPing": "地板每坪",
+    "skirtingPricePerM": "踢腳板每米",
+    "underlayPricePerPing": "防潮墊每坪",
+    "bomTitle": "材料清單",
+    "copyDone": "已複製 ✓",
+    "copyButton": "複製清單",
+    "roomSummary": "房間 {area} m² · 周長 {perimeter} m",
+    "totalRow": "總計",
+    "noPrice": "—",
+    "traceLine": "整片 {full} + 裁切 {cut} 片(餘料優化後用新料 {newSheets} 片)= {total} 片 · {rows} 排 · 損耗 {waste}%",
+    "offcutReuseHeading": "餘料再利用明細({count} 筆)",
+    "estimatedTotal": "預估總價",
+    "noQuote": "未設定報價",
+    "partiallyPriced": "部分品項未報價",
+    "generateQuoteButton": "🧾 產生報價單",
+    "copyTitle": "【地板施工材料清單】",
+    "copyRoomLine": "房間 {area} m² / {ping} 坪 · 周長 {perimeter} m",
+    "copyPatternLine": "鋪法:{pattern} · 地板 {lengthCm}×{widthCm}cm",
+    "copyDivider": "──────────",
+    "copyTotalLine": "總計 NT$ {total}",
+    "copyTotalUnpricedSuffix": "(部分品項未報價)",
+    "copyNoQuoteLine": "(未設定報價)",
+    "copyWasteLine": "損耗 {waste}%"
+  },
+  "raisedFloorTool": {
+    "client": {
+      "h1": "和室架高平台估價",
+      "subtitle": "底架 + 面材完整算料 · 矩形/L 形 + 0~2 根挨柱",
+      "section1Shape": "① 平台形狀",
+      "section2Height": "② 架高高度",
+      "section3Plank": "③ 面材",
+      "section4Pillar": "④ 挨柱",
+      "section5Frame": "⑤ 骨架",
+      "section6Plywood": "⑥ 夾板",
+      "section8Price": "⑧ 估價",
+      "shapeRect": "矩形",
+      "shapeLshape": "L 形",
+      "totalWidth": "總寬",
+      "totalDepth": "總深",
+      "lCutX": "L 凹陷寬",
+      "lCutY": "L 凹陷深",
+      "height": "高度",
+      "plankPresetLabel": "常用地板尺寸",
+      "plankPresetSpec": "{lengthCm}×{widthCm}cm · 縫{gapMm}mm",
+      "plankLength": "片長",
+      "plankWidth": "片寬",
+      "plankGap": "伸縮縫",
+      "plankDirectionLabel": "鋪設方向",
+      "plankDirLong": "沿長軸",
+      "plankDirShort": "沿短軸 ↻",
+      "plankStartLabel": "起鋪角",
+      "plankStartTopLeft": "左上",
+      "plankStartTopRight": "右上",
+      "plankStartBottomLeft": "左下",
+      "plankStartBottomRight": "右下",
+      "plankStartCenter": "中央置中",
+      "pillarCountLabel": "({count}/2 根)",
+      "pillarHint": "靠柱施工時挖出凹陷,最多 2 根",
+      "pillarRemoveAria": "移除挨柱",
+      "pillarAddAria": "加入挨柱",
+      "pillarPositionLabel": "位置",
+      "pillarWidth": "柱寬",
+      "pillarDepth": "柱深",
+      "pillarEmptyHint": "無挨柱;按 + 加入並選位置與凹陷尺寸。",
+      "cornerTopLeft": "左上",
+      "cornerTopRight": "右上",
+      "cornerBottomLeft": "左下",
+      "cornerBottomRight": "右下",
+      "mainJoistLabel": "主支角材(頂/底框共用)",
+      "subJoistLabel": "副支角材",
+      "mainJoistSpacing": "主支間距",
+      "subJoistSpacing": "副支間距",
+      "plywoodSpecLabel": "夾板規格",
+      "plywoodLongEdge": "長邊",
+      "plywoodShortEdge": "短邊",
+      "plywoodThickness": "厚度",
+      "plywoodSpecHint": "💡 選 preset 自動帶入標準尺寸,可再 ±1cm 微調對齊料行實品。",
+      "plywoodGap": "拼縫間隙(不補 AB 膠)",
+      "plywoodWaste": "損耗",
+      "plankPrice": "面材每坪",
+      "joistPrice": "角材每米",
+      "plywoodPrice": "夾板每片",
+      "skirtingPrice": "踢腳每米",
+      "tabFrame": "骨架 2D",
+      "tabPlank": "拼花 2D",
+      "tab3d": "3D 爆炸",
+      "explodeLabel": "爆炸程度",
+      "view3dIso": "軸測",
+      "view3dTop": "俯視",
+      "layersLabel": "顯示圖層",
+      "layerLegs": "腳柱",
+      "layerFrameTop": "頂框",
+      "layerFrameBottom": "底框",
+      "layerMainTop": "頂主支",
+      "layerMainBottom": "底主支",
+      "layerSub": "副支",
+      "layerPlywood": "夾板",
+      "layerPlank": "面材",
+      "statPlank": "面材",
+      "statSub": "副支",
+      "statFrame": "骨架",
+      "statPlywood": "夾板",
+      "statPerimeter": "周長",
+      "unitPiece": "片",
+      "unitMeter": "m",
+      "unitYuan": "元",
+      "unitCm": "cm",
+      "unitMm": "mm",
+      "unitPercent": "%",
+      "unitCount": "件",
+      "unitSheet": "張",
+      "unitPing": "坪",
+      "unitSquareMeter": "m²",
+      "bomTitle": "材料清單",
+      "csvButton": "⬇ CSV",
+      "csvTitle": "含 BOM + 三張裁切表(UTF-8 BOM,Excel 開中文 OK)",
+      "copyDone": "已複製 ✓",
+      "copyButton": "複製清單",
+      "platformSummary": "平台 {area} m² · {ping} 坪",
+      "totalRow": "總計",
+      "noPrice": "—",
+      "estimatedTotal": "預估總價",
+      "noQuote": "未設定報價",
+      "partiallyPriced1": "部分品項",
+      "partiallyPriced2": "未報價",
+      "generateQuote": "🧾 產生報價單",
+      "frameCutSection": "🪚 裁料表 ① 骨架",
+      "frameCutSummary": "共 {count} 支角材 · 利用率 {pct}% · 剩料 {remain} m",
+      "stockLengthLabel": "原料一支長",
+      "stockLengthHint": "cm (360=12 尺、300=10 尺)",
+      "sawKerfLabel": "鋸路",
+      "spliceLabel": "接點搭接",
+      "spliceHint": "cm(超原料長段自動分段拼)",
+      "splicedTitle": "🔗 太長要分段接({groups} 件 → {pieces} 段,每接點搭接 {overlap} cm)",
+      "splicedSum": "合 {len} cm",
+      "thStock": "第幾支",
+      "thCut": "切法",
+      "thUsed": "已用",
+      "thKerf": "鋸路",
+      "thRemain": "剩料",
+      "footOrder": "訂料",
+      "footStockSuffix": "支 {len} cm",
+      "footTotalLen": "總長",
+      "footUsed": "實用",
+      "footRemain": "剩料",
+      "footUtilization": "利用率",
+      "footMeter": "{n} m",
+      "footPercent": "{n}%",
+      "legendFrameTop": "頂框",
+      "legendFrameBottom": "底框",
+      "legendMainTop": "頂主支",
+      "legendMainBottom": "底主支",
+      "legendSub": "副支",
+      "plankCutSection": "🪵 裁料表 ② 地板",
+      "plankCutSummary": "整片 {full} + 裁切 {cut}(實耗新片 {newPieces})= {total} 片 · 損耗 {waste}%",
+      "statFull": "整片",
+      "statCutPieces": "裁切件",
+      "statCutNew": "裁切實耗新片",
+      "statWaste": "實算損耗",
+      "thNo": "編號",
+      "thType": "類型",
+      "thEffectiveLen": "有效長 cm",
+      "thArea": "面積 cm²",
+      "labelFull": "整片",
+      "labelCut": "裁切片",
+      "offcutReuseSummary": "♻️ 餘料再利用明細({count} 筆)",
+      "plywoodCutSection": "🟫 裁料表 ③ 夾板",
+      "plywoodCutSummary": "{count} 片(整 {full} + 裁 {cut})· 訂料",
+      "plywoodOrderUnit": "張",
+      "plywoodSaved": " ♻ 省{n}",
+      "statPlywoodLay": "平台需鋪",
+      "statPlywoodFull": "整片",
+      "statPlywoodCut": "裁切片",
+      "statPlywoodOrder": "實際訂料",
+      "plywoodSavedBanner": "♻️ 2D 餘料拼湊後省 {n} 張新料(平台需鋪 {laid} 片但只要訂 {ordered} 張 {longCm}×{shortCm}cm 板,小裁切片從整片下料剩餘區裁出)",
+      "thWidthCm": "寬 cm",
+      "thHeightCm": "高 cm",
+      "thNewSheet": "新料",
+      "newSheetFormat": "料{n}",
+      "cutMark": "裁",
+      "newSheetGroupTitle": "📦 新料下料分組(同號 = 同張板切出)",
+      "newSheetGroupLabel": "料 {n}:",
+      "newSheetSharedSuffix": "({n} 片共板)",
+      "packingLogSummary": "📦 下料拼湊明細({count} 筆)",
+      "plywoodFooter": "💡 接縫已自動吸到最近的主支/副支中心(實務上每片邊緣都釘得到骨架)。整片寬 {longCm}cm × {shortCm}cm ±15% 內算「整片下料」。",
+      "stepsSection": "📐 施工步驟",
+      "stepsSubtitle": "6 步流程",
+      "step1Title": "放樣 + 底框鎖地",
+      "step1Desc": "在原地坪上彈線標出平台範圍(挨柱/L 形依設計圖),沿輪廓鎖底框角材;遇到挨柱角向內凹折,挨柱本體保留不蓋。",
+      "step2Title": "立腳柱",
+      "step2Desc": "周邊腳柱站底框上、內柱站底主支上(都用 {joist});{rows} 排內柱用調整腳對齊平台水平,鎖緊不晃動。",
+      "step3Title": "架頂框 + 頂主支",
+      "step3Desc": "沿平台輪廓鎖頂框,{joist} 主支跨短軸、中心距 {spacing}cm 共 {rows} 條;頂面共線,雷射水平儀確認整個平台水平。",
+      "step4Title": "副支補強",
+      "step4Desc": "{joist} 副支跨主支中間 slot、間距 {spacing}cm 共 {count} 根;每片夾板邊緣都要釘得到副支才不會踩起來軟。",
+      "step5Title": "鋪夾板({plywood})",
+      "step5Desc": "{full} 片整片 + {cut} 片裁切;接縫對準主支/副支中心釘下,片與片留 {gap}mm 拼縫(防潮膨脹用,不補 AB 膠)。",
+      "step6Title": "鋪面材",
+      "step6Desc": "{lengthCm}×{widthCm}cm 面材沿長軸鋪、錯縫 1/2 一片;牆邊留伸縮縫 {gap}mm,踢腳板/收邊條最後上。",
+      "copyTitle": "【和室架高平台材料清單】",
+      "copyPlatformLine": "平台 {area} m² / {ping} 坪 · 周長 {perimeter} m · 架高 {height} cm",
+      "copyShapeLine": "形狀:{shape} {width}×{depth} cm",
+      "copyPillarSuffix": " · 挨柱 {count} 根",
+      "copyDivider": "──────────",
+      "copyTotalLine": "總計 NT$ {total}",
+      "copyTotalUnpricedSuffix": "(部分品項未報價)",
+      "copyNoQuoteLine": "(未設定報價)",
+      "csvFilename": "架高地板_{width}x{depth}_H{height}.csv"
+    },
+    "underlaySkirting": {
+      "underlaySection": "⑦ 防潮墊",
+      "skirtingSection": "⑧ 踢腳板",
+      "underlaySpecLabel": "防潮墊規格",
+      "noneOption": "不裝",
+      "underlayOptionFormat": "{name}({areaM2}m²/卷)",
+      "wasteLabel": "損耗",
+      "wasteUnit": "%",
+      "underlayPriceHint": "預設報價 NT$ {price}/卷(可在價格區覆寫)",
+      "skirtingTypeLabel": "踢腳種類",
+      "skirtingWood": "木質踢腳",
+      "skirtingPvc": "PVC 踢腳",
+      "skirtingHeightLabel": "踢腳高度",
+      "skirtingHeightUnit": "cm",
+      "doorCountLabel": "門洞數量",
+      "doorCountUnit": "個",
+      "doorWidthLabel": "每個門洞寬",
+      "doorWidthUnit": "cm",
+      "skirtingFormulaHint": "踢腳板長度 = 平台周長 − 門洞數 × 門洞寬"
+    }
+  },
+  "projectsIndex": {
+    "metaTitle": "我的專案 · 木頭仁 木作藍圖",
+    "metaDescription": "把設計綁成「專案」管理：客戶資料、報價單、設計清單、進度，一個 case 一張畫面看完。"
+  },
+  "projectDetail": {
+    "metaTitle": "專案詳情 · 木頭仁 木作藍圖"
+  },
+  "projectPurchase": {
+    "metaTitle": "採購清單 · 木頭仁 木作藍圖",
+    "pdfFilenameTpl": "採購清單_{name}.pdf",
+    "backToProject": "← 回專案",
+    "kicker": "MATERIAL PURCHASE LIST",
+    "h1": "採購清單",
+    "wasteNote": "已含切料損耗（一般 10%、小物 25%）",
+    "emptyState": "尚未加入家具項目，無法產生採購清單。",
+    "thMaterial": "木材",
+    "thParts": "零件",
+    "thBdft": "板才",
+    "thUnit": "單價",
+    "thSubtotal": "小計",
+    "partsCountTpl": "{n} 片",
+    "usedIn": "用於：{names}",
+    "footTotal": "合計",
+    "tipPurchaseTitle": "📐 採購重點：",
+    "tipPurchaseBody": "木料行通常賣 8 尺、10 尺、12 尺長料。建議帶上每件家具的「最長零件長度」採購，避免買回來不夠長。",
+    "tipPriceTitle": "💰 估價說明：",
+    "tipPriceBody": "以系統 catalog 單價計算，實際價格依木料行報價。打折議價、整批優惠請另議。",
+    "unbuiltWarnTpl": "⚠️ 有 {n} 件家具無法重建（範本可能有更新），未列入此清單。",
+    "summaryLineTpl": "合計 {parts} 個零件 · {kinds} 種木材"
+  },
+  "projectQuote": {
+    "customerView": "客戶版檢視",
+    "backToEdit": "← 回專案編輯",
+    "printPageBtn": "🖨️ 列印頁",
+    "filenameTpl": "報價_{name}_{no}.pdf",
+    "quoteDateLbl": "報價日期：{date}",
+    "statusLbl": "狀態：{label}",
+    "designConceptQuote": "「{text}」",
+    "fieldCustomer": "客戶",
+    "fieldContact": "聯絡",
+    "fieldAddress": "案場地址",
+    "fieldAddressShort": "案場",
+    "dash": "—",
+    "noItems": "尚未加入任何家具項目。",
+    "roomCountTpl": "({n} 件)",
+    "roomCountParenTpl": "{name}（{n} 件）",
+    "ungrouped": "未分組",
+    "lineUnitTimesQtyTpl": "{price} × {qty}",
+    "sectionTotalKicker": "整套報價",
+    "totalUnitsTpl": "{n} 件",
+    "depositPct": "訂金（{pct}%）",
+    "balancePct": "尾款（{pct}%）",
+    "notesH": "備註",
+    "footerPayTerms": "付款條件：簽約付訂金 {pct}%，交貨前付清尾款。",
+    "footerRepriceNote": "報價以本單載明品項為準；變更設計、尺寸、材質須重新報價。",
+    "footerValidity": "本報價自寄出日起 14 日內有效。",
+    "dimNoData": "—",
+    "matNoData": "—"
+  },
+  "raisedFloorQuote": {
+    "metaTitle": "和室架高平台 工程報價 · 木頭仁",
+    "printMetaTitle": "和室架高平台 報價單 · 木頭仁",
+    "h1": "和室架高平台 工程報價",
+    "backToSim": "← 回模擬器",
+    "secCustomer": "客戶資料",
+    "secFeeOpts": "費用參數",
+    "secPrintMode": "列印模式",
+    "modeCustomer": "客戶版（隱藏成本/毛利）",
+    "modeInternal": "內部版（顯示成本/毛利）",
+    "summaryArea": "坪數 {ping} 坪 · 面積 {m2} m²",
+    "secQuote": "報價試算",
+    "totalWithVat": "含稅總計",
+    "unpriced": "未報價",
+    "unpricedWarn": "⚠️ 估價不完整（有品項未設單價）",
+    "printBtn": "🧾 列印報價單",
+    "historyH": "📁 最近架高地板報價（{n}）",
+    "clearHistory": "清除歷史",
+    "noCustomer": "(未填客戶)",
+    "reopen": "↗ 重開",
+    "shellWatermark": "木頭仁・架高地板",
+    "shellBackToSetup": "← 回設定頁",
+    "shellPrintBtn": "🖨️ 列印 / 存 PDF",
+    "shellTitleTpl": "{name}_架高地板_{date}",
+    "shellFallbackName": "客戶"
+  },
+  "apronTilt": {
+    "metaTitle": "外斜腳家具 · 牙條斜度計算器",
+    "backHome": "← 回首頁",
+    "h1": "外斜腳家具 · 牙條斜度計算器",
+    "intro": "4 隻腳對角線 splay 的家具，apron / 牙條的斜度不是腳的整體斜度，而是「前/側視看到的腳投影斜度」。",
+    "inputAngleLabel": "腳整體外斜角度（°）",
+    "inputAngleHint": "α — 腳跟垂直線的夾角",
+    "inputLegHeightLabel": "腳高（mm）",
+    "inputLegHeightHint": "H — 從地面到腳頂",
+    "resultLabel": "apron 該斜的角度",
+    "resultFormulaTpl": "arctan(tan({angle}°) / √2)",
+    "calcProcessSummary": "📐 計算過程（每步有白話解釋）",
+    "step1H": "Step 1：腳底比腳頂往外跑了多少？",
+    "step1FormulaTpl": "splayMm = H × tan(α) = {h} × tan({angle}°) =",
+    "step1Body1": "想像腳是直角三角形：腳高 H 是直立的一邊，斜出去的角度 α 在腳頂。",
+    "step1Body2": "tan(α) = 對邊/鄰邊 = 腳底跑多遠 / 腳高",
+    "step1Body3": "所以「腳底跑出去的距離」= H × tan(α)。這是「斜對角線」方向的總距離。",
+    "step2H": "Step 2：對角線距離分到「左右」跟「前後」各多少？",
+    "step2FormulaTpl": "splayDx = splayDz = splayMm / √2 = {splay} / 1.414 =",
+    "step2Body1": "對角線方向 = 45° 角，所以對角線位移要拆成「X 軸（左右）」跟「Z 軸（前後）」兩個分量。",
+    "step2Body2": "分量 = 對角線 × cos(45°) = 對角線 / √2",
+    "step2Body3": "X、Z 各分到 splayMm/√2。例如腳對角線跑 75mm，分到左右各 53mm，前後也 53mm。",
+    "step3H": "Step 3：從前面看，腳的視覺斜率是多少？",
+    "step3FormulaTpl": "slope = splayDx / H = {dx} / {h} =",
+    "step3Body1": "站在家具正前方看，只看得到「前後」方向的斜（左右方向被「壓扁」看不出來）。",
+    "step3Body2": "斜率 = 水平位移 / 垂直高度",
+    "step3Body3": "所以前視看到的斜率 = splayDx ÷ 腳高。這個值約 0.23 表示「腳每升 1mm 高，往前跑 0.23mm」。",
+    "step4H": "Step 4：把斜率轉回角度",
+    "step4FormulaTpl": "apron tilt = arctan(slope) = arctan({slope}) =",
+    "step4Body1prefix": "arctan",
+    "step4Body1suffix": " 是 tan 的反運算：知道斜率（對邊/鄰邊比），算出角度。",
+    "step4Body2": "這就是 apron 該斜的角度——跟前視看到的腳完全平行，視覺對齊。",
+    "conclusionTpl": "<strong>一句話總結：</strong>腳整體斜 {angle}°，但從前面看只看到 {tilt}° 的斜（被 √2 「壓扁」了）。Apron 也是從前面看到的斜面，所以它要斜 {tilt}° 才對齊。",
+    "tableSummary": "📊 常用角度對照表",
+    "thLegSplay": "腳 splay α",
+    "thApronTilt": "apron tilt",
+    "whySummary": "💡 為什麼要除以 √2？",
+    "whyP1": "圓凳 / 圓桌的 4 隻腳是往「對角線」（往 4 個角的斜方向）外踢，不是只往前後或只往左右。",
+    "whyP2": "所以腳底總共往對角線跑了 splayMm 距離，分到「左右（X）」跟「前後（Z）」兩個方向，每個方向只跑 splayMm/√2。",
+    "whyP3": "從正面看（只看前後 Z 方向），腳的視覺斜度就是 (splayMm/√2) ÷ 腳高 = tan(α)/√2，比腳的整體斜度小 √2 倍。",
+    "whyP4": "Apron 是橫的、跟腳同一個觀察平面，所以它要斜的角度 = 前/側視看到的腳斜度 = arctan(tan(α)/√2)。"
+  },
+  "refund": {
+    "metaTitle": "退費政策 · 木頭仁 木作藍圖",
+    "metaDescription": "木頭仁 木作藍圖（木作藍圖）退費政策 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+    "ogTitle": "退費政策 · 木頭仁 木作藍圖",
+    "ogDescription": "木頭仁 木作藍圖退費政策。",
+    "h1": "退費政策",
+    "lastUpdated": "最後更新：2026 年 5 月 13 日",
+    "sec1H": "1. 服務性質",
+    "sec1P1Pre": "本服務「木頭仁 木作藍圖（designer.woodenren.com）」屬於",
+    "sec1P1MidStrong": "數位內容／線上軟體服務（SaaS）",
+    "sec1P1MidPlain": "，依消費者保護法第 19 條第 2 項及行政院公告「通訊交易解除權合理例外情事適用準則」第 2 條第 5 款規定：",
+    "sec1P1EmStart": "「",
+    "sec1P1Em": "非以有形媒介提供之數位內容或一經提供即為完成之線上服務，經消費者事先同意始提供",
+    "sec1P1EmEnd": "」者，不適用七日鑑賞期之解除權。",
+    "sec1P2Pre": "使用者於完成付款並開通帳號權限時，即視為已同意立即提供數位內容服務並",
+    "sec1P2Strong": "拋棄七日鑑賞期",
+    "sec1P2Suffix": "。",
+    "sec2H": "2. 可申請退費之情形",
+    "sec2P": "原則上付款完成後恕不退費。但以下情形可於付款後 7 日內來信申請個案處理：",
+    "sec2Li1": "因本服務之系統重大瑕疵，導致購買之方案完全無法使用且本公司於合理時間內無法修復。",
+    "sec2Li2": "重複付款（同一方案、同一帳號短時間內重複扣款）。",
+    "sec2Li3": "因本公司主動終止服務，致已付費期間未使用之部分，依比例退費。",
+    "sec3H": "3. 不予退費之情形",
+    "sec3Li1": "已使用本服務產出工程圖、PDF、3D 模型、報價單或任何下載檔案。",
+    "sec3Li2": "個人因素（不會用、不想用、家中無木工機具、操作不熟悉等）。",
+    "sec3Li3": "因違反《服務條款》遭暫停或終止帳號者。",
+    "sec4H": "4. 退費流程",
+    "sec4Li1Pre": "來信 ",
+    "sec4Li1Email": "wengbinren@gmail.com",
+    "sec4Li1Suffix": "，主旨「退費申請 - 註冊 Email」，附訂單編號、付款日期、退費原因。",
+    "sec4Li2": "本公司於收到申請後 7 個工作日內回覆是否受理。",
+    "sec4Li3": "受理後依原付款管道（綠界 ECPay 信用卡／ATM）退回，款項到帳時間依各發卡銀行而定，通常為 3〜30 個工作日。",
+    "sec4Li4Pre": "因金流手續費屬第三方（綠界、發卡銀行）收取且不予退還，退費金額將",
+    "sec4Li4Strong": "扣除已產生之金流手續費",
+    "sec4Li4Suffix": "後匯回。",
+    "sec5H": "5. 聯絡窗口",
+    "sec5Company": "Wooden Ren Education Co., Ltd.（木頭仁木匠學院）",
+    "sec5AddrLabel": "地址：",
+    "sec5Addr": "基隆市暖暖區東勢街 6-34 號 4 樓",
+    "sec5EmailLabel": "Email：",
+    "client": {
+      "applyH": "如何申請退費",
+      "applyP1": "木作藍圖為數位虛擬商品，依「3. 不予退費之情形」原則上不接受退費。若您有特殊情況需申請退費，請",
+      "applyP1Strong": "直接 email",
+      "applyP1Suffix": " 給木頭仁本人，會逐則人工評估後 email 回覆。",
+      "emailLabel": "退費聯絡信箱：",
+      "emailHint": "來信請註明：註冊 email、訂單編號（在我的訂閱頁可查）、付款日期、申請原因。",
+      "emailHint2": "一般在 7 個工作日內回覆。",
+      "mailtoSubject": "木作藍圖退費申請",
+      "loginToView": "後可在下方查看自己的退費紀錄。",
+      "loginLink": "登入",
+      "myRecordsH": "我的退費紀錄",
+      "appliedOnTpl": "申請日 {date}",
+      "adminReplyLabel": "客服回覆：",
+      "statusPending": "審核中",
+      "statusApproved": "已通過",
+      "statusRejected": "未通過",
+      "statusRefunded": "已退款"
+    }
+  },
+  "privacy": {
+    "metaTitle": "隱私權政策 · 木頭仁 木作藍圖",
+    "metaDescription": "木頭仁 木作藍圖（木作藍圖）隱私權政策 — 我們蒐集什麼資料、做什麼用、怎麼保護。",
+    "ogTitle": "隱私權政策 · 木頭仁 木作藍圖",
+    "ogDescription": "木頭仁 木作藍圖隱私權政策。",
+    "h1": "隱私權政策",
+    "lastUpdated": "最後更新：2026 年 5 月 12 日",
+    "sec1H": "1. 我們是誰",
+    "sec1P1Pre": "本服務由 ",
+    "sec1P1Strong": "Wooden Ren Education Co., Ltd.（木頭仁木匠學院）",
+    "sec1P1Suffix": " 營運。負責人聯絡信箱：",
+    "sec1P1Period": "。",
+    "sec2H": "2. 我們蒐集哪些資料",
+    "sec2Li1Strong": "帳號資料：",
+    "sec2Li1": "Email、顯示名稱、頭像（若使用 Google 登入）、註冊時間。",
+    "sec2Li2Strong": "設計資料：",
+    "sec2Li2": "使用者建立的設計檔（家具類型、尺寸、選項、報價內容、客戶資料）。",
+    "sec2Li3Strong": "付款紀錄：",
+    "sec2Li3": "付款時間、方案類型、訂閱到期日；",
+    "sec2Li3Strong2": "不儲存信用卡卡號或 CVV",
+    "sec2Li3Suffix": "（由金流業者直接處理）。",
+    "sec2Li4Strong": "系統紀錄：",
+    "sec2Li4": "IP 位址、瀏覽器 UA、錯誤訊息（用於排除故障），保存最多 90 天。",
+    "sec2Li5Strong": "使用者主動回報內容：",
+    "sec2Li5": "站內右下角 🐛「回報」按鈕送出的郵件、客服信件。",
+    "sec3H": "3. 資料用途",
+    "sec3Li1": "提供與維護本服務功能（登入、儲存設計、列印、報價）。",
+    "sec3Li2": "方案到期通知、付費收據、重大條款變更通知。",
+    "sec3Li3": "排除系統故障、改善服務品質。",
+    "sec3Li4": "經您同意後，發送產品改版／教學內容／優惠資訊（可隨時退訂）。",
+    "sec3P": "我們<strong>不會</strong>將您的個人資料販售或交換給第三方做行銷用途。",
+    "sec4H": "4. 我們使用的第三方服務",
+    "sec4Li1Strong": "Supabase（資料庫＋登入）",
+    "sec4Li1Suffix": "：儲存帳號與設計資料，伺服器位於 AWS 新加坡區。",
+    "sec4Li2Strong": "Vercel（部署）",
+    "sec4Li2Suffix": "：託管網站本體；存放 build artefacts 與系統 log。",
+    "sec4Li3Strong": "Google OAuth",
+    "sec4Li3Suffix": "（若您使用 Google 登入）：僅取得 Email、姓名、頭像。",
+    "sec4Li4Strong": "Anthropic Claude API",
+    "sec4Li4Suffix": "（若使用「照片轉設計」功能）：上傳的圖片會傳送給 Anthropic 進行影像辨識，Anthropic 不會將內容用於模型訓練（依其 API 服務條款）。",
+    "sec5H": "5. Cookie 與本機儲存",
+    "sec5Li1": "登入維持：Supabase Auth 使用 cookie 維持登入狀態。",
+    "sec5Li2Pre": "使用偏好：報價單抬頭、品牌客製等資訊存於瀏覽器 ",
+    "sec5Li2Code": "localStorage",
+    "sec5Li2Suffix": "，不會上傳伺服器。",
+    "sec5Li3": "我們<strong>不</strong>使用 Google Analytics 或第三方廣告追蹤 Cookie。",
+    "sec6H": "6. 您的權利",
+    "sec6P1": "依個人資料保護法，您對自己的資料享有下列權利：",
+    "sec6Li1": "查詢、閱覽、複製本您的個資。",
+    "sec6Li2": "請求補充或更正錯誤資料。",
+    "sec6Li3": "請求停止蒐集、處理、利用或刪除您的個資（含註銷帳號）。",
+    "sec6P2Pre": "欲行使上述權利，請來信 ",
+    "sec6P2Suffix": "。我們將於 14 個工作天內處理。",
+    "sec7H": "7. 資料保存期限",
+    "sec7Li1": "帳號與設計資料：保存至您主動申請刪除帳號為止。",
+    "sec7Li2": "付款紀錄：依稅法規定保存 7 年。",
+    "sec7Li3": "系統 log：90 天滾動覆寫。",
+    "sec8H": "8. 兒童隱私",
+    "sec8P": "本服務未設計給 14 歲以下未成年人使用。如發現未成年人未經監護人同意註冊，請來信通知我們刪除帳號。",
+    "sec9H": "9. 政策修訂",
+    "sec9P": "本政策得隨時修訂並於本頁公告，重大變更會以站內公告或 Email 通知；繼續使用本服務即視為同意修訂後政策。",
+    "footerPre": "如對本政策有任何疑問，請來信 ",
+    "footerSuffix": "。"
+  },
+  "terms": {
+    "metaTitle": "服務條款 · 木頭仁 木作藍圖",
+    "metaDescription": "木頭仁 木作藍圖（木作藍圖）服務條款 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+    "ogTitle": "服務條款 · 木頭仁 木作藍圖",
+    "ogDescription": "木頭仁 木作藍圖服務條款。",
+    "h1": "服務條款",
+    "lastUpdated": "最後更新：2026 年 5 月 12 日",
+    "sec1H": "1. 服務提供者",
+    "sec1Pre": "本服務（以下稱「本生成器」）由 ",
+    "sec1Strong": "Wooden Ren Education Co., Ltd.（木頭仁木匠學院）",
+    "sec1Suffix": " 營運，登記地址：基隆市暖暖區東勢街 6-34 號 4 樓。聯絡信箱：",
+    "sec1Period": "。",
+    "sec2H": "2. 服務內容",
+    "sec2P1": "本生成器提供以下功能：輸入家具尺寸/木材/榫卯選項，自動產出 3D 模型、工程三視圖、爆炸圖、材料清單、A4 列印工程圖；專業版以上另含家具報價系統、客戶資料管理、設計師模式。",
+    "sec2P2": "本生成器仍持續開發中，使用者理解部分功能可能變動、暫停或調整收費方式；重大變更會以站內公告或 Email 通知。",
+    "sec3H": "3. 帳號註冊與安全",
+    "sec3Li1": "使用者需以真實 Email 註冊；不得冒用他人身分或多重註冊以規避方案限制。",
+    "sec3Li2": "帳號密碼／登入 Token 由使用者自行妥善保管，因外洩造成之損失由使用者自負。",
+    "sec3Li3": "本生成器有權對違反條款或惡意行為之帳號，逕行暫停或終止服務。",
+    "sec4H": "4. 方案與付費",
+    "sec4Li1": "免費版可完整使用方凳、筆筒、木工工作桌三個範本、預覽其餘所有範本的設計圖，並享每帳號 1 筆設計存檔；改尺寸、報價與列印工程包需付費方案。",
+    "sec4Li2": "個人版／專業版採月付或年付訂閱；學員版為木匠學院學員身份開通之免費使用方案，依當下方案說明為準。",
+    "sec4Li3Pre": "付費完成後通常即時開通；如未開通可來信 ",
+    "sec4Li3Suffix": "。",
+    "sec4Li4Strong": "退費政策：",
+    "sec4Li4": "因屬數位內容服務，原則上付款後恕不退費；如遇系統重大瑕疵導致無法使用，請於付款 7 日內來信申訴，個案處理。",
+    "sec5H": "5. 智慧財產權",
+    "sec5Li1": "本生成器之程式碼、UI、家具範本、工程圖樣式之著作權屬本公司所有。",
+    "sec5Li2Pre": "使用者透過本生成器產生之",
+    "sec5Li2Strong": "具體尺寸設計檔與列印 PDF",
+    "sec5Li2Suffix": "，著作權與商業使用權歸使用者；使用者可自由用於自家木工製作、上課教學、接案、銷售成品。",
+    "sec5Li3": "使用者不得將本生成器整體介面、原始檔或範本資料庫重新封裝、轉售、提供給第三方使用。",
+    "sec6H": "6. 使用者責任與免責",
+    "sec6Li1Pre": "本生成器產出之設計圖僅供",
+    "sec6Li1Strong": "設計參考",
+    "sec6Li1Suffix": "；實際施作前請依現場木料、機具狀況自行驗算。因依照設計圖施作而生之任何損害（含木料浪費、安全事故、結構失敗），本公司不負賠償責任。",
+    "sec6Li2": "本生成器內附之建議用料／用量／工時均為估算值，與實際結果可能有差距。",
+    "sec6Li3": "使用者不得利用本生成器從事違法、侵權、騷擾或干擾系統穩定之行為。",
+    "sec7H": "7. 服務變更與中止",
+    "sec7P": "本公司保留隨時修改、暫停或終止全部或部分服務之權利，重大變更會於站內公告或 Email 通知；如因服務終止導致已付費期間未使用之部分，將依比例退費。",
+    "sec8H": "8. 條款修訂",
+    "sec8P": "本條款得隨時修訂並於本頁公告，使用者於修訂後繼續使用本服務即視為同意修訂後條款。",
+    "sec9H": "9. 準據法與管轄",
+    "sec9Pre": "本條款以中華民國法律為準據法；因本條款發生爭議，雙方同意以",
+    "sec9Strong": " 台灣基隆地方法院 ",
+    "sec9Suffix": "為第一審管轄法院。",
+    "footerPre": "如對本條款有任何疑問，請來信 ",
+    "footerSuffix": "。"
+  },
+  "quoteShareActions": {
+    "alertNoForm": "找不到報價表單，請重新整理頁面",
+    "alertNoEmail": "客戶還沒填 Email。請在下方「客戶資料」欄填入 email 後再試。",
+    "alertLocalBaseUrl": "❌ 你的「對外公開網址」設定是 {url}，這是本機網址，客戶連不上。\n\n請到「報價單抬頭設定」修改成你的線上網址（例如 https://你的網站.vercel.app）。",
+    "alertLocalOrigin": "⚠️ 你正在 localhost 編輯，分享出去的連結客戶無法打開。\n\n請先到「報價單抬頭設定」展開，填入「對外公開網址」（例如 https://你的網站.vercel.app）。",
+    "btnLineCopied": "✅ 已複製",
+    "btnLine": "💬 LINE 訊息",
+    "btnLineTitle": "複製格式化的 LINE 訊息",
+    "btnEmail": "📧 寄 Email",
+    "btnEmailTitle": "開啟郵件客戶端寄給客戶 Email",
+    "btnCopyLink": "🔗 複製連結",
+    "btnCopyLinkTitle": "複製短連結，可貼到任何地方",
+    "btnQrBusy": "…",
+    "btnQrClose": "✕ 收起 QR",
+    "btnQr": "📱 QR",
+    "btnQrTitle": "顯示 QR 給現場客戶手機掃",
+    "btnPdf": "🧾 列印 / PDF",
+    "btnPdfTitle": "開新分頁列印 / 存 PDF",
+    "lineTitle": "【木頭仁客製家具報價】",
+    "lineGreetingTpl": "{name} 您好，",
+    "lineGreetingFallback": "您好，",
+    "lineIntro": "以下是您的報價資訊：",
+    "lineItemTpl": "📐 品項：{name}",
+    "lineDimensionsTpl": "📏 尺寸：{value}",
+    "lineMaterialTpl": "🪵 木材：{name}",
+    "lineTotalTpl": "💰 報價總計（含稅）：{total}",
+    "lineDepositTpl": "　├─ 訂金（下訂時付 {pct}%）：{amount}",
+    "lineBalanceTpl": "　└─ 尾款（交貨時付）：{amount}",
+    "lineDeliveryTpl": "📅 預計交期：{date}",
+    "lineExpiryTpl": "⏰ 報價有效至：{date}",
+    "lineUrlLabel": "🔗 詳細報價單：",
+    "lineQuoteNoTpl": "報價單號：{no}",
+    "lineSignoff": "如需調整或有問題歡迎回覆，謝謝！",
+    "lineFrom": "— 木頭仁木作",
+    "emailSubjectTpl": "客製家具報價 {no}｜{name} {dim}",
+    "emailIntro": "感謝您的詢問，以下是您的客製家具報價：",
+    "emailDivider": "━━━━━━━━━━━━━━━",
+    "emailItemTpl": "品項：{name}",
+    "emailDimTpl": "尺寸：{value}",
+    "emailMaterialTpl": "木材：{name}",
+    "emailTotalTpl": "報價總計（含稅）：{total}",
+    "emailDepositTpl": "　訂金（下訂時付 {pct}%）：{amount}",
+    "emailBalanceTpl": "　尾款（交貨時付）：{amount}",
+    "emailDeliveryTpl": "預計交期：{date}",
+    "emailExpiryTpl": "報價有效至：{date}",
+    "emailLinkIntro": "完整報價單（含三視圖、條款、備註）請點：",
+    "emailSignoff": "若需調整設計或有任何問題，歡迎回信討論。",
+    "emailFrom": "— 木頭仁木作"
+  },
+  "quoteLaborForm": {
+    "presetStandard": "標準接案",
+    "presetLow": "競標低利",
+    "presetHigh": "精品高利",
+    "presetLabel": "套用：",
+    "pending": "更新中…",
+    "termsLegend": "💰 議價與條款（最常微調）",
+    "fieldOverridePrice": "議價 NT$（0=不覆寫）",
+    "fieldOverridePriceHint": "客戶砍到 25000 就填 → 毛利自動反算",
+    "fieldQuantity": "數量",
+    "fieldDiscountRate": "折扣率",
+    "fieldDiscountRateHint": "例：5% = 95 折",
+    "fieldDepositRate": "訂金比例",
+    "termShipping": "🚚 含運費",
+    "termInstall": "🔧 含現場安裝",
+    "termPdfNote": "（PDF 備註）",
+    "advancedToggle": "進階設定（有效期、材料單價、時薪、毛利率、稅率）",
+    "validityLegend": "有效期 / 交期 / 緩衝",
+    "fieldExpiryDays": "報價有效期（天）",
+    "fieldDeliveryDays": "交貨工作天",
+    "fieldDeliveryDaysHintAuto": "0=自動估 （含緩衝）；填值=直接覆寫",
+    "fieldDeliveryDaysHintNoAuto": "0=自動估；填值=直接覆寫",
+    "fieldBufferDays": "塗裝/出貨緩衝（天）",
+    "fieldBufferDaysHint": "乾燥+出貨，併入自動估",
+    "materialLegend": "材料單價（NT$/板才）",
+    "primaryMaterialLabelTpl": "{name}（主材）",
+    "fieldPlywood": "夾板（背板/抽屜底）",
+    "fieldMdf": "中纖板（抽屜側背）",
+    "matOptionalHint": "留空併入主材",
+    "laborLegend": "時薪 / 雜項 / 毛利",
+    "fieldHourlyRate": "師傅時薪 (NT$/hr)",
+    "fieldHoursOverrideTpl": "工時覆寫 (hr) — 預估 {hours}h",
+    "fieldHoursOverrideHintTpl": "0=用預估的 {hours}h；填值=直接覆寫",
+    "fieldEquipment": "設備折舊 (NT$/hr)",
+    "fieldConsumables": "耗材 (NT$)",
+    "fieldFinishing": "塗裝費 (NT$)",
+    "fieldHardware": "五金 (NT$)",
+    "fieldShipping": "運費 (NT$)",
+    "fieldInstall": "安裝費 (NT$)",
+    "fieldMargin": "毛利率",
+    "fieldVat": "營業稅率",
+    "designerLegend": "🎨 設計師加成（對外提案專用）",
+    "designerHelp": "在「成本＋毛利」之上再乘一層。給裝潢設計師對自己客戶報價：木匠出貨價 × (1 + 加成) = 對外單價。",
+    "designerHelp2": "0 = 不啟用（一般木工接案模式）；常見 30~50%。後台仍可看到原始木匠價。",
+    "fieldDesignerMarkup": "設計師加成",
+    "fieldDesignerMarkupHint": "0=關閉；輸入 30 = 加 30%",
+    "optionalPlaceholder": "（不填 / 0＝併入主材）"
+  },
+  "zoomableViews": {
+    "front": "正視圖",
+    "side": "側視圖",
+    "top": "俯視圖",
+    "zoomHint": "🔍 點擊放大",
+    "zoomInAriaLabel": "放大",
+    "zoomOutAriaLabel": "縮小",
+    "zoomInTitle": "放大（按 +）",
+    "zoomOutTitle": "縮小（按 -）",
+    "resetTitle": "重設縮放（按 0）",
+    "closeAriaLabel": "關閉",
+    "zoomLabelTpl": "放大{title}"
+  },
+  "quoteGate": {
+    "checking": "檢查方案中…",
+    "h": "客製家具報價系統 是 專業版功能",
+    "body1": "整套報價流程（材料/工時/塗裝/折扣/稅）+ 自訂抬頭 LOGO + 客戶資料管理 + LINE/Email 一鍵分享，都在這裡。",
+    "body2": "專業版 NT$ 890 / 月，接過 1 件案子就回本。",
+    "cta": "看方案",
+    "notLoggedInHint": "· 還沒登入嗎？右上角先登入",
+    "upgradeFeature": "自訂報價單抬頭 / LOGO / 客戶資料管理",
+    "upgradeHint": "專業版含這些工作室必備工具～"
+  },
+  "engQuoteForm": {
+    "demolitionH": "拆除清運費",
+    "consumablesH": "雜項耗材",
+    "modeLump": "定額",
+    "modePerPing": "每坪",
+    "modePercent": "材料費 %",
+    "fieldCeilingMaterial": "天花板每坪材料費",
+    "fieldLabor": "每坪施工費",
+    "fieldDemolitionLump": "拆除清運(定額)",
+    "fieldDemolitionPerPing": "拆除清運(每坪)",
+    "fieldConsumablesLump": "雜項耗材(定額)",
+    "fieldConsumablesPercent": "雜項耗材(材料費百分比)",
+    "fieldPainting": "批土油漆",
+    "fieldShipping": "運費",
+    "fieldMargin": "毛利率",
+    "fieldDiscount": "折扣率",
+    "fieldDeposit": "訂金比例",
+    "fieldValidity": "報價有效天數",
+    "unitPerPing": "元/坪",
+    "unitNtd": "元",
+    "unitPct": "%",
+    "unitDays": "天"
+  },
+  "engQuotePrint": {
+    "titleFloor": "地板工程報價單",
+    "titleCeiling": "天花板工程報價單",
+    "customerH": "客戶",
+    "taxIdPrefix": "統編",
+    "pingTpl": "坪數",
+    "ping": "坪",
+    "areaTpl": "面積",
+    "thItem": "項目",
+    "thDetail": "說明",
+    "thAmount": "金額",
+    "unpriced": "未報價",
+    "rowCostSubtotal": "成本小計",
+    "rowMargin": "毛利",
+    "rowSubtotalExclVat": "未稅小計",
+    "rowDiscount": "折扣",
+    "rowVatTpl": "營業稅 {pct}%",
+    "rowTotal": "總計",
+    "rowDeposit": "訂金",
+    "rowBalance": "交貨尾款",
+    "unpricedWarn": "⚠️ 部分品項未設定單價，此報價尚不完整。",
+    "validUntilTpl": "報價有效至 {date}",
+    "signCustomer": "客戶簽章：________________",
+    "signContractor": "承包商簽章：________________"
+  },
+  "projectShare": {
+    "studio": "工作室",
+    "greetingTpl": "{name} 您好，",
+    "greetingFallback": "您好，",
+    "alertGenerateFailedTpl": "產生連結失敗：{msg}",
+    "lineBtn": "💬 LINE 提案",
+    "lineBtnTitle": "開啟 LINE 分享面板，已預填招呼語與連結",
+    "emailBtn": "📧 寄 Email",
+    "emailBtnTitle": "開啟 Email，已預填主旨與連結",
+    "lineMessageTpl": "{greeting}\n\n{sender}為您準備的「{project}」整套報價單已完成（單號 {no}，總計 {total}）。\n\n線上檢視：{url}\n\n如有任何問題或想調整內容，歡迎隨時聯絡，謝謝！",
+    "emailSubjectTpl": "{project} 報價單（{no}）— {sender}",
+    "emailIntroTpl": "感謝您的詢問。{sender}為您準備的「{project}」整套報價單已完成。",
+    "emailQuoteNoTpl": "報價單號：{no}",
+    "emailTotalTpl": "整套金額：{total}",
+    "emailUrlTpl": "線上檢視：{url}",
+    "emailSignoff": "如有任何問題或希望調整內容，歡迎回覆此信，謝謝！"
+  },
+  "branded": {
+    "logoAltFallback": "LOGO",
+    "taglineDefault": "WOODEN REN · 木頭仁木匠學院",
+    "headerTitleZh": "客製家具報價單",
+    "headerTitleEn": "QUOTATION",
+    "supplierH": "供應商 FROM",
+    "fieldCompany": "公司",
+    "fieldChinese": "中文",
+    "fieldAddress": "地址",
+    "fieldPhone": "電話",
+    "fieldTaxId": "統編",
+    "fieldContact": "聯絡人",
+    "fieldEmail": "email",
+    "footerCopyright": "© 2026 {company} · 本報價單由木作藍圖自動產出",
+    "footerCompanyFallback": "Wooden Ren Education Co., Ltd.",
+    "signatureCompanyFallback": "木頭仁木匠學院",
+    "signatureDateTpl": "日期：{date}",
+    "termsPaymentH": "付款條件 PAYMENT TERMS",
+    "termsDeliveryH": "交貨與售後 DELIVERY & WARRANTY",
+    "termsDeliveryLbl": "交貨期",
+    "termsWarrantyLbl": "保固",
+    "termsAfterSalesLbl": "售後服務",
+    "depositLineTpl": "訂金：簽約付款 {pct}%（{amount}）",
+    "balanceLineTpl": "尾款：交貨前付款 {pct}%（{amount}）",
+    "installmentLineTpl": "{label}：{pct}%（{amount}）",
+    "installmentLabelFallback": "—",
+    "bankNameTpl": "匯款銀行：{bank}",
+    "bankAccountTpl": "帳戶：{account}",
+    "deliveryWorkdaysTpl": "約 {n} 個工作",
+    "notesH": "備註 NOTES",
+    "dashesPlaceholder": "＿＿＿＿＿＿＿＿",
+    "dashesShort": "＿＿＿＿"
+  },
+  "ownerBranded": {
+    "studio": "工作室",
+    "kicker": "QUOTATION · 客製家具報價單"
+  },
+  "customerForm": {
+    "legend": "客戶資料（報價單「客戶 TO」欄會帶入）",
+    "historyHTpl": "📇 近期客戶（{n}）— 點一下直接套用",
+    "historyApplyTitleTpl": "套用 {name}{phone}{tax}",
+    "historyPhoneSep": " · {phone}",
+    "historyTaxSep": " · 統編 {tax}",
+    "removeTitle": "從歷史刪除",
+    "removeAria": "移除",
+    "fieldName": "公司 / 姓名",
+    "fieldContact": "聯絡人",
+    "fieldPhone": "電話",
+    "fieldAddress": "送貨地址",
+    "fieldTaxId": "統一編號",
+    "fieldEmail": "Email",
+    "clear": "清除客戶資料"
+  },
+  "expiryBanner": {
+    "expiredTitleTpl": "⚠️ 本報價已於 {date} 過期",
+    "expiredCustomer": "木材成本與工時可能變動，請與師傅聯絡確認最新報價。",
+    "expiredCraftsman": "建議重新確認單價或在專案頁延長有效期。",
+    "soonTpl": "⏰ 報價有效至 {date}（剩 {days} 天），請儘速確認。",
+    "validTpl": "📅 報價有效至 {date}（剩 {days} 天）"
+  },
+  "contactCraftsman": {
+    "studio": "工作室",
+    "greetingTpl": "{name} 您好，",
+    "greetingFallback": "您好，",
+    "h": "有任何問題，直接跟師傅討論",
+    "intro": "想調整尺寸？想換木材？想看更多細節？想問交期？任何問題都歡迎聯絡。",
+    "phoneBtn": "📞 撥打電話",
+    "emailBtn": "📧 寄信給師傅",
+    "footerTpl": "本報價由 {sender} 透過木頭仁設計生成器產出",
+    "inquirySubjectTpl": "報價詢問（單號 {no}）",
+    "inquiryBodyTpl": "{greeting}\n\n我看了您寄來的報價單（單號 {no}），想跟您討論一下：\n\n（請在這裡寫下您的問題）\n\n謝謝！"
+  },
+  "messageThread": {
+    "errMissingToken": "缺少 token",
+    "thCustomer": "跟師傅留言",
+    "thCraftsman": "客戶往來",
+    "todayTpl": "今天 {time}",
+    "nicknameCustomer": "客戶",
+    "nicknameCraftsman": "師傅",
+    "namePhCustomer": "您的名字（選填）",
+    "namePhCraftsman": "（選填）顯示名稱",
+    "contentPhCustomer": "想調尺寸？想換木材？想知道交期？想還價？任何問題都歡迎留言。",
+    "contentPhCraftsman": "回覆客戶留言或主動更新進度…",
+    "sendBtnIdle": "送出留言",
+    "sendBtnBusy": "送出中…",
+    "errPrefixTpl": "送出失敗：{msg}"
+  },
+  "copyShareLink": {
+    "title": "產生公開連結（客戶不需登入即可看到報價）",
+    "copied": "✅ 已複製公開連結",
+    "idle": "🔗 複製公開連結",
+    "alertFailedTpl": "複製失敗：{msg}"
+  },
+  "pricingErrors": {
+    "not-logged-in": "請先登入",
+    "unknown-plan": "未知方案",
+    "unknown-billing-cycle": "未知計費週期",
+    "category-required": "請選擇範本類別",
+    "category-not-found": "範本類別不存在",
+    "free-template-no-purchase": "免費範本不需要購買",
+    "template-price-not-found": "找不到此範本的買斷價",
+    "invalid-tool": "工具必須是 ceiling 或 floor",
+    "admin-no-purchase": "管理員帳號已享有全部功能，無需購買",
+    "already-unlocked": "你已經買過此項目了"
+  },
+  "pricingPage": {
+    "paymentErrorH": "結帳系統暫時無法使用",
+    "paymentErrorBody": "抱歉，金流目前無法連線。請稍後再試，或",
+    "paymentErrorContact": "聯絡我們",
+    "paymentErrorBodyTail": "協助處理。",
+    "paymentErrorBack": "← 回上一步",
+    "paymentErrorBrowse": "看其他範本",
+    "lockedHTpl": "「{name}」是付費版才能用的家具範本",
+    "lockedBody": "免費版可完整預覽這張家具的設計圖，但改成你自己的尺寸、產生報價與列印工程包需要付費。可選「單範本買斷」或「升級個人版」，下方挑一個適合你的方案就能解鎖。",
+    "lockedDetailTpl": "📖 先看「{name}」的詳細介紹 →",
+    "backToApp": "← 回家具列表",
+    "browseTemplates": "📖 看每張家具的詳細介紹",
+    "h1": "選一個適合你的方案",
+    "subH1": "不論你是 DIY 玩家、接案師傅，還是設計師，都有對應方案",
+    "subHelpPre": "還沒決定要做哪張家具？先到",
+    "subHelpLink": "範本介紹",
+    "subHelpSuffix": "讀完整版面、設計重點、實際畫面再回來",
+    "tabMonthly": "月付",
+    "tabYearly": "年付",
+    "yearlySavings": "省 2 個月",
+    "couponLabel": "🎫 折扣碼（可選）",
+    "couponPlaceholder": "例：LAUNCH-XXXXXXXX",
+    "couponApply": "套用",
+    "couponChecking": "驗證中…",
+    "couponOkTpl": "✅ 折扣 {pct}% 已套用（限年付方案，結帳自動扣）",
+    "couponErrPrefix": "❌ ",
+    "couponMonthlyWarn": "⚠️ 此 coupon 只能用年付，切到上方「年付」才會生效",
+    "couponErrFallback": "驗證失敗",
+    "couponNetworkErr": "網路錯誤",
+    "faqsH": "方案常見問題",
+    "faqsSub": "付費前最常被問的 8 個問題",
+    "fullFaq": "看完整 FAQ →",
+    "footnote1": "所有方案皆可隨時升降級。月費／年費方案到期未續訂自動降為免費版（你的設計、客戶資料保留 90 天）。",
+    "footnote2": "年付 = 月費 × 10（省 2 個月），一年只付一次比較單純。"
+  },
+  "pricingPlans": {
+    "free": {
+      "name": "免費版",
+      "audience": [
+        "想先試試看的",
+        "做方凳、筆筒、工作桌就夠的",
+        "想先免費看遍所有模板再決定的"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "方凳、筆筒、木工工作桌 3 模板：完整客製、自由出圖"
+        },
+        {
+          "ok": true,
+          "text": "其餘所有模板免費完整預覽（3D／三視圖／榫卯／材料單）"
+        },
+        {
+          "ok": true,
+          "text": "預覽時可自由切換木料"
+        },
+        {
+          "ok": false,
+          "text": "改成你自己的尺寸（升級解鎖）"
+        },
+        {
+          "ok": false,
+          "text": "下載 PDF / 列印工程包"
+        },
+        {
+          "ok": false,
+          "text": "客製家具報價"
+        }
+      ],
+      "cta": "立即免費使用"
+    },
+    "personal": {
+      "name": "個人版",
+      "audience": [
+        "DIY 木工玩家",
+        "週末做家具的人",
+        "自己家裡用的"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "無限儲存設計"
+        },
+        {
+          "ok": true,
+          "text": "下載 PDF（無浮水印）"
+        },
+        {
+          "ok": true,
+          "text": "完整裁切計算器"
+        },
+        {
+          "ok": true,
+          "text": "全部範本 + 3D 預覽"
+        },
+        {
+          "ok": true,
+          "text": "天花板骨架施工模擬器"
+        },
+        {
+          "ok": false,
+          "text": "客製家具報價系統"
+        },
+        {
+          "ok": false,
+          "text": "客戶資料管理"
+        }
+      ],
+      "cta": "選擇個人版"
+    },
+    "pro": {
+      "name": "專業版",
+      "audience": [
+        "接案木工師傅",
+        "獨立傢俱設計師",
+        "工作室經營者"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "個人版全部功能"
+        },
+        {
+          "ok": true,
+          "text": "客製家具報價系統"
+        },
+        {
+          "ok": true,
+          "text": "自訂報價單抬頭 / LOGO"
+        },
+        {
+          "ok": true,
+          "text": "客戶資料管理"
+        },
+        {
+          "ok": true,
+          "text": "PDF 報價單一鍵產出"
+        },
+        {
+          "ok": true,
+          "text": "LINE / Email 一鍵分享"
+        }
+      ],
+      "cta": "選擇專業版"
+    },
+    "student_personal": {
+      "name": "學員續用 · 個人",
+      "audience": [
+        "DIY 自家用的學員",
+        "做完課程作品想繼續做家具",
+        "不需要報價系統"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "個人版全部功能"
+        },
+        {
+          "ok": true,
+          "text": "無限儲存設計"
+        },
+        {
+          "ok": true,
+          "text": "PDF 下載（無浮水印）"
+        },
+        {
+          "ok": true,
+          "text": "完整裁切計算器"
+        },
+        {
+          "ok": true,
+          "text": "學員專屬約 25% 折扣"
+        },
+        {
+          "ok": false,
+          "text": "客製家具報價系統"
+        }
+      ],
+      "cta": "選擇學員 · 個人"
+    },
+    "student_pro": {
+      "name": "學員續用 · 專業",
+      "audience": [
+        "學完去接案的學員",
+        "獨立工作室經營者",
+        "需要完整報價/客戶管理"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "專業版全部功能"
+        },
+        {
+          "ok": true,
+          "text": "客製家具報價系統"
+        },
+        {
+          "ok": true,
+          "text": "自訂報價單抬頭 / LOGO"
+        },
+        {
+          "ok": true,
+          "text": "客戶資料管理"
+        },
+        {
+          "ok": true,
+          "text": "PDF 報價單一鍵產出"
+        },
+        {
+          "ok": true,
+          "text": "學員專屬約 22% 折扣"
+        }
+      ],
+      "cta": "選擇學員 · 專業"
+    }
+  },
+  "pricingFaqs": [
+    {
+      "q": "免費版到底能做什麼？",
+      "a": "方凳、筆筒、木工工作桌三個模板可以完整客製、自由出圖。其餘所有家具模板都能免費完整預覽——3D、榫卯、三視圖、材料單全部看得到，喜歡再升級。只有改成你自己的尺寸、產生報價與列印工程包需要付費（材料隨時可換著預覽）。"
+    },
+    {
+      "q": "個人版 NT$390 跟專業版 NT$890 差在哪？",
+      "a": "個人版：全 26 模板 + 天花板/地板模擬器 + PDF + 雲端儲存無限。適合 DIY、自家裝潢、週末做家具的人。\n\n專業版：個人版全部 + 客戶報價系統 + 客戶資料管理 + STL/OBJ 輸出（可接 CNC）+ 設計師模式（尺寸無上限）。適合靠木工接案、開家具工作室的職人。\n\n簡單說：不接案就買個人版，要靠這個賺錢就上專業版。"
+    },
+    {
+      "q": "可以隨時取消嗎？會被自動續訂嗎？",
+      "a": "可以。月扣方案隨時取消，當月仍可使用到期。年扣方案 7 天內不滿意可全額退費（一次性付款，到期不續訂直接降為免費版）。"
+    },
+    {
+      "q": "為什麼選年付？真的比較划算嗎？",
+      "a": "年付 = 月費 × 10（等於送你 2 個月）。個人版年付 3,900（月付 4,680）省 780；專業版年付 8,900（月付 10,680）省 1,780。如果確定會用半年以上，年付比較划算。"
+    },
+    {
+      "q": "可以單買某一個模板嗎？（單範本買斷）",
+      "a": "可以。不想訂閱也能一次買下某個模板永久使用（不過期、跨方案保留）。價格依模板複雜度從 NT$200~990 不等，下方「單範本買斷」區可看。"
+    },
+    {
+      "q": "木匠學院終身會員有專屬優惠嗎？",
+      "a": "有。請私訊木頭仁取得專屬碼，全方案打折（不另公開）。學員身份驗證後直接套用。"
+    },
+    {
+      "q": "付款方式有哪些？",
+      "a": "信用卡（VISA / Mastercard / JCB）、ATM 轉帳、超商代碼繳款。透過綠界 ECPay 處理，安全且符合台灣金管會規範。可開立電子發票（個人 / 公司皆可）。"
+    },
+    {
+      "q": "升降級會怎麼算錢？",
+      "a": "升級：補差價立即生效（按剩餘天數比例計算）。降級：當期到期後自動切換（不會中途扣回）。所有設計、客戶資料、儲存的範本都會保留，不會因為降級而消失。"
+    }
+  ],
+  "planCard": {
+    "perMonth": "/ 月",
+    "perYear": "/ 年",
+    "popular": "★ 最受歡迎",
+    "studentOnly": "🎓 限木匠學院學員",
+    "monthlyEqTpl": "相當於 {price} / 月",
+    "savingsTpl": "（省 {amount}）",
+    "couponAppliedTpl": "🎫 折扣 {pct}% 已套用，省 {amount}",
+    "currentPlan": "✓ 你目前的方案",
+    "switchPeriodTpl": "換成{period}付請先取消當前",
+    "monthly": "月",
+    "yearly": "年",
+    "downgradeCancel": "降級請先取消當前訂閱",
+    "upgradeNowTpl": "立刻升級 · 退舊版 {amount}",
+    "upgradeNow": "立刻升級",
+    "checking": "確認中…",
+    "refundDetailTpl": "舊方案剩 {days} 天未用，升級後自動退 {amount} 回原信用卡（3-7 個工作日入帳）",
+    "refundZero": "舊方案已無剩餘天數可退，新方案立刻啟用",
+    "refundLoading": "升級後將自動退舊版未使用部分回原信用卡",
+    "checkoutGatewayTplMonthly": "將跳轉綠界 ECPay 付款 · 信用卡（每月自動扣款）",
+    "checkoutGatewayTplYearly": "將跳轉綠界 ECPay 付款 · 信用卡 / ATM / 超商"
+  },
+  "planLabel": {
+    "free": "免費版",
+    "personal": "個人版",
+    "pro": "專業版",
+    "student": "學員版",
+    "lifetime": "終身版"
+  },
+  "projectDetailClient": {
+    "commonRooms": [
+      "主臥室",
+      "次臥室",
+      "兒童房",
+      "客房",
+      "書房",
+      "客廳",
+      "餐廳",
+      "廚房",
+      "玄關",
+      "衛浴",
+      "陽台",
+      "儲藏室",
+      "辦公室"
+    ],
+    "ungrouped": "未分組",
+    "loading": "載入中…",
+    "loginRequired": "請先登入才能查看專案。",
+    "backToList": "← 回專案列表",
+    "errFallback": "找不到此專案，可能已刪除或你沒有權限。",
+    "untitled": "(未命名)",
+    "statusTitle": "變更專案狀態",
+    "fieldCustomerName": "客戶名稱",
+    "phCustomerName": "例：林先生 / 王太太",
+    "fieldCustomerContact": "客戶聯絡",
+    "phCustomerContact": "電話 / Email / Line",
+    "fieldProjectAddress": "案場地址",
+    "phProjectAddress": "例：台北市大安區...",
+    "fieldDesignConcept": "設計概念（一句話）",
+    "phDesignConcept": "例：日式侘寂、北歐淺色、自然紋理為主",
+    "publicNotesH": "📌 公開備註",
+    "publicNotesSub": "會顯示在報價單給客戶看",
+    "phPublicNotes": "例：完工後將提供保養手冊、保固期 1 年、含送貨上樓服務...",
+    "internalNotesH": "📝 內部備註",
+    "internalNotesSub": "業主看不到，給自己 / 工頭做筆記",
+    "phInternalNotes": "例：客戶殺價空間 5%、老闆認識可打 9 折、工頭叮嚀板厚 18mm 不能變、客戶介紹人是 OOO...",
+    "itemsH": "家具項目",
+    "collapseBtn": "收合",
+    "addBtn": "+ 加入家具",
+    "selectedCountTpl": "已選 {n} 個項目",
+    "cancelSelect": "取消選取",
+    "batchDelete": "🗑 批次刪除",
+    "emptyH": "這個專案還沒有家具",
+    "emptyBody": "先去設計幾件家具並儲存，再回來加入這個專案。",
+    "addFromSaved": "+ 從儲存的設計加入",
+    "goDesign": "先去設計家具",
+    "roomGroupTpl": "📐 {name}（{n} 件）",
+    "totalsH": "整套報價",
+    "totalsLineTpl": "{n} 件 · 單價以下方各項議價後價格為準（未填單價的項目以 0 計）",
+    "depositTpl": "訂金 {pct}%：",
+    "previewQuote": "👀 預覽報價",
+    "printQuote": "🖨️ 列印 / PDF",
+    "purchaseList": "🛒 採購清單",
+    "purchaseTitle": "按材質聚合所有家具的木料板才",
+    "moreActions": "更多操作",
+    "duplicateNote": "📋 給第二次接單或同建商案用，複製本專案的客戶資料、項目、報價設定",
+    "duplicateBtn": "📋 複製此專案",
+    "dangerZoneNote": "⚠️ 危險區：以下動作不可復原",
+    "deleteProject": "🗑 刪除整個專案",
+    "stickyCountTpl": "{n} 件 · 總計",
+    "stickyPreview": "👀 預覽報價",
+    "alertAddFailTpl": "加入失敗：{msg}",
+    "alertSaveFailTpl": "儲存失敗：{msg}",
+    "alertConfirmRemoveItem": "確定移除這個項目？",
+    "alertRemoveFailTpl": "移除失敗：{msg}",
+    "alertConfirmBatchTpl": "確定移除 {n} 個項目？",
+    "alertBatchFailTpl": "刪除失敗：{msg}",
+    "promptNewNameTitle": "新專案名稱？",
+    "promptNewNameTpl": "{name} (副本)",
+    "alertDuplicateFailTpl": "複製失敗：{msg}",
+    "confirmDeleteTpl": "確定刪除專案「{name}」？所有項目也會一起刪除，無法復原。",
+    "alertDeleteFailTpl": "刪除失敗：{msg}",
+    "labelSaved": "✓ 已儲存",
+    "dragTitle": "拖拉重排（同房間內）",
+    "selectTitle": "多選",
+    "phRoom": "房間",
+    "unitPriceLbl": "單價",
+    "estPlaceholderTpl": "估 {n}",
+    "useEstimate": "帶入",
+    "updateEstimate": "更新為",
+    "useEstimateTitle": "用模板與預設工資估算",
+    "useEstimatePriceTpl": "估價 ${amount}",
+    "openItem": "開啟",
+    "removeItem": "移除",
+    "laborOptsH": "⚙️ 報價設定",
+    "laborOptsSub": "（影響「帶入估價」用的工資、毛利、稅率等）",
+    "customizedTpl": "已自訂 {n} 項",
+    "useDefault": "用系統預設",
+    "resetDefault": "重設為系統預設",
+    "laborGroupWages": "工錢與毛利",
+    "laborGroupMisc": "雜費",
+    "laborGroupTax": "稅與折扣",
+    "fHourlyRate": "時薪 NT$/hr",
+    "fHourlyRateHint": "預設 500（資深師傅）",
+    "fMargin": "毛利 %",
+    "fMarginHint": "預設 30%",
+    "fFinishing": "塗裝 NT$",
+    "fFinishingHint": "預設 1500",
+    "fShipping": "運費 NT$",
+    "fShippingHint": "預設 0（自取）",
+    "fInstall": "安裝 NT$",
+    "fInstallHint": "預設 0",
+    "fHardware": "五金 NT$",
+    "fHardwareHint": "預設 0",
+    "fVat": "稅率 %",
+    "fVatHint": "預設 0（不開發票）",
+    "fDiscount": "折扣 %",
+    "fDiscountHint": "0 = 不打折",
+    "defaultPrefix": "預設 ",
+    "paymentH": "💰 金流 · 進度",
+    "paymentAllPaid": "✓ 全額收清",
+    "paymentDepositPaid": "已收訂金",
+    "paymentNoPay": "未收款",
+    "paymentDeliveryTpl": "交貨：{date}",
+    "depositLblTpl": "訂金（{pct}%）",
+    "balanceLbl": "尾款",
+    "expectedDeliveryH": "📅 預計完工日",
+    "expectedDeliveryHint": "空白 = 用工時自動估算",
+    "addPanelHTpl": "從儲存的設計加入",
+    "addPanelRoom": "房間",
+    "addPanelRoomPh": "例：玄關 / 客廳",
+    "noSavedDesigns1": "你還沒有任何儲存的設計。先去",
+    "noSavedDesignsLink": "家具列表",
+    "noSavedDesigns2": "挑一個、調好尺寸後在頁面右上「💾 儲存設計」，再回來加入這個專案。",
+    "projectStatus": {
+      "draft": "草稿",
+      "sent": "已寄提案",
+      "confirmed": "已成交",
+      "in_production": "施作中",
+      "delivered": "已交貨",
+      "cancelled": "已取消"
+    }
+  },
+  "projectsClient": {
+    "loading": "載入中…",
+    "h1": "我的專案",
+    "loginRequired": "請先登入才能管理專案（右上角點「使用 Google 登入」）。",
+    "backHome": "← 回家具列表",
+    "createBtn": "+ 新增專案",
+    "creatingBtn": "建立中…",
+    "promptName": "專案名稱（例：林宅全屋、王公館客廳）",
+    "alertCreateFailTpl": "建立失敗：{msg}",
+    "intro": "把多件家具打包成一個案子（含客戶資料、案場、設計概念、整套報價）。",
+    "loadFailTpl": "載入失敗：{msg}",
+    "emptyBody": "還沒有任何專案。建一個新專案，就可以把多件家具打包成一份提案給客戶。",
+    "createFirst": "建立第一個專案",
+    "customerLabelTpl": "客戶：{name}",
+    "updatedTpl": "更新於 {date}"
+  },
+  "brandingForm": {
+    "loadingBranding": "載入品牌設定…",
+    "logoErrType": "檔案要是圖片（png / jpg / svg）",
+    "logoErrSizeTpl": "LOGO 超過 {limit}KB，建議先壓縮（256×256 以內）",
+    "logoErrRead": "讀檔失敗",
+    "headerH": "🏢 報價單抬頭設定（公司名稱 + LOGO）",
+    "notCustomized": "尚未客製（使用預設）",
+    "customized": "已客製",
+    "collapse": "收合",
+    "expand": "展開",
+    "saving": "⏳ 儲存中…",
+    "saved": "✓ 已儲存",
+    "saveNow": "💾 立即儲存",
+    "logoLabel": "公司 LOGO（建議 256×256 以內，png 透明背景）",
+    "logoAltPreview": "LOGO 預覽",
+    "logoAltDefault": "預設 LOGO",
+    "logoClear": "清除（回預設）",
+    "fieldCompanyZh": "公司中文名稱",
+    "phCompanyZh": "例：木頭仁木匠學院",
+    "fieldCompanyEn": "公司英文 / 登記名稱",
+    "phCompanyEn": "例：Wooden Ren Education Co., Ltd.",
+    "fieldTagline": "抬頭小字 (tagline)",
+    "phTagline": "例：WOODEN REN · 手作家具",
+    "fieldContact": "聯絡人",
+    "fieldAddress": "公司地址",
+    "fieldPhone": "聯絡電話",
+    "fieldTaxId": "統一編號",
+    "fieldEmail": "Email",
+    "publicUrlLabel": "對外公開網址（給客戶看的連結 base）",
+    "captureCurrentUrl": "📋 抓當前網址",
+    "captureCurrentTitle": "把現在這個瀏覽器分頁的網址當作公開網址（必須在線上版按，localhost 會被擋下）",
+    "captureLocalAlertTpl": "❌ 你現在是 {origin}，這是本機網址，客戶根本連不上你的電腦。\n\n請先到「線上版」（例如 https://你的網站.vercel.app）按一次這顆按鈕，之後在 localhost 編輯時就會用線上版 URL 了。\n\n如果你還沒有線上版網址，請手動輸入到下方欄位。",
+    "phPublicUrl": "例：https://你的網站.vercel.app（留空則用當前 origin）",
+    "publicUrlHint": "寄 LINE/Email 給客戶時，「完整報價單連結」會用這個當前綴。在 localhost 編輯時必填，不然客戶連不上你電腦。",
+    "termsH": "報價單條款（可自行編輯，會套用在 A4 報價單）",
+    "fieldPaymentTerms": "付款條件",
+    "paymentTermsHint": "開頭「訂金」「尾款」行會被上方訂金比例自動覆寫；匯款銀行/帳戶填下面欄位即可（會自動接到付款條件後面）",
+    "fieldBankName": "匯款銀行",
+    "phBankName": "例：玉山銀行 暖暖分行（808）",
+    "fieldBankAccount": "匯款帳戶",
+    "phBankAccount": "例：戶名 木頭仁 / 0123-456-789012",
+    "fieldWarranty": "保固",
+    "fieldAfterSales": "售後服務",
+    "fieldNotes": "備註（一行一條）",
+    "confirmReset": "確定要全部還原為預設嗎？\n\n這會清空：\n- 公司抬頭、LOGO\n- 匯款銀行、帳戶\n- 付款分期、條款、備註\n\n此動作無法復原。",
+    "resetAll": "⚠️ 全部還原為預設",
+    "statusSyncing": "⏳ 同步雲端中…",
+    "statusSyncedSaved": "✓ 已存到雲端",
+    "statusPendingPush": "💾 已存本機 · 1.5 秒後自動同步雲端",
+    "statusSyncedAtTpl": "✓ 已同步雲端 · {time}（登入帳號跨裝置共用）",
+    "statusLocalOnly": "💾 設定存在本機；登入後會自動同步到雲端",
+    "installments": {
+      "h": "付款分期（覆寫上方訂金比例）",
+      "dividerLbl": "分",
+      "noInstall": "不分期",
+      "nPeriodsTpl": "{n} 期",
+      "intro": "目前用報價頁的訂金比例（depositRate）做 2 段拆分。設成 1–5 期後改用這裡的設定，每期自訂名稱與 % 數。",
+      "labelPh": "期別名稱",
+      "totalTpl": "合計：{pct}%",
+      "deltaTpl": "（差 {delta}%——加總要 100%）",
+      "presetFull": "全額",
+      "presetDeposit": "訂金",
+      "presetBalance": "尾款",
+      "presetMid": "中期款",
+      "presetMaterial": "備料款",
+      "presetWoodDone": "木工完成款",
+      "presetFinishDone": "塗裝完成款"
+    }
+  },
+  "myDesignsPage": {
+    "loading": "載入中…",
+    "h1": "我的設計",
+    "loginRequired": "請先登入才能看你儲存的設計（右上角點「使用 Google 登入」）。",
+    "backHome": "← 回家具列表",
+    "countTpl": "共 {n} 件儲存的設計。點「重新編輯」會帶著原本尺寸開啟設計頁。",
+    "loadFailTpl": "載入失敗：{msg}",
+    "emptyBody": "還沒有任何儲存的設計。先去家具列表挑一個，調好尺寸後點「💾 儲存設計」就會出現在這裡。",
+    "goCatalog": "去挑家具",
+    "noDim": "尺寸：—",
+    "updatedTpl": "更新於 {date}",
+    "editBtn": "重新編輯",
+    "renaming": "改名中…",
+    "renameBtn": "✏️ 改名",
+    "deleting": "刪除中…",
+    "deleteBtn": "刪除",
+    "promptRename": "設計新名稱",
+    "alertRenameFail": "改名失敗",
+    "alertRenameFailTpl": "改名失敗：{msg}",
+    "confirmDelete": "確定刪除這件設計？此動作無法復原。",
+    "alertDeleteFail": "刪除失敗",
+    "alertDeleteFailTpl": "刪除失敗：{msg}"
+  },
+  "saveDesign": {
+    "unsaved": "尚未儲存到雲端",
+    "saved": "已儲存到雲端",
+    "conflict": "雲端設計已有更新，這次未覆蓋。請另存新設計保留修改，或從我的設計重新開啟。",
+    "btnLoading": "💾 載入中…",
+    "btnSaving": "儲存中…",
+    "btnSave": "💾 儲存設計",
+    "btnSaveAs": "另存新設計",
+    "btnLogin": "🔒 登入後儲存",
+    "tipLoggedInTpl": "儲存到你的設計（{limit}）",
+    "tipSaveAs": "保留目前這份，另外建立一個新設計檔",
+    "tipLimitUnlimited": "無上限",
+    "tipLimitNTpl": "上限 {n} 件",
+    "tipLoggedOut": "登入後才能儲存到雲端跨裝置同步",
+    "promptName": "設計名稱（流水號自動建議，可改）",
+    "okSaved": "✅ 已儲存到你的設計",
+    "okUpdated": "✅ 已更新目前這份設計",
+    "okSavedAs": "✅ 已另存成新設計",
+    "warnMaxDesignsTpl": "免費版只能儲存 {max} 件設計（你已有 {count} 件）。升級個人版可儲存無限件，去 /pricing 看看～",
+    "warnPlanLockedFallback": "此家具範本需付費方案，去 /pricing 看看～",
+    "warnUnauth": "請先登入（session 可能過期）",
+    "errSaveFailTpl": "儲存失敗：{msg}",
+    "loginPrompt": {
+      "h": "先登入才能儲存設計",
+      "body": "雲端儲存設計需要登入帳號，登入後可以：",
+      "bullet1": "跨裝置同步（手機、平板、電腦都能看到）",
+      "bullet2Pre": "建立",
+      "bullet2Strong": "「我的設計」",
+      "bullet2Suffix": "清單方便管理",
+      "bullet3": "分享連結給客戶看設計",
+      "warn": "⚠️ 不登入直接離開頁面 = 你剛調的參數就消失了（除非加到瀏覽器書籤把網址留著）。",
+      "cancel": "先不要",
+      "loginNow": "現在登入 →"
+    }
+  },
+  "designHistory": {
+    "undo": "上一步",
+    "redo": "下一步",
+    "undoTitle": "回到上一組設計參數",
+    "redoTitle": "回到下一組設計參數",
+    "undoDisabled": "目前沒有可回復的上一步",
+    "redoDisabled": "目前沒有可前進的下一步"
+  },
+  "invoicePref": {
+    "loading": "發票設定載入中…",
+    "h": "發票設定",
+    "saved": "✓ 已儲存",
+    "intro": "下次扣款時會依此設定自動開立電子發票。發票會寄到下方填寫的 email。",
+    "tabPersonal": "個人",
+    "tabCompany": "公司（報帳用）",
+    "lblCarrierType": "載具類型",
+    "carrierMember": "綠界會員載具（預設）",
+    "carrierMobile": "手機條碼載具",
+    "lblCarrierNum": "手機條碼（8 字、開頭 /）",
+    "carrierHint": "財政部電子發票整合服務平台 → 個人申請的手機條碼",
+    "lblTaxId": "統一編號（8 碼數字）",
+    "phTaxId": "12345678",
+    "lblTitle": "公司抬頭",
+    "phTitle": "○○股份有限公司",
+    "lblEmail": "發票收件 Email",
+    "emailHintTpl": "留空 = 使用註冊信箱（{default}）",
+    "emailHintMissing": "未設定",
+    "errTaxId": "統一編號必須是 8 碼數字",
+    "errTitle": "公司抬頭不能空白",
+    "errCarrier": "手機條碼格式錯誤（例：/ABC+123，共 8 字）",
+    "errEmail": "發票收件 email 格式錯誤",
+    "errSaveFallback": "儲存失敗",
+    "errNetwork": "網路錯誤",
+    "saving": "儲存中…",
+    "saveBtn": "儲存設定"
+  },
+  "invoiceModal": {
+    "hConfirm": "確認公司發票資料",
+    "hPick": "先選發票類型",
+    "subConfirm": "發票一旦開立，24 小時內可作廢重開，超過要走折讓單。請確認以下無誤再送出。",
+    "subPick": "付款完成後會自動開立電子發票寄到你的 email。設定後下次刷卡會自動套用，不會再問。",
+    "rowTaxId": "統一編號",
+    "rowTitle": "公司抬頭",
+    "btnPersonal": "🧍 個人",
+    "btnCompany": "🏢 公司報帳",
+    "lblCarrier": "載具",
+    "carrierMember": "會員載具（寄 email）",
+    "carrierMobile": "手機條碼（共通載具）",
+    "lblCarrierNum": "手機條碼（格式 /ABC1234，8 字）",
+    "phCarrierNum": "/ABC1234",
+    "carrierHint": "忘記了？去財政部電子發票整合服務平台 → 我的載具 → 共通性載具",
+    "lblTaxId": "公司統編（8 碼）",
+    "phTaxId": "12345678",
+    "lblTitle": "公司抬頭",
+    "phTitle": "木頭仁木匠學院有限公司",
+    "errTaxId": "統編需要 8 碼數字",
+    "errTitle": "公司抬頭必填（最多 60 字）",
+    "errCarrier": "手機條碼格式錯，格式：/ 開頭 + 7 碼大寫字母數字",
+    "errStatusTpl": "存取失敗 {code}",
+    "btnEdit": "← 改一下",
+    "btnCancel": "取消",
+    "btnSaving": "儲存中…",
+    "btnConfirm": "✓ 沒問題，送出",
+    "btnNext": "下一步 → 確認",
+    "btnSavePersonal": "存好 · 去結帳",
+    "errNeedLogin": "你還沒登入（或登入已逾時），所以存不了發票設定。請先登入再結帳，資料不會不見。",
+    "btnGoLogin": "前往登入"
+  },
+  "cutPlanApp": {
+    "summaryNameDot": "．共 ",
+    "summaryPiecesTpl": "{name}．共 {n} 件",
+    "summaryStockTpl": "．排出 {n} 塊原料",
+    "summaryNoStock": "．尚未列庫存",
+    "summaryUnplacedTpl": "（{n} 件排不下）",
+    "resetBtn": "↺ 重設為原始設計",
+    "csvBtn": "📄 下載 CSV",
+    "csvBtnTitle": "下載零件清單 + 排料明細 CSV，可直接交給料行或 Excel 打開",
+    "printBtn": "🖨️ 列印 / PDF",
+    "unplacedH": "以下 {n} 件零件超過原料板尺寸，無法排版",
+    "unplacedBody": "請加大「原料庫存」尺寸、改用更大張板，或在零件清單把這幾件用 ✂ 拆成兩塊。否則照單去料行會缺料。",
+    "kindSolid": "實木",
+    "kindPlywood": "夾板",
+    "kindMdf": "中纖板",
+    "kindParenTpl": "（{label}）",
+    "stockEmptyH": "還沒列原料庫存",
+    "stockEmptyBody": "在左邊「原料庫存」按「＋ 加一筆」加入你實際有的板才（實木 / 夾板 / 中纖板皆可），右邊會立刻算出排料圖。",
+    "nothingToPlan": "沒有可排料的零件——請新增零件或重設回設計。",
+    "strategyLbl": "排料策略：",
+    "strategyGuillotineLabel": "刀線式",
+    "strategyGuillotineHelp": "最省料（小件填大件肚子）",
+    "strategyFfdLabel": "FFD",
+    "strategyFfdHelp": "第一適合，穩定",
+    "strategyBfdLabel": "BFD",
+    "strategyBfdHelp": "最佳適合，省料",
+    "strategyKerfTpl": "鋸路 {kerf}mm · 餘料下限 {min}mm",
+    "piecesDetailsH": "📋 零件清單",
+    "piecesDetailsCountTpl": "{specs} 種規格 · 共 {pieces} 件 · 從設計匯入，可手改",
+    "expandCollapse": "展開 / 收合",
+    "advancedDetailsH": "⚙️ 進階設定（鋸路 / 最小餘料）",
+    "advancedDetailsCountTpl": "鋸路 {kerf}mm · 最小餘料 {min}mm",
+    "printHeaderTpl": "{name}．裁切排料圖",
+    "printSubTpl": "共 {n} 塊原料．鋸路 {kerf}mm．最小餘料 {min}mm",
+    "confirmReset": "重設為家具設計的原始零件清單？目前的編輯會全部丟失。",
+    "csvFilenameTpl": "{name}_裁切清單_{date}.csv",
+    "printDocTitleTpl": "{name}_裁切排料圖_{date}",
+    "csv": {
+      "h1": "# 零件清單（去料行用）",
+      "h2": "# 排料明細（每片零件的板上座標）",
+      "col1Name": "零件名稱",
+      "col1Length": "長",
+      "col1Width": "寬",
+      "col1Thickness": "厚",
+      "col1Material": "材料",
+      "col1Billable": "計價類別",
+      "col1Quantity": "件數",
+      "col2Kind": "原料種類",
+      "col2Material": "材料",
+      "col2Thickness": "厚",
+      "col2BinIdx": "原料 #",
+      "col2StockLength": "原料長",
+      "col2StockWidth": "原料寬",
+      "col2Code": "編號",
+      "col2Part": "零件",
+      "col2CutLength": "切料長",
+      "col2CutWidth": "切料寬",
+      "col2X": "x",
+      "col2Y": "y",
+      "col2Rotated": "已旋轉",
+      "yes": "是",
+      "no": "否",
+      "unplaced": "排不下"
+    },
+    "stock": {
+      "h": "原料庫存（實木 + 板材）",
+      "warnEmpty": "還沒列任何板才——下面不會出現排料圖。請先加入你實際有的原料。",
+      "introNotEmpty1": "依「類別＋材質＋長寬」記錄實際庫存，",
+      "introNotEmpty2": "不綁厚度",
+      "introNotEmpty3": "；同一筆可同時供應不同厚度的零件。",
+      "introNotEmptyAuto": "✓ 已自動存到本機，下次進頁面自動帶入",
+      "confirmClear": "清空所有庫存？存檔也會一起清掉。",
+      "clearBtn": "清空",
+      "addRow": "＋ 加一筆",
+      "thKind": "類別",
+      "thMaterial": "材質",
+      "thLength": "長 (mm)",
+      "thWidth": "寬 (mm)",
+      "thCount": "支數",
+      "kindSolid": "實木",
+      "kindPlywood": "夾板",
+      "kindMdf": "中纖板",
+      "countUnlimited": "不限",
+      "removeAria": "刪除",
+      "mobileLblKind": "類別",
+      "mobileLblMaterial": "材質",
+      "mobileLblLength": "長 (mm)",
+      "mobileLblWidth": "寬 (mm)",
+      "mobileLblCount": "支數",
+      "uncoveredHint": "以下零件用到的類別還沒列原料（沒加就會排不下）：",
+      "quickAddPrefix": "＋ ",
+      "dataListLengthSolid6ft": "6 尺（1818mm）",
+      "dataListLengthSolid8ft": "8 尺（2438mm）",
+      "dataListLengthSheet48ft": "4×8 ft（2440mm）",
+      "dataListLengthSheet9ft": "9 尺（2745mm）",
+      "dataListWidthSheet4ft": "4 尺（1220mm）"
+    },
+    "pieces": {
+      "h": "零件清單",
+      "summaryTpl": "{specs} 種規格．共 {n} 件",
+      "expand": "展開",
+      "collapse": "收合",
+      "addNew": "＋ 新增零件",
+      "thCode": "#",
+      "thName": "名稱",
+      "thMaterial": "材質",
+      "thLength": "長",
+      "thWidth": "寬",
+      "thThickness": "厚",
+      "thQuantity": "數量",
+      "thRotate": "旋轉",
+      "namePh": "名稱",
+      "matSolidGroup": "實木",
+      "matSheetGroup": "板材",
+      "matSheetPlywood": "夾板",
+      "matSheetMdf": "中纖板",
+      "thicknessOther": "其他…",
+      "thicknessSwitchTitle": "切回下拉",
+      "rotateTitleSheet": "允許 90° 旋轉",
+      "rotateTitleSolid": "實木勾起來會無視纖維方向——短料/不受力才勾",
+      "newPart": "新零件",
+      "copySuffix": " 副本",
+      "split": "✂ 分割",
+      "splitTitle": "將寬度平均分成 N 條（拼板用）",
+      "duplicate": "複製",
+      "duplicateTitle": "複製一列",
+      "removeTitle": "刪除這列",
+      "mobileLblMaterial": "材質",
+      "mobileLblLength": "長 (mm)",
+      "mobileLblWidth": "寬 (mm)",
+      "mobileLblThickness": "厚 (mm)",
+      "mobileLblQuantity": "數量",
+      "mobileRotateLabel": "允許 90° 旋轉"
+    }
+  },
+  "perspectiveView": {
+    "viewTitleHero": "預設立體角度",
+    "viewLabelFit": "🔍 填滿",
+    "viewTitleFit": "縮放至家具充滿視窗（依實際長寬高 + 畫面比例）",
+    "viewLabelFront": "正",
+    "viewTitleFront": "正視圖",
+    "viewLabelBack": "背",
+    "viewTitleBack": "背視圖",
+    "viewLabelLeft": "左",
+    "viewTitleLeft": "左側視圖",
+    "viewLabelRight": "右",
+    "viewTitleRight": "右側視圖",
+    "viewLabelTop": "俯",
+    "viewTitleTop": "俯視圖",
+    "viewLabelBottom": "仰",
+    "viewTitleBottom": "仰視圖",
+    "wireframeTitle": "線框模式（顯示所有 edge / 內部結構）",
+    "xrayTitleOffToFace": "隱藏面板（點切到只藏門/抽屜面板）",
+    "xrayTitleFaceToAll": "隱藏面板（點切到藏整個抽屜+門）",
+    "xrayTitleAllToOff": "隱藏面板（點關閉）",
+    "xrayBtnOff": "🪟 隱藏面板",
+    "xrayBtnFace": "🪟 藏面板",
+    "xrayBtnAll": "🪟 藏全部",
+    "lidLiftTitleNeg": "90° 翻開",
+    "lidLiftTitleFloatTpl": "{n}mm 浮起",
+    "lidLiftTitleClosed": "蓋上",
+    "lidLiftBtnNeg": "📦 90° 掀開",
+    "lidLiftBtnFloatTpl": "📦 浮 {n}mm",
+    "lidLiftBtnClosed": "📦 掀蓋",
+    "wireframeLabel": "⊞ 線框",
+    "lidLiftTitleTpl": "掀蓋（看 lid 底下結構）：當前 {state}，點切下一檔",
+    "viewLbl": "視角",
+    "selectedPartChip": "已選取：{name} · 點此取消",
+    "assemblyBtn": "▶ 組裝",
+    "assemblyTitle": "播放組裝動畫：零件照榫接順序一件件滑進定位，可拖曳旋轉邊看",
+    "assemblyPlay": "▶ 播放",
+    "assemblyPause": "❚❚ 暫停",
+    "assemblyReplay": "↺ 重播",
+    "assemblyClose": "✕ 關閉",
+    "assemblyStepTpl": "第 {n} 步／共 {total} 步：{names}",
+    "assemblyMoreTpl": "等 {n} 件",
+    "assemblyExport": "⬇ 輸出影片",
+    "assemblyExportTitle": "把這段組裝動畫錄成影片下載（Chrome / Edge 存 WebM，Safari 存 MP4）",
+    "assemblyExportingTpl": "錄製中… {pct}%",
+    "assemblyExportUnsupported": "這個瀏覽器不支援錄影，請改用電腦版 Chrome 或 Safari",
+    "assemblyAspectLbl": "比例",
+    "assemblyAspectCurrent": "目前畫面",
+    "assemblyAspectPortrait": "直式 9:16",
+    "assemblyAspectSquare": "方形 1:1",
+    "assemblyDoneTpl": "影片已下載：{file}",
+    "assemblyOrbit": "🎥 運鏡",
+    "assemblyOrbitTitle": "播放時相機繞著家具慢慢轉（整段約 120°），關掉就固定視角；拖曳照樣可以自己轉",
+    "assemblyDuckTitle": "喝咖啡的鴨子（木頭仁女兒畫的）在旁邊陪你組裝；點一下收起來"
+  },
+  "photoToParams": {
+    "errReadFail": "讀檔失敗",
+    "errDecodeFail": "解碼失敗",
+    "errCanvasFail": "canvas 失敗",
+    "errSelectImage": "請選圖片檔",
+    "errSize10MB": "圖檔不能超過 10MB",
+    "errRecognize": "辨識失敗",
+    "errUnknown": "未知錯誤",
+    "confidenceHigh": "信心高",
+    "confidenceMedium": "信心中",
+    "confidenceLow": "信心低",
+    "btnTitle": "上傳家具照，AI 推測類別/尺寸/木種/風格，自動套進設計器",
+    "btnLabel": "照片轉設計",
+    "modalH": "📷 照片轉設計",
+    "dropZoneH": "點選 / 拖入家具照片",
+    "dropZoneSub": "jpeg / png / webp · 最大 10MB",
+    "previewAlt": "預覽",
+    "loading": "🔍 AI 辨識中…（約 5-10 秒）",
+    "upgradeFallback": "看方案 →",
+    "lblMaterial": "木種：",
+    "lblStyle": "風格：",
+    "lblLegShape": "腳形：",
+    "lblLegSize": "腳粗：",
+    "estimatedWarn": "⚠️ 尺寸是 AI 估的不是量的，套用後請依實際需求調整",
+    "applyBtn": "套用到設計器",
+    "redoBtn": "重來",
+    "errors": {
+      "ai-disabled": "AI 功能已關閉（成本控制中）",
+      "missing-image": "缺 imageBase64",
+      "file-too-large": "圖檔太大（請壓到 1MB 以下）",
+      "invalid-format": "格式只接受 jpeg/png/webp",
+      "ai-not-configured": "照片轉設計功能尚未配置",
+      "unauthenticated": "請先登入才能使用照片轉設計",
+      "rate-limited": "今日 AI 用量已達上限（{used}/{limit}），明日凌晨重置",
+      "ai-response-malformed": "AI 回傳格式錯誤",
+      "invalid-category": "AI 回的 category 不在白名單：{category}",
+      "invalid-dimension": "尺寸不合理：{key}={value}",
+      "server-error": "伺服器錯誤，請稍後再試"
+    }
+  },
+  "csvExport": {
+    "btn": "📋 材料單 CSV 下載",
+    "colPart": "零件",
+    "colMaterial": "材質",
+    "colVisL": "可見長 (mm)",
+    "colVisW": "可見寬 (mm)",
+    "colVisT": "可見厚 (mm)",
+    "colCutL": "切料長 (mm)",
+    "colCutW": "切料寬 (mm)",
+    "colCutT": "切料厚 (mm)",
+    "colBdft": "材積 (板才)",
+    "colTenon": "榫頭備註",
+    "filenameTpl": "{name}_材料單_{date}.csv"
+  },
+  "loginButton": {
+    "btn": "登入 / 註冊",
+    "divider": "或",
+    "webviewWarnTpl": "⚠️ 你正在 {app} 內建瀏覽器",
+    "webviewBody": "Google 登入無法使用。建議：",
+    "webviewBullet1Pre": "用下方 ",
+    "webviewBullet1Strong": "email 登入連結",
+    "webviewBullet1Suffix": "（最方便，Line/FB/IG 都能用）",
+    "webviewBullet2": "或右上角 ⋯ → 「在 Safari/Chrome 中開啟」",
+    "errRate": "太多次嘗試了，請 60 秒後再試。",
+    "errInvalid": "Email 格式不正確，請確認後再試。",
+    "errNotFound": "找不到這個帳號。首次使用直接送出即可自動註冊。",
+    "errSignupDisabled": "目前未開放註冊，請聯絡客服。",
+    "errNetwork": "網路連線不穩，請重試一次。",
+    "errFallbackTpl": "寄送失敗，請稍後再試（{msg}）",
+    "sentH": "✅ 登入連結已寄出",
+    "sentBodyPre": "請到 ",
+    "sentBodySuffix": " 收信，點信內按鈕完成登入（10 分鐘內有效）。",
+    "sentNoEmail": "沒收到？檢查垃圾信件夾，或",
+    "resend": "重送",
+    "magicLinkLabel": "輸入 Email 收登入連結",
+    "sending": "寄送中…",
+    "magicLinkBtn": "送出登入連結 →",
+    "magicLinkNote": "首次使用 = 自動註冊。點信內按鈕後登入完成，無需密碼。",
+    "googleDisabledTpl": "{app} 內無法用 Google 登入",
+    "googleRedirecting": "跳轉中…",
+    "googleBtn": "使用 Google 登入",
+    "btnShort": "登入"
+  },
+  "headerUser": {
+    "loggedInFallback": "已登入",
+    "navHome": "家具列表",
+    "navMyDesigns": "我的設計",
+    "navProjects": "我的專案",
+    "navCustomers": "客戶名單",
+    "navBranding": "抬頭設定",
+    "navSubscription": "我的訂閱",
+    "navPricing": "方案",
+    "navAbout": "認識木作藍圖",
+    "navHelp": "常見問題",
+    "navAdmin": "後台儀表板",
+    "signOut": "登出"
+  },
+  "bugReport": {
+    "title": "回報問題",
+    "subjectTpl": "[木作藍圖] 問題回報 (build {sha})",
+    "bodyTimePre": "發生時間：",
+    "bodyBuildPre": "build：",
+    "bodyPagePre": "頁面：",
+    "bodyBrowserPre": "瀏覽器：",
+    "bodyDescH": "=== 請描述問題 ===",
+    "bodyDescExample": "（例如：我把椅子高度調到 500mm，3D 變空白）",
+    "bodyScreenshotH": "=== 截圖 ===",
+    "bodyScreenshotHint": "（請直接貼到信件中）",
+    "copyPromptTpl": "複製下方內容貼到任何信箱，寄到 wengbinren@gmail.com",
+    "panelH": "回報問題給木頭仁",
+    "panelBodyPre": "自動帶當前頁面 + 版本資訊。請描述你做了什麼步驟，最好附截圖。寄到 ",
+    "gmailBtn": "📧 用 Gmail 寄出（手機優先開 App）",
+    "copyBtnIdle": "📋 複製內容到剪貼簿（不用 Gmail 用這個）",
+    "copyBtnDone": "✓ 已複製，請貼到任何信箱寄出",
+    "cancel": "取消",
+    "fabTitle": "回報問題",
+    "logoAlt": "木頭仁"
+  },
+  "upgradePrompt": {
+    "planPriceFree": "",
+    "planPricePersonal": "個人版 NT$ 390 / 月（年付 3,900）",
+    "planPricePro": "專業版 NT$ 890 / 月（年付 8,900）",
+    "planPriceStudent": "學員版（憑學員身份）",
+    "planPriceLifetime": "終身版（已停售）",
+    "inlineTpl": "🌱 想用 {feature}？升級 {plan}",
+    "inlineCta": "看方案 →",
+    "cardH": "想用「{feature}」嗎？",
+    "cardHintFallbackTpl": "{plan}就能用囉～",
+    "cardCta": "看方案"
+  },
+  "templateUnlock": {
+    "h": "🪵 單範本永久買斷",
+    "intro": "只想做某張椅子？一次買斷，永久擁有那張藍圖。不訂閱也能用。",
+    "priceChipTpl": "{label} {price}",
+    "filterAll": "全部",
+    "loading": "載入中…",
+    "owned": "✓ 已擁有",
+    "buyBtn": "買斷 →"
+  },
+  "toolUnlock": {
+    "h": "🔨 裝潢工具買斷",
+    "intro": "不想訂月費，單買工具永久使用。屋主自己 DIY 一次裝潢就回本。",
+    "loading": "載入中…",
+    "owned": "✓ 已擁有",
+    "buyBtn": "買斷 →",
+    "ceilingLabel": "木作天花板骨架施工模擬器",
+    "ceilingDesc": "輸入長寬高、3 秒算主骨/副骨/矽酸鈣板/螺絲、列印 A4 清單帶到工地",
+    "floorLabel": "地板施工模擬器",
+    "floorDesc": "輸入空間尺寸、自動排版、估超耐磨/海島型/實木地板用料、含人字拼演算",
+    "raisedFloorLabel": "和室架高平台施工模擬器",
+    "raisedFloorDesc": "輸入空間尺寸、自動算主支/副支/夾板/防潮墊、含 2D shelf-packing 拼板優化",
+    "cncLabel": "CNC 刀路產生器",
+    "cncDesc": "拖 SVG/DXF/圖片進去、3 秒產出 CNC 能直接跑的 G-code，省掉 Fusion CAM 設定流程",
+    "noticeAdmin": "✓ 你是管理員帳號，三個工具都已開通使用，不用購買。",
+    "noticeOwned": "✓ 你已經買過這個工具了，可以直接使用。",
+    "adminBtn": "✓ 管理員 (全功能已開通)"
+  },
+  "threeDExport": {
+    "scale1to1": "1:1 原寸（SketchUp / 工業列印 / CNC）",
+    "scale1to2": "1:2（局部試做、榫接驗證）",
+    "scale1to5": "1:5（提案打樣、桌面展示）",
+    "scale1to10": "1:10 預設（家用 3D 列印 200mm 床放得下）",
+    "scale1to20": "1:20（建築模型、櫃體縮影）",
+    "scale1to25": "1:25（建築模型常用）",
+    "scale1to50": "1:50（整間家具擺設）",
+    "scale1to100": "1:100（空間規劃示意）",
+    "lbl": "3D 列印檔",
+    "selectTitle": "輸出比例。1:10 預設適合家用 3D 列印",
+    "stlBtn": "🖨️ STL",
+    "stlTitle": "3D 列印 / 切片器（Cura、PrusaSlicer）",
+    "objBtn": "📐 OBJ",
+    "objTitle": "SketchUp / Blender / 通用 3D 軟體",
+    "flatBtn": "🛏️ 攤平 STL",
+    "flatTitle": "所有零件攤平排開、免支撐——適合直接送切片器列印",
+    "threeMfBtn": "📦 3MF",
+    "threeMfTitle": "3MF — Bambu / Prusa / Cura 偏好格式，含單位與零件名",
+    "warnThinTpl": "⚠️ 最薄件 {thin}mm（{part}），匯出時會自動加厚到 {min}mm 才印得出來；要精準比例請改用更大比例。",
+    "warnBadGeoTpl": "⚠️ 偵測到 {n} 個零件幾何異常（{parts}），匯出檔在切片器可能需要修復。"
+  },
+  "partDrawings": {
+    "h": "零件圖",
+    "countTpl": "共 {n} 件（合併同形）",
+    "pCodeTpl": "P-{code}",
+    "modalTitleTpl": "零件圖 — {name}",
+    "viewFrontParen": "（俯視）",
+    "viewTopParen": "（俯視）",
+    "viewSideParen": "（側視）",
+    "viewBottomParen": "（正視）",
+    "backToTri": "← 返回三視圖",
+    "closeAria": "關閉",
+    "viewFront": "俯視",
+    "viewTop": "俯視",
+    "viewSide": "側視",
+    "viewBottom": "正視",
+    "zoomLbl": "放大",
+    "prev": "← 上一件",
+    "next": "下一件 →"
+  },
+  "aiRefine": {
+    "errService": "AI 服務錯誤",
+    "errUpgradeFallback": "看方案 →",
+    "errNetwork": "網路錯誤",
+    "errors": {
+      "ai-disabled": "AI 功能已關閉（成本控制中）",
+      "missing-fields": "缺必要欄位",
+      "too-many-params": "參數過多",
+      "no-api-key": "AI 微調功能尚未配置",
+      "unauthenticated": "請先登入才能使用 AI 微調",
+      "rate-limited": "今日 AI 用量已達上限（{used}/{limit}），明日凌晨重置",
+      "bad-ai-format": "AI 回傳格式錯誤",
+      "bad-ai-fields": "AI 回傳缺欄位",
+      "unknown": "未知錯誤"
+    },
+    "btn": "🤖 AI 微調",
+    "btnTitle": "AI 看當前設計給情境化的微調建議（會用到 LLM API）",
+    "modalH": "🤖 AI 微調當前 {style} 配置",
+    "modalSub": "AI 會看當前風格 + 尺寸 + 材質 + 你的需求給情境化建議。",
+    "intentLabel": "你的需求 (選填)",
+    "intentPh": "例：腳要粗一點 / 給小孩用 / 預算有限想用便宜木材 / 客戶要中式現代風",
+    "askBtn": "🤖 給我建議",
+    "thinking": "⏳ AI 思考中…通常 3-8 秒",
+    "rationaleH": "💡 AI 理由",
+    "suggestHTpl": "🔧 建議調整 ({n} 個欄位)",
+    "suggestKvSep": "：",
+    "warningsH": "⚠️ 警告",
+    "applyBtn": "✓ 套用 AI 建議",
+    "redoBtn": "重新問",
+    "closeBtn": "關閉"
+  },
+  "askMaster": {
+    "introTpl": "我在做一個{name}：",
+    "dimTpl": "尺寸 {l} × {w} × {h}mm",
+    "matTpl": "木種 {name}",
+    "legShapeTpl": "腳形 {shape}",
+    "legShapeWithSizeTpl": "腳形 {shape} {size}mm",
+    "apronTpl": "牙板高 {h}mm",
+    "splayTpl": "外斜 {angle}°",
+    "backStyleTpl": "椅背 {style}",
+    "seatProfileTpl": "座面 {profile}",
+    "joineryNote": "用榫卯接合",
+    "tail": "這樣設計合理嗎？有什麼需要注意的、或可以更好的地方？",
+    "fallbackPromptTitle": "複製這段貼到木工大師 bot：",
+    "btnTitle": "把當前設計參數複製成問題、開 Telegram，貼到 @woodenren_bot 問木工建議",
+    "btnCopied": "✓ 已複製，到 Telegram 貼上",
+    "btnIdle": "問木工大師"
+  },
+  "heightToSize": {
+    "lblSeat": "座高",
+    "lblTable": "桌高",
+    "btn": "📏 依身高推薦",
+    "btnTitle": "輸入身高自動推薦座高 / 桌高（依人體工學公式）",
+    "heightLbl": "身高",
+    "cm": "cm",
+    "applyBtn": "套用"
+  },
+  "iosInstall": {
+    "title": "加到主畫面，下次一秒打開",
+    "subtitle": "免下載、完整 App 體驗",
+    "installBtn": "安裝",
+    "closeAria": "關閉",
+    "expandedH": "安裝到主畫面（iOS）",
+    "step1Pre": "點 Safari ",
+    "step1Strong": "下方分享",
+    "step1Suffix": "按鈕 ",
+    "step1Icon": "⬆",
+    "step2Pre": "往下滑，選擇 ",
+    "step2Strong": "「加入主畫面」",
+    "step3Pre": "點右上角 ",
+    "step3Strong": "「新增」",
+    "step3Suffix": " 完成",
+    "warnPre": "💡 必須用 ",
+    "warnStrong": "Safari",
+    "warnSuffix": " 開啟才有這個選項；Chrome / Line / FB 內建瀏覽器都沒有。",
+    "okBtn": "知道了"
+  },
+  "webInstall": {
+    "title": "把木作藍圖裝到主畫面",
+    "subtitle": "免下載、免商店,一鍵安裝",
+    "installBtn": "安裝",
+    "closeAria": "關閉"
+  },
+  "installPage": {
+    "metadata": {
+      "title": "安裝 App｜把木作藍圖加到手機主畫面",
+      "description": "免下載、免上架商店。三步把木頭仁木作藍圖加到手機主畫面或電腦桌面,下次點一下 icon 就開,跟 App 一模一樣。iOS、Android、桌面都教。",
+      "ogTitle": "把木作藍圖裝進你的手機",
+      "ogDescription": "免下載、免商店,一鍵加到主畫面。下次點 icon 直接開,跟 App 一樣順。"
+    },
+    "h1": "把木作藍圖裝進你的手機",
+    "intro": "不用上 App Store、不用下載安裝檔。加到主畫面後,下次點一下 icon 就全螢幕打開——跟 App 用起來一模一樣,還省一個開瀏覽器打網址的步驟。",
+    "freeNote": "完全免費,幾乎不佔空間,隨時可移除。",
+    "cta": {
+      "installNow": "立即安裝到主畫面",
+      "iosHint": "請依下方「iPhone / iPad」步驟,用 Safari 分享鈕加入",
+      "manualHint": "請依下方對應你裝置的步驟操作",
+      "installed": "已安裝,從主畫面打開即可",
+      "loading": "偵測你的裝置中…"
+    },
+    "whyH2": "為什麼值得裝?",
+    "benefit1Icon": "⚡",
+    "benefit1Title": "一秒打開",
+    "benefit1Body": "主畫面點 icon 直接全螢幕進,免開瀏覽器、免打網址。",
+    "benefit2Icon": "📐",
+    "benefit2Title": "工地隨手畫",
+    "benefit2Body": "丈量現場、跟客戶討論時,掏出手機就能改尺寸看圖。",
+    "benefit3Icon": "🧹",
+    "benefit3Title": "乾淨不佔空間",
+    "benefit3Body": "不是真的下載 App,幾乎不吃容量,不用時長按移除即可。",
+    "iosH2": "iPhone / iPad(Safari)",
+    "iosStep1": "用 Safari 開啟本網站(Chrome、Line、FB 內建瀏覽器都沒有這個選項)。",
+    "iosStep2": "點畫面下方中間的「分享」按鈕 ⬆。",
+    "iosStep3": "往下滑,選「加入主畫面」,再點右上角「新增」即完成。",
+    "iosWarn": "💡 iOS 限定:一定要用 Safari 開才有「加入主畫面」。從 Line / FB 點進來的話,先點右上角「⋯」選「用 Safari 開啟」。",
+    "androidH2": "Android(Chrome / Edge)",
+    "androidStep1": "用 Chrome 或 Edge 開啟本網站。",
+    "androidStep2": "點上方的「安裝」按鈕,或右上角選單「⋮」→「安裝應用程式 / 加到主畫面」。",
+    "androidStep3": "確認後,主畫面就會出現木作藍圖的 icon。",
+    "desktopH2": "電腦(Chrome / Edge)",
+    "desktopStep1": "網址列右側會出現一個「安裝 ⊕」圖示,點它。",
+    "desktopStep2": "確認安裝後,木作藍圖會像獨立程式一樣有自己的視窗,也能釘到工作列。",
+    "faqH2": "常見問題",
+    "faq1Q": "這是真的 App 嗎?要去商店下載?",
+    "faq1A": "不用。這是網頁版直接「加到主畫面」的技術(PWA),不經過 App Store / Play 商店,但用起來跟 App 幾乎沒差。",
+    "faq2Q": "會佔很多手機空間嗎?",
+    "faq2A": "不會。它只是一個捷徑加上少量快取,跟下載一個動輒上百 MB 的 App 完全不同。",
+    "faq3Q": "怎麼移除?",
+    "faq3A": "跟一般 App 一樣,長按主畫面的 icon → 移除即可,隨裝隨拆。",
+    "finalH2": "裝好了,開始畫第一張圖",
+    "finalBody": "輸入尺寸,三分鐘生出三視圖、榫卯細節與材料單。",
+    "finalBtn": "進入設計器 →"
+  },
+  "engQuoteClient": {
+    "titleFloorTpl": "{type}工程報價",
+    "typeFloor": "地板",
+    "typeCeiling": "天花板",
+    "secCustomer": "客戶資料",
+    "secFeeOpts": "費用參數",
+    "areaTpl": "坪數 {ping} 坪 · 面積 {m2} m²",
+    "secQuote": "報價試算",
+    "unpriced": "未報價",
+    "totalWithVat": "含稅總計",
+    "unpricedWarn": "⚠️ 估價不完整（有品項未設單價）",
+    "printBtn": "列印報價單",
+    "ceilingMaterialDefault": "天花板系統材料"
+  },
+  "joineryDetail": {
+    "viewFront": "正視圖",
+    "viewSide": "側視圖",
+    "viewTop": "俯視圖",
+    "viewIso": "等角圖",
+    "warnNote": "⚠ 僅為組合參考示意圖，跟實際尺寸可能不合，請參考三視圖詳細尺寸",
+    "zoomAriaTpl": "點擊放大 {type} {view}",
+    "zoomTitle": "點擊放大",
+    "zoomHint": "🔍 點擊放大",
+    "zoomOutTitle": "縮小 (−)",
+    "zoomResetTitle": "重設 (0)",
+    "zoomInTitle": "放大 (+)",
+    "closeAria": "關閉",
+    "closeTitle": "關閉 (ESC)"
+  },
+  "survey": {
+    "issuedFallback": "已記錄",
+    "backHome": "← 回首頁",
+    "submitting": "送出中…",
+    "submitBtn": "送出問卷",
+    "qOther": "其他",
+    "qOtherPh": "自由填寫",
+    "qTextPh": "自由回答",
+    "qRequired": "*",
+    "thxH": "謝謝你 🪵",
+    "thxBody1": "我會逐則看你的回饋。",
+    "thxBody2": "你接下來幾週用木作藍圖時遇到任何問題，直接寫信給我都行。",
+    "couponLblTpl": "你的專屬 {pct}% 折扣 code",
+    "couponHint1": "結帳時輸入此 code，個人版",
+    "couponHintStrong": "年付",
+    "couponHint2": "半價",
+    "couponPriceTplPre": "NT$3,900 → ",
+    "couponPriceTplStrong": "NT$1,950",
+    "couponPriceTplSuf": "（月付不適用 · 7 天內有效）",
+    "upgradeBtn": "現在去 /pricing 升級 →"
+  },
+  "customersPage": {
+    "metaTitle": "客戶名單 · 木頭仁 木作藍圖",
+    "h1": "客戶名單",
+    "loginRequired": "請先登入才能查看客戶名單（右上角點「使用 Google 登入」）。",
+    "backHome": "← 回家具列表",
+    "seeProjects": "→ 看所有專案",
+    "intro": "自動從你的專案聚合：同一個客戶的多件案子、累計金額、最近往來時間都在這裡。",
+    "emptyTitle": "還沒有任何客戶資料。",
+    "emptySub": "在專案頁填上「客戶名稱」，這裡就會自動聚合該客戶的所有案件。",
+    "projectsCountTpl": "{n} 件案",
+    "contactLbl": "聯絡：",
+    "addressLbl": "案場：",
+    "lastUpdatedTpl": "最近往來 {date}",
+    "totalLblPre": "累計 "
+  },
+  "quoteHistory": {
+    "statusPending": "待確認",
+    "statusWon": "✅ 已成交",
+    "statusLost": "✕ 已拒絕",
+    "summaryHTpl": "📁 最近報價（{n}）",
+    "summarySub": "點左邊 badge 可切換 待確認 / 已成交 / 已拒絕",
+    "winRateTpl": "轉單率 {pct}% · 成交 {won} / 拒絕 {lost}",
+    "expandCollapse": "展開 / 收合",
+    "cycleTitle": "點擊切換狀態：待確認 → 已成交 → 已拒絕",
+    "expired": "已過期",
+    "resendBtn": "↗ 重發",
+    "resendTitle": "開新分頁，直接帶這筆參數重發給同一個客人",
+    "clearAll": "清除所有歷史"
+  },
+  "sheetBinSvg": {
+    "stockTitleTpl": "板 #{n}．{l} × {w} mm",
+    "utilTpl": "利用率 {pct}%",
+    "clickToZoom": "🔍 點圖放大",
+    "modalHint": "點任意處 / ESC 關閉",
+    "cutListSummaryTpl": "切料清單（{n} 刀）",
+    "thCode": "編號",
+    "thPart": "零件",
+    "thDimMm": "長×寬×厚 mm",
+    "thStartXy": "起點 x,y"
+  },
+  "cutPlanConfig": {
+    "kerfLbl": "鋸路 kerf（mm）",
+    "kerfHint": "圓鋸 3、帶鋸 1–2",
+    "minWasteLbl": "最小可用餘料（mm）",
+    "minWasteHint": "低於此長度的零頭不計入利用率",
+    "h": "進階設定",
+    "footer": "💡 排料策略已移到上方排料圖旁邊。每件零件的 90° 旋轉在「零件清單」每筆右側勾選。"
+  },
+  "cutPlanSection": {
+    "h": "排料圖",
+    "summaryTpl": "{kind}{material} {thickness}mm · {bins} 板",
+    "kindSolid": "實木",
+    "kindPlywood": "夾板",
+    "kindMdf": "中纖板",
+    "materialParenTpl": "（{name}）",
+    "unplacedH": "排不下：",
+    "splitBtn": "✂ 分割",
+    "splitTitle": "拼板分割：把寬度拆成 N 條，多板拼合（自動加 10mm 膠合損耗）",
+    "stockStatsTpl": "{bins} 塊原料．{placed}/{total} 件．利用率 {pct}%",
+    "unplacedHTpl": "⚠️ {n} 件排不下——庫存不足或原料尺寸不夠大",
+    "shortageTpl": "🧮 估計還需要約 {n} 塊 {l}×{w}mm 原料",
+    "shortagePrefix": "🧮 "
+  },
+  "xrayToggle": {
+    "lbl": "透視",
+    "offLabel": "🔲 關閉",
+    "offTitle": "顯示全部",
+    "faceLabel": "🪞 只藏面板",
+    "faceTitle": "藏門 + 抽屜面板，看得到抽屜箱體",
+    "fullLabel": "🔍 全部隱藏",
+    "fullTitle": "藏整個抽屜 + 門，看櫃內全空"
+  },
+  "shareButtons": {
+    "lbl": "分享：",
+    "lineTitle": "分享到 LINE",
+    "fbTitle": "分享到 Facebook",
+    "copyTitle": "複製連結",
+    "copyPrompt": "複製這個連結：",
+    "copiedLabel": "已複製",
+    "copyLabel": "複製連結"
+  },
+  "shareDesign": {
+    "copyPrompt": "複製這個連結：",
+    "copied": "✓ 已複製連結",
+    "shared": "✓ 已分享",
+    "idle": "分享設計",
+    "title": "複製當前設計連結，貼到 FB / IG / LINE 會自動帶預覽圖",
+    "messageTpl": "我用木頭仁 木作藍圖做了一張{name} {l}×{w}×{h}mm"
+  },
+  "styleMismatch": {
+    "presetNameLbl": "風格傳統用",
+    "currentLblPre": "，目前選的",
+    "deviateSufTpl": "偏離風格——可能變成「假{name}」。",
+    "sourcePre": "來源："
+  },
+  "printGate": {
+    "loadingBtn": "🖨️ 載入中…",
+    "upgradeTitle": "升級個人版即可下載 PDF",
+    "upgradeBtn": "🔒 升級下載 PDF",
+    "watermark": "木頭仁 · 試用版",
+    "upgradeFeature": "無浮水印 PDF",
+    "upgradeHint": "個人版開始就能下載無浮水印 PDF～"
+  },
+  "brandingGate": {
+    "loading": "載入中…",
+    "h": "先設定你的工作室抬頭",
+    "body1": "報價單會帶上你的公司名 / LOGO / 聯絡資訊寄給客戶。",
+    "bodyStrong": "沒設定前，客戶看到的會是木頭仁的預設品牌",
+    "body2": "，這對你的專業度大扣分。",
+    "body3": "花 2 分鐘設好，所有報價單都自動帶入你的品牌。",
+    "openBtn": "⚙️ 開始設定我的工作室抬頭",
+    "afterSaveHint": "填好任意欄位後會自動儲存。儲存後重新整理本頁就會放行。"
+  },
+  "installApp": {
+    "btn": "📲 安裝 App 到主畫面",
+    "iosH": "安裝到主畫面（iOS）",
+    "iosStep1Pre": "點擊 Safari 下方分享按鈕 ",
+    "iosStep1Icon": "⬆️",
+    "iosStep2": "選擇「加入主畫面」",
+    "iosStep3": "點右上角「新增」即完成",
+    "iosHint": "注意：必須用 Safari 開啟才能安裝；Chrome / Line 內建瀏覽器無此選項。",
+    "okBtn": "知道了"
+  },
+  "qrCode": {
+    "alt": "掃碼看線上報價",
+    "caption": "📱 掃碼看線上報價"
+  },
+  "printToolList": {
+    "priorityRequired": "必備工具",
+    "priorityRecommended": "建議工具",
+    "priorityOptional": "可選工具"
+  },
+  "wireframeToggle": {
+    "lbl": "線框",
+    "onTitle": "點擊回到實心模式",
+    "offTitle": "點擊切換成線框骨架（看得到內部結構）",
+    "onLabel": "🕸️ 線框 ON",
+    "offLabel": "🕸️ 線框"
+  },
+  "studentLoginHint": {
+    "h": "是木匠學院的學員嗎？✨",
+    "body": "登入就自動開通完整功能（無限儲存、PDF 下載、客製報價⋯⋯都解鎖）。非學員也能登入儲存自己的設計。",
+    "logoAlt": "木頭仁"
+  },
+  "lazyPerspective": {
+    "loadingHint": "準備 3D 透視圖中"
+  },
+  "numberInput": {
+    "decrease": "減",
+    "increase": "加"
+  },
+  "resetDefaults": {
+    "confirm": "重設後會清空你目前所有調整,回到出廠預設。要繼續嗎?\n(清空後可以按瀏覽器上一頁救回)",
+    "title": "清空所有調整、回到模板預設值",
+    "button": "↺ 重設預設"
+  },
+  "suggestionsBox": {
+    "headerText": "您要做的尺寸建議改用其他模板",
+    "upgradeCtaTpl": "🔓 升級看「{name}」模板",
+    "switchCtaTpl": "→ 切換到「{name}」模板(沿用當前尺寸)"
+  },
+  "catalogSearch": {
+    "placeholder": "🔍 搜尋家具:餐桌、書櫃、玄關鞋櫃…",
+    "clear": "✕ 清除"
+  },
+  "viewModeToggle": {
+    "customer": "👤 客戶版",
+    "internal": "🔧 內部版"
+  },
+  "sizePreset": {
+    "commonLabel": "🎯 業界常用:"
+  },
+  "heightChip": {
+    "heightLbl": "高度"
+  },
+  "stylePreset": {
+    "reapplyHintTpl": "\n再按產出 #{n} 變體"
+  },
+  "material3dPip": {
+    "syncLabel": "3D 同步高亮"
+  },
+  "sceneToggle": {
+    "sceneLbl": "場景",
+    "natural": "純白",
+    "nordic": "北歐",
+    "japandi": "日式",
+    "industrial": "工業",
+    "chinese": "中式"
+  },
+  "engineeringToolPages": {
+    "cnc": {
+      "metaTitle": "CNC 刀路產生器｜SVG/DXF 轉 CNC 刀路產生器｜木頭仁木作藍圖",
+      "metaDescription": "把 SVG／DXF／圖片拖進去，3 秒產出 CNC 能直接跑的標準 G-code。外形切割、挖槽、鑽孔、V 刻字、浮雕、圖片描圖十種加工，內建切穿警告與換刀順序卡，省掉 Fusion 360 CAM 設定流程。離線、免安裝。"
+    },
+    "raisedFloor": {
+      "metaTitle": "和室架高平台估價 · 木頭仁",
+      "metaDescription": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。木工師傅、統包、DIY 自己做和室一次搞定。"
+    },
+    "ceiling": {
+      "metaTitle": "木作天花板骨架施工模擬器 · 木頭仁",
+      "metaDescription": "畫房間 → 算角材、矽酸鈣板、吊筋 → 出 A4 估價單。木作天花板算料 30 秒搞定。"
+    },
+    "floor": {
+      "metaTitle": "地板施工模擬器 · 木頭仁",
+      "metaDescription": "畫房間 → 直鋪 / 錯縫 / 人字拼自動排版 → 算片數損耗估價。木地板算料 30 秒搞定。"
+    },
+    "ceilingQuote": {
+      "metaTitle": "天花板工程報價 · 木頭仁"
+    },
+    "floorQuote": {
+      "metaTitle": "地板工程報價 · 木頭仁"
+    },
+    "ceilingQuotePrint": {
+      "metaTitle": "天花板工程報價單 · 木頭仁"
+    },
+    "floorQuotePrint": {
+      "metaTitle": "地板工程報價單 · 木頭仁"
+    }
+  },
+  "surveyPage": {
+    "metaTitle": "問卷 · 木頭仁木作藍圖"
+  },
+  "globalError": {
+    "h": "發生嚴重錯誤",
+    "bodyPre": "請重試,或重新整理頁面。如果一直發生,請聯絡木頭仁 ",
+    "bodySuf": "。",
+    "retry": "重試"
+  },
+  "lemon": {
+    "_note": "Lemon Squeezy 元件僅在 en locale 渲染，這份只給 next-intl fallback 用、避免 missing-key 警告",
+    "pricing": {
+      "heroTitle": "Furniture Blueprints",
+      "heroSubtitle": "Parametric furniture design with engineering drawings, 3D views, bill of materials, and step-by-step construction plans.",
+      "bestValue": "BEST VALUE",
+      "monthlyTitle": "Monthly",
+      "monthlyPrice": "$9",
+      "monthlyPeriod": "/ month",
+      "monthlySubtitle": "Cancel anytime",
+      "monthlyCta": "Start monthly",
+      "monthlyFeatures": [
+        "All templates",
+        "Unlimited designs",
+        "PDF & SVG export",
+        "Bill of materials + cut list",
+        "3D real-time preview"
+      ],
+      "annualTitle": "Annual",
+      "annualPrice": "$79",
+      "annualPeriod": "/ year",
+      "annualSubtitle": "Save 27% — 2 months free",
+      "annualCta": "Start annual",
+      "annualFeatures": [
+        "Everything in Monthly",
+        "Priority support",
+        "Early access",
+        "Annual billing"
+      ],
+      "lifetimeTitle": "Lifetime",
+      "lifetimePrice": "$129",
+      "lifetimePeriod": "",
+      "lifetimeSubtitle": "One-time purchase",
+      "lifetimeCta": "Buy lifetime",
+      "lifetimeFeatures": [
+        "All current templates",
+        "All future templates",
+        "Unlimited designs forever",
+        "No recurring charges"
+      ],
+      "signInPrefix": "Sign in to ",
+      "alreadyOwned": "You already own this",
+      "redirecting": "Redirecting…",
+      "footerPaymentsBy": "Payments processed securely by",
+      "footerMoR": "(merchant of record). VAT/sales tax handled automatically."
+    },
+    "singleTemplate": {
+      "heading": "Just want one template?",
+      "intro": "Buy lifetime access to a single template. No subscription.",
+      "planIncludesAll": "Your plan already includes every template — no need to buy individually.",
+      "tierBasic": "Basic",
+      "tierPro": "Pro",
+      "tierStudio": "Studio",
+      "filterAll": "All",
+      "loading": "Loading…",
+      "owned": "Owned ✓",
+      "buy": "Buy",
+      "signIn": "Sign in"
+    },
+    "subscription": {
+      "h1": "My subscription",
+      "intro": "Manage your Furniture Blueprints plan and single-template purchases.",
+      "planProLabel": "Furniture Blueprints Pro",
+      "manage": "Manage subscription →",
+      "started": "Started",
+      "renewsOn": "Renews on",
+      "accessUntil": "Access until",
+      "cancelledNote": "Your subscription is cancelled but remains active until {date}. You can reactivate from the customer portal.",
+      "portalHint": "Update payment method, cancel, or view invoices on the Lemon Squeezy customer portal.",
+      "noActive": "No active subscription.",
+      "viewPlans": "View plans",
+      "singlePurchasesH": "Single-template purchases",
+      "purchaseTypeTool": "tool",
+      "purchaseTypeTemplate": "template",
+      "loading": "Loading subscription…",
+      "statusActive": "Active",
+      "statusCancelled": "Cancelled",
+      "statusExpired": "Expired",
+      "statusUnpaid": "Unpaid",
+      "statusPaused": "Paused",
+      "checkoutSuccessTitle": "Payment received — you're all set.",
+      "checkoutSuccessBody": "Your purchase is unlocked. If your subscription or single-template access doesn't appear within a minute, refresh this page.",
+      "checkoutSuccessDismiss": "Dismiss",
+      "signInPrompt": "請先登入以查看訂閱資訊。"
+    }
+  },
+  "admin": {
+    "dashboardTitle": "後台儀表板 · 木頭仁 admin",
+    "lemonsqueezyTitle": "Lemon Squeezy 日誌 · 木頭仁 admin",
+    "lemonsqueezyH1": "Lemon Squeezy",
+    "lemonsqueezyIntro": "國際版 USD 金流的訂閱、付款與 webhook log。",
+    "tabSubscriptions": "訂閱",
+    "tabPayments": "付款",
+    "tabWebhookLog": "Webhook log",
+    "filterAll": "全部",
+    "filterActive": "進行中",
+    "filterCancelled": "已取消",
+    "colCreatedAt": "建立時間",
+    "colEmail": "使用者",
+    "colPlan": "方案",
+    "colStatus": "狀態",
+    "colPeriod": "週期",
+    "colAmount": "金額",
+    "colSubId": "Subscription ID",
+    "colOrderId": "Order ID",
+    "colEvent": "事件",
+    "colEventId": "Event ID",
+    "colProcessed": "已處理",
+    "colError": "錯誤",
+    "loading": "讀取中…",
+    "empty": "沒有資料。",
+    "processedYes": "✓",
+    "processedNo": "—"
+  },
+  "workbenchLanding": {
+    "metadata": {
+      "title": "免費畫你的木工工作桌｜輸入身高選流派，3 分鐘出三視圖、材料單、零件圖",
+      "description": "木頭仁把木工工作桌模板免費送給每一個想做木工的人：厚板桌、裙板桌、工具槽桌、20mm 孔陣桌、教室雙面桌五種流派，填身高算桌高，自動排前鉗、狗孔、holdfast 孔。免登入免註冊，直接出三視圖、材料單、零件圖、裁切圖。",
+      "ogTitle": "免費畫你的木工工作桌｜木頭仁木作藍圖",
+      "ogDescription": "每個木工的第一件作品，是自己的工作桌。五種流派、身高算桌高、前鉗狗孔自動排位。免費、免註冊，3 分鐘出設計圖。"
+    },
+    "hero": {
+      "badge": "木頭仁 · 免費送給每一個想做木工的人",
+      "h1Line1": "每個木工的第一件作品，",
+      "h1Highlight": "是自己的工作桌",
+      "intro": "先有一張能刨、能夾、不會走路的桌，之後的方凳、餐椅、書桌，全部都在它上面做出來。這個模板我不收費：填身高、選流派，3 分鐘畫成你自己的設計圖。",
+      "cta": "免費開始畫工作桌 →",
+      "ctaNote": "免登入、免註冊、免付費 · 直接進編輯器",
+      "readMore": "先看這個模板的完整介紹",
+      "imgAlt": "木工工作桌 3D 實際產出畫面 — 厚板桌、前鉗與一列狗孔",
+      "imgCaption": "實際產出畫面（預設值直接生成）"
+    },
+    "why": {
+      "eyebrow": "為什麼免費送",
+      "h2": "我想讓更多人開始做木工",
+      "p1": "做木工這十幾年，我最常看到的卡關不是技術——是沒有地方做。在餐桌上鑿榫、在陽台地上鋸木頭，做兩次就放棄了。",
+      "p2": "一張自己做的工作桌，是木工的起點：它夠重、夠平、夾得住料，也是你第一件真正用得到的作品。做完它，你就有了自己的工作空間，接下來想做什麼都有地方做。",
+      "p3": "所以這個模板用推廣木工的名義免費送。不用註冊、不用付錢，畫好就能去買料開工。",
+      "sign": "—— 木頭仁"
+    },
+    "choose": {
+      "eyebrow": "能選什麼",
+      "h2": "五種流派，一鍵帶入整組尺寸",
+      "intro": "不知道從哪開始就選厚板桌；空間小、料要省就選裙板桌。每一種都能再微調桌面厚、腳粗、鉗位、孔距。",
+      "styles": {
+        "roubo": {
+          "title": "厚板桌（法式 Roubo）",
+          "desc": "厚桌面、粗腳貫穿榫、前鉗加一列狗孔。手工具木工最經典的一張桌，重到刨兩下不會被推著走。"
+        },
+        "apron": {
+          "title": "裙板桌（英式 Nicholson）",
+          "desc": "薄桌面靠高裙板撐住剛性，螺栓可拆、最省料。公寓、搬家常客首選。"
+        },
+        "well": {
+          "title": "工具槽桌（北歐式）",
+          "desc": "桌面後側一道槽，鑿子、刨刀放進去不會滾下桌，桌面永遠是空的。"
+        },
+        "mft": {
+          "title": "20mm 孔陣桌（現代 MFT）",
+          "desc": "夾板桌面、20mm 孔每 96mm 一格，配軌道鋸導軌與 MFT 夾具都通用。"
+        },
+        "classroom": {
+          "title": "教室雙面桌",
+          "desc": "兩人面對面各一支鉗、各一列狗孔，木匠學院教室就是這一款。"
+        }
+      },
+      "height": {
+        "title": "桌高依身高與用途算",
+        "desc": "填你的身高，選手刨、機具、精細作業或桌鋸出料台，說明區直接給建議桌高——不會偷偷改你設的高度。"
+      },
+      "holding": {
+        "title": "前鉗、狗孔、holdfast 孔自動排位",
+        "desc": "選 7 吋或 9 吋鑄鐵快速鉗，模板把它排在腳外側、前緣不夠厚就加墊塊；狗孔每 100mm 一個、Ø19 或 Ø20，holdfast 後排錯開。"
+      },
+      "plywood": {
+        "title": "夾板疊層版：不用鑿榫也做得出來",
+        "desc": "桌面、腳、橫撐全部用 18mm 夾板一層層疊起來上膠鎖螺絲，橫撐嵌進疊層時預留的缺口，整台沒有一個榫。層數自己選：桌面 2／3／4 層（36／54／72mm）、腳 3／4／5 層，選單裡直接告訴你哪一檔夠用。料單會算要幾張 4×8 呎夾板、幾支螺絲。"
+      }
+    },
+    "outputs": {
+      "eyebrow": "免登入免註冊，直接出圖",
+      "h2": "按下去就是一整套可以開工的設計圖",
+      "threeview": {
+        "title": "工程三視圖",
+        "desc": "正視、側視、俯視含完整尺寸標註，孔位一個一個標好。"
+      },
+      "bom": {
+        "title": "材料單",
+        "desc": "每塊料的長寬厚與數量，含台灣木匠切料慣例，拿著就能去木材行。"
+      },
+      "parts": {
+        "title": "零件圖",
+        "desc": "每一件零件單獨一張，榫頭、榫眼、孔位尺寸都在上面。"
+      },
+      "cutplan": {
+        "title": "裁切圖",
+        "desc": "自動排板算出最省料的切法，買幾片板一次算清楚。"
+      }
+    },
+    "cta": {
+      "h2": "現在就把你的工作桌畫出來",
+      "body": "不用想太多，先用預設值開起來看，再把身高、桌長改成你的。",
+      "button": "免費開始畫工作桌 →",
+      "note": "免登入免註冊 · 方凳 + 筆筒 + 木工工作桌永遠免費"
+    },
+    "others": {
+      "eyebrow": "另外兩個免費模板",
+      "h2": "做完桌子，第一件在桌上做的作品",
+      "stool": {
+        "title": "方凳",
+        "desc": "四支腳、八個榫，練直榫最好的一張凳。"
+      },
+      "pencilHolder": {
+        "title": "筆筒",
+        "desc": "一塊料、一個下午，練習鑿與拼板的小物。"
+      },
+      "open": "免費開始 →",
+      "seeAll": "看全部 26 件範本 →"
+    }
+  }
+}

@@ -1,6 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
+import { useHoveredParts } from "@/components/HoveredPartsContext";
+import { useUnit } from "@/hooks/useUnit";
+import { formatInchFraction, MM_PER_INCH } from "@/lib/units/format";
+
+const SIXTEENTH_MM = MM_PER_INCH / 16; // 1.5875mm
+
+/** Snap mm value to nearest 1/16" (in mm, rounded to int for clean URLs).
+ *  dir=+1/-1 必須嚴格單調(結果 mm ≠ 輸入 mm),否則 38mm→snap+1 還是 38 會卡住. */
+function snapToSixteenthMm(mm: number, dir: 1 | -1 | 0 = 0): number {
+  const sixteenths = mm / SIXTEENTH_MM;
+  if (dir === 0) return Math.round(Math.round(sixteenths) * SIXTEENTH_MM);
+  // 從最近的 1/16" 出發 + 一個 step,再 round 回 int mm
+  const startSixteenths = Math.round(sixteenths);
+  let target = startSixteenths + dir;
+  let result = Math.round(target * SIXTEENTH_MM);
+  const original = Math.round(mm);
+  // 防 int round 衝突 — 某些 mm 值剛好 round 回同一個 int,要再推一格
+  while (result === original) {
+    target += dir;
+    result = Math.round(target * SIXTEENTH_MM);
+  }
+  return result;
+}
+
+interface PresetPoint {
+  value: number;
+  label: string;
+}
 
 interface Props {
   name: string;
@@ -9,38 +38,446 @@ interface Props {
   max?: number;
   step?: number;
   className?: string;
+  /** label（選填，用於 ±按鈕 aria 與保留版面） */
+  label?: string;
+  /** chip 旁邊的可點預設值 */
+  presetPoints?: PresetPoint[];
+  /** 桌面 ±按鈕（手機強制 false） */
+  showPlusMinus?: boolean;
+  /** 動態 max 提示小字 */
+  dynamicMaxHint?: string;
+  /** 給 Part anchor 用（這包只接通道） */
+  partIds?: string[];
+  /** 預留以求與 RangeInput 對齊（此元件無 slider，無作用） */
+  ticks?: number[];
+  /**
+   * 此輸入是否代表 mm 長度。若是，且使用者單位偏好為 inch，
+   * 會在輸入框右側顯示「≈ 1-1/2"」的英寸分數提示。
+   * 預設 false（避免誤套到度數/數量等非長度欄位）。
+   */
+  isLengthMm?: boolean;
 }
 
 /**
  * 桌面版「鎖定總高」用：max 從外部縮小時，把值立刻夾到上限並回寫表單，
  * 避免顯示值與實際渲染值不一致。
  */
-export function ClampedNumberInput({ name, defaultValue, min, max, step, className }: Props) {
+export function ClampedNumberInput({
+  name,
+  defaultValue,
+  min,
+  max,
+  step,
+  className,
+  label,
+  presetPoints,
+  showPlusMinus,
+  dynamicMaxHint,
+  partIds,
+  ticks,
+  isLengthMm,
+}: Props) {
+  void ticks;
+  const t = useTranslations("numberInput");
+  const unit = useUnit();
+  const showInchHelper = !!isLengthMm && unit === "inch";
+
+  // Part anchor hover/focus → 3D 對應件 emissive 高亮
+  const { setHoveredPartIds } = useHoveredParts();
+  const hasAnchor = !!(partIds && partIds.length > 0);
+  const handleEnter = useCallback(() => {
+    if (hasAnchor) setHoveredPartIds(partIds!);
+  }, [hasAnchor, partIds, setHoveredPartIds]);
+  const handleLeave = useCallback(() => {
+    if (hasAnchor) setHoveredPartIds(null);
+  }, [hasAnchor, setHoveredPartIds]);
+
   const [value, setValue] = useState<string>(String(defaultValue));
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // 只在 max 從外部縮小時把值拉回（「鎖總高」場景）。
+  // 不要 react 到 value 自己變化、也不要在這裡 enforce min ——
+  // 否則使用者打「2」想接著打「2400」時，2 < min 20 會立刻跳成 20、
+  // 接下來 user 打「4」變成「204」、再「0」變「2040」、再「0」變「20400」
+  // 然後又被夾到 max。整個輸入流被毀。min 改成只在 onBlur 時 clamp。
   useEffect(() => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return;
-    if (max !== undefined && n > max) setValue(String(max));
-    else if (min !== undefined && n < min) setValue(String(min));
-  }, [max, min, value]);
+    if (max === undefined) return;
+    setValue((prev) => {
+      const n = Number(prev);
+      if (!Number.isFinite(n)) return prev;
+      return n > max ? String(max) : prev;
+    });
+  }, [max]);
 
-  return (
+  // 外部 sync：URL 改變 → server rerender → defaultValue prop 更新時、
+  // 同步把內部 state 拉到新值。只在 input 非 focused 時做（避免打字中
+  // 被 URL push 蓋回半值）。場景：紅酒架 PRESET_INPUT_SYNC 切瓶型自動
+  // 同步瓶徑 slider 用、或任何 select→sibling input 同步機制。
+  const defaultValueStr = String(defaultValue);
+  useEffect(() => {
+    if (document.activeElement === inputRef.current) return; // 打字中不接受外部
+    setValue(defaultValueStr);
+  }, [defaultValueStr]);
+
+  const clamp = useCallback(
+    (n: number) => {
+      let r = n;
+      if (max !== undefined && r > max) r = max;
+      if (min !== undefined && r < min) r = min;
+      return r;
+    },
+    [min, max],
+  );
+
+  const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fireNativeChange = useCallback(() => {
+    // ± 按鈕只改 React state，DOM 值是 React 自己 render 進去的，
+    // React 的 _valueTracker 認為「值沒變」所以 dispatch 的 input event
+    // 不會 fire React synthetic onChange → form 收不到 → URL 不 push。
+    // 解法：把 _valueTracker 重置成空，這樣 React 比對時會視為「值有變」。
+    const el = inputRef.current as (HTMLInputElement & { _valueTracker?: { setValue: (v: string) => void } }) | null;
+    if (!el) return;
+    el._valueTracker?.setValue("");
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, []);
+
+  const stopRepeat = useCallback(() => {
+    if (repeatTimerRef.current) {
+      clearTimeout(repeatTimerRef.current);
+      repeatTimerRef.current = null;
+    }
+    if (repeatIntervalRef.current) {
+      clearInterval(repeatIntervalRef.current);
+      repeatIntervalRef.current = null;
+    }
+    // 放開後在下一個 frame 觸發（等 setValue 的 re-render 把 input.value 寫進 DOM）
+    requestAnimationFrame(fireNativeChange);
+  }, [fireNativeChange]);
+
+  const startRepeat = useCallback(
+    (delta: number) => {
+      setValue((v) => {
+        const n = Number(v);
+        return String(clamp((Number.isFinite(n) ? n : 0) + delta));
+      });
+      repeatTimerRef.current = setTimeout(() => {
+        repeatIntervalRef.current = setInterval(() => {
+          setValue((v) => {
+            const n = Number(v);
+            return String(clamp((Number.isFinite(n) ? n : 0) + delta));
+          });
+        }, 80);
+      }, 500);
+    },
+    [clamp],
+  );
+
+  useEffect(() => () => stopRepeat(), [stopRepeat]);
+
+  // unmount 時清掉 hover state，避免 ghost highlight
+  useEffect(() => {
+    return () => {
+      if (hasAnchor) setHoveredPartIds(null);
+    };
+  }, [hasAnchor, setHoveredPartIds]);
+
+  const stepDelta = step ?? 1;
+
+  const hasExtras =
+    showPlusMinus ||
+    (presetPoints && presetPoints.length > 0) ||
+    dynamicMaxHint ||
+    label;
+
+  // Pattern B: inch fraction display + click-to-edit decimal-inch input
+  // 設計參照 SketchUp / Fusion 360：分數展示 + 小數英寸輸入,避開 fraction parse 雷.
+  const [editing, setEditing] = useState(false);
+  const editRef = useRef<HTMLInputElement>(null);
+
+  /** 把新 mm 值直接寫進 sr-only number input,觸發 form auto-submit.
+   *  關鍵:DOM 同步寫(el.value = str)+ setState 異步,讓快速連點時下一次 readDOM 取到新值.
+   *  React 的 _valueTracker 認為「值沒變」就不 fire onChange,
+   *  所以先 setValue("") 讓 React 比對時認為「值變了」.
+   *  early return 防靜默 dispatch. */
+  const writeMm = useCallback(
+    (newMm: number) => {
+      const clamped = clamp(newMm);
+      const el = inputRef.current;
+      const cur = el ? Number(el.value) : NaN;
+      if (clamped === cur) return;
+      const str = String(clamped);
+      if (el) {
+        // 用 native HTMLInputElement.prototype.value setter,繞過 React 受控元件攔截,
+        // 確保 React 的 _valueTracker 內部值跟 DOM value 不同,onChange 才會 fire.
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        nativeSetter?.call(el, str);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      setValue(str);
+    },
+    [clamp],
+  );
+
+  /** 從 DOM 讀目前 mm 後做 1/16" 步進.
+   *  關鍵:不從 value(state) 讀 — 快速連點時 closure 會被 stale,讀 DOM 永遠是最新值. */
+  const inchStep = useCallback(
+    (dir: 1 | -1, magnitude: 1 | 4 = 1) => {
+      const el = inputRef.current;
+      const n = el ? Number(el.value) : 0;
+      const base = Number.isFinite(n) ? n : 0;
+      let next = base;
+      for (let i = 0; i < magnitude; i++) {
+        next = snapToSixteenthMm(next, dir);
+      }
+      writeMm(next);
+    },
+    [writeMm],
+  );
+
+  const enterEdit = useCallback(() => setEditing(true), []);
+  const finishEdit = useCallback(() => {
+    const el = editRef.current;
+    if (el) {
+      const raw = Number(el.value);
+      if (Number.isFinite(raw) && raw > 0) {
+        const targetMm = snapToSixteenthMm(raw * MM_PER_INCH, 0);
+        writeMm(targetMm);
+      }
+    }
+    setEditing(false);
+  }, [writeMm]);
+
+  const renderInchPatternB = () => {
+    const n = Number(value);
+    const fraction = Number.isFinite(n) ? formatInchFraction(n) : "—";
+    const atMin = min !== undefined && Number.isFinite(n) && n <= min;
+    const atMax = max !== undefined && Number.isFinite(n) && n >= max;
+    const inchValue = Number.isFinite(n) ? (n / MM_PER_INCH).toFixed(4).replace(/\.?0+$/, "") : "";
+    return (
+      <span className="inline-flex items-center gap-1 min-w-0">
+        <button
+          type="button"
+          aria-label={t("decrease")}
+          disabled={atMin || editing}
+          onClick={() => inchStep(-1)}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
+        >
+          −
+        </button>
+        {editing ? (
+          <input
+            ref={editRef}
+            type="number"
+            step={0.0625}
+            min={min !== undefined ? min / MM_PER_INCH : undefined}
+            max={max !== undefined ? max / MM_PER_INCH : undefined}
+            defaultValue={inchValue}
+            autoFocus
+            onFocus={(e) => e.target.select()}
+            onBlur={finishEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); finishEdit(); }
+              else if (e.key === "Escape") { e.preventDefault(); setEditing(false); }
+            }}
+            className="px-2 py-1 min-w-[3.5rem] w-20 text-center tabular-nums text-sm rounded border border-amber-400 bg-white outline-none focus:ring-2 focus:ring-amber-300 no-spinner"
+          />
+        ) : (
+          <button
+            type="button"
+            tabIndex={0}
+            role="spinbutton"
+            aria-valuenow={Number.isFinite(n) ? n : undefined}
+            aria-valuemin={min}
+            aria-valuemax={max}
+            aria-valuetext={fraction}
+            onClick={enterEdit}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowUp") { e.preventDefault(); inchStep(1); }
+              else if (e.key === "ArrowDown") { e.preventDefault(); inchStep(-1); }
+              else if (e.key === "PageUp") { e.preventDefault(); inchStep(1, 4); }
+              else if (e.key === "PageDown") { e.preventDefault(); inchStep(-1, 4); }
+              else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enterEdit(); }
+            }}
+            className="px-2 py-1 min-w-[3.5rem] text-center tabular-nums text-sm rounded border border-zinc-200 bg-white outline-none hover:border-amber-300 focus:ring-2 focus:ring-amber-300 cursor-text"
+          >
+            {fraction}
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label={t("increase")}
+          disabled={atMax || editing}
+          onClick={() => inchStep(1)}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm leading-none disabled:opacity-40 disabled:cursor-not-allowed border border-amber-200"
+        >
+          +
+        </button>
+      </span>
+    );
+  };
+
+  /** sr-only 但真實存在的 mm number input — form auto-submit 走這個 */
+  const renderSrOnlyMmInput = () => (
     <input
+      ref={inputRef}
       type="number"
       name={name}
       value={value}
       onChange={(e) => setValue(e.target.value)}
-      onBlur={(e) => {
-        const n = Number(e.target.value);
-        if (!Number.isFinite(n)) return;
-        if (max !== undefined && n > max) setValue(String(max));
-        else if (min !== undefined && n < min) setValue(String(min));
-      }}
       min={min}
       max={max}
       step={step}
-      className={className}
+      tabIndex={-1}
+      aria-hidden
+      className="sr-only"
     />
+  );
+
+  // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變（hover 接線除外）
+  if (!hasExtras) {
+    if (showInchHelper) {
+      return (
+        <span
+          className="inline-flex"
+          onPointerEnter={hasAnchor ? handleEnter : undefined}
+          onPointerLeave={hasAnchor ? handleLeave : undefined}
+        >
+          {renderInchPatternB()}
+          {renderSrOnlyMmInput()}
+        </span>
+      );
+    }
+    return (
+      <input
+        type="number"
+        name={name}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onFocus={hasAnchor ? handleEnter : undefined}
+        onBlur={(e) => {
+          if (hasAnchor) handleLeave();
+          const n = Number(e.target.value);
+          if (!Number.isFinite(n)) return;
+          if (max !== undefined && n > max) setValue(String(max));
+          else if (min !== undefined && n < min) setValue(String(min));
+        }}
+        onPointerEnter={hasAnchor ? handleEnter : undefined}
+        onPointerLeave={hasAnchor ? handleLeave : undefined}
+        min={min}
+        max={max}
+        step={step}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="flex flex-col w-full min-w-0"
+      onPointerEnter={hasAnchor ? handleEnter : undefined}
+      onPointerLeave={hasAnchor ? handleLeave : undefined}
+    >
+      <span className="flex items-center gap-1 w-full min-w-0">
+        {label && (
+          <span className="text-zinc-700 font-medium shrink-0 w-16 text-sm">
+            {label}
+          </span>
+        )}
+
+        {showPlusMinus && !showInchHelper && (
+          <button
+            type="button"
+            aria-label={t("decrease")}
+            onMouseDown={() => startRepeat(-stepDelta)}
+            onMouseUp={stopRepeat}
+            onMouseLeave={stopRepeat}
+            onTouchStart={() => startRepeat(-stepDelta)}
+            onTouchEnd={stopRepeat}
+            className="hidden md:flex shrink-0 w-6 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-sm leading-none"
+          >
+            −
+          </button>
+        )}
+
+        {showInchHelper ? (
+          <>
+            {renderInchPatternB()}
+            {renderSrOnlyMmInput()}
+          </>
+        ) : (
+          <input
+            ref={inputRef}
+            type="number"
+            name={name}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={hasAnchor ? handleEnter : undefined}
+            onBlur={(e) => {
+              if (hasAnchor) handleLeave();
+              const n = Number(e.target.value);
+              if (!Number.isFinite(n)) return;
+              if (max !== undefined && n > max) setValue(String(max));
+              else if (min !== undefined && n < min) setValue(String(min));
+            }}
+            min={min}
+            max={max}
+            step={step}
+            className={`${className ?? ""} flex-1 min-w-[3.5rem] w-full text-center tabular-nums no-spinner`.trim()}
+          />
+        )}
+
+        {showPlusMinus && !showInchHelper && (
+          <button
+            type="button"
+            aria-label={t("increase")}
+            onMouseDown={() => startRepeat(stepDelta)}
+            onMouseUp={stopRepeat}
+            onMouseLeave={stopRepeat}
+            onTouchStart={() => startRepeat(stepDelta)}
+            onTouchEnd={stopRepeat}
+            className="hidden md:flex shrink-0 w-6 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-sm leading-none"
+          >
+            +
+          </button>
+        )}
+
+        {presetPoints && presetPoints.length > 0 && (
+          <span className="hidden md:inline-flex shrink-0 items-center gap-1">
+            {presetPoints.map((p) => (
+              <button
+                key={`${p.label}-${p.value}`}
+                type="button"
+                onClick={() => {
+                  const v = clamp(p.value);
+                  setValue(String(v));
+                  // 觸發原生 change 讓 form auto-submit 偵測得到（setValue 改 React state
+                  // 不會 fire DOM 事件）
+                  requestAnimationFrame(() => {
+                    inputRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+                    inputRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
+                    inputRef.current?.focus();
+                  });
+                }}
+                className="h-6 px-1.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
+              >
+                {p.label}
+                {p.value}
+              </button>
+            ))}
+          </span>
+        )}
+      </span>
+
+      {dynamicMaxHint && (
+        <span className="mt-1 text-[11px] text-zinc-500">
+          ⚠ {dynamicMaxHint}
+        </span>
+      )}
+    </span>
   );
 }

@@ -8,7 +8,7 @@ import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
  * 全部用 service-role client（繞 RLS 直接撈 count）。
  *
  * 估算 MRR：
- *   - personal：×290
+ *   - personal：×390
  *   - pro：×890
  *   - student（仍在期）：算成 0（學員免費）
  *   - lifetime：不入 MRR（一次性收入）
@@ -107,19 +107,61 @@ async function signupTrend(svc: ReturnType<typeof getServiceSupabase>, days: num
   return Object.entries(buckets).map(([date, count]) => ({ date, count }));
 }
 
+/**
+ * 統計起算日：在這之前的 payments 視為「測試資料」，全部不算進儀表板。
+ * 真正開賣後第一筆正式付款的日期設這裡，30 天滾動窗一旦超過這日期就自然
+ * 失效（since 取 max(launchDate, 30天前)）。
+ *
+ * 2026-05-23：開賣前後測試一堆假訂單，先設 2026-05-24 起算清乾淨。
+ * 改日期不用碰 DB，只改這行。
+ */
+const STATS_LAUNCH_DATE = new Date("2026-05-24T00:00:00+08:00");
+
+function statsSince(daysAgo: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d > STATS_LAUNCH_DATE ? d : STATS_LAUNCH_DATE;
+}
+
+/**
+ * 「排除 admin 模擬扣款」的過濾條件。
+ *
+ * ⚠️ **一定要用 `.or(... is.null, ... neq)`,不可以只寫 `.neq()`。**
+ *    PostgREST 的 `neq` 對「該 key 不存在 → NULL」的列會判成 NULL(不是 TRUE),整批被濾掉。
+ *    2026-08-21 對正式站實測:單用 `.neq("raw_response->>_admin_simulation","true")`
+ *    會把 17 筆、11,092 元的真實營收全部變成 0;改成下面這個寫法才是 17 筆 / 11,092 元不變。
+ */
+const NOT_SIMULATED =
+  "raw_response->>_admin_simulation.is.null,raw_response->>_admin_simulation.neq.true";
+
 async function recentSubscriptions(svc: ReturnType<typeof getServiceSupabase>) {
-  // 過去 30 天「成功付款」的訂單筆數與金額
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
+  // 過去 30 天「成功付款」的訂單筆數與金額（受 STATS_LAUNCH_DATE clamp）
+  const since = statsSince(30);
   const { data } = await svc
     .from("payments")
     .select("amount, status, created_at")
     .gte("created_at", since.toISOString())
-    .eq("status", "success");
+    .eq("status", "success")
+    .or(NOT_SIMULATED);
   const list = (data ?? []) as Array<{ amount: number }>;
   return {
     count: list.length,
     revenue: list.reduce((s, r) => s + (r.amount ?? 0), 0),
+  };
+}
+
+async function recentRefunds(svc: ReturnType<typeof getServiceSupabase>) {
+  // 過去 30 天已退費的訂單（payments.status='refunded'）
+  const since = statsSince(30);
+  const { data } = await svc
+    .from("payments")
+    .select("amount, status, created_at")
+    .gte("created_at", since.toISOString())
+    .eq("status", "refunded");
+  const list = (data ?? []) as Array<{ amount: number }>;
+  return {
+    count: list.length,
+    amount: list.reduce((s, r) => s + (r.amount ?? 0), 0),
   };
 }
 
@@ -143,6 +185,7 @@ export async function GET() {
     trend7,
     trend30,
     last30Pay,
+    last30Refund,
   ] = await Promise.all([
     totalCount(svc, "users"),
     totalCount(svc, "designs"),
@@ -152,11 +195,12 @@ export async function GET() {
     signupTrend(svc, 7),
     signupTrend(svc, 30),
     recentSubscriptions(svc),
+    recentRefunds(svc),
   ]);
 
   // 估算 MRR（NTD）
   const PRICE_BY_PLAN: Record<string, number> = {
-    personal: 290,
+    personal: 390,
     pro: 890,
     // student / lifetime / free 都算 0
   };
@@ -182,6 +226,11 @@ export async function GET() {
     churnedCount,
     mrrEstimate,
     last30Pay,
+    last30Refund,
+    last30Net: {
+      revenue: last30Pay.revenue - last30Refund.amount,
+      count: last30Pay.count - last30Refund.count,
+    },
     trend7,
     trend30,
     generatedAt: new Date().toISOString(),
