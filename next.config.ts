@@ -11,18 +11,23 @@ const nextConfig: NextConfig = {
   // grant a new one to the second mount. Result: blank 透視圖 in dev.
   // Production builds don't double-mount, so this is dev-only.
   reactStrictMode: false,
-  // Skew Protection：把 build 的 deployment id 烙進 client bundle,client 發出的
-  // RSC / chunk 請求會帶著它,Vercel 就把請求路由回「這個使用者當初載入的那一版」。
+  // 🔴 2026-09-24 拿掉了 `deploymentId: process.env.VERCEL_DEPLOYMENT_ID`。
   //
-  // 沒有它的話:使用者手機開著設計頁,期間推了新版 → 他下一次動滑桿發的 RSC 請求
-  // 打到新版、client 還是舊版 → payload 對不上 → Next 退回**整頁硬導航**,
-  // 也就是「用到一半畫面自己重整」。部署越頻繁踩到的人越多。
-  // (同症狀的另一半是網路打嗝,那個由 components/RscFetchRetry.tsx 處理。)
+  // 它本來是為了 Skew Protection：使用者手機開著設計頁,期間推了新版 → 下一次動滑桿
+  // 發的 RSC 請求打到新版、client 還是舊版 → payload 對不上 → Next 退回整頁硬導航,
+  // 也就是「用到一半畫面自己重整」。
   //
-  // ⚠️ 這行只是把 id 帶上;真正的路由由 Vercel 專案設定的 Skew Protection 開關決定
-  //    (Settings → Advanced → Skew Protection)。本機/非 Vercel 環境沒有這個環境變數,
-  //    值是 undefined,行為與現在完全相同。
-  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+  // ⛔ 但真正的路由是 Vercel 專案設定的 Skew Protection 開關在做,那是付費方案的功能,
+  //    我們沒開 → 這行**一點作用都沒有**,卻有實測到的代價:
+  //    `VERCEL_DEPLOYMENT_ID` 在 **build 時不存在、runtime 才有** →
+  //    client bundle 被烙進字串 "undefined"、server 送出的 HTML 帶真值 →
+  //    同一支 chunk 出現 `?dpl=undefined` 與 `?dpl=dpl_xxx` 兩種網址 →
+  //    23 支 JS 裡 9 支被**下載兩次**。模擬 4G 實測多花約 3 秒。
+  //    (舊註解寫「值是 undefined,行為與現在完全相同」—— 那句是錯的,就是這個 bug 的來源。)
+  //
+  // 📌 哪天真的買了付費方案並在 Settings → Advanced 開啟 Skew Protection,再把這行加回來:
+  //    那時 build 時就拿得到 id,前後端一致,才會只有好處沒有壞處。
+  //    「畫面自己重整」的另一半防護 components/RscFetchRetry.tsx 不受影響,照常運作。
   // subset-font / harfbuzzjs 的 .wasm 在 `next dev --webpack` 下打包會壞
   // （Module parse failed: WebAssembly module not flagged），導致
   // /api/pdf-font 在本機 dev 回 500。標記為外部套件、runtime 用原生
