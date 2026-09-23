@@ -12,6 +12,7 @@ import { StudentWelcomeModal } from "@/components/StudentWelcomeModal";
 import { StudentExpiryNotice } from "@/components/StudentExpiryNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
+import { ClientErrorReporter } from "@/components/ClientErrorReporter";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { RscFetchRetry } from "@/components/RscFetchRetry";
 import { IOSInstallBanner } from "@/components/IOSInstallBanner";
@@ -276,6 +277,7 @@ export default async function LocaleLayout({
             {children}
             <SiteFooter />
             <BugReportFab />
+            <ClientErrorReporter />
             <SignupTracker />
             <StudentWelcomeModal />
             <ServiceWorkerRegister />

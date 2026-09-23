@@ -3,6 +3,7 @@
 import { Link } from "@/i18n/navigation";
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { reportClientError } from "@/components/ClientErrorReporter";
 
 export default function GlobalError({
   error,
@@ -15,6 +16,8 @@ export default function GlobalError({
 
   useEffect(() => {
     console.error("[app error boundary]", error);
+    // 送進 /admin/errors —— 不能只靠使用者自己來回報（2026-09-07 那封空信就是教訓）
+    reportClientError(error, "boundary");
   }, [error]);
 
   const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
