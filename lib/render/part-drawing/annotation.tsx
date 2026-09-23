@@ -3002,6 +3002,9 @@ export function ShapeSpecificAnnotation({
       return <LatheSegmentTable ctx={ctx} part={part} view={view} />;
     case "arch-bent":
       return <ArchBentChord ctx={ctx} part={part} view={view} />;
+    case "swept-curve":
+      // 曲料：輪廓本身（1:1 樣板）就是資訊，外接矩形已由毛料標示，不另加註記
+      return null;
     case "apron-trapezoid":
       // 上邊長/下邊長 雙標移除——T1 dim 已標 part body length、taper 細微差
       // 用 shape 視覺呈現即可，多印一行字反而噪音（user 05-17 22:28 要求）

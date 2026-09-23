@@ -142,6 +142,15 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
   if (shape.kind === "arch-bent") {
     return { kind: "arch-bent", bendMm: shape.bendMm, segments: shape.segments };
   }
+  if (shape.kind === "swept-curve") {
+    return {
+      kind: "swept-curve",
+      controlPoints: shape.controlPoints.map((c) => ({ ...c })),
+      knots: shape.knots ? [...shape.knots] : undefined,
+      profile: { ...shape.profile },
+      segments: shape.segments,
+    };
+  }
   if (shape.kind === "live-edge") {
     return { kind: "live-edge", amplitudeMm: shape.amplitudeMm ?? 12 };
   }

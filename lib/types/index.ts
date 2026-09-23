@@ -5,6 +5,8 @@
  * Coordinate system: Right-handed, +X = length, +Y = height, +Z = depth.
  */
 
+import type { SweptCurveShape } from "@/lib/geometry/swept-curve";
+
 export type Millimeters = number;
 
 export type FurnitureCategory =
@@ -428,6 +430,10 @@ export interface Part {
      *  用於椅背頂橫木向後彎的弧形（蒸彎或疊片），向 +Z 凸出。
      *  bendMm > 0 → 向 +Z（背後）凸；bendMm < 0 → 向 -Z 凸。 */
     | { kind: "arch-bent"; bendMm: number; segments?: number }
+    /** 沿空間曲線放樣的曲料（圈椅椅圈／鵝脖／聯幫棍／S 形靠背板）。
+     *  控制點在 part-local（AABB 中心為原點），visible = 表面 AABB、rotation 一律 0。
+     *  定義與所有幾何函式在 lib/geometry/swept-curve.ts（§S2/§S5/§S7/§S8）。 */
+    | SweptCurveShape
     /** 沿 Z 軸傾斜的長條（椅背直料配合彎頂橫木）：底面在 origin.z，頂面 z 偏移 topShiftMm。
      *  baseHeightMm = 未傾斜時的世界 Y 高度（visible.width 是已含 cos 補償的料長）。
      *  side view 渲染為平行四邊形而非 AABB，避免跟上方頂橫木視覺重疊。 */

@@ -48,6 +48,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 俯視圖腳只畫頂面 / 外斜弧肩腳、倒錐腳的腳底投影 | `"腳底投影\|ctFoot\|invFoot"` | §A9.9e |
 | 兩向弧肩時沿 Z 的零件短一截（吧檯椅腳踏） | `"legSizeScaleAtZ\|footrest"` | §A11.8 |
 | 錐腳橫撐差 1mm 的縫 / 0.55 vs 0.6 | `"bottomScale 必須跟\|rtBottomScale\|TAPERED_BOTTOM_SCALE"` | §A11.10 |
+| 曲料 / 圈椅椅圈 / 鵝脖 / 聯幫棍 / S 形靠背板 / 沿曲線放樣 | `"swept-curve\|sweptSurfaceRings\|interpolateBSplineWithTangents"` | §S7.1 |
 | 床頭板貼錐腳 / 梯形只到腳高 / 膝點 | `"taperSpanMm\|膝點\|headPanelSpan"` | §A11.11 |
 | 椅背條穿座板 / 通孔再入母件 / 榫頭 = 板厚 + 15 | `"backBottomTenonLen\|seatBackSlots\|consumeFor"` | §A10.13 |
 | 掛鉤浮在柱頂 / 圓料 origin.y 是底面 | `"hookCenterY\|HOOK_TOP_INSET"` | §A10.14 |
@@ -2625,6 +2626,36 @@ type Moulding = {
 - 圈椅椅圈：clamped cubic B-spline，5-7 控制點繞圓心橢圓化
 - 馬蹄腿（cabriole）：兩段 cubic Bezier 形成 S 曲線（cyma）
 - 鼓腿彭牙：單段 quadratic，P₁ 向外推
+
+#### S7.1 `swept-curve` 曲料（2026-09-23，圈椅 P3 落地）
+
+`Part.shape = { kind: "swept-curve", controlPoints, knots?, profile, segments? }`，
+一切幾何在 `lib/geometry/swept-curve.ts`，3D（`part-geometry.ts`）／三視圖（`geometry.ts`）／
+榫頭端點（`joint-world.ts`）／模板全部吃同一份 `sweptSurfaceRings`，曲線只算一次。
+
+- **座標**：控制點在 part-local、以**表面 AABB 中心**為原點；`visible` = 表面 AABB
+  （= spec §10.2 的備料外接矩形，才積直接用它）、`origin` = 底部中心、`rotation` 一律 0。
+  模板用 `sweptPartFromWorldPoints(世界經過點, profile, {startTangent, endTangent})` 建，
+  不用手算 local。
+- **曲線**：`interpolateBSpline`（P&T A9.1，chord-length + knot 平均）經過每個點；
+  端面要水平貼母件時用 `interpolateBSplineWithTangents`（P&T 9.2.2，多兩個控制點吃端切線）。
+  ⚠️ 不要用「推第二個控制點」鎖切線——5 個點的 S 形會被壓成直線（實測寬度 36→20）。
+  ⚠️ C² 內插會把局部彎（扶手頭下垂 10mm）帶進前面 2~3 個 span（實測 180mm 內慢慢降 1.3mm）；
+  要「絕對平」的段把控制點座標壓回同一值（B-spline 是控制點的凸組合）。
+- **取樣**：§S5 adaptive flatten ε=0.1，每個 knot span 先切 4 段再遞迴（對稱曲線中點/四分點剛好量不到弦高）。
+- **框架**：rect 用 `thicknessAlong`（椅圈厚度永遠垂直）或 `widthAlong`（靠背板板寬永遠橫向）鎖世界軸；
+  round 走 parallel transport。三者都 N×B=T。
+- **斷面寬**：`widthStart/End` 線性；`widthMid` 三點二次（椅圈後正中最寬 60、扶手頭 30）。
+- **投影輪廓**（§A9）：逐站取相對投影切線的左右極值 + 端面弧，**非凸**（馬蹄弧內側不填滿，
+  俯視隱藏線才不會把座面全當被遮）。投影路徑 < 3×斷面時退回凸包（垂直的腿俯視、聯幫棍俯視），
+  否則逐站極值會漏掉切線退化那些站的外緣 1~4mm，2D 稽核量成有縫。輪廓 bbox 比點雲小 > 1mm 也退回凸包。
+- **榫卯**：公榫件的端面中心 = 曲線端點、方向 = 端切線（`positionRootWorld`）；
+  曲料母件的榫眼保留反算座標不貼 AABB 面；gap 用 `sweptDistanceToSolid`（逐站小盒子）不用 AABB。
+- **圈椅**：整圈一條 B-spline（後半圓 R=342 圓心 z≈20，恰通過後腳頂；扶手到 z=−257 外撇到 x=±350），
+  依楔釘榫接點（搭口 85）切五段 `subCurveByArcLength`；後腳頂落在中桿段、鵝脖頂落在左右桿段。
+  下垂鱔魚頭（`RING_TIP_DROP`）與前後向收分（`LEG_RAKE_DEG`）目前都是 0，理由見模板常數註解。
+- **稽核**：`audit-overlaps` 的 y-slice 用輪廓（準）；`audit-2d-joints` 對曲料靠 `contained()`（端面藏在腿投影裡算接上）；
+  棖端面貼收分腿最內側點、其餘留 tan(4°)×半棖高 的楔形縫走 `expectedGapMm`（`ccSplayShoulder`）。
 
 ### S8. Sweep / Revolve
 **Revolve**（車削椅腿，Three.js `LatheGeometry`）：

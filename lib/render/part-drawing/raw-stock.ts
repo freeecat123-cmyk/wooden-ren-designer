@@ -68,6 +68,13 @@ export function rawStockSize(part: Part): { L: number; W: number; T: number } {
       const dz = s.dzMm ?? 0;
       T = Math.sqrt((v.thickness ?? 0) ** 2 + dx * dx + dz * dz) + 12;
     }
+  } else if (s?.kind === "swept-curve") {
+    // 曲料（spec §10.2）：visible 已經是表面 AABB = 備料外接矩形，三邊各留 10 挖鋸／修弧餘量。
+    // 榫頭不另外加長：曲料的榫（楔釘榫搭口、頂端圓榫）都沿弧線、已含在 AABB 裡，
+    // 再按 start/end 加 85+85 會把中桿毛料多算 170mm。
+    L = (v.length ?? 0) + 10;
+    W = (v.width ?? 0) + 10;
+    T = (v.thickness ?? 0) + 10;
   } else if (s?.kind === "arch-bent") {
     L = (v.length ?? 0) + ext.L;
     L = L * 1.1;

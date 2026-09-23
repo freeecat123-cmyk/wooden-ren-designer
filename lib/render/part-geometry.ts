@@ -19,6 +19,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { frenchCleatSection, edgeProfileOutline, topOutlinePoints } from "./geometry";
+import { sweptSurfaceRings, type SweptCurveShape } from "@/lib/geometry/swept-curve";
 
 /**
  * 車旋腳輪廓（古典花瓶/baluster 風格）：
@@ -68,6 +69,7 @@ export type ShapeSpec =
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
   | { kind: "arch-bent"; bendMm: number; segments?: number }
+  | SweptCurveShape
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
   | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
@@ -2098,6 +2100,65 @@ export function buildArchBentGeometry(
   return g;
 }
 
+/**
+ * swept-curve 放樣（§S8 sweep）：中心線取樣 × 斷面 → 逐站連成側面 + 兩端封面。
+ * 取樣／框架／斷面全部來自 lib/geometry/swept-curve.ts 的 `sweptSurfaceRings`，
+ * 跟三視圖投影同一份資料（曲線只算一次，3D 跟三視圖不會對不上）。
+ * - round／導圓 rect：單一封閉環，共用頂點 → 平滑著色
+ * - 直角 rect：4 條邊各自成面（頂點不共用）→ 稜線清楚
+ * 座標已是 part-local 中心系（mm 或 SCALE 後），直接當 mesh 頂點；size 不用。
+ */
+export function buildSweptCurveGeometry(shape: SweptCurveShape): BufferGeometry {
+  const surf = sweptSurfaceRings(shape);
+  const n = surf.rings.length;
+  if (n < 2) return new BoxGeometry(1, 1, 1);
+  const v: number[] = [];
+  const idx: number[] = [];
+  const loopCount = surf.rings[0].length;
+  // 每條邊（loop）獨立建一條 strip：頂點編號 base + i*m + j
+  for (let L = 0; L < loopCount; L++) {
+    const m = surf.rings[0][L].length;
+    const base = v.length / 3;
+    for (let i = 0; i < n; i++) {
+      for (const q of surf.rings[i][L]) v.push(q.x, q.y, q.z);
+    }
+    const jNext = (j: number) => (surf.closed ? (j + 1) % m : j + 1);
+    const jMax = surf.closed ? m : m - 1;
+    for (let i = 0; i + 1 < n; i++) {
+      for (let j = 0; j < jMax; j++) {
+        const a = base + i * m + j;
+        const b = base + i * m + jNext(j);
+        const c = base + (i + 1) * m + jNext(j);
+        const d = base + (i + 1) * m + j;
+        // 斷面繞 +T 逆時針 → (A,B,C)/(A,C,D) 法線朝外
+        idx.push(a, b, c, a, c, d);
+      }
+    }
+  }
+  // 端面：把該站所有 loop 的點串成一圈做扇形（rect 4 邊的角點會重複，扇形照樣封得起來）
+  const cap = (i: number, flip: boolean) => {
+    const ring = surf.rings[i].flat();
+    const cx = ring.reduce((s, q) => s + q.x, 0) / ring.length;
+    const cy = ring.reduce((s, q) => s + q.y, 0) / ring.length;
+    const cz = ring.reduce((s, q) => s + q.z, 0) / ring.length;
+    const center = v.length / 3;
+    v.push(cx, cy, cz);
+    const start = v.length / 3;
+    for (const q of ring) v.push(q.x, q.y, q.z);
+    for (let j = 0; j < ring.length; j++) {
+      const a = start + j, b = start + ((j + 1) % ring.length);
+      if (flip) idx.push(center, b, a); else idx.push(center, a, b);
+    }
+  };
+  cap(0, true);      // 起點端面法線 −T
+  cap(n - 1, false); // 終點端面法線 +T
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 export function buildLiveEdgeGeometry(
   size: [number, number, number],
   amplitudeMm: number,
@@ -2649,6 +2710,9 @@ export function buildShapeGeometry(
   }
   if (shape.kind === "arch-bent") {
     return buildArchBentGeometry(size, shape.bendMm, shape.segments ?? 16);
+  }
+  if (shape.kind === "swept-curve") {
+    return buildSweptCurveGeometry(shape);
   }
   if (shape.kind === "live-edge") {
     return buildLiveEdgeGeometry(size, shape.amplitudeMm);

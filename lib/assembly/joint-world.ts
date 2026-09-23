@@ -9,8 +9,9 @@
  * 純函式，無 three.js / React 依賴，server / test 都能跑。
  * 規則出處：docs/drafting-math.md §H8（組裝動畫）、§B（榫卯）。
  */
-import type { Part, Tenon } from "@/lib/types";
+import type { Part, Tenon, TenonPosition } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
+import { sweptWorldEndpoints } from "@/lib/geometry/swept-curve";
 
 export type Vec3 = { x: number; y: number; z: number };
 export type Axis = "x" | "y" | "z";
@@ -186,18 +187,33 @@ export type TenonWorld = {
   thickUnit: Vec3;
 };
 
-export function tenonWorld(part: Part, t: Tenon): TenonWorld {
+/**
+ * 公榫件某個端面的世界根點 + 預設往外方向（不看 tenon.axis）。
+ * - 一般零件：visible box 的該面中心（可帶斷面偏移 oW / oT）。
+ * - swept-curve 曲料：**曲線端點**（start/bottom/left → 曲線起點、end/top/right → 終點），
+ *   往外方向 = 該端切線。曲料的 visible 是 AABB，AABB 面中心根本不在木頭上，
+ *   鵝脖頂／聯幫棍兩端的榫頭根面只能從曲線端點來（模板與稽核共用這一支）。
+ */
+export function positionRootWorld(
+  part: Part,
+  position: TenonPosition,
+  oW = 0,
+  oT = 0,
+): { root: Vec3; outUnit: Vec3 } {
+  if (part.shape?.kind === "swept-curve") {
+    const e = sweptWorldEndpoints({ origin: part.origin, visible: part.visible, shape: part.shape });
+    const end = position === "end" || position === "top" || position === "right" ? e.end : e.start;
+    return { root: end.point, outUnit: end.outward };
+  }
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;
-  const oW = t.offsetWidth ?? 0;
-  const oT = t.offsetThickness ?? 0;
   const rxP = part.rotation?.x ?? 0;
   const ryP = part.rotation?.y ?? 0;
   const rzP = part.rotation?.z ?? 0;
   let lrx = 0, lry = 0, lrz = 0;
   let lox = 0, loy = 0, loz = 0;
-  switch (t.position) {
+  switch (position) {
     case "start":  lrx = -lx / 2; lry = oT; lrz = oW; lox = -1; break;
     case "end":    lrx = +lx / 2; lry = oT; lrz = oW; lox = +1; break;
     case "top":    lrx = oW; lry = +ly / 2; lrz = oT; loy = +1; break;
@@ -205,21 +221,33 @@ export function tenonWorld(part: Part, t: Tenon): TenonWorld {
     case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
     case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
   }
-  // Compute root position in world (always via part rotation).
   const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
   const pc = partWorldCenter(part);
-  const root = { x: pc.x + rRoot.x, y: pc.y + rRoot.y, z: pc.z + rRoot.z };
+  const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
+  const mag = Math.hypot(rOut.x, rOut.y, rOut.z) || 1;
+  return {
+    root: { x: pc.x + rRoot.x, y: pc.y + rRoot.y, z: pc.z + rRoot.z },
+    outUnit: { x: rOut.x / mag, y: rOut.y / mag, z: rOut.z / mag },
+  };
+}
+
+export function tenonWorld(part: Part, t: Tenon): TenonWorld {
+  const oW = t.offsetWidth ?? 0;
+  const oT = t.offsetThickness ?? 0;
+  const rxP = part.rotation?.x ?? 0;
+  const ryP = part.rotation?.y ?? 0;
+  const rzP = part.rotation?.z ?? 0;
+  // Root position in world（一般零件經 part rotation；曲料直接取曲線端點）。
+  const { root, outUnit: defaultOut } = positionRootWorld(part, t.position, oW, oT);
   // outUnit / outAxis: tenon outward direction in WORLD frame.
   // - With t.axis present (compound splay): t.axis IS world; use directly.
-  // - Without t.axis: rotate position-default local outward through partQ.
+  // - Without t.axis: position-default local outward rotated through the part.
   let outUnit: Vec3;
   if (t.axis) {
     const m = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
     outUnit = { x: t.axis.x / m, y: t.axis.y / m, z: t.axis.z / m };
   } else {
-    const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
-    const mag = Math.hypot(rOut.x, rOut.y, rOut.z) || 1;
-    outUnit = { x: rOut.x / mag, y: rOut.y / mag, z: rOut.z / mag };
+    outUnit = defaultOut;
   }
   const { axis: outAxis, sign: outSign } = dominantAxis(outUnit);
   // 斷面軸：start/end → 寬=local z、厚=local y；top/bottom → 寬=local x、厚=local z；

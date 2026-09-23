@@ -388,6 +388,7 @@ const Part = memo(function PartInner({
       hasRoundedChamfer ||
       hasSplayedRoundedChamfer ||
       shape?.kind === "arch-bent" ||
+      shape?.kind === "swept-curve" ||
       shape?.kind === "face-rounded" ||
       shape?.kind === "live-edge" ||
       shape?.kind === "seat-scoop" ||
@@ -1236,6 +1237,27 @@ export function PerspectiveView({
               kind: "arch-bent",
               bendMm: part.shape.bendMm * SCALE,
               segments: part.shape.segments,
+            };
+          } else if (part.shape?.kind === "swept-curve") {
+            // 曲料：所有 mm 欄位都要乘 SCALE（控制點、半徑、寬、厚、導圓）；knot 是參數不乘
+            const pf = part.shape.profile;
+            shape = {
+              kind: "swept-curve",
+              controlPoints: part.shape.controlPoints.map((c) => ({ x: c.x * SCALE, y: c.y * SCALE, z: c.z * SCALE })),
+              knots: part.shape.knots,
+              segments: part.shape.segments,
+              profile: pf.type === "round"
+                ? { type: "round", radiusStart: pf.radiusStart * SCALE, radiusEnd: pf.radiusEnd * SCALE }
+                : {
+                    type: "rect",
+                    widthStart: pf.widthStart * SCALE,
+                    widthEnd: pf.widthEnd * SCALE,
+                    ...(pf.widthMid !== undefined ? { widthMid: pf.widthMid * SCALE } : {}),
+                    thickness: pf.thickness * SCALE,
+                    ...(pf.cornerR ? { cornerR: pf.cornerR * SCALE } : {}),
+                    ...(pf.thicknessAlong ? { thicknessAlong: pf.thicknessAlong } : {}),
+                    ...(pf.widthAlong ? { widthAlong: pf.widthAlong } : {}),
+                  },
             };
           } else if (part.shape?.kind === "live-edge") {
             shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };

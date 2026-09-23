@@ -280,8 +280,18 @@ interface Rect { x0: number; y0: number; x1: number; y1: number }
  * 收集實體/非實體交界的格線段，串成環，再消除共線點。
  */
 function rectUnionOutline(rects: Rect[]): Array<{ x: number; y: number }> | null {
-  const xs = [...new Set(rects.flatMap((r) => [r.x0, r.x1]))].sort((a, b) => a - b);
-  const ys = [...new Set(rects.flatMap((r) => [r.y0, r.y1]))].sort((a, b) => a - b);
+  // 格線座標差 < 1e-6 視為同一條線：本體外框（silhouette 投影）跟榫頭矩形（local box
+  // 用 lx/2+len/2±len/2 算）對同一個「端面 x」會差 1 ulp，不合併就多出一條 1e-13 寬的
+  // 細格，格心不在任何矩形裡 → 本體跟榫頭被判成不相連 → 走環只走到榫頭那個 18×15 小框，
+  // 榫孔全畫到框外（圈椅 seatHeight=520 的前橫飾棖底面實際踩到，audit-machining-bounds 抓到）。
+  const mergeClose = (vals: number[]) => {
+    const sorted = [...vals].sort((a, b) => a - b);
+    const out: number[] = [];
+    for (const v of sorted) if (out.length === 0 || v - out[out.length - 1] > 1e-6) out.push(v);
+    return out;
+  };
+  const xs = mergeClose(rects.flatMap((r) => [r.x0, r.x1]));
+  const ys = mergeClose(rects.flatMap((r) => [r.y0, r.y1]));
   const nx = xs.length - 1, ny = ys.length - 1;
   const inside = (i: number, j: number) => {
     if (i < 0 || j < 0 || i >= nx || j >= ny) return false;

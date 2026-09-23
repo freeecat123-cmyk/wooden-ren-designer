@@ -1,5 +1,6 @@
 import type { Part } from "@/lib/types";
 import { CURVED_TAPER_ARC_SEG, curvedTaperInsetAtY, curvedTaperProfileYs } from "./part-geometry";
+import { projectSweptOutline } from "@/lib/geometry/swept-curve";
 
 /**
  * World-frame extents of a part's bounding box, honoring its rotation.
@@ -407,7 +408,7 @@ export function projectPartSilhouette(
   })();
 
   const projected: Array<{ x: number; y: number }> = [];
-  const pushPoint = (xL: number, yL: number, zL: number) => {
+  const toView = (xL: number, yL: number, zL: number): { x: number; y: number } => {
     let x = xL, y = yL, z = zL;
     // Rx
     let y2 = y * cx - z * sx;
@@ -429,8 +430,18 @@ export function projectPartSilhouette(
     // 側視（第三角法右側視圖）：前面 -Z → SVG +x；用 -wz 維持「前=右」慣例
     else if (view === "side") { vx = -wz; vy = wy; }
     else { vx = -wx; vy = wy; }
-    projected.push({ x: vx, y: vy });
+    return { x: vx, y: vy };
   };
+  const pushPoint = (xL: number, yL: number, zL: number) => {
+    projected.push(toView(xL, yL, zL));
+  };
+
+  // swept-curve 曲料（§A9：3D 採樣投影）：輪廓是「非凸」的馬蹄弧／S 形，
+  // 不跑 convex hull——hull 會把椅圈內側整塊填滿，俯視隱藏線判定會把座面全當成被遮住。
+  // 取樣、斷面、框架全部來自 swept-curve.ts 的同一份資料（跟 3D 同源）。
+  if (part.shape?.kind === "swept-curve") {
+    return projectSweptOutline(part.shape, (p) => toView(p.x, p.y, p.z), convexHull2D);
+  }
 
   // 反向法外撇 miter：mitered-ends.vertices 直接給 8 個 part-local 點，
   // 不走 bbox 角採樣（因為牆是 sheared parallelepiped、AABB 不準）。
@@ -1119,6 +1130,11 @@ export function projectPartPolygon(
         },
       };
     }
+  }
+
+  // swept-curve 曲料：三個視圖都走 3D 採樣投影（同一支 silhouette，非凸輪廓）
+  if (part.shape?.kind === "swept-curve") {
+    return projectPartSilhouette(part, view);
   }
 
   // 四周底邊搭接槽（嵌入式盒蓋 rabbeted lid）：側 / 正視（看得到端面厚度的視圖）

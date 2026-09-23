@@ -27,6 +27,14 @@ export function inferProcessSteps(part: Part): string[] {
   if (shape === "arch-bent") {
     return ["鋸出輪廓", "蒸彎/疊層", "刨光"];
   }
+  if (shape === "swept-curve") {
+    // 曲料（椅圈／鵝脖／聯幫棍）：從寬板挖鋸，不蒸彎
+    const steps = ["描 1:1 樣板", "帶鋸粗鋸弧料", "鳥刨/刮刀修弧", "細砂"];
+    if (hasMortise) steps.push("鑿榫眼");
+    if (hasTenon) steps.push("開榫頭");
+    if (hasMortise && hasTenon) steps.push("試裝");
+    return steps;
+  }
   if (shape === "hoof") {
     return ["鋸毛料", "劃線", "鑿/刨腳趾段", "馬蹄收尾"];
   }

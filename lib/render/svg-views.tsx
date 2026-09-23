@@ -2767,6 +2767,8 @@ function OrthoViewImpl({
             part.shape.kind !== "dovetail-ends" &&
             part.shape.kind !== "regular-polygon" &&
             part.shape.kind !== "arch-bent" &&
+            // swept-curve 曲料（圈椅椅圈／鵝脖）：俯視就是要看到馬蹄弧，走 polygon path
+            part.shape.kind !== "swept-curve" &&
             part.shape.kind !== "right-triangle" &&
             part.shape.kind !== "mitered-corner" &&
             // pointed-ends：六角柱斜板（45° 旋轉），top view 也要走 silhouette
