@@ -1362,6 +1362,42 @@ export function PerspectiveView({
                   ? Math.min(t.length, bestMort.depth)
                   : t.length;
 
+                // 曲料（swept-curve）：榫頭根面＝曲線端點、方向＝端切線（joint-world 同一支），
+                // 直接在世界座標放一根沿 outUnit 的榫頭。不能走下面的 sheared box——那條假設
+                // t.axis 跟 AABB 面法線只差幾度（外斜腳），椅圈中桿的楔釘榫軸跟 AABB 的 X 差
+                // 近 90°，L = effLen/|B·N| 會被夾成 850mm 的長條（2026-09-23 截圖抓到）。
+                if (part.shape?.kind === "swept-curve") {
+                  const o = new Vector3(tw.outUnit.x, tw.outUnit.y, tw.outUnit.z).normalize();
+                  // 斷面朝向：厚度軸盡量垂直（椅圈半疊榫厚 18 在 Y），寬度軸水平
+                  const ref = Math.abs(o.y) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0);
+                  const xb = new Vector3().crossVectors(o, ref).normalize();
+                  const zb = new Vector3().crossVectors(xb, o).normalize();
+                  const q = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(xb, o, zb));
+                  const BURY = 0.1;
+                  const half = effLen / 2 - BURY + explodeMm;
+                  const pos: [number, number, number] = [
+                    (tw.root.x + o.x * half) * SCALE,
+                    (tw.root.y + o.y * half) * SCALE,
+                    (tw.root.z + o.z * half) * SCALE,
+                  ];
+                  const roundT = part.shape.profile.type === "round" && (t.position === "top" || t.position === "bottom");
+                  const wS = Math.max(0.05, W - 1) * SCALE;
+                  const tS = Math.max(0.05, T - 1) * SCALE;
+                  const lS = (effLen + 2 * BURY) * SCALE;
+                  return (
+                    <mesh key={`${part.id}-tenon-${ti}`} position={pos} quaternion={q} castShadow>
+                      {roundT ? <cylinderGeometry args={[wS / 2, wS / 2, lS, 24]} /> : <boxGeometry args={[wS, lS, tS]} />}
+                      <meshStandardMaterial
+                        color="#c0392b"
+                        roughness={0.8}
+                        side={DoubleSide}
+                        transparent={activeSelectedId !== null && activeSelectedId !== part.id}
+                        opacity={activeSelectedId !== null && activeSelectedId !== part.id ? 0.18 : 1}
+                      />
+                    </mesh>
+                  );
+                }
+
                 let lcx = 0, lcy = 0, lcz = 0;
                 let hx = 0, hy = 0, hz = 0;
                 // explode：tenon 沿 outward axis 多偏 explodeMm，視覺像榫頭從
