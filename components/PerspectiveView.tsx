@@ -1009,14 +1009,23 @@ export function PerspectiveView({
           />
         )}
 
-        {/* compactMode（手機）：拿掉 Environment HDR（drei CDN 拉 300-500KB
+        {/* 🔴 2026-09-24：Environment 從 preset="apartment" 改成自己站上的 /hdr/apartment-256.hdr。
+            preset 會去 raw.githack.com（再 301 轉到 raw.githubusercontent.com）抓 lebombo_1k.hdr：
+            1.44MB、兩個外部網域、先吃一次轉址，模擬 4G 實測它自己就花 3.1 秒。
+            那兩個網域不是我們的（下面原本的註解就記過「drei CDN 抖動時載不到」）。
+            現在這張是同一張圖降到 256×128 = 97KB，省 93%。
+            畫質有量過：與原版比 RMSE 0.09%（預設視角）／0.74%（轉過的視角）＝幾乎一模一樣。
+            對照組「完全不載打光圖」是 15~19%，證明這把尺抓得到打光變化，不是假綠燈。
+            ⚠️ 要換圖或換尺寸，重跑那組比對再換，別用眼睛估。
+
+            compactMode（手機）：拿掉 Environment HDR（drei CDN 拉 300-500KB
             HDR + 處理）+ ContactShadows，省 1-2 秒首次載入。
             視覺差別：手機 canvas 220px 看不太出 reflection 細節，ambientLight
             +directionalLight 已給足基本明暗。 */}
         {!compactMode && (
           <>
             <HDRBoundary>
-              <Environment preset="apartment" />
+              <Environment files="/hdr/apartment-256.hdr" />
             </HDRBoundary>
             <ContactShadows
               position={[0, 0.001, 0]}
