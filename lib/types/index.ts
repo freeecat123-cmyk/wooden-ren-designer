@@ -108,6 +108,14 @@ export interface Mortise {
    * 一般榫眼只在 joineryMode 才挖（避免破壞外觀），cosmetic=true 在正常 3D / 三視圖也要顯示。
    */
   cosmetic?: boolean;
+  /**
+   * 「貫穿孔」——某個零件的中段（不是端面）以「原始斷面（不縮成榫頭）」貫穿本孔，
+   * 兩端都露出（例如圈椅腿一木連做、大進大出貫穿椅盤角）。這不是傳統公榫母榫配對
+   * （沒有縮小的 tenon 端面），所以填這個欄位的 id 標示「哪個零件貫穿這裡」，
+   * `auditJoints` 反向配對時跳過（同 cosmetic），不強制要求對應 tenon。
+   * 2026-09-23 新加（circle-chair 大進大出腿），其他 template 目前都不用，複查時留意。
+   */
+  passThroughChildId?: string;
 }
 
 export type MaterialId =

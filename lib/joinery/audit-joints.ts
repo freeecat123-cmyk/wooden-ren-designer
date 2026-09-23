@@ -66,9 +66,10 @@ export function auditJoints(design: FurnitureDesign): JointAuditResult {
 
   // 反向檢查：每個 mortise 要被 OTHER part 上的 tenon 對到
   // cosmetic mortise（無線充電凹槽、後板穿線孔等產品功能）不是榫接，跳過
+  // passThroughChildId 一樣跳過：貫穿孔沒有縮小的 tenon 端面可比對（見 Mortise 型別註解）
   for (const part of design.parts) {
     for (const m of part.mortises) {
-      if (m.cosmetic) continue;
+      if (m.cosmetic || m.passThroughChildId) continue;
       let found = false;
       for (const other of design.parts) {
         if (other.id === part.id) continue;

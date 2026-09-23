@@ -1,4 +1,4 @@
-import type { FurnitureDesign, FurnitureTemplate, MaterialId, OptionSpec, Part } from "@/lib/types";
+import type { FurnitureDesign, FurnitureTemplate, JoineryType, MaterialId, OptionSpec, Part, TenonPosition } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption, parseSeatChamferMm } from "./_helpers";
@@ -15,6 +15,14 @@ const SPINDLE_INSET = 25;
 const FRONT_BRACE_H = 55;
 /** 橫飾棖角牙高（visible.thickness）— buildCornerBraces 橫飾棖角牙 braceOriginY 算式共用 */
 const DECOR_BRACE_H = 60;
+/**
+ * 椅圈楔釘榫搭口長（設計規格，沿弧量；進 buildCircleChairJoints 的 tenon.length / mortise.depth）。
+ * ⭐ 修過的缺陷：原本 32mm，轉角搭口太窄（中桿端面離側桿外緣只剩 0.1mm），木料
+ * 沒有餘量開楔釘榫（傳統比例搭口要 75~100mm）。改成 85mm，落在傳統比例區間內。
+ * ⚠️ 這個數字「不是」P1 box 幾何的端部延伸量——延伸量在 buildArmRail 依鄰段寬另算，
+ *    否則直段 box 會戳出椅圈輪廓外（見 buildArmRail 註解）。
+ */
+const RING_JOINT_OVERLAP = 85;
 
 /** 四腿的斷面尺寸與 X/Z 平面錨點位置（buildLegs / buildStretchers / 後續 sub-function 共用） */
 function legAnchors(seatWidth: number, seatDepth: number) {
@@ -229,8 +237,11 @@ function buildStretchers(args: Pick<CircleChairBuildArgs, "material" | "seatWidt
   const decorY = seatHeight - RAIL_W - DECOR_H; // 棖底面 Y（part origin = 底部中心）
 
   // 橫撐跨距：face-to-face（腳外緣到腳外緣），避免棖端面進入腳 AABB。
-  // X 方向：左右均為前腳 FRONT_D=50，face-to-face = 2*legXOff - FRONT_D
+  // X 方向：兩端接同一排腳，兩腳直徑相同才能對半減；前排用 FRONT_D、後排用 REAR_D
+  // ⭐ 修過的缺陷：後橫飾棖／步步高後棖以前誤用 FRONT_D(50) 算跨距，但兩端接的是
+  //   REAR_D(36) 的後腳，跨距算短了 (FRONT_D-REAR_D)=14mm，兩端各差 7mm 接不到腳。
   const xSpan = 2 * legXOff - FRONT_D;
+  const xSpanRear = 2 * legXOff - REAR_D;
   // Z 方向：前腳 FRONT_D=50、後腳 REAR_D=36，face-to-face = zRear−zFront − (FRONT_D/2+REAR_D/2)
   const zSpanFaceToFace = (legZRear - legZFront) - (FRONT_D / 2 + REAR_D / 2);
   // 左右棖中心在前後腳中心的中點（face-to-face 跨距的幾何中心）
@@ -248,7 +259,8 @@ function buildStretchers(args: Pick<CircleChairBuildArgs, "material" | "seatWidt
       material,
       grainDirection: "length",
       // length(X)=face-to-face 跨距；thickness(Y)=48 斷面高；width(Z)=21 斷面深
-      visible: { length: xSpan, thickness: DECOR_H, width: DECOR_T },
+      // 前棖接前腳(FRONT_D)用 xSpan；後棖接後腳(REAR_D)用 xSpanRear
+      visible: { length: sz < 0 ? xSpan : xSpanRear, thickness: DECOR_H, width: DECOR_T },
       origin: { x: 0, y: decorY, z: zPos },
       shape: { kind: "box" },
       tenons: [],
@@ -317,8 +329,8 @@ function buildStretchers(args: Pick<CircleChairBuildArgs, "material" | "seatWidt
     nameZh: "步步高後棖",
     material,
     grainDirection: "length",
-    // length(X)=face-to-face 跨距；thickness(Y)=27；width(Z)=27
-    visible: { length: xSpan, thickness: BACK_RAIL_SZ, width: BACK_RAIL_SZ },
+    // length(X)=face-to-face 跨距（接後腳 REAR_D，不是前腳 FRONT_D）；thickness(Y)=27；width(Z)=27
+    visible: { length: xSpanRear, thickness: BACK_RAIL_SZ, width: BACK_RAIL_SZ },
     origin: { x: 0, y: 150, z: legZRear },
     shape: { kind: "box" },
     tenons: [],
@@ -349,18 +361,35 @@ function buildArmRail(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" 
   const CORNER_D = backZ - sideRearZ;                 // 45° 斜角段 X/Z 投影邊長（後段 Z → 後腿 Z）
   const backHalf = sideX - CORNER_D;                  // 後段端點 X（保中桿 45°）
   // 接點：J_backmid=(backHalf, backZ)、J_midside=(sideX, sideRearZ)=後腿頂正上方。
-  // box 斷面在 135° 轉角無法「斜接面對接」——改讓相鄰段端部互相延伸 JOINT_OVERLAP、
-  // box 互穿填滿轉角（消 V 形縫；arm-rail×arm-rail 結構性 overlap 已由 audit clause 放行）。
-  const JOINT_OVERLAP = 32;
-  // 後段：兩端各延伸 JOINT_OVERLAP 越過 J_backmid
-  const backLen = 2 * backHalf + 2 * JOINT_OVERLAP;
-  // 中桿：J_backmid → J_midside 滿長 + 兩端各延伸 JOINT_OVERLAP；origin 落兩接點中點
-  const midLen = Math.hypot(CORNER_D, CORNER_D) + 2 * JOINT_OVERLAP;
-  const midOriginX = (backHalf + sideX) / 2;
-  const midOriginZ = (backZ + sideRearZ) / 2;
-  // 側桿：後端越過 J_midside 延伸 JOINT_OVERLAP、前端維持自由端 sideFrontZ
-  const sideLen = (sideRearZ - sideFrontZ) + JOINT_OVERLAP;
-  const sideMidZ = (sideFrontZ + sideRearZ + JOINT_OVERLAP) / 2;
+  // box 斷面在 135° 轉角無法「斜接面對接」——讓相鄰段端部互相延伸、box 互穿填滿轉角
+  // （消 V 形縫；arm-rail×arm-rail 結構性 overlap 已由 audit clause 放行）。
+  //
+  // ⭐ 缺陷 4 的取捨：楔釘榫搭口 RING_JOINT_OVERLAP(85) 是「設計規格」，只進榫卯資料
+  //   （tenon.length / mortise.depth，沿弧量）。P1 直段 box 的「端部延伸量」要另外算：
+  //   端面中心落在鄰段外緣內側 LAP_END_INSET 處——延伸量 = (鄰段半寬 − inset)/sin45°。
+  //   直接拿 85 當延伸量會讓中桿端頭探出上靠桿外緣 32mm、上靠桿端頭戳出側桿外 10mm，
+  //   看起來搭口很長其實是零件伸到椅圈輪廓外面（AABB 量過），端面反而離鄰段更遠。
+  //   舊版 32 則是端面剛好貼在側桿外緣（0.1mm），兩邊都不對。真正的連續弧搭口要等
+  //   P3 swept-curve 椅圈，P1 只保證：端面在鄰段料內、榫卯資料帶正確搭口長度。
+  const LAP_END_INSET = 3;
+  const s45 = Math.SQRT1_2;
+  const wBack = W_BACK * sectionScale, wMid = W_MID * sectionScale, wSide = W_SIDE * sectionScale;
+  const extInto = (neighborW: number) => (neighborW / 2 - LAP_END_INSET) / s45;
+  const extBackEnd = extInto(wMid);   // 上靠桿兩端越過 J_backmid（伸進中桿料內）
+  const extMidBack = extInto(wBack);  // 中桿越過 J_backmid（伸進上靠桿料內）
+  const extMidSide = extInto(wSide);  // 中桿越過 J_midside（伸進側桿料內）
+  const extSideRear = extInto(wMid);  // 側桿後端越過 J_midside（伸進中桿料內）
+  // 後段：兩端各延伸 extBackEnd 越過 J_backmid
+  const backLen = 2 * backHalf + 2 * extBackEnd;
+  // 中桿：J_backmid → J_midside 滿長 LJ + 兩端各自的延伸量；box 中心沿軸偏離兩接點中點
+  const LJ = Math.hypot(CORNER_D, CORNER_D);
+  const midLen = LJ + extMidBack + extMidSide;
+  const midAxisT = (LJ + extMidSide - extMidBack) / 2;        // box 中心在軸上的位置（從 J_backmid 起算）
+  const midOriginX = backHalf + s45 * midAxisT;               // 乘 sx 後用；軸向 (sx·s45, −s45)
+  const midOriginZ = backZ - s45 * midAxisT;
+  // 側桿：後端越過 J_midside 延伸 extSideRear、前端維持自由端 sideFrontZ
+  const sideLen = (sideRearZ - sideFrontZ) + extSideRear;
+  const sideMidZ = (sideFrontZ + sideRearZ + extSideRear) / 2;
   const parts: Part[] = [];
 
   // 後正中段（椅圈上靠桿）：沿 X、不旋轉、arch-bent 往 +Z 後凸
@@ -461,14 +490,17 @@ function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatW
   // （注意：計畫圖原文 width/thickness 標注相反，此處已依 geometry.ts:6 慣例—length→X, thickness→Y, width→Z—修正）
   //
   // 連接邏輯（origin.z）：
-  //   後大邊（seat-rail-back）SEAT_BACK_Z = seatDepth/2 - RAIL_T_SEAT/2 → Z 中心 ≈ 229mm（seatFrameAnchors.seatBackZ）
-  //   椅圈後段（arm-rail-back）ARM_BACK_Z = seatDepth/2+28 → Z 中心 ≈ 276.5mm（armRingAnchors.backZ）
-  //   靠背板 width=40（Z±20），origin.z 取兩者中心的中點 → AABB 同時與兩者重疊。
-  //
+  //   後大邊（seat-rail-back）SEAT_BACK_Z ≈ 229mm；椅圈後段（arm-rail-back）ARM_BACK_Z ≈ 276.5mm
+  //   （兩者 Z 相差 47.5mm，因為椅圈後段的 bendMm 往後凸）。
+  //   ⭐ 修過的缺陷：原本取兩者中點 splatZ≈252.75，靠背板(width=40) 對後大邊只搭 15.7mm、
+  //   大半懸空——下端才是真正承重的接合，改成直接對齊 SEAT_BACK_Z 讓下端完整搭在大邊上。
+  //   代價：頂端對椅圈後段的搭接會變短（P1 直線靠背板本來就搭不出真正的 S 曲線，
+  //   兩件在 Z 方向本來就有落差；這版選擇「下端穩、上端留一段位置警告」，
+  //   真正解法是照 P2 讓靠背板跟著彎——目前只在 P1 框架範圍內修）。
   // 連接邏輯（thickness/Y）：
   //   splatH 加長 +15mm，讓靠背板頂端 Y 略高於椅圈後段底面（ringY），真正插進椅圈後段。
   // sectionScale 只乘截面（length=板寬, width=板厚），不乘板高（thickness=splatH）與 origin
-  const splatZ = (SEAT_BACK_Z + ARM_BACK_Z) / 2;   // 兩 Z 中心的中點 → AABB overlap 兩者
+  const splatZ = SEAT_BACK_Z;   // 對齊後大邊 Z 中心，下端完整搭上（見上方註解的取捨）
   const splatBottomY = seatHeight;
   const splatH = ringY - splatBottomY + 15;         // +15mm：讓頂端插進椅圈後段（不再浮空相切）
   parts.push({
@@ -490,7 +522,7 @@ function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatW
  *
  * visible 慣例（geometry.ts:6）：length→X、thickness→Y(高)、width→Z(深)
  *
- * 前腳角牙 ×2（rotY=0，板面在 XY 平面）：
+ * 前腳角牙 ×2（鵝脖角牙，rotY=0，板面在 XY 平面，座面之上）：
  *   length(X)=115（沿座寬方向）、thickness(Y)=FRONT_BRACE_H=55（板高）、width(Z)=10（薄片貼角，深度方向 10mm）
  *
  * 橫飾棖角牙 ×6：
@@ -508,23 +540,25 @@ function buildCornerBraces(args: Pick<CircleChairBuildArgs, "material" | "seatWi
   // 橫飾棖底面 Y（與 buildStretchers 的 decorY 同步，DECOR_H 為模組常數）
   const decorY = seatHeight - RAIL_W - DECOR_H; // 橫飾棖底面 Y = part origin Y
 
-  // ── 前腳角牙 ×2：前腳內側、貼座框前大邊底 ──────────────────────────────
-  // 擺在座框前緣（z ≈ legZFront）附近，X 緊靠前腳內側
+  // ── 前腳角牙 ×2（鵝脖角牙）：座面之上、鵝脖內側 × 前大邊頂面的夾角 ──────
+  // ⭐ 修過的缺陷：舊版把它塞在座框底下（Y 334~389），但那個位置整根被前橫飾棖
+  //   （Y 341~389、貼座框底）佔滿，兩件在 72×48×10 的體積裡互穿；spec §5 也載明
+  //   椅盤下方「無獨立牙條」——壼門輪廓全由橫飾棖 + 橫飾棖角牙合成。前腳一木連做
+  //   穿過椅盤後上段就是鵝脖，「前腳 × 前大邊夾角」唯一空著的位置是座面上方
+  //   鵝脖根部（傳統鵝脖角牙），所以搬到 Y = seatHeight 起算、坐在前大邊頂面上。
+  //   ⚠️ 這是幾何判斷不是圖紙實證（沒拿到工作圖原檔），列入回報請他複查。
+  // 位置一律 face-to-face：外端貼鵝脖內側圓面（legXOff − FRONT_D/2），往座中心延伸 115。
   // visible: length(X)=115、thickness(Y)=FRONT_BRACE_H=55、width(Z)=10（薄片方向 = Z）
+  const FRONT_BRACE_L = 115;
   for (const sx of [-1, 1] as const) {
-    // X 中心：腳中心內移 40mm（角牙橫跨腳內側到大邊接角）
-    const braceX = sx * (legXOff - 40);
-    // Y 底面：座框底 - RAIL_W 落在座框底，角牙頂接座框底（座框底 y = seatHeight - RAIL_W）
-    // FRONT_BRACE_H = 角牙高（visible.thickness），origin = 底面
-    const braceY = seatHeight - RAIL_W - FRONT_BRACE_H;
-    // Z 中心：前腳中心（legZFront）稍微內移 5mm（貼大邊後緣）
-    const braceZ = legZFront + 5;
+    const braceX = sx * (legXOff - FRONT_D / 2 - FRONT_BRACE_L / 2);
+    const braceY = seatHeight; // 底面坐在前大邊頂面（座框頂 = seatHeight）
+    const braceZ = legZFront;  // 對齊鵝脖中心；落在前大邊 Z 範圍內（大邊板厚 39 > 腳徑一半 + 5）
     parts.push({
       id: sx < 0 ? "corner-brace-front-l" : "corner-brace-front-r",
       nameZh: "前腳角牙",
       material, grainDirection: "length",
-      // length(X)=115 沿座寬；thickness(Y)=FRONT_BRACE_H=55 板高；width(Z)=10 薄片貼角
-      visible: { length: 115, thickness: FRONT_BRACE_H, width: 10 },
+      visible: { length: FRONT_BRACE_L, thickness: FRONT_BRACE_H, width: 10 },
       origin: { x: braceX, y: braceY, z: braceZ },
       shape: { kind: "box" }, tenons: [], mortises: [],
     });
@@ -535,55 +569,506 @@ function buildCornerBraces(args: Pick<CircleChairBuildArgs, "material" | "seatWi
   // 前 ×2（rotY=0）：visible length(X)=76、thickness(Y)=DECOR_BRACE_H=60、width(Z)=10（薄片方向 Z）
   // 左右 ×4（rotY=±π/2）：swap X↔Z，visible length(→Z)=76、thickness(Y)=DECOR_BRACE_H=60、width(→X)=10（薄片方向 X_world）
 
-  // 前橫飾棖角牙（緊貼前腳 × 前橫飾棖下緣，rotY=0，各 2 件）
-  // 位置：掛在橫飾棖底面以下，頂面對齊橫飾棖底面 (decorY)，角牙向下展開
-  // Y_top = decorY，Y_bottom = decorY - DECOR_BRACE_H=60；與前腳角牙 Y_bottom(seatHeight-RAIL_W-FRONT_BRACE_H=55) 不重疊
-  // Z 中心：比前腳角牙更靠前（legZFront - 12），讓兩角牙在 Z 向也清楚分離
+  // 6 片橫飾棖角牙統一做法（⭐ 修過的缺陷 2 / 7）：
+  //   • 掛在橫飾棖正下方：頂面 = decorY（橫飾棖底面）、往下展開 DECOR_BRACE_H
+  //   • 「入腿」：外端貼在腳的圓面上（face-to-face，跟棖的跨距同一套算法），
+  //     不再讓角牙穿過腳中心（舊版 decor-brace-1/2 X 從腳中心起算、側面 4 片更是
+  //     跨過腳中心兩側各 30mm，還跟前腳角牙／彼此互撞——角牙×角牙 audit 不放行）
+  //   • 薄片方向置中在所屬橫飾棖的斷面裡（Z／X 中心 = 棖中心），頂端整片搭進棖底，
+  //     舊版 −12／−8 的偏移都讓薄片有一部分探出棖外（缺陷 7 的 1.5mm 就是這樣來的）
+  // 前 2 片（decor-brace-1/2）：rotY=0，沿 X 從前腳內側面往座中心延伸
+  // 側 4 片（decor-brace-3~6）：rotY=π/2，沿 Z 從前／後腳面往棖中段延伸，
+  //   左前／左後／右前／右後 4 個腳角各一片（spec §5：橫飾棖角牙前 2 + 左右各 2，後棖無）
+  const DECOR_BRACE_L = 76;
+  const decorBraceOriginY = decorY - DECOR_BRACE_H;
   for (const sx of [-1, 1] as const) {
-    // X 中心：腳中心內移 38mm（角牙約跨腳內側~棖端）
-    const braceX = sx * (legXOff - 38);
-    // Y 底面：decorY - DECOR_BRACE_H（頂面 = decorY，掛在橫飾棖正下方）
-    const braceOriginY = decorY - DECOR_BRACE_H;
-    // Z 中心：前腳中心稍往前（legZFront - 12），避免與 corner-brace-front Z 重疊
-    const braceZ = legZFront - 12;
     parts.push({
       id: `decor-brace-${sx < 0 ? 1 : 2}`,
       nameZh: "橫飾棖角牙",
       material, grainDirection: "length",
-      visible: { length: 76, thickness: DECOR_BRACE_H, width: 10 },
-      origin: { x: braceX, y: braceOriginY, z: braceZ },
+      visible: { length: DECOR_BRACE_L, thickness: DECOR_BRACE_H, width: 10 },
+      origin: { x: sx * (legXOff - FRONT_D / 2 - DECOR_BRACE_L / 2), y: decorBraceOriginY, z: legZFront },
+      shape: { kind: "box" }, tenons: [], mortises: [],
+    });
+  }
+  const sideBraceCorners: Array<{ id: string; sx: -1 | 1; which: "front" | "rear" }> = [
+    { id: "decor-brace-3", sx: -1, which: "front" },
+    { id: "decor-brace-4", sx: -1, which: "rear" },
+    { id: "decor-brace-5", sx: 1, which: "front" },
+    { id: "decor-brace-6", sx: 1, which: "rear" },
+  ];
+  for (const { id, sx, which } of sideBraceCorners) {
+    // 前腳面 Z = legZFront + FRONT_D/2（往後延伸）；後腳面 Z = legZRear − REAR_D/2（往前延伸）
+    const braceZ = which === "front"
+      ? legZFront + FRONT_D / 2 + DECOR_BRACE_L / 2
+      : legZRear - REAR_D / 2 - DECOR_BRACE_L / 2;
+    parts.push({
+      id,
+      nameZh: "橫飾棖角牙",
+      material, grainDirection: "length",
+      // rotY=π/2：local length(76)→Z_world；thickness(Y)=DECOR_BRACE_H=60；width(10)→X_world（薄片）
+      visible: { length: DECOR_BRACE_L, thickness: DECOR_BRACE_H, width: 10 },
+      origin: { x: sx * legXOff, y: decorBraceOriginY, z: braceZ },
+      rotation: { x: 0, y: Math.PI / 2, z: 0 },
       shape: { kind: "box" }, tenons: [], mortises: [],
     });
   }
 
-  // 左右側橫飾棖角牙（左右腳位，rotY=π/2，各 2 件）
-  // rotY=π/2 後 X↔Z swap：local length(76)→Z_world（棖長方向）、width(10)→X_world（薄片）
-  // zMid：前後腳 Z 中點（= buildStretchers.zMid，數學等價）
-  const zMidFront = legZFront + FRONT_D / 2; // 前腳後緣 Z
-  const zMidRear  = legZRear  - REAR_D  / 2; // 後腳前緣 Z
-  const sideBraceZMid = (zMidFront + zMidRear) / 2; // 側棖中點 Z（= buildStretchers.zMid，數學等價）
+  return parts;
+}
 
-  let decorBraceIdx = 3; // decor-brace-3 ~ decor-brace-6
-  for (const sx of [-1, 1] as const) {       // 左(-1) / 右(+1)
-    for (const zOff of [-1, 1] as const) {   // 前(-1) / 後(+1) 各一
-      // Z 中心：側棖中點偏前或偏後（分置於側棖前後段附近的腳側夾角）
-      const braceZ = sideBraceZMid + zOff * (zMidRear - sideBraceZMid) * 0.5;
-      // X 中心：腳外緣（legXOff = 腳中心 X），薄片貼腳面，X 中心 = ±legXOff（腳中心）
-      const braceX = sx * legXOff;
-      parts.push({
-        id: `decor-brace-${decorBraceIdx++}`,
-        nameZh: "橫飾棖角牙",
-        material, grainDirection: "length",
-        // rotY=π/2：local length(76)→Z_world；thickness(Y)=DECOR_BRACE_H=60；width(10)→X_world（薄片）
-        visible: { length: 76, thickness: DECOR_BRACE_H, width: 10 },
-        origin: { x: braceX, y: decorY, z: braceZ },
-        rotation: { x: 0, y: Math.PI / 2, z: 0 },
-        shape: { kind: "box" }, tenons: [], mortises: [],
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 榫卯資料（spec §9.1 的 23 處接合點）
+//
+// ⚠️ 位置一律「算」出來：每一處榫眼的 part-local 座標，都是把公榫件端面中心的
+//    世界座標，反算回母件的 local frame 得到的（worldToMotherLocal），
+//    沒有任何一個數字是目測填的。
+//
+// ⚠️ 位置對不對，跟 tenon.length 是兩件事，絕對不能混成一個數字：
+//    gapMm = 公榫件端面中心 到 母件 OBB 的距離，只用來算 measuredGap／engagementLength
+//    這兩個「量出來的事實」，寫進 design.warnings 給人看；tenon.length／mortise.depth
+//    永遠維持設計規格（j.depth）不動——那是製造資料，會流到材料表／CSV／排料／報價／
+//    零件圖／工序／CNC 加工面，買藍圖的人會照這個數字做出接不起來的椅子且無警告。
+//    （09-17 阿嚴審核退回過「用 gap 縮短 tenon.length 讓 audit-joints 報紅」的舊寫法，
+//    這裡不再那樣做；audit-joints.ts 本來就只比對 tenon/mortise 維度，不比位置，
+//    位置正確與否完全靠這裡的 gap 計算 + warnings，不靠污染 tenon.length 讓維度對不上。）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 兩件之間可容忍的空隙（mm）。超過就視為「根本沒接到」。 */
+const JOINT_GAP_TOL = 10;
+/** 榫肩寬（跟 lib/joinery/standards.ts 的 SHOULDER_MM 一致） */
+const CC_SHOULDER = 5;
+
+type W3 = { x: number; y: number; z: number };
+
+function ccPartCenter(p: Part): W3 {
+  return { x: p.origin.x, y: p.origin.y + p.visible.thickness / 2, z: p.origin.z };
+}
+/** 與 lib/assembly/joint-world.ts 的 rotateXYZ 同一套（此模板只有繞 Y 的旋轉） */
+function ccRotY(ry: number, v: W3): W3 {
+  const c = Math.cos(ry), s = Math.sin(ry);
+  return { x: v.x * c + v.z * s, y: v.y, z: -v.x * s + v.z * c };
+}
+const CC_LOCAL_OUT: Record<TenonPosition, W3> = {
+  start: { x: -1, y: 0, z: 0 },
+  end: { x: 1, y: 0, z: 0 },
+  top: { x: 0, y: 1, z: 0 },
+  bottom: { x: 0, y: -1, z: 0 },
+  left: { x: 0, y: 0, z: -1 },
+  right: { x: 0, y: 0, z: 1 },
+};
+/** 公榫件端面中心的世界座標（跟 joint-world.tenonWorld 的 root 同一套算法） */
+function ccTenonRoot(p: Part, pos: TenonPosition): W3 {
+  const { length: lx, thickness: ly, width: lz } = p.visible;
+  const u = CC_LOCAL_OUT[pos];
+  const off = { x: (u.x * lx) / 2, y: (u.y * ly) / 2, z: (u.z * lz) / 2 };
+  const w = ccRotY(p.rotation?.y ?? 0, off);
+  const c = ccPartCenter(p);
+  return { x: c.x + w.x, y: c.y + w.y, z: c.z + w.z };
+}
+/** 榫頭往外（插進母件）的世界方向單位向量 */
+function ccTenonOut(p: Part, pos: TenonPosition): W3 {
+  return ccRotY(p.rotation?.y ?? 0, CC_LOCAL_OUT[pos]);
+}
+/** 世界座標 → 母件 local（x/z 以斷面中心為原點、y 以底面為 0） */
+function ccWorldToLocal(mother: Part, w: W3): W3 {
+  const c = ccPartCenter(mother);
+  const d = { x: w.x - c.x, y: w.y - c.y, z: w.z - c.z };
+  const l = ccRotY(-(mother.rotation?.y ?? 0), d);
+  return { x: l.x, y: l.y + mother.visible.thickness / 2, z: l.z };
+}
+/** 點到母件 OBB 的距離（0 = 在母件裡面或貼在面上） */
+function ccGapToPart(mother: Part, w: W3): number {
+  const l = ccWorldToLocal(mother, w);
+  const { length: lx, thickness: ly, width: lz } = mother.visible;
+  const dx = Math.max(0, Math.abs(l.x) - lx / 2);
+  const dy = Math.max(0, Math.abs(l.y - ly / 2) - ly / 2);
+  const dz = Math.max(0, Math.abs(l.z) - lz / 2);
+  return Math.hypot(dx, dy, dz);
+}
+/** 斷面座標微量超出母件時貼齊到面；超過容差就原樣留著讓 audit-mortise-spec 抓出來 */
+function ccSoftClamp(v: number, half: number): number {
+  const over = Math.abs(v) - half;
+  if (over <= 0) return v;
+  if (over <= JOINT_GAP_TOL) return Math.sign(v) * half;
+  return v;
+}
+
+interface CcJoint {
+  /** 公榫件 id */
+  child: string;
+  /** 公榫長在公榫件的哪個端面 */
+  pos: TenonPosition;
+  /** 母件 id */
+  mother: string;
+  type: JoineryType;
+  /** 榫寬（沿榫頭 width 軸）、榫厚（沿榫頭 thickness 軸） */
+  w: number;
+  t: number;
+  /** 標準榫長 = 榫眼深（mm） */
+  depth: number;
+  /** 圓榫 → 榫眼挖圓孔 */
+  round?: boolean;
+  /**
+   * 45° 斜接（楔釘榫）：dominantAxis 分不出 x/z，要明示世界軸向，
+   * 並且榫眼保留反算出來的 local 座標（不貼齊到某個面——45° 沒有「面」可貼）。
+   */
+  diagonal?: boolean;
+  /** 中文榫名，進 design.notes / warnings 用 */
+  nameZh: string;
+  /**
+   * 刻意設計的間隙（mm，預設 0）——例如攢邊打槽裝板留的伸縮縫。
+   * gap 超過這個值才算「沒到位」；≤ 這個值是正常木工做法，不報警告。
+   * ⭐ 修過的缺陷：座板打槽裝板本來就該留 4mm 伸縮縫，之前沒有這個欄位，
+   * gap 檢查拿「跟母件貼死」當唯一基準，把正確的留縫誤判成「沒接到位」。
+   */
+  expectedGapMm?: number;
+}
+
+/**
+ * 把 joint 清單寫進 parts 的 tenons / mortises。
+ * 回傳 gap 警告（兩件沒貼合的清單）。
+ */
+function applyCircleChairJoinery(parts: Part[], joints: CcJoint[]): string[] {
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const warnings: string[] = [];
+  for (const j of joints) {
+    const child = byId.get(j.child);
+    const mother = byId.get(j.mother);
+    if (!child || !mother) {
+      warnings.push(`榫卯資料引用了不存在的零件：${j.child} → ${j.mother}`);
+      continue;
+    }
+    const root = ccTenonRoot(child, j.pos);
+    const out = ccTenonOut(child, j.pos);
+    const gap = ccGapToPart(mother, root);
+    const expectedGap = j.expectedGapMm ?? 0;
+    // measuredGap：實際量到的世界座標間隙；engagementLength：扣掉刻意留縫後、
+    // 榫頭真正咬進母件的長度——這兩個是「量出來的事實」，只進 warnings 給人看，
+    // 不寫回 tenon.length（見上方大段註解）。
+    const measuredGap = gap;
+    const engagementLength = Math.max(0, j.depth - Math.max(0, gap - expectedGap));
+    const overTol = gap - expectedGap;
+    if (overTol > 0.5) {
+      warnings.push(
+        `${j.nameZh}：「${child.nameZh}」的${j.pos}端離「${mother.nameZh}」還差 ${overTol.toFixed(1)}mm` +
+          (overTol > JOINT_GAP_TOL ? "——位置不合，兩件沒到位，榫接不成立。" : "，榫頭要加長補這段。") +
+          ` [measuredGap=${measuredGap.toFixed(1)}mm engagementLength=${engagementLength.toFixed(1)}mm]`,
+      );
+    }
+    child.tenons.push({
+      position: j.pos,
+      type: j.type,
+      // ⭐ 永遠用設計規格 j.depth，不管 gap 多少——榫長是製造資料，位置對不對
+      // 由上面的 warnings 另外報，不縮短這個數字騙 audit-joints 的維度比對。
+      length: j.depth,
+      width: j.w,
+      thickness: j.t,
+      shoulderOn: ["top", "bottom", "left", "right"],
+      ...(j.diagonal ? { axis: out } : {}),
+    });
+    // 榫眼 local 座標：把公榫端面中心反算進母件 local frame
+    const l = ccWorldToLocal(mother, root);
+    const { length: mlx, thickness: mly, width: mlz } = mother.visible;
+    // 榫頭在母件 local frame 的行進方向 → 決定榫眼開在哪一面
+    const dir = ccRotY(-(mother.rotation?.y ?? 0), out);
+    const ax = Math.abs(dir.x) >= Math.abs(dir.y) && Math.abs(dir.x) >= Math.abs(dir.z)
+      ? "x"
+      : Math.abs(dir.y) >= Math.abs(dir.z)
+        ? "y"
+        : "z";
+    let ox = ccSoftClamp(l.x, mlx / 2);
+    let oy = ccSoftClamp(l.y - mly / 2, mly / 2) + mly / 2;
+    let oz = ccSoftClamp(l.z, mlz / 2);
+    // 開口面 = 榫頭來的那一側（跟行進方向相反）。
+    // 45° 斜接沒有單一「開口面」，保留反算座標讓 joint-world 自己挑最近的面。
+    if (!j.diagonal) {
+      if (ax === "x") ox = dir.x > 0 ? -mlx / 2 : mlx / 2;
+      else if (ax === "y") oy = dir.y > 0 ? 0 : mly;
+      else oz = dir.z > 0 ? -mlz / 2 : mlz / 2;
+    }
+    mother.mortises.push({
+      origin: { x: ox, y: oy, z: oz },
+      depth: j.depth,
+      length: j.w,
+      width: j.t,
+      through: false, // 圓腳 / 曲面件一律盲榫（_validators.validateRoundLegJoinery）
+      ...(j.round ? { shape: "round" as const } : {}),
+      ...(j.diagonal ? { axis: { x: -out.x, y: -out.y, z: -out.z } } : {}),
+    });
+  }
+  return warnings;
+}
+
+
+/** 圓腳盲榫深：不可超過半徑再留 4mm 保護（圓腳曲面不可通榫，見 _validators） */
+function ccLegDepth(legDiameter: number): number {
+  return Math.max(8, Math.round(legDiameter / 2) - 4);
+}
+/** 圓腳上的榫眼高（沿腳軸）不可等於直徑，兩側各留 4mm */
+function ccLegSlot(legDiameter: number, want: number): number {
+  return Math.min(want, Math.max(10, Math.round(legDiameter) - 8));
+}
+
+/**
+ * spec §9.1 的 23 處接合點 → 實際 52 對公母榫。
+ * 所有斷面尺寸都從 parts 自己的 visible 讀，preset 改截面時自動跟著變。
+ */
+function buildCircleChairJoints(parts: Part[]): CcJoint[] {
+  const by = new Map(parts.map((p) => [p.id, p]));
+  const P = (id: string) => by.get(id)!;
+  const J: CcJoint[] = [];
+  const sh2 = 2 * CC_SHOULDER;
+
+  // ── ① 椅圈段 ↔ 椅圈段（4 處）· 楔釘榫 ────────────────────────────────────
+  // 楔釘榫＝兩段弧料勾搭半疊、再橫向打入楔形釘。repo 的 JoineryType union 沒有
+  // 中式榫名（spec §9.3 路徑 B），取語意最近的 half-lap；榫厚 = 椅圈厚/2（半疊）。
+  // 榫長 = 模板自己建的搭接量 JOINT_OVERLAP(32)。
+  const ringT = P("arm-rail-back").visible.thickness;      // 椅圈斷面厚（Y）
+  const RING_LAP = RING_JOINT_OVERLAP;                      // 跟 buildArmRail 的搭接量同一個常數，不重複寫死
+  for (const side of ["l", "r"] as const) {
+    const mid = P(`arm-rail-mid-${side}`);
+    const midW = mid.visible.width;
+    // mid-l：local +X（end）指向後段、local −X（start）指向側桿；mid-r 相反。
+    const toBack: TenonPosition = side === "l" ? "end" : "start";
+    const toSide: TenonPosition = side === "l" ? "start" : "end";
+    J.push({
+      child: mid.id, pos: toBack, mother: "arm-rail-back", type: "half-lap",
+      w: Math.max(15, midW - sh2), t: Math.round(ringT / 2), depth: RING_LAP,
+      diagonal: true, nameZh: "椅圈楔釘榫（上靠桿↔中桿）",
+    });
+    J.push({
+      child: mid.id, pos: toSide, mother: `arm-rail-side-${side}`, type: "half-lap",
+      w: Math.max(15, midW - sh2 - 6), t: Math.round(ringT / 2), depth: RING_LAP,
+      diagonal: true, nameZh: "椅圈楔釘榫（中桿↔左右桿）",
+    });
+  }
+
+  // ── ② 椅後腳頂 ↔ 椅圈底（2 處）· 圓榫（盲榫）────────────────────────────
+  // ── ③ 鵝脖頂（椅前腳頂）↔ 椅圈底（2 處）· 圓榫（盲榫）──────────────────
+  // 圓榫直徑 = 腳徑 × 0.6（同 round-stool 的腿頂榫慣例）；榫深 ≤ 椅圈厚 − 11 留底。
+  const ringBlind = Math.max(15, Math.round((ringT * 2) / 3));   // 36 → 24…用標準 2/3
+  for (const side of ["l", "r"] as const) {
+    for (const which of ["rear", "front"] as const) {
+      const leg = P(`leg-${which}-${side}`);
+      const d = Math.round(leg.visible.length * 0.6);
+      J.push({
+        child: leg.id, pos: "top", mother: `arm-rail-side-${side}`, type: "blind-tenon",
+        w: d, t: d, depth: ringBlind, round: true,
+        nameZh: which === "rear" ? "後腳頂圓榫入椅圈" : "鵝脖頂圓榫入椅圈",
       });
     }
   }
 
-  return parts;
+  // ── ④ 聯幫棍上下端 ↔ 椅圈 / 椅盤（4 處）· 圓榫 ──────────────────────────
+  for (const side of ["l", "r"] as const) {
+    const sp = P(`side-spindle-${side}`);
+    const d = Math.round(sp.visible.length * 0.6);
+    J.push({
+      child: sp.id, pos: "top", mother: `arm-rail-side-${side}`, type: "blind-tenon",
+      w: d, t: d, depth: ringBlind, round: true, nameZh: "聯幫棍上端圓榫入椅圈",
+    });
+    J.push({
+      child: sp.id, pos: "bottom", mother: `seat-rail-${side === "l" ? "left" : "right"}`,
+      type: "blind-tenon", w: d, t: d, depth: 30, round: true,
+      nameZh: "聯幫棍下端圓榫入椅盤抹頭",
+    });
+  }
+
+  // ── ⑤ 靠背板上下端 ↔ 椅圈 / 後大邊（2 處）· 帶肩扁榫 ────────────────────
+  {
+    const sp = P("back-splat");
+    const w = Math.max(15, sp.visible.length - sh2);   // top/bottom 榫寬沿 local X = 板寬
+    const t = Math.max(6, Math.round(sp.visible.width / 3)); // 榫厚沿 local Z = 板厚/3
+    J.push({ child: sp.id, pos: "top", mother: "arm-rail-back", type: "shouldered-tenon",
+      w, t, depth: ringBlind, nameZh: "靠背板上端帶肩扁榫入椅圈" });
+    J.push({ child: sp.id, pos: "bottom", mother: "seat-rail-back", type: "shouldered-tenon",
+      w, t, depth: 30, nameZh: "靠背板下端帶肩扁榫入後大邊" });
+  }
+
+  // ── ⑥ 椅盤大邊 ↔ 抹頭（4 角）· 格角榫（攢邊 45° 割角）──────────────────
+  {
+    const stile = P("seat-rail-left");
+    const railT = stile.visible.width;      // 板料厚 39（榫寬軸 = local Z）
+    const railH = stile.visible.thickness;  // 斷面高 91（榫厚軸 = local Y）
+    const w = Math.max(15, railT - sh2);
+    const t = Math.max(6, Math.round(railH / 3));
+    const depth = Math.max(15, Math.round((railT * 2) / 3));
+    for (const side of ["left", "right"] as const) {
+      // 抹頭 local +X → 世界 −Z（前大邊）；local −X → 世界 +Z（後大邊）
+      J.push({ child: `seat-rail-${side}`, pos: "end", mother: "seat-rail-front", type: "mitered-spline",
+        w, t, depth, nameZh: "椅盤攢邊格角榫（前角）" });
+      J.push({ child: `seat-rail-${side}`, pos: "start", mother: "seat-rail-back", type: "mitered-spline",
+        w, t, depth, nameZh: "椅盤攢邊格角榫（後角）" });
+    }
+  }
+
+  // ── ⑦ 椅盤框 ↔ 座板（4 邊）· 攢邊打槽裝板 ──────────────────────────────
+  {
+    const pan = P("seat-panel");
+    const t = Math.max(6, Math.round(pan.visible.thickness / 2)); // 薄板舌厚 = T/2
+    const GROOVE = 10;
+    // ⭐ 修過的缺陷：座板四邊本來就刻意離框內面 4mm（打槽裝板留伸縮縫，木工正確做法），
+    // 不是接不到位；expectedGapMm:4 讓 gap 檢查把這 4mm 當「設計好的縫」，不再誤報。
+    J.push({ child: pan.id, pos: "start", mother: "seat-rail-left", type: "tongue-and-groove",
+      w: Math.max(15, pan.visible.width - sh2), t, depth: GROOVE, expectedGapMm: 4, nameZh: "座板打槽裝板（左）" });
+    J.push({ child: pan.id, pos: "end", mother: "seat-rail-right", type: "tongue-and-groove",
+      w: Math.max(15, pan.visible.width - sh2), t, depth: GROOVE, expectedGapMm: 4, nameZh: "座板打槽裝板（右）" });
+    J.push({ child: pan.id, pos: "left", mother: "seat-rail-front", type: "tongue-and-groove",
+      w: Math.max(15, pan.visible.length - sh2), t, depth: GROOVE, expectedGapMm: 4, nameZh: "座板打槽裝板（前）" });
+    J.push({ child: pan.id, pos: "right", mother: "seat-rail-back", type: "tongue-and-groove",
+      w: Math.max(15, pan.visible.length - sh2), t, depth: GROOVE, expectedGapMm: 4, nameZh: "座板打槽裝板（後）" });
+  }
+
+  // ── ⑧ 椅盤框 ↔ 穿帶（2 處）· 直榫 ───────────────────────────────────────
+  {
+    const b = P("seat-thru-batten");
+    const w = Math.max(15, b.visible.width - sh2);
+    const t = Math.max(6, Math.round(b.visible.thickness / 3));
+    const depth = Math.max(15, Math.round((P("seat-rail-front").visible.width * 2) / 3));
+    J.push({ child: b.id, pos: "start", mother: "seat-rail-back", type: "blind-tenon",
+      w, t, depth, nameZh: "穿帶直榫入後大邊" });
+    J.push({ child: b.id, pos: "end", mother: "seat-rail-front", type: "blind-tenon",
+      w, t, depth, nameZh: "穿帶直榫入前大邊" });
+  }
+
+  // ── ⑨ 橫飾棖 ↔ 腿（8 處）· 格肩榫 ───────────────────────────────────────
+  // ── ⑩ 管腳棖 ↔ 腿（8 處）· 椿榫 / 鴨母嘴（教材兩選項，P1 只影響文案）────
+  const railToLeg = (
+    childId: string, pos: TenonPosition, legId: string, type: JoineryType, nameZh: string,
+  ) => {
+    const c = P(childId), leg = P(legId);
+    const legD = leg.visible.length;                 // 圓腳直徑
+    // start/end：榫寬軸 = local Z（斷面深）、榫厚軸 = local Y（斷面高）
+    const w = Math.max(15, c.visible.width - sh2);
+    const t = ccLegSlot(legD, Math.max(6, Math.round(c.visible.thickness / 3)));
+    J.push({ child: childId, pos, mother: legId, type, w, t, depth: ccLegDepth(legD), nameZh });
+  };
+  for (const side of ["l", "r"] as const) {
+    const L = side === "l" ? -1 : 1;
+    void L;
+    // 前後橫飾棖：沿 X，兩端各進一隻同排的腳
+    railToLeg("decor-rail-front", side === "l" ? "start" : "end", `leg-front-${side}`,
+      "shouldered-tenon", "前橫飾棖格肩榫入前腳");
+    railToLeg("decor-rail-back", side === "l" ? "start" : "end", `leg-rear-${side}`,
+      "shouldered-tenon", "後橫飾棖格肩榫入後腳");
+    // 左右橫飾棖：rotY=+π/2 → local +X 指世界 −Z（前腳）、local −X 指世界 +Z（後腳）
+    railToLeg(`decor-rail-${side === "l" ? "left" : "right"}`, "end", `leg-front-${side}`,
+      "shouldered-tenon", "側橫飾棖格肩榫入前腳");
+    railToLeg(`decor-rail-${side === "l" ? "left" : "right"}`, "start", `leg-rear-${side}`,
+      "shouldered-tenon", "側橫飾棖格肩榫入後腳");
+    // 前腳棖（踏腳棖）
+    railToLeg("foot-rail-front", side === "l" ? "start" : "end", `leg-front-${side}`,
+      "blind-tenon", "踏腳棖椿榫入前腳");
+    // 步步高側棖
+    railToLeg(`foot-rail-side-${side}`, "end", `leg-front-${side}`,
+      "blind-tenon", "步步高側棖椿榫入前腳");
+    railToLeg(`foot-rail-side-${side}`, "start", `leg-rear-${side}`,
+      "blind-tenon", "步步高側棖椿榫入後腳");
+    // 步步高後棖
+    railToLeg("foot-rail-back", side === "l" ? "start" : "end", `leg-rear-${side}`,
+      "blind-tenon", "步步高後棖椿榫入後腳");
+  }
+
+  // ── ⑪ 前腳角牙 ↔ 腿 + 椅盤（2 處）· 夾頭榫 ─────────────────────────────
+  for (const side of ["l", "r"] as const) {
+    const b = P(`corner-brace-front-${side}`);
+    const leg = P(`leg-front-${side}`);
+    const legD = leg.visible.length;
+    J.push({
+      child: b.id, pos: side === "l" ? "start" : "end", mother: leg.id, type: "shouldered-tenon",
+      w: b.visible.width,                                   // 10mm 薄牙片整片入槽、不留肩
+      t: ccLegSlot(legD, Math.max(10, b.visible.thickness - sh2)),
+      depth: Math.min(12, ccLegDepth(legD)), nameZh: "前腳角牙夾頭榫入腿",
+    });
+    // 鵝脖角牙坐在前大邊頂面上 → 下端（bottom）入大邊（見 buildCornerBraces 位置註解）
+    J.push({
+      child: b.id, pos: "bottom", mother: "seat-rail-front", type: "shouldered-tenon",
+      w: Math.max(15, b.visible.length - sh2), t: b.visible.width, depth: 12,
+      nameZh: "前腳角牙夾頭榫入大邊",
+    });
+  }
+
+  // ── ⑫ 橫飾棖角牙 ↔ 棖 + 腿（8 處）· 夾頭榫式角牙 ────────────────────────
+  // 前面 2 片（decor-brace-1/2）掛在前橫飾棖下、內端進前腳；
+  // 側面 4 片（decor-brace-3~6）⭐ 已修：統一成同一種做法（入腿 + 頂端入側橫飾棖），
+  // 不再只寫「頂端入抹頭」那一條（見 buildCornerBraces 同一條缺陷的位置修正）。
+  for (const [id, side] of [["decor-brace-1", "l"], ["decor-brace-2", "r"]] as const) {
+    const b = P(id);
+    const leg = P(`leg-front-${side}`);
+    const legD = leg.visible.length;
+    J.push({
+      child: id, pos: side === "l" ? "start" : "end", mother: leg.id, type: "shouldered-tenon",
+      w: b.visible.width,
+      t: ccLegSlot(legD, Math.max(10, b.visible.thickness - sh2)),
+      depth: Math.min(12, ccLegDepth(legD)), nameZh: "橫飾棖角牙夾頭榫入前腳",
+    });
+    J.push({
+      child: id, pos: "top", mother: "decor-rail-front", type: "shouldered-tenon",
+      w: Math.max(15, b.visible.length - sh2), t: b.visible.width, depth: 12,
+      nameZh: "橫飾棖角牙夾頭榫入前橫飾棖",
+    });
+  }
+  for (const [id, side, which] of [
+    ["decor-brace-3", "l", "front"], ["decor-brace-4", "l", "rear"],
+    ["decor-brace-5", "r", "front"], ["decor-brace-6", "r", "rear"],
+  ] as const) {
+    const b = P(id);
+    const leg = P(`leg-${which}-${side}`);
+    const legD = leg.visible.length;
+    // 跟 decor-rail-left/right 同一套旋轉慣例：local +X(end)→世界前(-Z)、-X(start)→世界後(+Z)
+    J.push({
+      child: id, pos: which === "front" ? "end" : "start", mother: leg.id, type: "shouldered-tenon",
+      w: b.visible.width,
+      t: ccLegSlot(legD, Math.max(10, b.visible.thickness - sh2)),
+      depth: Math.min(12, ccLegDepth(legD)), nameZh: "側橫飾棖角牙夾頭榫入腿",
+    });
+    J.push({
+      child: id, pos: "top", mother: `decor-rail-${side === "l" ? "left" : "right"}`, type: "shouldered-tenon",
+      w: Math.max(15, b.visible.length - sh2), t: b.visible.width, depth: 12,
+      nameZh: "側橫飾棖角牙夾頭榫入側橫飾棖",
+    });
+  }
+
+  return J;
+}
+
+/**
+ * 大進大出：前／後腳一木連做，從地面貫穿椅盤角（座框大邊）繼續往上到椅圈——
+ * 不是端面榫接，是「原始斷面（不縮小成榫頭）貫穿母件」。
+ *
+ * ⭐ 缺陷 5 的資料結構：現有 Tenon/Mortise 只能表達「公榫件端面插入母件」，沒有
+ * 「子件中段貫穿母件、兩端都露出」這種關係，所以只在母件（座框大邊）上記一個
+ * mortise（圓孔、through:true、`passThroughChildId` 指回那隻腳），不推對應的
+ * tenon——腳本身不縮小，沒有可比對的榫頭端面。`passThroughChildId` 這個欄位
+ * （`lib/types/index.ts` Mortise interface）跟這個函式都是這次新加的，spec §9.1
+ * 沒有前例，建議他複查。
+ * ⚠️ 目前只有資料記錄，3D／CSG 渲染還沒接（腳跟座框看起來仍是兩個零件互穿，
+ * 沒有真的挖洞），這步留給下一輪接渲染。
+ */
+function applyLegPassThroughs(parts: Part[]): void {
+  const by = new Map(parts.map((p) => [p.id, p]));
+  const P = (id: string) => by.get(id)!;
+  const railFront = P("seat-rail-front");
+  const railBack = P("seat-rail-back");
+  for (const side of ["l", "r"] as const) {
+    const front = P(`leg-front-${side}`);
+    const rear = P(`leg-rear-${side}`);
+    // local x：rail 沒有旋轉、origin.x=0，local x = 腳的世界 X；
+    // local y：從 rail 底面量，取斷面中高（visible.thickness/2）；
+    // local z：腳跟 rail 中心的世界 Z 差（腳中心離 rail 中心 <19.5mm，落在 rail 板料內）。
+    railFront.mortises.push({
+      origin: { x: front.origin.x, y: railFront.visible.thickness / 2, z: front.origin.z - railFront.origin.z },
+      depth: railFront.visible.thickness, length: front.visible.length, width: front.visible.length,
+      through: true, shape: "round", passThroughChildId: front.id,
+    });
+    railBack.mortises.push({
+      origin: { x: rear.origin.x, y: railBack.visible.thickness / 2, z: rear.origin.z - railBack.origin.z },
+      depth: railBack.visible.thickness, length: rear.visible.length, width: rear.visible.length,
+      through: true, shape: "round", passThroughChildId: rear.id,
+    });
+  }
 }
 
 /**
@@ -637,6 +1122,10 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
   }));
 
+  // ── 榫卯資料（spec §9.1）──────────────────────────────────────────────
+  const jointWarnings = applyCircleChairJoinery(parts, buildCircleChairJoints(parts));
+  applyLegPassThroughs(parts); // 缺陷 5：腳大進大出貫穿椅盤角（見函式註解）
+
   // 管腳棖榫型說明（P1 只影響 notes，幾何不變）
   const footRailJointNotes: Record<string, string> = {
     "duck-bill": "管腳棖用「鴨母嘴（斜口勾掛榫）」——斜口精度高，初學建議先練方榫。",
@@ -675,6 +1164,7 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
       seatCornerNote,
     ].join(" "),
   };
+  if (jointWarnings.length) design.warnings = [...(design.warnings ?? []), ...jointWarnings];
   const roundLegWarnings = validateRoundLegJoinery(design);
   if (roundLegWarnings.length) design.warnings = [...(design.warnings ?? []), ...roundLegWarnings];
   applyStandardChecks(design, {
