@@ -37,30 +37,33 @@ const DECOR_BRACE_H = 60;
  */
 const RING_JOINT_OVERLAP = 85;
 /**
- * 椅圈後半圓半徑（中心線，座寬 610 時；其他座寬等比）。§S7：圈椅椅圈＝clamped cubic
- * B-spline 繞圓心橢圓化。R=342 讓圓恰好通過後腳頂（legXOff=274, legZRear=224.5 →
- * 圓心 z≈20、後正中 z≈362），俯視外徑 ≈ 700 × 685，跟工作圖材料單
- *（上靠桿 625 + 中桿 410×2 + 左右桿 350×2 − 4×85 ≈ 1805 弧長）同一級。
+ * 椅圈俯視包絡目標（座寬 610／座深 497 時，其他尺寸等比）：工作圖 ≈ 698 × 690（spec §3）。
+ * 後半圓半徑 R 不是常數，由「圓要恰好通過後腳頂」＋「前後包絡 = 690」兩個條件解出來
+ * （見 buildRingCurve；預設尺寸解出 R≈259，落在 spec §12 估的 245–260 內）。
+ * 扶手從後半圓 90° 點往前一路外撇到鱔魚頭尾端（中心線 x = 半寬目標 − 尾端半寬），
+ * 俯視才是「¾ 圓 + 兩端外撇」，不是一個大圓。
  */
-const RING_R_REF = 342;
+const RING_OUTER_W_REF = 698;
+const RING_OUTER_D_REF = 690;
 /**
- * 扶手出頭（鱔魚頭）尾端往下垂的量（mm）。目前 0＝整圈水平：
- * 下垂會讓 C² 內插把斜度帶進前面 2~3 個 span（實測 180mm 內慢慢降 1.3mm），
- * 鵝脖／聯幫棍頂端貼不平（一角戳進、一角懸空 ~1mm，audit-overlaps 容差 1mm 剛好抓到）。
- * 要做真的鱔魚頭下捲，得把下垂段獨立成短 span（tip 前 40mm 加密經過點）再開，留 P4。
+ * 椅圈「後高前低」（使用者 2026-09-23 定的木工事實）：後正中最高（= 椅圈總高），
+ * 沿兩側扶手往前一路降，到鵝脖接點降 RING_ARM_DROP，再往前到鱔魚頭尾端再降 RING_TIP_DROP
+ * （下捲）。數值是明式圈椅通例（spec §3 只給「椅圈高 ~700–720」＝前 700／後 720 那一級），
+ * 不是工作圖標註值，工作圖到手後從這兩個常數校正。
  */
-const RING_TIP_DROP = 0;
+const RING_ARM_DROP = 30;
+const RING_TIP_DROP = 25;
+/** 椅圈斷面：皮條線（上圓下扁——上半超橢圓弧、下半平底導圓），§S7.1 */
+const RING_TOP_EXP = 2.6;
+const RING_BOTTOM_R = 5;
 /**
- * 四腿側腳收分：側向 4°、前後 2°（spec §3「側腳收分約 4°」）。腿在座框處固定，
- * 腳底往外踢 tan(θ)×seatHeight。0 = 直腿（下盤幾何回到 P1）。
+ * 四腿複斜（§AT1.3 splay + rake）：側向收分 4°（spec §3）、前後收分 2.5°（通例，
+ * 前腳腳底往前、後腳腳底往後；工作圖無標註）。腿在座面高處固定在座框角，
+ * 座面以下是一整支「直的」斜圓柱（大進大出穿椅盤），腳底外踢 tan(θ)×seatHeight；
+ * 座面以上：後腳沿同一條直線一路頂到椅圈底（頂端照椅圈底面切斜肩），前腳彎成鵝脖。
  */
 const LEG_SPLAY_DEG = 4;
-/**
- * 前後向收分（rake）先關：腿下段往前傾、上段鵝脖又往前彎，C² 內插會在穿椅盤的直段
- * 往後鼓 5~9mm（腳心離開座框角），俯視圖棖端面跟腿面對不上（audit-2d-joints 4mm）。
- * 側向 4° 收分沒這問題（鵝脖是往外撇，同向）。要開 rake 得先把穿椅盤段做成真直線（多段曲線）。
- */
-const LEG_RAKE_DEG = 0;
+const LEG_RAKE_DEG = 2.5;
 
 /** 四腿的斷面尺寸與 X/Z 平面錨點位置（腿在座框處的中心；buildLegs / buildStretchers 共用） */
 function legAnchors(seatWidth: number, seatDepth: number) {
@@ -215,72 +218,137 @@ function buildSeatFrame(args: Pick<CircleChairBuildArgs, "material" | "seatWidth
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 椅圈中心線（整圈一條 clamped cubic B-spline，世界座標；§S7）
+// 椅圈中心線（整圈一條 clamped cubic B-spline，世界座標；§S7 / §S7.1）
 // ─────────────────────────────────────────────────────────────────────────────
+
+const UP: W3 = { x: 0, y: 1, z: 0 };
+const DOWN: W3 = { x: 0, y: -1, z: 0 };
+const v3 = {
+  add: (a: W3, b: W3): W3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }),
+  sub: (a: W3, b: W3): W3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }),
+  mul: (a: W3, k: number): W3 => ({ x: a.x * k, y: a.y * k, z: a.z * k }),
+  dot: (a: W3, b: W3): number => a.x * b.x + a.y * b.y + a.z * b.z,
+  norm: (a: W3): W3 => { const l = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / l, y: a.y / l, z: a.z / l }; },
+};
+/** 椅圈斷面框架的「上」方向：厚度軸鎖世界 Y（profile.thicknessAlong "y"）→ B = Ŷ 投影到 ⊥T */
+function ringUpAt(tangent: W3): W3 {
+  return v3.norm(v3.sub(UP, v3.mul(tangent, v3.dot(UP, tangent))));
+}
+
+/** 椅圈上某一點的接合資訊（柱頂要貼的地方） */
+type RingAttach = {
+  /** 中心線上的點（世界） */
+  point: W3;
+  t01: number;
+  tangent: W3;
+  /** 椅圈在該處斷面的「上」方向（⊥切線、盡量朝 +Y）；柱頂榫軸／端面法線用它 */
+  up: W3;
+  /** 椅圈底面中心 = point − (T/2)·up：鵝脖／聯幫棍／後腳頂端面貼這裡 */
+  bottom: W3;
+};
 
 type RingCurve = {
   /** 整圈中心線（世界座標的 swept-curve shape，斷面只是佔位） */
   world: SweptCurveShape;
   /** 弧長總長 */
   length: number;
+  /** 後半圓半徑（由「過後腳頂」＋「前後包絡」解出） */
   R: number;
   zc: number;
+  /** 後正中中心線高 */
   ringMidY: number;
   /** 弧長比例 → 斷面寬（apex 最寬、扶手頭最窄） */
   widthAt: (t01: number) => number;
-  /** 椅圈中心線在某個 z 的左（sx<0）/右（sx>0）側交點（世界）；bottomY = 該處椅圈實體最低點 */
-  attachAtZ: (sx: -1 | 1, z: number) => { point: W3; t01: number; bottomY: number };
+  /** 椅圈中心線在某個 z 的左（sx<0）/右（sx>0）側交點 */
+  attachAtZ: (sx: -1 | 1, z: number) => RingAttach;
   /** 後正中點（靠背板上端） */
-  apex: W3;
+  apex: RingAttach;
+  /** 中心線各站（弧長比例、高度、z）——驗證「後高前低」用 */
+  heightProfile: () => Array<{ t01: number; y: number; z: number; x: number }>;
 };
 
 /**
- * 椅圈幾何鏈：後半圓（圓心 (0,zc)、半徑 R，恰通過後腳頂）+ 兩側扶手往前微外撇到鱔魚頭。
+ * 四腿的直線軸（§AT1.3 複斜）：座面高處固定在座框角，腳底沿側向外踢 tan(splay)·H、
+ * 前後向 tan(rake)·H（前腳往前、後腳往後）。座面以下整支是這條直線；後腳座面以上也沿它。
+ */
+function legAxisOf(which: "front" | "rear", sx: -1 | 1, seatWidth: number, seatDepth: number, seatHeight: number) {
+  const { legXOff, legZFront, legZRear } = legAnchors(seatWidth, seatDepth);
+  const dx = Math.tan((LEG_SPLAY_DEG * Math.PI) / 180) * seatHeight;
+  const dz = Math.tan((LEG_RAKE_DEG * Math.PI) / 180) * seatHeight;
+  const z0 = which === "front" ? legZFront : legZRear;
+  const anchor: W3 = { x: sx * legXOff, y: seatHeight, z: z0 };
+  const foot: W3 = { x: sx * (legXOff + dx), y: 0, z: which === "front" ? z0 - dz : z0 + dz };
+  const dir = v3.norm(v3.sub(anchor, foot));
+  const at = (y: number): W3 => v3.add(foot, v3.mul(dir, (y - foot.y) / dir.y));
+  return { foot, anchor, dir, at, dx, dz };
+}
+
+/**
+ * 椅圈幾何鏈（§S7.1）：
+ *   俯視：後半圓（圓心 (0,zc)、半徑 R，恰通過後腳頂）+ 兩側扶手從 90° 點往前一路外撇到
+ *         鱔魚頭尾端（中心線 x = 半寬目標 − 尾端半寬），包絡 ≈ 698 × 690（spec §3）。
+ *   立面：後正中最高（= 椅圈總高），沿扶手往前降 RING_ARM_DROP 到鵝脖接點，
+ *         再降 RING_TIP_DROP 下捲成鱔魚頭——「後高前低」。
  * 曲線「經過點」→ interpolateBSpline（§S2）→ 一條 B-spline；五段零件再從這條線切（見 buildArmRail）。
  */
-function buildRingCurve(args: Pick<CircleChairBuildArgs, "seatWidth" | "seatDepth" | "ringHeight" | "sectionScale">): RingCurve {
-  const { seatWidth, seatDepth, ringHeight, sectionScale } = args;
-  const { RING_T, ringY } = armRingAnchors(ringHeight);
-  const { legXOff, legZRear } = legAnchors(seatWidth, seatDepth);
-  const k = seatWidth / 610;
-  const ringMidY = ringY + RING_T / 2;
-  let R = RING_R_REF * k;
-  if (R <= legXOff + 5) R = legXOff + 5; // 極窄座寬保護：圓一定要罩得住後腳
-  const zc = legZRear - Math.sqrt(R * R - legXOff * legXOff);
-  const tipZ = -seatDepth / 2 - 8 * k;
-  // 右半邊經過點：apex → 22.5°/45°/67.5°/90° → 扶手 → 鱔魚頭（尾端下垂 RING_TIP_DROP）
-  const right: W3[] = [];
-  for (const deg of [22.5, 45, 67.5, 90]) {
-    const th = (deg * Math.PI) / 180;
-    right.push({ x: R * Math.sin(th), y: ringMidY, z: zc + R * Math.cos(th) });
-  }
-  // 扶手段保持水平到鵝脖接點之後（legZFront+6 附近），最後 ~40mm 才往下捲成鱔魚頭——
-  // 鵝脖／聯幫棍頂端要貼的是水平的椅圈底，下垂段留在它們前面。
+function buildRingCurve(args: Pick<CircleChairBuildArgs, "seatWidth" | "seatDepth" | "seatHeight" | "ringHeight" | "sectionScale">): RingCurve {
+  const { seatWidth, seatDepth, seatHeight, ringHeight, sectionScale } = args;
+  const { RING_T } = armRingAnchors(ringHeight);
   const { legZFront } = legAnchors(seatWidth, seatDepth);
-  right.push({ x: R + 3 * k, y: ringMidY, z: zc - 92 * k });
-  right.push({ x: R + 5 * k, y: ringMidY, z: zc - 184 * k });
-  right.push({ x: R + 6 * k, y: ringMidY, z: legZFront - 2 });
-  right.push({ x: R + 8 * k, y: ringMidY - RING_TIP_DROP, z: tipZ });
-  const apex: W3 = { x: 0, y: ringMidY, z: zc + R };
+  const kW = seatWidth / 610, kD = seatDepth / 497;
+  const ringMidY = ringHeight - RING_T / 2;
+  const halfWApex = 30 * sectionScale, halfWTip = 15 * sectionScale;
+  // 後腳頂：直線腿在椅圈中心線高處的中心（右側）
+  const rearTop = legAxisOf("rear", 1, seatWidth, seatDepth, seatHeight).at(ringMidY);
+  const xT = rearTop.x, zT = rearTop.z;
+  // 前後包絡：apex 外緣 z = zc + R + halfWApex；尾端外緣 z = tipZ − halfWTip
+  const tipZ = -seatDepth / 2 - 8 * kD;
+  const D = RING_OUTER_D_REF * kD - halfWApex - halfWTip + tipZ; // = zc + R
+  // 圓過後腳頂：xT² + (zT − zc)² = R²，zc = D − R → R = (xT² + (zT−D)²) / (2(D − zT))
+  let R = (xT * xT + (zT - D) * (zT - D)) / (2 * Math.max(1, D - zT));
+  if (R <= xT + 5) R = xT + 5; // 極窄座寬保護：圓一定要罩得住後腳
+  const zc = D - R;
+  const tipX = (RING_OUTER_W_REF / 2) * kW - halfWTip; // 尾端中心線 x
+  const zG = legZFront + 6; // 鵝脖接點 z（跟 buildLegs 一致）
+  // 高度：圓弧段從 apex 緩降（90° 處降 30% 的 ARM_DROP），扶手段線性降到接點 = ARM_DROP，
+  // 接點→尾端再降 TIP_DROP（下捲，中點先降 40%）
+  const dropCircle = (deg: number) => RING_ARM_DROP * 0.3 * (1 - Math.cos((deg * Math.PI) / 180));
+  const armF = (z: number) => (zc - z) / (zc - zG);
+  const dropArm = (z: number) => RING_ARM_DROP * (0.3 + 0.7 * armF(z));
+  const armX = (z: number) => R + (tipX - R) * Math.pow(Math.min(1, Math.max(0, (zc - z) / (zc - tipZ))), 1.3);
+  const right: W3[] = [];
+  for (const deg of [15, 30, 45, 60, 75, 90]) {
+    const th = (deg * Math.PI) / 180;
+    right.push({ x: R * Math.sin(th), y: ringMidY - dropCircle(deg), z: zc + R * Math.cos(th) });
+  }
+  for (const f of [0.33, 0.66, 1]) {
+    const z = zc - (zc - zG) * f;
+    right.push({ x: armX(z), y: ringMidY - dropArm(z), z });
+  }
+  {
+    // 鱔魚頭下捲：接點→尾端用「慢→快」的 ease-in（1−cos），避免 C² 內插在接點前
+    // 反彈出一小段上升（實測線性給點會在扶手段冒出 0.8mm 的假凸）
+    const zM = (zG + tipZ) / 2;
+    right.push({ x: armX(zM), y: ringMidY - RING_ARM_DROP - RING_TIP_DROP * 0.25, z: zM });
+    right.push({ x: tipX, y: ringMidY - RING_ARM_DROP - RING_TIP_DROP, z: tipZ });
+  }
+  const apexPt: W3 = { x: 0, y: ringMidY, z: zc + R };
   const left = right.map((p) => ({ x: -p.x, y: p.y, z: p.z })).reverse();
-  const through = [...left, apex, ...right];
+  const through = [...left, apexPt, ...right];
   const fit = interpolateBSpline(through);
-  // 椅圈除了鱔魚頭下垂段以外要「絕對水平」：C² 內插會讓下垂段把鄰近幾個 span 帶出 ±0.1mm 漣漪，
-  // 鵝脖／聯幫棍頂端貼上去就變成一邊戳進 0.1、一邊懸空 0.1。控制點 y 離 ringMidY 不到 1.5 的
-  // 一律壓回 ringMidY——B-spline 是控制點的凸組合，整段控制點都在 702 的 span 就恰好是 702。
-  fit.controlPoints = fit.controlPoints.map((c) => (Math.abs(c.y - ringMidY) < 1.5 ? { ...c, y: ringMidY } : c));
   // 斷面佔位：整圈的寬度由 widthAt 決定，切段時才寫進各段 profile
   const world: SweptCurveShape = {
     kind: "swept-curve",
     controlPoints: fit.controlPoints,
     knots: fit.knots,
-    profile: { type: "rect", widthStart: 30, widthEnd: 30, thickness: RING_T },
+    profile: { type: "rect", widthStart: 30, widthEnd: 30, thickness: RING_T, thicknessAlong: "y" },
   };
   const length = sweptArcLength(world);
-  // 斷面寬：扶手頭 30 → 扶手 40 → 後腳處 50 → 後正中 60（工作圖：上靠桿最寬、左右桿最窄）
+  // 斷面寬：鱔魚頭 34 → 扶手 44 → 後腳處 50 → 後正中 60（工作圖：上靠桿最寬、左右桿最窄）
+  // 鵝脖接點在離扶手頭 ~50mm 處（寬 ≈ 36），鵝脖頂 Ø30 要落在平底（36 − 2×5 = 26 平 + 導圓）內
   const widthAt = (t01: number) => {
     const g = Math.min(t01, 1 - t01);
-    const table: Array<[number, number]> = [[0, 30], [0.12, 40], [0.3, 50], [0.5, 60]];
+    const table: Array<[number, number]> = [[0, 34], [0.12, 44], [0.3, 50], [0.5, 60]];
     let w = 60;
     for (let i = 0; i + 1 < table.length; i++) {
       const [g0, w0] = table[i], [g1, w1] = table[i + 1];
@@ -288,33 +356,40 @@ function buildRingCurve(args: Pick<CircleChairBuildArgs, "seatWidth" | "seatDept
     }
     return w * sectionScale;
   };
-  // 椅圈斷面在該處的最低點：扶手往下垂時斷面跟著傾 θ，最低角 = 中心 − (T/2)cosθ − (w/2)sinθ
-  const bottomOf = (c: { point: W3; tangent: W3; t01: number }) => {
-    const sinT = Math.min(1, Math.abs(c.tangent.y));
-    const cosT = Math.sqrt(1 - sinT * sinT);
-    return c.point.y - (RING_T / 2) * cosT - (widthAt(c.t01) / 2) * sinT;
+  const toAttach = (point: W3, tangent: W3, t01: number): RingAttach => {
+    const up = ringUpAt(tangent);
+    return { point, t01, tangent, up, bottom: v3.sub(point, v3.mul(up, RING_T / 2)) };
   };
-  const attachAtZ = (sx: -1 | 1, z: number) => {
+  const attachAtZ = (sx: -1 | 1, z: number): RingAttach => {
     const cs = sweptCrossings(world, "z", z).filter((c) => (sx < 0 ? c.point.x < 0 : c.point.x > 0));
     if (cs.length === 0) {
       // 超出椅圈 z 範圍：退到最近的端點（不該發生，保護用）
       const s = sampleCenterline(world);
       const i = sx < 0 ? 0 : s.points.length - 1;
-      const c = { point: s.points[i], tangent: s.tangents[i], t01: sx < 0 ? 0 : 1 };
-      return { point: c.point, t01: c.t01, bottomY: bottomOf(c) };
+      return toAttach(s.points[i], s.tangents[i], sx < 0 ? 0 : 1);
     }
-    // 同側可能有兩個交點（扶手 + 後半圓）：取離座面中心線較近（|x| 大＝扶手側）的那個
+    // 同側可能有兩個交點（扶手 + 後半圓）：取離座面中心線較遠（|x| 大＝扶手側）的那個
     cs.sort((a, b) => Math.abs(b.point.x) - Math.abs(a.point.x));
-    return { point: cs[0].point, t01: cs[0].t01, bottomY: bottomOf(cs[0]) };
+    return toAttach(cs[0].point, cs[0].tangent, cs[0].t01);
   };
-  return { world, length, R, zc, ringMidY, widthAt, attachAtZ, apex };
+  const apex = (() => {
+    const s = sampleCenterline(world);
+    let bi = 0;
+    for (let i = 1; i < s.points.length; i++) if (Math.abs(s.points[i].x) < Math.abs(s.points[bi].x)) bi = i;
+    const total = s.s[s.s.length - 1] || 1;
+    return toAttach(s.points[bi], s.tangents[bi], s.s[bi] / total);
+  })();
+  const heightProfile = () => {
+    const s = sampleCenterline(world);
+    const total = s.s[s.s.length - 1] || 1;
+    return s.points.map((p, i) => ({ t01: s.s[i] / total, y: p.y, z: p.z, x: p.x }));
+  };
+  return { world, length, R, zc, ringMidY, widthAt, attachAtZ, apex, heightProfile };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 曲料零件 helper
 // ─────────────────────────────────────────────────────────────────────────────
-
-const UP: W3 = { x: 0, y: 1, z: 0 };
 
 function sweptPart(
   id: string,
@@ -322,7 +397,10 @@ function sweptPart(
   material: MaterialId,
   throughWorld: W3[],
   profile: SweptProfile,
-  opts?: { controlPointsWorld?: W3[]; knots?: number[]; nameEn?: string; startTangent?: W3; endTangent?: W3 },
+  opts?: {
+    controlPointsWorld?: W3[]; knots?: number[]; nameEn?: string;
+    startTangent?: W3; endTangent?: W3; startCap?: W3; endCap?: W3;
+  },
 ): Part {
   const g = sweptPartFromWorldPoints(throughWorld, profile, opts);
   return {
@@ -343,7 +421,7 @@ function sweptPart(
 function legLine(leg: Part) {
   const shape = leg.shape;
   if (shape?.kind !== "swept-curve") {
-    // 直圓料退路（LEG_SPLAY_DEG=0 且沒有曲線時不會用到，保留相容）
+    // 直圓料退路（保留相容）
     const r = leg.visible.length / 2;
     return {
       centerAt: () => ({ x: leg.origin.x, z: leg.origin.z }),
@@ -367,226 +445,200 @@ function legLine(leg: Part) {
 }
 
 /**
- * 腿在 [y0,y1] 高度區間內、朝 dir 方向「最內側」的面（接棖／角牙的端面貼這裡）。
- * 收分腿的面是斜的：橫撐是直料，端面只能貼到最內側那一點，其餘留 ≤ tan(4°)×棖高 的楔形縫
- * （木工實作是把肩線鋸成 4°；模型端寧可留縫也不穿模——audit-overlaps 容差只有 1mm）。
+ * 腿在高度 y、朝 dir 方向的面（接棖／角牙的端面貼這裡）。
+ * 複斜腿的面是斜的：橫撐端面上下兩端各自量（legFaceAt(y0)／legFaceAt(y1)），
+ * 做成 apron-trapezoid 梯形肩（§AT1.3 / §A10）——端面整個貼在腿面上，不留楔形縫。
+ * dir>0：面朝 +axis（左腿內側、前腳背面）。
  */
-function legFace(leg: Part, axis: "x" | "z", dir: -1 | 1, y0: number, y1: number): number {
+function legFaceAt(leg: Part, axis: "x" | "z", dir: -1 | 1, y: number): number {
   const L = legLine(leg);
-  // dir>0：面朝 +axis（左腿內側、前腳背面），「最內側」= 最大值；dir<0 反之。
-  let best = dir > 0 ? -Infinity : Infinity;
-  const N = 6;
-  for (let i = 0; i <= N; i++) {
-    const y = y0 + ((y1 - y0) * i) / N;
-    const c = L.centerAt(y);
-    const r = L.radiusAt(y);
-    const v = (axis === "x" ? c.x : c.z) + dir * r;
-    best = dir > 0 ? Math.max(best, v) : Math.min(best, v);
-  }
-  return best;
+  const c = L.centerAt(y);
+  return (axis === "x" ? c.x : c.z) + dir * L.radiusAt(y);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 四腿（一木連做，swept-curve 圓料）
+// 四腿（一木連做，swept-curve 圓料；座面以下直線複斜，§AT1.3）
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildLegs(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" | "seatDepth" | "seatHeight" | "ringHeight" | "legScale">, ring: RingCurve): Part[] {
-  const { material, seatWidth, seatDepth, seatHeight, ringHeight, legScale } = args;
-  const { FRONT_D, REAR_D, legXOff, legZFront, legZRear } = legAnchors(seatWidth, seatDepth);
-  const { railBottomY } = seatFrameAnchors(seatDepth, seatHeight);
-  const { RING_T, ringY } = armRingAnchors(ringHeight);
-  const dxSplay = Math.tan((LEG_SPLAY_DEG * Math.PI) / 180) * seatHeight;
-  const dzRake = Math.tan((LEG_RAKE_DEG * Math.PI) / 180) * seatHeight;
+  const { material, seatWidth, seatDepth, seatHeight, legScale } = args;
+  const { FRONT_D, REAR_D, legZFront } = legAnchors(seatWidth, seatDepth);
   const parts: Part[] = [];
 
-  // 座框以下直線段的經過點：腳底（外踢）→ 座框底 → 座面高（腿穿椅盤的區段垂直，
-  // 大進大出的通孔才是圓的；多放幾個共線點讓內插保持直線）
-  // 座框以下：腳底（外踢）直線到座框底，穿椅盤區段垂直；腳底端面靠 startTangent 鎖水平落地。
-  const straightBelow = (gx: number, gz: number, sx0: number, sz0: number): W3[] => {
-    const pts: W3[] = [{ x: gx, y: 0, z: gz }];
-    for (const f of [0.35, 0.7]) {
-      const y = railBottomY * f;
-      pts.push({ x: gx + (sx0 - gx) * f, y, z: gz + (sz0 - gz) * f });
-    }
-    pts.push({ x: sx0, y: railBottomY, z: sz0 });
-    pts.push({ x: sx0, y: (railBottomY + seatHeight) / 2, z: sz0 });
-    pts.push({ x: sx0, y: seatHeight, z: sz0 });
-    return pts;
-  };
-
   for (const sx of [-1, 1] as const) {
-    // ── 前腳 + 鵝脖（715×60×39 一木連做）──────────────────────────────────
-    // 座面以上彎成 S 形鵝脖：先往前外撇、再往後回收，頂端圓榫頂住椅圈左右桿底面。
-    const gx = sx * (legXOff + dxSplay);
-    const gz = legZFront - dzRake;
-    const seatX = sx * legXOff;
-    const attach = ring.attachAtZ(sx, legZFront + 6);
-    // 椅圈在接點處的實體最低點（扶手頭往下垂，斷面跟著傾，不是整圈同一個高度）
-    const attachY = attach.bottomY;
-    const neckH = attachY - seatHeight;
-    const front: W3[] = [
-      ...straightBelow(gx, gz, seatX, legZFront),
-      { x: sx * (legXOff + 6), y: seatHeight + neckH * 0.3, z: legZFront - 20 },
-      { x: sx * (legXOff + 30), y: seatHeight + neckH * 0.62, z: legZFront - 30 },
-      { x: sx * (Math.abs(attach.point.x) - 10), y: attachY - 40, z: legZFront - 14 },
-      { x: attach.point.x, y: attachY, z: attach.point.z }, // 端切線鎖垂直（endTangent）：端面水平貼椅圈底
-    ];
-    parts.push(sweptPart(
-      sx < 0 ? "leg-front-l" : "leg-front-r",
-      `前${sx < 0 ? "左" : "右"}腳（含鵝脖）`,
-      material,
-      front,
-      { type: "round", radiusStart: (FRONT_D / 2) * legScale, radiusEnd: (FRONT_D / 2) * 0.8 * legScale },
-      { nameEn: `Front ${sx < 0 ? "left" : "right"} leg (with gooseneck)`, startTangent: UP, endTangent: UP },
-    ));
-
     // ── 後腳（985×36×39 一木連做穿椅盤）────────────────────────────────────
-    // 穿過椅盤繼續上延到椅圈底；椅圈後半圓恰好通過後腳頂（見 buildRingCurve），上段垂直。
-    const rgx = sx * (legXOff + dxSplay);
-    const rgz = legZRear + dzRake;
-    const rseatX = sx * legXOff;
-    const rAttach = ring.attachAtZ(sx, legZRear);
-    const rAttachY = rAttach.bottomY;
-    void RING_T;
-    const rear: W3[] = [
-      ...straightBelow(rgx, rgz, rseatX, legZRear),
-      { x: rseatX, y: seatHeight + (rAttachY - seatHeight) * 0.5, z: legZRear },
-      { x: rAttach.point.x, y: rAttachY, z: rAttach.point.z },
-    ];
-    void ringY;
-    parts.push(sweptPart(
-      sx < 0 ? "leg-rear-l" : "leg-rear-r",
-      `後${sx < 0 ? "左" : "右"}腳`,
-      material,
-      rear,
-      { type: "round", radiusStart: (REAR_D / 2) * legScale, radiusEnd: (REAR_D / 2) * 0.9 * legScale },
-      { nameEn: `Rear ${sx < 0 ? "left" : "right"} leg (through seat)`, startTangent: UP, endTangent: UP },
-    ));
+    // 整支一條直線（側腳 4° + 後傾 2.5°）：腳底 → 穿椅盤 → 直頂椅圈底。
+    // 頂端 = 直線與椅圈底面的交點；端面照椅圈當地底面切斜肩（endCap = 椅圈斷面「上」方向），
+    // 腳底切平貼地（startCap = 向下）。榫軸 = 腿軸（斜著插進椅圈，實作是斜孔）。
+    {
+      const ax = legAxisOf("rear", sx, seatWidth, seatDepth, seatHeight);
+      let top = ax.at(ring.ringMidY - 18);
+      let att = ring.attachAtZ(sx, top.z);
+      for (let i = 0; i < 3; i++) { top = ax.at(att.bottom.y); att = ring.attachAtZ(sx, top.z); }
+      const rear: W3[] = [ax.foot, ax.at(top.y * 0.3), ax.at(top.y * 0.6), ax.at(seatHeight), ax.at((seatHeight + top.y) / 2), top];
+      parts.push(sweptPart(
+        sx < 0 ? "leg-rear-l" : "leg-rear-r",
+        `後${sx < 0 ? "左" : "右"}腳`,
+        material,
+        rear,
+        { type: "round", radiusStart: (REAR_D / 2) * legScale, radiusEnd: (REAR_D / 2) * 0.9 * legScale },
+        { nameEn: `Rear ${sx < 0 ? "left" : "right"} leg (through seat)`, startTangent: ax.dir, endTangent: ax.dir, startCap: DOWN, endCap: att.up },
+      ));
+    }
+
+    // ── 前腳 + 鵝脖（715×60×39 一木連做）──────────────────────────────────
+    // 座面以下同一條直線（側腳 4° + 前傾 2.5°）；座面以上彎成 S 形鵝脖：先往前外撇、
+    // 再往後回收，頂端沿椅圈當地法線插進椅圈底（端面 ⊥ 法線 = 貼底面）。
+    {
+      const ax = legAxisOf("front", sx, seatWidth, seatDepth, seatHeight);
+      const att = ring.attachAtZ(sx, legZFront + 6);
+      const top = att.bottom;
+      const a = ax.anchor;
+      const neckH = top.y - seatHeight;
+      // 直接給控制點（不走全域內插）：clamped cubic B-spline 只由 P_j..P_{j+3} 決定第 j 段，
+      // 前 10 個控制點全在腿軸直線上 → 座面以下（到 seatHeight+80）的曲線「就是」那條直線，
+      // 不會被上面的 S 彎拉出鼓肚（全域內插實測 3 個共線點鼓 15mm、8 點仍 1.5mm）。
+      // 之後 3 個控制點勾出鵝脖 S（先往前外撇、再收回），最後兩點沿椅圈當地法線收尾 → 端切線 = att.up。
+      const lineTop = seatHeight + 80;
+      const cps: W3[] = [];
+      for (let i = 0; i <= 9; i++) cps.push(ax.at((lineTop * i) / 9));
+      cps.push({ x: sx * (Math.abs(a.x) + 48), y: seatHeight + neckH * 0.5, z: a.z - 34 });
+      cps.push({ x: sx * (Math.abs(top.x) + 14), y: top.y - 75, z: top.z - 14 });
+      cps.push(v3.sub(top, v3.mul(att.up, 36)));
+      cps.push(top);
+      const front: W3[] = cps;
+      parts.push(sweptPart(
+        sx < 0 ? "leg-front-l" : "leg-front-r",
+        `前${sx < 0 ? "左" : "右"}腳（含鵝脖）`,
+        material,
+        [],
+        // 鵝脖上細：頂端 Ø30（0.6×），要坐得進扶手（該處寬 ≈ 36）的平底
+        { type: "round", radiusStart: (FRONT_D / 2) * legScale, radiusEnd: (FRONT_D / 2) * 0.6 * legScale },
+        { nameEn: `Front ${sx < 0 ? "left" : "right"} leg (with gooseneck)`, controlPointsWorld: front, startCap: DOWN, endCap: att.up },
+      ));
+    }
   }
   return parts;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 下盤橫撐（box，端面貼腿面）
+// 下盤橫撐（apron-trapezoid，端面照複斜腿面切）
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 貼腿的直料（橫飾棖／管腳棖／角牙）：跟 bar-stool 斜腳牙條同一套慣例——
+ * rotation.x = π/2 讓 part-local width 立成世界高度，`apron-trapezoid` 的
+ * topLengthScale／bottomLengthScale 就是「端面上下兩端各自貼腿面」的複斜肩（§AT1.3 / §A10）。
+ * 長度量三個高度（下／中／上）的腿面距離：直線腿→線性，梯形完全貼合，不留楔形縫。
+ *   axis "x"：沿世界 X，legA = 左腿（面朝 +X）、legB = 右腿（面朝 −X）
+ *   axis "z"：沿世界 Z（再繞 Y 轉 π/2：local +X → 世界 −Z），legA = 前腳（背面）、legB = 後腳（正面）
+ * 角牙（單邊貼腿）：另一端 free；梯形是對稱縮放，free 端會鏡像出同角度的微斜（≤2mm），
+ * 角牙本身仍是 box 佔位，先接受。
+ */
+function railAgainstLegs(o: {
+  id: string; nameZh: string; nameEn?: string; material: MaterialId;
+  axis: "x" | "z"; yBottom: number; height: number; depth: number;
+  legA: Part; legB?: Part; fixedLength?: number; /** 只貼 legA 時，free 端朝哪個方向（世界軸正負） */ freeDir?: -1 | 1;
+}): Part {
+  const { axis, yBottom, height, depth } = o;
+  const yMid = yBottom + height / 2, yTop = yBottom + height;
+  const legC = legLine(o.legA).centerAt(yMid);
+  const rotation = axis === "x" ? { x: Math.PI / 2, y: 0, z: 0 } : { x: Math.PI / 2, y: Math.PI / 2, z: 0 };
+  const originAt = (mid: number) => (axis === "x" ? { x: mid, y: yBottom, z: legC.z } : { x: legC.x, y: yBottom, z: mid });
+  const base = {
+    id: o.id, nameZh: o.nameZh, ...(o.nameEn ? { nameEn: o.nameEn } : {}), material: o.material,
+    grainDirection: "length" as const, tenons: [], mortises: [], rotation,
+  };
+  if (o.legB) {
+    // 兩腿之間：legA 在低座標側（axis x = 左腿、axis z = 前腳）面朝 +axis；legB 面朝 −axis。
+    // 兩端對稱斜 → apron-trapezoid（上下長度各自量）。
+    const span = (y: number) => ({ lo: legFaceAt(o.legA, axis, +1, y), hi: legFaceAt(o.legB!, axis, -1, y) });
+    const sB = span(yBottom), sC = span(yMid), sT = span(yTop);
+    const lenB = sB.hi - sB.lo, lenC = sC.hi - sC.lo, lenT = sT.hi - sT.lo;
+    return {
+      ...base,
+      visible: { length: lenC, thickness: depth, width: height },
+      origin: originAt((sC.lo + sC.hi) / 2),
+      shape: { kind: "apron-trapezoid", topLengthScale: lenT / lenC, bottomLengthScale: lenB / lenC },
+    };
+  }
+  // 單邊貼腿（角牙）：只有貼腿那一端斜、free 端垂直——apron-trapezoid 是對稱縮放做不到，
+  // 走 mitered-ends 的「反向法」直接給 8 個 part-local 頂點（同 tray 複斜牆的做法）。
+  // 頂點 layout：index 0..3 = local z=−hz（rotation x=π/2 後是世界頂）、4..7 = z=+hz（世界底），
+  // 每圈順序 outer right(+x,+y) / outer left(−x,+y) / inner left(−x,−y) / inner right(+x,−y)。
+  const dir = o.freeDir ?? +1;
+  const L = o.fixedLength ?? 0;
+  const uFace = (y: number) => legFaceAt(o.legA, axis, dir, y);
+  const uFree = uFace(yMid) + dir * L;
+  const mid = (uFace(yMid) + uFree) / 2;
+  // axis z：local +X → 世界 −Z，所以世界 Z 偏移要反號才是 local X
+  const toLocalX = (u: number) => (axis === "x" ? u - mid : -(u - mid));
+  const ringAt = (y: number) => {
+    const a = toLocalX(uFace(y)), b = toLocalX(uFree);
+    return { xl: Math.min(a, b), xr: Math.max(a, b) };
+  };
+  const hy = depth / 2, hz = height / 2;
+  const t = ringAt(yTop), b = ringAt(yBottom);
+  const vertices: [number, number, number][] = [
+    [t.xr, hy, -hz], [t.xl, hy, -hz], [t.xl, -hy, -hz], [t.xr, -hy, -hz],
+    [b.xr, hy, hz], [b.xl, hy, hz], [b.xl, -hy, hz], [b.xr, -hy, hz],
+  ];
+  return {
+    ...base,
+    visible: { length: L, thickness: depth, width: height },
+    origin: originAt(mid),
+    shape: { kind: "mitered-ends", insetEach: 0, outerSide: "+y", vertices },
+  };
+}
+
+/** 直料（rotation x=π/2）的中高處世界 Y */
+function railMidY(p: Part): number {
+  return p.origin.y + worldExtents(p).yExt / 2;
+}
 
 function buildStretchers(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" | "seatDepth" | "seatHeight">, legs: Record<string, Part>): Part[] {
   const { material, seatHeight } = args;
   const parts: Part[] = [];
   const L = (id: string) => legs[id];
 
-  // 橫飾棖斷面：高 48mm（Y）× 深 21mm（Z or X）
-  // 緊貼座框底面下方（座框底 y = seatHeight - RAIL_W），棖頂面在座框底，所以棖底面 y = seatHeight - RAIL_W - 48
+  // 橫飾棖斷面：高 48mm（Y）× 深 21mm；緊貼座框底面下方
   const DECOR_T = 21;
-  const decorY = seatHeight - RAIL_W - DECOR_H; // 棖底面 Y（part origin = 底部中心）
+  const decorY = seatHeight - RAIL_W - DECOR_H;
 
-  // 橫撐跨距一律 face-to-face（腿面到腿面），由 legFace 依棖的高度區間取腿的最內側面。
-  // 收分腿（LEG_SPLAY_DEG）讓腿面斜，端面貼最內側點、其餘留小楔形縫，不穿模。
-  const spanX = (legL: Part, legR: Part, y0: number, y1: number) => {
-    const xL = legFace(legL, "x", +1, y0, y1);
-    const xR = legFace(legR, "x", -1, y0, y1);
-    return { length: xR - xL, x: (xL + xR) / 2 };
-  };
-  const spanZ = (legF: Part, legB: Part, y0: number, y1: number) => {
-    const zF = legFace(legF, "z", +1, y0, y1);
-    const zB = legFace(legB, "z", -1, y0, y1);
-    return { length: zB - zF, z: (zF + zB) / 2 };
-  };
-  const legZAt = (leg: Part, y: number) => legLine(leg).centerAt(y).z;
-  const legXAt = (leg: Part, y: number) => legLine(leg).centerAt(y).x;
-
-  // 前後橫飾棖：沿 X，緊貼座框底面，棖端面接腳面
-  // visible: length(X)=face-to-face 跨距；thickness(Y)=48 斷面高；width(Z)=21 斷面深
+  // 前後橫飾棖：沿 X，兩端貼同排的腳（複斜肩）
   for (const sz of [-1, 1] as const) {
-    const legL = L(sz < 0 ? "leg-front-l" : "leg-rear-l");
-    const legR = L(sz < 0 ? "leg-front-r" : "leg-rear-r");
-    const sp = spanX(legL, legR, decorY, decorY + DECOR_H);
-    parts.push({
-      id: sz < 0 ? "decor-rail-front" : "decor-rail-back",
-      nameZh: sz < 0 ? "前橫飾棖" : "後橫飾棖",
-      material,
-      grainDirection: "length",
-      visible: { length: sp.length, thickness: DECOR_H, width: DECOR_T },
-      origin: { x: sp.x, y: decorY, z: legZAt(legL, decorY + DECOR_H / 2) },
-      shape: { kind: "box" },
-      tenons: [],
-      mortises: [],
-    });
+    parts.push(railAgainstLegs({
+      id: sz < 0 ? "decor-rail-front" : "decor-rail-back", nameZh: sz < 0 ? "前橫飾棖" : "後橫飾棖",
+      material, axis: "x", yBottom: decorY, height: DECOR_H, depth: DECOR_T,
+      legA: L(sz < 0 ? "leg-front-l" : "leg-rear-l"), legB: L(sz < 0 ? "leg-front-r" : "leg-rear-r"),
+    }));
   }
-
-  // 左右橫飾棖：沿 Z，繞 Y 轉 90°，face-to-face 前後跨距
+  // 左右橫飾棖：沿 Z，前腳背面 ↔ 後腳正面
   for (const sx of [-1, 1] as const) {
-    const legF = L(sx < 0 ? "leg-front-l" : "leg-front-r");
-    const legB = L(sx < 0 ? "leg-rear-l" : "leg-rear-r");
-    const sp = spanZ(legF, legB, decorY, decorY + DECOR_H);
-    parts.push({
-      id: sx < 0 ? "decor-rail-left" : "decor-rail-right",
-      nameZh: sx < 0 ? "左橫飾棖" : "右橫飾棖",
-      material,
-      grainDirection: "length",
-      visible: { length: sp.length, thickness: DECOR_H, width: DECOR_T },
-      origin: { x: legXAt(legF, decorY + DECOR_H / 2), y: decorY, z: sp.z },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
-      shape: { kind: "box" },
-      tenons: [],
-      mortises: [],
-    });
+    parts.push(railAgainstLegs({
+      id: sx < 0 ? "decor-rail-left" : "decor-rail-right", nameZh: sx < 0 ? "左橫飾棖" : "右橫飾棖",
+      material, axis: "z", yBottom: decorY, height: DECOR_H, depth: DECOR_T,
+      legA: L(sx < 0 ? "leg-front-l" : "leg-front-r"), legB: L(sx < 0 ? "leg-rear-l" : "leg-rear-r"),
+    }));
   }
-
-  // 前腳棖（踏腳棖）：沿 X，斷面 65mm 高 × 36mm 深，離地 75mm（棖底面）
-  const FRONT_RAIL_H = 65, FRONT_RAIL_T = 36;
-  {
-    const sp = spanX(L("leg-front-l"), L("leg-front-r"), 75, 75 + FRONT_RAIL_H);
-    parts.push({
-      id: "foot-rail-front",
-      nameZh: "前腳棖（踏腳棖）",
-      material,
-      grainDirection: "length",
-      visible: { length: sp.length, thickness: FRONT_RAIL_H, width: FRONT_RAIL_T },
-      origin: { x: sp.x, y: 75, z: legZAt(L("leg-front-l"), 75 + FRONT_RAIL_H / 2) },
-      shape: { kind: "box" },
-      tenons: [],
-      mortises: [],
-    });
-  }
-
-  // 左/右步步高側棖：沿 Z，繞 Y 轉 90°，27×27 方斷面，離地 120mm（棖底面）
-  const SIDE_RAIL_SZ = 27;
+  // 前腳棖（踏腳棖）：沿 X，65 高 × 36 深，離地 75
+  parts.push(railAgainstLegs({
+    id: "foot-rail-front", nameZh: "前腳棖（踏腳棖）", material, axis: "x", yBottom: 75, height: 65, depth: 36,
+    legA: L("leg-front-l"), legB: L("leg-front-r"),
+  }));
+  // 左/右步步高側棖：沿 Z，27×27，離地 120
   for (const sx of [-1, 1] as const) {
-    const legF = L(sx < 0 ? "leg-front-l" : "leg-front-r");
-    const legB = L(sx < 0 ? "leg-rear-l" : "leg-rear-r");
-    const sp = spanZ(legF, legB, 120, 120 + SIDE_RAIL_SZ);
-    parts.push({
-      id: sx < 0 ? "foot-rail-side-l" : "foot-rail-side-r",
-      nameZh: `${sx < 0 ? "左" : "右"}步步高側棖`,
-      material,
-      grainDirection: "length",
-      visible: { length: sp.length, thickness: SIDE_RAIL_SZ, width: SIDE_RAIL_SZ },
-      origin: { x: legXAt(legF, 120 + SIDE_RAIL_SZ / 2), y: 120, z: sp.z },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
-      shape: { kind: "box" },
-      tenons: [],
-      mortises: [],
-    });
+    parts.push(railAgainstLegs({
+      id: sx < 0 ? "foot-rail-side-l" : "foot-rail-side-r", nameZh: `${sx < 0 ? "左" : "右"}步步高側棖`,
+      material, axis: "z", yBottom: 120, height: 27, depth: 27,
+      legA: L(sx < 0 ? "leg-front-l" : "leg-front-r"), legB: L(sx < 0 ? "leg-rear-l" : "leg-rear-r"),
+    }));
   }
-
-  // 步步高後棖：沿 X，27×27 方斷面，離地 150mm（棖底面）
-  const BACK_RAIL_SZ = 27;
-  {
-    const sp = spanX(L("leg-rear-l"), L("leg-rear-r"), 150, 150 + BACK_RAIL_SZ);
-    parts.push({
-      id: "foot-rail-back",
-      nameZh: "步步高後棖",
-      material,
-      grainDirection: "length",
-      visible: { length: sp.length, thickness: BACK_RAIL_SZ, width: BACK_RAIL_SZ },
-      origin: { x: sp.x, y: 150, z: legZAt(L("leg-rear-l"), 150 + BACK_RAIL_SZ / 2) },
-      shape: { kind: "box" },
-      tenons: [],
-      mortises: [],
-    });
-  }
-
+  // 步步高後棖：沿 X，27×27，離地 150（前低後高）
+  parts.push(railAgainstLegs({
+    id: "foot-rail-back", nameZh: "步步高後棖", material, axis: "x", yBottom: 150, height: 27, depth: 27,
+    legA: L("leg-rear-l"), legB: L("leg-rear-r"),
+  }));
   return parts;
 }
 
@@ -631,13 +683,16 @@ function buildArmRail(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" 
     const [s0, s1] = ranges[id];
     const sub = subCurveByArcLength(ring.world, s0, s1, 11);
     const tA = s0 / ring.length, tB = s1 / ring.length, tM = (s0 + s1) / 2 / ring.length;
+    // 皮條線斷面（§S7.1）：上圓下扁——正視／側視不會像一片平板，平底給柱頂貼
     const profile: SweptProfile = {
       type: "rect",
       widthStart: ring.widthAt(tA),
       widthEnd: ring.widthAt(tB),
       widthMid: ring.widthAt(tM),
       thickness: RING_T,
-      cornerR: 6,
+      sectionStyle: "pitiao",
+      topExponent: RING_TOP_EXP,
+      cornerR: RING_BOTTOM_R,
       thicknessAlong: "y",
     };
     parts.push(sweptPart(id, names[id][0], material, [], profile, {
@@ -654,29 +709,29 @@ function buildArmRail(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" 
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" | "seatDepth" | "seatHeight" | "ringHeight" | "sectionScale">, ring: RingCurve): Part[] {
-  const { material, seatWidth, seatDepth, seatHeight, ringHeight, sectionScale } = args;
+  const { material, seatWidth, seatDepth, seatHeight, sectionScale } = args;
   const parts: Part[] = [];
-  const { RING_T, ringY } = armRingAnchors(ringHeight);
   const { RAIL_T_SEAT, seatBackZ } = seatFrameAnchors(seatDepth, seatHeight);
 
-  // 聯幫棍 ×2（380×50×30）：鐮刀把三彎——從抹頭頂面起、往外鼓、再收回垂直插進椅圈左右桿底。
+  // 聯幫棍 ×2（380×50×30）：鐮刀把三彎——從抹頭頂面起、往外鼓、再收回沿椅圈當地法線插進扶手底。
   // 下粗上細（radius 16 → 12）。
   const spindleZ = -seatDepth * 0.08;
   for (const sx of [-1, 1] as const) {
     const x0 = seatWidth / 2 - RAIL_T_SEAT / 2; // 抹頭斷面中心
     void SPINDLE_INSET;
-    const attach = ring.attachAtZ(sx, spindleZ - 20);
-    const attachY = attach.bottomY; // 椅圈在接點處的實體最低點
-    void RING_T;
-    const H = attachY - seatHeight;
-    const ax = Math.abs(attach.point.x);
+    const att = ring.attachAtZ(sx, spindleZ - 20);
+    const top = att.bottom;
+    const H = top.y - seatHeight;
+    const ax = Math.abs(top.x);
+    // 三彎（鐮刀把）：下段先往外鼓出扶手線 22mm、上段收回沿椅圈當地法線進扶手底
+    const bulge = Math.max(ax, x0) + 22;
     const pts: W3[] = [
       { x: sx * x0, y: seatHeight, z: spindleZ },
-      { x: sx * (x0 + 7), y: seatHeight + H * 0.2, z: spindleZ - 2 },
-      { x: sx * (x0 + (ax - x0) * 0.55), y: seatHeight + H * 0.47, z: spindleZ - 10 },
-      { x: sx * (ax - 4), y: seatHeight + H * 0.72, z: spindleZ - 17 },
-      { x: attach.point.x, y: seatHeight + H * 0.9, z: attach.point.z },
-      { x: attach.point.x, y: attachY, z: attach.point.z }, // 端切線鎖垂直（endTangent）
+      { x: sx * (x0 + 9), y: seatHeight + H * 0.18, z: spindleZ - 2 },
+      { x: sx * bulge, y: seatHeight + H * 0.45, z: spindleZ - 10 },
+      { x: sx * (ax + 8), y: seatHeight + H * 0.72, z: spindleZ - 17 },
+      { x: top.x + att.up.x * H * 0.1, y: top.y - H * 0.1, z: top.z - att.up.z * H * 0.1 },
+      top,
     ];
     parts.push(sweptPart(
       sx < 0 ? "side-spindle-l" : "side-spindle-r",
@@ -684,24 +739,24 @@ function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatW
       material,
       pts,
       { type: "round", radiusStart: 16 * sectionScale, radiusEnd: 12 * sectionScale },
-      { nameEn: "Side spindle (S-curved)", startTangent: UP, endTangent: UP },
+      { nameEn: "Side spindle (S-curved)", startTangent: UP, endTangent: att.up, startCap: DOWN, endCap: att.up },
     ));
   }
 
   // 靠背板（500×185×40 素獨板）：S 曲面、梯形上窄下寬（185 → 166）。
   // 下端垂直坐在後大邊頂面（帶肩扁榫入大邊），中段往後鼓，上段回收、垂直入椅圈上靠桿底。
   {
-    const zTop = ring.apex.z;
+    const top = ring.apex.bottom;
+    const zTop = top.z;
     const dz = zTop - seatBackZ;
-    const HH = ringY - seatHeight;
-    // 兩端切線鎖垂直（startTangent/endTangent）：下端面水平坐在大邊頂面、上端面水平貼椅圈底
+    const HH = top.y - seatHeight;
     const pts: W3[] = [
       { x: 0, y: seatHeight, z: seatBackZ },
       { x: 0, y: seatHeight + HH * 0.22, z: seatBackZ + dz * 0.03 },
       { x: 0, y: seatHeight + HH * 0.44, z: seatBackZ + dz * 0.25 },
       { x: 0, y: seatHeight + HH * 0.69, z: seatBackZ + dz * 0.67 },
       { x: 0, y: seatHeight + HH * 0.86, z: seatBackZ + dz * 0.92 },
-      { x: 0, y: ringY, z: zTop },
+      { x: 0, y: top.y, z: zTop },
     ];
     parts.push(sweptPart(
       "back-splat",
@@ -709,21 +764,20 @@ function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatW
       material,
       pts,
       { type: "rect", widthStart: 185 * sectionScale, widthEnd: 166 * sectionScale, thickness: 40 * sectionScale, cornerR: 6, widthAlong: "x" },
-      { nameEn: "Back splat (S-curved)", startTangent: UP, endTangent: UP },
+      { nameEn: "Back splat (S-curved)", startTangent: UP, endTangent: ring.apex.up, startCap: DOWN, endCap: ring.apex.up },
     ));
   }
   return parts;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 角牙 8 件（box 佔位；終態 face-rounded 壼門/雲紋）
+// 角牙 8 件（box 佔位；終態 face-rounded 壼門/雲紋）——貼腿端照複斜肩切
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * 前腳角牙 ×2（鵝脖角牙，rotY=0，板面在 XY 平面，座面之上）：
- *   length(X)=115、thickness(Y)=FRONT_BRACE_H=55、width(Z)=10
- * 橫飾棖角牙 ×6：前 2 片 rotY=0；側 4 片 rotY=±π/2（X↔Z swap）
- * 所有角牙一律「入腿」：外端貼腿面（legFace 取角牙高度區間內最內側的腿面），薄片置中在所屬棖的斷面裡。
+ * 前腳角牙 ×2（鵝脖角牙，座面之上）：沿 X、高 FRONT_BRACE_H=55、厚 10
+ * 橫飾棖角牙 ×6：前 2 片沿 X；側 4 片沿 Z
+ * 所有角牙一律「入腿」：貼腿端照腿面切（apron-trapezoid），薄片置中在所屬棖的斷面裡。
  */
 function buildCornerBraces(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" | "seatDepth" | "seatHeight">, legs: Record<string, Part>): Part[] {
   const { material, seatHeight } = args;
@@ -737,35 +791,22 @@ function buildCornerBraces(args: Pick<CircleChairBuildArgs, "material" | "seatWi
   // ⚠️ 這是幾何判斷不是圖紙實證，列入回報請他複查。
   const FRONT_BRACE_L = 115;
   for (const sx of [-1, 1] as const) {
-    const leg = L(sx < 0 ? "leg-front-l" : "leg-front-r");
-    const braceY = seatHeight; // 底面坐在前大邊頂面
-    const faceX = legFace(leg, "x", sx < 0 ? +1 : -1, braceY, braceY + FRONT_BRACE_H); // 腿內側面
-    const braceX = faceX + (sx < 0 ? +1 : -1) * (FRONT_BRACE_L / 2);
-    const braceZ = legLine(leg).centerAt(braceY + FRONT_BRACE_H / 2).z;
-    parts.push({
-      id: sx < 0 ? "corner-brace-front-l" : "corner-brace-front-r",
-      nameZh: "前腳角牙",
-      material, grainDirection: "length",
-      visible: { length: FRONT_BRACE_L, thickness: FRONT_BRACE_H, width: 10 },
-      origin: { x: braceX, y: braceY, z: braceZ },
-      shape: { kind: "box" }, tenons: [], mortises: [],
-    });
+    parts.push(railAgainstLegs({
+      id: sx < 0 ? "corner-brace-front-l" : "corner-brace-front-r", nameZh: "前腳角牙", material,
+      axis: "x", yBottom: seatHeight, height: FRONT_BRACE_H, depth: 10,
+      legA: L(sx < 0 ? "leg-front-l" : "leg-front-r"), fixedLength: FRONT_BRACE_L, freeDir: sx < 0 ? +1 : -1,
+    }));
   }
 
   // ── 橫飾棖角牙 ×6：掛在橫飾棖正下方，外端入腿 ────────────────────────
   const DECOR_BRACE_L = 76;
   const decorBraceOriginY = decorY - DECOR_BRACE_H;
   for (const sx of [-1, 1] as const) {
-    const leg = L(sx < 0 ? "leg-front-l" : "leg-front-r");
-    const faceX = legFace(leg, "x", sx < 0 ? +1 : -1, decorBraceOriginY, decorY);
-    parts.push({
-      id: `decor-brace-${sx < 0 ? 1 : 2}`,
-      nameZh: "橫飾棖角牙",
-      material, grainDirection: "length",
-      visible: { length: DECOR_BRACE_L, thickness: DECOR_BRACE_H, width: 10 },
-      origin: { x: faceX + (sx < 0 ? +1 : -1) * (DECOR_BRACE_L / 2), y: decorBraceOriginY, z: legLine(leg).centerAt(decorY - DECOR_BRACE_H / 2).z },
-      shape: { kind: "box" }, tenons: [], mortises: [],
-    });
+    parts.push(railAgainstLegs({
+      id: `decor-brace-${sx < 0 ? 1 : 2}`, nameZh: "橫飾棖角牙", material,
+      axis: "x", yBottom: decorBraceOriginY, height: DECOR_BRACE_H, depth: 10,
+      legA: L(sx < 0 ? "leg-front-l" : "leg-front-r"), fixedLength: DECOR_BRACE_L, freeDir: sx < 0 ? +1 : -1,
+    }));
   }
   const sideBraceCorners: Array<{ id: string; sx: -1 | 1; which: "front" | "rear" }> = [
     { id: "decor-brace-3", sx: -1, which: "front" },
@@ -774,25 +815,16 @@ function buildCornerBraces(args: Pick<CircleChairBuildArgs, "material" | "seatWi
     { id: "decor-brace-6", sx: 1, which: "rear" },
   ];
   for (const { id, sx, which } of sideBraceCorners) {
-    const leg = L(`leg-${which}-${sx < 0 ? "l" : "r"}`);
-    // 前腳：貼後面（+z）往後延伸；後腳：貼前面（−z）往前延伸
-    const faceZ = legFace(leg, "z", which === "front" ? +1 : -1, decorBraceOriginY, decorY);
-    const braceZ = faceZ + (which === "front" ? +1 : -1) * (DECOR_BRACE_L / 2);
-    parts.push({
-      id,
-      nameZh: "橫飾棖角牙",
-      material, grainDirection: "length",
-      // rotY=π/2：local length(76)→Z_world；thickness(Y)=DECOR_BRACE_H=60；width(10)→X_world（薄片）
-      visible: { length: DECOR_BRACE_L, thickness: DECOR_BRACE_H, width: 10 },
-      origin: { x: legLine(leg).centerAt(decorY - DECOR_BRACE_H / 2).x, y: decorBraceOriginY, z: braceZ },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
-      shape: { kind: "box" }, tenons: [], mortises: [],
-    });
+    // 前腳：貼背面（+z）往後延伸；後腳：貼正面（−z）往前延伸
+    parts.push(railAgainstLegs({
+      id, nameZh: "橫飾棖角牙", material,
+      axis: "z", yBottom: decorBraceOriginY, height: DECOR_BRACE_H, depth: 10,
+      legA: L(`leg-${which}-${sx < 0 ? "l" : "r"}`), fixedLength: DECOR_BRACE_L, freeDir: which === "front" ? +1 : -1,
+    }));
   }
 
   return parts;
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 榫卯資料（spec §9.1 的 23 處接合點）
@@ -993,22 +1025,6 @@ function ccLegSlot(legDiameter: number, want: number): number {
 function ccLegD(leg: Part, y: number): number {
   return legLine(leg).radiusAt(y) * 2;
 }
-/**
- * 收分腿的「斜肩留量」：直料棖／角牙的端面貼在腿面最內側那一點（legFace），
- * 端面中心離腿面還差 tan(收分角) × 半個棖高——這是刻意的（實作時肩線鋸成收分角），
- * 進 expectedGapMm 不當「沒接到」。量法：端面中心到腿在同高度的面的距離（沿榫頭方向）。
- */
-function ccSplayShoulder(child: Part, pos: TenonPosition, leg: Part): number {
-  const { root, outUnit } = positionRootWorld(child, pos);
-  const L = legLine(leg);
-  const c = L.centerAt(root.y);
-  const r = L.radiusAt(root.y);
-  const axis: "x" | "z" = Math.abs(outUnit.x) >= Math.abs(outUnit.z) ? "x" : "z";
-  const dir = axis === "x" ? Math.sign(outUnit.x) : Math.sign(outUnit.z);
-  const face = (axis === "x" ? c.x : c.z) - dir * r; // 面向榫頭來向的腿面
-  const gap = dir * (face - root[axis]);
-  return Math.max(0, Math.min(6, gap));
-}
 
 /**
  * spec §9.1 的 23 處接合點 → 實際公母榫清單。
@@ -1154,12 +1170,13 @@ export function buildCircleChairJoints(parts: Part[]): CcJoint[] {
     childId: string, pos: TenonPosition, legId: string, type: JoineryType, nameZh: string,
   ) => {
     const c = P(childId), leg = P(legId);
-    const legD = ccLegD(leg, c.origin.y + c.visible.thickness / 2); // 棖中高處的腳徑
-    // start/end：榫寬軸 = local Z（斷面深）、榫厚軸 = local Y（斷面高）
+    const legD = ccLegD(leg, railMidY(c)); // 棖中高處的腳徑
+    // 直料 rotation x=π/2（railAgainstLegs）：start/end 榫寬軸 = local Z（= 世界高，棖高）、
+    // 榫厚軸 = local Y（= 棖深）。端面已照複斜肩切（apron-trapezoid），端面中心貼在腿面上，
+    // 不留 expectedGapMm——那個欄位只給真正的設計縫（打槽裝板）。
     const w = Math.max(15, c.visible.width - sh2);
     const t = ccLegSlot(legD, Math.max(6, Math.round(c.visible.thickness / 3)));
-    J.push({ child: childId, pos, mother: legId, type, w, t, depth: ccLegDepth(legD), nameZh,
-      expectedGapMm: ccSplayShoulder(c, pos, leg) });
+    J.push({ child: childId, pos, mother: legId, type, w, t, depth: ccLegDepth(legD), nameZh });
   };
   for (const side of ["l", "r"] as const) {
     // 前後橫飾棖：沿 X，兩端各進一隻同排的腳
@@ -1189,18 +1206,18 @@ export function buildCircleChairJoints(parts: Part[]): CcJoint[] {
   for (const side of ["l", "r"] as const) {
     const b = P(`corner-brace-front-${side}`);
     const leg = P(`leg-front-${side}`);
-    const legD = ccLegD(leg, b.origin.y + b.visible.thickness / 2);
+    const legD = ccLegD(leg, railMidY(b));
+    // 角牙 rotation x=π/2：visible.thickness = 10mm 薄片厚（世界 Z）、visible.width = 牙高（世界 Y）
     J.push({
       child: b.id, pos: side === "l" ? "start" : "end", mother: leg.id, type: "shouldered-tenon",
-      w: b.visible.width,                                   // 10mm 薄牙片整片入槽、不留肩
-      t: ccLegSlot(legD, Math.max(10, b.visible.thickness - sh2)),
+      w: b.visible.thickness,                               // 10mm 薄牙片整片入槽、不留肩
+      t: ccLegSlot(legD, Math.max(10, b.visible.width - sh2)),
       depth: Math.min(12, ccLegDepth(legD)), nameZh: "前腳角牙夾頭榫入腿",
-      expectedGapMm: ccSplayShoulder(b, side === "l" ? "start" : "end", leg),
     });
-    // 鵝脖角牙坐在前大邊頂面上 → 下端（bottom）入大邊（見 buildCornerBraces 位置註解）
+    // 鵝脖角牙坐在前大邊頂面上 → 下面（rotation x=π/2 後 local +Z = 世界下 = "right"）入大邊
     J.push({
-      child: b.id, pos: "bottom", mother: "seat-rail-front", type: "shouldered-tenon",
-      w: Math.max(15, b.visible.length - sh2), t: b.visible.width, depth: 12,
+      child: b.id, pos: "right", mother: "seat-rail-front", type: "shouldered-tenon",
+      w: Math.max(15, b.visible.length - sh2), t: b.visible.thickness, depth: 12,
       nameZh: "前腳角牙夾頭榫入大邊",
     });
   }
@@ -1209,17 +1226,17 @@ export function buildCircleChairJoints(parts: Part[]): CcJoint[] {
   for (const [id, side] of [["decor-brace-1", "l"], ["decor-brace-2", "r"]] as const) {
     const b = P(id);
     const leg = P(`leg-front-${side}`);
-    const legD = ccLegD(leg, b.origin.y + b.visible.thickness / 2);
+    const legD = ccLegD(leg, railMidY(b));
     J.push({
       child: id, pos: side === "l" ? "start" : "end", mother: leg.id, type: "shouldered-tenon",
-      w: b.visible.width,
-      t: ccLegSlot(legD, Math.max(10, b.visible.thickness - sh2)),
+      w: b.visible.thickness,
+      t: ccLegSlot(legD, Math.max(10, b.visible.width - sh2)),
       depth: Math.min(12, ccLegDepth(legD)), nameZh: "橫飾棖角牙夾頭榫入前腳",
-      expectedGapMm: ccSplayShoulder(b, side === "l" ? "start" : "end", leg),
     });
+    // 上面（rotation x=π/2 後 local −Z = 世界上 = "left"）入橫飾棖底
     J.push({
-      child: id, pos: "top", mother: "decor-rail-front", type: "shouldered-tenon",
-      w: Math.max(15, b.visible.length - sh2), t: b.visible.width, depth: 12,
+      child: id, pos: "left", mother: "decor-rail-front", type: "shouldered-tenon",
+      w: Math.max(15, b.visible.length - sh2), t: b.visible.thickness, depth: 12,
       nameZh: "橫飾棖角牙夾頭榫入前橫飾棖",
     });
   }
@@ -1229,18 +1246,17 @@ export function buildCircleChairJoints(parts: Part[]): CcJoint[] {
   ] as const) {
     const b = P(id);
     const leg = P(`leg-${which}-${side}`);
-    const legD = ccLegD(leg, b.origin.y + b.visible.thickness / 2);
+    const legD = ccLegD(leg, railMidY(b));
     // 跟 decor-rail-left/right 同一套旋轉慣例：local +X(end)→世界前(-Z)、-X(start)→世界後(+Z)
     J.push({
       child: id, pos: which === "front" ? "end" : "start", mother: leg.id, type: "shouldered-tenon",
-      w: b.visible.width,
-      t: ccLegSlot(legD, Math.max(10, b.visible.thickness - sh2)),
+      w: b.visible.thickness,
+      t: ccLegSlot(legD, Math.max(10, b.visible.width - sh2)),
       depth: Math.min(12, ccLegDepth(legD)), nameZh: "側橫飾棖角牙夾頭榫入腿",
-      expectedGapMm: ccSplayShoulder(b, which === "front" ? "end" : "start", leg),
     });
     J.push({
-      child: id, pos: "top", mother: `decor-rail-${side === "l" ? "left" : "right"}`, type: "shouldered-tenon",
-      w: Math.max(15, b.visible.length - sh2), t: b.visible.width, depth: 12,
+      child: id, pos: "left", mother: `decor-rail-${side === "l" ? "left" : "right"}`, type: "shouldered-tenon",
+      w: Math.max(15, b.visible.length - sh2), t: b.visible.thickness, depth: 12,
       nameZh: "側橫飾棖角牙夾頭榫入側橫飾棖",
     });
   }
@@ -1386,7 +1402,7 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
     topViewFullHiddenLines: true, // 開放框架，俯視圖座框下的棖／角牙要全畫虛線（見 types 註解）
     primaryMaterial: material,
     notes: [
-      `明式圈椅 座寬 ${input.length}mm × 座深 ${input.width}mm × 椅圈高 ${input.height}mm；椅圈後半圓 R≈${Math.round(ring.R)}mm、五段楔釘榫攢接（搭口 ${RING_JOINT_OVERLAP}mm）、腿側腳收分 ${LEG_SPLAY_DEG}°。`,
+      `明式圈椅 座寬 ${input.length}mm × 座深 ${input.width}mm × 椅圈高 ${input.height}mm；椅圈後半圓 R≈${Math.round(ring.R)}mm、五段楔釘榫攢接（搭口 ${RING_JOINT_OVERLAP}mm）、椅圈後高前低（扶手降 ${RING_ARM_DROP}、鱔魚頭再降 ${RING_TIP_DROP}）、四腿複斜（側腳 ${LEG_SPLAY_DEG}°／前後 ${LEG_RAKE_DEG}°）。`,
       presetNote,
       footRailJointNote,
       seatCornerNote,
@@ -1404,7 +1420,7 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
 };
 
 /** 測試／稽核用：整圈中心線與各段弧長範圍（不進 design） */
-export function circleChairRingDebug(seatWidth = 610, seatDepth = 497, ringHeight = 720, sectionScale = 1) {
-  const ring = buildRingCurve({ seatWidth, seatDepth, ringHeight, sectionScale });
+export function circleChairRingDebug(seatWidth = 610, seatDepth = 497, ringHeight = 720, sectionScale = 1, seatHeight = 480) {
+  const ring = buildRingCurve({ seatWidth, seatDepth, seatHeight, ringHeight, sectionScale });
   return { ring, ranges: ringSegmentRanges(ring, seatWidth) };
 }
