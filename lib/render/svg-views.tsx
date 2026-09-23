@@ -1806,8 +1806,14 @@ function OrthoViewImpl({
         // 規則：part 完全被 *另一個更大的 hidden part* contain 就跳過 outline
         // 渲染。最外層 hidden 件（divider / drawer-front）保留；內層內裝（抽屜底/
         // 側板/把手）跳過。可見件不受影響。
+        // ⚠️ 這條 contain 只比俯視 footprint、不比高度，也不管誰在上面：圈椅的橫飾棖
+        // （座框下）被「腳底的」管腳棖 footprint 包住就整件不畫，俯視圖 7 件消失
+        // （audit-2d-joints「沒畫出來」；吧檯椅腳踏被下層橫撐吃掉是同一類）。
+        // 2026-09-23 實測改成「a 要在 b 上方才能遮」會讓鞋櫃/床頭櫃內裝虛線 36→92 條
+        // （dot cloud 回來），所以櫃體維持原規則不動；開放框架的全榫卯家具用
+        // `design.topViewFullHiddenLines` 整個關掉這段 dedup，照製圖規範畫全部隱藏線。
         const skipOutlineInTopDotCloud = new Set<string>();
-        if (view === "top" && !isolatePartId) {
+        if (view === "top" && !isolatePartId && !renderDesign.topViewFullHiddenLines) {
           const hiddenParts: Array<{ id: string; r: { x: number; y: number; w: number; h: number } }> = [];
           for (const p of sortedParts) {
             const id = p.id;

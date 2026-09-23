@@ -7,7 +7,7 @@
  *   3. 量兩個零件在圖上的最短距離；> TOL 就是「圖上接不上」
  *   4. 零件在某張圖完全沒畫出來也記下來
  *
- * NEG_CTL=1 把方凳 apron-front 往 +x 推 30mm，確認抓得到；ONLY=stool,bed 只跑幾款；DEBUG=1 印兩邊 bbox。
+ * NEG_CTL=1 把方凳 apron-front 往 +x 推 30mm、圈椅座板推 30／後棖縮 40，確認抓得到；ONLY=stool,bed 只跑幾款；DEBUG=1 印兩邊 bbox。
  * 跑：npm run audit:2d-joints（全掃約 8~10 分鐘，所以沒接進 `npm run audit` 預設鏈；改三視圖／模板長度後手動跑）
  * 2026-09-02 首跑抓到 7 款 314 條：吧檯椅兩向弧肩腳踏短 13mm、俯視圖只畫腳頂面、衣帽架掛鉤浮在柱頂、
  * 餐椅椅背條榫頭插在座板裡、床倒錐腳楔形縫、錐腳橫撐 0.55/0.6 不一致。依賴 svg-views 每個零件的 <g data-part-id>。
@@ -213,13 +213,29 @@ for (const e of FURNITURE_CATALOG as any[]) {
     if (NEG && e.category === "stool" && tag === "預設") {
       const p = d.parts.find((p: any) => p.id === "apron-front"); if (p) p.origin = { ...p.origin, x: p.origin.x + 30 };
     }
+    if (NEG && e.category === "circle-chair" && tag === "預設") {
+      // 座板往 +X 推 30：超過打槽裝板的容許縫（舌長/2=5mm），左抹頭那邊要紅
+      const pan = d.parts.find((p: any) => p.id === "seat-panel"); if (pan) pan.origin = { ...pan.origin, z: pan.origin.z + 30 };
+      // 步步高後棖縮 40：兩端各離後腳 20，正視／俯視都要紅（棖沿腳「滑」的錯位這支量不到——
+      // 它量的是兩件圖上最短距離，棖貼著腳滑到哪距離都是 0；那種錯位靠模板自己的 CcJoint gap 檢查）
+      const fr = d.parts.find((p: any) => p.id === "foot-rail-back"); if (fr) fr.visible = { ...fr.visible, length: fr.visible.length - 40 };
+    }
     designs++;
     // 配對
     const index = buildWorldMortiseIndex(d.parts);
     const pairs = new Map<string, [string, string]>();
+    // 每對接合各自的「圖上可接受縫」：預設 TOL；攢邊打槽裝板（tongue-and-groove）板身
+    // 本來就刻意離槽底留伸縮縫，三視圖畫的是板的可見外緣、不畫舌頭，板緣跟框內面之間
+    // 一定有一條設計縫——只要縫 ≤ 舌長一半（至少半條舌還咬在槽裡）就是留縫不是接不上。
+    // 縫超過舌長一半（板往外推 30mm 那種）照樣紅。
+    const pairTol = new Map<string, number>();
     for (const p of d.parts) for (const t of p.tenons ?? []) {
       let mw: any = null; try { mw = matchMortiseForTenon(p, t, tenonWorld(p, t), index); } catch {}
-      if (mw) pairs.set([p.id, mw.partId].sort().join("|"), [p.id, mw.partId]);
+      if (!mw) continue;
+      const key = [p.id, mw.partId].sort().join("|");
+      pairs.set(key, [p.id, mw.partId]);
+      const tol = t.type === "tongue-and-groove" ? Math.max(TOL, (t.length ?? 0) / 2) : TOL;
+      pairTol.set(key, Math.max(pairTol.get(key) ?? 0, tol));
     }
     if (!pairs.size) continue;
     for (const view of VIEWS) {
@@ -229,13 +245,14 @@ for (const e of FURNITURE_CATALOG as any[]) {
       const chunks = partChunks(svg);
       const segCache = new Map<string, Seg[]>();
       const segsOf = (id: string) => { if (!segCache.has(id)) segCache.set(id, chunkSegments(chunks.get(id) ?? "")); return segCache.get(id)!; };
-      for (const [a, b] of pairs.values()) {
+      for (const [key, [a, b]] of pairs.entries()) {
         const A = segsOf(a), B = segsOf(b);
         if (!A.length || !B.length) { missing.push(`${e.category} [${tag}] ${view}: ${!A.length ? a : b} 沒畫出來`); continue; }
         pairsChecked++;
+        const tol = pairTol.get(key) ?? TOL;
         const dist = setDist(A, B);
-        if (dist > TOL && process.env.DEBUG) { const ba = bbox(A), bb = bbox(B); console.log(`DBG ${e.category} [${tag}] ${view} ${a} bbox=${[ba.x0,ba.y0,ba.x1,ba.y1].map(v=>v.toFixed(1))} (${A.length}段) | ${b} bbox=${[bb.x0,bb.y0,bb.x1,bb.y1].map(v=>v.toFixed(1))} (${B.length}段)`); }
-        if (dist > TOL) gaps.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm`);
+        if (dist > tol && process.env.DEBUG) { const ba = bbox(A), bb = bbox(B); console.log(`DBG ${e.category} [${tag}] ${view} ${a} bbox=${[ba.x0,ba.y0,ba.x1,ba.y1].map(v=>v.toFixed(1))} (${A.length}段) | ${b} bbox=${[bb.x0,bb.y0,bb.x1,bb.y1].map(v=>v.toFixed(1))} (${B.length}段)`); }
+        if (dist > tol) gaps.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm${tol !== TOL ? `（此接合容許 ${tol.toFixed(1)}mm）` : ""}`);
       }
     }
   }

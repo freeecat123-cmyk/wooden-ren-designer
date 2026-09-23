@@ -41,6 +41,7 @@ export const SIZING_SUB_KEYS: Partial<Record<FurnitureCategory, string[]>> = {
   desk: ["topThickness", "legSize"],
   workbench: ["topThickness", "legSize", "userHeightCm"],
   "dining-chair": ["seatHeight", "backRake", "armrestHeight"],
+  "circle-chair": ["seatHeight"],
   "bar-stool": ["footrestHeight", "backHeight"],
   "round-stool": ["seatThickness", "legSize"],
   "round-tea-table": ["topThickness", "lazySusanDiameter"],

@@ -545,6 +545,14 @@ export interface FurnitureDesign {
    * toBeginnerMode 自動縮短才不會穿模。
    */
   useButtJointConvention?: boolean;
+  /**
+   * 俯視圖畫「全部」隱藏線：關掉 svg-views 的俯視 dot-cloud dedup（那條規則是給
+   * 多層櫃體用的——被更大 hidden 件 footprint 包住的內裝件不畫，否則抽屜內板疊成一團虛線）。
+   * 開放框架的全榫卯家具（圈椅）沒有內裝，座框下的橫飾棖／角牙被腳底管腳棖 footprint
+   * 包住就整件消失，要照製圖規範每件都畫虛線。undefined / false = 櫃體舊行為不變。
+   * 2026-09-23 新加（circle-chair 缺陷 8），目前只有圈椅設 true。
+   */
+  topViewFullHiddenLines?: boolean;
   /** 設計參數不合理時（例如下層高度超過可用內高）自動產生的警告 */
   warnings?: string[];
   /** 尺寸超出本模板合理範圍時的「換模板」建議。比 warnings 更具體：

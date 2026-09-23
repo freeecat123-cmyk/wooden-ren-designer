@@ -1,5 +1,7 @@
 import type { FurnitureDesign, FurnitureTemplate, JoineryType, MaterialId, OptionSpec, Part, TenonPosition } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { rotateXYZ, partWorldCenter } from "@/lib/assembly/joint-world";
+import { worldExtents } from "@/lib/render/geometry";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption, parseSeatChamferMm } from "./_helpers";
 
@@ -489,28 +491,40 @@ function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatW
   // visible 慣例：length(X)=板寬 185、thickness(Y)=板高 splatH、width(Z)=板厚 40
   // （注意：計畫圖原文 width/thickness 標注相反，此處已依 geometry.ts:6 慣例—length→X, thickness→Y, width→Z—修正）
   //
-  // 連接邏輯（origin.z）：
+  // 連接邏輯：
   //   後大邊（seat-rail-back）SEAT_BACK_Z ≈ 229mm；椅圈後段（arm-rail-back）ARM_BACK_Z ≈ 276.5mm
-  //   （兩者 Z 相差 47.5mm，因為椅圈後段的 bendMm 往後凸）。
-  //   ⭐ 修過的缺陷：原本取兩者中點 splatZ≈252.75，靠背板(width=40) 對後大邊只搭 15.7mm、
-  //   大半懸空——下端才是真正承重的接合，改成直接對齊 SEAT_BACK_Z 讓下端完整搭在大邊上。
-  //   代價：頂端對椅圈後段的搭接會變短（P1 直線靠背板本來就搭不出真正的 S 曲線，
-  //   兩件在 Z 方向本來就有落差；這版選擇「下端穩、上端留一段位置警告」，
-  //   真正解法是照 P2 讓靠背板跟著彎——目前只在 P1 框架範圍內修）。
-  // 連接邏輯（thickness/Y）：
-  //   splatH 加長 +15mm，讓靠背板頂端 Y 略高於椅圈後段底面（ringY），真正插進椅圈後段。
+  //   （兩者 Z 相差 47.5mm，椅圈整圈在座面後緣外 28mm）。
+  //   ⭐ 修過的缺陷 3：原本取兩者中點 splatZ≈252.75，靠背板(width=40) 對後大邊只搭 15.7mm、
+  //   大半懸空；前一版改成對齊後大邊，換來頂端離椅圈 20mm 接不到——兩頭都要接上，
+  //   直板唯一的解是「後仰」：下端中心對齊後大邊中心、上端中心對齊椅圈上靠桿中心，
+  //   板繞 X 後仰 atan(47.5/219)≈12°（明式靠背板本來就是後仰的 S 形，P2 真 S 曲線
+  //   會把這個直板換掉，P1 先用斜直板把兩端都真的接進料裡）。
+  //   rotation.x 小角度跟餐椅椅背 rung 同一套（rotateXYZ 先 X 再 Y 再 Z；+θ 把 +Y 轉向 +Z=後）。
+  //   part 繞「中心」旋轉，所以 origin 要反推：下端中心 =(0, seatHeight, SEAT_BACK_Z)。
+  //   板底最低角會比下端中心低 (T/2)·sinθ≈4mm——那是斜肩要切掉的三角，origin 再抬
+  //   這一段讓最低角剛好落在大邊頂面（不穿進大邊）；下端榫的 expectedGapMm 就是這個斜肩量。
+  //   splatTopY = ringY + 15：頂端插進椅圈上靠桿 15mm（不再浮空相切）。
   // sectionScale 只乘截面（length=板寬, width=板厚），不乘板高（thickness=splatH）與 origin
-  const splatZ = SEAT_BACK_Z;   // 對齊後大邊 Z 中心，下端完整搭上（見上方註解的取捨）
+  const SPLAT_T = 40 * sectionScale;
   const splatBottomY = seatHeight;
-  const splatH = ringY - splatBottomY + 15;         // +15mm：讓頂端插進椅圈後段（不再浮空相切）
+  const splatTopY = ringY + 15;
+  const splatDy = splatTopY - splatBottomY;
+  const splatDz = ARM_BACK_Z - SEAT_BACK_Z;
+  const splatH = Math.hypot(splatDy, splatDz);            // 板高沿板身量（斜長）
+  const splatTilt = Math.atan2(splatDz, splatDy);         // 後仰角（rad）
+  const shoulderLift = (SPLAT_T / 2) * Math.sin(splatTilt); // 斜肩量：最低角抬到大邊頂面
   parts.push({
     id: "back-splat",
     nameZh: "靠背板",
     material, grainDirection: "length",
     // sectionScale 乘板寬（length）與板厚（width），不乘板高（thickness）
-    visible: { length: 185 * sectionScale, thickness: splatH, width: 40 * sectionScale },
-    origin: { x: 0, y: splatBottomY, z: splatZ },
-    rotation: { x: 0, y: 0, z: 0 },
+    visible: { length: 185 * sectionScale, thickness: splatH, width: SPLAT_T },
+    origin: {
+      x: 0,
+      y: splatBottomY - (splatH / 2) * (1 - Math.cos(splatTilt)) + shoulderLift,
+      z: SEAT_BACK_Z + (splatH / 2) * Math.sin(splatTilt),
+    },
+    rotation: { x: splatTilt, y: 0, z: 0 },
     shape: { kind: "face-rounded", cornerR: 12, bendMm: 32, bendAxis: "z" },
     tenons: [], mortises: [],
   });
@@ -642,13 +656,22 @@ const CC_SHOULDER = 5;
 
 type W3 = { x: number; y: number; z: number };
 
+/** 零件中心（世界座標）——直接用 joint-world 的同一支，稽核跟模板算出來的點才會一致 */
 function ccPartCenter(p: Part): W3 {
-  return { x: p.origin.x, y: p.origin.y + p.visible.thickness / 2, z: p.origin.z };
+  return partWorldCenter(p);
 }
-/** 與 lib/assembly/joint-world.ts 的 rotateXYZ 同一套（此模板只有繞 Y 的旋轉） */
-function ccRotY(ry: number, v: W3): W3 {
-  const c = Math.cos(ry), s = Math.sin(ry);
-  return { x: v.x * c + v.z * s, y: v.y, z: -v.x * s + v.z * c };
+/** part-local → 世界方向（joint-world.rotateXYZ 同一套：先 X 再 Y 再 Z；靠背板有 rotation.x 後仰） */
+function ccRot(p: Part, v: W3): W3 {
+  const r = p.rotation ?? { x: 0, y: 0, z: 0 };
+  return rotateXYZ(r.x ?? 0, r.y ?? 0, r.z ?? 0, v.x, v.y, v.z);
+}
+/** 世界方向 → part-local（rotateXYZ 的反轉：先 −Z、再 −Y、最後 −X） */
+function ccRotInv(p: Part, v: W3): W3 {
+  const r = p.rotation ?? { x: 0, y: 0, z: 0 };
+  let o = rotateXYZ(0, 0, -(r.z ?? 0), v.x, v.y, v.z);
+  o = rotateXYZ(0, -(r.y ?? 0), 0, o.x, o.y, o.z);
+  o = rotateXYZ(-(r.x ?? 0), 0, 0, o.x, o.y, o.z);
+  return o;
 }
 const CC_LOCAL_OUT: Record<TenonPosition, W3> = {
   start: { x: -1, y: 0, z: 0 },
@@ -663,19 +686,19 @@ function ccTenonRoot(p: Part, pos: TenonPosition): W3 {
   const { length: lx, thickness: ly, width: lz } = p.visible;
   const u = CC_LOCAL_OUT[pos];
   const off = { x: (u.x * lx) / 2, y: (u.y * ly) / 2, z: (u.z * lz) / 2 };
-  const w = ccRotY(p.rotation?.y ?? 0, off);
+  const w = ccRot(p, off);
   const c = ccPartCenter(p);
   return { x: c.x + w.x, y: c.y + w.y, z: c.z + w.z };
 }
 /** 榫頭往外（插進母件）的世界方向單位向量 */
 function ccTenonOut(p: Part, pos: TenonPosition): W3 {
-  return ccRotY(p.rotation?.y ?? 0, CC_LOCAL_OUT[pos]);
+  return ccRot(p, CC_LOCAL_OUT[pos]);
 }
 /** 世界座標 → 母件 local（x/z 以斷面中心為原點、y 以底面為 0） */
 function ccWorldToLocal(mother: Part, w: W3): W3 {
   const c = ccPartCenter(mother);
   const d = { x: w.x - c.x, y: w.y - c.y, z: w.z - c.z };
-  const l = ccRotY(-(mother.rotation?.y ?? 0), d);
+  const l = ccRotInv(mother, d);
   return { x: l.x, y: l.y + mother.visible.thickness / 2, z: l.z };
 }
 /** 點到母件 OBB 的距離（0 = 在母件裡面或貼在面上） */
@@ -695,7 +718,7 @@ function ccSoftClamp(v: number, half: number): number {
   return v;
 }
 
-interface CcJoint {
+export interface CcJoint {
   /** 公榫件 id */
   child: string;
   /** 公榫長在公榫件的哪個端面 */
@@ -730,7 +753,7 @@ interface CcJoint {
  * 把 joint 清單寫進 parts 的 tenons / mortises。
  * 回傳 gap 警告（兩件沒貼合的清單）。
  */
-function applyCircleChairJoinery(parts: Part[], joints: CcJoint[]): string[] {
+export function applyCircleChairJoinery(parts: Part[], joints: CcJoint[]): string[] {
   const byId = new Map(parts.map((p) => [p.id, p]));
   const warnings: string[] = [];
   for (const j of joints) {
@@ -772,7 +795,7 @@ function applyCircleChairJoinery(parts: Part[], joints: CcJoint[]): string[] {
     const l = ccWorldToLocal(mother, root);
     const { length: mlx, thickness: mly, width: mlz } = mother.visible;
     // 榫頭在母件 local frame 的行進方向 → 決定榫眼開在哪一面
-    const dir = ccRotY(-(mother.rotation?.y ?? 0), out);
+    const dir = ccRotInv(mother, out);
     const ax = Math.abs(dir.x) >= Math.abs(dir.y) && Math.abs(dir.x) >= Math.abs(dir.z)
       ? "x"
       : Math.abs(dir.y) >= Math.abs(dir.z)
@@ -815,7 +838,7 @@ function ccLegSlot(legDiameter: number, want: number): number {
  * spec §9.1 的 23 處接合點 → 實際 52 對公母榫。
  * 所有斷面尺寸都從 parts 自己的 visible 讀，preset 改截面時自動跟著變。
  */
-function buildCircleChairJoints(parts: Part[]): CcJoint[] {
+export function buildCircleChairJoints(parts: Part[]): CcJoint[] {
   const by = new Map(parts.map((p) => [p.id, p]));
   const P = (id: string) => by.get(id)!;
   const J: CcJoint[] = [];
@@ -883,8 +906,10 @@ function buildCircleChairJoints(parts: Part[]): CcJoint[] {
     const t = Math.max(6, Math.round(sp.visible.width / 3)); // 榫厚沿 local Z = 板厚/3
     J.push({ child: sp.id, pos: "top", mother: "arm-rail-back", type: "shouldered-tenon",
       w, t, depth: ringBlind, nameZh: "靠背板上端帶肩扁榫入椅圈" });
+    // 靠背板後仰（rotation.x）→ 下端要切斜肩：板底面中心離大邊頂面 (T/2)·sinθ，是設計量不是沒接到
+    const shoulderGap = (sp.visible.width / 2) * Math.sin(Math.abs(sp.rotation?.x ?? 0));
     J.push({ child: sp.id, pos: "bottom", mother: "seat-rail-back", type: "shouldered-tenon",
-      w, t, depth: 30, nameZh: "靠背板下端帶肩扁榫入後大邊" });
+      w, t, depth: 30, expectedGapMm: shoulderGap, nameZh: "靠背板下端帶肩扁榫入後大邊" });
   }
 
   // ── ⑥ 椅盤大邊 ↔ 抹頭（4 角）· 格角榫（攢邊 45° 割角）──────────────────
@@ -1148,14 +1173,28 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const presetNote = presetNotes[stylePreset] ?? presetNotes["ming-plain"];
 
+  // 外框尺寸用零件實際包絡算：椅圈整圈比座面大（spec §5 俯視外徑 ~698×690 > 座 610×497），
+  // 寫成座面尺寸會讓 audit-floating-parts 把椅圈上靠桿當「浮在家具外 56mm」。
+  const env = parts.reduce(
+    (a, p) => {
+      const { xExt, yExt, zExt } = worldExtents(p);
+      return {
+        x0: Math.min(a.x0, p.origin.x - xExt / 2), x1: Math.max(a.x1, p.origin.x + xExt / 2),
+        z0: Math.min(a.z0, p.origin.z - zExt / 2), z1: Math.max(a.z1, p.origin.z + zExt / 2),
+        y1: Math.max(a.y1, p.origin.y + yExt),
+      };
+    },
+    { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity, y1: -Infinity },
+  );
   const design: FurnitureDesign = {
     id: `circle-chair-${input.length}x${input.height}`,
     category: "circle-chair",
     nameZh: "明式圈椅",
-    overall: { length: input.length, width: input.width, thickness: input.height },
+    overall: { length: env.x1 - env.x0, width: env.z1 - env.z0, thickness: env.y1 },
     parts,
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
+    topViewFullHiddenLines: true, // 缺陷 8：開放框架，俯視圖座框下的棖／角牙要全畫虛線（見 types 註解）
     primaryMaterial: material,
     notes: [
       `明式圈椅（Phase 1 框架版）座寬 ${input.length}mm × 座深 ${input.width}mm × 椅圈高 ${input.height}mm。`,
