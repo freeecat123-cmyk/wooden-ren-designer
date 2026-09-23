@@ -49,6 +49,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 兩向弧肩時沿 Z 的零件短一截（吧檯椅腳踏） | `"legSizeScaleAtZ\|footrest"` | §A11.8 |
 | 錐腳橫撐差 1mm 的縫 / 0.55 vs 0.6 | `"bottomScale 必須跟\|rtBottomScale\|TAPERED_BOTTOM_SCALE"` | §A11.10 |
 | 曲料 / 圈椅椅圈 / 鵝脖 / 聯幫棍 / S 形靠背板 / 沿曲線放樣 | `"swept-curve\|sweptSurfaceRings\|interpolateBSplineWithTangents"` | §S7.1 |
+| 端面切平面 / 皮條線斷面 / 後高前低 / 複斜腿 / 曲料穿模穿深 | `"endCap\|pitiao\|RING_ARM_DROP\|curvedPairPenetration"` | §S7.1, §AT1.3 |
 | 床頭板貼錐腳 / 梯形只到腳高 / 膝點 | `"taperSpanMm\|膝點\|headPanelSpan"` | §A11.11 |
 | 椅背條穿座板 / 通孔再入母件 / 榫頭 = 板厚 + 15 | `"backBottomTenonLen\|seatBackSlots\|consumeFor"` | §A10.13 |
 | 掛鉤浮在柱頂 / 圓料 origin.y 是底面 | `"hookCenterY\|HOOK_TOP_INSET"` | §A10.14 |
@@ -2651,11 +2652,34 @@ type Moulding = {
   否則逐站極值會漏掉切線退化那些站的外緣 1~4mm，2D 稽核量成有縫。輪廓 bbox 比點雲小 > 1mm 也退回凸包。
 - **榫卯**：公榫件的端面中心 = 曲線端點、方向 = 端切線（`positionRootWorld`）；
   曲料母件的榫眼保留反算座標不貼 AABB 面；gap 用 `sweptDistanceToSolid`（逐站小盒子）不用 AABB。
-- **圈椅**：整圈一條 B-spline（後半圓 R=342 圓心 z≈20，恰通過後腳頂；扶手到 z=−257 外撇到 x=±350），
-  依楔釘榫接點（搭口 85）切五段 `subCurveByArcLength`；後腳頂落在中桿段、鵝脖頂落在左右桿段。
-  下垂鱔魚頭（`RING_TIP_DROP`）與前後向收分（`LEG_RAKE_DEG`）目前都是 0，理由見模板常數註解。
-- **稽核**：`audit-overlaps` 的 y-slice 用輪廓（準）；`audit-2d-joints` 對曲料靠 `contained()`（端面藏在腿投影裡算接上）；
-  棖端面貼收分腿最內側點、其餘留 tan(4°)×半棖高 的楔形縫走 `expectedGapMm`（`ccSplayShoulder`）。
+- **端面切平面**（`startCap` / `endCap`，2026-09-23 P4）：給端面的平面法線（世界方向），該端站的斷面
+  沿切線投影到「通過曲線端點、以此為法線」的平面——腳底切平貼地（`startCap = −Ŷ`）、柱頂照椅圈當地
+  底面切斜肩（`endCap = 椅圈斷面的 B 軸`）。曲線端點與端切線不變（榫頭根面／榫軸照舊），只換實體端面；
+  |T·n| < 0.3（夾角 > 72°）視為無效退回垂直端面。`sweptCapRing` 可取端面點驗證。
+- **皮條線斷面**（`profile.sectionStyle = "pitiao"`）：上半超橢圓弧 |x/w|ⁿ+|y/h|ⁿ=1（`topExponent` 預設 2.6）、
+  下半平底 + 兩角導圓 `cornerR`——上圓下扁。平底是給柱頂貼的：整圈弧面（超橢圓）的底面在 ±12mm 處
+  已經比中心高 2mm，聯幫棍／鵝脖的平端面會插進去（2026-09-23 實測 audit-overlaps 抓到）。
+- **圈椅**（模板 `lib/templates/circle-chair.ts`，2026-09-23 P4 定案）：
+  - 俯視：後半圓 R 由兩個條件解出——「圓恰通過後腳頂（直線腿在椅圈高處的中心）」＋「前後包絡 = 690」，
+    預設尺寸 R≈279、圓心 z≈109；扶手從 90° 點往前外撇 x = R + (tipX−R)·f^1.3 到鱔魚頭尾端
+    （tipX = 698/2 − 尾端半寬），俯視「¾ 圓 + 兩端外撇」、包絡 ≈ 698×690（spec §3）。
+  - 立面「後高前低」（使用者定的木工事實）：後正中 = 椅圈總高；圓弧段緩降 0.3·ARM_DROP·(1−cosθ)，
+    扶手段線性降到鵝脖接點 = `RING_ARM_DROP`(30)，接點→尾端再降 `RING_TIP_DROP`(25) 下捲
+    （中點先降 25%：ease-in，線性給點會讓 C² 內插在接點前反彈 0.8mm）。數值是通例不是圖紙值。
+  - 柱頂：`attachAtZ` 回傳中心線點、切線、當地「上」B（= Ŷ ⊥T 投影）、底面中心 = 點 − (T/2)·B；
+    鵝脖／聯幫棍的 `endTangent = endCap = B`，後腳 `endTangent = 腿軸`、`endCap = B`（斜肩），靠背板 apex 處 B = Ŷ。
+  - 四腿複斜（§AT1.3）：側腳 4°（spec）＋前後 2.5°（通例；前腳往前、後腳往後）。座面以下是一條直線
+    （腳底 → 座框角），後腳整支直線頂到椅圈底；前腳**直接給控制點**——前 10 個控制點在腿軸線上
+    （clamped cubic 的第 j 段只由 P_j..P_{j+3} 決定 → 座面以下就是直線），後 4 點勾鵝脖 S。
+    ⚠️ 全域內插對「直線 + 上段彎」會鼓肚：3 個共線經過點鼓 15mm、8 點仍 1.5mm。
+  - 棖／角牙貼複斜腿：棖 = `apron-trapezoid` + `rotation.x=π/2`（同 bar-stool 斜腳牙條），上／中／下三個
+    高度各自量腿面距離，梯形就是複斜肩；角牙只有一端貼腿 → `mitered-ends` 反向法 8 頂點（free 端垂直）。
+    端面貼實，`expectedGapMm` 只留給真正的設計縫（打槽裝板），不再用 `ccSplayShoulder` 吸收楔形縫。
+- **稽核**：`audit-2d-joints` 對曲料靠 `contained()`（端面藏在腿投影裡算接上）。
+  `audit-overlaps`：有曲料的一對**不用 y-slice AABB**（front X × side Z 對弧形是整條弧的外接矩形、
+  對傾斜接觸面是薄薄一層整層重疊，兩種都誤報），改量真穿深——對方的表面採樣點鑽進曲料
+  逐站**有向**小盒子（T/N/B）的深度，直料用它 silhouette 在該高度的 XZ-AABB；> tolerance 才算穿模
+  （`lib/geometry/overlap.ts curvedPairPenetration`）。直料對直料維持原本 y-slice，其他家具 byte 不變。
 
 ### S8. Sweep / Revolve
 **Revolve**（車削椅腿，Three.js `LatheGeometry`）：
