@@ -17,15 +17,18 @@ export function BugReportFab() {
     const url = typeof window !== "undefined" ? window.location.href : "";
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
     const subject = t("subjectTpl", { sha });
+    // 描述欄放最上面:Gmail 撰寫視窗游標停在信件開頭,使用者第一眼要看到「請描述問題」,
+    // 不是四行看不懂的機器資訊。2026-09-07 收到一封整封沒改過的空回報就是這樣來的。
     const body =
+      `${t("bodyDescH")}\n` +
+      `${t("bodyDescExample")}\n\n\n` +
+      `${t("bodyScreenshotH")}\n` +
+      `${t("bodyScreenshotHint")}\n\n` +
+      `${t("bodyMetaH")}\n` +
       `${t("bodyTimePre")}${new Date().toLocaleString()}\n` +
       `${t("bodyBuildPre")}${sha}\n` +
       `${t("bodyPagePre")}${url}\n` +
-      `${t("bodyBrowserPre")}${ua}\n\n` +
-      `${t("bodyDescH")}\n` +
-      `${t("bodyDescExample")}\n\n` +
-      `${t("bodyScreenshotH")}\n` +
-      `${t("bodyScreenshotHint")}\n`;
+      `${t("bodyBrowserPre")}${ua}\n`;
     return { subject, body };
   }
 
@@ -118,13 +121,17 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title={t("fabTitle")}
         aria-label={t("fabTitle")}
-        className={`no-print ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 overflow-hidden [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
+        className={`no-print ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 items-center gap-1.5 rounded-full bg-white pl-1.5 pr-3.5 shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
       >
         <img
           src="/logo-mark.png"
           alt={t("logoAlt")}
-          className="h-9 w-9 object-contain"
+          className="h-9 w-9 shrink-0 object-contain"
         />
+        {/* 只有 logo 的白色圓鈕沒人看得出是回報問題(四個月只收到 2 封) → 把字露出來 */}
+        <span className="whitespace-nowrap text-xs font-medium text-zinc-700">
+          {t("fabTitle")}
+        </span>
       </button>
     </>
   );

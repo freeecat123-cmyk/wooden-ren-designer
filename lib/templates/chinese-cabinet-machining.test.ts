@@ -167,15 +167,20 @@ for (const [hoofMm, hoofScale] of [[80, 1.35], [140, 1.6]]) {
 
 for (const [hoofMm, hoofScale] of [[80, 1.35], [140, 1.6]]) {
   it(`actual CSG cuts every receiver notch and retains its core: ${hoofMm}/${hoofScale}`, () => {
+    // 這支驗的是「榫孔有沒有切對」，不是跑多快 —— 逾時只是安全網，不是效能閘
+    // （效能閘是下面那支 "within the hard deadline"，它的 10 秒刻意不動）。
+    // 🩸 原本 10 秒：子行程要從零啟動 node + tsx，機器閒時 3~5 秒，但 pre-commit 會讓
+    //    142 個測試檔平行跑，負載一高就直接 SIGKILL → 假紅。2026-09-09、09-23 各踩一次，
+    //    09-23 連擋三次 commit，單獨重跑 22/22 都過。放寬到 30 秒（閒時的 6~10 倍餘裕）。
     const result = spawnSync(process.execPath, ["--import", "tsx",
       "lib/templates/chinese-cabinet-csg-probe.ts", String(hoofMm), String(hoofScale)], {
-      cwd: process.cwd(), timeout: 10000, killSignal: "SIGKILL", encoding: "utf8", maxBuffer: 1024 * 1024,
+      cwd: process.cwd(), timeout: 30000, killSignal: "SIGKILL", encoding: "utf8", maxBuffer: 1024 * 1024,
     });
     const diagnostic = result.stderr.split("\n").filter(line => /^(CSG |AssertionError)/.test(line)).join("\n");
     expect(result.error?.message ?? "", diagnostic).not.toContain("ETIMEDOUT");
     expect(result.status, diagnostic).toBe(0);
     expect(result.stdout).toContain("8 receivers verified");
-  }, 15000);
+  }, 45000);
 }
 
 it("has actual notch/post contact samples, and removing a cut restores real solid interference", () => {
