@@ -16,8 +16,30 @@ import { getOption, opt } from "@/lib/types";
  *    是現行版）請至 owinform.wdasec.gov.tw 下載，應檢以官方版本為準。
  *
  * ⚠️⚠️ **開發歷程：第一版單人讀圖建模 → 五人組複查修 7 個 bug → 第三輪補桌面板 → 第四輪
- *    （本輪）修木釘接合＋三視圖標註缺口**。第四輪由獨立複查團隊逐條驗證第三輪的判讀，詳見下方
- *    「最終彙整」。**C類第 3 項（盲榫 vs 裂口榫）中高信心判定為盲榫，但仍未 100% 定案**。
+ *    修木釘接合＋三視圖標註缺口 → 第五輪（本輪）用官方 PDF 內嵌原始掃描圖（非重複轉檔的 300dpi
+ *    版本）重新核對盲榫證據**。詳見下方「最終彙整」。
+ *
+ * 🔴 **硬體限制（讀了才知道，不是偷懶）**：`pdfimages -list` 查證，官方題本 PDF 裡這張工作圖本身
+ *    只是一張**內嵌 1120×811px（約 110dpi）的掃描圖**，不是向量圖檔。之前所有輪次讀的「300dpi
+ *    裁切放大圖」都是把這張 110dpi 原圖再內插放大，並沒有更多真實資訊；本輪改用 `pdfimages -png`
+ *    直接抽原始內嵌圖＋銳化對比,是這份官方文件能榨出的最高畫質。多數尺寸/位置在這個解析度下已經
+ *    讀得夠肯定，但少數最細節的接合方式判斷（例如是否有額外補強木釘釘、橫檔端面每一條線的精確走向）
+ *    已經逼近這張掃描圖本身的資訊上限——不是我沒認真看，是官方公開的這份文件就只有這麼清楚，除非
+ *    拿得到更高解析度的官方原稿，否則無法再往上逼近。
+ *
+ * ✅ **C類第 3 項（盲榫 vs 裂口榫）本輪用原始掃描圖重新核對，信心從「中高」上修為「高」**：
+ *    用姊妹題 100206（有「裂口榫」文字＋明顯的輪廓內縮＋斷面外露）當範本比對，100205 同一位置的
+ *    腳柱榫孔在原始掃描圖上清楚是「虛線畫的隱藏矩形、完整包在連續無內縮的實心影線材料裡」——這正是
+ *    技術製圖裡「盲榫（材料整個包住榫孔，只能用隱藏線表示）」的標準畫法，跟裂口榫「材料開口、斷面
+ *    外露、用實線畫」的畫法明顯不同,而且同一頁至少兩處榫孔都是同樣畫法,不是單一巧合。**維持盲榫
+ *    判定,信心由中高上修為高**,但仍非「翻出官方施工說明白紙黑字寫盲榫」這種等級的絕對確定。
+ *
+ * 🟡 本輪順帶重新檢視、但選擇不動的疑點：桌面板↔側上橫檔的木釘,原始掃描圖在該區域看到兩處分開的
+ *    「ø8×30」標註（桌面板一個、側上橫檔一個),不能排除除了現有「桌面板↔側上橫檔」這組直向木釘外,
+ *    側上橫檔↔腳柱的榫接處可能還有一支加強用的橫向木釘（現有程式沒有做這支)。兩種讀法在這個解析度
+ *    下都站得住腳、無法二選一定案,而且就算真的漏一支加強釘,對整體結構強度跟稽核都不是關鍵影響
+ *    （盲榫本身已經是結構承重接合,這支釘若存在也只是加強),所以本輪選擇不動、如實記錄,不要用猜的
+ *    去改一個可能本來就是對的東西。
  *
  * ── 最終彙整（上架前一次看懂全貌，不用爬 commit 歷史）───────────────────
  *
@@ -38,14 +60,17 @@ import { getOption, opt } from "@/lib/types";
  *     側板/後板、不接光腳柱」——b5 的側上橫檔正是唯一對應的可仿對象。2 支木釘、位置未回圖精確
  *     核對（用對稱、避開兩端榫頭區的合理位置），入桌面深度沿用 cert-b1 已圖面確認的「12｜18」
  *     比例（本題桌面同樣 18 厚）。桌面板↔4 支腳頂**維持膠合對接**（沒有找到腳頂木釘的圖面證據）。
- *   - **上下橫檔盲榫 vs 裂口榫**：獨立複查員用姊妹題 100206（有明文「裂口榫接合」）當校準基準，
- *     回 100205 比對腳柱輪廓線——100206 在橫檔接合處輪廓線內縮、斷面外露；100205 同樣位置輪廓線
- *     連續無內縮，符合盲榫（封口線包住榫孔）樣式。**中高信心判定為盲榫，本題自己沒有文字佐證**，
- *     上架前如果要 100% 確定，需要更高解析度圖檔重新核對這一點。
+ *   - **上下橫檔盲榫 vs 裂口榫**：獨立複查員先用姊妹題 100206（有明文「裂口榫接合」）當校準基準，
+ *     中高信心判定為盲榫；本輪（第五輪）改抽官方 PDF 內嵌的原始掃描圖（非重複轉檔放大版）重新比對
+ *     腳柱輪廓線與隱藏線畫法，同一結論但證據更硬，**信心由中高上修為高**（見檔頭「硬體限制」段的
+ *     完整說明與這個判定為何不是絕對 100% 確定）。
  *
  * ⚪ 低優先未解項（不影響核心幾何，上架前可視情況處理）：
  *   - 抽屜前/側/後板同高 130mm 是簡化假設，未逐一覆核側板/後板是否比前板矮一截。
  *   - 桌面板封邊/核心沒有分開建模（簡化成單一板件），端面木紋/收邊細節未還原。
+ *   - 側上橫檔↔腳柱的盲榫接合處，原始掃描圖同一區域另外還有一個「ø8×30」標註，不能排除是加強用
+ *     的橫向木釘（現有程式沒做），本輪判斷這個解析度下無法二選一定案、且就算漏做也不影響結構承重
+ *     的主接合方式，選擇如實記錄、不猜著改（見檔頭「本輪順帶重新檢視」段）。
  *   - `dowelPartner`／`auditJoints` 的 `DOWEL_AXIS_TOL=12` 容忍度偏寬（全站既有設計，為了容納
  *     丙級第三題一個已知 10mm 合法縫隙才放寬，見 `lib/joinery/audit-joints.ts:107` 註解）——
  *     這是全站限制不是本題的 bug，但代表本題（或任何題）若有 <12mm 的座標誤差，這道稽核閘
@@ -477,8 +502,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
   }
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
   warnings.push(isEn
-    ? "⚠️ Draft, third pass: an independent 5-reviewer check found 7 bugs (fixed pass 2) and a suspected missing tabletop; pass 3 added the tabletop (493×370×18) and re-derived the leg/rail Y-coordinates it affects. The blind-tenon-vs-notch-joint question is still unresolved — see the file header before treating this as equal quality to questions 1-4."
-    : "⚠️ 本範本第二輪修掉五人組複查抓到的 7 個 bug，第三輪（本輪）補上懷疑漏做的桌面板（493×370×18）並重算受影響的腳柱／橫檔 Y 座標。「上下橫檔盲榫 vs 裂口榫」仍未解決，細節見檔頭——上架前務必先解決這條，不要直接當成跟前四題同等級。");
+    ? "⚠️ Draft, fifth pass: independent review found 7 bugs (fixed pass 2) and a missing tabletop (added pass 3, with re-derived leg/rail Y-coordinates); pass 4 fixed dowel joinery and 3-view labeling gaps; pass 5 re-checked the blind-tenon-vs-notch-joint call against the source PDF's raw embedded scan (confidence now high, not just medium-high). A couple of low-priority items remain — see the file header before treating this as equal quality to questions 1-4."
+    : "⚠️ 本範本歷經五輪：第二輪修掉五人組複查抓到的 7 個 bug，第三輪補上懷疑漏做的桌面板（493×370×18）並重算相關座標，第四輪修木釘接合與三視圖標註缺口，第五輪（本輪）改用官方 PDF 內嵌原始掃描圖重新核對「盲榫 vs 裂口榫」，信心由中高上修為高。仍有少數低優先未解項，細節見檔頭——上架前先看過，不要直接當成跟前四題同等級。");
 
   const design: FurnitureDesign = {
     id: `cert-b5-${W}x${D}x${H}`,
@@ -491,8 +516,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed side-to-front corners and doweled back corners, riding on two runners screwed to the inside faces of the leg posts. **Third-pass draft: 7 bugs fixed in pass 2, top panel added in pass 3 with re-derived leg/rail coordinates. The blind-tenon-vs-notch-joint question is still open — see the file header before treating this as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾、後角木釘，滑條鎖在兩端腳柱內側。**第三輪範本：第二輪修掉 7 個確認的 bug，本輪補上桌面板並重算受影響的腳柱／橫檔座標。「盲榫 vs 裂口榫」仍未解決，細節見檔頭，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed side-to-front corners and doweled back corners, riding on two runners screwed to the inside faces of the leg posts. **Fifth-pass draft: 7 bugs fixed pass 2, top panel added pass 3, dowel/labeling fixes pass 4, blind-tenon call re-verified against the source scan pass 5 (now high confidence). A couple of low-priority items remain — see the file header before treating this as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾、後角木釘，滑條鎖在兩端腳柱內側。**第五輪範本：第二輪修 7 個確認的 bug，第三輪補桌面板，第四輪修木釘接合與三視圖標註，第五輪重新核對盲榫判定（信心已上修為高）。仍有少數低優先未解項，細節見檔頭，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;
