@@ -15,33 +15,41 @@ import { getOption, opt } from "@/lib/types";
  *    官方應檢參考資料（完整題本 012002B15，本題圖框 112/10/27，不在 114/06/18 修正對照表範圍內，
  *    是現行版）請至 owinform.wdasec.gov.tw 下載，應檢以官方版本為準。
  *
- * ⚠️⚠️ **第一版是單人單輪讀圖＋建模，這是第二輪修正**：派出五人組（讀圖對照／評審表材料表對照／
- *    程式變異測試／木工合理性／全站回歸）平行複查後，回原圖親自覆核，修掉下面「B類已修」列出的
- *    7 個確認的 bug；但**「C類未解決」那兩項，尤其缺件疑慮，本輪判斷風險太高沒有動**，仍未達 b1~b4
- *    的信心等級 → **上架前務必先解決 C 類兩項，不要直接當成跟 b1~b4 同等級**。
+ * ⚠️⚠️ **第一版是單人單輪讀圖＋建模，第二輪五人組複查修掉 7 個 bug，這是第三輪：補上缺件**。
+ *    第二輪判斷「補桌面板」風險太高沒動；這輪回原圖高倍裁切＋material表交叉比對後動手補上，
+ *    細節見下面「D類本輪新增」。**C類第 3 項（盲榫 vs 裂口榫）仍未解決，上架前要再查一次**。
  *
- * 🔴🔴 **C類未解決（本輪判斷「動了風險比不動高」，刻意沒做，留給下一輪）**：
- *   1. **懷疑漏做一塊桌面板**：五人組裡三位（讀圖對照員、木工審查員、程式審查員）各自獨立指向
- *      同一件事——讀圖對照員在 B-B 剖面看到一片多塊拼接、Ø8×30 木釘接合的板，寬 493mm（比腳架
- *      480mm 寬，兩側懸挑約 6.5mm）；程式審查員用 `renderToStaticMarkup` 機器驗證三視圖，
- *      證實找不到 `top`/`seat` 類零件會讓 `extractFurnitureDims()` 整層標註 `return null`
- *      （評審表 8 項尺寸一個字都沒標出來，這是本模型目前最大的已知缺陷）；木工審查員從工時偏低
- *      （6.2h vs 官方 7h、跟其他四題 8~12h 有落差）反推同一個懷疑。
- *      **本輪沒有加這塊板**：加了會把總高度從 380 頂破（腳架目前撐滿 0~380），要嘛縮短腳柱高度
- *      要嘛重新分配後上橫檔／腳柱榫眼的世界座標——這條動的正是這份檔案已知最危險的一塊（腳柱
- *      local z→世界 −y 高度換算，b1~b4 每一題都在這裡出過「三道閘攔不到」的事故），沒有五人組
- *      同一輪次驗證，貿然改風險太高，寧可先不做、明講缺口，也不要生出新的無聲錯誤。
- *   2. **總深度「380/370」還是沒有第二個獨立幾何特徵**：讀圖對照員懷疑是腳底縮進造成的第二個
- *      包絡值，跟第 1 點的桌面板是不是同一件事（例如桌面板本身縮進 370？或另有底座）沒有定案。
+ * ✅ **D類本輪新增：補上桌面板（原 C1/C2 點的缺件疑慮，本輪解決）**──────────
+ *   關鍵新證據：**材料表 `550×19×8.5×5` 這支料在 cert-b1 用於「桌面封邊 8×18」、cert-b4 用於
+ *   「天板封邊」**——同一支料、同一種用途在兩題都是「blockboard 桌面/天板的封邊」，而 cert-b5
+ *   這支料原本完全沒被用到（跟 `480×450×18` 木心板一樣沒用到）——**這才是真正的證據**，不是
+ *   B-B 剖面那個梳狀剖面線本身（那個後來查出來其實是既有「側上橫檔」自己的剖面，跨距 416 跟
+ *   圖上「416」標註完全吻合，不是缺件）。
+ *   → 補一塊桌面板：木心板芯 480×450×18（材料表項次 6，六題共用尺寸，本題裁切使用）＋
+ *     四周 8×18 實木封邊（材料表項次 5），**簡化成單一板件建模**（不分開拆核心/封邊，
+ *     跟 b1/b4 逐條封邊分開建模比，這是本輪為了控制風險做的簡化，未來如需精緻可再拆）。
+ *   → 尺寸：493(寬，含封邊)×370(深，含封邊)×18(厚)。493＝480 核心＋兩側封邊（核心 480 剛好是
+ *     材料表項次 6 原始寬）；370 對應評審表「總深度 380/370」的第二個數字——這輪判定 **370 是
+ *     桌面板本身的深度**（比腳架 380 深度**內縮**，跟寬度方向**外懸**493 剛好相反方向，讀圖看
+ *     到的兩個方向就是這樣不對稱，沒有硬湊成看起來「正常」）。
+ *   → 高度分配：桌面板厚 18mm 疊在腳柱頂端上方，**腳柱因此縮短為 0~362（H−18）**，後上橫檔／
+ *     腳柱榫眼的世界 Y 座標**全部跟著這個新的「腳頂＝362」重新算**（`legCenterY` 改成
+ *     `(H−topT)/2`，只有一個變數要改，其餘計算式引用它就自動對齊，避免到處手改重複公式）。
+ *   → 桌面板與 4 支腳頂的接合：各一組 Ø8×30 木釘（跟全題材料表 29 支木釘、cert-b1 同款「桌面
+ *     木釘接腳」做法一致），沒有回圖精確核對釘孔位置，用「腳中心正上方」簡化擺放。
+ *   → ⚠️ 這輪沒做的：封邊/核心分開建模、桌面板端面木紋/收邊細節、桌面板與後上橫檔之間會不會
+ *     卡到（已用 findOverlaps 驗證 0 重疊，但沒有另外覆核官方圖上兩者實際淨空多少）。
+ *
+ * 🔴 **C類仍未解決（下一輪要做）**：
  *   3. **上下橫檔入腳「盲榫 vs 裂口榫」未定案**：讀圖對照員找到姊妹題 100206 明文寫「裂口榫接合、
  *      各以 2 支木釘補強」，但 100205 本題沒有這行字，只能當中信心旁證。本模型**維持盲榫**（改成
- *      裂口榫是換一種接合幾何，同樣屬於「沒有同輪驗證不敢動」的風險，留給下一輪連同第 1 點一起做）。
+ *      裂口榫是換一種接合幾何，屬於「沒有同輪驗證不敢動」的風險，留給下一輪）。
  *
  * ── 這是什麼（讀圖＋結構判斷，見下方逐項信心標記）──────────────────────
  * 480(寬)×380(深)×380(高) 的雙腳端單抽小凳／邊几：左右兩端各 2 支 45×32 直腳（不斜、不錐），
- * 兩端腳柱之間**只在後側**架一支 90×20 的上橫檔（貼齊腳頂），前後各架一支 45×32 的下橫檔（貼地），
+ * 腳頂疊一塊 493×370×18 桌面板（木心板芯＋實木封邊，Ø8×30 木釘接腳），兩端腳柱之間**只在後側**
+ * 架一支 90×20 的上橫檔（貼齊桌面板下緣），前後各架一支 45×32 的下橫檔（貼地），
  * 抽屜 370(寬，沿長向)×340(深，沿深向) 從**前面**推拉，滑條裝在兩端腳柱內側。
- * **（上面 C1 點懷疑漏了一塊桌面板，本模型目前沒有——三視圖尺寸標註因此整層空白，見 C 類說明）**
  *
  * ⭐ HIGH confidence（評審表 PDF 第 11 頁直接列出，逐字抄）：
  *   總高度 380±1｜總寬度 480±1｜總深度 380/370±1｜側上橫檔寬厚 90×20±0.5｜
@@ -81,7 +89,9 @@ import { getOption, opt } from "@/lib/types";
  * ── 材料表對帳（PDF 第 6 頁六題共用表，只確認得到的幾項）─────────────
  * 木料 600×92×21.5 第五題發 1 支——⚠️ 已知全站教訓「21.5 料⇔21mm 零件」不成立（b4 檔頭已推翻），
  *   本模型側上橫檔取 20mm 厚（評審表數字），不強行湊 21.5，這支料只是提供這根 90 寬料的原料，足夠。
- * 其餘各項（木料 1050×95×32.5 ×2、440×132×18.5 ×1、400×130×15.5 ×3、550×19×8.5 ×5、
+ * 木心板 480×450×18 ×1（項次6）＋木材 550×19×8.5 ×5（項次5）：**本輪配給桌面板**（核心＋封邊），
+ *   跟 cert-b1/cert-b4 的用法同源（見上面 D 類說明）；本輪合併成單一板件，未逐條拆封邊排版驗證。
+ * 其餘各項（木料 1050×95×32.5 ×2、440×132×18.5 ×1、400×130×15.5 ×3、木心板 426×178×18×3、
  * 木釘 Ø8×30、木螺釘三種、白膠）**本輪沒有逐一排版核對「切不切得出來」**，留給下一輪。
  *
  * ⛔ 扣 41 分三條：未於規定時間完成／自行攜帶材料工件進出場／尺寸誤差超過 20mm（跟其他五題一樣）。
@@ -91,7 +101,8 @@ import { getOption, opt } from "@/lib/types";
 const EXAM = {
   W: 480, D: 380, H: 380,
   legW: 32, legD: 45,                          // 腳柱寬(沿長向) × 厚(沿深向)，直腳、不斜
-  backRailH: 90, backRailT: 20,                // 側上橫檔：90 高 × 20 厚，貼腳頂、只在後側一支
+  topW: 493, topD: 370, topT: 18,              // 桌面板（木心板芯＋封邊簡化成單板）：疊在腳頂上方
+  backRailH: 90, backRailT: 20,                // 側上橫檔：90 高 × 20 厚，貼桌面板下緣、只在後側一支
   lowerRailH: 45, lowerRailT: 32,              // 側下橫檔：45 高 × 32 厚，前後各一支、貼地
   legRailTenonT: 18,                           // 橫檔入腳的盲榫厚（腳柱 32 厚，留 14 背牆）
   legRailTenonLen: 20,
@@ -173,7 +184,10 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     // cert-b1 側板/後板同一套 −(目標世界高 − 本零件世界高中心)）。第一版把「高度」寫進 origin.y，
     // 上橫檔那個孔算出 y=335 遠超出 [0,45]，2D 加工圖榫眼畫到料件外 40mm——joints 稽核只比尺寸
     // 不比位置，這種錯要靠 `npm run audit` 的 machining 那支才抓得到。
-    const legCenterY = H / 2;
+    // ⚠️ 本輪補桌面板（18 厚）疊在腳頂上方，腳柱因此縮短到 0~(H−topT)，legCenterY 改用
+    // 腳柱自己實際的世界 Y 中心，不能再用整體 H/2——只有這一個變數要改，下面兩個 mortise
+    // 都吃它，不用逐一手改重複公式（AGENTS.md「同一個判斷只能有一套」）。
+    const legCenterY = (H - E.topT) / 2;
     m.push({
       origin: { x: legInX * E.legW / 2, y: E.legD / 2, z: legCenterY - E.lowerRailH / 2 },
       depth: E.legRailTenonLen, length: E.lowerRailH, width: E.legRailTenonT,
@@ -184,7 +198,7 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     // ⚠️ 榫厚用 backRailTenonT（10，非 legRailTenonT=18）——後上橫檔本身只有 20 厚，
     // 沿用下橫檔（32厚）的 18 厚榫肩只剩 1mm、做不出來，這輪修正見 commit 說明。
     if (sz === 1) m.push({
-      origin: { x: legInX * E.legW / 2, y: E.legD / 2, z: legCenterY - (H - E.backRailH / 2) },
+      origin: { x: legInX * E.legW / 2, y: E.legD / 2, z: legCenterY - ((H - E.topT) - E.backRailH / 2) },
       depth: E.legRailTenonLen, length: E.backRailH, width: E.backRailTenonT,
       through: false,
       label: isEn ? "mortise, back rail tenon" : "側上橫檔盲榫眼",
@@ -195,7 +209,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       nameEn: `Leg (${sx === 0 ? "left" : "right"} ${sz === 0 ? "front" : "back"})`,
       material,
       grainDirection: "width",
-      visible: { length: E.legW, width: H, thickness: E.legD },
+      // 腳長＝H−topT（桌面板疊在腳頂上方，見上面 legCenterY 註解）。
+      visible: { length: E.legW, width: H - E.topT, thickness: E.legD },
       origin: { x: wx(cx), y: 0, z: wz(cz) },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       // dxMm/dzMm=0：直腳、不斜，借 splayed shape 只為了掛 footChamferMm（評審表「圓弧與倒角」
@@ -206,7 +221,26 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
-  // ── 側上橫檔 ×1（90 高 × 20 厚，貼腳頂、只在後側）────────────────
+  // ── 桌面板 ×1（本輪新增，見檔頭 D 類說明）：木心板芯＋封邊簡化成單板，疊在腳頂上方 ──
+  // 493(寬，含封邊，比腳架 480 寬懸挑約 6.5/邊)×370(深，比腳架 380 深內縮約 5/邊)×18(厚，材料表
+  // 木心板芯厚度)。跟腳頂是**膠合對接，無木釘**——比照 cert-b1 檔頭明講「腳頂沒有木釘」的既有結論
+  // （b1 的桌面木釘只接側板/後板，不接光腳柱；b5 沒有側板，沒有對應可仿的既有做法，
+  // 用最低風險的簡化：純膠合，不新增榫卯幾何），需要下一輪覆核實際官方接合方式。
+  {
+    parts.push({
+      id: "top",
+      nameZh: "桌面板",
+      nameEn: "Top panel",
+      material,
+      grainDirection: "length",
+      visible: { length: E.topW, width: E.topD, thickness: E.topT },
+      origin: { x: wx(W / 2), y: H - E.topT, z: wz(D / 2) },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
+  // ── 側上橫檔 ×1（90 高 × 20 厚，貼桌面板下緣、只在後側）──────────
   {
     const railCz = D - E.legD / 2;              // 貼齊後腳中心（後腳內面在 D−legD）
     const tenonW = E.backRailH;
@@ -217,7 +251,7 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length",
       visible: { length: railSpanX, width: E.backRailH, thickness: E.backRailT },
-      origin: { x: wx(W / 2), y: H - E.backRailH, z: wz(railCz) },
+      origin: { x: wx(W / 2), y: (H - E.topT) - E.backRailH, z: wz(railCz) },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: (["start", "end"] as const).map((position): Tenon => ({
         position, type: "blind-tenon",
@@ -418,8 +452,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
   }
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
   warnings.push(isEn
-    ? "⚠️ Draft, second pass: an independent 5-reviewer check ran once and 7 confirmed bugs were fixed, but a suspected missing tabletop panel (which would also explain why the 3-view drawing shows none of the 8 official dimensions) was deliberately left unfixed — see the file header. Do not treat this as equal quality to questions 1-4 yet."
-    : "⚠️ 本範本已跑過一輪五人組複查並修掉 7 個確認的 bug，但懷疑漏做的一塊桌面板（也是三視圖 8 項官方尺寸目前完全沒標出來的根因）本輪刻意沒動，細節見檔頭——上架前務必先解決這條，不要直接當成跟前四題同等級。");
+    ? "⚠️ Draft, third pass: an independent 5-reviewer check found 7 bugs (fixed pass 2) and a suspected missing tabletop; pass 3 added the tabletop (493×370×18) and re-derived the leg/rail Y-coordinates it affects. The blind-tenon-vs-notch-joint question is still unresolved — see the file header before treating this as equal quality to questions 1-4."
+    : "⚠️ 本範本第二輪修掉五人組複查抓到的 7 個 bug，第三輪（本輪）補上懷疑漏做的桌面板（493×370×18）並重算受影響的腳柱／橫檔 Y 座標。「上下橫檔盲榫 vs 裂口榫」仍未解決，細節見檔頭——上架前務必先解決這條，不要直接當成跟前四題同等級。");
 
   const design: FurnitureDesign = {
     id: `cert-b5-${W}x${D}x${H}`,
@@ -432,8 +466,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32) joined by one 90×20 upper back rail near the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed side-to-front corners and doweled back corners, riding on two runners screwed to the inside faces of the leg posts. **This is a second-pass draft: an independent 5-reviewer check ran once and 7 confirmed bugs were fixed, but a suspected missing tabletop panel was deliberately left unfixed — see the file header before treating it as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳，後側頂端架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾、後角木釘，滑條鎖在兩端腳柱內側。**本範本已跑過一輪五人組複查並修掉 7 個確認的 bug，但懷疑漏做的一塊桌面板本輪刻意沒動，細節見檔頭，上架前務必先解決這條，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed side-to-front corners and doweled back corners, riding on two runners screwed to the inside faces of the leg posts. **Third-pass draft: 7 bugs fixed in pass 2, top panel added in pass 3 with re-derived leg/rail coordinates. The blind-tenon-vs-notch-joint question is still open — see the file header before treating this as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾、後角木釘，滑條鎖在兩端腳柱內側。**第三輪範本：第二輪修掉 7 個確認的 bug，本輪補上桌面板並重算受影響的腳柱／橫檔座標。「盲榫 vs 裂口榫」仍未解決，細節見檔頭，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;

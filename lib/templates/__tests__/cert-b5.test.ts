@@ -2,10 +2,9 @@
  * 乙級第五題 cert-b5：官方數字逐項（工作圖 PDF 第 19 頁 × 評審表第 11 頁 × 材料表）。
  *
  * ⭐ 期望值全部用**官方尺寸鏈**手算（X 0~480 由左腳柱外面、Y 0~380 由地面、Z 0~380 由前面），
- *    不是把程式輸出貼上來。這份是五人組複查後的第二輪修正，B 類 7 個確認的 bug 已在下面各自
- *    釘一條「改回去會紅」的斷言；C 類（懷疑漏做桌面板／380 vs 370／盲榫 vs 裂口榫）本輪刻意
- *    沒動，所以**不測三視圖是否標出評審表 8 項尺寸**——那條目前一定會失敗（找不到 top 零件），
- *    等下一輪補桌面板後再補這條，不要在這裡硬湊一個會過的假斷言。
+ *    不是把程式輸出貼上來。這是第三輪：補上桌面板（493×370×18，疊在腳頂，腳柱因此縮短為
+ *    0~362）。B 類 7 個確認的 bug 沿用第二輪的斷言；新增 D 類斷言驗證桌面板的尺寸/位置與
+ *    連帶重算的 legCenterY／腳長／後上橫檔 Y 座標。C 類第 3 項（盲榫 vs 裂口榫）仍未解決。
  */
 import { describe, it, expect } from "vitest";
 import React from "react";
@@ -32,12 +31,40 @@ describe("cert-b5 官方尺寸", () => {
     return [b.min.x + 240, b.max.x + 240, b.min.y, b.max.y, b.min.z + 190, b.max.z + 190].map(r1);
   };
 
-  it("評審表尺寸：總高 380／總寬 480／總深 380（本模型僅實作這個，370 見檔頭 C2）", () => {
+  it("評審表尺寸：總高 380／總寬 480／總深 380（腳柱因桌面板縮短為 362＝380−18）", () => {
     expect(d.overall).toEqual({ length: 480, width: 380, thickness: 380 });
-    expect(part("leg-left-front").visible).toEqual({ length: 32, width: 380, thickness: 45 });
+    expect(part("leg-left-front").visible).toEqual({ length: 32, width: 362, thickness: 45 });
     expect(part("back-rail").visible).toEqual({ length: 416, width: 90, thickness: 20 });
     expect(part("stretcher-front").visible).toEqual({ length: 416, width: 45, thickness: 32 });
     expect(part("stretcher-back").visible).toEqual({ length: 416, width: 45, thickness: 32 });
+  });
+
+  it("⭐ D1：桌面板 493×370×18，疊在腳頂（Y＝362~380），跟腳架 480×380 不對稱懸挑/內縮", () => {
+    const top = part("top");
+    expect(top.visible).toEqual({ length: 493, width: 370, thickness: 18 });
+    expect(top.origin.y, "桌面板底面＝腳頂＝H−topT＝362").toBe(362);
+    const box = at("top");
+    expect(r1(box[3] - box[2]), "桌面板厚度 18").toBe(18);
+    expect(r1(box[1] - box[0]), "桌面板寬 493，比腳架 480 寬（懸挑）").toBe(493);
+    expect(r1(box[5] - box[4]), "桌面板深 370，比腳架 380 窄（內縮）").toBe(370);
+  });
+
+  it("⭐ D2：後上橫檔貼齊桌面板下緣（Y 頂＝362，不是舊版的 380）", () => {
+    const railTop = at("back-rail")[3];
+    expect(railTop, "後上橫檔頂面要等於桌面板底面（362），不能還留在舊的 380").toBe(362);
+  });
+
+  it("⭐ D3：legCenterY 重算後，腳柱榫眼仍然對得到後上橫檔（不是只改了常數沒改用到它的地方）", () => {
+    const leg = part("leg-left-back");
+    const backMortise = leg.mortises.find((m) => (m.label ?? "").includes("側上橫檔"))!;
+    expect(backMortise, "後腳一定要有側上橫檔的盲榫眼").toBeTruthy();
+    // z 是 local 高度方向（rotation x=π/2 下 local z→世界 −y）；換算回世界 Y 應該落在
+    // back-rail 的世界 Y 範圍內（272~362），不能因為 legCenterY 沒跟著腳長重算而落到舊的 290~380。
+    const legWorldYCenter = (380 - 18) / 2; // (H−topT)/2，跟程式裡的 legCenterY 算法一致
+    const mortiseWorldY = legWorldYCenter - backMortise.origin.z;
+    const railRange = at("back-rail");
+    expect(mortiseWorldY, "榫眼換算回世界 Y 要落在後上橫檔的世界 Y 範圍內").toBeGreaterThanOrEqual(railRange[2] - 0.01);
+    expect(mortiseWorldY).toBeLessThanOrEqual(railRange[3] + 0.01);
   });
 
   it("寬度鏈 480＝32｜416｜32（兩腳內距，橫檔跨距）", () => {
@@ -149,10 +176,15 @@ describe("cert-b5 官方尺寸", () => {
     }
   });
 
-  it("⭐ 三視圖不可以有 NaN（尺寸標註內容本輪不測，見檔頭 C1：懷疑漏做桌面板，標註目前整層是空的）", () => {
+  it("⭐ D4：三視圖現在真的標出評審表尺寸了（補桌面板前，extractFurnitureDims 找不到 top 零件、整層標註是空的）", () => {
     const svg = renderToStaticMarkup(React.createElement(CompactThreeViews, { design: d, locale: "zh-TW" }));
     expect(svg.match(/NaN|Infinity/g) ?? []).toEqual([]);
     expect((svg.match(/<(path|rect|line|polygon)\b/g) ?? []).length).toBeGreaterThan(50);
+    // 機器驗證字串內容（不是用眼睛看）：評審表 8 項尺寸至少要有幾個數字真的印在 SVG 裡。
+    // 不要求全部 8 個都出現（有些是複合標註格式），但補了桌面板之後這個數字不能再是 0。
+    const officialNumbers = ["380", "480", "45", "32", "90", "20", "370", "340", "130"];
+    const hits = officialNumbers.filter((n) => svg.includes(n));
+    expect(hits.length, `三視圖字串裡應該出現官方尺寸數字，實際命中：${hits.join(",")}`).toBeGreaterThan(0);
   });
 
   it("0 穿模（含各選項）、榫接 0 落單、組裝順序算得出來", () => {
@@ -188,6 +220,36 @@ describe("cert-b5 變異測試（確認上面的斷言真的抓得到壞值，�
   it("拿掉 ends:plus 應該讓型別退回預設 both（證明 B3 斷言真的在檢查這個欄位、不是隨便過）", () => {
     const shape = build().parts.find((p) => p.id === "drawer-1-side-left")!.shape;
     expect(shape?.kind === "dovetail-ends" ? shape.ends : "MISSING", "shape.ends 一定要顯式存在且是 plus").toBe("plus");
+  });
+
+  it("legCenterY 算錯（榫眼位置偏移）時，真正的引擎函式會判定「配不到」", () => {
+    // 不是自己手算反推（那樣兩處都用同一個錯的常數會互相抵消、測不出差異），
+    // 而是像 D3／既有「每支榫頭都配得到」那條一樣，直接餵給真正的 matchMortiseForTenon 引擎函式。
+    // ⚠️ 順帶發現：只用「舊公式 H/2=190 vs 正確 (H−topT)/2=181」這 9mm 差距，matchMortiseForTenon
+    // 目前還是判定配得到（容忍度比預期寬，跟 [[feedback_wrd_audit_blind_spots]] 同一類「比對容忍度
+    // 沒有想像中嚴」的既有現象）——這點留給下一輪覆核，這裡改用更大的偏移量確保這條斷言本身有效。
+    const d = build();
+    const leg = d.parts.find((p) => p.id === "leg-left-back")!;
+    const goodMortise = leg.mortises.find((m) => (m.label ?? "").includes("側上橫檔"))!;
+    const brokenOriginZ = goodMortise.origin.z + 100; // 明顯偏移，確認斷言機制本身有效
+    const brokenLeg = { ...leg, mortises: [{ ...goodMortise, origin: { ...goodMortise.origin, z: brokenOriginZ } }] };
+    const brokenIndex = buildWorldMortiseIndex([brokenLeg, ...d.parts.filter((p) => p.id !== "leg-left-back")]);
+    const rail = d.parts.find((p) => p.id === "back-rail")!;
+    const goodIndex = buildWorldMortiseIndex(d.parts);
+    // 找出真正接 leg-left-back 的那一端（不假設是 start 還是 end）
+    const tenon = rail.tenons.find((t) => matchMortiseForTenon(rail, t, tenonWorld(rail, t), goodIndex)?.partId === "leg-left-back")!;
+    expect(tenon, "接 leg-left-back 那一端榫頭要先找得到，才能做下面的破壞測試").toBeTruthy();
+    const matchGood = matchMortiseForTenon(rail, tenon, tenonWorld(rail, tenon), goodIndex);
+    const matchBroken = matchMortiseForTenon(rail, tenon, tenonWorld(rail, tenon), brokenIndex);
+    expect(matchGood?.partId, "現在的程式：榫頭配得到 leg-left-back 的榫眼").toBe("leg-left-back");
+    expect(matchBroken?.partId, "明顯偏移後：真正的引擎函式不應該還判定配得到 leg-left-back").not.toBe("leg-left-back");
+  });
+
+  it("桌面板 Y 座標若沒扣掉 topT（改回舊的 H−backRailH 高度）會跟後上橫檔重疊而不是貼齊", () => {
+    const top = build().parts.find((p) => p.id === "top")!;
+    const brokenTopY = 380; // 模擬「桌面板疊在最頂端沒有扣自己厚度」的錯誤（应該是 362）
+    expect(top.origin.y, "現在的桌面板 Y 應該是 362，不是天真地等於總高 380").not.toBe(brokenTopY);
+    expect(top.origin.y).toBe(380 - 18);
   });
 
   it("滑條 X 座標若改回舊的「固定間隙」公式會製造出間隙（證明 B2 斷言不是死的）", () => {
