@@ -18,65 +18,45 @@ import { getOption, opt } from "@/lib/types";
  *    修木釘接合＋三視圖標註缺口 → 第五輪用原始掃描圖重新核對盲榫 → 第六輪改用官方 114/06/18
  *    重新發行的向量版原稿定案盲榫 → 第七輪修正「圓弧與倒角」配分項位置到側上橫檔 → 第八輪
  *    最高規格五人組複查後的彙整修正（像素校準倒角真實角度、補木釘/螺釘展示零件與工序、鳩尾
- *    段數改 9、修好一個影響全站 13 款已上架家具的共用渲染 bug）→ **第九輪（本輪）解開「滑條
- *    支撐塊」懸案並修正滑條幾何** → 第十輪找回下橫檔補強螺釘（5→11）→ **第十一輪（本輪，換模型
- *    獨立重讀整張圖）：五金 17 部位懸案縮到剩 2，但同時發現前十輪對整體結構的判讀有系統性偏差，
- *    見下一段，上架前必須先由人決定要不要重建幾何**。詳見下方「最終彙整」。
+ *    段數改 9、修好一個影響全站 13 款已上架家具的共用渲染 bug）→ 第九輪解開「滑條支撐塊」懸案、
+ *    修正滑條幾何 → 第十輪找回下橫檔補強螺釘（7→11）→ 第十一輪（Fable 換模型獨立重讀，提出
+ *    「整體結構判讀錯誤、需要重建」的理論）→ **第十二輪：獨立驗證員嚴格交叉檢驗第十一輪的理論，
+ *    用像素量測＋材料下料驗算直接反證，結論是第十一輪不成立，現有結構（第七～十輪）維持不變**
+ *    → **第十三輪（本輪）：親自查證材料表註 3，解開「426×178×18×3 片未使用」的最後一個疑點；
+ *    五金裝配 17 部位維持第十輪的 11/17，這是圖面資訊本身的極限，經使用者拍板接受現況收尾**。
+ *    詳見下方「最終彙整」。
  *
- * 🔴🔴 **第十一輪（2026-09-24，Fable 接手獨立重讀）：整體結構判讀跟前十輪不同，這不是螺釘數的問題**
- *    本輪的任務只是找五金 17 部位剩下的 6 個，但為了不信任前面的摘要、自己從 600dpi 向量圖重新
- *    裁切每一個剖面跟三張 1:10 小組合圖，量到的結構跟現有模型（腳柱在四個角落、桌面板疊在腳頂、
- *    後側一支 90×20 上橫檔、前後各一支 45×32 下橫檔貼地、沒有側板/後板）對不起來。證據裁圖存在
- *    `docs/research/furniture-class-b/sources/b5-round11-crops/`（本機、不進 git，因為是付費題本衍生物）。
- *    逐條列出量到的東西（1:2 剖面 11.81px/mm、1:10 小圖 1.181px/mm，全部用 PIL 讀線條中心，不是目測）：
- *    1. **腳柱不在深度方向的兩端，而是內縮 45mm**：B-B 平面剖面裡腳柱剖面（32×45 斜線）上緣到後板
- *       外面的距離量出 532px＝45.0mm；1:10 側視圖兩支腳柱離外緣各 60px＝51mm（線寬誤差內）；俯視圖
- *       每端有兩個小方塊落在同樣的內縮位置。腳頂高出桌面板 5mm（A-A「10」＝腳頂到側橫檔頂）。
- *    2. **每端有一片 18mm 木心板側板、後面有一片 18mm 木心板後板**（材料表項次 7「木心板 426×178×18
- *       ×3 片」就是這三片，前十輪完全沒配置這項材料）：A-A 在腳柱內側緊貼一條 18 寬、畫橫向芯條線的
- *       帶子從桌面板底一路到地上方 150 處；C-C 左側有一條 18 厚、132 高、畫橫向芯條線的直立板（「5｜18」、
- *       「132」、頂底各一個 X 記號），就是後板剖面。1:10 側視圖兩腳外側到 380 全深都有 150 高的面板，
- *       腳柱之間多一條水平線＝側橫檔下緣。
- *    3. **側上橫檔 90×20 是每端一支、在兩支內縮腳柱之間（約 190 長）、木釘接腳柱**：A-A 在中深度切到
- *       一塊 20 寬×90 高的斜線剖面，貼腳柱內面、頂比腳頂低 10，兩個 ⊕ 相距 50——這條是 A-A 中深度切
- *       得到的，若橫檔只在後側就切不到。材料 600×92×21.5 一支剛好夠兩支 190。
- *    4. **側下橫檔 45×32 是「雪橇腳」（每端一支、370 長、平躺、腳柱立在它上面、端頭 8mm 斜切）**，不是
- *       前後貼地的橫檔：1:10 側視圖底部是一條 370 寬的梯形底座，正視圖每支腳柱底下有一個比腳寬的
- *       45 方塊；A-A 左下那個 45×32 斜線剖面就是它在中深度被切到（「15｜15」是腳柱榫頭的隱藏線）；
- *       C-C 下方「45｜45＋8」細部＝腳柱立在雪橇腳上、端頭斜切 8。「總深度 380/370」＝上面 380、雪橇腳 370。
- *    5. **前方下面有一支 60（深）×21（高）的前橫檔，木釘接兩片側板**：C-C 右下那塊帶 R6、兩個 ⊕ 的斜線
- *       剖面在正中央（C-C 剖面線位在正視圖 480 的 50.8% 處）被切到，中央沒有腳柱，所以第九輪「腳柱
- *       32＋滑條 14 相鄰同框」的解釋不成立；它的高度 21 對上材料 21.5 厚料。
- *    6. **桌面板只在兩排腳柱內面之間（416 含兩端 7mm 封邊）**，不是 493 寬：A-A 桌面板芯條從腳柱內面
- *       起算、左端先有一塊 7mm 斜線封邊。俯視圖的 493 是**兩支雪橇腳外緣的距離**（45 寬、比 32 的腳柱
- *       各多出 6.5 → 480＋13＝493，精確吻合），不是桌面板。
- *    7. **木釘總數對帳剛好 29 支＝材料表數量**：桌面↔側板 3×2、桌面↔後板 3（80/208/336）、後板↔側板
- *       2×2、側橫檔↔腳柱 2×4、抽屜後角 2×2、前橫檔↔側板 2×2 ＝ 6+3+4+8+4+4＝29。前十輪的模型只用
- *       8 支，材料表有 21 支木釘完全沒去處，這是「結構讀錯」最硬的旁證。
- *    8. **抽屜是側掛式**：A-A 滑條 14×15 鎖在側板內面（Ø3×25＝穿過 14 滑條再入側板 11），抽屜側板有
- *       「7｜15｜7」的溝槽騎在滑條上，不是滑條托住側板底邊。
- *    ⚠️ 以上每條都跟前十輪標成 HIGH 的「腳柱在四角」「桌面板疊腳頂」「上橫檔只在後側」直接衝突。本輪
- *    **沒有動幾何**——這已經不是補 6 支螺釘，是整個範本要重建（零件、榫接、木釘、工序、測試全部重來），
- *    且會推翻五人組審過的結論，該由人看過證據裁圖後決定，不由我單方面改路線。
+ * ⛔ **第十一輪（Fable）的重建理論已被第十二輪推翻，不要採信，保留這段只是留紀錄**：Fable 曾
+ *    主張腳柱內縮 45mm、側下橫檔其實是雪橇腳、有側板/後板/前橫檔、桌面板只 416 寬、木釘應有
+ *    29 支等一整套跟現有結構相反的判讀（完整內容見 commit `1b909036`）。第十二輪獨立驗證：
+ *    ①像素量測直接反證「45mm 內縮」與「493 是雪橇腳外緣」——腳柱角隅線緊貼 493 外框，沒有
+ *    45mm 空隙；②**材料下料驗算是決定性反證**：Fable 的雪橇腳＋腳柱需要 2188mm 的 1050×95×32.5
+ *    木料，但材料表這項本題只發 2 支＝2100mm，**根本切不出來**；側橫檔＋前橫檔同樣湊不出材料表
+ *    項次 2 的 600mm 供應量。現有結構（腳柱 4×362＋橫檔 416 長）每一項用料都乾淨對得上、有餘裕；
+ *    ③Fable 自己標舉的「木釘 29 支＝材料表數量」這條最硬旁證，直接被材料表原文推翻——見下方
+ *    「材料表註 3」，項次 9（木釘）跟項次 11、12（螺釘）一樣沒有逐題配額備註，是六題共用固定
+ *    發放量，不是本題要湊滿的目標數字；Fable 自己對螺釘已經套用這條規則排除、卻沒有一致套用到
+ *    木釘上，論證方法自我矛盾。④Fable 理論連自己想解決的「五金 17 部位」都沒湊齊（只到 15），
+ *    一個要推翻整個結構的理論解決不了自己的目標，是可信度的負向訊號。結論：**維持第七～十輪的
+ *    結構（腳柱在四角、桌面板疊腳頂、上橫檔只在後側、下橫檔前後貼地、滑條底部支撐抽屜），不
+ *    重建**。
  *
- * ✅ **第十一輪對「五金裝配 17 部位」的結論：圖上畫得出來的螺釘是 15 支，不是 11，也不是 17**
- *    C-C 剖面看向側板內面，畫了 6 個細十字「＋」（跟木釘的 ⊕ 圓圈記號刻意區分，就是螺釘頭端視）：
- *    每端 3 個——Y＝桌面板底下 29mm、Z＝腳柱中心（71）一個；Y＝101、Z＝71 一個；Y＝38（滑條高度）、
- *    Z＝62 一個。對照 A-A 的三支螺釘剖面（Ø3.5×30 上、Ø3×25 中、Ø3.5×30 下）：
- *    - Ø3.5×30 ×8：側板由內往外鎖進腳柱，每支腳柱 2 支（上/下各一）×4 支腳柱。30＝側板 18＋入腳 12。
- *    - Ø3×25 ×4：滑條鎖進側板，每根滑條前後各 1 支。25＝滑條 14＋入側板 11。
- *    - Ø2.4×15 ×3：抽屜底板鎖後板（不變）。
- *    ＝15。**17−15＝2 的缺口，最合理的解釋是每端中央還有一支圖上沒畫「＋」的螺釘**：A-A 是在中深度
- *    （Z≈190）切的，三支螺釘都畫在那裡，但下面那支 Ø3.5×30 在 Z＝190 根本沒有腳柱可鎖（側橫檔只到
- *    Y＝100），可見 A-A 的螺釘是「示意」不是「實位」；那麼上面那支 Ø3.5×30 在 Z＝190 是真的鎖進側橫檔
- *    （Y＝52 落在橫檔 10~100 範圍內）就說得通——每端上排 3 支（前腳、中橫檔、後腳）＋下排 2 支＝5，
- *    兩端 10，加滑條 4、底板 3＝**17**。另一個同樣湊得到 17 的解釋是每根滑條中央多一支（3×2＝6），
- *    但 C-C 沒畫中央的「＋」，兩種解釋圖面上都沒有直接證據，所以本輪**不硬選**，只記錄。
- *    也排除掉的可能性：①「17 是配分權重不是實體數」——這列 17×0.3＝5.1≈配分 5，跟其他每一列一樣
- *    是「部位數×每部位扣分＝配分」湊出來的，但同一張表裡外部接合那幾列已驗證是實體數，而且評分標準
- *    「釘頭完整」是逐顆看的，17 比較像實體數；②「材料表 14/14 是本題上限」——材料表標「每人份」，
- *    備註只有項次 1、2 分題，螺釘三項六題共用，所以 14 支不能拿來反推本題用幾支；③標題欄、圖框
- *    邊緣、三張小組合圖：全部裁過，沒有任何額外的螺釘/木釘記號。
+ * ✅ **第十三輪：材料表項次 7（木心板 426×178×18×3 片）未使用，已用官方文件本身的文字解開**——
+ *    材料表（PDF 第 6 頁）表底註 3 白紙黑字：「項次 6、7 木心板、項次 8 合板，以術科測試辦理
+ *    單位實際準備之材料為準」。這代表項次 6、7、8 這幾項板材**本來就是各考場自行準備、數量僅供
+ *    參考**，不是這題設計圖精確要求要用滿的固定材料——跟項次 2（600×92×21.5）備註「3 號題 0 支」
+ *    是同一種「材料表發的東西不代表這題一定要用到」的已驗證模式。項次 7 完全沒被本範本使用是
+ *    官方文件自己講明的正常情況，不是漏做構件的訊號，這點現在 100% 確認、不再是懸案。
+ *
+ * 🟡 **五金裝配 17 部位維持第十輪的 11/17（底板 3＋滑條 4＋下橫檔補強 4），剩 6 個已知是圖面
+ *    資訊本身的極限，非未查**：第十輪之後陸續嘗試過——系統性重新排查 A-A/B-B/C-C 三個剖面所有
+ *    ⊕/實心螺釘符號（沒有第四種位置）、上網搜尋教學影片/完成品照片/補習班資料（公開網路上沒有
+ *    這題的免費詳解資源）、換 Fable 模型獨立重讀整張圖（提出的重建理論已被第十二輪推翻，見上）。
+ *    材料表項次 9（木釘 29 支）、11（Ø3×25 螺釘 14 支）、12（Ø3.5×30 螺釘 14 支）都沒有逐題配額
+ *    備註，是六題共用固定量，**不受材料表註 3「以實際準備為準」的例外保護**（那條只適用於項次
+ *    6/7/8 板材），所以評審表「17 部位」仍是這題設計圖真正的答案，不是可以豁免的數字，但目前
+ *    找不到剩下 6 個的圖面證據。使用者 2026-09-24 已看過完整調查過程、拍板接受這個狀態收尾，
+ *    不再繼續深挖。上架前若監評/更高解析度官方原稿意外取得，可以回頭核對這條。
  *
  * ✅ **第九輪：「滑條支撐塊」懸案解開——不是缺一個新零件，是滑條本身太窄**。回官方 PDF 原始
  *    向量圖 A-A 剖面（不是 C-C，第八輪找錯剖面）清楚看到 2 支「Ø3×25 cns1051」螺釘水平鎖進
@@ -85,8 +65,7 @@ import { getOption, opt } from "@/lib/types";
  *    完全沒伸到腳柱（中間空 23.5mm），不是螺釘接合這件事本身不成立。本輪改成滑條加寬，從
  *    腳柱內面一路撐到抽屜側板內緣（見下方 EXAM.runnerH 註解），同一根滑條同時做到「鎖進腳柱」
  *    跟「托住側板」，不需要另外的零件。材料表第五題發 14 支 Ø3×25，兩根滑條各 2 支、共 4 支，
- *    餘裕很大。「五金裝配 17 部位」現在的組成：底板 3（Ø2.4×15）＋滑條 4（Ø3×25）＝7，跟評審表
- *    17 仍有落差，這條沒有完全解開，見下方「低優先未解項」。
+ *    餘裕很大。
  *
  * 🟡 **C-C 剖面那個帶 R6 圓角、兩個 ⊕ 記號的區塊，第九輪重新判讀後認為不是獨立零件**：像素級
  *    裁切核對後，那個位置沒有任何文字標註（不是 Ø3×25，也不是別的規格），且「32」「14」兩段
@@ -190,10 +169,9 @@ import { getOption, opt } from "@/lib/types";
  *   避免重蹈第八輪的坑。
  *
  * ⚪ 低優先未解項（不影響核心幾何，上架前可視情況處理）：
- *   - **五金裝配 17 部位：第十一輪已改判，見檔頭第十一輪段**。程式裡目前仍是第十輪的 11 支
- *     （底板 3＋滑條 4＋下橫檔補強 4），但圖面實際畫的是 15 支且鎖的對象不同（側板→腳柱 8、
- *     滑條→側板 4、底板 3），缺口 2 支最可能是每端中央一支。這條沒有在本輪改程式，因為它依附
- *     在「側板」這個現有模型根本沒有的零件上，得等整體結構重建一起做。
+ *   - **五金裝配 17 部位：維持第十輪的 11/17，經第十二輪確認第十一輪的改判不成立**。目前 11 支
+ *     （底板 3＋滑條 4＋下橫檔補強 4），剩 6 個查證到圖面資訊極限仍找不到，第十三輪已跟使用者
+ *     確認接受現況收尾，不再繼續深挖，見檔頭「五金裝配 17 部位」段的完整說明。
  *   - 抽屜前/側/後板同高 130mm 是簡化假設，未逐一覆核側板/後板是否比前板矮一截。
  *   - 桌面板封邊/核心沒有分開建模（簡化成單一板件），端面木紋/收邊細節未還原。
  *   - 側上橫檔↔腳柱盲榫處是否另有加強用的橫向木釘：向量圖看得到兩個獨立「ø8×30」標註，但無法
@@ -717,8 +695,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
   }
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
   warnings.push(isEn
-    ? "⚠️ Draft — DO NOT PUBLISH. Eleventh pass (independent re-read of the source drawing by a different model) found the overall structure modeled in passes 1-10 does not match the drawing: the legs are set 45 mm in from the ends and stand on two 370 mm sled feet, each end has an 18 mm core-board side panel plus a core-board back panel (material item 7, never used before), the 90×20 side rail is one per end between the legs, there is a 60×21 front rail, and the top spans only between the leg posts (the 493 in the plan is the sled-foot span). The drawing shows 15 screws (side panel→legs 8, runner→side panel 4, drawer bottom 3), not the 11 modeled here; the evaluation sheet's 17 most likely adds one mid-span screw per end. Geometry was deliberately NOT changed this pass — this needs a full rebuild after a human reviews the evidence crops referenced in the file header."
-    : "⚠️ 草稿、不可上架。第十一輪（換模型獨立重讀官方向量圖）發現前十輪的整體結構判讀跟圖面對不起來：腳柱從兩端內縮 45mm 並立在兩支 370 長的雪橇腳上、每端有一片 18mm 木心板側板加一片木心板後板（材料表項次 7，前十輪完全沒用到）、90×20 側橫檔是每端一支在腳柱之間、前方下面還有一支 60×21 前橫檔、桌面板只在兩排腳柱之間（俯視圖的 493 是雪橇腳外緣距離）。圖上畫的螺釘是 15 支（側板→腳柱 8、滑條→側板 4、底板 3）而不是這裡做的 11 支，評審表 17 最可能是每端中央再各一支。本輪刻意沒動幾何——這已經是整個範本要重建，得先由人看過檔頭列的證據裁圖再決定。");
+    ? "⚠️ Draft: an independent read by a different model (pass 11) proposed a full structural rebuild (legs inset 45mm on sled feet, added side/back panels, extra front rail); pass 12's independent verification refuted it with pixel measurement and material-takeoff arithmetic (the proposed structure needs more lumber than this question is issued) — the pass 1-10 structure stands confirmed. One item remains open: the evaluation sheet's 17 hardware positions are only matched to 11 (base 3 + runners 4 + lower-rail reinforcement 4); the remaining 6 could not be resolved from the available drawing after exhaustive review (systematic symbol search, an alternate model re-read, web research) — this is treated as a genuine limit of the source information, accepted as-is per user decision, not a sign of further undiscovered errors."
+    : "⚠️ 草稿。第十一輪（換模型獨立重讀）曾主張整個結構要重建（腳柱內縮立在雪橇腳上、加側板/後板、多一支前橫檔），但第十二輪獨立驗證用像素量測＋材料下料驗算直接反證（那套結構需要的木料比這題材料表發的還多，切不出來）——第七～十輪的結構維持確認有效，不重建。唯一還沒解開的是評審表「五金裝配17部位」目前只對到11個（底板3＋滑條4＋下橫檔補強4），剩6個經過多輪查證（三個剖面逐區排查、換模型重讀、網路資源搜尋）仍找不到，判斷是圖面資訊本身的極限，已跟使用者確認接受現況、不是還有沒查到的錯誤。");
 
   const design: FurnitureDesign = {
     id: `cert-b5-${W}x${D}x${H}`,
@@ -731,8 +709,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed (9 segments/corner) side-to-front corners and doweled back corners, riding on two runners screwed into the leg posts (2× Ø3×25 each) and supporting the drawer sides. **Eleventh-pass finding: this whole structure is a misreading of the drawing (legs set in on sled feet, core-board side/back panels, side rail per end, front rail, top only between posts) — see the file header; the template must be rebuilt before it can be trusted.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾（9段/角）、後角木釘，滑條一端鎖進腳柱（各2支Ø3×25）、另一端托住抽屜側板。**第十一輪判定：上面這整套結構是前十輪讀錯圖（實際是腳柱內縮立在雪橇腳上、有木心板側板/後板、每端一支側橫檔、還有前橫檔、桌面板只在腳柱之間），細節見檔頭；這個範本要整個重建之後才能信，現在不要拿來練習。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed (9 segments/corner) side-to-front corners and doweled back corners, riding on two runners screwed into the leg posts (2× Ø3×25 each) and supporting the drawer sides. **A proposed full-structure rebuild (pass 11) was independently investigated and refuted (pass 12) — this structure stands confirmed. One open item: the evaluation sheet's 17 hardware positions are matched to 11; see the file header for why the remaining 6 are treated as a documented limit, not an unresolved error.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾（9段/角）、後角木釘，滑條一端鎖進腳柱（各2支Ø3×25）、另一端托住抽屜側板。**曾有一套主張整個重建的說法（第十一輪），經獨立驗證後確認不成立（第十二輪），現有結構維持有效。唯一未解：評審表「五金裝配17部位」目前對到11個，剩6個查證到極限、已確認接受現況，細節見檔頭。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;
