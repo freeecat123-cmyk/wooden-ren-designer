@@ -17,6 +17,7 @@ import { planAssembly } from "@/lib/assembly/plan";
 import { buildWorldMortiseIndex, matchMortiseForTenon, tenonWorld } from "@/lib/assembly/joint-world";
 import { CompactThreeViews, mortiseLocalBox } from "@/lib/render/svg-views";
 import { deriveBuildSteps } from "@/lib/steps/derive";
+import { certB5Assembly } from "@/lib/templates/cert-b5";
 
 const entry = FURNITURE_CATALOG.find((e) => e.category === "cert-b5")!;
 const base = Object.fromEntries((entry.optionSchema ?? []).map((s) => [s.key, s.defaultValue])) as Record<string, string | number | boolean>;
@@ -142,9 +143,16 @@ describe("cert-b5 官方尺寸", () => {
     }
     const rail = part("back-rail");
     expect(rail.edgeChamferNote, "側上橫檔要有底部前緣倒角標記").toBeTruthy();
-    expect(rail.edgeChamferNote?.mm, "倒角量 8mm（C-C 剖面直接標註）").toBe(8);
+    // 第八輪像素校準修正：不是 45°小圓角，是水平 8mm×垂直 31mm（約 76°）的長斜切。
+    expect(rail.edgeChamferNote?.horizontalMm, "水平內縮 8mm（C-C 剖面直接標註）").toBe(8);
+    expect(rail.edgeChamferNote?.verticalMm, "垂直範圍 31mm（像素校準測量，不是 45° 隱含的 8mm）").toBe(31);
+    // ⭐ edge 描述文字本身也要驗——這是唯一沒有幾何約束、純打字容易錯的欄位（例如複製貼上時
+    // 抄錯、以後某輪不小心接錯零件），錯了師傅會倒錯邊，卻不會被任何幾何稽核攔到。
+    expect(rail.edgeChamferNote?.edge).toBe("底部前緣");
     const steps = deriveBuildSteps(d);
-    expect(steps.some((s) => s.id.startsWith("step-05-9b-edge-chamfer-")), "側上橫檔倒角工序要生成").toBe(true);
+    const chamferStep = steps.find((s) => s.id.startsWith("step-05-9b-edge-chamfer-"));
+    expect(chamferStep, "側上橫檔倒角工序要生成").toBeTruthy();
+    expect(chamferStep?.title, "工序文案要真的包含 edge 描述文字，不是憑空生成").toContain("底部前緣");
     expect(steps.some((s) => s.id === "step-05-9-foot-chamfer"), "不應該再生成腳底倒角工序（cert-b5 沒有這個特徵）").toBe(false);
   });
 
@@ -305,5 +313,67 @@ describe("cert-b5 變異測試（確認上面的斷言真的抓得到壞值，�
     expect(oldCxWorld + runnerW / 2, "舊公式算出來的滑條右緣（世界座標）").toBeLessThan(sideXMin);
     const runner = build().parts.find((p) => p.id === "runner-left")!;
     expect(runner.origin.x + runner.visible.thickness / 2, "現在的滑條右緣要 ≥ 側板左緣").toBeGreaterThanOrEqual(sideXMin);
+  });
+
+  // ⭐⭐ 第八輪最高規格複查：程式審查員對 35 個 EXAM 常數逐一變異測試，抓到 6 個完全沒有任何
+  // 斷言覆蓋——四道閘（既有 vitest 斷言／overlap／joints／machining）全部攔不到，因為這些常數
+  // 改壞後幾何仍然「內部自洽」（公式跟著調整），不會製造穿模或尺寸對不上，只是偏離了官方規格。
+  // 這批斷言直接鎖住這 6 個值，不靠公式反推，純粹釘死官方數字/圖面依據。
+});
+
+describe("cert-b5 補測試安全網（第八輪最高規格複查：程式審查員對 35 個 EXAM 常數逐一變異測試，抓到 6 個完全沒有任何斷言覆蓋）", () => {
+  // ⭐⭐ 四道閘（既有 vitest 斷言／overlap／joints／machining）全部攔不到這 6 個常數，因為改壞後
+  // 幾何仍然「內部自洽」（公式跟著調整），不會製造穿模或尺寸對不上，只是偏離了官方規格。
+  // 這批斷言直接鎖住這幾個值，不靠公式反推，純粹釘死官方數字/圖面依據。
+  const d = certB5Assembly();
+  const part = (id: string) => d.parts.find((p) => p.id === id)!;
+
+  it("⭐ E1：drawerBottomT 鎖 4mm（材料表合板厚度，不是隨底板槽公式自洽就可以是任意值）", () => {
+    expect(part("drawer-1-bottom").visible.thickness).toBe(4);
+  });
+  it("⭐ E2：runner 尺寸鎖 14×14（跟腳柱間隙、滑軌粗細跟這兩個數字連動，改壞了旁邊零件會跟著挪，不會穿模）", () => {
+    const runner = part("runner-left");
+    expect(runner.visible.width).toBe(14);
+    expect(runner.visible.thickness).toBe(14);
+  });
+  it("⭐ E3：鳩尾段數鎖 9（評審表「鳩尾榫密合18÷2角=9段」反推，不是沿用 cert-b4 的 5）", () => {
+    const shape = part("drawer-1-side-left").shape;
+    expect(shape?.kind === "dovetail-ends" ? shape.segmentCount : undefined).toBe(9);
+  });
+  it("⭐ E4：鳩尾榫深鎖 12mm（§05-10 半隱鳩尾榫長=板厚2/3，18×2/3=12）", () => {
+    const shape = part("drawer-1-side-left").shape;
+    expect(shape?.kind === "dovetail-ends" ? shape.pinDepth : undefined).toBe(12);
+  });
+  it("⭐ E5：Ø8 木釘直徑鎖死（改成 Ø25 這種離譜值時，auditJoints 只看兩邊直徑是否互相一致，不看是否真的是材料表發的 Ø8，這條斷言補這個洞）", () => {
+    const dowelMortises = d.parts.flatMap((p) => p.mortises.filter((m) => (m.label ?? "").includes("Ø8")));
+    expect(dowelMortises.length).toBeGreaterThan(0);
+    for (const m of dowelMortises) {
+      expect(m.length, `${m.label} 直徑`).toBe(8);
+      expect(m.width, `${m.label} 直徑`).toBe(8);
+    }
+  });
+
+  it("⭐ E6：木釘/螺釘工序真的會生成（第八輪修正：原本一個都沒有——木釘缺 visual 展示零件、螺釘 label 缺「導引孔」三字）", () => {
+    const steps = deriveBuildSteps(d);
+    const dowelStep = steps.find((s) => s.id === "step-05-dowel-holes");
+    expect(dowelStep, "鑽木釘孔工序要生成").toBeTruthy();
+    expect(dowelStep?.title).toContain("8 個");
+    // ⚠️ 只有 2 支「木釘」有 3D 展示零件（桌面板↔側上橫檔），不是實際物理上的 4 支——
+    // 抽屜後角那 2 支試過補展示零件但會製造 planAssembly 的假互鎖訊號，選擇不加，
+    // 見 cert-b5.ts「第八輪試過補...」那段完整說明。孔的數量（8個）不受影響。
+    expect(dowelStep?.title).toContain("2 支");
+    const screwStep = steps.find((s) => s.id === "step-08-2-screws");
+    expect(screwStep, "鎖木螺釘工序要生成").toBeTruthy();
+    expect(screwStep?.title).toContain("3 支");
+  });
+
+  it("⭐ E7：滑條螺釘鎖不到腳柱的假接合已拿掉（第八輪：滑條跟腳柱有 23.5mm 空隙，30mm 螺釘搆不到，改純膠合）", () => {
+    const runner = part("runner-left");
+    expect(runner.mortises, "滑條不應該再有任何螺釘孔").toEqual([]);
+  });
+
+  it("⭐ E8：0 overlap（新增的 4 個木釘展示零件不能製造假重疊——drawer 後角那兩個刻意只做插進後板的那一段，避開跟側板孔 7.5mm 的既有落差）", () => {
+    const overlaps = findOverlaps(d.parts);
+    expect(overlaps, JSON.stringify(overlaps)).toEqual([]);
   });
 });

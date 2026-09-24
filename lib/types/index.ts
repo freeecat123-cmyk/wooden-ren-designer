@@ -267,14 +267,19 @@ export interface Part {
   peripheralRebate?: { widthMm: number; depthMm: number };
 
   /**
-   * 端緣 45° 小倒角——純文件/工序標記，**不影響 3D 幾何、材積、CSG**。
-   * 用於「圖上只在板件某一端畫了 8mm×45° 小斜切，量太小、太局部，不值得為它
-   * 開一個新的 3D shape kind」的情況（跟 `peripheralRebate` 只影響 2D 輪廓同一類
-   * 精神，這個連 2D 輪廓都不畫，純粹讓 `deriveBuildSteps` 生成對應工序、材料單/
-   * 零件圖文字提醒師傅去做）。
+   * 端緣斜切小倒角——純文件/工序標記，**不影響 3D 幾何、材積、CSG**。
+   * 用於「圖上只在板件某一端畫了一道斜切造型、量太小或太局部，不值得為它開一個
+   * 新的 3D shape kind」的情況（跟 `peripheralRebate` 只影響 2D 輪廓同一類精神，
+   * 這個連 2D 輪廓都不畫，純粹讓 `deriveBuildSteps` 生成對應工序、材料單/零件圖
+   * 文字提醒師傅去做）。
+   * ⚠️ 2026-09-24 乙級第五題最高規格複查修正：原本只有單一 `mm` 欄位、隱含
+   * 45°角，但官方圖用像素校準量出來的斜切其實是「水平內縮 horizontalMm、
+   * 垂直範圍 verticalMm」兩個各自獨立的數字（cert-b5 的側上橫檔倒角量出
+   * 8×31，接近 76°，完全不是 45°），改成兩個欄位才如實反映圖面，不要再假設
+   * 「小倒角＝45°」這個未經驗證的預設。
    * `edge` 純文字描述（例如 "bottom-front"），給工序文案用，不是機器判斷的欄位。
    */
-  edgeChamferNote?: { mm: number; edge: string };
+  edgeChamferNote?: { horizontalMm: number; verticalMm: number; edge: string };
 
   /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows

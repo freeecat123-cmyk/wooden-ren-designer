@@ -1263,16 +1263,18 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     });
     for (const p of edgeChamferParts) {
       const note = p.edgeChamferNote!;
+      const angleDeg = (Math.atan2(note.verticalMm, note.horizontalMm) * 180) / Math.PI;
       extra.push({
         id: `step-05-9b-edge-chamfer-${p.id}`,
         phase: "cut-joinery",
-        title: `${p.nameZh} ${note.edge} 邊 ${note.mm}×45° 小倒角`,
-        description: `${p.nameZh}的${note.edge}邊緣削一道 ${note.mm}mm 的 45° 小斜切（不是四邊都倒，只有圖上標的這一邊）。**評審表「表面處理－圓弧與倒角」有配分**，漏做直接扣。`,
+        title: `${p.nameZh} ${note.edge} 邊 ${note.horizontalMm}×${note.verticalMm} 斜切（約 ${angleDeg.toFixed(0)}°）`,
+        description: `${p.nameZh}的${note.edge}邊緣削一道斜切：水平內縮 ${note.horizontalMm}mm、垂直範圍 ${note.verticalMm}mm（約 ${angleDeg.toFixed(0)}°，不是常見的 45° 小圓角，斜切幅度較大）。**評審表「表面處理－圓弧與倒角」有配分**，漏做直接扣。`,
         toolIds: ["chisel-set-3-6-12", "sandpaper-set"],
-        estimatedMinutes: 3,
+        estimatedMinutes: 5,
         bullets: [
-          `在${note.edge}邊劃一道距邊緣 ${note.mm}mm 的線，斜切到線為止`,
-          "只有圖上標的那一邊要倒，其餘邊維持直角，別倒過頭",
+          `在邊緣劃一道水平內縮 ${note.horizontalMm}mm 的線、再劃一道垂直 ${note.verticalMm}mm 的線，兩線交點連到料邊就是斜切線`,
+          "只有圖上標的那一邊要斜切，其餘邊維持直角，別倒過頭",
+          "斜面較陡（非 45°），建議先用鋸子開粗坯再用鉋刀修平，別直接鑿",
           "砂紙把斜面帶順，避免留下鉋痕",
         ],
       });
