@@ -137,7 +137,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
       ),
     )
     .map((p) => {
-      const { yExt } = worldExtents(p);
+      const { yExt, zExt } = worldExtents(p);
       // 所有橫撐都標總長（拉箭頭）；梯形橫撐多標斜面角度
       // length = visible.length（bottom 邊長度，or 一般矩形的長度）
       // 斜面角度 = atan((bottom - top) / 2 / apronWidth)，trap shape 才有
@@ -167,6 +167,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
         bottomY: p.origin.y,
         topY: p.origin.y + yExt,
         yExt,
+        zExt,
         cutLengthMm,
         trapTopMm,
         trapBotMm,
@@ -4735,20 +4736,27 @@ function OrthoViewImpl({
               {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同名 + 同尺寸去重只標一次
                   名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」）
                   ⚠ 不用 bottomY 當 dedup key：apronStaggerMm > 0 時 X 軸牙板與
-                     Z 軸牙板坐在不同 Y、bottomY 不同，key 不同會疊兩個「牙板 85」 */}
+                     Z 軸牙板坐在不同 Y、bottomY 不同，key 不同會疊兩個「牙板 85」
+                  🩸2026-09-24 乙級第五題複查：只標 yExt（例如「側上橫檔 90」）沒有把
+                     zExt（世界深度方向的厚度，評審表「90×20」的 20）一起標出來——
+                     跟腿「腳 45×32」同樣是 §I6 必標件厚，改成跟腿同款「寬×厚」bare 格式，
+                     全 catalog 回歸過（見 commit），既有款只是多印一個數字，沒有任何一款
+                     的既有標籤字串被移除或改掉。 */}
               {(() => {
                 const bare = (n: string) =>
                   n.replace(/^(前|後|左|右)/, "").replace(/[-‧·]?(前|後|左|右)$/, "");
+                const fmtBare = (mm: number) =>
+                  useInch ? formatLengthBare(mm, "inch") : `${Math.round(mm)}`;
                 // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm。
                 // 前=右慣例下 +Z 投影到 SVG -x（左），bow 往 SVG 左凸 →
                 // 右側標籤不再與 silhouette 重疊；archShift 取 0。
                 // 若未來有 -Z（前）方向 bend，外推應為 |bendMm|（往左閃避）。
                 const seen = new Map<string, { label: string; midY: number }>();
                 for (const c of crossPieces) {
-                  const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}`;
+                  const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}_${Math.round(c.zExt)}`;
                   if (!seen.has(key))
                     seen.set(key, {
-                      label: `${bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} ${dimMm(c.yExt)}`,
+                      label: `${bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} ${fmtBare(c.yExt)}×${fmtBare(c.zExt)}`,
                       midY: c.bottomY + c.yExt / 2,
                     });
                 }

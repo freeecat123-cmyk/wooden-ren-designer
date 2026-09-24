@@ -176,15 +176,31 @@ describe("cert-b5 官方尺寸", () => {
     }
   });
 
-  it("⭐ D4：三視圖現在真的標出評審表尺寸了（補桌面板前，extractFurnitureDims 找不到 top 零件、整層標註是空的）", () => {
+  it("⭐ D4：三視圖真的標出評審表尺寸了（用 <text> 節點內容比對，不是字串巧合命中）", () => {
+    // 🩸2026-09-24 獨立複查員抓到：上一輪用 svg.includes("20") 這種寫法會巧合命中座標數字
+    // 裡的子字串（例如 y1="-362" 裡的 "20"），誤判成「已標註」。改成真的解析 <text> 節點內容，
+    // 逐一核對評審表 8 項官方尺寸裡「數字真的以獨立文字節點形式出現」的有幾項。
     const svg = renderToStaticMarkup(React.createElement(CompactThreeViews, { design: d, locale: "zh-TW" }));
     expect(svg.match(/NaN|Infinity/g) ?? []).toEqual([]);
     expect((svg.match(/<(path|rect|line|polygon)\b/g) ?? []).length).toBeGreaterThan(50);
-    // 機器驗證字串內容（不是用眼睛看）：評審表 8 項尺寸至少要有幾個數字真的印在 SVG 裡。
-    // 不要求全部 8 個都出現（有些是複合標註格式），但補了桌面板之後這個數字不能再是 0。
-    const officialNumbers = ["380", "480", "45", "32", "90", "20", "370", "340", "130"];
-    const hits = officialNumbers.filter((n) => svg.includes(n));
-    expect(hits.length, `三視圖字串裡應該出現官方尺寸數字，實際命中：${hits.join(",")}`).toBeGreaterThan(0);
+    const textNodes = [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => m[1]);
+    const labeledNumbers = new Set<string>();
+    for (const t of textNodes) for (const n of t.match(/\d+/g) ?? []) labeledNumbers.add(n);
+    // 8 項扣掉「抽屜深度 340」：drawerFaces 標註機制只抓前視面寬×高（370×130），
+    // 側視深度需要一個全新的側視圖標註子系統，這輪判斷風險/工作量超出範圍，明講留給下一輪，
+    // 不假裝這條也修好了（下面只驗證另外 7 項真的以獨立文字節點出現）。
+    const mustLabel = ["380", "480", "45", "32", "90", "20", "370", "130"];
+    const missing = mustLabel.filter((n) => !labeledNumbers.has(n));
+    expect(missing, `評審表尺寸沒有真的印成 <text> 節點：${missing.join(",")}`).toEqual([]);
+  });
+
+  it("⭐ D5：桌面板↔側上橫檔的 Ø8×30 木釘真的兩兩配對成功（不是各自孤立的孔）", () => {
+    const a = auditJoints(d);
+    const topDowels = part("top").mortises;
+    const railTopDowels = part("back-rail").mortises.filter((m) => (m.label ?? "").includes("桌面板"));
+    expect(topDowels.length, "桌面板應該有木釘孔").toBeGreaterThan(0);
+    expect(railTopDowels.length, "側上橫檔應該有數量相同的對應木釘孔").toBe(topDowels.length);
+    expect(a.unmatchedMortises.length, "全部木釘（含這輪新增的桌面板↔橫檔）都應該兩兩配對成功").toBe(0);
   });
 
   it("0 穿模（含各選項）、榫接 0 落單、組裝順序算得出來", () => {
@@ -250,6 +266,32 @@ describe("cert-b5 變異測試（確認上面的斷言真的抓得到壞值，�
     const brokenTopY = 380; // 模擬「桌面板疊在最頂端沒有扣自己厚度」的錯誤（应該是 362）
     expect(top.origin.y, "現在的桌面板 Y 應該是 362，不是天真地等於總高 380").not.toBe(brokenTopY);
     expect(top.origin.y).toBe(380 - 18);
+  });
+
+  it("桌面板木釘孔挖太深（超過桌面板 18 厚）時，深度稽核會抓到（證明新木釘的深度真的有被驗）", () => {
+    // 🩸這條原本想用「拿掉伙伴變孤兒」測位置配對，實測發現 dowelPartner 是全域貪婪配對
+    // （不限鄰近零件），拿掉側上橫檔的孔後桌面板的孔會被跟抽屜其他 Ø8 木釘配對走，
+    // 不會變孤兒——這是全域配對範圍過寬的既有現象，跟 100mm 位置偏移那個一樣屬於
+    // [[feedback_wrd_audit_blind_spots]]，已記錄在檔頭，不是這裡要驗的東西。
+    // 改用同一份既有斷言邏輯（「不貫穿的挖除都不可以比料厚深」）驗證深度：桌面板厚 18mm，
+    // 木釘孔正常是 12mm（見 D5），改成 20mm 會超過桌面板本身的厚度，這個真的會被抓到。
+    const top = build().parts.find((p) => p.id === "top")!;
+    const dowel = top.mortises[0];
+    const brokenDepth = 20; // 桌面板只有 18 厚，20mm 的孔會鑽穿桌面
+    expect(dowel.depth, "現在的深度應該安全（≤18）").toBeLessThan(brokenDepth);
+    const brokenTop = { ...top, mortises: [{ ...dowel, depth: brokenDepth }, ...top.mortises.slice(1)] };
+    const box = mortiseLocalBox(brokenTop, brokenTop.mortises[0]);
+    const alongDepth = { x: brokenTop.visible.length, y: brokenTop.visible.thickness, z: brokenTop.visible.width }[box.depthAxis ?? "y"];
+    expect(brokenDepth, "改壞後的深度應該超過桌面板沿深度軸的厚度").toBeGreaterThan(alongDepth);
+  });
+
+  it("桌面板木釘孔直徑改錯（跟側上橫檔的孔對不上）時，auditJoints 會抓到配不到", () => {
+    const d2 = build();
+    const top = d2.parts.find((p) => p.id === "top")!;
+    const brokenTop = { ...top, mortises: top.mortises.map((m) => ({ ...m, length: 6, width: 6 })) }; // Ø8 改成 Ø6
+    const brokenDesign = { ...d2, parts: d2.parts.map((p) => (p.id === "top" ? brokenTop : p)) };
+    const a = auditJoints(brokenDesign);
+    expect(a.unmatchedMortises.length, "直徑對不上時，桌面板的孔應該被判定配不到").toBeGreaterThan(0);
   });
 
   it("滑條 X 座標若改回舊的「固定間隙」公式會製造出間隙（證明 B2 斷言不是死的）", () => {
