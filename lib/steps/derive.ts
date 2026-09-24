@@ -1245,6 +1245,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     const legs = design.parts.filter((p) => /^leg[-_]|^leg$/.test(p.id)).length;
     const chamfer = design.parts.find((p) => p.shape?.kind === "splayed" && p.shape.footChamferMm);
     const chamferMm = chamfer?.shape?.kind === "splayed" ? chamfer.shape.footChamferMm : undefined;
+    const edgeChamferParts = design.parts.filter((p) => p.edgeChamferNote);
     const pilotHoles = design.parts.flatMap((p) => p.mortises.filter((m) => (m.label ?? "").includes("導引孔"))).length;
     const extra: BuildStep[] = [];
     if (legs > 0 && chamferMm) extra.push({
@@ -1260,6 +1261,22 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
         "四支要一致——監評是四支一起看的",
       ],
     });
+    for (const p of edgeChamferParts) {
+      const note = p.edgeChamferNote!;
+      extra.push({
+        id: `step-05-9b-edge-chamfer-${p.id}`,
+        phase: "cut-joinery",
+        title: `${p.nameZh} ${note.edge} 邊 ${note.mm}×45° 小倒角`,
+        description: `${p.nameZh}的${note.edge}邊緣削一道 ${note.mm}mm 的 45° 小斜切（不是四邊都倒，只有圖上標的這一邊）。**評審表「表面處理－圓弧與倒角」有配分**，漏做直接扣。`,
+        toolIds: ["chisel-set-3-6-12", "sandpaper-set"],
+        estimatedMinutes: 3,
+        bullets: [
+          `在${note.edge}邊劃一道距邊緣 ${note.mm}mm 的線，斜切到線為止`,
+          "只有圖上標的那一邊要倒，其餘邊維持直角，別倒過頭",
+          "砂紙把斜面帶順，避免留下鉋痕",
+        ],
+      });
+    }
     if (pilotHoles > 0) extra.push({
       id: "step-08-2-screws",
       phase: "glue",
@@ -1294,6 +1311,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     };
     const byId = Object.fromEntries(extra.map((st) => [st.id, st]));
     if (byId["step-05-9-foot-chamfer"]) insertBefore("step-06-dry-fit", byId["step-05-9-foot-chamfer"]);
+    for (const st of extra) if (st.id.startsWith("step-05-9b-edge-chamfer-")) insertBefore("step-06-dry-fit", st);
     insertAfter("step-06-dry-fit", byId["step-06-2-inspect"]);
     if (byId["step-08-2-screws"]) insertAfter("step-08-glue-final", byId["step-08-2-screws"]);
     // 「完工檢查與驗收」的 phase 留在 finish 會被 UI 顯示成「塗裝」，但檢定不塗裝 → 改掛 fit

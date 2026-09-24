@@ -134,17 +134,18 @@ describe("cert-b5 官方尺寸", () => {
     expect(lowerRail.tenons.every((t) => t.thickness === 18), "下橫檔仍用 18 厚榫（32 厚料留 7mm 肩，本來就沒問題）").toBe(true);
   });
 
-  it("⭐ B6：腳底倒角掛上 footChamferMm（評審表「圓弧與倒角」配分項，原本直腳完全沒有這個工序）", () => {
+  it("⭐ B6（第七輪改判）：「圓弧與倒角」配分項掛在側上橫檔端緣，不是腳柱底端", () => {
+    // 第六輪誤判成腳底倒角；第七輪用向量圖 C-C 剖面「45|45+8」尺寸鏈（45+45=90=backRailH，
+    // 腳柱 45×32 湊不出這條鏈）改正到側上橫檔。腳柱本身應維持直角、不借 splayed shape。
     for (const id of ["leg-left-front", "leg-left-back", "leg-right-front", "leg-right-back"]) {
-      const shape = part(id).shape;
-      expect(shape?.kind, `${id} 要借 splayed(dx=dz=0) 掛倒角`).toBe("splayed");
-      if (shape?.kind === "splayed") {
-        expect([shape.dxMm, shape.dzMm], `${id} 不可真的斜掉，dx/dz 必須是 0`).toEqual([0, 0]);
-        expect(shape.footChamferMm, `${id} 要有腳底倒角`).toBeGreaterThan(0);
-      }
+      expect(part(id).shape, `${id} 應維持直角，不再借 splayed shape 掛倒角`).toBeUndefined();
     }
+    const rail = part("back-rail");
+    expect(rail.edgeChamferNote, "側上橫檔要有底部前緣倒角標記").toBeTruthy();
+    expect(rail.edgeChamferNote?.mm, "倒角量 8mm（C-C 剖面直接標註）").toBe(8);
     const steps = deriveBuildSteps(d);
-    expect(steps.some((s) => s.id === "step-05-9-foot-chamfer"), "腳底倒角工序要生成").toBe(true);
+    expect(steps.some((s) => s.id.startsWith("step-05-9b-edge-chamfer-")), "側上橫檔倒角工序要生成").toBe(true);
+    expect(steps.some((s) => s.id === "step-05-9-foot-chamfer"), "不應該再生成腳底倒角工序（cert-b5 沒有這個特徵）").toBe(false);
   });
 
   it("⭐ 每支榫頭都配得到位置與軸向都對的榫眼（auditJoints 只比尺寸，抓不到這個）", () => {

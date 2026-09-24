@@ -267,6 +267,16 @@ export interface Part {
   peripheralRebate?: { widthMm: number; depthMm: number };
 
   /**
+   * 端緣 45° 小倒角——純文件/工序標記，**不影響 3D 幾何、材積、CSG**。
+   * 用於「圖上只在板件某一端畫了 8mm×45° 小斜切，量太小、太局部，不值得為它
+   * 開一個新的 3D shape kind」的情況（跟 `peripheralRebate` 只影響 2D 輪廓同一類
+   * 精神，這個連 2D 輪廓都不畫，純粹讓 `deriveBuildSteps` 生成對應工序、材料單/
+   * 零件圖文字提醒師傅去做）。
+   * `edge` 純文字描述（例如 "bottom-front"），給工序文案用，不是機器判斷的欄位。
+   */
+  edgeChamferNote?: { mm: number; edge: string };
+
+  /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows
    * toward the bottom (top face = visible dims, bottom face scaled by
    * `shape.bottomScale`). Geometry/material calculations still use the
