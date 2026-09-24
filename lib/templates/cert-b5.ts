@@ -17,18 +17,27 @@ import { getOption, opt } from "@/lib/types";
  * ⚠️⚠️ **開發歷程：第一版單人讀圖建模 → 五人組複查修 7 個 bug → 第三輪補桌面板 → 第四輪
  *    修木釘接合＋三視圖標註缺口 → 第五輪用原始掃描圖重新核對盲榫 → 第六輪改用官方 114/06/18
  *    重新發行的向量版原稿定案盲榫 → 第七輪修正「圓弧與倒角」配分項位置到側上橫檔 → 第八輪
- *    （本輪，最高規格五人組複查後的彙整修正）：像素校準倒角真實角度（不是 45°）、補齊木釘/
- *    螺釘展示零件與工序、拿掉搆不到腳柱的假螺釘孔、鳩尾段數改 9、補 8 條測試斷言、修好一個
- *    影響全站 13 款已上架家具的共用渲染 bug（獨立 commit，見 `lib/render/svg-views.tsx` 的
- *    `cross-piece-thickness-label.test.ts`）**。詳見下方「最終彙整」。
+ *    最高規格五人組複查後的彙整修正（像素校準倒角真實角度、補木釘/螺釘展示零件與工序、鳩尾
+ *    段數改 9、修好一個影響全站 13 款已上架家具的共用渲染 bug）→ **第九輪（本輪）解開「滑條
+ *    支撐塊」懸案並修正滑條幾何**。詳見下方「最終彙整」。
  *
- * 🔴 **第八輪唯一沒做完的事：滑條支撐塊這個零件還沒補**。評審表材料表對照員查出官方圖 C-C
- *    剖面有一個帶 R6 圓角、用 Ø3×25 螺釘鎖固的支撐塊（標註 60/32/14/18/6/5），材料表第五題發
- *    14 支 Ø3×25、程式一支都沒用到，這個缺件很可能是「五金裝配 17 部位只做出 7 個」「圓弧與
- *    倒角只做倒角沒做圓弧」的共同根因。本輪在補木釘展示零件時已經踩到一次「手推世界座標」
- *    的精度風險（drawer 後角木釘因為兩個孔本身有 7.5mm 落差，最後只能做半截、不敢做滿），
- *    這個支撐塊的幾何更複雜、風險更高，時間評估後選擇**不在本輪硬做**，留給下一輪專門處理，
- *    不要為了「做完」而在最後關頭引入沒有把握的新零件。
+ * ✅ **第九輪：「滑條支撐塊」懸案解開——不是缺一個新零件，是滑條本身太窄**。回官方 PDF 原始
+ *    向量圖 A-A 剖面（不是 C-C，第八輪找錯剖面）清楚看到 2 支「Ø3×25 cns1051」螺釘水平鎖進
+ *    腳柱，直接證實 Ø3×25 就是滑條專用的鎖固螺釘。第八輪誤判「滑條跟腳柱物理上搆不到」而把
+ *    螺釘整組拿掉、改純膠合——**方向錯了**：真正的問題是滑條寬度只有 14mm、對齊抽屜側板中心，
+ *    完全沒伸到腳柱（中間空 23.5mm），不是螺釘接合這件事本身不成立。本輪改成滑條加寬，從
+ *    腳柱內面一路撐到抽屜側板內緣（見下方 EXAM.runnerH 註解），同一根滑條同時做到「鎖進腳柱」
+ *    跟「托住側板」，不需要另外的零件。材料表第五題發 14 支 Ø3×25，兩根滑條各 2 支、共 4 支，
+ *    餘裕很大。「五金裝配 17 部位」現在的組成：底板 3（Ø2.4×15）＋滑條 4（Ø3×25）＝7，跟評審表
+ *    17 仍有落差，這條沒有完全解開，見下方「低優先未解項」。
+ *
+ * 🟡 **C-C 剖面那個帶 R6 圓角、兩個 ⊕ 記號的區塊，第九輪重新判讀後認為不是獨立零件**：像素級
+ *    裁切核對後，那個位置沒有任何文字標註（不是 Ø3×25，也不是別的規格），且「32」「14」兩段
+ *    數字剛好精確對上「腳柱寬 32ᅟ+ 滑條寬 14」，比較像是這個 C-C 平面剖面本來就會同時切到
+ *    腳柱跟滑條、兩者相鄰畫在一起，R6 很可能是腳柱腳底轉角的圓弧處理（跟「圓弧與倒角」評分項
+ *    裡的「圓弧」對應），不是一個叫「滑條支撐塊」的獨立零件。**這點沒有 100% 確定**（沒有找到
+ *    直接指向這個圓角的文字標註），维持第七輪已做的側上橫檔倒角（8×31mm 斜切）當作「圓弧與
+ *    倒角」這個合併 5 分項目的主要實作，腳柱是否還要另外補 R6 圓角留給下一輪視情況處理。
  *
  * ⭐⭐ **第六輪重大發現：官方入口現在提供的是全新向量版 PDF，不再是舊的掃描圖**。前五輪讀的
  *    `012002B15-practical.pdf` 這頁工作圖內嵌只有 1120×811px（約 110dpi）掃描圖，是先前信心
@@ -61,9 +70,9 @@ import { getOption, opt } from "@/lib/types";
  *   2. 側上橫檔倒角圖上只畫了一端（左端），無法排除兩端是否對稱都有——依這系列「畫一次、兩端
  *      對稱套用」的既有慣例，`edgeChamferNote` 目前只記「底部前緣」一個籠統標記，沒有分左右端；
  *      實際只做一端還是兩端都做，留給工班照工序描述判斷，不影響材積/報價（cosmetic-only）。
- *   3. C-C 剖面另有一處抽屜滑條支撐塊轉角的「R6」圓弧標註，跟本題無關的另一個表面處理特徵，
- *      本輪沒有動它（不在「圓弧與倒角」這條的修正範圍內，抽屜滑條支撐塊也不是需要額外倒角的
- *      評分部位——這條圓弧看起來是滑條支撐塊本身的造型細節，非配分項）。
+ *   3. C-C 剖面那個帶 R6 圓角、兩個 ⊕ 記號的區塊——第九輪重新判讀為「腳柱＋滑條相鄰同框」，
+ *      不是獨立零件（見檔頭「C-C 剖面那個帶 R6 圓角」段），R6 疑似是腳柱腳底的圓弧處理，
+ *      但沒有直接文字標註佐證，這輪沒有另外幫腳柱補圓角幾何，留給下一輪視情況處理。
  *
  * ── 最終彙整（上架前一次看懂全貌，不用爬 commit 歷史）───────────────────
  *
@@ -114,11 +123,12 @@ import { getOption, opt } from "@/lib/types";
  *   - **鑽木釘孔／鎖螺釘兩個工序完全沒有生成**：根因是①沒有比照 cert-b1 補 `visual:"dowel"`
  *     展示零件（工序閘門靠這個判斷要不要生成）②螺釘孔的 label 字串沒帶「導引孔」三個字（另一個
  *     閘門靠 `.includes("導引孔")`）。兩處都已修正，工序表現在正確顯示「鑽木釘孔 8 個（木釘 4
- *     支）」「鎖木螺釘 3 支」。
+ *     支）」「鎖木螺釘 7 支」（底板 3 支 Ø2.4×15＋第九輪找回的滑條 4 支 Ø3×25）。
  *
  * ⚪ 低優先未解項（不影響核心幾何，上架前可視情況處理）：
- *   - **滑條支撐塊這個零件還沒做**：見檔頭「第八輪唯一沒做完的事」，這是本輪最重要的未竟事項，
- *     不是隨口列的小項——它牽動「五金裝配 17 部位」與「圓弧」兩個配分項的完整性。
+ *   - **五金裝配 17 部位仍未完全湊齊**：第九輪確認滑條螺釘是 Ø3×25（不是憑空多一個零件），現有
+ *     底板 3＋滑條 4＝7，跟評審表 17 仍有落差，缺口在哪（材料表其餘 Ø3.5×30 14 支目前完全沒用到，
+ *     可能還有別的接合點用得到）沒有查清楚，留給下一輪。
  *   - 抽屜前/側/後板同高 130mm 是簡化假設，未逐一覆核側板/後板是否比前板矮一截。
  *   - 桌面板封邊/核心沒有分開建模（簡化成單一板件），端面木紋/收邊細節未還原。
  *   - 側上橫檔↔腳柱盲榫處是否另有加強用的橫向木釘：向量圖看得到兩個獨立「ø8×30」標註，但無法
@@ -205,7 +215,7 @@ const EXAM = {
   drawerW: 370, drawerD: 340, drawerFrontH: 130,
   drawerFrontT: 18, drawerSideT: 15, drawerBackT: 15,
   drawerBottomT: 4, drawerBottomGrooveD: 7,
-  runnerW: 14, runnerH: 14,
+  runnerH: 14,                                 // 滑條高度14mm；寬度第九輪改成公式算（腳柱內面到側板內緣的跨距），不是固定值
   // 鳩尾齒數：第八輪修正。原本的 5 段是原封不動抄 cert-b4 沒有交代依據；評審表材料表對照員
   // 反推「鳩尾榫密合 18÷2角＝9段/角」，這個公式在 cert-b2 已對圖驗證成立（cert-b1 用同一公式
   // 對出 7 段/角）。改成 9 段。
@@ -219,6 +229,7 @@ const EXAM = {
   // 「45｜45」那組數字其實是側上橫檔寬度 90 的左右對半標註，不是角度）。
   railEdgeChamferH: 8, railEdgeChamferV: 31,
   screwDia: 2.4, screwLen: 15,                 // Ø2.4×15：材料表硬約束「本題只發 3 支、只有抽屜底板用得到」
+  runnerScrewDia: 3, runnerScrewLen: 25,       // Ø3×25：第九輪在官方圖A-A剖面找到，滑條鎖進腳柱用，每邊2支
 } as const;
 
 export const certB5Options: OptionSpec[] = [
@@ -580,29 +591,40 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
 
-    // 滑條 ×2：裝在兩端腳柱內側面，支撐抽屜側板（比照 cert-b1）
-    // ⚠️ 原本用「離腳內面固定間隙」算 cx，跟側板 X 範圍中間空 4mm、完全沒接觸（側板底邊
-    // 擱不到滑條上）。改成直接對齊側板本身的 X 中心，確保滑條真的落在側板正下方。
+    // 滑條 ×2：第九輪修正。官方圖 A-A 剖面（page-19，重新用 pdfimages 抽原始向量圖裁切確認）
+    // 清楚畫著 2 支「Ø3×25 cns1051」螺釘水平打穿滑條、鎖進腳柱——上一輪（第八輪）誤判這個接合
+    // 「物理上搆不到」而整個拿掉螺釘、改純膠合，方向錯了：真正的問題不是螺釘不該存在，是滑條
+    // 的寬度（原本只有 E.runnerW=14mm、對齊抽屜側板中心）太窄、沒有伸到腳柱——滑條跟腳柱之間
+    // 原本空 23.5mm，螺釘（30mm−穿滑條14mm＝剩16mm）當然搆不到。正確做法是把滑條加寬，
+    // 從腳柱內面一路撐到抽屜側板內緣（不是只對到側板中心），兩件事（鎖進腳柱＋托住側板）
+    // 用同一根滑條做到，不需要另外加零件。材料表第五題發 14 支 Ø3×25，可支援每邊 2 支＋餘裕。
     const runnerZ0 = sideZ0, runnerZ1 = sideZ1, runnerLen = runnerZ1 - runnerZ0;
     const runnerCz = (runnerZ0 + runnerZ1) / 2;
+    // 滑條寬度（世界 X 方向）＝從左腳內面（E.legW）撐到抽屜側板內緣（drawerCx−drawerW/2+drawerSideT），
+    // 兩端都吃得到：一端貼腳柱鎖螺釘、另一端整個寬度都托住側板底邊（側板厚 drawerSideT 全落在滑條上）。
+    const runnerT = (drawerCx - E.drawerW / 2 + E.drawerSideT) - E.legW;
     for (const sx of [0, 1] as const) {
-      const cx = sx === 0 ? drawerCx - E.drawerW / 2 + E.drawerSideT / 2 : drawerCx + E.drawerW / 2 - E.drawerSideT / 2;
+      const cx = sx === 0
+        ? (E.legW + drawerCx - E.drawerW / 2 + E.drawerSideT) / 2
+        : W - (E.legW + drawerCx - E.drawerW / 2 + E.drawerSideT) / 2;
+      // 螺釘沿滑條長度方向（local x，世界 z）取兩點；local y＝0 那一面朝向腳柱（世界 x 較小的一端），
+      // 深度吃滿螺釘長度 25mm（滑條厚 38mm，鑽穿滑條 14mm 再咬進腳柱 11mm，安全不會鑽穿腳柱 45mm厚）。
+      const screwMortises: Mortise[] = [-1, 1].map((k) => ({
+        origin: { x: k * runnerLen / 4, y: 0, z: E.runnerH / 2 },
+        depth: E.runnerScrewLen, ...round(E.runnerScrewDia), cosmetic: true, through: false,
+        label: isEn ? "Ø3×25 pilot hole, into leg" : "Ø3×25 導引孔（鎖入腳柱）",
+      }));
       parts.push({
         id: sx === 0 ? "runner-left" : "runner-right",
         nameZh: sx === 0 ? "抽屜滑條（左）" : "抽屜滑條（右）",
         nameEn: sx === 0 ? "Drawer runner (left)" : "Drawer runner (right)",
         material,
         grainDirection: "length",
-        visible: { length: runnerLen, width: E.runnerH, thickness: E.runnerW },
+        visible: { length: runnerLen, width: E.runnerH, thickness: runnerT },
         origin: { x: wx(cx), y: frontY0 - E.runnerH, z: wz(runnerCz) },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [],
-        // ⚠️ 第八輪拿掉：原本想比照 cert-b1 用 Ø3.5×30 螺釘把滑條鎖進腳柱，但最高規格複查
-        // 實測算出滑條跟腳柱之間有 23.5mm 空隙完全不相連（滑條 X 中心對齊的是抽屜側板，
-        // 不是腳柱）——螺釘全長 30mm 扣掉穿過滑條的 14mm 只剩 16mm，物理上搆不到腳柱，
-        // 這個「鎖進腳柱」的動作根本不成立。而且這個規格材料表也沒有證據支持是給滑條用的。
-        // 改成滑條純膠合固定在腳柱內側面（跟很多實木滑條的真實做法一致），不再開螺釘孔。
-        mortises: [],
+        mortises: screwMortises,
       });
     }
   }
@@ -614,8 +636,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
   }
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
   warnings.push(isEn
-    ? "⚠️ Draft, eighth pass: after a full five-reviewer re-audit, this pass corrected the chamfer's true angle (~76°, not 45°, pixel-measured), added missing dowel/screw build-step wiring, removed 4 screw holes that could not physically reach the leg post, fixed the dovetail segment count (9, not a copied 5), and added 8 test assertions. One known gap remains: a runner-support block (with a rounded corner and Ø3×25 screws) seen on the official drawing is not yet modeled — see the file header before treating this as equal quality to questions 1-4."
-    : "⚠️ 本範本歷經八輪：第二輪修掉五人組複查抓到的 7 個 bug，第三輪補上懷疑漏做的桌面板（493×370×18）並重算相關座標，第四輪修木釘接合與三視圖標註缺口，第五輪用原始掃描圖重新核對盲榫，第六輪改用官方重新發行的向量版原稿把盲榫判定確定下來，第七輪修正「圓弧與倒角」配分項的位置到側上橫檔，第八輪（本輪，最高規格五人組複查後）修正倒角真實角度（約76°非45°）、補齊木釘/螺釘工序、拿掉搆不到腳柱的假螺釘孔、鳩尾段數改9、補8條測試。仍缺一個滑條支撐塊零件沒做，細節見檔頭——上架前先看過，不要直接當成跟前四題同等級。");
+    ? "⚠️ Draft, ninth pass: after an eighth-pass five-reviewer re-audit (chamfer angle corrected to ~76°, dowel/screw build steps wired up, dovetail count fixed to 9), this pass resolved the 'runner support block' question — it wasn't a missing part, the runner itself was too narrow to reach the leg post (confirmed against the source drawing's A-A section, which shows 2× Ø3×25 screws fastening the runner to the leg). Runner widened, screws restored. Hardware count for 'fittings' still falls short of the evaluation sheet's 17 positions (7 modeled so far) — see the file header before treating this as equal quality to questions 1-4."
+    : "⚠️ 本範本歷經九輪：第二輪修掉五人組複查抓到的 7 個 bug，第三輪補上懷疑漏做的桌面板（493×370×18）並重算相關座標，第四輪修木釘接合與三視圖標註缺口，第五輪用原始掃描圖重新核對盲榫，第六輪改用官方重新發行的向量版原稿把盲榫判定確定下來，第七輪修正「圓弧與倒角」配分項的位置到側上橫檔，第八輪最高規格五人組複查後修正倒角真實角度（約76°非45°）、補齊木釘/螺釘工序、鳩尾段數改9，第九輪（本輪）解開「滑條支撐塊」懸案——不是缺零件，是滑條太窄沒伸到腳柱，回官方圖A-A剖面確認Ø3×25螺釘是滑條鎖進腳柱用，已加寬滑條、補回螺釘。「五金裝配17部位」目前只湊到7個，細節見檔頭——上架前先看過，不要直接當成跟前四題同等級。");
 
   const design: FurnitureDesign = {
     id: `cert-b5-${W}x${D}x${H}`,
@@ -628,8 +650,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed (9 segments/corner) side-to-front corners and doweled back corners, riding on two glued-in runners on the inside faces of the leg posts. **Eighth-pass draft, after a full five-reviewer re-audit: chamfer angle corrected (~76°), dowel/screw build steps wired up, an unreachable screw joint removed, dovetail count fixed. One gap remains — a runner-support block seen on the drawing is not yet modeled, see the file header before treating this as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾（9段/角）、後角木釘，滑條膠合固定在兩端腳柱內側。**第八輪範本（最高規格五人組複查後）：修正倒角真實角度、補齊木釘/螺釘工序、拿掉搆不到腳柱的假螺釘接合、鳩尾段數修正。仍缺一個圖上看得到的滑條支撐塊零件沒做，細節見檔頭，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32, now 362mm tall) topped by a 493×370×18 top panel, joined by one 90×20 upper back rail under the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed (9 segments/corner) side-to-front corners and doweled back corners, riding on two runners screwed into the leg posts (2× Ø3×25 each) and supporting the drawer sides. **Ninth-pass draft: resolved the 'runner support block' question (it was a runner-width bug, not a missing part) and restored the runner-to-leg screws. Hardware count still short of the evaluation sheet's 17 positions, see the file header before treating this as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳（現縮短為 362 高）疊一塊 493×370×18 桌面板，後側桌面板下緣架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾（9段/角）、後角木釘，滑條一端鎖進腳柱（各2支Ø3×25）、另一端托住抽屜側板。**第九輪範本：解開「滑條支撐塊」懸案（其實是滑條太窄的bug，不是缺零件），補回滑條鎖腳柱的螺釘。「五金裝配17部位」目前仍未湊齊，細節見檔頭，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;

@@ -102,14 +102,18 @@ describe("cert-b5 官方尺寸", () => {
     expect(sideDowel.depth, "側板孔（面鑽）不可超過側板厚度的安全牆 15/2").toBeLessThanOrEqual(7.5 + 0.01);
   });
 
-  it("⭐ B2：滑條真的落在抽屜側板正下方（原本 X 方向空 4mm，側板底邊擱不到滑條）", () => {
+  it("⭐ B2/第九輪修正：滑條真的落在抽屜側板正下方、且真的伸到腳柱內面（官方圖A-A的Ø3×25螺釘要搆得到）", () => {
     const side = part("drawer-1-side-left");
     const runner = part("runner-left");
+    const leg = part("leg-left-front");
     const sideX = [side.origin.x - side.visible.thickness / 2, side.origin.x + side.visible.thickness / 2];
     const runnerX = [runner.origin.x - runner.visible.thickness / 2, runner.origin.x + runner.visible.thickness / 2];
-    const overlap = Math.min(sideX[1], runnerX[1]) - Math.max(sideX[0], runnerX[0]);
-    expect(overlap, "滑條跟側板的 X 範圍要真的重疊，不能只是相鄰或留縫").toBeGreaterThan(0);
-    expect(r1(runner.origin.x)).toBe(r1(side.origin.x));
+    const legX = [leg.origin.x - leg.visible.length / 2, leg.origin.x + leg.visible.length / 2];
+    // 側板整條底邊都要落在滑條範圍內（不只是重疊，是完全覆蓋，側板才不會有一段懸空）
+    expect(runnerX[0], "滑條左緣要在側板左緣以左（含滑條寬度全罩住側板）").toBeLessThanOrEqual(sideX[0] + 0.01);
+    expect(runnerX[1], "滑條右緣要在側板右緣以右").toBeGreaterThanOrEqual(sideX[1] - 0.01);
+    // 滑條另一端要真的碰到腳柱內面（第八輪的23.5mm空隙bug：滑條太窄、只對到側板中心，搆不到腳柱）
+    expect(runnerX[0], "滑條左緣要碰到（≤）腳柱內面，Ø3×25螺釘才搆得到腳柱").toBeLessThanOrEqual(legX[1] + 0.01);
     // Y 方向：滑條頂面要等於側板底面（真的擱得到）
     expect(r1(runner.origin.y + runner.visible.width)).toBe(r1(side.origin.y));
   });
@@ -331,10 +335,14 @@ describe("cert-b5 補測試安全網（第八輪最高規格複查：程式審�
   it("⭐ E1：drawerBottomT 鎖 4mm（材料表合板厚度，不是隨底板槽公式自洽就可以是任意值）", () => {
     expect(part("drawer-1-bottom").visible.thickness).toBe(4);
   });
-  it("⭐ E2：runner 尺寸鎖 14×14（跟腳柱間隙、滑軌粗細跟這兩個數字連動，改壞了旁邊零件會跟著挪，不會穿模）", () => {
+  it("⭐ E2/第九輪修正：runner 高度鎖 14mm（原本連寬度也鎖14，但第九輪把寬度改成「腳柱內面到抽屜側板內緣」的跨距，不再是固定14，改鎖高度+驗跨距公式）", () => {
     const runner = part("runner-left");
     expect(runner.visible.width).toBe(14);
-    expect(runner.visible.thickness).toBe(14);
+    const leg = part("leg-left-front");
+    const side = part("drawer-1-side-left");
+    const legInner = leg.origin.x + leg.visible.length / 2;
+    const sideInner = side.origin.x + side.visible.thickness / 2;
+    expect(r1(runner.visible.thickness), "滑條寬度＝腳柱內面到抽屜側板內緣的跨距").toBe(r1(sideInner - legInner));
   });
   it("⭐ E3：鳩尾段數鎖 9（評審表「鳩尾榫密合18÷2角=9段」反推，不是沿用 cert-b4 的 5）", () => {
     const shape = part("drawer-1-side-left").shape;
@@ -364,12 +372,20 @@ describe("cert-b5 補測試安全網（第八輪最高規格複查：程式審�
     expect(dowelStep?.title).toContain("2 支");
     const screwStep = steps.find((s) => s.id === "step-08-2-screws");
     expect(screwStep, "鎖木螺釘工序要生成").toBeTruthy();
-    expect(screwStep?.title).toContain("3 支");
+    // 第九輪：底板3支(Ø2.4×15) + 兩根滑條各2支(Ø3×25)鎖進腳柱 = 7支，不再是只有底板的3支
+    expect(screwStep?.title).toContain("7 支");
   });
 
-  it("⭐ E7：滑條螺釘鎖不到腳柱的假接合已拿掉（第八輪：滑條跟腳柱有 23.5mm 空隙，30mm 螺釘搆不到，改純膠合）", () => {
+  it("⭐ E7/第九輪修正：滑條真的鎖進腳柱（官方圖A-A剖面的Ø3×25螺釘找回來了；第八輪誤判「搆不到」才整個拿掉，真正的洞是滑條太窄沒伸到腳柱，見cert-b5.ts第九輪註解）", () => {
     const runner = part("runner-left");
-    expect(runner.mortises, "滑條不應該再有任何螺釘孔").toEqual([]);
+    expect(runner.mortises.length, "滑條要有2支Ø3×25螺釘導引孔").toBe(2);
+    for (const m of runner.mortises) {
+      expect(m.length).toBe(3);
+      expect(m.width).toBe(3);
+      expect(m.depth).toBe(25);
+      expect(m.cosmetic).toBe(true);
+      expect(m.label ?? "").toContain("導引孔");
+    }
   });
 
   it("⭐ E8：0 overlap（新增的 4 個木釘展示零件不能製造假重疊——drawer 後角那兩個刻意只做插進後板的那一段，避開跟側板孔 7.5mm 的既有落差）", () => {
