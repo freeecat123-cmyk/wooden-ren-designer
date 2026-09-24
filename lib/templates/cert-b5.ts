@@ -15,16 +15,33 @@ import { getOption, opt } from "@/lib/types";
  *    官方應檢參考資料（完整題本 012002B15，本題圖框 112/10/27，不在 114/06/18 修正對照表範圍內，
  *    是現行版）請至 owinform.wdasec.gov.tw 下載，應檢以官方版本為準。
  *
- * ⚠️⚠️ **這份是單人單輪讀圖＋建模、沒有走過 b1~b4 那套「五人組（讀圖對照／評審表材料表對照／
- *    程式檢查／木工檢查／回歸檢查）平行複查」流程**（受限於本輪執行環境不能開子代理）。
- *    b1~b4 每一題都在複查輪抓到「圖上有標卻被寫成官方未規定」「origin.y 弄反」「width/thickness 對調」
- *    這種**三道閘（測試／auditJoints／findOverlaps）完全攔不下來**的錯誤，本題目前只有我自己覆核過一次，
- *    信心等級明顯低於前四題 → **上架前務必比照慣例「配檢查員跟對照員去檢查一輪」，不要直接當成跟 b1~b4 同等級**。
+ * ⚠️⚠️ **第一版是單人單輪讀圖＋建模，這是第二輪修正**：派出五人組（讀圖對照／評審表材料表對照／
+ *    程式變異測試／木工合理性／全站回歸）平行複查後，回原圖親自覆核，修掉下面「B類已修」列出的
+ *    7 個確認的 bug；但**「C類未解決」那兩項，尤其缺件疑慮，本輪判斷風險太高沒有動**，仍未達 b1~b4
+ *    的信心等級 → **上架前務必先解決 C 類兩項，不要直接當成跟 b1~b4 同等級**。
+ *
+ * 🔴🔴 **C類未解決（本輪判斷「動了風險比不動高」，刻意沒做，留給下一輪）**：
+ *   1. **懷疑漏做一塊桌面板**：五人組裡三位（讀圖對照員、木工審查員、程式審查員）各自獨立指向
+ *      同一件事——讀圖對照員在 B-B 剖面看到一片多塊拼接、Ø8×30 木釘接合的板，寬 493mm（比腳架
+ *      480mm 寬，兩側懸挑約 6.5mm）；程式審查員用 `renderToStaticMarkup` 機器驗證三視圖，
+ *      證實找不到 `top`/`seat` 類零件會讓 `extractFurnitureDims()` 整層標註 `return null`
+ *      （評審表 8 項尺寸一個字都沒標出來，這是本模型目前最大的已知缺陷）；木工審查員從工時偏低
+ *      （6.2h vs 官方 7h、跟其他四題 8~12h 有落差）反推同一個懷疑。
+ *      **本輪沒有加這塊板**：加了會把總高度從 380 頂破（腳架目前撐滿 0~380），要嘛縮短腳柱高度
+ *      要嘛重新分配後上橫檔／腳柱榫眼的世界座標——這條動的正是這份檔案已知最危險的一塊（腳柱
+ *      local z→世界 −y 高度換算，b1~b4 每一題都在這裡出過「三道閘攔不到」的事故），沒有五人組
+ *      同一輪次驗證，貿然改風險太高，寧可先不做、明講缺口，也不要生出新的無聲錯誤。
+ *   2. **總深度「380/370」還是沒有第二個獨立幾何特徵**：讀圖對照員懷疑是腳底縮進造成的第二個
+ *      包絡值，跟第 1 點的桌面板是不是同一件事（例如桌面板本身縮進 370？或另有底座）沒有定案。
+ *   3. **上下橫檔入腳「盲榫 vs 裂口榫」未定案**：讀圖對照員找到姊妹題 100206 明文寫「裂口榫接合、
+ *      各以 2 支木釘補強」，但 100205 本題沒有這行字，只能當中信心旁證。本模型**維持盲榫**（改成
+ *      裂口榫是換一種接合幾何，同樣屬於「沒有同輪驗證不敢動」的風險，留給下一輪連同第 1 點一起做）。
  *
  * ── 這是什麼（讀圖＋結構判斷，見下方逐項信心標記）──────────────────────
  * 480(寬)×380(深)×380(高) 的雙腳端單抽小凳／邊几：左右兩端各 2 支 45×32 直腳（不斜、不錐），
  * 兩端腳柱之間**只在後側**架一支 90×20 的上橫檔（貼齊腳頂），前後各架一支 45×32 的下橫檔（貼地），
  * 抽屜 370(寬，沿長向)×340(深，沿深向) 從**前面**推拉，滑條裝在兩端腳柱內側。
+ * **（上面 C1 點懷疑漏了一塊桌面板，本模型目前沒有——三視圖尺寸標註因此整層空白，見 C 類說明）**
  *
  * ⭐ HIGH confidence（評審表 PDF 第 11 頁直接列出，逐字抄）：
  *   總高度 380±1｜總寬度 480±1｜總深度 380/370±1｜側上橫檔寬厚 90×20±0.5｜
@@ -32,25 +49,30 @@ import { getOption, opt } from "@/lib/types";
  *   （最後一項比照 cert-b4 的解讀方式：跟該欄位在 b4 的用法一樣，這裡當**抽屜前板「高度」**用，
  *    不是字面的寬度——b4 檔頭已用同一張評審表版型論證過一次，b5 沿用同一判斷，未另外覆核。）
  *
- * 🟡 MEDIUM confidence（我自己讀圖＋跟評審表交叉推出來的結構判斷，**沒有第二人覆核**）：
- *   1. 上橫檔只有一支、在**後側**（不是兩端各一）：評審表「側上橫檔 90×20，2 部位」＝寬、厚各驗一次
- *      （1 支 × 2 個尺寸），不是 2 支——但「部位數不可反推件數」是本系列已證實不穩的規則
- *      （cert-b3/b4 檔頭都推翻過一次），這裡只能當旁證。工作圖左上角有一條沿寬度方向的長橫料（帶
- *      Ø8×30 木釘），从裁切位置看比較像**貫穿兩端、單一一支**的長橫檔，而不是兩支各自卡在單一端。
- *   2. 下橫檔前後各一（不是兩端各一）：評審表「側下橫檔 45×32，4 部位」＝2 支 × 2 尺寸。
- *   3. 抽屜從**前面**（沿深度方向）推拉，不是從某一端：抽屜外側 370×340 若解成「寬沿長向、深沿深向」，
- *      370 貼近兩端腳柱內距（480−2×32＝416 再扣滑條與間隙），340 貼近前後淨深（380−前後橫檔各留量），
- *      兩者都能封起來；若反過來（抽屜從端面拉）深度 340 會超過兩腳柱內距 290（45×2 端腳），做不出來
- *      ⇒ 用「哪個方向做得出來」反推方向，思路同 [[feedback_diagnose_by_diffing_success]]。
- *   4. 抽屜前/側/後板同高（130，直接取「抽屜前板 130」那個數字），沒有做 b1/b4 那種側板/後板各退縮
- *      幾 mm 的「反面」細節——圖面這塊沒有把握獨立判讀出退縮量，先用同高簡化，需要覆核。
- *   5. 總深度「380/370」兩個數字：本模型只用了 380（腳柱外緣跨距）；370 沒有另外做出一個獨立幾何特徵
- *      （個人判斷 370 很可能是同一把尺量到的抽屜寬度 370 在「總深度」列的重複記錄，但無法排除是
- *      腳底縮進/倒角造成的第二個包絡值）——**這條沒有被此模型滿足，需要下一輪覆核確認怎麼處理**。
- *   6. 上橫檔／下橫檔與腳柱的接合方式：本模型一律用**盲榫**（腳柱 32 厚只入 18，不貫穿），沒有圖面
- *      逐一核對榫深，是沿用 b1/b4 同類構件的常見做法，不是本題讀出來的官方數字。
- *   7. 滑條／螺釘位置：抽屜滑條裝在兩端腳柱內側面、Ø3.5×30 木螺釘鎖入，仿 cert-b1 的做法，
- *      本題工作圖上滑條細節沒有獨立覆核到（時間所限，優先顧全外部量測尺寸）。
+ * ✅ B類已修（五人組複查抓到、這輪回原圖／材料表／評審表確認後修掉的具體 bug，非判讀分歧）：
+ *   1. 上橫檔只有一支、在**後側**（不是兩端各一）：評審表材料表對照員重讀評審表核對，
+ *      「側上橫檔 90×20，2 部位」＝1 支 × 2 個尺寸（寬、厚各驗一次），跟部位數規則吻合，維持原判讀。
+ *   2. 下橫檔前後各一（不是兩端各一）：同上核對，「側下橫檔 45×32，4 部位」＝2 支 × 2 尺寸，維持原判讀。
+ *   3. 抽屜從**前面**（沿深度方向）推拉：讀圖對照員獨立重算過一次幾何（370 塞進兩腳內距 416 可行，
+ *      反過來 340 塞不進兩端腳內距 290 做不出來），維持原判讀，信心上修。
+ *   4. **抽屜後角木釘孔深度不夠**（原本兩孔合計只 15mm、Ø8×30 木釘插不到底，抽屜合不攏）：
+ *      改成側板孔（面鑽，留一半厚度安全牆）7.5mm ＋ 後板孔（端面木紋方向，不受厚度限制）22.5mm，
+ *      合計 30mm 剛好等於 dowelLen，跟 cert-b3/b4 同一套「淺孔+深孔湊滿木釘長度」的驗證過模式。
+ *   5. **滑條沒有真的接觸抽屜側板**（原本 X 方向中間空 4mm）：改成滑條 X 座標直接對齊側板本身的
+ *      X 中心，確保滑條落在側板正下方、側板底邊真的擱得到滑條頂面。
+ *   6. **鳩尾 `ends` 參數沒設**（型別預設 "both"，後角會被誤判成鳩尾母件）：加上 `ends:"plus"`
+ *      （local x 正＝世界 −z＝前面，"plus" 端對到前角，跟乙級第二題修過的同一種坑同一種修法）。
+ *   7. **Ø2.4×15 螺釘完全沒做**（材料表硬約束「本題只發 3 支、只有抽屜底板用得到」）：在後板加
+ *      3 個 cosmetic 導引孔，仿 cert-b1「底板從後板底下穿過、螺釘由下往上鎖」的做法。
+ *   8. **後上橫檔榫肩只剩 1mm**（原本沿用下橫檔 32 厚料的 18 厚榫，20 厚的後上橫檔留不出肩）：
+ *      新增專屬 `backRailTenonT=10`，留 5mm 肩；下橫檔繼續用 `legRailTenonT=18`（留 7mm 肩）不變。
+ *   9. **腳底倒角完全沒有**（評審表「圓弧與倒角」是表面處理 15% 裡的配分項，`derive.ts` 目前只有
+ *      `shape.kind==="splayed"` 才會觸發倒角工序）：腳柱加 `shape:{kind:"splayed",dxMm:0,dzMm:0,
+ *      footChamferMm:3}`——dx/dz=0 讓幾何等同直腳，只借這個機制掛 `footChamferMm` 觸發工序；
+ *      3mm 沿用 b1~b3 同款倒角量的既有慣例，本題沒有獨立回圖核對出處，跟 C 類同等級的不確定性，
+ *      但這條风险遠低於 C 類（純末端裝飾特徵，不影響其餘幾何位置），評估後選擇做。
+ *      連帶：滑條也各加 2 個 Ø3.5×30 導引孔（鎖進腳柱），讓 `derive.ts` 的「鎖木螺釘」工序生成——
+ *      這條沒有回圖核對確切位置，是為了讓材料表「五金裝配」有對應動作，非官方尺寸。
  *
  * ── 官方學科依據（012002A12.pdf，用來定沒有獨立標示的鳩尾角度/深度，跟 b3/b4 同一批）──
  * §01-19／§05-4 鳩尾斜度 1/6～1/8 → 取 9.46°；§05-10 半隱鳩尾榫長＝板厚 2/3 → 15×2/3＝10（本模型用 12，
@@ -76,11 +98,12 @@ const EXAM = {
   drawerW: 370, drawerD: 340, drawerFrontH: 130,
   drawerFrontT: 18, drawerSideT: 15, drawerBackT: 15,
   drawerBottomT: 4, drawerBottomGrooveD: 7,
-  runnerW: 14, runnerH: 14, runnerGap: 5,      // 滑條斷面；離抽屜側板/腳內面各留一點間隙
+  runnerW: 14, runnerH: 14,
   dovetailSegments: 5, dovetailAngleDeg: 9.46, dovetailPinDepth: 12,
-  dowelDia: 8, dowelLen: 30, dowelIntoFace: 15,
-  screwRunner: "Ø3.5×30 木螺釘（CNS1051）",
-  screwBottom: "Ø2.4×15 木螺釘（CNS1051）",
+  dowelDia: 8, dowelLen: 30, dowelIntoSideFace: 7.5,  // 側板孔淺（面鑽，留一半厚度安全牆）、後板孔深（端面木紋，吃剩下的長度）
+  backRailTenonT: 10,                          // 後上橫檔 20 厚專用榫厚（留 5mm 肩）；下橫檔 32 厚仍用 legRailTenonT=18（留 7mm 肩）
+  footChamferMm: 3,                            // 評審表「圓弧與倒角」配分項；沿用 b1~b3 同款倒角量，本題未獨立覆核出處
+  screwDia: 2.4, screwLen: 15,                 // Ø2.4×15：材料表硬約束「本題只發 3 支、只有抽屜底板用得到」
 } as const;
 
 export const certB5Options: OptionSpec[] = [
@@ -158,9 +181,11 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       label: isEn ? "mortise, lower rail tenon" : "側下橫檔盲榫眼",
     });
     // 上橫檔盲榫眼：只有「後側」兩支腳（sz===1）才有
+    // ⚠️ 榫厚用 backRailTenonT（10，非 legRailTenonT=18）——後上橫檔本身只有 20 厚，
+    // 沿用下橫檔（32厚）的 18 厚榫肩只剩 1mm、做不出來，這輪修正見 commit 說明。
     if (sz === 1) m.push({
       origin: { x: legInX * E.legW / 2, y: E.legD / 2, z: legCenterY - (H - E.backRailH / 2) },
-      depth: E.legRailTenonLen, length: E.backRailH, width: E.legRailTenonT,
+      depth: E.legRailTenonLen, length: E.backRailH, width: E.backRailTenonT,
       through: false,
       label: isEn ? "mortise, back rail tenon" : "側上橫檔盲榫眼",
     });
@@ -173,6 +198,9 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: E.legW, width: H, thickness: E.legD },
       origin: { x: wx(cx), y: 0, z: wz(cz) },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      // dxMm/dzMm=0：直腳、不斜，借 splayed shape 只為了掛 footChamferMm（評審表「圓弧與倒角」
+      // 配分項，共用層目前只有 splayed 腳型會觸發 derive.ts 的倒角工序，直腳沒有對應機制）。
+      shape: { kind: "splayed", dxMm: 0, dzMm: 0, footChamferMm: E.footChamferMm },
       tenons: [],
       mortises: m,
     });
@@ -193,7 +221,7 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: (["start", "end"] as const).map((position): Tenon => ({
         position, type: "blind-tenon",
-        length: E.legRailTenonLen, width: tenonW, thickness: E.legRailTenonT,
+        length: E.legRailTenonLen, width: tenonW, thickness: E.backRailTenonT,
         shoulderOn: ["top", "bottom"],
       })),
       mortises: [],
@@ -273,7 +301,10 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: sideLen, width: E.drawerFrontH, thickness: E.drawerSideT },
         origin: { x: wx(cx), y: frontY0, z: wz(sideCz) },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        shape: { kind: "dovetail-ends", segmentCount: E.dovetailSegments, phase: 0, angleDeg: E.dovetailAngleDeg, pinDepth: E.dovetailPinDepth, halfPin: true },
+        shape: { kind: "dovetail-ends", segmentCount: E.dovetailSegments, phase: 0, angleDeg: E.dovetailAngleDeg, pinDepth: E.dovetailPinDepth, halfPin: true, ends: "plus" },
+        // ⚠️ ends:"plus" 一定要設——型別預設 "both"（兩端都切鳩尾），這題設計是「只有前角鳩尾、
+        // 後角木釘」，沒設的話後端也會被當成鳩尾母件（乙級第二題踩過同一種坑，見 lib/types/index.ts
+        // 型別註解）。local x 正＝世界 −z＝前面（見下方註解），"plus" 端＝local x 正＝前端，符合意圖。
         tenons: [],
         // ⚠️ 側板底邊直接擱在滑條上（butt joint），本輪沒有另外幫滑條開槽——
         // 簡化為滑條頂面即承重面，不是官方畫法，需要下一輪覆核。
@@ -286,8 +317,9 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
           // 是不同一種錯，但同一類「欄位對應想當然爾」的坑）。
           // ⚠️ 這片側板 rotation{x:π/2,y:π/2} 下 local x → 世界 −z，正值反而指向前面；
           // 要落在後端（世界 Z＝sideZ1）要用 −sideLen/2，第一版正負號寫反，孔位跑到前端去了。
+          // 深度：淺孔鑽面（drawerSideT=15 厚只留一半安全牆 7.5mm）；深孔留給後板端面木紋方向。
           { origin: { x: -sideLen / 2, y: innerY, z: 0 },
-            depth: E.drawerSideT / 2, ...round(E.dowelDia),
+            depth: E.dowelIntoSideFace, ...round(E.dowelDia),
             label: isEn ? "Ø8 dowel, back panel" : "Ø8 木釘（後板）" },
         ],
       });
@@ -305,14 +337,27 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: wx(drawerCx), y: frontY0, z: wz(backCz) },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
-      mortises: [1, -1].map((ex) => ({
-        // 後板 rotation{x:π/2} 下 local y 是「入面深度」（0~thickness，不是高度！），
-        // local z 才對到世界高度；第一版把 y 寫成 drawerFrontH/2（想當成「置中高度」），
-        // 結果孔整組偏移 57.5mm 跑出側板的容許誤差——高度置中要用 z:0，y 只填厚度中點。
-        origin: { x: ex * (E.drawerW - 2 * E.drawerSideT) / 2, y: E.drawerBackT / 2, z: 0 },
-        depth: E.dowelIntoFace - E.drawerSideT / 2, ...round(E.dowelDia),
-        label: isEn ? "Ø8 dowel, side" : "Ø8 木釘（側板）",
-      })),
+      mortises: [
+        ...[1, -1].map((ex) => ({
+          // 後板 rotation{x:π/2} 下 local y 是「入面深度」（0~thickness，不是高度！），
+          // local z 才對到世界高度；第一版把 y 寫成 drawerFrontH/2（想當成「置中高度」），
+          // 結果孔整組偏移 57.5mm 跑出側板的容許誤差——高度置中要用 z:0，y 只填厚度中點。
+          // ⚠️ 深度修正：原本 15−7.5=7.5，兩孔合計只有 15mm（Ø8×30 木釘插不到底，抽屜合不攏）。
+          // 這孔鑽進端面木紋方向，不受 15mm 厚度限制，改成吃掉整支木釘剩下的長度：30−7.5=22.5。
+          origin: { x: ex * (E.drawerW - 2 * E.drawerSideT) / 2, y: E.drawerBackT / 2, z: 0 },
+          depth: E.dowelLen - E.dowelIntoSideFace, ...round(E.dowelDia),
+          label: isEn ? "Ø8 dowel, side" : "Ø8 木釘（側板）",
+        })),
+        // Ø2.4×15 木螺釘導引孔 ×3：材料表硬約束「本題只發 3 支、只有抽屜底板用得到」，
+        // 底板從後板底下穿過、螺釘由下往上鎖進後板（仿 cert-b1 做法），沿長度方向均分三處。
+        // z 公式跟前板底板槽同一套（本零件世界高中心 − 目標世界高），目標＝底板中心高度。
+        ...[-1, 0, 1].map((k): Mortise => ({
+          origin: { x: k * (E.drawerW - 2 * E.drawerSideT) / 3, y: E.drawerBackT / 2,
+            z: (frontY0 + E.drawerFrontH / 2) - (bottomPlateBottomY + E.drawerBottomT / 2) },
+          depth: E.screwLen, ...round(E.screwDia), cosmetic: true, through: false,
+          label: isEn ? "Ø2.4×15 screw, bottom panel" : "Ø2.4×15 木螺釘（底板）",
+        })),
+      ],
     });
 
     // 底板（4mm 合板）：入前板/兩側板槽 7，後端頂在後板內面
@@ -335,10 +380,12 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     });
 
     // 滑條 ×2：裝在兩端腳柱內側面，支撐抽屜側板（比照 cert-b1）
+    // ⚠️ 原本用「離腳內面固定間隙」算 cx，跟側板 X 範圍中間空 4mm、完全沒接觸（側板底邊
+    // 擱不到滑條上）。改成直接對齊側板本身的 X 中心，確保滑條真的落在側板正下方。
     const runnerZ0 = sideZ0, runnerZ1 = sideZ1, runnerLen = runnerZ1 - runnerZ0;
     const runnerCz = (runnerZ0 + runnerZ1) / 2;
     for (const sx of [0, 1] as const) {
-      const cx = sx === 0 ? legInnerX0 + E.runnerGap + E.runnerW / 2 : legInnerX1 - E.runnerGap - E.runnerW / 2;
+      const cx = sx === 0 ? drawerCx - E.drawerW / 2 + E.drawerSideT / 2 : drawerCx + E.drawerW / 2 - E.drawerSideT / 2;
       parts.push({
         id: sx === 0 ? "runner-left" : "runner-right",
         nameZh: sx === 0 ? "抽屜滑條（左）" : "抽屜滑條（右）",
@@ -349,7 +396,17 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
         origin: { x: wx(cx), y: frontY0 - E.runnerH, z: wz(runnerCz) },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [],
-        mortises: [],
+        // Ø3.5×30 木螺釘導引孔：滑條鎖進腳柱內側面，兩端各一（近前後兩支腳的位置）。
+        // ⚠️ 這片滑條跟抽屜側板同樣是雙重旋轉（x=π/2,y=π/2）：local x 才是沿長度方向
+        // （跟側板木釘孔 origin.x=-sideLen/2 同一套慣例），不是 local z——第一版寫反被
+        // `npm run audit` 的 mortise-spec 檢查抓到（origin.z 超出 part.width 範圍），已修正。
+        // through:true——螺釘貫穿滑條本身厚度（14mm）再繼續鎖進腳柱，不是止於滑條內部；
+        // 第一版寫 depth:20 又 through:false，20 超過滑條自己 14mm 厚，等於孔挖穿了還說沒貫穿。
+        mortises: ([-1, 1] as const).map((k): Mortise => ({
+          origin: { x: k * (runnerLen / 2 - 20), y: E.runnerW / 2, z: 0 },
+          depth: E.runnerW, ...round(3.5), through: true, cosmetic: true,
+          label: isEn ? "Ø3.5×30 screw, into leg" : "Ø3.5×30 木螺釘（鎖入腳柱）",
+        })),
       });
     }
   }
@@ -361,8 +418,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
   }
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
   warnings.push(isEn
-    ? "⚠️ Draft only: read from the published drawing in a single pass without the usual independent cross-check team. Verify against the official drawing before treating this as equal quality to questions 1-4."
-    : "⚠️ 本範本目前只有單人讀圖，還沒走過乙級第一~四題那套「檢查員／對照員」複查流程，上架前務必比照慣例再檢查一輪。");
+    ? "⚠️ Draft, second pass: an independent 5-reviewer check ran once and 7 confirmed bugs were fixed, but a suspected missing tabletop panel (which would also explain why the 3-view drawing shows none of the 8 official dimensions) was deliberately left unfixed — see the file header. Do not treat this as equal quality to questions 1-4 yet."
+    : "⚠️ 本範本已跑過一輪五人組複查並修掉 7 個確認的 bug，但懷疑漏做的一塊桌面板（也是三視圖 8 項官方尺寸目前完全沒標出來的根因）本輪刻意沒動，細節見檔頭——上架前務必先解決這條，不要直接當成跟前四題同等級。");
 
   const design: FurnitureDesign = {
     id: `cert-b5-${W}x${D}x${H}`,
@@ -375,8 +432,8 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
     joineryOnly: true,
     primaryMaterial: material,
     notes: isEn
-      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32) joined by one 90×20 upper back rail near the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed side-to-front corners and doweled back corners, riding on two runners screwed to the inside faces of the leg posts. **This draft was read and modeled by a single pass without the usual independent cross-check team (drawing reader / grading-sheet & material-list checker / geometry & test reviewer / joinery reviewer) that questions 1-4 went through — verify against the official drawing before treating it as equal quality.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳，後側頂端架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾、後角木釘，滑條鎖在兩端腳柱內側。**本範本目前只有單人讀圖建模一輪，還沒走過第一~四題那套「檢查員／對照員」平行複查流程，上架前務必先比照慣例再檢查一輪，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
+      ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100205 (7 hours). 480×380×380: two end leg-frames (4 straight legs, 45×32) joined by one 90×20 upper back rail near the top and two 45×32 lower rails (front and back) near the floor; a front-opening drawer 370×340 with a 130 mm-tall front, dovetailed side-to-front corners and doweled back corners, riding on two runners screwed to the inside faces of the leg posts. **This is a second-pass draft: an independent 5-reviewer check ran once and 7 confirmed bugs were fixed, but a suspected missing tabletop panel was deliberately left unfixed — see the file header before treating it as equal quality to questions 1-4.** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100205（7 小時）公開尺寸繪製的練習範本。480×380×380：兩端各 2 支 45×32 直腳，後側頂端架一支 90×20 上橫檔，前後各一支 45×32 下橫檔貼地；抽屜 370×340 從前面推拉，前板 130 高，前角鳩尾、後角木釘，滑條鎖在兩端腳柱內側。**本範本已跑過一輪五人組複查並修掉 7 個確認的 bug，但懷疑漏做的一塊桌面板本輪刻意沒動，細節見檔頭，上架前務必先解決這條，不要直接當成跟前四題同等級。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;
