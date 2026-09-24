@@ -664,7 +664,7 @@
     "metadata": {
       "notFoundTitle": "找不到家具範本",
       "titleTemplate": "{name}設計圖｜輸入尺寸自動產出三視圖、材料單、報價",
-      "descriptionTemplate": "{description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖。木頭仁木匠學院出品。"
+      "descriptionTemplate": "{description}。預設 {length}×{width}×{height}mm，可改尺寸與木料，自動算切料、三視圖與 A4 工程圖。"
     },
     "back": "← 回家具列表",
     "detailedIntro": "這支{name}的詳細介紹",

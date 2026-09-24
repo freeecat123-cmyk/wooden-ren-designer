@@ -136,7 +136,18 @@ export async function generateMetadata({
   const entryName = getEntryName(entry, locale);
   const entryDesc = getEntryDescription(entry, locale) ?? "";
   const title = tMeta("titleTemplate", { name: entryName });
-  const description = tMeta("descriptionTemplate", { name: entryName, description: entryDesc });
+  // 描述帶上該款的預設尺寸：36 個設計頁原本共用同一段 45 字樣板，
+  // 「餐桌」這種只有 7 字自述的頁面等於 86% 內容跟別頁一樣（搜尋結果看起來全是同一頁）。
+  // defaults 是 catalog 既有資料，35/36 組不重複，拿來當差異化素材最省。(2026-09-24)
+  const description = tMeta("descriptionTemplate", {
+    name: entryName,
+    description: entryDesc,
+    // 明寫成字串：訊息模板要的是「1500」原樣，不是任何數字格式化結果。
+    // （實測 next-intl 的 `{length}` 是純插值、不會加千分位，所以這裡只是講清楚意圖。）
+    length: String(entry.defaults.length),
+    width: String(entry.defaults.width),
+    height: String(entry.defaults.height),
+  });
   // 跟 app/sitemap.ts 同一份名單：尚未完成的模板從 sitemap 拿掉，但頁面仍可訪
   // 問。這裡同步加 robots noindex 防止 Google 仍照爬把半成品索引進去。
   const devCategory = isDevCategory(entry.category);

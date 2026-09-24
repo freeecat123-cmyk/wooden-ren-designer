@@ -664,7 +664,7 @@
     "metadata": {
       "notFoundTitle": "Template not found",
       "titleTemplate": "{name} plans | Enter dimensions, get 3 views, cut list and quote",
-      "descriptionTemplate": "{description}. Enter length × width × height, pick the wood — get auto cut list, 3 views and perspective, A4 printable shop drawings. Made by Wooden Ren Carpenter Academy."
+      "descriptionTemplate": "{description}. Default {length}×{width}×{height}mm — resize it, pick your wood, get a cut list, 3 views and A4 printable shop drawings."
     },
     "back": "← Back to templates",
     "detailedIntro": "Full guide for this {name}",
