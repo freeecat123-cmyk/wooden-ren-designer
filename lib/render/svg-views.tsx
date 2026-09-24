@@ -137,7 +137,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
       ),
     )
     .map((p) => {
-      const { yExt, zExt } = worldExtents(p);
+      const { xExt, yExt, zExt } = worldExtents(p);
       // 所有橫撐都標總長（拉箭頭）；梯形橫撐多標斜面角度
       // length = visible.length（bottom 邊長度，or 一般矩形的長度）
       // 斜面角度 = atan((bottom - top) / 2 / apronWidth)，trap shape 才有
@@ -159,6 +159,13 @@ function extractFurnitureDims(design: FurnitureDesign) {
       // 軸向：rotation.y ≈ π/2 → Z 軸橫撐（左/右），else X 軸（前/後）
       // 用來決定哪個視圖該顯示這條橫撐的長度標
       const isZAxis = Math.abs(p.rotation?.y ?? 0) > Math.PI / 4;
+      // 🩸2026-09-24 乙級第五題複查抓到的 bug：worldExtents 對「同時繞 X 又繞 Y 轉 90°」
+      //    的零件（左右側牙板/橫撐＝Z 軸件）算出的 zExt 其實是 length（沿 Z 延伸的長度），
+      //    不是厚度——側件的厚度落在 xExt（原本 thickness 軸繞兩次 90° 轉回 X）。
+      //    前後牙板（只繞 X）才是 zExt=thickness。厚度標籤一律要看 isZAxis 選對的那一軸，
+      //    不能無條件用 zExt，否則側牙板會把「長度」印成「厚度」（例：方凳側牙條印成 60×280，
+      //    280 其實是牙條長度，正確厚度是 20）。
+      const thicknessExt = isZAxis ? xExt : zExt;
       // arch-bent（如 Windsor bow）會往 +Z 凸出 bendMm，側視圖標籤要避讓
       const archBendMm = p.shape?.kind === "arch-bent" ? p.shape.bendMm : 0;
       return {
@@ -168,6 +175,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
         topY: p.origin.y + yExt,
         yExt,
         zExt,
+        thicknessExt,
         cutLengthMm,
         trapTopMm,
         trapBotMm,
@@ -4753,10 +4761,10 @@ function OrthoViewImpl({
                 // 若未來有 -Z（前）方向 bend，外推應為 |bendMm|（往左閃避）。
                 const seen = new Map<string, { label: string; midY: number }>();
                 for (const c of crossPieces) {
-                  const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}_${Math.round(c.zExt)}`;
+                  const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}_${Math.round(c.thicknessExt)}`;
                   if (!seen.has(key))
                     seen.set(key, {
-                      label: `${bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} ${fmtBare(c.yExt)}×${fmtBare(c.zExt)}`,
+                      label: `${bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} ${fmtBare(c.yExt)}×${fmtBare(c.thicknessExt)}`,
                       midY: c.bottomY + c.yExt / 2,
                     });
                 }
