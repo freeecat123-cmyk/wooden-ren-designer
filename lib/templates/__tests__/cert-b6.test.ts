@@ -195,10 +195,11 @@ describe("cert-b6 官方尺寸", () => {
     const textNodes = [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => m[1]);
     const labeledNumbers = new Set<string>();
     for (const t of textNodes) for (const n of t.match(/\d+/g) ?? []) labeledNumbers.add(n);
-    // 這輪只驗證幾個高信心、結構單純的數字真的印出來；45/32（腳柱截面）、130（抽屜前板高）、
-    // 384/350（抽屜寬深）等需要另一套側視/截面標註子系統才會印成獨立文字節點（cert-b5 D4 條
-    // 也留了同樣的坑，340 深度沒標），這輪不假裝已經修好，只鎖住總寬/總高這兩個最外層尺寸。
-    const mustLabel = ["494", "370"];
+    // 45/32（腳柱截面）、130（抽屜前板高）、384/350（抽屜寬深）等需要另一套側視/截面標註
+    // 子系統才會印成獨立文字節點（cert-b5 D4 條也留了同樣的坑，340 深度沒標），這裡不假裝
+    // 已經修好。總深 380 這輪額外驗證過：render 出來的 svg 確實有獨立 <text>「380」節點
+    // （俯視圖深度標註，不像 cert-b5 那個 340 落在沒有標註子系統覆蓋的視圖），鎖進來。
+    const mustLabel = ["494", "370", "380"];
     const missing = mustLabel.filter((n) => !labeledNumbers.has(n));
     expect(missing, `評審表尺寸沒有真的印成 <text> 節點：${missing.join(",")}`).toEqual([]);
   });
