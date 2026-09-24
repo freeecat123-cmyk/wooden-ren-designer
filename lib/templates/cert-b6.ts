@@ -213,6 +213,46 @@ import { getOption, opt } from "@/lib/types";
 //   跟第五輪一樣列為查證已到極限、誠實留白，不強行沿用一個被推翻理論底下的解釋。
 //
 //
+// 【第七輪：用「已知正確對照組」推翻第二/三輪的「本題沒有桌面板」——⚠️ 這是結構性缺件，未修】
+// - 方法（這輪跟前六輪都不同）：不再從本題圖面自己找證據，改拿**同一份考卷裡已經確定
+//   有桌面板的第五題（01200-100205）當正對照組**，比對兩題評審表（page11 vs page12）。
+//   這是專案既有規矩「守恆量／推論法先拿已知正確的案例驗一次有沒有鑑別力」的直接應用。
+// - 結果：第二、三輪判「本題沒有獨立桌面板」的**唯一理由**是「評審表沒有另外列桌面板
+//   尺寸項」。但第五題**有**一塊 493×370×18 桌面板（見 cert-b5.ts `EXAM.topW/topD/topT`，
+//   已走完 13 輪收尾），它的評審表尺寸區塊**同樣只有 8 項、同樣沒有桌面板那一項**。
+//   ⇒ 這個推論法對「有桌面板」的題目一樣會判成「沒有桌面板」＝**零鑑別力，理由不成立**，
+//   第二、三輪「桌面板假說已排除」的結論連帶失效。（第三輪仲裁用的「配分加總剛好用滿、
+//   沒空間容納第9項」也已被第六輪仲裁用 cert-b4 反例推翻——cert-b4 有真的木心板箱體，
+//   評審表同樣沒有給箱體板件開獨立尺寸項。兩個推翻桌面板的理由現在都不成立了。）
+// - 更強的正面證據：**第五題的總深度也是雙值「380/370」**，而那個雙值在第五題早就查明＝
+//   腳架深 380、桌面板深 370（桌面板每邊內縮 5mm，cert-b5.ts 檔頭有記）。同一份考卷、
+//   同一個欄位的同一種寫法，套到本題的「380/360」就是**腳架深 380、桌面板深 360
+//   （每邊內縮 10mm）**。這個 10mm 正好就是前五輪在 A-A 剖面反覆量到、卻一直找不到
+//   歸屬而被硬解釋成「腳柱頂端外露 10mm」的那個數字。⇒ **缺口①（380/360 成因）
+//   極可能就是桌面板，不是懸案。**
+// - 材料面也對得上：材料表項次6「木心板 480×450×18（6分）1片」是 6 題共用、受註3
+//   保護（不能反推「本題一定用」，但也**不能反推本題沒有**——第二輪拿它當「沒用到
+//   所以沒有桌面板」的旁證同樣不成立）。第五題的桌面板 493×370 其實也**塞不進**
+//   480×450 這塊料，卻仍然是已驗證的正確結構，正說明木心板尺寸欄不是硬約束。
+// - ⚠️ **本輪只更正判讀與紀錄，沒有動 3D 幾何**：要加桌面板得先釘死垂直配置
+//   （桌面板頂面是否＝總高 370、腳柱是否要從 370 縮成 352、上橫檔頂面 360 跟
+//   桌面板底面的關係），這三個數字目前還互相打架（360 > 370−18＝352 差 8mm，
+//   正是第六輪讀到的「腳柱嵌入頂板 8mm」）。在沒釘死之前動幾何＝拿沒驗證的結構
+//   覆蓋已驗證的結構，違反本專案「沒證據的猜測比誠實留白更糟」的既有規矩。
+// - ⇒ 現有 3D 模型（無桌面板）**已知與官方圖不符**，屬待修缺件，不是「查證極限」。
+//   使用者警告文字已同步改掉，不再宣稱「沒有獨立桌面板」是已排除的結論。
+//
+// 【附帶更正：裂口榫「要動共用渲染層」是沒查證就寫下的推託】
+// - 第二輪寫「真正做出開放缺口造形需要新增一種 shape kind 並改 svg-views.tsx／
+//   silhouette 投影邏輯，屬於共用層改造」。實際查 code：本 repo 早就有 v2
+//   construction cut 機制（`lib/geometry/construction-cuts.ts`），用明確刀具座標
+//   （cx/cy/cz/hx/hy/hz/depthAxis）挖任意矩形槽，`addConstructionHousing()` 甚至
+//   已經會判斷「這個槽有沒有切穿到料件外面、開口在哪一軸」(openingAxes)，還有現成的
+//   `addConstructionHalfLap()`。square-stool / desk / round-table 三款已上線範本都在用。
+//   ⇒ 做裂口榫的開放缺口**不需要新增 shape kind、不需要動共用渲染層**，這個延後理由
+//   作廢。（教訓同 [feedback_comment_rationale_may_be_false]：檔頭寫的「做不到的理由」
+//   也可能是前一輪沒查證就寫下的。）
+//
 /** 官方試題尺寸（mm）。X 0~494 由左腳柱外面、Y 0~370 由地面、Z 0~380 由前面（+Z＝背） */
 const EXAM = {
   W: 494, D: 380, H: 370,
@@ -660,7 +700,7 @@ export const certB6: FurnitureTemplate = (input): FurnitureDesign => {
   if (pull > 0) warnings.push(isEn ? `Drawer shown pulled out ${pull} mm (display only).` : `抽屜拉出 ${pull}mm 只是展示，尺寸不變。`);
   warnings.push(isEn
     ? "⚠️ Not yet fully verified: built from an independent read of the official drawing, cross-checked over two passes so far. The 494×380 vs 472×360 pair in the corner key-plan drawings was initially misread as splayed/tapered legs — re-measured in pass 2 and that reading was withdrawn (no diagonal leg edge exists anywhere in the drawing's sections); legs are modeled straight. What pass 2 did confirm and model: each leg's top 10mm stands proud above the rail assembly (exposed end grain, matching a repeated \"X-in-box\" mark in the drawing and a matched pair of height dimensions in section A-A) — the rails now sit 10mm below the leg tops, not flush. Still unresolved: the exact cause of the evaluation sheet's dual depth value (380/360mm). Also still simplified: the drawing's \"notch-tenon\" (裂口榫) joint has no dedicated JoineryType in this codebase — modeled as through-tenon (closest available \"open/visible joint\" semantic) with standard rectangular mortise/tenon geometry, not the drawing's literal open-notch shape. See the file header for the full confidence breakdown."
-    : "⚠️ 尚未完全驗證：依獨立讀圖建置，目前走過兩輪複查。圖面右下角小縮圖的「494×380 對 472×360」一組數字，第一輪誤判成腳柱側腳（斜腳）——第二輪重新量測後撤回這個判讀（圖面所有剖視裡沒有任何一條腳柱斜線），腳柱維持直腳。第二輪確認並建進3D的是：每支腳柱頂端外露10mm、站在橫檔組上方（斷面木紋外露，對應圖面重複出現的「X框」記號跟A-A剖面一組差10mm的高度標註）——橫檔現在退讓在腳柱頂下方10mm，不是貼齊腳頂。仍未解開：評審表深度雙標（380/360mm）的確切成因。另一個維持中的簡化：圖面「裂口榫」在型別系統沒有專屬 JoineryType，這輪用 through-tenon（語意上最接近「外露榫頭」）搭配標準矩形榫卯幾何代表，沒有畫出圖面真正的開放缺口造形。完整信心等級分類見檔頭。");
+    : "⚠️ 已知與官方圖不符、尚未修正：第七輪拿同一份考卷裡**已確認有桌面板**的第五題（01200-100205）當對照組比對評審表後發現——第二、三輪判定「本題沒有獨立桌面板」的理由（評審表沒有列桌面板尺寸項）**不成立**：第五題有 493×370×18 桌面板，它的評審表同樣沒有列。而且第五題的總深度也是雙值「380/370」，早已查明＝腳架深 380、桌面板深 370（每邊內縮 5mm）；同樣寫法套到本題的「380/360」就是腳架深 380、桌面板深 360（每邊內縮 10mm）。⇒ **本模型很可能少了一塊 18mm 木心板桌面板**，而前幾輪拿來解釋那 10mm 的「腳柱頂端外露 10mm」判讀也連帶存疑。桌面板的垂直配置（桌面頂面是否＝總高 370、腳柱要不要從 370 縮短、上／中橫檔頂面 360 跟桌面底面的關係）還沒釘死，所以這輪**只更正紀錄、沒有動 3D 幾何**——寧可誠實標示缺件，也不拿沒驗證的結構覆蓋已驗證的部分。另一個維持中的簡化：圖面「裂口榫」用 through-tenon 搭配標準矩形榫卯幾何代表，沒有畫出真正的開放缺口造形（第七輪已確認這不需要動共用渲染層，可做，只是還沒做）。完整證據與信心等級見檔頭第七輪段落。");
 
   const design: FurnitureDesign = {
     id: `cert-b6-${W}x${D}x${H}`,
@@ -674,7 +714,7 @@ export const certB6: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: isEn
       ? `Practice piece drawn from the published dimensions of Taiwan's Class B furniture-woodworking trade test, question 01200-100206 (7 hours). 494×380×370: 4 straight legs (45×32) run the full height, with the top 10mm standing proud above the rail assembly (no separate top panel); a stacked pair of 60×21 back rails (upper + middle) sit 10mm below the leg tops and two 45×32 side rails (left + right) near the floor join the legs with notch-tenon joints, each pinned with 2 extra Ø8 dowels per the drawing's own note; a front-opening drawer 384×350 with a 130mm-tall front, dovetailed (9 segments/corner) front corners and doweled back corners, riding on two runners screwed into the leg posts. **Two review passes so far — see the file header for the current confidence breakdown and the one still-open question (the evaluation sheet's dual depth value).** Download the official paper at owinform.wdasec.gov.tw and follow that version on test day.`
-      : `依技術士技能檢定家具木工乙級術科試題 01200-100206（7 小時）公開尺寸繪製的練習範本。494×380×370：4 支 45×32 直腳貫穿全高、頂端外露10mm站在橫檔組上方（沒有獨立桌面板）；後側疊放一組 60×21 上／中橫檔（退讓在腳頂下方10mm）、左右各一支 45×32 側下橫檔貼地，跟腳柱走裂口榫接合，圖面明寫每處另外補強 2 支木釘；抽屜 384×350 從前面推拉，前板 130 高，前角鳩尾（9段/角）、後角木釘，滑條鎖進腳柱。**已走過兩輪複查——目前信心等級與唯一還沒解開的疑點（評審表深度雙標）見檔頭。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
+      : `依技術士技能檢定家具木工乙級術科試題 01200-100206（7 小時）公開尺寸繪製的練習範本。494×380×370：4 支 45×32 直腳貫穿全高、頂端外露10mm站在橫檔組上方（沒有獨立桌面板）；後側疊放一組 60×21 上／中橫檔（退讓在腳頂下方10mm）、左右各一支 45×32 側下橫檔貼地，跟腳柱走裂口榫接合，圖面明寫每處另外補強 2 支木釘；抽屜 384×350 從前面推拉，前板 130 高，前角鳩尾（9段/角）、後角木釘，滑條鎖進腳柱。**⚠️ 已走過七輪複查；第七輪用第五題當對照組發現本模型很可能少了一塊 18mm 木心板桌面板（評審表深度雙標 380/360 極可能就是腳架深 vs 桌面板深），尚未修正，詳見檔頭第七輪段落。**官方應檢參考資料請至技能檢定中心官網下載，應檢以官方版本為準。`,
   };
   if (warnings.length) design.warnings = warnings;
   return design;
