@@ -123,12 +123,24 @@ import { getOption, opt } from "@/lib/types";
  *   - **鑽木釘孔／鎖螺釘兩個工序完全沒有生成**：根因是①沒有比照 cert-b1 補 `visual:"dowel"`
  *     展示零件（工序閘門靠這個判斷要不要生成）②螺釘孔的 label 字串沒帶「導引孔」三個字（另一個
  *     閘門靠 `.includes("導引孔")`）。兩處都已修正，工序表現在正確顯示「鑽木釘孔 8 個（木釘 4
- *     支）」「鎖木螺釘 7 支」（底板 3 支 Ø2.4×15＋第九輪找回的滑條 4 支 Ø3×25）。
+ *     支）」「鎖木螺釘 11 支」（底板 3 支 Ø2.4×15＋第九輪找回的滑條 4 支 Ø3×25＋第十輪找回的
+ *     下橫檔補強 4 支 Ø3.5×30）。
+ *
+ * ✅ 第十輪：在同一張 A-A 剖面裡找到第二個獨立螺釘標註（比 Ø3×25 更低的位置、箭頭指向緊鄰腳柱
+ *   的 X 端面記號），判讀為側下橫檔（貼地 45×32 那兩支）盲榫接合處的補強螺釘，比照這系列前面
+ *   幾題「盲榫+補強釘」的既有做法：前後兩支下橫檔、每支兩端各一＝4 支 Ø3.5×30。已補上對應的
+ *   cosmetic 導引孔（`stretcher-front`/`stretcher-back` 的 mortises），label 帶「導引孔」三字
+ *   避免重蹈第八輪的坑。
  *
  * ⚪ 低優先未解項（不影響核心幾何，上架前可視情況處理）：
- *   - **五金裝配 17 部位仍未完全湊齊**：第九輪確認滑條螺釘是 Ø3×25（不是憑空多一個零件），現有
- *     底板 3＋滑條 4＝7，跟評審表 17 仍有落差，缺口在哪（材料表其餘 Ø3.5×30 14 支目前完全沒用到，
- *     可能還有別的接合點用得到）沒有查清楚，留給下一輪。
+ *   - **五金裝配 17 部位仍未完全湊齊，但缺口從 10 縮小到 6**：現有底板 3＋滑條 4＋下橫檔補強 4＝11。
+ *     材料表其餘 Ø3.5×30（14 支發、已用 4 支，還剩 10 支配額）沒有再找到第三個獨立的螺釘標註——
+ *     這輪已經把 A-A、B-B、C-C 三個剖面能找到的⊕/實心矩形螺釘符號都清點過一次（含桌面板兩處
+ *     ø8×30 木釘、Ø3×25×2、Ø3.5×30×2 各自對應的兩端對稱數量），沒有找到第三種獨立位置的螺釘。
+ *     剩下的 6 個部位缺口，判斷已經落在「材料表發的配額本來就是六題共用上限、不代表這題一定要
+ *     用滿」（這系列 cert-b1~b4 已驗證過的既有規則，見材料表對帳段）與「2D 投影多接合點重疊看
+ *     不出來」兩種可能之間，不再是「沒查」，是查過三個剖面後仍解不開，留給有官方評審表原件或
+ *     實際監評經驗的人補完。
  *   - 抽屜前/側/後板同高 130mm 是簡化假設，未逐一覆核側板/後板是否比前板矮一截。
  *   - 桌面板封邊/核心沒有分開建模（簡化成單一板件），端面木紋/收邊細節未還原。
  *   - 側上橫檔↔腳柱盲榫處是否另有加強用的橫向木釘：向量圖看得到兩個獨立「ø8×30」標註，但無法
@@ -230,6 +242,10 @@ const EXAM = {
   railEdgeChamferH: 8, railEdgeChamferV: 31,
   screwDia: 2.4, screwLen: 15,                 // Ø2.4×15：材料表硬約束「本題只發 3 支、只有抽屜底板用得到」
   runnerScrewDia: 3, runnerScrewLen: 25,       // Ø3×25：第九輪在官方圖A-A剖面找到，滑條鎖進腳柱用，每邊2支
+  // Ø3.5×30：第十輪在同一張 A-A 剖面裡、比 Ø3×25 更低的位置找到第二個獨立螺釘標註（箭頭指向
+  // 一個緊鄰腳柱的 X 記號端面），判讀為側下橫檔（貼地那支 45×32）盲榫接合處的補強螺釘，比照
+  // 這系列前面幾題「盲榫+補強釘」的既有做法。前後兩支側下橫檔、每支兩端各一＝4 支。
+  stretcherScrewDia: 3.5, stretcherScrewLen: 30,
 } as const;
 
 export const certB5Options: OptionSpec[] = [
@@ -431,6 +447,18 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
   // ── 側下橫檔 ×2（45 高 × 32 厚，前後各一，貼地）──────────────────
   for (const sz of [0, 1] as const) {
     const railCz = sz === 0 ? E.legD / 2 : D - E.legD / 2;
+    // 補強螺釘 ×2（每端一支，官方圖A-A剖面找到的Ø3.5×30，見EXAM.stretcherScrewDia註解）：
+    // 沿橫檔長度方向（local x）打在盲榫肩線內側，往腳柱方向鑽（local y=0 那面朝腳柱、local z
+    // 置中在橫檔厚度中線），depth吃滿螺釘全長30mm——橫檔本身32厚，鑽穿橫檔肩部再咬進腳柱，
+    // 跟legRailTenonLen=20的盲榫深度同一個量級，不會鑽穿腳柱45mm厚的那一面。
+    const stretcherScrews: Mortise[] = (["start", "end"] as const).map((position) => ({
+      origin: {
+        x: position === "start" ? -railSpanX / 2 + E.legRailTenonLen / 2 : railSpanX / 2 - E.legRailTenonLen / 2,
+        y: 0, z: E.lowerRailT / 2,
+      },
+      depth: E.stretcherScrewLen, ...round(E.stretcherScrewDia), cosmetic: true, through: false,
+      label: isEn ? "Ø3.5×30 pilot hole, into leg (stretcher reinforcement)" : "Ø3.5×30 導引孔（下橫檔補強，鎖入腳柱）",
+    }));
     parts.push({
       // ⚠️ id 要落在 svg-views.tsx 的 crossPieces 前綴白名單裡（"stretcher"）才會在三視圖標尺寸，
       // 不能隨便取名——這是本系列已經踩過兩次的共用層陷阱（AGENTS.md「一個一個列的名單」那條）。
@@ -447,7 +475,7 @@ export const certB5: FurnitureTemplate = (input): FurnitureDesign => {
         length: E.legRailTenonLen, width: E.lowerRailH, thickness: E.legRailTenonT,
         shoulderOn: ["top", "bottom"],
       })),
-      mortises: [],
+      mortises: stretcherScrews,
     });
   }
 

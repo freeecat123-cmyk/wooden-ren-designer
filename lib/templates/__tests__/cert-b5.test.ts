@@ -372,8 +372,9 @@ describe("cert-b5 補測試安全網（第八輪最高規格複查：程式審�
     expect(dowelStep?.title).toContain("2 支");
     const screwStep = steps.find((s) => s.id === "step-08-2-screws");
     expect(screwStep, "鎖木螺釘工序要生成").toBeTruthy();
-    // 第九輪：底板3支(Ø2.4×15) + 兩根滑條各2支(Ø3×25)鎖進腳柱 = 7支，不再是只有底板的3支
-    expect(screwStep?.title).toContain("7 支");
+    // 第十輪：底板3支(Ø2.4×15) + 兩根滑條各2支(Ø3×25)鎖進腳柱 + 兩支下橫檔各兩端1支(Ø3.5×30)
+    // 補強盲榫 = 3+4+4 = 11支，不再是第九輪的7支
+    expect(screwStep?.title).toContain("11 支");
   });
 
   it("⭐ E7/第九輪修正：滑條真的鎖進腳柱（官方圖A-A剖面的Ø3×25螺釘找回來了；第八輪誤判「搆不到」才整個拿掉，真正的洞是滑條太窄沒伸到腳柱，見cert-b5.ts第九輪註解）", () => {
@@ -391,5 +392,31 @@ describe("cert-b5 補測試安全網（第八輪最高規格複查：程式審�
   it("⭐ E8：0 overlap（新增的 4 個木釘展示零件不能製造假重疊——drawer 後角那兩個刻意只做插進後板的那一段，避開跟側板孔 7.5mm 的既有落差）", () => {
     const overlaps = findOverlaps(d.parts);
     expect(overlaps, JSON.stringify(overlaps)).toEqual([]);
+  });
+
+  it("⭐ E9/第十輪：側下橫檔兩端各有一支Ø3.5×30補強螺釘導引孔（官方圖A-A剖面第二個獨立螺釘標註，比Ø3×25更低、緊鄰腳柱斷面X記號）", () => {
+    for (const id of ["stretcher-front", "stretcher-back"]) {
+      const rail = part(id);
+      expect(rail.mortises.length, `${id} 要有2支Ø3.5×30補強螺釘導引孔`).toBe(2);
+      for (const m of rail.mortises) {
+        expect(m.length).toBe(3.5);
+        expect(m.width).toBe(3.5);
+        expect(m.depth).toBe(30);
+        expect(m.cosmetic).toBe(true);
+        expect(m.label ?? "").toContain("導引孔");
+      }
+      // 兩端螺釘要落在盲榫肩線內側（不能超出橫檔跨距一半），且左右對稱
+      const xs = rail.mortises.map((m) => m.origin.x).sort((a, b) => a - b);
+      expect(xs[0]).toBeLessThan(0);
+      expect(xs[1]).toBeGreaterThan(0);
+      expect(Math.abs(xs[0] + xs[1])).toBeLessThan(0.01); // 對稱
+    }
+  });
+
+  it("⭐ E9b：五金裝配部位數最新算式＝3(底板)+4(滑條)+4(下橫檔補強)=11，仍未湊齊評審表17（誠實記錄，非本輪能解）", () => {
+    const bottomScrews = part("drawer-1-back").mortises.filter((m) => (m.label ?? "").includes("2.4"));
+    const runnerScrews = ["runner-left", "runner-right"].flatMap((id) => part(id).mortises);
+    const stretcherScrews = ["stretcher-front", "stretcher-back"].flatMap((id) => part(id).mortises);
+    expect(bottomScrews.length + runnerScrews.length + stretcherScrews.length, "3+4+4=11，離17還差6").toBe(11);
   });
 });
