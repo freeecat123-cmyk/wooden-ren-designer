@@ -17,6 +17,7 @@ export type FurnitureCategory =
   | "cert-b3"
   | "cert-b4"
   | "cert-b5"
+  | "cert-b6"
   | "stool"
   | "bench"
   | "tea-table"

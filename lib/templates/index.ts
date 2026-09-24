@@ -40,6 +40,7 @@ import { certB2, certB2Options } from "./cert-b2";
 import { certB3, certB3Options } from "./cert-b3";
 import { certB4, certB4Options } from "./cert-b4";
 import { certB5, certB5Options } from "./cert-b5";
+import { certB6, certB6Options } from "./cert-b6";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -202,6 +203,21 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     // 尺寸鎖死：全部是考題官方常數，跟前四題一樣不開放滑桿調整
     limits: { length: 480, width: 380, height: 380 },
     optionSchema: certB5Options,
+    joineryOnly: true,
+  },
+  {
+    category: "cert-b6",
+    zhOnly: true,
+    nameZh: "乙級檢定 第六題",
+    nameEn: "Trade test Class B — Q6",
+    description: "技術士技能檢定家具木工乙級 01200-100206：雙腳端單抽小凳/邊几，4 支 45×32 直腳貫穿全高、後側疊放一組 60×21 上／中橫檔、左右各一支 45×32 側下橫檔，腳柱跟橫檔走裂口榫接合並以木釘補強，抽屜前板 130 高、前角鳩尾，7 小時",
+    descriptionEn: "Taiwan Class B furniture-woodworking trade test Q6: a two-end drawer stool/side table — 4 straight 45x32 legs run the full height, a stacked pair of 60x21 back rails near the top plus two 45x32 side rails near the floor join via notch-tenons pinned with dowels, and a front-opening drawer with a 130mm-tall dovetailed front — 7-hour piece",
+    difficulty: "advanced",
+    template: certB6,
+    defaults: { length: 494, width: 380, height: 370 },
+    // 尺寸鎖死：全部是考題官方常數，跟前五題一樣不開放滑桿調整
+    limits: { length: 494, width: 380, height: 370 },
+    optionSchema: certB6Options,
     joineryOnly: true,
   },
   {
@@ -587,6 +603,7 @@ export const DEV_CATEGORIES: ReadonlySet<string> = new Set([
   "cert-b4",   // 同上（乙級第四題）
   "cert-b2",   // 同上，乙級整組先不公開——乙級第一題做完但先不公開（目錄不列、sitemap 不收、noindex）
   "cert-b5",   // 同上（乙級第五題；且只走過單人讀圖，還沒複查，更不能上架）
+  "cert-b6",   // 同上（乙級第六題；第一輪草稿，側腳未建模、裂口榫用 through-tenon 近似，還沒複查）
 ]);
 
 /** 這個分類還在開發中嗎(sitemap 不收、頁面加 noindex、目錄不列)。 */
@@ -611,7 +628,7 @@ export function isDevCategory(category: string): boolean {
  */
 export const EXAM_CATEGORIES: ReadonlySet<string> = new Set([
   "cert-c1", "cert-c2", "cert-c3",
-  "cert-b1", "cert-b2", "cert-b3", "cert-b4", "cert-b5",
+  "cert-b1", "cert-b2", "cert-b3", "cert-b4", "cert-b5", "cert-b6",
 ]);
 
 /** 這是技能檢定考題範本嗎（預設尺寸＝答案，沒買斷就不給圖面）。 */
