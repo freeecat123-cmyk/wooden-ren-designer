@@ -42,13 +42,20 @@ describe("cert-b6 官方尺寸", () => {
     }
   });
 
-  it("上／中橫檔 60×21（評審表「部位4」＝2支×2尺寸，只在後側，疊放）", () => {
+  it("上／中橫檔 60×21（評審表「部位4」＝2支×2尺寸，只在後側，疊放），頂面比腳柱頂低 10mm（第二輪：A-A剖面370/360雙高標註＝腳柱頂端外露）", () => {
     expect(part("rail-upper-back").visible).toEqual({ length: 430, width: 60, thickness: 21 });
     expect(part("rail-mid-back").visible).toEqual({ length: 430, width: 60, thickness: 21 });
     const upperBox = at("rail-upper-back");
     const midBox = at("rail-mid-back");
-    expect(upperBox[3], "上橫檔頂面貼齊腳頂＝總高 370").toBe(370);
+    expect(upperBox[3], "上橫檔頂面＝總高370−腳柱外露10mm＝360").toBe(360);
     expect(midBox[3], "中橫檔頂面要緊接上橫檔底面（疊放，不留縫）").toBe(upperBox[2]);
+  });
+
+  it("腳柱頂端外露 10mm：腳柱本體仍貫穿全高 370，但上橫檔頂面（360）比腳柱頂面（370）低，中間空出來的一段就是外露段", () => {
+    const legTop = at("leg-left-back")[3];
+    const railTop = at("rail-upper-back")[3];
+    expect(legTop, "腳柱頂＝總高370").toBe(370);
+    expect(r1(legTop - railTop), "外露段＝EXAM.legTopExposedMm＝10mm").toBe(10);
   });
 
   it("側下橫檔 45×32（評審表「側下橫檔寬厚45×32」），左右各一，貼地，沿深度方向", () => {
@@ -206,7 +213,7 @@ describe("cert-b6 變異測試（確認上面的斷言真的抓得到壞值，�
   it("上/中橫檔榫眼位置若明顯偏移，matchMortiseForTenon 判定應該配不到（證明位置配對斷言不是死的）", () => {
     const d = build();
     const leg = d.parts.find((p) => p.id === "leg-left-back")!;
-    const goodMortise = leg.mortises.find((m) => (m.label ?? "").includes("上橫檔盲榫眼"))!;
+    const goodMortise = leg.mortises.find((m) => (m.label ?? "").includes("上橫檔裂口榫眼"))!;
     const brokenOriginZ = goodMortise.origin.z + 100;
     const brokenLeg = { ...leg, mortises: [{ ...goodMortise, origin: { ...goodMortise.origin, z: brokenOriginZ } }] };
     const rail = d.parts.find((p) => p.id === "rail-upper-back")!;
@@ -254,6 +261,14 @@ describe("cert-b6 補測試安全網：EXAM 常數逐一鎖死（避免公式自
     expect(part("rail-upper-back").visible.thickness).toBe(21);
     expect(part("rail-mid-back").visible.width).toBe(60);
     expect(part("rail-mid-back").visible.thickness).toBe(21);
+  });
+
+  it("⭐ legTopExposedMm=10（第二輪：A-A剖面370/360雙高標註，腳柱頂端外露段，見檔頭）", () => {
+    const leg = part("leg-left-back");
+    const rail = part("rail-upper-back");
+    const legTopY = leg.origin.y + leg.visible.width;
+    const railTopY = rail.origin.y + rail.visible.width;
+    expect(r1(legTopY - railTopY)).toBe(10);
   });
 
   it("⭐ 側下橫檔 lowerRailH=45、lowerRailT=32（評審表直接列）", () => {
