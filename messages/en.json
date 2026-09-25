@@ -2271,8 +2271,8 @@
     }
   },
   "home": {
-    "metaTitle": "Furniture Template Catalog | 25 plans: dining table, shoe cabinet, bookshelf, stool",
-    "metaDescription": "Pick a template and start drawing: stool, dining chair, dining table, tea table, desk, bookshelf, shoe cabinet, wardrobe, wine rack — 25 furniture templates in all. Enter L*W*H, choose your wood, and get three-view drawings, joinery details, BOM and A4 plans. Stool, pencil holder and workbench are free forever.",
+    "metaTitle": "Furniture Plans Catalog | 25 templates: dining table, stool",
+    "metaDescription": "25 furniture templates — stool, dining chair, dining table, bookshelf. Enter L*W*H, pick your wood, get 3-view drawings, joinery, BOM, A4 plans. 3 free forever.",
     "chipAll": "All",
     "chipSeating": "Seating",
     "chipTable": "Tables",
@@ -2421,7 +2421,7 @@
   },
   "chat": {
     "metaTitle": "Wooden Ren AI Master · 24h woodworking Q&A",
-    "metaDescription": "Ask woodworking questions to an AI fed Wooden Ren's 19 personal knowledge bases — joinery, wood, finishing, safety, machines, repair, Ming-style furniture, Windsor chairs, carving, turning.",
+    "metaDescription": "Ask woodworking questions — an AI built on Wooden Ren's own 19 knowledge bases: joinery, wood, finishing, safety, machines, repair, Ming furniture, carving.",
     "unavailableH": "AI Master temporarily unavailable",
     "unavailableBody": "Service not configured with ANTHROPIC_API_KEY — please contact admin.",
     "headerH1": "🪵 Wooden Ren AI Master",
@@ -5247,7 +5247,7 @@
   "engineeringToolPages": {
     "cnc": {
       "metaTitle": "CNC Toolpath Generator | SVG/DXF to CNC G-code | Wooden Ren",
-      "metaDescription": "Drag in an SVG, DXF or image and get standard G-code your CNC can run in 3 seconds. Ten operations — profile, pocket, drill, V-carve, relief, image trace — with cut-through warnings and a tool-change card. Skip the whole Fusion 360 CAM setup. Offline, no install."
+      "metaDescription": "Drag in an SVG, DXF or image — standard G-code your CNC runs, in 3 seconds. Profile, pocket, drill, V-carve, relief +5 more, with cut-through warnings. Offline."
     },
     "raisedFloor": {
       "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
