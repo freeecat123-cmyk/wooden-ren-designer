@@ -16,7 +16,7 @@ const M_EN = {
   stool: {
     category: "stool",
     seoTitle: "Square stool plans | Auto-generated 3-views, joinery, cut list — Wooden Ren Blueprint",
-    seoDescription: "Build a four-leg stool from sizes to shop drawings in three seconds. Auto-laid mortise positions, three-view drawings, cut list. Free template. From Wooden Ren Carpenter Academy.",
+    seoDescription: "Build a four-leg stool from sizes to shop drawings in three minutes. Auto-laid mortise positions, three-view drawings, cut list. Free template. From Wooden Ren Carpenter Academy.",
     tagline: "Start your first mortise-and-tenon on a stool that's yours",
     subTagline: "Free template · build as many as you want · 30 min to grok joinery logic",
     whatItDoes: "A four-leg square stool is the classic woodworking starter — four legs, four aprons, one seat. Get those six things right and you've already nailed 80% of furniture joinery fundamentals.\n\nThis template takes length × width × height and lays out every mortise position, tenon depth (through for ≤25 mm legs, blind at 2/3 depth above), and how the X-axis and Z-axis aprons must stagger so they don't collide in the leg. You stop worrying \"are the legs too thin?\" \"will a thick apron split the leg?\" — the algorithm checks for you, and the output is ready for the shop.\n\nAfter one stool, every other piece of furniture starts to look like a scaled-up version of the same joinery: dining chairs, side tables, desks — same logic, bigger numbers.",
@@ -112,7 +112,7 @@ const M_EN = {
   "side-table": {
     category: "side-table",
     seoTitle: "Side table plans | Sofa-side / nightstand auto 3-views — Wooden Ren Blueprint",
-    seoDescription: "Build the side table that actually fits next to your sofa or bed — auto joinery, 3-view drawings, cut list. Drawer, shelf or plain top — 3 seconds to shop-ready plans.",
+    seoDescription: "Build the side table that actually fits next to your sofa or bed — auto joinery, 3-view drawings, cut list. Drawer, shelf or plain top — 3 minutes to shop-ready plans.",
     tagline: "The right-sized little table next to the sofa or the bed",
     subTagline: "Drawer / shelf / plain-top variants",
     whatItDoes: "Side tables are the piece of furniture you can never buy in the right size — store-bought is either too tall, too wide, or visually mismatched with your sofa. Building one yourself is the only way to nail the exact armrest height of your couch, the exact gap beside your bed.\n\nThis template ships three variants: plain-top (fastest build), drawer (for remote / glasses storage) and lower-shelf (stacks books / magazines). The drawer slide position is auto-computed from drawer width — you just walk into the hardware store and ask for \"13-inch full-extension slides, one pair\". Legs come in straight, 5° splayed, or 10° splayed — splayed gives a lighter look but needs compound angles, which the algorithm handles and outputs as ready-to-cut true-length numbers.\n\nA hardwood (oak / walnut) side table runs $25–50 in materials — about twice the lumber quality of an IKEA LACK at the same overall cost, dimensioned exactly for your room. Once you've built one, you've unlocked all \"table-class joinery\" — coffee tables, dining tables, desks all scale from the same logic. Best of all: you remember which board came from which tree, every time you set a coffee mug down.",
@@ -159,7 +159,7 @@ const M_EN = {
   bench: {
     category: "bench",
     seoTitle: "Bench plans | Entryway, dining bench, outdoor — Wooden Ren Blueprint",
-    seoDescription: "Build a bench that actually fits your entry or dining table. Auto leg geometry, mid-span brace placement, load check. Three-second engineering drawings and cut list.",
+    seoDescription: "Build a bench that actually fits your entry or dining table. Auto leg geometry, mid-span brace placement, load check. Three-minute engineering drawings and cut list.",
     tagline: "Pulls double duty: entryway shoe bench or dining-table side seating",
     subTagline: "Intermediate template · straight / A-frame / trapezoid legs, mid-span brace optional",
     whatItDoes: "A bench is the most multipurpose piece of furniture in the house — entryway shoe bench, dining-table side seating (fits 3–4 people in one stretch), outdoor planter perch, library step. This template supports 90–200 cm lengths (anything > 150 cm gets an auto mid-span brace to prevent sag), three leg styles (straight / A-frame / trapezoid), and a bare or cushioned top. Materials run about $50–100 — cheaper than buying two IKEA chairs.\n\nStructurally a bench is the same \"legs + apron + top\" mortise-and-tenon as a stool. If you've built a stool, the only new challenge is span — tops over 120 cm need either edge-glued panels or a wood with stable fiber (oak / maple beat pine by a wide margin). Over 150 cm and you need a mid-stretcher or center leg.\n\nThe bench you build now will be sat on every day for 20 years. The shoe bench in the entryway is one of those things — pick a wood you like, finish it well, and it gets better with use.",
@@ -206,7 +206,7 @@ const M_EN = {
   "dining-chair": {
     category: "dining-chair",
     seoTitle: "Dining chair plans | Back curve, splayed legs, ergonomics — Wooden Ren Blueprint",
-    seoDescription: "Build a dining chair you'll actually sit in for two hours. Algorithm auto-handles back-rake, compound-angle rear legs, seat slope. Three-second engineering drawings, joinery layout, cut list.",
+    seoDescription: "Build a dining chair you'll actually sit in for two hours. Algorithm auto-handles back-rake, compound-angle rear legs, seat slope. Three-minute engineering drawings, joinery layout, cut list.",
     tagline: "Build a dining chair you'll happily sit in for two hours",
     subTagline: "Advanced template · back curve, splayed rear legs (compound angles), seat slope — all automatic",
     whatItDoes: "Dining chairs are woodworking's watershed project — plenty of people can build a stool; very few build a great chair. The difference: chairs need back rake (5–8° lean), splayed rear legs (so the chair doesn't tip when you lean back), seat slope (front-low-back-high, so you don't slide off), and tapered legs (visually light).\n\nThe algorithm bundles all four. Enter \"seat 45 cm, back 80 cm, 6° rake, rear-leg splay 8°\" and the system computes the rear-leg true length (with compound-angle math), back-slat spacing for 5 rails, and the joinery positions where each of the four legs meets the seat frame. The drawings ship with a back-curve detail, true-length leg dimensions, and table-saw setup values — cut to the lines and you get a chair you can sit in for two hours without lower-back pain.\n\nBuild 6 for a dining set, 1 for an office chair, 4 for a café — this template is the ceiling test for residential woodworking.",
@@ -254,7 +254,7 @@ const M_EN = {
   desk: {
     category: "desk",
     seoTitle: "Desk plans | Drawer / shelf / cable management — Wooden Ren Blueprint",
-    seoDescription: "Build a desk that fits your monitor, keyboard and both hands. Auto drawer placement, shelf layout, cable port. Three-second engineering drawings, cut list, quote.",
+    seoDescription: "Build a desk that fits your monitor, keyboard and both hands. Auto drawer placement, shelf layout, cable port. Three-minute engineering drawings, cut list, quote.",
     tagline: "A desk that actually fits you — better than IKEA",
     subTagline: "Advanced template · drawer / shelf / cable port / outlet channel — freely configurable",
     whatItDoes: "A desk is the most-bought piece of furniture in modern homes — but 80% of off-the-shelf desks are 110 cm wide × 75 cm tall × 60 cm deep. They never fit. If your corner is 145 cm wide, you want 72 cm tall (you're 168 cm), 55 cm deep (less light-blocking), the only option is to build it.\n\nThis desk template supports 1–3 drawers (left / right / center), 1–2 lower shelves, a 60 mm cable port at the rear, and an optional outlet-strip channel. Three base structures: 4 straight legs (most desk-like), 2 side panels with drawer carcase (sturdiest), A-frame (most material-efficient).\n\nKey size rule: desk height = your height / 4 + 5 cm. 168 cm tall → 47 cm desk height (chair included). 175 cm → 48–50 cm. The template suggests automatically from your height input.",
@@ -302,7 +302,7 @@ const M_EN = {
   "open-bookshelf": {
     category: "open-bookshelf",
     seoTitle: "Open bookshelf plans | Shelf height by book type, sag check — Wooden Ren Blueprint",
-    seoDescription: "Build a bookshelf that fits the books you actually own. Auto shelf height by book height, load + sag warnings. Three-second engineering drawings, joinery layout, cut list.",
+    seoDescription: "Build a bookshelf that fits the books you actually own. Auto shelf height by book height, load + sag warnings. Three-minute engineering drawings, joinery layout, cut list.",
     tagline: "Build a shelf where your books actually fit",
     subTagline: "Shelf height auto-tuned to book height — paperbacks / A4 / art books all sized in",
     whatItDoes: "90% of retail bookshelves have a fixed 30 cm shelf height — but your books aren't sorted that way. Manga is 17 cm, paperbacks 15 cm, A4 books 30 cm, art books / photography 35 cm. A flat 30 cm shelf either won't hold them or wastes half the shelf above.\n\nThis template lets you enter each shelf's height (manga shelf 18 cm, paperback 16 cm, A4 32 cm, top 38 cm). The system places the shelves, totals the height, and flags stability concerns. A bookshelf isn't about looking nice — it's about books actually fitting.\n\nStructurally: fixed shelves (sturdiest), adjustable pins (32 mm euro hole pattern), or hybrid (fixed in the front half, adjustable in the back). Recommended depth 22–26 cm (paperback + A4), and 30–40 cm per opening (wider than that, shelves start to sag). A wall-to-wall built-in book wall runs $2000–3000 retail; the same wall in material is $500–1000. You finish it knowing every board, every joint — that's not something a store-bought delivers.",
@@ -350,7 +350,7 @@ const M_EN = {
   "dining-table": {
     category: "dining-table",
     seoTitle: "Dining table plans | 6–10 seat, edge-glue, leg style — Wooden Ren Blueprint",
-    seoDescription: "Build the dining table the whole family gathers around. Auto edge-glue layout, leg geometry, span / load check. Three-second engineering drawings, cut list, quote.",
+    seoDescription: "Build the dining table the whole family gathers around. Auto edge-glue layout, leg geometry, span / load check. Three-minute engineering drawings, cut list, quote.",
     tagline: "Build the table your family will eat around",
     subTagline: "Advanced template · edge-glued top, four straight / A-frame / trapezoid legs",
     whatItDoes: "The dining table is the piece of furniture that holds the family's memory — kids' homework, teenage fights, wedding dinners. Most retail dining tables are 75–85 cm wide (fine for two-up), but if your family hosts 6–8 people, you need 90–100 cm — and that's where DIY starts winning.\n\nThis template auto-handles edge-glue (any board wider than 30–40 cm gets multiplane'd, and tongue-and-groove positions are computed for you), three leg styles (four straight, A-frame, trapezoid), and an optional skirting (cleaner look or open underside). Lengths over 180 cm auto-add a center support leg to prevent sag.\n\nA real hardwood dining table retails for $1,500–3,000. Material (oak edge-glued top + leg stock) is typically $150–300. More importantly — this table can have your initials carved in, dimensioned exactly to your dining room, used for 30 years, and the kids will remember who built it.",
@@ -397,7 +397,7 @@ const M_EN = {
   "tea-table": {
     category: "tea-table",
     seoTitle: "Coffee table plans | Living-room, lower shelf, drawer — Wooden Ren Blueprint",
-    seoDescription: "Build a coffee table sized to your sofa. Lower shelf for magazines, drawer for remotes. Three-second engineering drawings, cut list, quote.",
+    seoDescription: "Build a coffee table sized to your sofa. Lower shelf for magazines, drawer for remotes. Three-minute engineering drawings, cut list, quote.",
     tagline: "The right-sized coffee table for the sofa you actually have",
     subTagline: "Intermediate template · plain-top / lower-shelf / drawer variants",
     whatItDoes: "The coffee table is the visual center of the living room — it's the first thing you see from the sofa. Off-the-shelf coffee tables are either too big (covers the whole rug) or too low (awkward mug reach).\n\nThe template suggests size based on your sofa width (coffee-table width = 50–70% of sofa width) and height (5 cm below sofa seat is the mug sweet spot). Lower-shelf version stores magazines, remotes, board games; drawer version hides cables and remotes. Three leg styles: straight, X-cross, single-slab carved.\n\nMaterial cost ~$50–100 (solid wood top + legs) — twice the lumber quality of an IKEA LACK, at the same overall cost, sized for your room. After this build you'll have nailed \"flat top + leg attachment\" — the same logic applies to dining tables and desks at larger scale.",
@@ -443,7 +443,7 @@ const M_EN = {
   nightstand: {
     category: "nightstand",
     seoTitle: "Nightstand plans | Drawer / shelf / height-matched — Wooden Ren Blueprint",
-    seoDescription: "Build a nightstand sized to your bed height. Drawer / shelf / hybrid configurations. Three-second engineering drawings and cut list.",
+    seoDescription: "Build a nightstand sized to your bed height. Drawer / shelf / hybrid configurations. Three-minute engineering drawings and cut list.",
     tagline: "The bedside table that's actually the right height",
     subTagline: "Intermediate template · drawer / shelf / hybrid variants",
     whatItDoes: "Nightstands are the most-used and most-worth-building bedroom furniture — retail nightstands run a standard 40 × 40 × 50 cm, but your bed might be 55 cm tall (high box spring) or 35 cm (platform). Off-the-shelf rarely lines up.\n\nThe template auto-suggests nightstand height from your bed height (0–5 cm taller than mattress is the phone-reach sweet spot). 40–50 cm wide × 35–45 cm deep. Drawer version holds glasses, skincare; shelf version holds books, lamps, humidifiers. Hybrid is most practical: drawer on top, shelf below.\n\nMaterial cost runs $25–50 each — but this is what you see every morning and night. Pick a wood you like, hardware you like, and years later you'll still like it. Two matched nightstands set the room.",
@@ -489,7 +489,7 @@ const M_EN = {
   "chest-of-drawers": {
     category: "chest-of-drawers",
     seoTitle: "Chest of drawers plans | Drawer count, slide hardware — Wooden Ren Blueprint",
-    seoDescription: "Build a bedroom chest that fits your space. Auto drawer count, slide layout, drawer-face proportions. Three-second engineering drawings, hardware spec list.",
+    seoDescription: "Build a bedroom chest that fits your space. Auto drawer count, slide layout, drawer-face proportions. Three-minute engineering drawings, hardware spec list.",
     tagline: "A bedroom chest that lasts 20 years",
     subTagline: "Advanced template · dovetail or slide-mounted drawers, drawer-face proportions auto-balanced",
     whatItDoes: "A chest of drawers is the most opened-and-closed piece of furniture in a home — twice a day, 365 days a year, 20 years = 29,000 cycles. Retail chests start failing in 5 years because they use the cheapest slides and stapled thin panels.\n\nDIY lets you pick: top-tier dovetailed drawers (never go loose, last a lifetime), mid-tier ball-bearing slides (a $5 pair, 10 years easy), or entry-level wing slides (cheapest, 5 years before replacement). The template outputs the matching hardware spec and joinery for your chosen tier.\n\n3–6 drawers, drawer-face widths either uniform or graduated (small-on-top-large-on-bottom is classic 1.4:1.2:1 Ming proportion). Depth 40–50 cm (clothes fold flat), total height 70–110 cm (taller needs wall anchoring for tip-safety). Retail chest of drawers: $200–500. Material cost: $80–150. But the bigger value is learning dovetails — that joint shows up in drawers, boxes, chairs, frames for the rest of your woodworking life.",
@@ -536,7 +536,7 @@ const M_EN = {
   "media-console": {
     category: "media-console",
     seoTitle: "Media console plans | Cable management, ventilation, drawers — Wooden Ren Blueprint",
-    seoDescription: "Build a TV console that hides the cables, vents the console heat, and fits your gaming gear. Three-second engineering drawings, cut list, hardware spec.",
+    seoDescription: "Build a TV console that hides the cables, vents the console heat, and fits your gaming gear. Three-minute engineering drawings, cut list, hardware spec.",
     tagline: "A TV console that actually hides the cables",
     subTagline: "Advanced template · cable ports, ventilation, gaming-console nooks — automatic",
     whatItDoes: "The hard part of a media console isn't structure — it's cables. One TV, one Switch, one PS5, one HomePod, four speaker cables, one Apple TV. Ten cables to hide, vent, and reach from a remote.\n\nThis template auto-handles: 2–4 × 60 mm cable ports through the back panel, rear ventilation slots (mandatory for PS5 heat), mixed drawer + shelf layouts (drawers for controllers + game discs, shelves for consoles that need airflow), and IR-pass-through slots so hidden remotes still work.\n\nWidth recommendation: TV width + 40 cm of side storage (65\" TV = 145 cm + 40 = 185 cm console width). Height: eye-center lands on the upper-third of the TV when seated (sofa seat 40 + 50 cm = ~90 cm viewing height, so console top 95–110 cm). Retail wall-fit media consoles: $700–1,500. DIY material cost: $150–300. And it's sized to your TV — when you upgrade, you can modify the console rather than replace the whole thing.",
@@ -582,7 +582,7 @@ const M_EN = {
   wardrobe: {
     category: "wardrobe",
     seoTitle: "Wardrobe plans | Hanging rod / drawer / shelf for wall fit — Wooden Ren Blueprint",
-    seoDescription: "Build a wardrobe that fits your wall. Auto rod placement, drawer count, shelf layout. Three-second engineering drawings, hardware spec, cut list.",
+    seoDescription: "Build a wardrobe that fits your wall. Auto rod placement, drawer count, shelf layout. Three-minute engineering drawings, hardware spec, cut list.",
     tagline: "A wardrobe that fits the wall, not the showroom",
     subTagline: "Advanced template · hanging rods / drawers / shelves freely configured for any wall dimension",
     whatItDoes: "Wardrobes are the most space-occupying piece of furniture in a home — and the one most worth custom-building. Custom-built quotes run $2,500–4,500. DIY material cost is $600–900 — plus the skills to build a furniture-grade piece that'll last 30 years.\n\nThis template takes your wall opening (width × depth × height) and lays out hanging-rod positions (110 cm for women's clothing, 140 cm for men's; double rod possible), drawer count, top shelving for off-season storage, and optional bottom shoe row. Door style: hinged (cheapest), sliding (won't hit the bed), or no doors (fastest build).\n\nKey dimensions: depth 60 cm minimum (hanging clearance), single-bay width 90–100 cm (rod doesn't sag), total height 5 cm under ceiling (need clearance to wrestle in). The template configures to your dimensions. Saved $2,000+ in build cost, and now you've got the skills for headboards, dressing tables, and storage built-ins.",
@@ -629,7 +629,7 @@ const M_EN = {
   "shoe-cabinet": {
     category: "shoe-cabinet",
     seoTitle: "Shoe cabinet plans | Adjustable shelves, entryway fit — Wooden Ren Blueprint",
-    seoDescription: "Build a shoe cabinet that fits the entryway. Auto shelf heights, depth, door style. Three-second engineering drawings, hardware spec, cut list.",
+    seoDescription: "Build a shoe cabinet that fits the entryway. Auto shelf heights, depth, door style. Three-minute engineering drawings, hardware spec, cut list.",
     tagline: "A shoe cabinet that actually fits the entryway",
     subTagline: "Advanced template · adjustable shelves, door / open / lift-lid configurable",
     whatItDoes: "Shoe cabinets are the first impression of the entryway — but 90% of entryways are non-standard width (90–120 cm). Retail shoe cabinets almost never fit. DIY's killer feature is \"to-the-mm sizing\".\n\nThe template supports adjustable shelves (raise for boots, lower for slippers, all in one cabinet), 30–35 cm depth (fits a US men's 10 shoe at 28 cm), 90–110 cm total height (can sit on top to put shoes on). Three door styles: sliding (saves space), hinged (cheapest), or lift-lid (best for cramped entryways).\n\nRetail shoe cabinets typically run $500–1,000. DIY material cost is $100–200 (veneered MDF). The bigger win: case construction and door-hinge installation — the same skills scale to wardrobes, desks, media consoles.",
@@ -676,7 +676,7 @@ const M_EN = {
   "bar-stool": {
     category: "bar-stool",
     seoTitle: "Bar stool plans | Counter height, foot rail, back style — Wooden Ren Blueprint",
-    seoDescription: "Build a bar stool that aligns with your counter / island. Auto seat height, foot-rail placement, splayed-leg geometry. Three-second engineering drawings.",
+    seoDescription: "Build a bar stool that aligns with your counter / island. Auto seat height, foot-rail placement, splayed-leg geometry. Three-minute engineering drawings.",
     tagline: "A bar stool that aligns with your counter — not the showroom counter",
     subTagline: "Intermediate template · optional back, foot-rail auto-placed",
     whatItDoes: "The most common mistake on bar stools is not matching the counter height — standard retail is 75 cm but your kitchen island might be 90 cm or 105 cm. Sit down and your knees crash into the counter.\n\nThe template auto-suggests stool height from your counter height (counter − 28 cm is the knee-clearance sweet spot). Foot-rail auto-placed (25–30 cm from the floor is the comfort spot). Legs splayed 6–10° (bar stools are top-heavy and tip easily — splay adds tip-resistance). Back style: backless (cleanest), low-back (5 horizontal rails), or full-back (dining-chair height).\n\nRetail bar stools run $80–160 each. DIY material cost is $40–70. The bigger win: your counter is unique, and store-bought stools are always 3–5 cm off. Build four matched stools yourself and the whole bar feels intentional.",
@@ -722,7 +722,7 @@ const M_EN = {
   "round-stool": {
     category: "round-stool",
     seoTitle: "Round stool plans | 3-leg / 4-leg, round seat — Wooden Ren Blueprint",
-    seoDescription: "Build a stable round stool. Auto 3-leg / 4-leg layout, splay angles, edge-glued round seat. Three-second engineering drawings, joinery layout.",
+    seoDescription: "Build a stable round stool. Auto 3-leg / 4-leg layout, splay angles, edge-glued round seat. Three-minute engineering drawings, joinery layout.",
     tagline: "The lightest-looking stool around: the round stool",
     subTagline: "Intermediate template · 3 legs (stable on uneven floors), 4 legs (cleaner look), edge-glued round seat",
     whatItDoes: "Round stools win on visual lightness — for the same dimensions, a round stool reads smaller than a square one. Drops into a living room as a side perch, sits next to the coffee table without blocking the path.\n\n3-leg round stools have a unique property: they're stable on uneven floors (3 points always touch). The trade-off is lower load capacity than 4-leg. 4-leg round stools carry more load but need flat floors. The template lets you pick 3 or 4 legs, splay angle (6–12°), and edge-glue the seat (any seat > 30 cm needs glue-up). Seat finish: bare wood, oil, or padded.\n\nA round seat is the best beginner project for non-rectilinear shapes — edge-glue, jigsaw the rough circle, then router-clean the edge. After this build, your \"curve-work\" muscles are warmed up for round tables and round coffee tables later.",
@@ -768,7 +768,7 @@ const M_EN = {
   "low-table": {
     category: "low-table",
     seoTitle: "Low table plans | Tatami / floor table, tea ceremony — Wooden Ren Blueprint",
-    seoDescription: "Build a low table for floor seating. Auto leg geometry, edge-glued top, splayed-leg options. Three-second engineering drawings, cut list.",
+    seoDescription: "Build a low table for floor seating. Auto leg geometry, edge-glued top, splayed-leg options. Three-minute engineering drawings, cut list.",
     tagline: "The floor-seating low table for tatami and tea ceremonies",
     subTagline: "Intermediate template · 30–38 cm tall, optional splayed legs",
     whatItDoes: "Low tables are built for floor seating — tatami rooms, floor cushions, yoga-mat dining. Recommended leg height 30–38 cm (knees can slide underneath in cross-legged seating), top widths from 60–150 cm.\n\nThe template supports splayed legs (5–10° for visual stability), edge-glued tops (> 40 cm wide needs glue-up), and an optional perimeter lip (prevents cups from sliding off). Calligraphy and brush-painting practitioners often use low tables — they want the top wider (90–120 cm) for paper and inks.\n\nLow tables are structurally simple, material-efficient — a 90 × 60 cm low table runs $30–60 in material. After this build, your tatami room has a hand-built piece. Friends drop in, sit down to share a meal — they ask where you got it, and you tell them you built it.",
@@ -814,7 +814,7 @@ const M_EN = {
   "round-tea-table": {
     category: "round-tea-table",
     seoTitle: "Round coffee table plans | Living room, single pedestal — Wooden Ren Blueprint",
-    seoDescription: "Build a round coffee table — 3-leg, 4-leg, or single-pedestal base options. Three-second engineering drawings, edge-glue layout, cut list.",
+    seoDescription: "Build a round coffee table — 3-leg, 4-leg, or single-pedestal base options. Three-minute engineering drawings, edge-glue layout, cut list.",
     tagline: "Round coffee table — softer than square",
     subTagline: "Intermediate template · 3-leg / 4-leg / single-pedestal base",
     whatItDoes: "Round coffee tables read softer than square — no sharp corner to bruise knees, no edges to surprise toddlers. The template supports 60–120 cm diameter, 3 structural options: 3-leg (Nordic), 4-leg (traditional), single-pedestal base (Asian / hotel-grade).\n\nSingle-pedestal is the hardest to build but reads most like high-end furniture — the base can be a cross-base, round-plate, or even carved stone. 3-leg is most material-efficient; 4-leg is sturdiest. Round tops need edge-gluing; the template auto-lays joint positions.\n\nRound top-work is technique training you can't get on a square build — jigsaw curves, router-edge cleaning, and arc-edge chamfering. After one round coffee table, those round-shape skills carry directly to round stools, round dining tables. Material runs ~10–15% less than equivalent square tables (less edge waste).",
@@ -860,7 +860,7 @@ const M_EN = {
   "round-table": {
     category: "round-table",
     seoTitle: "Round dining table plans | 6–8 seat, single pedestal — Wooden Ren Blueprint",
-    seoDescription: "Build a round dining table the family gathers around. Single-pedestal, 4-leg, or cross-base options. Three-second engineering drawings, edge-glue layout.",
+    seoDescription: "Build a round dining table the family gathers around. Single-pedestal, 4-leg, or cross-base options. Three-minute engineering drawings, edge-glue layout.",
     tagline: "The dining table the family gathers around — round",
     subTagline: "Advanced template · single-pedestal / 4-leg / cross-base options",
     whatItDoes: "Round dining tables have three structural advantages: every seat is equidistant from the center (fair access to shared dishes), no \"head of the table\" (egalitarian family feel), and they fit more people per square meter than rectangular tables when packed. Trade-offs: round tables can't tuck into corners and they take more floor space than a same-seat rectangular.\n\nThe template supports 90–150 cm diameter, three structures: single-pedestal (most beautiful, hardest to build), 4-leg (most stable), cross-base (Asian / hotel restaurant). 120 cm seats 6, 140 cm seats 8, 150 cm seats 10 (tight).\n\nThis is heirloom-class woodworking — a 140 cm diameter solid-wood round dining table retails for $750–1,500. DIY material cost is $200–400 depending on species. The table will sit in the dining room for decades, every meal happening around it, in a way no off-the-shelf piece can match.",
@@ -907,7 +907,7 @@ const M_EN = {
   "display-cabinet": {
     category: "display-cabinet",
     seoTitle: "Display cabinet plans | Glass doors, LED lighting, shelves — Wooden Ren Blueprint",
-    seoDescription: "Build a glass display cabinet for your collection. Auto shelf layout, glass-door sizing, LED strip channels. Three-second engineering drawings.",
+    seoDescription: "Build a glass display cabinet for your collection. Auto shelf layout, glass-door sizing, LED strip channels. Three-minute engineering drawings.",
     tagline: "A glass display cabinet for the collection that matters",
     subTagline: "Advanced template · glass doors / interior shelves / LED strips fully configurable",
     whatItDoes: "Display cabinets are the furniture serious collectors should build themselves — retail display cabinets are either too large for the wall or have wrong-height shelves for the actual collection.\n\nThis template takes per-shelf heights (figure shelf 25 cm, book shelf 32 cm, whisky shelf 35 cm), auto-lays out shelf positions. Glass-door dimensions auto-computed (exactly what the glass shop needs to quote you). Optional LED-strip channel routed in (back-lit display). Back panel: solid wood (warm), glass (see-through both sides), or mirrored (extends the perceived space).\n\nCustom-built 60 × 40 × 180 cm glass display cabinets retail for $250–800. DIY material cost (wood + glass + LED) is $100–200. More importantly: your figure spacing, your bottle angles, everything dimensioned by you. When the collection rotates, you can modify rather than replace — that's the value of building it.",
@@ -953,7 +953,7 @@ const M_EN = {
   tray: {
     category: "tray",
     seoTitle: "Wooden tray plans | Serving tray, tea tray, side handles — Wooden Ren Blueprint",
-    seoDescription: "Build a serving tray that's the right size for your meals — side handles / cut-out grips / no handles. Three-second drawings, handle cut layout, cut list.",
+    seoDescription: "Build a serving tray that's the right size for your meals — side handles / cut-out grips / no handles. Three-minute drawings, handle cut layout, cut list.",
     tagline: "Serve, pour, organize — the most useful small woodworking piece",
     subTagline: "Beginner template · side handles / cut-out grips / no handles",
     whatItDoes: "A tray is the fastest piece of woodworking you'll build — you can finish 3–5 in a half day. The uses are endless: serving meals, pouring tea, holding keys at the entry, parking meds by the bed. The template supports side handles (vertical or horizontal), cut-out grips (cleanest look), and no handles (pure panel).\n\nRecommended wall height: 2–3 cm (stops things sliding); 9–15 mm bottom is plenty (keeps it light). Add a non-slip pad to the underside (cork or silicone). Material cost is about $2–5 per tray; sell them at a craft market for $7–18 and they move.\n\nTrays are small but they teach you two things: mitered joinery and finishing. Four 45° miters that aren't accurate will show every gap — they force you to practice precision. Build ten trays and the miter skill transfers straight to picture frames, boxes, and drawer fronts.",
@@ -1057,7 +1057,7 @@ const M_EN = {
   "photo-frame": {
     category: "photo-frame",
     seoTitle: "Picture frame plans | Square, miter, glass panel — Wooden Ren Blueprint",
-    seoDescription: "Build a picture frame sized exactly to your print. Auto miter angle, glass dimensions, backer board layout. Three-second engineering drawings, cut list.",
+    seoDescription: "Build a picture frame sized exactly to your print. Auto miter angle, glass dimensions, backer board layout. Three-minute engineering drawings, cut list.",
     tagline: "The cheapest miter practice on the planet: build a picture frame",
     subTagline: "Beginner template · four 45° miters / glass in front / paper backer",
     whatItDoes: "Picture frames are the cheapest way to practice miters — $1–2 of scrap stock makes two or three frames. Inaccurate 45° miters show gaps in seconds, so they're the perfect drill for eye-and-hand precision.\n\nEnter your print size (5×7, 8×10, A4, A3, etc.) and the template auto-computes outer frame dimensions, glass dimensions, and backer-board dimensions. Pick edge width (slim 2 cm Nordic / wide 5 cm classical), thickness (12 mm light / 18 mm substantial), and add a hanging-cord hole or kickstand.\n\nMaterial cost per frame is $1–3, but frames hang on the wall and you see them every day. Build six matched frames, hang them on one wall with family photos, and that wall is uniquely yours. Once your miters are tight, every four-cornered piece you build — trays, boxes, drawer fronts — benefits from the same skill.",
@@ -1104,7 +1104,7 @@ const M_EN = {
   "dovetail-box": {
     category: "dovetail-box",
     seoTitle: "Wooden box plans | Jewelry box, storage box, tool box — Wooden Ren Blueprint",
-    seoDescription: "Build a beautiful wooden box — dovetail, finger joint, or rabbet joinery. Three-second engineering drawings, dovetail layout, cut list.",
+    seoDescription: "Build a beautiful wooden box — dovetail, finger joint, or rabbet joinery. Three-minute engineering drawings, dovetail layout, cut list.",
     tagline: "The best project for learning dovetails: build a box",
     subTagline: "Intermediate template · dovetail / finger / rabbet joinery",
     whatItDoes: "Boxes give the highest skill return on the lowest material cost — under $3 of scrap teaches you dovetails, finger joints, dividers, hinges, and decorative inlay in one project. Build a box and your skill bumps a full notch.\n\nThe template supports dovetails (highest-craft, heirloom-grade), finger joints (mid-level, most common), and rabbets (entry-level, glue-and-pin). Add dividers (jewelry box), drawers (storage box), or tool-holding channels (toolbox). Lids can be hinged, fitted, or sliding.\n\nMaterial cost runs $2–8, but commercial dovetail boxes sell for $60–150 (Japanese craftsman pricing). The bigger payoff: after 30 hand-cut dovetails, your work makes people stop and ask, \"how did you do that?\" That kind of skill carries forward.",
@@ -1152,7 +1152,7 @@ const M_EN = {
   "wine-rack": {
     category: "wine-rack",
     seoTitle: "Wine rack plans | Horizontal storage, lattice design — Wooden Ren Blueprint",
-    seoDescription: "Build a wine rack sized to hide exactly 6–24 bottles. Auto lattice sizing and bottle-diameter math. Three-second engineering drawings, cut list.",
+    seoDescription: "Build a wine rack sized to hide exactly 6–24 bottles. Auto lattice sizing and bottle-diameter math. Three-minute engineering drawings, cut list.",
     tagline: "Store, display, build only if you have wine at home",
     subTagline: "Intermediate template · horizontal storage, adjustable 6–24 bottles",
     whatItDoes: "Wine has to lie horizontal (keeps the cork moist) and store-bought racks rarely fit your actual space. The template takes a bottle count (6–24) and a column / row layout, then auto-computes the lattice cells from standard bottle diameter (7–8 cm).\n\nStructure options: plain wood lattice (traditional), cross lattice (Nordic), diamond lattice (sculptural). Standalone (small) or wall-recessed (large 24+ bottles). Material: oak (matches the wine smell) or cypress (resists humidity).\n\nA 12-bottle commercial rack runs $25–60; build it yourself for $10–20 in material. More importantly: build one as a gift for a wine-lover friend and every time they uncork they'll think of you. One of the highest-ROI gift projects in small woodworking.",
