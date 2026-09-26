@@ -91,10 +91,32 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "vertical-3", label: "縱向 3 格" },
     { value: "colonial", label: "Colonial 6 格（殖民風）" },
     { value: "art-deco", label: "Art Deco 幾何（菱形/扇形）" },
-  ], help: "玻璃門加木格分條（mullion），打破整片玻璃的單調，傳統感更強", dependsOn: { key: "doorType", equals: "glass" } },
+  ], help: "玻璃門加木格分條（mullion），打破整片玻璃的單調，傳統感更強", dependsOn: { all: [ANY_ZONE_IS_DOOR, { key: "doorType", equals: "glass" }] } },
   pullStyleOption("door"),
   doorPullStyleOption("door"),
 ];
+
+// 頂部裝飾條各層高度（mm）。下面 pushBand 跟這裡共用同一組數字，
+// 鎖定總高時先把飾條高度從總高扣掉，櫃體+腳+飾條才會剛好等於使用者填的高。
+const DECOR_BAND_H = 60;
+const DECOR_STEPPED_LOWER_H = 50;
+const DECOR_STEPPED_UPPER_H = 30;
+const DECOR_DENTIL_BASE_H = 35;
+const DECOR_TOOTH_H = 25;
+const DECOR_DENTIL_CAP_H = 18;
+const DECOR_BALUSTRADE_BASE_H = 25;
+const DECOR_POST_H = 90;
+const DECOR_BALUSTRADE_CAP_H = 25;
+
+export function topDecorExtraHeight(topDecor: string): number {
+  switch (topDecor) {
+    case "flat-band": return DECOR_BAND_H;
+    case "stepped": return DECOR_STEPPED_LOWER_H + DECOR_STEPPED_UPPER_H;
+    case "dentil": return DECOR_DENTIL_BASE_H + DECOR_TOOTH_H + DECOR_DENTIL_CAP_H;
+    case "balustrade": return DECOR_BALUSTRADE_BASE_H + DECOR_POST_H + DECOR_BALUSTRADE_CAP_H;
+    default: return 0;
+  }
+}
 
 export const displayCabinet: FurnitureTemplate = (input) => {
   const locale = input.locale ?? "zh-TW";
@@ -120,8 +142,14 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
+  // 鎖定總高：飾條算在總高裡（櫃體矮掉 decorExtraH）；未鎖定：飾條往上加、說明報含飾條總高
+  const decorExtraH = topDecorExtraHeight(topDecor);
+  const lockTotalHeight = getOption<boolean>(input, opt(o, "lockTotalHeight"));
+  const caseH = lockTotalHeight && decorExtraH > 0 ? input.height - decorExtraH : input.height;
+  const caseInput = caseH === input.height ? input : { ...input, height: caseH };
+
   const { innerH, effectiveLegHeight, warnings: lockWarnings } = resolveLockedTotalHeight(
-    input, o, panelThickness, legHeight,
+    caseInput, o, panelThickness, legHeight,
   );
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
@@ -133,7 +161,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     nameZh: "玻璃展示櫃",
     length: input.length,
     width: input.width,
-    height: input.height,
+    height: caseH,
     material: input.material,
     shelfCount: 0,
     doorType:
@@ -168,15 +196,42 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     ).trim(),
     warnings,
   });
+  // 玻璃片不進木料材料單／報價／CSV（visual:"glass" 全被濾掉），
+  // 但玻璃行報價要的就是這個尺寸——直接寫進說明。
+  const glassSizes = new Map<string, number>();
+  for (const g of design.parts) {
+    if (g.visual !== "glass") continue;
+    const [a, b, c] = [g.visible.length, g.visible.width, g.visible.thickness].sort((x, y) => y - x);
+    const key = `${Math.round(a)}×${Math.round(b)}×${Math.round(c)}`;
+    glassSizes.set(key, (glassSizes.get(key) ?? 0) + 1);
+  }
+  const extraNotes: string[] = [];
+  if (glassSizes.size > 0) {
+    const list = [...glassSizes].map(([k, n]) => (isEn ? `${n} × ${k} mm` : `${n} 片 ${k}mm`)).join(isEn ? ", " : "、");
+    extraNotes.push(isEn
+      ? `Glass to order (not in the wood cut list; sizes include the part seated in the frame groove): ${list}.`
+      : `玻璃訂製尺寸（不列在木料材料單；已含嵌進框槽的部分，可直接給玻璃行報價）：${list}。`);
+  }
+  if (decorExtraH > 0) {
+    extraNotes.push(lockTotalHeight
+      ? (isEn
+        ? `Top trim (${decorExtraH}mm) is included in the locked total height ${input.height}mm; carcase + legs = ${caseH}mm.`
+        : `頂部飾條 ${decorExtraH}mm 已算進鎖定的總高 ${input.height}mm，櫃體+腳 = ${caseH}mm。`)
+      : (isEn
+        ? `Top trim adds ${decorExtraH}mm above the ${input.height}mm carcase: overall height ${input.height + decorExtraH}mm — use this when checking ceiling clearance.`
+        : `頂部飾條在 ${input.height}mm 櫃體上再加高 ${decorExtraH}mm，含飾條整體總高 ${input.height + decorExtraH}mm（量天花板淨高請用這個數字）。`));
+  }
+  if (extraNotes.length > 0) design.notes = `${design.notes ?? ""} ${extraNotes.join(" ")}`.trim();
+
   // 頂部裝飾條：前 + 左 + 右三面包覆（後方靠牆省略）
   if (topDecor !== "none") {
-    const yTop = input.height;
+    const yTop = caseH;
     const L = input.length;
     const W = input.width;
     const mat = input.material;
     const proj = 8; // 裝飾條外伸 8mm，比櫃體略凸顯立體感
     const trimT = 18;
-    const bandH = 60;
+    const bandH = DECOR_BAND_H;
 
     // 直接以「世界軸尺寸」設 visible：length→X、thickness→Y(垂直)、width→Z，
     // 不用旋轉。避免雙軸 rotation 在 ZYX Euler 下跟 worldExtents 對不上的渲染 bug。
@@ -222,20 +277,20 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     if (topDecor === "stepped") {
       // 古典 cornice：下層窄、上層 cap 寬外伸（cap 蓋住下層、向外多伸 15mm）
       // 下層：50mm 高，xInset=15、zInset=15（窄）→ 從櫃邊內縮 7mm
-      pushBand({ id: "top-decor-lower", nameZh: "頂部飾條 下層", nameEn: "Top trim lower", height: 50, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
+      pushBand({ id: "top-decor-lower", nameZh: "頂部飾條 下層", nameEn: "Top trim lower", height: DECOR_STEPPED_LOWER_H, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
       // 上層：30mm 高，無內縮（寬，外伸跟櫃同 proj=8）→ 比下層往外 15mm 突出
-      pushBand({ id: "top-decor-upper", nameZh: "頂部飾條 上層 cap", nameEn: "Top trim upper cap", height: 30, thick: trimT, yOffset: 50 });
+      pushBand({ id: "top-decor-upper", nameZh: "頂部飾條 上層 cap", nameEn: "Top trim upper cap", height: DECOR_STEPPED_UPPER_H, thick: trimT, yOffset: DECOR_STEPPED_LOWER_H });
     }
 
     if (topDecor === "dentil") {
       // 古典 dentil cornice：底座（下）→ 齒列（中）→ 上層 cap（最上）
       // 底座：35mm 窄板，xInset/zInset 15 → 比櫃邊內縮 7mm
-      pushBand({ id: "top-decor-base", nameZh: "齒飾 底座", nameEn: "Dentil trim base", height: 35, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
+      pushBand({ id: "top-decor-base", nameZh: "齒飾 底座", nameEn: "Dentil trim base", height: DECOR_DENTIL_BASE_H, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
       // 齒列：每齒 22 × 25 × 14，齒寬=齒距 1:1 古典比例
-      const toothW = 22, toothH = 25, toothT = 14, gap = 22;
+      const toothW = 22, toothH = DECOR_TOOTH_H, toothT = 14, gap = 22;
       const pitch = toothW + gap;
       const frontZ = -W / 2 - proj + toothT / 2;
-      const yToothBase = yTop + 35; // 站在底座上方
+      const yToothBase = yTop + DECOR_DENTIL_BASE_H; // 站在底座上方
       // 前排：要避開側齒內緣（L=600~900 中尺寸下前末齒會跟側首齒撞 3~5mm）
       // 前齒最外側中心 ≤ 側齒內緣 - toothW/2 - 2mm 餘量
       const clearance = 2;
@@ -275,12 +330,12 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         }
       }
       // 上層 cap：壓在齒列頂上，無內縮（寬出，蓋住整圈齒）
-      pushBand({ id: "top-decor-cap", nameZh: "齒飾 上層 cap", nameEn: "Dentil trim upper cap", height: 18, thick: trimT, yOffset: 35 + toothH });
+      pushBand({ id: "top-decor-cap", nameZh: "齒飾 上層 cap", nameEn: "Dentil trim upper cap", height: DECOR_DENTIL_CAP_H, thick: trimT, yOffset: DECOR_DENTIL_BASE_H + toothH });
     }
 
     if (topDecor === "balustrade") {
       // 下橫條 25mm + 立柱 90mm + 上橫條 25mm，三層欄杆
-      const baseH = 25, postH = 90, capH = 25;
+      const baseH = DECOR_BALUSTRADE_BASE_H, postH = DECOR_POST_H, capH = DECOR_BALUSTRADE_CAP_H;
       pushBand({ id: "top-decor-base", nameZh: "頂部欄杆 底條", nameEn: "Balustrade base rail", height: baseH, thick: trimT, yOffset: 0 });
       pushBand({ id: "top-decor-cap", nameZh: "頂部欄杆 頂條", nameEn: "Balustrade cap rail", height: capH, thick: trimT, yOffset: baseH + postH });
       // 立柱：每 70mm 一根，方料 18×18mm

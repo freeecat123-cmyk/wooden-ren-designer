@@ -136,10 +136,10 @@ export const TEMPLATE_HIGHLIGHTS: Partial<Record<FurnitureCategory, Highlight[]>
     { icon: "📐", title: "桌面建議 25mm+", desc: "圓桌跨距大要厚" },
   ],
   "display-cabinet": [
-    { icon: "📐", title: "層高依收藏配", desc: "公仔 25cm／酒 35cm" },
-    { icon: "💡", title: "可預留 LED 溝", desc: "12V 燈條嵌入" },
-    { icon: "🪟", title: "玻璃尺寸自動算", desc: "玻璃行報價需要的" },
-    { icon: "🪞", title: "背板三選", desc: "實木/玻璃/鏡面" },
+    { icon: "📐", title: "三層分區各自選", desc: "玻璃門/層板/抽屜" },
+    { icon: "🪟", title: "玻璃門木格四款", desc: "十字/縱3/Colonial/Art Deco" },
+    { icon: "👑", title: "頂部線板四款", desc: "平直/階梯/齒狀/欄杆" },
+    { icon: "📏", title: "玻璃尺寸直接給", desc: "說明區列每片尺寸" },
   ],
   "dovetail-box": [
     { icon: "🪵", title: "三種接法", desc: "鳩尾/指接/企口" },
@@ -294,10 +294,10 @@ export const TEMPLATE_HIGHLIGHTS_EN: Partial<Record<FurnitureCategory, Highlight
     { icon: "📐", title: "Top thickness 25 mm+", desc: "Round tables need extra thickness for span" },
   ],
   "display-cabinet": [
-    { icon: "📐", title: "Layer height per collection", desc: "Figures 25 cm / wine 35 cm" },
-    { icon: "💡", title: "Reserve LED channels", desc: "12V strip embedded" },
-    { icon: "🪟", title: "Auto glass dimensions", desc: "Spec the glass shop needs" },
-    { icon: "🪞", title: "Three back options", desc: "Solid / glass / mirror" },
+    { icon: "📐", title: "Three zones, each configurable", desc: "Glass door / shelves / drawers" },
+    { icon: "🪟", title: "Four mullion grids", desc: "Cross / 3-vertical / Colonial / Art Deco" },
+    { icon: "👑", title: "Four top trims", desc: "Flat / stepped / dentil / gallery rail" },
+    { icon: "📏", title: "Glass sizes listed", desc: "Order straight from the notes" },
   ],
   "dovetail-box": [
     { icon: "🪵", title: "Three joinery options", desc: "Dovetail / finger / rabbet" },

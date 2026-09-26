@@ -138,7 +138,7 @@ export const TEMPLATE_GALLERY: Partial<Record<FurnitureCategory, GalleryImage[]>
   ],
   "display-cabinet": [
     ...pair("display-cabinet", "展示櫃預設 3D",
-      "玻璃門 + 內部 LED 走線位置，線框模式看清楚"),
+      "玻璃門木格分隔 + 頂部線板，線框模式看清楚框槽"),
     CABINET_INTERNAL,
   ],
 
@@ -271,7 +271,7 @@ export const TEMPLATE_GALLERY_EN: Partial<Record<FurnitureCategory, GalleryImage
   ],
   "display-cabinet": [
     ...pairEn("display-cabinet", "Display cabinet preset — 3D",
-      "Glass doors + internal LED wiring routes, visible in wireframe mode"),
+      "Mullioned glass doors + top trim, frame grooves visible in wireframe mode"),
     CABINET_INTERNAL_EN,
   ],
   "pencil-holder": pairEn("pencil-holder", "Pencil holder square preset — 3D",
