@@ -14,11 +14,11 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com
  * zh-only routes (still emitted; not listed under /en):
  *  - /templates/[type]/* — marketing.ts not yet translated; /en notFound()s
  *  - /pricing/student — TW academy plan
- *  - /calc/apron-tilt — not localized
+ *  - /calc, /calc/apron-tilt — not localized
  *  - /changelog
  */
 
-const TW_ONLY_ROUTES = ["calc/apron-tilt", "changelog"];
+const TW_ONLY_ROUTES = ["calc", "calc/apron-tilt", "changelog"];
 
 /**
  * 雙語頁面 → **回傳兩筆**(中文一筆、英文一筆),共用同一份 languages 對照。
