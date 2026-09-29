@@ -9,9 +9,12 @@ import { TrialWatermark } from "@/components/TrialWatermark";
 export function PrintAccessGate({
   suggestedFilename,
   preflight,
+  templateUnlocked = false,
 }: {
   suggestedFilename?: string;
   preflight?: PrintPreflight;
+  /** 伺服器端查到這支範本已買斷（免費方案也可列印） */
+  templateUnlocked?: boolean;
 }) {
   const t = useTranslations("printGate");
   const { features, isLoading } = useUserPlan();
@@ -28,7 +31,7 @@ export function PrintAccessGate({
     );
   }
 
-  if (features.canDownloadPdf) {
+  if (features.canDownloadPdf || templateUnlocked) {
     return <PrintButton suggestedFilename={suggestedFilename} preflight={preflight} />;
   }
 
@@ -44,10 +47,10 @@ export function PrintAccessGate({
   );
 }
 
-export function PrintWatermarkLayer() {
+export function PrintWatermarkLayer({ templateUnlocked = false }: { templateUnlocked?: boolean } = {}) {
   const t = useTranslations("printGate");
   const { features, isLoading } = useUserPlan();
-  if (isLoading || !features.hasWatermark) return null;
+  if (templateUnlocked || isLoading || !features.hasWatermark) return null;
   return (
     <>
       <TrialWatermark text={t("watermark")} />

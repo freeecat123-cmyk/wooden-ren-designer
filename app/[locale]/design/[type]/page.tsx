@@ -594,7 +594,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           exports={(() => {
             const features = getPlanFeatures(profile);
             const canExport3D = isAdmin || features.canUseQuoteSystem;
-            const canExportPack = isAdmin || features.canDownloadPdf;
+            const canExportPack = isAdmin || features.canDownloadPdf || unlockedCategories.includes(type);
             return <section data-section="exports" className="space-y-4">
               <h2 className="text-base font-semibold">{locale === "en" ? "Export files" : "輸出檔案"}</h2>
               <div className="flex flex-wrap items-center gap-2" data-studio-exports data-studio-output>

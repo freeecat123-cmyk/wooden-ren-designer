@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { createAdminClient, createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
+import { canUseOutputFor } from "@/lib/unlocks";
 import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { loadModelSnapshot } from "@/lib/design/load-model-snapshot";
@@ -74,7 +75,11 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   if (!user) {
     redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/print`)}`);
   }
-  if (!isAdminEmail(user.email, getServerAdminEmails()) && !(await isPaidUser(user.id))) {
+  const isAdminUser = isAdminEmail(user.email, getServerAdminEmails());
+  const paid = isAdminUser || (await isPaidUser(user.id));
+  // 買斷這支範本＝這支的列印權限跟付費版一樣（無浮水印、可列印）
+  const templateUnlocked = !paid && (await canUseOutputFor(createAdminClient(), user.id, type, false));
+  if (!paid && !templateUnlocked) {
     redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
   }
 
@@ -140,7 +145,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
       </div>
 
       {/* 免費版螢幕浮水印（付費版自動隱藏） */}
-      <PrintWatermarkLayer />
+      <PrintWatermarkLayer templateUnlocked={templateUnlocked} />
 
       {/* Top bar — hidden in print */}
       <div className="no-print sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200 px-6 py-3 flex items-center justify-between">
@@ -149,7 +154,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             ? "Print preview (A4 portrait) — choose 'Save as PDF' in the system dialog"
             : "列印預覽（A4 直式）— 按下按鈕後在系統對話框選擇「另存為 PDF」"}
         </p>
-        <PrintAccessGate suggestedFilename={`${outputName}_${today}`} preflight={{
+        <PrintAccessGate templateUnlocked={templateUnlocked} suggestedFilename={`${outputName}_${today}`} preflight={{
           name: outputName,
           size: formatDimensions(design.overall.length, design.overall.width, design.overall.thickness, unit),
           savedState, warnings: design.warnings ?? [], hasTemplates: hasPrintTemplates(design),

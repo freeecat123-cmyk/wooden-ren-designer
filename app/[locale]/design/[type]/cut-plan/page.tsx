@@ -1,8 +1,9 @@
 import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { createAdminClient, createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
+import { canUseOutputFor } from "@/lib/unlocks";
 import { getTemplate, getEntryName } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { loadModelSnapshot, preserveSavedReference } from "@/lib/design/load-model-snapshot";
@@ -49,7 +50,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
     if (!user) {
       redirect(`${prefix}/login?next=${encodeURIComponent(`${prefix}/design/${type}/cut-plan`)}`);
     }
-    if (!isAdminEmail(user.email, getServerAdminEmails()) && !(await isPaidUser(user.id))) {
+    if (!isAdminEmail(user.email, getServerAdminEmails()) && !(await canUseOutputFor(createAdminClient(), user.id, type, await isPaidUser(user.id)))) {
       redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
     }
   }
