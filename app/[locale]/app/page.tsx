@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import {
-  FURNITURE_CATALOG, catalogForLocale, getEntryName, type FurnitureCatalogEntry,
+  catalogForLocale, getEntryName, type FurnitureCatalogEntry,
   DEV_CATEGORIES,
 } from "@/lib/templates";
 import { routing, type Locale } from "@/i18n/routing";
@@ -119,6 +119,10 @@ const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
 // 「全部」分頁照列、可點可買——同一份清單抄六份的老問題，見 lib/templates/index.ts DEV_CATEGORIES 的註解）
 const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([...DEV_CATEGORIES] as FurnitureCategory[]);
 
+/** 「全部 / 工具」分頁固定插入的工具卡張數（天花板 / 地板 / 架高地板 / CNC）。
+ *  分子分母要用同一個常數，不然又會變成兩套算法各算各的。 */
+const TOOL_CARD_COUNT = 4;
+
 function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
   if (chip === "dev") {
     return entries.filter((e) => DEVELOPMENT_CATEGORIES.has(e.category));
@@ -159,7 +163,6 @@ export default async function Home({
   const t = await getTranslations({ locale, namespace: "home" });
   const sp = (await searchParams) ?? {};
   const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
-  const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
 
   // 撈 user 已永久買斷的範本 + 工具,首頁卡片要根據這個決定要不要顯示 🔒 / ✓
   const user = await getSessionUser();
@@ -181,7 +184,14 @@ export default async function Home({
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
   const visibleCount =
-    (showFurniture ? furniture.length : 0) + (showTools ? 4 : 0);
+    (showFurniture ? furniture.length : 0) + (showTools ? TOOL_CARD_COUNT : 0);
+  // 分母＝這個語系真的排得出來的卡片總數。
+  // 2026-09-29：原本寫 `FURNITURE_CATALOG.filter(f=>f.template).length + 1`＝死的 37，
+  // 但 (a) 開發中的 8 款根本不會 render、(b) 英文站還會再少掉只賣台灣的 zhOnly 款。
+  // 實測正式站中文「顯示 32 / 37」、英文「Showing 29 / 37」——等於告訴客人有 5~8 件
+  // 藏著找不到。分母改成跟分子同一把尺（同一個 filterByChip + 同一組工具卡）。
+  const totalCount =
+    filterByChip(catalogForLocale(locale), "all").length + TOOL_CARD_COUNT;
 
   return (
     <main className="max-w-7xl mx-auto px-5 sm:px-6 py-8 sm:py-12">
@@ -283,7 +293,7 @@ export default async function Home({
           <strong className="text-amber-800 font-bold tabular-nums text-base">
             {visibleCount}
           </strong>
-          <span className="text-zinc-400"> / {ready + 1}</span> {t("countingPieces")}
+          <span className="text-zinc-400"> / {totalCount}</span> {t("countingPieces")}
         </span>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-zinc-400 font-medium">{t("diffLegend")}</span>
