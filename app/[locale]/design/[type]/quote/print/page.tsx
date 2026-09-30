@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getSessionUser } from "@/lib/supabase/server";
-import { isPaidUser } from "@/lib/userProfile";
+import { createAdminClient, getSessionUser } from "@/lib/supabase/server";
+import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
 import { getTemplate, getEntryName, getEntryDescription } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS, materialName } from "@/lib/materials";
@@ -159,14 +159,24 @@ export default async function QuotePrintPage({
   const customerEmail = sp.customerEmail ?? "";
   const DASH = "＿＿＿＿＿＿＿＿＿＿";
 
-  // viewMode=internal 含成本拆解（毛利 / 工時 / 報廢率），只給付費 user 看。
+  // viewMode=internal 含成本拆解（毛利 / 工時 / 報廢率），只給有報價系統的方案看
+  // （跟 ../page.tsx 同一個判準 canUseQuoteSystem；原本用 isPaidUser() 個人版也會過）。
   // 客戶分享連結（/q/<code>）或匿名 curl 一律 force customer view，避免內部成本外洩。
   const wantsInternal = sp.viewMode === "internal";
   let viewMode: "customer" | "internal" = "customer";
   if (wantsInternal) {
     const user = await getSessionUser();
-    if (user && (isAdminEmail(user.email, getServerAdminEmails()) || (await isPaidUser(user.id)))) {
-      viewMode = "internal";
+    if (user) {
+      let allowed = isAdminEmail(user.email, getServerAdminEmails());
+      if (!allowed) {
+        const { data: quoteProfile } = await createAdminClient()
+          .from("users")
+          .select("plan,subscription_status,subscription_expires_at,student_expires_at")
+          .eq("id", user.id)
+          .single();
+        allowed = canUseFeature(quoteProfile as UserPlanProfile | null, "canUseQuoteSystem");
+      }
+      if (allowed) viewMode = "internal";
     }
   }
 

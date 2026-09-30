@@ -138,7 +138,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     .eq("id", user.id)
     .single();
   if (!isAdminEmail(user.email, getServerAdminEmails()) && !canUseFeature(quoteProfile as UserPlanProfile | null, "canUseQuoteSystem")) {
-    redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}`);
+    // need=quote：定價頁改顯示「報價是專業版功能」，不要再叫人買單範本／個人版（那兩個都不含報價）
+    redirect(`${prefix}/pricing?locked=${encodeURIComponent(type)}&need=quote`);
   }
 
   const length = parseInt(sp.length ?? "") || entry.defaults.length;

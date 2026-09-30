@@ -36,6 +36,7 @@ export function PricingClient() {
   const faqs = tRoot.raw("pricingFaqs") as Array<{ q: string; a: string }>;
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [lockedCategory, setLockedCategory] = useState<string | null>(null);
+  const [needQuote, setNeedQuote] = useState(false);
   const [paymentError, setPaymentError] = useState(false);
   const [coupon, setCoupon] = useState<CouponState>({ code: "", status: "idle" });
   const { profile, userId } = useUserPlan();
@@ -108,6 +109,8 @@ export function PricingClient() {
     // 工具銷售頁用 ?upgrade=<tool>，paywall 用 ?locked=<category>，兩個都吃
     const locked = sp.get("locked") ?? sp.get("upgrade");
     if (locked) setLockedCategory(locked);
+    // 報價頁被擋過來的（?need=quote）：報價只有專業版有，橫幅文案要換
+    if (sp.get("need") === "quote") setNeedQuote(true);
     const c = sp.get("coupon");
     if (c) setCoupon({ code: c.toUpperCase(), status: "idle" });
     if (sp.get("error") === "payment_not_configured") {
@@ -206,9 +209,9 @@ export function PricingClient() {
           <span className="text-2xl flex-shrink-0">🔒</span>
           <div className="flex-1 text-sm leading-relaxed">
             <p className="font-semibold text-amber-950">
-              {t("lockedHTpl", { name: lockedName })}
+              {t(needQuote ? "lockedQuoteH" : "lockedHTpl", { name: lockedName })}
             </p>
-            <p className="mt-1 text-amber-800">{t("lockedBody")}</p>
+            <p className="mt-1 text-amber-800">{t(needQuote ? "lockedQuoteBody" : "lockedBody")}</p>
             {FEATURED_TEMPLATE_CATEGORIES.includes(lockedCategory as never) && (
               <Link
                 href={`/templates/${lockedCategory}`}
@@ -354,7 +357,7 @@ export function PricingClient() {
             nameZh: e.nameZh,
             difficulty: e.difficulty,
           }))}
-        lockedCategory={lockedCategory}
+        lockedCategory={needQuote ? null : lockedCategory}
       />
 
       <ToolUnlockSection />

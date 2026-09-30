@@ -535,7 +535,7 @@
         "tier": "Free",
         "f1": "Square stool + pencil holder + workbench: fully customizable",
         "f2": "Free full preview of every other template (3D / three-view / joinery / cut list)",
-        "f3": "Upgrade to resize, quote, and print",
+        "f3": "Upgrade to resize and print (quotes are in Pro)",
         "f4": "No signup required to try",
         "cta": "Try free"
       },
@@ -573,7 +573,7 @@
       "cutlistFaqQ": "Do I need to draw a plan before building furniture myself? How do I write a cut list?",
       "cutlistFaqA": "Yes — drawing a plan first avoids mis-measuring on site and wasting stock. A good cut list lists every board's length, width, thickness, quantity and grain direction so you can sequence the cuts efficiently. Enter your dimensions into Wooden Ren Designer and it converts to board-feet automatically and generates the cut list and cutting order for you.",
       "freeQ": "What does the free tier actually include?",
-      "freeA": "The square stool, pencil holder and workbench are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (you can still switch materials in the preview).",
+      "freeA": "The square stool, pencil holder and workbench are fully customizable with free output. Every other template is fully previewable for free — 3D, joinery, three-views and cut list all visible. Only resizing to your own dimensions and printing the engineering pack require payment (a single-template purchase or the Personal plan covers both; you can still switch materials in the preview). Generating client quotes is a Pro feature.",
       "cadQ": "How does this compare to SketchUp / Fusion 360?",
       "cadA": "Designer is for woodworkers who want to build, not learn CAD. Five-minute learning curve, automatic joinery / three-view / cut list / cutting plan. Not trying to replace professional CAD.",
       "tierQ": "Personal vs Pro — what's the difference?",
@@ -758,7 +758,7 @@
       "wood": "Wood",
       "detailSettings": "Detail settings",
       "previewLockTitle": "This is a {dims} sample",
-      "previewLockBody": "On the free plan you can fully browse this template's 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the quote and print pack, upgrade (you can still switch materials to preview).",
+      "previewLockBody": "On the free plan you can fully browse this template's 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the print pack, upgrade (you can still switch materials to preview). Quotes are in the Pro plan.",
       "previewLockCta": "Unlock your dimensions →",
       "autoUpdate": "Design auto-updates 0.5s after you change a parameter",
       "dynamicMaxHint": "Max {max}",
@@ -800,7 +800,7 @@
   },
   "mobile": {
     "previewLockTitle": "This is a {dims} sample",
-    "previewLockBody": "On the free plan you can fully browse the 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the quote and print pack, upgrade (materials still switchable).",
+    "previewLockBody": "On the free plan you can fully browse the 3D, three views, joinery details, and cut list. To resize it to your own dimensions and unlock the print pack, upgrade (materials still switchable). Quotes are in Pro.",
     "previewLockCta": "Unlock your dimensions →",
     "previewLockSheetHint": "Browse every detail option — upgrade to make them yours",
     "topBar": {
@@ -3538,7 +3538,7 @@
     "sec3Li2": "Account passwords / sign-in tokens are the user's responsibility to safeguard; losses arising from leakage are borne by the user.",
     "sec3Li3": "The Generator reserves the right to suspend or terminate accounts that violate these terms or engage in malicious behavior.",
     "sec4H": "4. Plans and billing",
-    "sec4Li1": "The Free plan offers full use of the square stool, pencil holder and workbench templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing, quotes, and the printable engineering pack require a paid plan.",
+    "sec4Li1": "The Free plan offers full use of the square stool, pencil holder and workbench templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing and the printable engineering pack require a paid plan; the quote system is available on the Pro, Student and Lifetime plans only.",
     "sec4Li2": "Personal / Pro plans are billed monthly or annually; the Student plan is a complimentary plan for Wooden Ren Academy students, subject to the then-current plan description.",
     "sec4Li3Pre": "Activation is typically immediate after payment. If activation fails, please email ",
     "sec4Li3Suffix": ".",
@@ -3865,7 +3865,9 @@
     "paymentErrorBack": "← Go back",
     "paymentErrorBrowse": "Browse templates",
     "lockedHTpl": "\"{name}\" is a paid-plan template",
-    "lockedBody": "On the free plan you can preview this furniture's full design drawings, but resizing it to your own dimensions, generating a quote, and printing the engineering pack require payment. Choose \"single-template purchase\" or upgrade to Personal — pick a plan below to unlock.",
+    "lockedBody": "On the free plan you can preview this furniture's full design drawings, but resizing it to your own dimensions and printing the engineering pack require payment. Choose \"single-template purchase\" or upgrade to Personal — pick a plan below to unlock. To generate client quotes, choose Pro (single-template purchases and Personal do not include quotes).",
+    "lockedQuoteH": "Quotes for \"{name}\" are a Pro feature",
+    "lockedQuoteBody": "Generating client quotes requires the Pro plan (Student and Lifetime include it too). A single-template purchase or the Personal plan lets you resize and print the engineering pack, but does not include quotes — choose Pro below if you need them.",
     "lockedDetailTpl": "📖 Read \"{name}\" details first →",
     "backToApp": "← Back to catalog",
     "browseTemplates": "📖 Browse template details",
@@ -4076,7 +4078,7 @@
   "pricingFaqs": [
     {
       "q": "What does the free plan actually include?",
-      "a": "The square stool, pencil holder and workbench are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions, generating quotes, and printing the engineering pack require an upgrade (materials stay switchable in the preview)."
+      "a": "The square stool, pencil holder and workbench are fully customizable with free output. Every other furniture template is fully previewable for free — 3D, joinery, 3-views and BOM all visible, so you can see exactly what you'd get. Only resizing to your own dimensions and printing the engineering pack require payment (a single-template purchase or the Personal plan covers both; materials stay switchable in the preview). Generating client quotes is a Pro feature."
     },
     {
       "q": "What's the difference between Personal (NT$390) and Pro (NT$890)?",

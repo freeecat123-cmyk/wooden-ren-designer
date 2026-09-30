@@ -105,3 +105,44 @@ describe("方案功能的閘要用對的判準（不是「有沒有付錢」）"
     expect(canUseFeature(profile({ plan: "personal" }), "canDownloadPdf" as never)).toBe(true);
   });
 });
+
+describe("文案承諾要對得上閘：報價只有專業版有", () => {
+  /**
+   * 2026-09-29 客訴：免費版＋單範本買斷的客人被擋在列印外。追查時發現同一批文案
+   * 還寫「改尺寸、產生報價與列印工程包需要付費，可選單範本買斷或升級個人版就能解鎖」，
+   * 但報價（canUseQuoteSystem）買斷與個人版都沒有 —— 照文案付錢的人拿不到報價。
+   * 規則：這幾句「要付費才有」的文案只要提到報價，就必須同句講明是專業版。
+   */
+  const KEYS: Array<[string, string[]]> = [
+    ["定價頁被擋橫幅", ["pricingPage", "lockedBody"]],
+    ["定價頁報價橫幅", ["pricingPage", "lockedQuoteBody"]],
+    ["首頁免費卡", ["landing", "pricing", "free", "f3"]],
+    ["首頁 FAQ", ["landing", "faq", "freeA"]],
+    ["定價 FAQ 第一題", ["pricingFaqs", "0", "a"]],
+    ["服務條款", ["terms", "sec4Li1"]],
+  ];
+  const dig = (o: unknown, path: string[]) =>
+    path.reduce<unknown>((acc, k) => (acc as Record<string, unknown> | undefined)?.[k], o);
+
+  for (const [file, quoteWord, proWord] of [
+    ["zh-TW", /報價/, /專業版/],
+    ["en", /quote/i, /\bPro\b/],
+  ] as const) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const messages = require(`../../messages/${file}.json`);
+    for (const [label, path] of KEYS) {
+      it(`${file}｜${label}：提到報價就要講專業版`, () => {
+        const text = dig(messages, path);
+        expect(typeof text, `${path.join(".")} 找不到`).toBe("string");
+        if (quoteWord.test(text as string)) {
+          expect(text as string).toMatch(proWord);
+        }
+      });
+    }
+  }
+
+  it("單範本買斷／個人版都沒有報價（文案依據的那條事實）", () => {
+    expect(canUseFeature(null as never, "canUseQuoteSystem" as never)).toBe(false);
+    expect(canUseFeature(profile({ plan: "personal" }), "canUseQuoteSystem" as never)).toBe(false);
+  });
+});
