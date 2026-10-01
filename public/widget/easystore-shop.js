@@ -61,7 +61,11 @@
       "padding:12px 22px;font-size:15px;font-weight:700;font-family:inherit}",
       "@media(min-width:768px){#wr-sticky-atc{display:none!important}}",
       "body.wr-sticky-on #wr-ship-bar{bottom:78px}",
-      'body.wr-sticky-on a[href*="lin.ee"]{bottom:78px!important}'
+      'body.wr-sticky-on a[href*="lin.ee"]{bottom:78px!important}',
+      // 手機整頁左右滑：佈景主題把頁面撐到 620px 寬（手機 390px），主題自己的
+      // html{overflow-x:hidden} 擋不住 iPhone 的觸控捲動。clip 不會變成捲動容器，
+      // 吸頂/吸底元件照常運作。（2026-10-01 WebKit 實測：可滑出 230px → 0）
+      "html,body{overflow-x:clip}"
     ].join("");
     document.head.appendChild(st);
   }
