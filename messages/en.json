@@ -1265,7 +1265,7 @@
         {
           "emoji": "🪵",
           "title": "Main + sub battens auto-laid",
-          "body": "Main 60×30, sub 30×30, spacing 30/45/60 cm tunable. Auto-tiles across the whole room."
+          "body": "36×30 mm battens (one spec for perimeter, main and sub; width and thickness each tunable 20–60 mm). Main-batten centers follow the board width, sub battens land near 36 cm — auto-tiled across the whole room."
         },
         {
           "emoji": "📦",
@@ -1275,7 +1275,7 @@
         {
           "emoji": "🔗",
           "title": "Even hanger distribution",
-          "body": "Hangers auto-laid by room length & width, 60–90 cm range, cross-joints emphasized for 3D legibility."
+          "body": "Hangers run along every main batten from both ends inward, 90 cm centers by default (tunable 45–150 cm), cross-joints emphasized for 3D legibility."
         },
         {
           "emoji": "🎛️",
@@ -1303,11 +1303,11 @@
         },
         {
           "label": "Main batten spacing",
-          "desc": "30 / 45 / 60 cm presets. The system back-solves from board short edge so seams always land on batten centers."
+          "desc": "Auto by default: main-batten centers = board width + seam gap — 90.3 cm for 3×6 boards, 120.3 cm for 4×8 — so seams always land on batten centers. Uncheck auto to drag it 30–120 cm."
         },
         {
           "label": "Sub batten spacing",
-          "desc": "30 / 45 cm presets. Bigger spans auto-upgrade to heavier battens."
+          "desc": "By default the board length is divided down to the nearest 36 cm: 36 cm for 3×6 boards, 34.3 cm for 4×8, so board-edge seams sit on a sub batten. Manual range 20–60 cm."
         },
         {
           "label": "Fiber-cement board spec (4×8 / 3×6)",
@@ -1315,7 +1315,7 @@
         },
         {
           "label": "Hanger spacing",
-          "desc": "60–90 cm range, auto even distribution. The system warns if a span exceeds 90 cm."
+          "desc": "90 cm along every main batten by default (one at each end), tunable 45–150 cm. In \"minimal\" mode each main batten only gets one hanger per end."
         },
         {
           "label": "Trim / molding (optional)",
@@ -1344,7 +1344,7 @@
         {
           "icon": "🔗",
           "title": "Hanger spread table",
-          "body": "Hangers auto-laid from room dimensions, spacing within 60–90 cm."
+          "body": "Hanger count and center spacing per main batten (90 cm by default), with hanger drop derived from slab height minus ceiling height."
         },
         {
           "icon": "🎛️",
@@ -1441,6 +1441,10 @@
     "faqSection": {
       "h2": "FAQ",
       "items": [
+        {
+          "q": "How far apart should ceiling furring battens be?",
+          "a": "Main (heavy) battens: centers = board width + seam gap — 90.3 cm for 3×6 boards (90×180 cm), 120.3 cm for 4×8 (120×240 cm) — so every board seam lands on a batten center and board edges are always supported. Sub (light) battens divide the board length down to the nearest 36 cm: 36 cm for 3×6, 34.3 cm for 4×8. Hangers go every 90 cm along each main batten. The tool does all of this automatically; uncheck \"auto spacing from board spec\" to drag main 30–120 cm and sub 20–60 cm yourself."
+        },
         {
           "q": "How does wood ceiling framing differ from steel-stud T-bar?",
           "a": "Wood framing uses 'batten grid + fiber-cement boards' — 12-ft battens with boards screwed on, supports light fixtures, allows shaping. Steel T-bar uses T-bars + mineral fiber tiles, modular and easy to dismantle but weak load and hard to shape. This tool calculates wood framing."
@@ -5256,8 +5260,8 @@
       "metaDescription": "Sketch your platform → calculate frame, plywood, finish, vapor barrier, baseboard → output A4 customer quote. Carpenters, GCs, DIYers — get it done in one go."
     },
     "ceiling": {
-      "metaTitle": "Wood Ceiling Frame Simulator · Wooden Ren",
-      "metaDescription": "Draw the room → calculate furring, calcium silicate boards, hangers → output A4 quote. Ceiling estimation in 30 seconds."
+      "metaTitle": "Ceiling Furring Spacing Calculator｜90cm main / 36cm sub, auto-laid · Wooden Ren",
+      "metaDescription": "How far apart should ceiling furring go? Main-batten centers = board width + seam gap (90.3cm for 3×6 boards, 120.3cm for 4×8); sub battens divide the board length down to ~36cm; hangers every 90cm along each main batten. Draw the room → frame, boards and hangers auto-calculated → A4 quote."
     },
     "floor": {
       "metaTitle": "Floor Installation Simulator · Wooden Ren",
