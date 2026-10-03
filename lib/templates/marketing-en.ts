@@ -349,21 +349,21 @@ const M_EN = {
   },
   "dining-table": {
     category: "dining-table",
-    seoTitle: "Dining table plans | 6–10 seat, edge-glue, leg style — Wooden Ren Blueprint",
-    seoDescription: "Build the dining table the whole family gathers around. Auto edge-glue layout, leg geometry, span / load check. Three-second engineering drawings, cut list, quote.",
+    seoTitle: "Dining table plans | 6-seat 180×85 cm, 75 cm high, 9 leg styles — Wooden Ren Blueprint",
+    seoDescription: "How big should a dining table be? 4-seat 140×80, 6-seat 180×85, 8-seat 220×90 cm, 75 cm high, 70 mm legs. Enter the size and the apron, stretchers and joinery lay themselves out — engineering drawings, cut list and quote in three minutes.",
     tagline: "Build the table your family will eat around",
-    subTagline: "Advanced template · edge-glued top, four straight / A-frame / trapezoid legs",
-    whatItDoes: "The dining table is the piece of furniture that holds the family's memory — kids' homework, teenage fights, wedding dinners. Most retail dining tables are 75–85 cm wide (fine for two-up), but if your family hosts 6–8 people, you need 90–100 cm — and that's where DIY starts winning.\n\nThis template auto-handles edge-glue (any board wider than 30–40 cm gets multiplane'd, and tongue-and-groove positions are computed for you), three leg styles (four straight, A-frame, trapezoid), and an optional skirting (cleaner look or open underside). Lengths over 180 cm auto-add a center support leg to prevent sag.\n\nA real hardwood dining table retails for $1,500–3,000. Material (oak edge-glued top + leg stock) is typically $150–300. More importantly — this table can have your initials carved in, dimensioned exactly to your dining room, used for 30 years, and the kids will remember who built it.",
+    subTagline: "Advanced template · 9 leg styles (incl. trestle), drop leaves, live edge",
+    whatItDoes: "The dining table is the piece of furniture that holds the family's memory — kids' homework, teenage fights, wedding dinners. Most retail dining tables are 75–85 cm wide (fine for two-up), but if your family hosts 6–8 people, you need 90–100 cm — and that's where DIY starts winning.\n\nNine leg styles: square, tapered, strong taper, inverted taper, splayed in three directions, curved-shoulder splay, and the classic trestle for big tables (two end frames plus a center rail, so nobody's knees hit a leg). The top can take a round, oval or petal outline, a live edge, or one- or two-side drop leaves that fold small and open out for dinner. Past 150 cm long, switch the center rail on yourself to fight racking — it ships off, the template will not add it for you.\n\nA real hardwood dining table retails for $1,500–3,000. Material (oak edge-glued top + leg stock) is typically $150–300. More importantly — this table can have your initials carved in, dimensioned exactly to your dining room, used for 30 years, and the kids will remember who built it.",
     keywords: ["dining table plans", "dining table dimensions", "edge-glued top", "DIY dining table", "solid wood table"],
     fitFor: {
       good: ["Building heirloom furniture", "Hosts large groups regularly", "Practicing large-panel edge-gluing"],
       notFor: ["No table saw / rip fence (edge-gluing needs straight clean edges)", "Workshop too small to swing 200 cm of stock", "Want to finish in a week — edge-glue alone needs 24 h per stage"],
     },
     parameters: [
-      { label: "L × W", desc: "4-seat 140×80, 6-seat 180×85, 8-seat 220×90" },
-      { label: "Height", desc: "Standard 72–75 cm; bar height 90–95 cm" },
-      { label: "Edge-glue", desc: "> 40 cm wide auto-splits; tongue-and-groove or biscuit or dovetail joinery" },
-      { label: "Leg style", desc: "Four straight (traditional) / A-frame (sturdiest) / trapezoid (Nordic)" },
+      { label: "L × W", desc: "4-seat 140×80, 6-seat 180×85, 8-seat 220×90 (max 240×120 cm)" },
+      { label: "Height", desc: "Standard 72–75 cm (default 75), max 80 cm" },
+      { label: "Drop leaf", desc: "One or two sides, 15–50 cm each, butterfly hinges" },
+      { label: "Leg style", desc: "9 styles: square / tapered / strong taper / inverted / splayed ×3 / curved-shoulder splay / trestle" },
     ],
     scenarios: [
       { tag: "Heirloom", body: "Walnut table that three generations will eat around — store-bought can't match the meaning." },
@@ -380,7 +380,7 @@ const M_EN = {
     ],
     presets: [
       { name: "Four straight legs", desc: "60 × 60 mm legs, classic dining-table proportions, 180 cm × 6-seat — the canonical first build." },
-      { name: "A-frame sturdy", desc: "Two A-frame sides with mid-stretcher — best load-bearing, industrial visual." },
+      { name: "Trestle big-table", desc: "Two end frames plus a center rail — maximum knee room, no leg in the way; the pick for anything over 200 cm." },
       { name: "Drop-leaf", desc: "Hinged sides fold down — 120 cm closed, extends to 160 cm for guests — perfect for small homes." },
       { name: "Cross-stretcher full joinery", desc: "Four legs + four-side lower stretcher — all mortise-and-tenon, heirloom-grade craft." },
     ],
