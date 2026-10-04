@@ -663,8 +663,8 @@
   "design": {
     "metadata": {
       "notFoundTitle": "Template not found",
-      "titleTemplate": "{name} plans | Enter dimensions, get 3 views, cut list and quote",
-      "descriptionTemplate": "{description}. Default {length}×{width}×{height}mm — resize it, pick your wood, get a cut list, 3 views and A4 printable shop drawings."
+      "titleTemplate": "{name} plans | 3 views, joinery details, part drawings and cut list",
+      "descriptionTemplate": "{description}. Default {length}×{width}×{height}mm. Switch the wood and get 3 views, joinery details, part drawings and a cut list; resizing, board nesting and A4 shop drawings are paid features (free on the stool, pencil holder and workbench)."
     },
     "back": "← Back to templates",
     "detailedIntro": "Full guide for this {name}",
