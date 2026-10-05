@@ -240,7 +240,7 @@
       "ogTitle": "About · Wooden Ren Designer — dimensions in, plans in 3 minutes",
       "ogDescription": "From Wooden Ren Academy. 25+ templates, auto three-view, joinery, cut list, PDF plans.",
       "twitterTitle": "About · Wooden Ren Designer",
-      "twitterDescription": "Dimensions in, plans / cut list / quote in 3 minutes. From Wooden Ren Academy."
+      "twitterDescription": "Dimensions in, plans / joinery details / cut list in 3 minutes. From Wooden Ren Academy."
     },
     "hero": {
       "logoAlt": "Wooden Ren Designer",
@@ -609,7 +609,7 @@
     "jumpTo": "Jump to",
     "header": {
       "badge": "Full template guide · use cases + FAQ",
-      "h1": "25 Furniture Templates + 3 Interior Tools",
+      "h1": "25 Furniture Templates + 4 Interior Tools",
       "h1En": "25 Furniture Templates",
       "subtitle1": "Every piece has its joinery, its use case, its variations.",
       "subtitle2": "Ceiling framing, flooring and tatami platform tools live here too.",
@@ -663,8 +663,8 @@
   "design": {
     "metadata": {
       "notFoundTitle": "Template not found",
-      "titleTemplate": "{name} plans | Enter dimensions, get 3 views, cut list and quote",
-      "descriptionTemplate": "{description}. Default {length}×{width}×{height}mm — resize it, pick your wood, get a cut list, 3 views and A4 printable shop drawings."
+      "titleTemplate": "{name} plans | 3 views, joinery details, part drawings and cut list",
+      "descriptionTemplate": "{description}. Default {length}×{width}×{height}mm. Switch the wood and get 3 views, joinery details, part drawings and a cut list; resizing, board nesting and A4 shop drawings are paid features (free on the stool, pencil holder and workbench)."
     },
     "back": "← Back to templates",
     "detailedIntro": "Full guide for this {name}",
@@ -1467,7 +1467,7 @@
         },
         {
           "q": "Can I buy just this tool?",
-          "a": "Yes. Find the single-tool unlock for ceiling on /pricing. But Personal covers all 25 furniture + 3 interior tools — most people end up subscribing to Personal instead."
+          "a": "Yes. Find the single-tool unlock for ceiling on /pricing. But Personal covers all 25 furniture + 4 interior tools — most people end up subscribing to Personal instead."
         },
         {
           "q": "What about my bay window or slanted wall?",

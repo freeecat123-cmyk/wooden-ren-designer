@@ -240,7 +240,7 @@
       "ogTitle": "關於 木頭仁 木作藍圖｜輸入尺寸 3 分鐘生工程圖",
       "ogDescription": "木頭仁木匠學院出品。25+ 家具範本、自動三視圖、榫卯、材料單、PDF 工程圖。",
       "twitterTitle": "關於 木頭仁 木作藍圖",
-      "twitterDescription": "輸入尺寸 3 分鐘生工程圖、材料單、報價。木頭仁木匠學院出品。"
+      "twitterDescription": "輸入尺寸 3 分鐘生工程圖、榫卯圖、材料單。木頭仁木匠學院出品。"
     },
     "hero": {
       "logoAlt": "木頭仁 木作藍圖",
@@ -663,8 +663,8 @@
   "design": {
     "metadata": {
       "notFoundTitle": "找不到家具範本",
-      "titleTemplate": "{name}設計圖｜輸入尺寸自動產出三視圖、材料單、報價",
-      "descriptionTemplate": "{description}。預設 {length}×{width}×{height}mm，可改尺寸與木料，自動算切料、三視圖與 A4 工程圖。"
+      "titleTemplate": "{name}設計圖｜自動產出三視圖、榫卯圖、零件圖與材料單",
+      "descriptionTemplate": "{description}。預設 {length}×{width}×{height}mm，線上換木料，自動算三視圖、榫卯圖、零件圖與材料單；改尺寸、裁切圖與 A4 工程圖為付費功能（方凳／筆筒／木工工作桌免費）。"
     },
     "back": "← 回家具列表",
     "detailedIntro": "這支{name}的詳細介紹",
@@ -1467,7 +1467,7 @@
         },
         {
           "q": "可以單買這個工具嗎？",
-          "a": "可以。在 /pricing 頁面找天花板單買斷選項。但個人版含全 28 家具 + 3 套裝潢工具更划算，大部分人會直接訂個人版。"
+          "a": "可以。在 /pricing 頁面找天花板單買斷選項。但個人版含全 28 家具 + 4 套裝潢工具更划算，大部分人會直接訂個人版。"
         },
         {
           "q": "我家凸窗、斜牆怎麼算？",
