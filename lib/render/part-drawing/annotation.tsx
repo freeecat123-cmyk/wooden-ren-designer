@@ -1867,10 +1867,14 @@ export function T2Annotations({
       // 接地 L/2×bottomScale，2026-06-01 統一基準)，這裡 seat/ground 同步。
       // 用 partLocalToSvg(跟榫頭框 box 同系、自洽)投影兩端，再挑跟榫頭框同側
       // (x 同號)的那條 length 端斜邊。
+      // 2026-10-06：正視 FRONT 改成真的繞 X 轉 180°（ctx.isolateFlipV）之後，local −W/2
+      // 才投影到畫面上方。梯形 body 在零件卡是寫死「接座在上」畫的（svg-views
+      // isolatePartId && trap 分支），所以這裡跟著換邊，肩線才繼續貼 body 斜邊。
+      const seatZ = ctx.isolateFlipV ? -Wp / 2 : +Wp / 2;
       const tenonOnPlusX = box.x + box.w / 2 >= 0;
       const edges = [1, -1].map((s) => ({
-        seat: ctx.partLocalToSvg((s * Lp) / 2 * trapShape.topLengthScale, Tp / 2, +Wp / 2),
-        ground: ctx.partLocalToSvg((s * Lp) / 2 * trapShape.bottomLengthScale, Tp / 2, -Wp / 2),
+        seat: ctx.partLocalToSvg((s * Lp) / 2 * trapShape.topLengthScale, Tp / 2, seatZ),
+        ground: ctx.partLocalToSvg((s * Lp) / 2 * trapShape.bottomLengthScale, Tp / 2, -seatZ),
       }));
       const edge =
         edges.find((e) => e.seat.x >= 0 === tenonOnPlusX) ?? edges[0];
@@ -2145,8 +2149,16 @@ export function T2Annotations({
       const { length: L0, width: W0, thickness: T0 } = part.visible;
       return W0 > L0 && W0 > T0 && !(T0 > L0 && T0 >= W0);
     })();
-    const toWorld = <B extends { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number }>(b: B): B =>
-      wideRot ? { ...b, cx: -b.cz, cy: b.cy, cz: b.cx, hx: b.hz, hy: b.hy, hz: b.hx } : b;
+    // 零件卡「正視 FRONT」（ctx.isolateFlipV）：isolate 之後又繞世界 X 轉了 180°，
+    // 螢幕垂直軸（世界 Z）整個反過來。下面肩距鏈的公式假設「螢幕上緣 = +Z 那一邊」
+    // （topBoundaryLocal = +partHalfV），不翻的話線畫到上緣、數字卻是量到下緣的
+    // （乙級抽屜面板：線從上緣拉到槽 88mm、字寫 11）。所以在換到世界座標這一步把 Z 反號。
+    // 只翻 cz：俯視/正視的垂直軸在三種 isolate 情況（不轉 / Ry / Rz）都是世界 Z。
+    const flipV = !!ctx.isolateFlipV;
+    const toWorld = <B extends { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number }>(b: B): B => {
+      const w = wideRot ? { ...b, cx: -b.cz, cy: b.cy, cz: b.cx, hx: b.hz, hy: b.hy, hz: b.hx } : b;
+      return flipV ? { ...w, cz: -w.cz } : w;
+    };
     const lbW = toWorld(lb);
     {
       // 視圖軸 mapping：mortiseEntryBox / tenonLocalBox 都以 part-local 中心系

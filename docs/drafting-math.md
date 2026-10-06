@@ -59,6 +59,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 中心線 / 對稱軸 | `"中心線\|centerline"` | §A5 |
 | 尺寸標註（箭頭、間距、字位、累進/並列） | `"標註\|dimension"` | §A6 |
 | 剖面線（hatching） | `"剖面\|hatching"` | §A7 |
+| 零件卡正視上下顛倒 / 仰視 BOTTOM / mirrorYPart / isolateFlipV | `"A2.1\|isolateFlipV\|mirrorYPart"` | §A2.1 |
 | 局部放大圖（detail view） | `"局部放大\|detail view"` | §A8 |
 | 榫卯細節圖 / 公榫位置 / 強度 | `"榫\|joinery\|tenon\|mortise"` | §B §G |
 | 爆炸圖 / 立體拆解 | `"爆炸\|exploded"` | §H |
@@ -131,6 +132,28 @@ SVG 的 y 軸向下，所以高度 z 取負；俯視圖 y 不翻轉（第三角�
 
 - 視圖間距 = `max(物件寬, 物件高) × 0.15`，最小 30mm
 - A4 橫式邊距：上下 10、左 25（裝訂）、右 5 mm
+
+### A2.1 零件卡「正視 FRONT」= 內部 view="bottom"，必須正立（2026-10-06）
+
+零件卡（`paper-sheet.tsx` / `drawing.tsx`）的「正視 FRONT」內部走 `view="bottom"`：
+`mirrorYDesign` 給零件「繞 local X 轉 π」，再用俯視投影。零件卡會 isolate（把零件放平，
+`rotation` 換成 0 / `Ry(−π/2)` / `Rz(−π/2)`），**那個 π 必須疊在 isolate 之後**：
+
+- 要的是世界座標 `Rx(π)·R_iso`；本專案 Euler 先 X 再 Y 再 Z，
+  `Rx(π)·Ry(θ) = Ry(−θ)·Rx(π)`、`Rx(π)·Rz(θ) = Rz(−θ)·Rx(π)`
+  → isolate 後 `rotation = { x: π, y: −y_iso, z: −z_iso }`。
+- 結果：直立件（`rotation.x = +π/2`，local −Z = 世界上方）的頂面畫在上、
+  看的是正面（local −Y），左右與從家具正面看一致。
+- 以前 isolate 直接覆寫 rotation、π 被丟掉 → 正視其實是俯視原樣、整張上下顛倒
+  （乙級前橫檔壸門跑到上緣、頂緣缺口在下緣、抽屜面板底板槽在上緣）。
+- **榫頭偏移不另外反號**：`tenonLocalBox` 的 offset 在 local 座標，跟本體一起被 π 轉。
+  2026-06-01 f5db4096 在 `mirrorYPart` 按 position 分軸反號，是在 π 被丟掉時把榫頭
+  「補」成看起來對；π 接回後那段會讓榫頭反過來錯，已拿掉。
+- annotation 裡「螢幕上緣 ↔ local 軸」寫死的公式要看 `ctx.isolateFlipV`：
+  肩距鏈 `toWorld` 把 cz 反號；梯形牙條榫頭肩線的接座面換成 −W/2
+  （梯形本體在零件卡是寫死「接座在上」畫的）。
+- 回歸測試：`lib/render/part-drawing/__tests__/front-view-upright.test.ts`
+  （壸門/缺口/底板槽在哪一側、肩距數字對線長、偏心榫頭、梯形肩線）。
 
 ### A3. 比例尺自動計算
 給定圖紙可用區域 (W, H) 與模型 bounding box (w, h, d)：

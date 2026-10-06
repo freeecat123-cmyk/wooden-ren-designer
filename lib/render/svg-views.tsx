@@ -506,6 +506,10 @@ export interface OrthoViewBoxCtx {
    *  T2 mortise 紅框用它裁進輪廓內——錐形腳細端的眼框不再突出楔形外
    *（user 2026-06-12 茶几錐形腳回報）。tenon 藍框（本來就凸出件外）不裁。 */
   partClipId?: string;
+  /** 零件圖「正視 FRONT」（內部 view="bottom"）：isolate 後再繞世界 X 轉 180°，
+   *  螢幕上下 = part-local −Z 在上（直立件的頂面在上）。annotation 用「螢幕上緣
+   *  ↔ local 軸」的肩距公式要知道這件事，見 T2Annotations 的 toWorld。 */
+  isolateFlipV?: boolean;
 }
 
 // ─── Joinery overlay (Phase 1.5) ────────────────────────────────────────────
@@ -1095,40 +1099,17 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
  * 鏡像 = 每個 part 的 origin.y 反號 + 繞 part-local X 軸再轉 180°。後者讓 part
  * 局部「底面」（local +Y）轉到世界 -Y 方向，等同從下方看的視角。
  *
- * ⚠️ tenon 的中心偏移（offsetWidth / offsetThickness）不會「自動」被 rotation
- * 翻對：tenonLocalBox 把 offset 套進 part-local 的 cx/cy/cz，而繞 local X 轉
- * 180° 只翻 cy/cz、不翻 cx。所以 offset 落在被翻軸（cy/cz）時要手動反號補正，
- * 否則牙板「上半榫/下半榫」在仰視(BOTTOM)/零件圖正視會上下顛倒
- * （user 2026-06-01 回報：3D 前後牙條榫在下、零件圖卻畫在上）。
- * 按 position 分軸（對齊 tenonLocalBox §A10）：
- *   - start/end ：offsetWidth→cz、offsetThickness→cy，兩者都被翻 → 都反號
- *   - top/bottom：offsetWidth→cx（不翻）、offsetThickness→cz（翻）→ 只反 offsetThickness
- *   - left/right：offsetWidth→cy（翻）、offsetThickness→cx（不翻）→ 只反 offsetWidth
- * leg 頂榫(top, offsetWidth→cx)實測不受影響，驗證見 commit 訊息。
+ * tenon 的中心偏移（offsetWidth / offsetThickness）**不用**另外反號：tenonLocalBox
+ * 把 offset 放進 part-local 的 cx/cy/cz，跟本體一起被這個 π rotation 轉過去，自然翻對。
+ * （2026-06-01 f5db4096 曾在這裡按 position 分軸手動反號——當時零件圖 isolate 會把
+ *  這個 π 蓋掉、正視整張上下顛倒，手動反號只把榫頭「補」成看起來對，本體/槽/缺口仍是
+ *  反的。2026-10-06 isolate 改成保留 π 之後，那段反號會讓榫頭反過來錯，所以拿掉。
+ *  回歸測試：lib/render/part-drawing/__tests__/front-view-upright.test.ts）
  *
  * 此處不動 part.shape 的 Y 不對稱參數（如 tapered.bottomScale）；
  * π rotation 已把 local +Y 轉到世界 -Y，幾何 silhouette 會自然從反面看。
  */
 export function mirrorYPart(p: import("@/lib/types").Part): import("@/lib/types").Part {
-  const flipTenonOffset = (
-    t: import("@/lib/types").Tenon,
-  ): import("@/lib/types").Tenon => {
-    const flipW =
-      t.position === "start" ||
-      t.position === "end" ||
-      t.position === "left" ||
-      t.position === "right";
-    const flipT =
-      t.position === "start" ||
-      t.position === "end" ||
-      t.position === "top" ||
-      t.position === "bottom";
-    const next = { ...t };
-    if (flipW && t.offsetWidth != null) next.offsetWidth = -t.offsetWidth;
-    if (flipT && t.offsetThickness != null)
-      next.offsetThickness = -t.offsetThickness;
-    return next;
-  };
   return {
     ...p,
     origin: { x: p.origin.x, y: -p.origin.y, z: p.origin.z },
@@ -1137,7 +1118,6 @@ export function mirrorYPart(p: import("@/lib/types").Part): import("@/lib/types"
       y: p.rotation?.y ?? 0,
       z: p.rotation?.z ?? 0,
     },
-    tenons: p.tenons?.map(flipTenonOffset) ?? p.tenons,
   };
 }
 function mirrorYDesign(d: import("@/lib/types").FurnitureDesign): import("@/lib/types").FurnitureDesign {
@@ -1304,6 +1284,15 @@ function OrthoViewImpl({
             } else if (W > L && W > T) {
               rotation = { x: 0, y: -Math.PI / 2, z: 0 };
             }
+            // 零件圖「正視 FRONT」= 內部 view="bottom"：上面 mirrorYDesign 給的
+            // 「繞 X 轉 180°」以前在這裡被 isolate 的 rotation 整個蓋掉 → 正視其實是
+            // 俯視原樣、上下顛倒（直立件 local −Z 才是頂面，卻畫在下緣：乙級抽屜面板
+            // 底板槽跑到上緣、前橫檔頂緣 6×4 缺口與壸門曲線上下對調，2026-09-09 檢查員）。
+            // 這裡把那 180° 接回去：要的是「先 isolate 再繞世界 X 轉 π」= Rx(π)·R_iso，
+            // 換成本專案 Euler（先 X 再 Y 再 Z）＝ Rx(π)·Ry(θ) = Ry(−θ)·Rx(π)，Rz 同理。
+            if (isBottomView) {
+              rotation = { x: Math.PI, y: -rotation.y, z: -rotation.z };
+            }
 
             return {
               ...p,
@@ -1438,6 +1427,7 @@ function OrthoViewImpl({
         vbW,
         vbH,
         partClipId: isolateClipId,
+        isolateFlipV: !!isolatePartId && isBottomView,
         // 注意：silhouette 渲染時用 -p.y 翻 Y（svg-views 內部慣例）。
         // overlay (T1/T2/dim line) 為了跟 silhouette 對齊、也需要負 Y。
         // 這裡的 partLocalToSvg wrap projector、output y 已翻好不用 caller 再處理。
