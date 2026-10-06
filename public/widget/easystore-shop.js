@@ -221,7 +221,30 @@
     form.parentNode.insertBefore(box, form.nextSibling);
   }
 
+  // 2026-10-06：佈景主題的規格下拉選單 <select id="productSelect"> 選項文字把價格以「分」顯示（1,900 → 190,000），
+  // 全站每個商品都一樣（主價格 itemprop=price 是對的）。後台佈景主題不好改 ⇒ 這裡把選項文字 ÷100。
+  // 保險：只有「目前選的那個選項 ÷100 剛好等於畫面上顯示的現價」才動（哪天主題自己修好了，這段就自動不做事，不會改成錯的）。
+  function fixVariantPrices() {
+    var sel = document.querySelector("select#productSelect, select.product-single__variants");
+    if (!sel || sel.getAttribute("data-wr-px")) return;
+    // 比對畫面上顯示的現價（#ProductPrice，會跟著選的規格變）；多規格商品的 itemprop=price 是最低價，不能拿來比
+    var shown = document.querySelector("#ProductPrice .money, #ProductPrice");
+    var P = shown ? parseFloat(((shown.getAttribute("data-ori-price") || shown.textContent || "").match(/[\d,]+(?:\.\d+)?/) || [""])[0].replace(/,/g, "")) : NaN;
+    var re = /NT\$\s?([\d,]+(?:\.\d+)?)/;
+    var num = function (o) { var m = re.exec(o.textContent || ""); return m ? parseFloat(m[1].replace(/,/g, "")) : NaN; };
+    var cur = sel.options[sel.selectedIndex] || sel.options[0];
+    if (!cur || !isFinite(P) || !(Math.abs(num(cur) / 100 - P) < 0.01)) return;
+    Array.prototype.forEach.call(sel.options, function (o) {
+      var m = re.exec(o.textContent || "");
+      if (!m) return;
+      var n = parseFloat(m[1].replace(/,/g, "")) / 100;
+      o.textContent = o.textContent.replace(m[0], "NT$ " + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    });
+    sel.setAttribute("data-wr-px", "1");
+  }
+
   function runProductFeatures() {
+    fixVariantPrices();
     addShipInfo();
     addTrustBadges();
     initStickyAtc();
