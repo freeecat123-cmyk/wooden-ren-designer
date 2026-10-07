@@ -75,8 +75,8 @@ export async function GET(req: Request) {
   const styleName = (isEn ? STYLE_LABEL_EN : STYLE_LABEL_ZH)[style] ?? "";
   const brandLine = isEn ? "Wooden Ren Blueprint" : "木頭仁 木作藍圖";
   const footerTagline = isEn
-    ? "woodenren.com · 3-views, cut list and quote in one click"
-    : "woodenren.com · 三視圖 / 材料單 / 報價一鍵生成";
+    ? "woodenren.com · 3-views, cut list and build steps in one click"
+    : "woodenren.com · 三視圖 / 材料單 / 工序一鍵生成";
   const ctaLine = isEn ? "👉 Open for the 3D view" : "👉 點開連結看 3D";
 
   return new ImageResponse(
