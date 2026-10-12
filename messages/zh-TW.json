@@ -664,7 +664,9 @@
     "metadata": {
       "notFoundTitle": "找不到家具範本",
       "titleTemplate": "{name}設計圖｜自動產出三視圖、榫卯圖、零件圖與材料單",
-      "descriptionTemplate": "{description}。預設 {length}×{width}×{height}mm，線上換木料，自動算三視圖、榫卯圖、零件圖與材料單；改尺寸、裁切圖與 A4 工程圖為付費功能（方凳／筆筒／木工工作桌免費）。"
+      "titleTemplateFree": "{name}設計圖免費線上產生｜三視圖、榫卯圖、零件圖、材料單",
+      "descriptionTemplate": "{description}。預設 {length}×{width}×{height}mm，線上換木料，自動算三視圖、榫卯圖、零件圖與材料單；改尺寸、裁切圖與 A4 工程圖為付費功能（方凳／筆筒／木工工作桌免費）。",
+      "descriptionTemplateFree": "{description}。免費改尺寸、換木料，三視圖、榫卯圖、零件圖與材料單線上自動算出，預設 {length}×{width}×{height}mm；裁切圖與 A4 工程圖為付費功能。"
     },
     "back": "← 回家具列表",
     "detailedIntro": "這支{name}的詳細介紹",

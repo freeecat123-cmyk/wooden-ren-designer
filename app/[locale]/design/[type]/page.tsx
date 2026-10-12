@@ -135,11 +135,28 @@ export async function generateMetadata({
 
   const entryName = getEntryName(entry, locale);
   const entryDesc = getEntryDescription(entry, locale) ?? "";
-  const title = tMeta("titleTemplate", { name: entryName });
+  /**
+   * 免費款（方凳／筆筒／木工工作桌，= !isPaidCategory）用另一組標題／描述。
+   *
+   * 為什麼要分兩組（2026-10-12）：
+   * 1. ⛔ 共用那組描述寫「改尺寸…為付費功能」，對免費款是**假的** ——
+   *    實測線上未登入開 /design/pencil-holder?length=140 照樣吃，
+   *    length=5000 才被夾回範本上限 200。
+   *    範本範圍內改尺寸人人免費，只有超出範圍的「自由尺寸」才要設計師模式。
+   *    等於在搜尋結果上跟每個人說「想改大小要付錢」，把免費款的人勸退。
+   * 2. 共用那組把「免費」兩個字放在第 90 個字，Google 中文描述約 80 字就截斷
+   *    → 唯一的賣點永遠不會被看到。/design/pencil-holder 曝光 59、排名 7.4、
+   *    點擊 0（2026-09-11~10-09 Search Console）就是這個形狀。
+   *
+   * 付費款那組**一字不動** —— 免費方案進不去付費款，對他們「改尺寸要付費」是真的。
+   */
+  const isFreeCategory = !isPaidCategory(entry.category);
+  const title = tMeta(isFreeCategory ? "titleTemplateFree" : "titleTemplate", { name: entryName });
   // 描述帶上該款的預設尺寸：36 個設計頁原本共用同一段 45 字樣板，
   // 「餐桌」這種只有 7 字自述的頁面等於 86% 內容跟別頁一樣（搜尋結果看起來全是同一頁）。
   // defaults 是 catalog 既有資料，35/36 組不重複，拿來當差異化素材最省。(2026-09-24)
-  const description = tMeta("descriptionTemplate", {
+  const description = tMeta(
+    isFreeCategory ? "descriptionTemplateFree" : "descriptionTemplate", {
     name: entryName,
     description: entryDesc,
     // 明寫成字串：訊息模板要的是「1500」原樣，不是任何數字格式化結果。
