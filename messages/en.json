@@ -3544,7 +3544,7 @@
     "sec3Li2": "Account passwords / sign-in tokens are the user's responsibility to safeguard; losses arising from leakage are borne by the user.",
     "sec3Li3": "The Generator reserves the right to suspend or terminate accounts that violate these terms or engage in malicious behavior.",
     "sec4H": "4. Plans and billing",
-    "sec4Li1": "The Free plan offers full use of the square stool, pencil holder and workbench templates, a free preview of every other template's design drawings, and 1 saved design per account; resizing and the printable engineering pack require a paid plan; the quote system is available on the Pro, Student and Lifetime plans only.",
+    "sec4Li1": "The Free plan offers full use of the square stool, pencil holder and workbench templates (including resizing within each template's own size range), a free preview of every other template's design drawings, and 1 saved design per account; resizing any other template requires a paid plan; the printable engineering pack (cut plan and A4 drawings) requires a paid plan on every template; the quote system is available on the Pro, Student and Lifetime plans only.",
     "sec4Li2": "Personal / Pro plans are billed monthly or annually; the Student plan is a complimentary plan for Wooden Ren Academy students, subject to the then-current plan description.",
     "sec4Li3Pre": "Activation is typically immediate after payment. If activation fails, please email ",
     "sec4Li3Suffix": ".",
@@ -5259,7 +5259,7 @@
     },
     "raisedFloor": {
       "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
-      "metaDescription": "Sketch your platform → calculate frame, plywood, finish, vapor barrier, baseboard → output A4 customer quote. Carpenters, GCs, DIYers — get it done in one go."
+      "metaDescription": "How far apart should raised-floor battens go? Defaults: main battens 60×36mm every 30cm, sub battens 30×36mm every 40cm, an 18mm plywood deck (4×8 ft) and a 30cm platform height. Sketch your platform (rectangle or L-shape, pillars cut out) → frame, plywood, finish, vapor barrier and baseboard auto-calculated, plywood auto-nested → A4 customer quote."
     },
     "ceiling": {
       "metaTitle": "Ceiling Furring Spacing Calculator｜90cm main / 36cm sub, auto-laid · Wooden Ren",
