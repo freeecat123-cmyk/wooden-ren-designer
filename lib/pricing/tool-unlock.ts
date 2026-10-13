@@ -5,11 +5,13 @@
 
 export type ToolId = "ceiling" | "floor" | "raised-floor" | "cnc";
 
+// 木頭仁 2026-10-13「都改成 390」：原本程式收 499、三個裝潢工具行銷頁卻寫 590、CNC 頁寫 499，
+// 三個數字互打 ⇒ 統一 390（文案那邊也一起改了，改價記得兩邊一起動）。
 export const TOOL_UNLOCK_PRICES: Record<ToolId, number> = {
-  ceiling: 499,
-  floor: 499,
-  "raised-floor": 499,
-  cnc: 499,
+  ceiling: 390,
+  floor: 390,
+  "raised-floor": 390,
+  cnc: 390,
 };
 
 export const TOOL_LABEL_ZH: Record<ToolId, string> = {

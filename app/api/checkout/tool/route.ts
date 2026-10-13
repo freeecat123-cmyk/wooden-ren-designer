@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   /**
    * ⛔ 原本只解構 data、把 error 丟掉。supabase-js 查詢失敗不會 throw,
    *    而是回 `{ data: null, error }` → existing 變成 null → 判定「還沒買過」
-   *    → **對已經買過的人再收一次 499**。
+   *    → **對已經買過的人再收一次錢**（價格見 TOOL_UNLOCK_PRICES，10-13 起 390）。
    * 「查不到」跟「沒有」是兩件事:查詢壞掉時要讓結帳失敗,不是放行。
    *
    * 姊妹路由 checkout/template 已經這樣修了(同一輪),這支漏掉。

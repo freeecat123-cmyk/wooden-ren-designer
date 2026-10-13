@@ -65,7 +65,7 @@ const STUDIO_TOOLS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const PRO_TOOLS: ReadonlySet<string> = new Set<string>([
-  // CNC 刀路產生器：單買歸 pro 級（$9.99 / NT$499），比裝潢工具低一階
+  // CNC 刀路產生器：單買歸 pro 級（$9.99 / NT$390），跟裝潢工具同價（10-13 他拍板「都改成 390」）
   "cnc",
 ]);
 

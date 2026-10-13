@@ -20,7 +20,7 @@ export const CNC_TRIAL_DAYS = 7;
 export type CncAccessReason =
   | "admin" // 站方帳號
   | "plan" // 訂閱個人版以上
-  | "purchase" // 單買 NT$499 買斷
+  | "purchase" // 單買 NT$390 買斷
   | "trial" // 試用期內
   | "trialExpired" // 試用過且已到期，沒有其他資格
   | "none" // 從沒試用過，也沒付費

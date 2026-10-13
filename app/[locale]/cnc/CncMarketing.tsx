@@ -151,7 +151,7 @@ export async function CncMarketing({
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: isEn ? "9.99" : "499",
+      price: isEn ? "9.99" : "390",
       priceCurrency: isEn ? "USD" : "TWD",
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
