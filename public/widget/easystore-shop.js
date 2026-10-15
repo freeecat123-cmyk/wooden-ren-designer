@@ -20,6 +20,26 @@
   if (window.__wrShopWidgetLoaded) return;
   window.__wrShopWidgetLoaded = true;
 
+  // 2026-10-15 佈景主題 </body> 前殘留一段舊版進度條程式碼，開頭的 <script> 被編輯器吃掉，
+  // 整段變成文字露在每頁最底下（字串裡的 HTML 還被解析成元素，id 會跟本檔的 #wr-ship-* 撞名）。
+  // 後台刪掉前先在這裡清：從含「var THRESHOLD」的文字節點刪到「addShipInfo(); })();」為止。
+  // 後台刪乾淨後這段找不到起點就什麼都不做。
+  (function removeLeakedThemeCode() {
+    var nodes = document.body ? Array.prototype.slice.call(document.body.childNodes) : [];
+    var start = -1;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].nodeType === 3 && nodes[i].nodeValue.indexOf("var THRESHOLD") !== -1) { start = i; break; }
+    }
+    if (start < 0) return;
+    for (var j = start; j < nodes.length; j++) {
+      var n = nodes[j];
+      if (n.nodeType === 1 && n.tagName === "SCRIPT") break;
+      var t = n.textContent || "";
+      if (n.parentNode) n.parentNode.removeChild(n);
+      if (n.nodeType === 3 && /addShipInfo\(\);\s*\}\)\(\);/.test(t)) break;
+    }
+  })();
+
   // ====== 可調參數 ======
   var SHIP_THRESHOLD = 1500; // 進度條目標＝超商免運門檻
   // ======================
