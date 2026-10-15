@@ -20,6 +20,19 @@
   if (window.__wrShopWidgetLoaded) return;
   window.__wrShopWidgetLoaded = true;
 
+  // 2026-10-15 頂部公告列是佈景主題設定（沒有 API），活動改了先在這裡換字：
+  // 岩崎握把活動＝官網買 1 支就送原廠木握把、滿 4 支升級紅木握把。後台改掉舊字後這段找不到就不做事。
+  (function fixAnnouncement() {
+    var OLD = "官網一次買滿 4 支銼刀，送原廠木握把";
+    var NEW = "官網買 1 支就送原廠木握把，滿 4 支升級紅木握把";
+    var bars = document.querySelectorAll('[id^="announcement_bar_"]');
+    for (var i = 0; i < bars.length; i++) {
+      for (var n = bars[i].firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3 && n.nodeValue.indexOf(OLD) !== -1) n.nodeValue = n.nodeValue.replace(OLD, NEW);
+      }
+    }
+  })();
+
   // 2026-10-15 佈景主題 </body> 前殘留一段舊版進度條程式碼，開頭的 <script> 被編輯器吃掉，
   // 整段變成文字露在每頁最底下（字串裡的 HTML 還被解析成元素，id 會跟本檔的 #wr-ship-* 撞名）。
   // 後台刪掉前先在這裡清：從含「var THRESHOLD」的文字節點刪到「addShipInfo(); })();」為止。
