@@ -68,7 +68,7 @@ export async function RaisedFloorMarketing({ status }: Props) {
     "@type": "Product",
     name: t("schema.productName"),
     description: t("schema.productDescription"),
-    image: `${SITE_URL}/thumbs/v2/ceiling.webp`,
+    image: `${SITE_URL}/thumbs/v2/raised-floor.webp`,
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",

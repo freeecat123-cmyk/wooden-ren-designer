@@ -67,7 +67,7 @@ export async function FloorMarketing({ status }: Props) {
     "@type": "Product",
     name: t("schema.productName"),
     description: t("schema.productDescription"),
-    image: `${SITE_URL}/thumbs/v2/ceiling.webp`,
+    image: `${SITE_URL}/thumbs/v2/floor.webp`,
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
