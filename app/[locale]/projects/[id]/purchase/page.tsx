@@ -25,7 +25,8 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "projectPurchase" });
-  return { title: t("metaTitle") };
+  // 採購清單含客戶／金額 —— 不給搜尋引擎收錄，理由見 ../quote/page.tsx 開頭
+  return { title: t("metaTitle"), robots: { index: false, follow: false } };
 }
 
 const ACCESSORY_SET = new Set([

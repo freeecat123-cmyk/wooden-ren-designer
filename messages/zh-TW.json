@@ -3304,6 +3304,8 @@
     "summaryLineTpl": "合計 {parts} 個零件 · {kinds} 種木材"
   },
   "projectQuote": {
+    "metaTitle": "報價單 · 木頭仁 木作藍圖",
+    "metaTitlePrint": "報價單（列印版） · 木頭仁 木作藍圖",
     "customerView": "客戶版檢視",
     "backToEdit": "← 回專案編輯",
     "printPageBtn": "🖨️ 列印頁",

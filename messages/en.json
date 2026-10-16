@@ -3304,6 +3304,8 @@
     "summaryLineTpl": "Total {parts} parts · {kinds} materials"
   },
   "projectQuote": {
+    "metaTitle": "Quote · Furniture Blueprints",
+    "metaTitlePrint": "Quote (print view) · Furniture Blueprints",
     "customerView": "Customer view",
     "backToEdit": "← Back to project editor",
     "printPageBtn": "🖨️ Print page",

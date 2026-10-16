@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { formatTWD } from "@/lib/pricing/catalog";
@@ -22,6 +23,18 @@ import { taipeiIsoDate } from "@/lib/utils/date-tw";
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
   searchParams: Promise<{ token?: string }>;
+}
+
+// 列印版報價單也是客戶看的 —— noindex，理由見 ../page.tsx 開頭
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "projectQuote" });
+  return {
+    title: t("metaTitlePrint"),
+    robots: { index: false, follow: false },
+    // `?token=` 的分享網址不要跟著外連一起漏出去（跟 shared-design/[token] 同一招）
+    referrer: "no-referrer" as const,
+  };
 }
 
 function categoryLabel(type: string): string {

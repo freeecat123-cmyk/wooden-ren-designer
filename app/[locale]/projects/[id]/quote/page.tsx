@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -28,6 +29,31 @@ import { taipeiIsoDate } from "@/lib/utils/date-tw";
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
   searchParams: Promise<{ token?: string }>;
+}
+
+/**
+ * ⛔ 專案報價單一律 noindex。
+ *
+ * 這個網址是**木匠貼給客戶看的**（`?token=` 分享連結，CopyShareLinkButton 產的），
+ * 頁面上印著客戶姓名、聯絡方式、地址、每一項金額、木匠自己的聯絡資訊。
+ * 連結一旦出現在對方的網站／論壇／轉寄信裡，Google 就有路徑爬到它 ——
+ * 收錄之後「客戶名字 + 報價金額」就變成搜尋結果。
+ *
+ * ⚠️ 這裡用 meta noindex 而**不是** robots.txt 的 Disallow：被 Disallow 的網址
+ *    Google 不會爬，所以讀不到 noindex，有外部連結時仍可能以「無描述」形式
+ *    收錄網址本身。要「確定不收錄」就得讓它爬得到、然後明確說不要。
+ *    (`app/robots.ts` 擋 `/design/<款>/quote` 那組是另一回事：那是自己站內的工具頁，
+ *     目的是省爬取預算，不是防資料外洩。)
+ */
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "projectQuote" });
+  return {
+    title: t("metaTitle"),
+    robots: { index: false, follow: false },
+    // `?token=` 的分享網址不要跟著外連一起漏出去（跟 shared-design/[token] 同一招）
+    referrer: "no-referrer" as const,
+  };
 }
 
 function categoryLabel(type: string): string {
