@@ -4,7 +4,7 @@ import { makeModelSnapshot } from "./model-snapshot";
 import { savedDesignQuery } from "./saved-query";
 
 const state = vi.hoisted(() => ({ user: { id: "owner" } as { id: string } | null, saved: null as unknown, error: null as unknown, eq: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
+vi.mock("@/lib/supabase/server", () => ({ getSessionUser: async () => state.user, createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: state.user } }) },
   from: () => { const query = { select: () => query, eq: (...args: unknown[]) => { state.eq(...args); return query; }, maybeSingle: async () => ({ data: state.saved, error: state.error }) }; return query; },
 }) }));

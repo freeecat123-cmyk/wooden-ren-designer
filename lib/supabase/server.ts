@@ -4,6 +4,7 @@
  */
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -52,13 +53,15 @@ export async function createClient() {
  *
  * 回傳 `null` = 未登入或驗簽失敗。
  */
-export async function getSessionUser() {
+// cache()：同一個 request 裡只驗一次簽（設計頁本身＋loadModelSnapshot 原本各驗一次，
+// 每次 50-200ms 往返）。仍然是 getUser() 驗簽，只是不重複驗。（2026-10-17）
+export const getSessionUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user ?? null;
-}
+});
 
 /**
  * 後端 admin 操作（例如 webhook 處理綠界回呼、建立 subscription / payment 紀錄）

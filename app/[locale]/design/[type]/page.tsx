@@ -223,26 +223,26 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     const query = savedDesignQuery(currentDesignId, saved.params, saved.updated_at);
     redirect(`/${locale}/design/${saved.furniture_type.replace(/_/g, "-")}?${query}`);
   }
-  let profile = null;
-  let savedName: string | null = null;
-  if (user && currentDesignId) {
-    const { data: ownedDesign } = await supabase.from("designs").select("name")
-      .eq("id", currentDesignId).eq("user_id", user.id).maybeSingle();
-    savedName = ownedDesign?.name ?? null;
-  }
-  let unlockedCategories: string[] = [];
-  if (user) {
-    const { data } = await supabase
-      .from("users")
-      .select(
-        "plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at",
-      )
-      .eq("id", user.id)
-      .single();
-    profile = data;
+  // 三個查詢互不依賴 → 同時發（原本一個等一個，每個都是一趟資料庫往返）。
+  // 有 designId 時順便先把凍結模型查起來；最後若是預覽鎖就丟掉不用（下方 frozen）。
+  const [savedName, profile, unlockedCategories, snapshotResult] = await Promise.all([
+    user && currentDesignId
+      ? supabase.from("designs").select("name").eq("id", currentDesignId).eq("user_id", user.id).maybeSingle()
+          .then(({ data }) => (data?.name as string | undefined) ?? null)
+      : Promise.resolve(null),
+    user
+      ? supabase.from("users")
+          .select("plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at")
+          .eq("id", user.id).single().then(({ data }) => data)
+      : Promise.resolve(null),
     // 拉單範本永久買斷的解鎖清單,給 canAccessCategory 判斷
-    unlockedCategories = await fetchUnlockedCategories(createAdminClient(), user.id);
-  }
+    user ? fetchUnlockedCategories(createAdminClient(), user.id) : Promise.resolve([] as string[]),
+    // 驗不過會 throw：先接住，確定要用（非預覽鎖）才丟出來，維持原本的錯誤行為
+    loadModelSnapshot(type, sp).then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    ),
+  ]);
   const isAdmin = isAdminEmail(user?.email, getServerAdminEmails());
   // dev-only：playwright shoot-thumbs 腳本繞過 paywall 抓所有家具縮圖
   const isThumbShoot =
@@ -311,7 +311,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   // 範例預覽鎖 / 尺寸上限 / 書桌夾制：規則都在 resolveDesignInputs，
   // 瀏覽器端即時預覽（LiveModelView）吃同一份，兩邊不會各算各的。
-  const frozen = previewLocked ? null : await loadModelSnapshot(type, sp);
+  const frozen = previewLocked ? null : snapshotResult.ok ? snapshotResult.value : (() => { throw snapshotResult.error; })();
   const designAccess = { previewLocked, canBypassLimits: planAllowsDesigner || isAdmin };
   const inputs = resolveDesignInputs(type, entry, sp, { ...designAccess, frozen: !!frozen });
   const { parsed, material, options, joineryMode, limits, isRoundCategory, length, width, height } = inputs;

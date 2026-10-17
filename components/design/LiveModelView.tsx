@@ -127,7 +127,13 @@ export function LiveModelView({
     });
   }, [design, serverKey]);
 
-  const shown = preview ?? { design, assemblyPlan: assemblyPlan ?? null, joineryMode: !!joineryMode };
+  const next = preview ?? { design, assemblyPlan: assemblyPlan ?? null, joineryMode: !!joineryMode };
+  // server 版回來時內容通常跟預覽一模一樣，但物件是新的 → 3D 會整個重建一次（手機上
+  // 白白多卡幾百毫秒）。內容相同就沿用上一個物件。設計檔約 10KB，比對 < 1ms。
+  const lastShown = useRef<{ json: string; value: typeof next } | null>(null);
+  const json = JSON.stringify([next.design, next.assemblyPlan, next.joineryMode]);
+  if (!lastShown.current || lastShown.current.json !== json) lastShown.current = { json, value: next };
+  const shown = lastShown.current.value;
   return (
     <div data-live-preview={preview ? "client" : "server"} className="contents">
       <LazyPerspectiveView {...rest} design={shown.design} assemblyPlan={shown.assemblyPlan} joineryMode={shown.joineryMode} />

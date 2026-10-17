@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
 import type { SpRecord } from "./parse-search-params";
@@ -8,9 +8,9 @@ import { matchesSnapshotQuery, readModelSnapshot } from "./model-snapshot";
 export async function loadModelSnapshot(category: string, sp: SpRecord) {
   const id = typeof sp.designId === "string" ? sp.designId : "";
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const db = await createClient();
-  const { data: { user } } = await db.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return null;
+  const db = await createClient();
   const { data: saved, error } = await db.from("designs")
     .select("params, furniture_type, updated_at").eq("id", id).eq("user_id", user.id).maybeSingle();
   if (error) throw new Error("Could not verify saved model snapshot");
