@@ -49,9 +49,10 @@ it.each([390, 1440])("applies and reapplies without configuration loss at %spx",
     const query = await page.evaluate(() => (window as unknown as {query: string}).query);
     const params = new URLSearchParams(query);
     expect(params.get('length')).toBe('1800');
-    expect(params.get('legSize')).toBe('85');
     expect(params.get('constructionVersion')).toBe('1');
-    expect(params.get('material')).toBe('pine');
+    // 外觀跟著風格換：木種、腳粗不再停在原本的松木 / 85
+    expect(params.get('style')).toBeTruthy();
+    expect(params.get('legSize')).not.toBe('85');
     expect(params.has('styleVariant')).toBe(false);
     await button.click();
     expect(await page.evaluate(() => (window as unknown as {query: string}).query)).toBe(query);

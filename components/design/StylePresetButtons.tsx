@@ -1,5 +1,5 @@
 "use client";
-import { announceDesignNavigation } from "@/lib/design/navigation-pending";
+import { announceDesignNavigation, announceDesignPreview } from "@/lib/design/navigation-pending";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
@@ -36,11 +36,12 @@ const STYLE_EMOJI: Record<string, string> = {
 export function StylePresetButtons({
   optionSchema,
   category,
+  designSize,
   compact = false,
 }: {
   optionSchema: OptionSpec[];
   category?: FurnitureCategory;
-  /** Retained for existing callers; quick styling no longer adjusts dimensions. */
+  /** 目前尺寸：風格依尺寸微調腳粗等比例（尺寸本身不改） */
   designSize?: { length: number; width: number; height: number };
   /** compact=true：手機橫滑模式，去掉說明文字與 adapter notes */
   compact?: boolean;
@@ -58,7 +59,7 @@ export function StylePresetButtons({
   const pathname = usePathname();
   const current = new URLSearchParams(sp?.toString() ?? "");
   const presets = Object.values(STYLE_PRESETS).filter(
-    (p) => quickStyleQuery(current, p.id, category, optionSchema) !== null,
+    (p) => quickStyleQuery(current, p.id, category, optionSchema, designSize) !== null,
   );
   if (presets.length === 0) return null;
 
@@ -66,13 +67,15 @@ export function StylePresetButtons({
   const currentStyle = sp?.get("style") ?? "";
 
   const apply = (id: string) => {
-    const next = quickStyleQuery(current, id, category, optionSchema);
+    const next = quickStyleQuery(current, id, category, optionSchema, designSize);
     if (!next || next.toString() === current.toString()) return;
-    announceDesignNavigation(`${pathname}?${next.toString()}`);
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-    // 強制 RSC 重新 fetch——預設 replace 在純 client 路徑可能 cache stale
-    // server props，導致表單不重新拿 optionValues（看起來像「按了沒反應」）
-    router.refresh();
+    const search = next.toString();
+    announceDesignNavigation(`${pathname}?${search}`);
+    // 3D 先在瀏覽器算好換上（LiveModelView），不等 server
+    announceDesignPreview(search);
+    // 網址參數變了 router.replace 本來就會重抓 server 版。2026-05 加的 router.refresh()
+    // 會讓同一下點擊再整頁重算一次（手機上多等 1～2 秒），2026-10-17 拿掉。
+    router.replace(`${pathname}?${search}`, { scroll: false });
   };
 
   if (compact) {
