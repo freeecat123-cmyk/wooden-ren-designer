@@ -13,8 +13,7 @@ import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
 import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
-import { toBeginnerMode } from "@/lib/templates/beginner-mode";
-import { planAssembly } from "@/lib/assembly/plan";
+import { resolveDesignInputs, buildDesign, buildAssemblyPlan } from "@/lib/design/compute-design";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
@@ -32,7 +31,7 @@ import { UnitToggle } from "@/components/UnitToggle";
 import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
-import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
+import { LiveModelView } from "@/components/design/LiveModelView";
 import { ThreeDExportButton } from "@/components/ThreeDExportButton";
 import { TemplatePackButton } from "@/components/TemplatePackButton";
 import { MATERIALS, materialName } from "@/lib/materials";
@@ -74,7 +73,6 @@ import { DesignHistoryControls } from "@/components/design/DesignHistoryControls
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
-  parseDesignSearchParams,
   designParamsToQuery,
 } from "@/lib/design/parse-search-params";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
@@ -311,75 +309,25 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 2026-05-13 全面上線：mobile shell 預設啟用。`?ui=v1` 留作逃生口
   // （desktop ≥768px 永遠走舊版，由 md:hidden / hidden md:block CSS 控制，不靠這個 flag）
 
-  // 範例預覽鎖：丟掉 URL 的 length/width/height + 所有 option key，只留材料 / 視圖
-  // 類參數，讓 parser 把尺寸與結構選項全部 fallback 到模板預設值（= 鎖在範例）。
-  // 即使前端鎖有漏洞，server 這層強制重設才是真正的防線。
-  const PREVIEW_KEEP_PARAMS = new Set([
-    "material", "joineryMode", "scene", "ui", "xray", "wf", "lidLift", "explode", "audit", "hide",
-  ]);
-  const parseSp = previewLocked
-    ? Object.fromEntries(
-        Object.entries(sp).filter(([k]) => PREVIEW_KEEP_PARAMS.has(k)),
-      )
-    : sp;
+  // 範例預覽鎖 / 尺寸上限 / 書桌夾制：規則都在 resolveDesignInputs，
+  // 瀏覽器端即時預覽（LiveModelView）吃同一份，兩邊不會各算各的。
   const frozen = previewLocked ? null : await loadModelSnapshot(type, sp);
-  const parsed = parseDesignSearchParams(parseSp, entry);
-  const { material, options } = parsed;
-  // 只有榫接版的模板（技能檢定練習件）：不管網址帶什麼都走榫接版，
-  // 組裝版會把貫穿榫拔掉、凸出的 20mm 跟著消失（見 FurnitureCatalogEntry.joineryOnly）
-  const joineryMode = entry.joineryOnly ? true : parsed.joineryMode;
+  const designAccess = { previewLocked, canBypassLimits: planAllowsDesigner || isAdmin };
+  const inputs = resolveDesignInputs(type, entry, sp, { ...designAccess, frozen: !!frozen });
+  const { parsed, material, options, joineryMode, limits, isRoundCategory, length, width, height } = inputs;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
   // 避免被分享連結繞過上限檢查。
   const designerMode = canUseDesignerMode && parsed.designerMode;
   const optionSchema = entry.optionSchema ?? [];
-  // Server-side hard clamp:雙保險 — 不靠 canUseDesignerMode aggregate flag,
-  // 直接看 plan 權限 + admin。即使 UI 哪天把 toggle 露給 free user(或 designerMode
-  // 旗標被汙染),只要 plan 不允許就強制夾。admin 仍可繞 limit 方便測試。
-  const limits = frozen || ((planAllowsDesigner || isAdmin) && parsed.designerMode)
-    ? null
-    : entry.limits ?? null;
-  // 圓形家具（圓凳/圓茶几/圓餐桌）只有「直徑」一個尺寸——template 端 input.length
-  // 當直徑、忽略 input.width。UI 也只給直徑一個 input，width 強制 = length 避免
-  // 殘留分享連結帶不同數值造成 server / template 看到不一致。
-  const isRoundCategory =
-    type === "round-stool" || type === "round-table" || type === "round-tea-table";
-  const length = limits ? Math.min(parsed.length, limits.length) : parsed.length;
-  const widthRaw = limits ? Math.min(parsed.width, limits.width) : parsed.width;
-  const width = isRoundCategory ? length : widthRaw;
-  const height = limits ? Math.min(parsed.height, limits.height) : parsed.height;
   const clampedDims: { dim: string; from: number; to: number }[] = [];
   if (limits) {
     if (parsed.length > limits.length) clampedDims.push({ dim: isRoundCategory ? t("clamp.dimDiameter") : t("clamp.dimWidth"), from: parsed.length, to: limits.length });
     if (!isRoundCategory && parsed.width > limits.width) clampedDims.push({ dim: t("clamp.dimDepth"), from: parsed.width, to: limits.width });
     if (parsed.height > limits.height) clampedDims.push({ dim: t("clamp.dimHeight"), from: parsed.height, to: limits.height });
   }
-
-  // 書桌特例：H 框離地高 server-side clamp 到櫃底以下，讓 form 顯示實際採用值
-  if (type === "desk" && !frozen) {
-    const drawerCount = Number(options.drawerCount ?? 0);
-    const reqStretcherY = Number(options.pedestalStretcherHeight ?? 0);
-    if (drawerCount > 0 && reqStretcherY > 0) {
-      const topThickness = Number(options.topThickness ?? 28);
-      const withApron = options.withApron !== false;
-      const apronWidth = Number(options.apronWidth ?? 90);
-      const pedestalTopGap = Number(options.pedestalTopGap ?? 5);
-      const legHeight = height - topThickness;
-      const topGap = withApron ? apronWidth + 5 : pedestalTopGap;
-      const caseTopY = legHeight - topGap;
-      const maxCaseH = caseTopY - 80;
-      const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);
-      const caseY = caseTopY - caseH;
-      const STRETCHER_H = 40;
-      const maxStretcherY = caseY - STRETCHER_H;
-      if (reqStretcherY > maxStretcherY) {
-        options.pedestalStretcherHeight = maxStretcherY;
-      }
-    }
-  }
-  const rawDesign = frozen?.raw ?? entry.template({ length, width, height, material, options, locale });
-  const design = frozen?.design ?? (joineryMode
-    ? applyEdgeProtection(rawDesign)
-    : toBeginnerMode(rawDesign));
+  const built = frozen ? { rawDesign: frozen.raw, design: frozen.design } : buildDesign(entry, inputs, locale);
+  const rawDesign = built.rawDesign;
+  const design = built.design;
   const savedInputs = frozen ? JSON.parse(frozen.input) : {
     length, width, height, material, joineryMode, designerMode: parsed.designerMode, options,
   };
@@ -387,7 +335,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const saveParams = { ...savedInputs, ...(modelSnapshot ? { _modelSnapshot: modelSnapshot } : {}) };
   // 組裝動畫排程（§H8）：用還帶榫頭榫眼的 rawDesign 算，組裝版的 design 已被拔掉榫接
   // 資料、排不出插入方向。組裝版多鎖螺絲。
-  const assemblyPlan = planAssembly(rawDesign, { screws: !joineryMode });
+  const assemblyPlan = buildAssemblyPlan(rawDesign, joineryMode);
 
   // 場景主題：URL `?scene=nordic|japandi|industrial|chinese`，預設 natural
   const sceneIdRaw = (typeof sp.scene === "string" ? sp.scene : "natural") as SceneThemeId;
@@ -431,6 +379,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const printQuery = preserveSavedReference(frozen ? savedDesignQuery(currentDesignId!, savedInputs) : designParamsToQuery(parsed, entry), sp);
 
+  // server 這次 render 用的網址參數：StudioActionGuard 判斷「server 追上了沒」、
+  // LiveModelView 判斷「該換回 server 版 3D 了沒」都比這個
+  const resolvedSearch = new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
+    value === undefined ? [] : (Array.isArray(value) ? value : [value]).map(item => [key, item] as [string, string]))).toString();
   const designUrl = `/design/${entry.category}`;
   // printQuery 已用 designParamsToQuery 序列化所有 optionValues（layoutMode / doorType / etc.）
   // 舊 baseQuoteParams 只帶 4 個基本參數，會讓報價頁全部 fallback 預設值，金額錯誤。
@@ -515,8 +467,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     />
     <SelectedPartProvider>
       <HoveredPartsProvider>
-        <StudioActionGuard key={type} locale={locale} resolvedSearch={new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
-          value === undefined ? [] : (Array.isArray(value) ? value : [value]).map(item => [key, item] as [string, string]))).toString()}>
+        <StudioActionGuard key={type} locale={locale} resolvedSearch={resolvedSearch}>
         <DesignStudio
           locale={locale}
           unit={unit}
@@ -565,7 +516,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             previewLocked={previewLocked} examLocked={examLocked} allPartIds={design.parts.map(p => p.id)} locale={locale} unit={unit} />}
           model={<div data-studio-model>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode}
+            <LiveModelView type={type} locale={locale} previewLocked={previewLocked} canBypassLimits={designAccess.canBypassLimits}
+              resolvedSearch={resolvedSearch}
+              design={design} sceneTheme={sceneTheme} joineryMode={joineryMode}
               initialFit
               auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode}
               wireframeMode={wireframeMode} hidePartIds={hidePartIds} assemblyPlan={assemblyPlan} />

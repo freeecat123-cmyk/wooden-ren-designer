@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { workbenchPresetValues } from "@/lib/templates/workbench-presets";
 import { workbenchHeightFor } from "@/lib/knowledge/ergonomics";
-import { announceDesignNavigation } from "@/lib/design/navigation-pending";
+import { announceDesignNavigation, announceDesignPreview } from "@/lib/design/navigation-pending";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
  *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset。
@@ -100,8 +100,8 @@ export function DesignFormShell({
     };
   }, []);
 
-  const pushURL = useCallback(() => {
-    if (!formRef.current) return;
+  const buildParams = useCallback(() => {
+    if (!formRef.current) return null;
     const data = new FormData(formRef.current);
     const params = new URLSearchParams();
     const live = new URLSearchParams(window.location.search);
@@ -129,11 +129,25 @@ export function DesignFormShell({
       .forEach((cb) => {
         params.set(cb.name, cb.checked ? "true" : "false");
       });
+    return params;
+  }, [sp]);
+
+  const pushURL = useCallback(() => {
+    const params = buildParams();
+    if (!params) return;
     // scroll: false 防止 Next.js 預設行為——router.replace 會把頁面捲回最上面，
     // 改參數時就會「跳掉看不到剛編輯的欄位」，嚴重影響操作。
     announceDesignNavigation(`${action}?${params.toString()}`);
+    announceDesignPreview(params.toString());
     router.replace(`${action}?${params.toString()}`, { scroll: false });
-  }, [action, router, sp]);
+  }, [action, router, buildParams]);
+
+  // 即時預覽：不等 debounce / server，瀏覽器先算 3D（LiveModelView 接）。
+  // 網址同步照舊走 debounce——預覽只換畫面，不動網址、不動存檔。
+  const previewNow = useCallback(() => {
+    const params = buildParams();
+    if (params) announceDesignPreview(params.toString());
+  }, [buildParams]);
 
   useEffect(() => {
     const form = formRef.current;
@@ -253,14 +267,16 @@ export function DesignFormShell({
       const native = e.nativeEvent;
       const isTyping = native instanceof InputEvent && native.inputType !== "";
       if (isTyping) return;
+      previewNow();
       timerRef.current = setTimeout(pushURL, 600);
       return;
     }
     // text inputs 等 blur 或 Enter 才送
     if (isInputFocused(target)) return;
     // checkbox / select / radio 維持 short debounce
+    previewNow();
     timerRef.current = setTimeout(pushURL, 200);
-  }, [pushURL]);
+  }, [pushURL, previewNow]);
 
   const handleBlur = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
     if (!isInputFocused(e.target)) return;

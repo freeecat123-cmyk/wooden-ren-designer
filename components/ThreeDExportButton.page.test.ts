@@ -5,9 +5,11 @@ import { expect, it, vi } from "vitest";
 it("wires accurate exports to the frozen-or-live raw model, never the assembly display", () => {
   const source = ts.createSourceFile("page.tsx", readFileSync("app/[locale]/design/[type]/page.tsx", "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let raw: ts.Expression | undefined;
+  let built: ts.Expression | undefined;
   let props: ts.JsxAttributes | undefined;
   const visit = (node: ts.Node) => {
     if (ts.isVariableDeclaration(node) && node.name.getText(source) === "rawDesign") raw = node.initializer;
+    if (ts.isVariableDeclaration(node) && node.name.getText(source) === "built") built = node.initializer;
     if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(source) === "ThreeDExportButton") props = node.attributes;
     ts.forEachChild(node, visit);
   };
@@ -17,7 +19,7 @@ it("wires accurate exports to the frozen-or-live raw model, never the assembly d
   const initializer = attr!.initializer;
   expect(initializer && ts.isJsxExpression(initializer)).toBe(true);
   const expression = (initializer as ts.JsxExpression).expression!.getText(source);
-  const resolve = new Function("frozen", "entry", "applyEdgeProtection", `const length=100,width=60,height=40,material="maple",options={},locale="en"; const rawDesign=${raw!.getText(source)}; return ${expression};`);
+  const resolve = new Function("frozen", "entry", "applyEdgeProtection", `const length=100,width=60,height=40,material="maple",options={},locale="en"; const inputs={}; const buildDesign=(e)=>({ rawDesign: e.template(), design: { parts: [] } }); const built=${built!.getText(source)}; const rawDesign=${raw!.getText(source)}; return ${expression};`);
   const live = { id: "live-joinery", parts: [{ tenons: [{ length: 10 }] }] };
   const saved = { id: "frozen-joinery", parts: [{ tenons: [{ length: 20 }] }] };
   const template = vi.fn(() => live);

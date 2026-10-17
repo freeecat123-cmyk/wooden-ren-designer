@@ -44,3 +44,14 @@ export function announceDesignNavigation(href: string) {
     detail: { search: designSearchKey(target.search) },
   }));
 }
+
+/**
+ * 「表單現在的值」——給瀏覽器端即時預覽（LiveModelView）用，跟 server 導航無關。
+ * 表單一改就發（不等 debounce），LiveModelView 先在瀏覽器裡算 3D 換上去。
+ */
+export const DESIGN_PREVIEW_EVENT = "wooden-ren:design-preview";
+
+export function announceDesignPreview(search: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(DESIGN_PREVIEW_EVENT, { detail: { search } }));
+}

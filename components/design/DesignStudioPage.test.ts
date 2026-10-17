@@ -15,8 +15,8 @@ it("composes one shared editor and one parameter form instead of two responsive 
   expect(named("DesignStudio")).toHaveLength(1);
   expect(named("ParameterForm")).toHaveLength(1);
   expect(named("MobileShell")).toHaveLength(0);
-  expect(named("LazyPerspectiveView")).toHaveLength(1);
-  expect(named("LazyPerspectiveView")[0].getText(source)).not.toContain("noSync");
+  expect(named("LiveModelView")).toHaveLength(1);
+  expect(named("LiveModelView")[0].getText(source)).not.toContain("noSync");
 });
 
 it("keeps accurate export geometry separate from the stripped assembly model", () => {
