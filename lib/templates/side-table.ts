@@ -64,7 +64,7 @@ export const sideTableOptions: OptionSpec[] = [
   // ----- 前緣抽屜（藏雜物 / 床頭物品）-----
   { group: "drawer", type: "checkbox", key: "withDrawer", label: "加抽屜", defaultValue: false, help: "前緣抽屜，掛在前牙板下方" },
   { group: "drawer", type: "number", key: "drawerHeight", label: "抽屜高", defaultValue: 80, unit: "mm", min: 30, max: 250, step: 5, help: "抽屜面板高（不含底下橫撐 20mm）；牙板高 = 抽屜高 + 20", dependsOn: { key: "withDrawer", equals: true } },
-  { group: "drawer", type: "number", key: "drawerDepth", label: "抽屜深", defaultValue: 0, unit: "mm", min: 0, max: 500, step: 10, help: "0 = 自動（桌寬 -80）", dependsOn: { key: "withDrawer", equals: true } },
+  { group: "drawer", type: "number", key: "drawerDepth", label: "抽屜深", defaultValue: 0, unit: "mm", min: 0, max: 350, step: 10, help: "0 = 自動做到最深（約桌寬 −57，桌寬 400 → 343）；填數字只能比這個淺，超過會被卡在最深", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "number", key: "drawerFaceOffset", label: "面板距正面", defaultValue: 0, unit: "mm", min: -20, max: 50, step: 1, help: "0 = 跟正面齊平；正值 = 面板凸出；負值 = 面板內縮", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "select", key: "drawerSlideType", label: "抽屜滑軌種類", defaultValue: "none", choices: [
     { value: "side-mount", label: "三段滑軌（側裝鋼珠 12.5mm/側）" },
