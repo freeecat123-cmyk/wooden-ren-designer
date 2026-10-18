@@ -5261,15 +5261,15 @@
     },
     "raisedFloor": {
       "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
-      "metaDescription": "How far apart should raised-floor battens go? Defaults: main battens 60×36mm every 30cm, sub battens 30×36mm every 40cm, an 18mm plywood deck (4×8 ft) and a 30cm platform height. Sketch your platform (rectangle or L-shape, pillars cut out) → frame, plywood, finish, vapor barrier and baseboard auto-calculated, plywood auto-nested → A4 customer quote."
+      "metaDescription": "How far apart should raised-floor battens go? Main battens every 30cm, sub battens every 40cm. Sketch the platform and the frame, plywood, finish, vapor barrier and baseboard quantities are worked out for you — rectangle or L-shape, pillars cut out, plywood auto-nested, A4 customer quote in one page. Defaults you can change: 60×36mm main battens, 30×36mm sub battens, an 18mm plywood deck (4×8 ft) and a 30cm platform height."
     },
     "ceiling": {
       "metaTitle": "Ceiling Furring Spacing Calculator｜90cm main / 36cm sub, auto-laid · Wooden Ren",
       "metaDescription": "How far apart should ceiling furring go? Main-batten centers = board width + seam gap (90.3cm for 3×6 boards, 120.3cm for 4×8); sub battens divide the board length down to ~36cm; hangers every 90cm along each main batten. Draw the room → frame, boards and hangers auto-calculated → A4 quote."
     },
     "floor": {
-      "metaTitle": "Floor Installation Simulator · Wooden Ren",
-      "metaDescription": "Draw the room → auto-layout straight / staggered / herringbone → calculate plank count, waste, and price. Floor estimation in 30 seconds."
+      "metaTitle": "Wood Floor Estimator | Herringbone Waste, Plank Count & Price · Wooden Ren",
+      "metaDescription": "How much waste does a herringbone floor really have? Draw the room and get the layout, the real plank count and the measured waste — no more guessing at 20%. Nine room shapes (rectangle / L / U / cross / hexagon), four patterns (straight, 1/2 and 1/3 stagger, random, herringbone), five starting corners, laminate 121×19.5, engineered and solid 3in / 5in stock, doorways and baseboard deducted automatically, A4 quote plus a CSV cut list."
     },
     "ceilingQuote": {
       "metaTitle": "Ceiling Engineering Quote · Wooden Ren"

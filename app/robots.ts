@@ -37,6 +37,17 @@ export default function robots(): MetadataRoute.Robots {
          * `Disallow: /api/`,而其他 /api/* 端點仍然擋著。(2026-08-24)
          */
         allow: ["/", "/api/og"],
+        /**
+         * 2026-10-18 拿掉 `/my-designs`:該路由早就不存在(全 repo 只剩這條規則
+         * 提到它,`app/[locale]/my-designs` 沒有這個資料夾)。死規則留著不會壞事,
+         * 但會讓人以為站上還有那一頁,下次要改 robots 時先去找一個不存在的路由。
+         *
+         * ⚠️ 裝潢工具的報價／列印頁(`/ceiling|floor|raised-floor/quote`)**故意不加**
+         *    Disallow:那幾頁的 `noindex` 還在 `robot/2026-10-17` 等點頭,還沒進 main。
+         *    先 Disallow 的話 Google 爬不到那一頁 → 讀不到 noindex,反而把
+         *    「網址本身被收錄」這條路留著(網址裡就有客戶姓名)。
+         *    要等 noindex 上線、Google 重爬過之後才輪到 Disallow。
+         */
         disallow: withEnglishPaths([
           "/admin",
           "/admin/",
@@ -44,7 +55,6 @@ export default function robots(): MetadataRoute.Robots {
           "/auth/",
           "/chat",
           "/my-subscription",
-          "/my-designs",
           "/design/*/print",
           "/design/*/quote",
           "/design/*/quote/print",
