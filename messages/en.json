@@ -4821,7 +4821,8 @@
     "filterAll": "All",
     "loading": "Loading…",
     "owned": "✓ Owned",
-    "buyBtn": "Buy now →"
+    "buyBtn": "Buy now →",
+    "bundleNote": "One purchase unlocks all {count} exercises: 3D, three-view drawings, part drawings and the bill of materials for every one of them."
   },
   "toolUnlock": {
     "h": "🔨 Interior tool one-time purchase",
@@ -5294,6 +5295,7 @@
     "retry": "Retry"
   },
   "lemon": {
+    "_note": "Placeholder so next-intl key parity holds; the zh-TW copy of this namespace exists only as a fallback (the Lemon Squeezy components render on the en locale).",
     "pricing": {
       "heroTitle": "Furniture Blueprints",
       "heroSubtitle": "Parametric furniture design with engineering drawings, 3D views, bill of materials, and step-by-step construction plans.",
