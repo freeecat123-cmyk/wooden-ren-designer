@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { build } from "esbuild";
 import { chromium, devices } from "playwright";
 import postcss from "postcss";
@@ -7,6 +7,11 @@ import { LABOR_DEFAULTS, sanitizeLaborOpts } from "@/lib/pricing/labor";
 import { calculateQuote } from "@/lib/pricing/quote";
 import { formatMoney, MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import type { FurnitureDesign } from "@/lib/types";
+
+// 這支會真的開一個 chromium（playwright）。全套平行跑時十幾支同時開，
+// 單測預設 5000ms 不夠用 → 每日驗證閘會誤報紅燈（2026-10-20 實際踩到）。
+// 對齊作者原本給 beforeAll 的 30000ms。
+vi.setConfig({ testTimeout: 30000 });
 
 const design: FurnitureDesign = {
   id: "resolved-snapshot", category: "desk", nameZh: "測試桌",

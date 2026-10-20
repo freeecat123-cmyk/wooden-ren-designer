@@ -1,8 +1,13 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { build } from "esbuild";
 import { chromium, type Browser } from "playwright";
 import { getTemplate } from "@/lib/templates";
 import { parseDesignSearchParams } from "@/lib/design/parse-search-params";
+
+// 這支會真的開一個 chromium（playwright）。全套平行跑時十幾支同時開，
+// 單測預設 5000ms 不夠用 → 每日驗證閘會誤報紅燈（2026-10-20 實際踩到）。
+// 對齊作者原本給 beforeAll 的 30000ms。
+vi.setConfig({ testTimeout: 30000 });
 
 const path = "/design/photo-frame";
 const prefix = `wooden-ren-designer:design-history:v1:${path}:`;

@@ -1,7 +1,12 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 import { readFile } from "node:fs/promises";
+
+// 這支會真的開一個 chromium（playwright）。全套平行跑時十幾支同時開，
+// 單測預設 5000ms 不夠用 → 每日驗證閘會誤報紅燈（2026-10-20 實際踩到）。
+// 對齊作者原本給 beforeAll 的 30000ms。
+vi.setConfig({ testTimeout: 30000 });
 
 it.skipIf(process.env.RUN_LIBRARY_BROWSER !== "1")("library interactions, account isolation and responsive bilingual layouts", async () => {
   const bundle = await build({

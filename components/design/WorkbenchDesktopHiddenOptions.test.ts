@@ -2,8 +2,13 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { build } from "esbuild";
 import { chromium, type Browser, type Page } from "playwright";
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { WORKBENCH_PRESETS, workbenchPresetValues } from "@/lib/templates/workbench-presets";
+
+// 這支會真的開一個 chromium（playwright）。全套平行跑時十幾支同時開，
+// 單測預設 5000ms 不夠用 → 每日驗證閘會誤報紅燈（2026-10-20 實際踩到）。
+// 對齊作者原本給 beforeAll 的 30000ms。
+vi.setConfig({ testTimeout: 30000 });
 
 let browser: Browser;
 let bundle: string;
