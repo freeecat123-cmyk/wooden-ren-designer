@@ -4505,7 +4505,7 @@
     "csvBtnTitle": "Download parts list + nesting details CSV — give it to your lumber supplier or open in Excel",
     "printBtn": "🖨️ Print / PDF",
     "unplacedH": "{n} pieces exceed the stock sheet size and can't be nested",
-    "unplacedBody": "Increase the \"Stock inventory\" dimensions, use a larger sheet, or split these pieces with the ✂ button in the parts list. Otherwise the supplier will run short.",
+    "unplacedBody": "Anything larger than the stock board can't be nested. Solid stock defaults to 3000×200 mm, so wide panels like tabletops and seats have to be glued up from strips — use the ✂ button in the parts list to split one into strips (a 10 mm glue allowance is added automatically), or set \"Stock inventory\" to a size you can actually buy. Left as is, the cut list will come up short at the lumberyard.",
     "kindSolid": "Solid wood",
     "kindPlywood": "Plywood",
     "kindMdf": "MDF",
