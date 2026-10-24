@@ -1,0 +1,19 @@
+# Furniture Blueprints
+
+> Furniture Blueprints is a parametric furniture design tool. Enter dimensions to instantly generate a 3D preview, engineering drawings (three views + per-part drawings), joinery detail drawings, a cut list, and printable plans. Supports mm/inch units. Free tier includes the square stool, pencil holder and workbench; paid plans unlock all templates.
+
+## Product
+
+- [Home](/en): overview, templates, plans.
+- [Start designing](/en/app): the furniture catalog.
+- [Templates](/en/templates): every furniture template with dimensions and joinery notes.
+- [Free workbench plans](/en/workbench)
+- [Pricing](/en/pricing): Pro monthly / annual, lifetime, and single-template purchases (USD).
+- [Help](/en/help)
+
+## Key features
+
+- Parametric design: pick a template → enter dimensions → live 3D preview, no CAD skills needed.
+- Engineering drawings: three views, per-part drawings, mortise & tenon details.
+- Cut list and materials list in mm or inches / board feet.
+- 1:1 full-size templates for joinery layout.

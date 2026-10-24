@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LemonSqueezyPricingClient } from "@/components/LemonSqueezyPricingClient";
 import { PricingClient } from "@/components/PricingClient";
 import { routing, type Locale } from "@/i18n/routing";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates } from "@/lib/brand";
 import {
   isSellableFurniture,
   isSellableTool,
@@ -18,7 +18,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const alt = bilingualAlternates("/pricing", locale);
+  const alt = await brandedAlternates("/pricing", locale);
 
   if (locale !== routing.defaultLocale) {
     const t = await getTranslations({ locale, namespace: "pricingStub.metadata" });

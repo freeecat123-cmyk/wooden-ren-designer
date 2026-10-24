@@ -1,3 +1,4 @@
+import { isNeutralHost, NEUTRAL_BRAND_NAME } from "@/lib/brand-hosts";
 // SVG 字串 → PDF。用 jsPDF + svg2pdf.js，紙張尺寸精準到 mm。
 // 兩個實測踩過的坑寫在下面，改動前先讀。
 
@@ -128,6 +129,18 @@ const PDF_CREATOR = "木作藍圖 designer.woodenren.com";
 const PDF_KEYWORDS = "木工,家具,1:1 實尺樣板,woodworking template";
 
 /**
+ * 中性品牌網域（Furniture Blueprints）下載的 PDF：文件屬性不能寫木頭仁 / woodenren。
+ * 這支在瀏覽器跑，直接看目前網址的 hostname（主站不受影響）。
+ */
+function pdfBrandProps(): { author: string; creator: string } {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  if (isNeutralHost(host)) {
+    return { author: NEUTRAL_BRAND_NAME, creator: `${NEUTRAL_BRAND_NAME} ${host}` };
+  }
+  return { author: PDF_AUTHOR, creator: PDF_CREATOR };
+}
+
+/**
  * 把 catalog 裡的 `/OpenAction [3 0 R /FitH null]` 用**等長空白**蓋掉。
  *
  * 為什麼要拿掉:2026-08-21 補完文件屬性之後,Avast 仍然把 `02_樣板_A4.pdf` 判成
@@ -186,8 +199,7 @@ export async function svgsToPdf(
     doc.setProperties({
       title: meta.title,
       subject: meta.subject ?? meta.title,
-      author: PDF_AUTHOR,
-      creator: PDF_CREATOR,
+      ...pdfBrandProps(),
       keywords: PDF_KEYWORDS,
     });
   }

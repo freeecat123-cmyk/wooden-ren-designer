@@ -38,6 +38,8 @@ import { translateSteps } from "@/lib/steps/translations";
 import { TOOL_CATALOG, toolName } from "@/lib/tools/catalog";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { routing } from "@/i18n/routing";
+import { getSiteHostLabel, isNeutralBrand, NEUTRAL_BRAND_NAME } from "@/lib/brand";
+import { neutralizeText } from "@/lib/brand-text";
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -60,6 +62,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const { locale: rawLocale, type } = await params;
   const locale = rawLocale === "en" ? "en" : routing.defaultLocale;
   const isEn = locale === "en";
+  // 中性品牌網域（Furniture Blueprints）：PDF 上不能出現 Wooden Ren / woodenren.com / 木匠商城 QR
+  const neutral = await isNeutralBrand();
+  const siteHost = neutral ? await getSiteHostLabel() : "";
   const DIFFICULTY_LABEL = isEn ? DIFFICULTY_LABEL_EN : DIFFICULTY_LABEL_ZH;
   const sp = await searchParams;
 
@@ -141,7 +146,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     <main className="max-w-[210mm] mx-auto bg-white text-zinc-900 relative">
       {/* watermark — only renders in print via @media print */}
       <div className="print-watermark" aria-hidden>
-        <span>{isEn ? "Wooden Ren · woodenren.com" : "木頭仁 · woodenren.com"}</span>
+        <span>{neutral ? `${NEUTRAL_BRAND_NAME} · ${siteHost}` : isEn ? "Wooden Ren · woodenren.com" : "木頭仁 · woodenren.com"}</span>
       </div>
 
       {/* 免費版螢幕浮水印（付費版自動隱藏） */}
@@ -157,7 +162,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
         <PrintAccessGate templateUnlocked={templateUnlocked} suggestedFilename={`${outputName}_${today}`} preflight={{
           name: outputName,
           size: formatDimensions(design.overall.length, design.overall.width, design.overall.thickness, unit),
-          savedState, warnings: design.warnings ?? [], hasTemplates: hasPrintTemplates(design),
+          savedState, warnings: (design.warnings ?? []).map((w) => (neutral ? neutralizeText(w, `https://${siteHost}`) : w)), hasTemplates: hasPrintTemplates(design),
         }} />
       </div>
 
@@ -171,14 +176,14 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
-            alt={isEn ? "Wooden Ren" : "木頭仁"}
+            alt={neutral ? NEUTRAL_BRAND_NAME : isEn ? "Wooden Ren" : "木頭仁"}
             width={64}
             height={64}
             className="object-contain"
           />
           <div>
             <p className="text-xs text-zinc-500 tracking-widest">
-              {isEn ? "WOODEN REN · CARPENTER ACADEMY" : "WOODEN REN · 木頭仁木匠學院"}
+              {neutral ? NEUTRAL_BRAND_NAME.toUpperCase() : isEn ? "WOODEN REN · CARPENTER ACADEMY" : "WOODEN REN · 木頭仁木匠學院"}
             </p>
             <p className="text-sm text-zinc-700">{isEn ? "Furniture shop drawings" : "家具設計設計圖"}</p>
           </div>
@@ -310,6 +315,8 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
       <PrintTemplates design={design} locale={locale} />
 
       {/* ================= Page N+: Tool list with QR ================= */}
+      {/* 中性品牌網域：QR 全部連到木頭仁木匠商城（woodenren.easy.co），整段不印 */}
+      {!neutral && (
       <section data-print-page className="px-10 py-12">
         <SectionHeading
           title={isEn ? "Tool list" : "工具清單"}
@@ -322,6 +329,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             : "所有 QR 碼皆含 UTM 追蹤碼用以統計工具需求；點開連結將前往 woodenren.easy.co"}
         </p>
       </section>
+      )}
 
       {/* ================= Page N+: Build steps ================= */}
       <section data-print-page className="px-10 py-12">
@@ -388,7 +396,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
 
       {/* Bottom footer (print only) */}
       <footer className="px-10 py-6 text-center text-[10px] text-zinc-500 border-t border-zinc-200">
-        {isEn
+        {neutral
+          ? `© 2026 ${NEUTRAL_BRAND_NAME} · ${siteHost} · Design ID ${design.id}`
+          : isEn
           ? `© 2026 Wooden Ren Carpenter Academy · woodenren.com · Design ID ${design.id}`
           : `© 2026 木頭仁木匠學院 · woodenren.com · 設計編號 ${design.id}`}
       </footer>

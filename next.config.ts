@@ -1,7 +1,40 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { NEUTRAL_HOSTS } from "./lib/brand-hosts";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
+/**
+ * 中性品牌網域（Furniture Blueprints）的靜態檔替換：同一個檔名，中性網域拿到中性版本
+ * （public/neutral/*），主站完全不受影響（rewrite 只在 Host 命中 NEUTRAL_HOSTS 時生效）。
+ * beforeFiles：要在 public 檔案之前攔下，否則 /og.png 會直接吐出主站那張「木頭仁」圖。
+ */
+const NEUTRAL_ASSET_MAP: Record<string, string> = {
+  "/og.png": "/neutral/og.png",
+  "/logo.png": "/neutral/logo-mark.png",
+  "/logo-mark.png": "/neutral/logo-mark.png",
+  "/brand-logo.png": "/brand-logo-en.png",
+  "/brand-logo-text.png": "/brand-logo-en.png",
+  "/icon-text.svg": "/neutral/icon-text.svg",
+  "/apple-touch-icon.png": "/neutral/apple-touch-icon.png",
+  "/icon-192.png": "/neutral/icon-192.png",
+  "/icon-512.png": "/neutral/icon-512.png",
+  "/manifest.json": "/neutral/manifest.en.json",
+  "/manifest.en.json": "/neutral/manifest.en.json",
+  "/llms.txt": "/neutral/llms.txt",
+};
+
+function neutralAssetRewrites() {
+  type Has = { type: "host"; value: string } | { type: "header"; key: string; value: string };
+  const conditions: Has[] = NEUTRAL_HOSTS.map((h) => ({ type: "host" as const, value: h }));
+  // 本機模擬用（與 lib/brand-hosts.ts 的 brandFromHeaders 一致）：正式環境不吃 x-forwarded-host
+  if (process.env.NODE_ENV !== "production") {
+    for (const h of NEUTRAL_HOSTS) conditions.push({ type: "header", key: "x-forwarded-host", value: h });
+  }
+  return Object.entries(NEUTRAL_ASSET_MAP).flatMap(([source, destination]) =>
+    conditions.map((has) => ({ source, destination, has: [has] })),
+  );
+}
 
 const nextConfig: NextConfig = {
   // Allow independent local previews without sharing Next's development lock.
@@ -71,6 +104,9 @@ const nextConfig: NextConfig = {
     "/api/cnc-tool": ["./lib/cnc/cnc-tool.html"],
     // 字型全字庫只在伺服器端用（子集化），Vercel 預設不會 trace 到，明確列出。
     "/api/pdf-font": ["./lib/fonts/*.ttf"],
+  },
+  async rewrites() {
+    return { beforeFiles: neutralAssetRewrites(), afterFiles: [], fallback: [] };
   },
   async redirects() {
     return [

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 中性品牌（Furniture Blueprints）App 圖示：藍圖格線 + 等角木塊，不含任何個人品牌字樣 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1e3a5f"/>
+  <g stroke="#ffffff" stroke-width="3" opacity="0.18">
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+  </g>
+  <text x="256" y="138" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="78" font-weight="700" fill="#ffffff">Furniture</text>
+  <text x="256" y="222" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="78" font-weight="700" fill="#ffffff">Blueprints</text>
+  <polygon points="256,282 410,346 256,410 102,346" fill="#fbbf24" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <polygon points="102,346 256,410 256,466 102,402" fill="#d97706" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <polygon points="410,346 256,410 256,466 410,402" fill="#b45309" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <g stroke="#92400e" stroke-width="3" opacity="0.5" fill="none">
+    <path d="M 170 340 Q 256 326 342 340"/>
+    <path d="M 196 366 Q 256 356 316 366"/>
+  </g>
+</svg>

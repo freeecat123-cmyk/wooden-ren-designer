@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Link } from "@/i18n/navigation";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates, brandText, getSiteOrigin, ogBrandQuery } from "@/lib/brand";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -32,8 +32,7 @@ import { priceAmount } from "@/lib/units/fx";
  *           FAQ / 相關模板 / 底部 CTA + JSON-LD Product schema
  */
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
+// 網址一律在請求內用 getSiteOrigin() 取（中性品牌網域要用自己的網域；主站等於原本的 NEXT_PUBLIC_SITE_URL）
 
 interface PageProps {
   params: Promise<{ locale: string; type: string }>;
@@ -48,20 +47,21 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { locale, type } = await params;
-  const marketing = getTemplateMarketing(type as FurnitureCategory, locale);
+  const SITE_URL = await getSiteOrigin();
+  const marketing = await brandText(getTemplateMarketing(type as FurnitureCategory, locale));
   const entry = getTemplate(type as FurnitureCategory);
   if (!marketing || !entry) {
     const t = await getTranslations({ locale, namespace: "templateDetail" });
     return { title: t("metadataTitleFallback") };
   }
-  const ogImage = `${SITE_URL}/api/og?type=${encodeURIComponent(type)}${locale !== routing.defaultLocale ? `&locale=${locale}` : ""}`;
+  const ogImage = `${SITE_URL}/api/og?type=${encodeURIComponent(type)}${locale !== routing.defaultLocale ? `&locale=${locale}` : ""}${await ogBrandQuery()}`;
   const isDefault = locale === routing.defaultLocale;
   const pathPrefix = isDefault ? "" : `/${locale}`;
   return {
     title: marketing.seoTitle,
     description: marketing.seoDescription,
     keywords: marketing.keywords,
-    alternates: bilingualAlternates(`/templates/${type}`, locale),
+    alternates: await brandedAlternates(`/templates/${type}`, locale),
     openGraph: {
       type: "article",
       locale: locale === "en" ? "en" : "zh_TW",
@@ -81,7 +81,9 @@ export async function generateMetadata({
 
 export default async function TemplateDetail({ params }: PageProps) {
   const { locale, type } = await params;
-  const marketing = getTemplateMarketing(type as FurnitureCategory, locale);
+  const SITE_URL = await getSiteOrigin();
+  // 中性品牌網域：寫死在 marketing-en.ts 的文案（seoTitle「— Wooden Ren Blueprint」等）一併中性化
+  const marketing = await brandText(getTemplateMarketing(type as FurnitureCategory, locale));
   const entry = getTemplate(type as FurnitureCategory);
 
   if (!marketing || !entry) notFound();
@@ -89,8 +91,8 @@ export default async function TemplateDetail({ params }: PageProps) {
 
   const t = await getTranslations({ locale, namespace: "templateDetail" });
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
-  const highlights = getHighlights(entry.category, locale);
-  const gallery = getGallery(entry.category, locale);
+  const highlights = await brandText(getHighlights(entry.category, locale));
+  const gallery = await brandText(getGallery(entry.category, locale));
   const unlockPrice = isFree ? null : getUnlockPrice(entry.category);
   const bundle = isFree ? null : getBundleFor(entry.category);
   const isEn = locale === "en";

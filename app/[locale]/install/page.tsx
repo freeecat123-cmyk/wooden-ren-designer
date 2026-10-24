@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates } from "@/lib/brand";
 import { routing, type Locale } from "@/i18n/routing";
 import { InstallCTA } from "@/components/InstallCTA";
 
@@ -12,7 +12,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "installPage.metadata" });
-  const alt = bilingualAlternates("/install", locale);
+  const alt = await brandedAlternates("/install", locale);
   return {
     title: t("title"),
     description: t("description"),

@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { categoryLabel } from "@/lib/templates/labels";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { materialName } from "@/lib/materials";
+import { useIsNeutralBrand } from "@/components/brand/BrandProvider";
 
 export function AskMasterButton({
   category,
@@ -19,6 +20,8 @@ export function AskMasterButton({
   const locale = useLocale();
   const sp = useSearchParams();
   const [copied, setCopied] = useState(false);
+  // 中性品牌網域：t.me/woodenren_bot 是 Wooden Ren 的 Telegram 機器人，整顆按鈕不顯示
+  const neutral = useIsNeutralBrand();
 
   const buildQuestion = (): string => {
     const tmplName = (() => {
@@ -75,6 +78,8 @@ export function AskMasterButton({
     }
     window.open("https://t.me/woodenren_bot", "_blank", "noopener,noreferrer");
   };
+
+  if (neutral) return null;
 
   return (
     <button

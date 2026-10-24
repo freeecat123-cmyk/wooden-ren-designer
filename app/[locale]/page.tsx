@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates, getSiteHostLabel } from "@/lib/brand";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -40,7 +40,7 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
-    alternates: bilingualAlternates("/", locale),
+    alternates: await brandedAlternates("/", locale),
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),
@@ -124,6 +124,8 @@ export default async function Landing({
   if (user) redirect({ href: "/app", locale });
 
   const t = await getTranslations({ locale, namespace: "landing" });
+  // 中性品牌網域顯示自己的網域；主站維持原本的 designer.woodenren.com
+  const siteHostLabel = await getSiteHostLabel();
   const tD = await getTranslations({ locale, namespace: "difficulty" });
 
   const featuredEntries = FEATURED_TYPES.map((tType) =>
@@ -213,7 +215,7 @@ export default async function Landing({
                     <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     {t("hero.heroCaption")}
                   </span>
-                  <span className="font-mono">designer.woodenren.com</span>
+                  <span className="font-mono">{siteHostLabel}</span>
                 </div>
               </div>
               <div

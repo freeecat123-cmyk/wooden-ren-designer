@@ -6,6 +6,8 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { HeaderUser } from "@/components/auth/HeaderUser";
 import { UnitToggle } from "@/components/UnitToggle";
 import { CurrencyToggle } from "@/components/CurrencyToggle";
+import { useIsNeutralBrand } from "@/components/brand/BrandProvider";
+import { allowedOnNeutralHost } from "@/lib/brand-hosts";
 
 /**
  * 全站頂部導覽列（sticky top:0 z:50）
@@ -35,7 +37,10 @@ export function SiteHeader() {
   const t = useTranslations("nav");
   const tLogo = useTranslations("logo");
   // 英文版沒有更新紀錄頁（changelog/page.tsx 對 en 回 404），選單不放這個連結
-  const navKeys = useLocale() === "en" ? NAV_KEYS.filter((k) => k !== "changelog") : NAV_KEYS;
+  const enKeys = useLocale() === "en" ? NAV_KEYS.filter((k) => k !== "changelog") : NAV_KEYS;
+  // 中性品牌網域：只留開放的頁面（/about 在那邊會被導回首頁）
+  const neutral = useIsNeutralBrand();
+  const navKeys = neutral ? enKeys.filter((k) => allowedOnNeutralHost(NAV_HREFS[k])) : enKeys;
   const [open, setOpen] = useState(false);
 
   // 路徑切換時關閉行動選單

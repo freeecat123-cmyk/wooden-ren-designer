@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates, getSiteOrigin, isNeutralBrand } from "@/lib/brand";
 import { routing, type Locale } from "@/i18n/routing";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 const LINE_OA_URL = "https://lin.ee/EaXGbJ1";
 const SUPPORT_EMAIL = "wengbinren@gmail.com";
 
@@ -16,7 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "help.metadata" });
-  const alt = bilingualAlternates("/help", locale);
+  const alt = await brandedAlternates("/help", locale);
   return {
     title: t("title"),
     description: t("description"),
@@ -77,6 +76,8 @@ export default async function HelpPage({
   setRequestLocale(locale);
 
   const t = await getTranslations({ locale, namespace: "help" });
+  // 中性品牌網域：LINE 官方帳號是 Wooden Ren 的，不顯示
+  const neutral = await isNeutralBrand();
 
   // FAQPage JSON-LD — 每個 Q&A 取原始 message string，strip tags → plain text
   // 結構性的 list 題目（billing.q2, refundSec.q1, refundSec.q2）特別處理
@@ -152,6 +153,8 @@ export default async function HelpPage({
           >
             {SUPPORT_EMAIL}
           </a>
+          {!neutral && (
+            <>
           {t("introOr")}
           <a
             className="text-emerald-700 font-medium hover:underline mx-1"
@@ -161,6 +164,8 @@ export default async function HelpPage({
           >
             {t("lineOaLabel")}
           </a>
+            </>
+          )}
         </p>
       </header>
 
@@ -242,6 +247,7 @@ export default async function HelpPage({
           >
             {t("stillStuckEmail")}
           </a>
+          {!neutral && (
           <a
             href={LINE_OA_URL}
             target="_blank"
@@ -250,6 +256,7 @@ export default async function HelpPage({
           >
             {t("stillStuckLine")}
           </a>
+          )}
         </div>
       </section>
 
@@ -280,7 +287,7 @@ export default async function HelpPage({
         </Link>
       </p>
       <p className="mt-2 text-xs text-zinc-400 text-center">
-        {SITE_URL.replace(/^https?:\/\//, "")}
+        {(await getSiteOrigin()).replace(/^https?:\/\//, "")}
       </p>
     </main>
   );

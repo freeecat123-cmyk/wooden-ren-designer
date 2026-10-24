@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates, getSiteHostLabel } from "@/lib/brand";
 import { routing, type Locale } from "@/i18n/routing";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import { FEATURED_TEMPLATE_CATEGORIES, FEATURED_TEMPLATE_CATEGORIES_EN } from "@/lib/templates/marketing";
@@ -29,7 +29,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "workbenchLanding.metadata" });
-  const alt = bilingualAlternates("/workbench", locale);
+  const alt = await brandedAlternates("/workbench", locale);
   return {
     title: t("title"),
     description: t("description"),
@@ -83,6 +83,8 @@ export default async function WorkbenchLanding({
   setRequestLocale(locale);
 
   const t = await getTranslations({ locale, namespace: "workbenchLanding" });
+  // 中性品牌網域顯示自己的網域；主站維持原本的 designer.woodenren.com
+  const siteHostLabel = await getSiteHostLabel();
 
   // 免費保證：工作桌一定在 FREE_UNLOCKED_CATEGORIES 裡，否則這頁的承諾就是假的
   const isFree = FREE_UNLOCKED_CATEGORIES.includes("workbench");
@@ -158,7 +160,7 @@ export default async function WorkbenchLanding({
                     <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     {t("hero.imgCaption")}
                   </span>
-                  <span className="font-mono">designer.woodenren.com</span>
+                  <span className="font-mono">{siteHostLabel}</span>
                 </div>
               </div>
               {isFree && (

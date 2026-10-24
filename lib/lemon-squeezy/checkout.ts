@@ -32,6 +32,8 @@ export interface CheckoutCustomData {
   plan?: string;
   /** locale 來源，方便 webhook 寄信時挑語言 */
   locale?: string;
+  /** 從中性品牌網域（Furniture Blueprints）下單時為 "neutral"，webhook 寄信改用中性品牌；主站不帶 */
+  brand?: "neutral";
 }
 
 interface CreateCheckoutOptions {

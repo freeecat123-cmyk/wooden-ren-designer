@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { sanitizeNext } from "@/lib/safe-next";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmail, FROM_EN } from "@/lib/email/send";
+import { neutralFrom, neutralizeEmail } from "@/lib/email/brand";
+import { brandFromHeaders, neutralOrigin } from "@/lib/brand-hosts";
 import { welcomeEmail } from "@/lib/email/templates/welcome";
 
 /**
@@ -40,9 +42,15 @@ export async function GET(request: Request) {
             .eq("id", user.id)
             .single();
           if (u && !u.welcome_email_sent_at) {
-            const payload = welcomeEmail({ name: u.name, locale: u.locale ?? "zh-TW" });
+            // 中性品牌網域（Furniture Blueprints）登入：一律英文、品牌與連結中性化、寄件人用中性寄件人
+            const neutral = brandFromHeaders(request.headers) === "neutral";
+            const rawPayload = welcomeEmail({ name: u.name, locale: neutral ? "en" : (u.locale ?? "zh-TW") });
+            const payload = neutral
+              ? neutralizeEmail(rawPayload, neutralOrigin(request.headers.get("host")))
+              : rawPayload;
             void sendEmail({
               to: u.email,
+              ...(neutral ? { from: neutralFrom(FROM_EN) } : {}),
               subject: payload.subject,
               text: payload.text,
               html: payload.html,

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 中性品牌小 logo（取代木頭仁吉祥物 logo.png / logo-mark.png，104×138 同比例） -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 138">
+  <rect x="2" y="12" width="100" height="100" rx="18" fill="#1e3a5f"/>
+  <g stroke="#ffffff" stroke-width="1" opacity="0.2">
+    <line x1="2" y1="45" x2="102" y2="45"/><line x1="2" y1="78" x2="102" y2="78"/>
+    <line x1="35" y1="12" x2="35" y2="112"/><line x1="68" y1="12" x2="68" y2="112"/>
+  </g>
+  <polygon points="52,34 86,52 52,70 18,52" fill="#fbbf24" stroke="#78350f" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="18,52 52,70 52,92 18,74" fill="#d97706" stroke="#78350f" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="86,52 52,70 52,92 86,74" fill="#b45309" stroke="#78350f" stroke-width="2.5" stroke-linejoin="round"/>
+  <text x="52" y="132" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1e3a5f">Blueprints</text>
+</svg>

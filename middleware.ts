@@ -14,6 +14,7 @@ import createIntlMiddleware from "next-intl/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { routing } from "./i18n/routing";
 import { GEO_DEFAULTS_COOKIE, resolveGeoDefaults } from "./lib/geo-defaults";
+import { allowedOnNeutralHost, brandFromHeaders } from "./lib/brand-hosts";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -126,6 +127,24 @@ export default async function middleware(request: NextRequest) {
         cncResponse instanceof NextResponse ? cncResponse : NextResponse.next({ request });
       ensureGeoDefaultsCookie(request, withCookie);
       return withCookie;
+    }
+  }
+
+  // ── 中性品牌網域（Furniture Blueprints，見 lib/brand-hosts.ts 的 NEUTRAL_HOSTS）──
+  // 整站只有英文、只開放賣圖紙需要的頁面。其餘一律導回「中性網域自己的」/en，
+  // ⛔ 不導回 woodenren 主站（那會露餡）。通過檢查後照主站流程走（intl + 已登入首頁導 /en/app），
+  // 品牌字的替換在 i18n/request.ts 與各元件依 Host 判斷，middleware 不用再傳 header。
+  if (brandFromHeaders(request.headers) === "neutral") {
+    const isEnPath = pathname === "/en" || pathname.startsWith("/en/");
+    // 把開頭連續的 / 與 \ 收斂成單一個 /（同 CNC 分支：防 //evil.com 協定相對網址的開放重導）
+    const safePath = "/" + pathname.replace(/^[/\\]+/, "");
+    if (!allowedOnNeutralHost(safePath)) {
+      // 307：之後若開放更多頁面，瀏覽器不會死記這條轉址
+      return NextResponse.redirect(new URL("/en", request.url), 307);
+    }
+    if (!isEnPath) {
+      const target = safePath === "/" ? "/en" : `/en${safePath}`;
+      return NextResponse.redirect(new URL(target + request.nextUrl.search, request.url), 308);
     }
   }
 

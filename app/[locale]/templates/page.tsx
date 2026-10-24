@@ -17,7 +17,7 @@ import {
   getTemplateMarketing,
 } from "@/lib/templates/marketing";
 import type { FurnitureCategory } from "@/lib/types";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates } from "@/lib/brand";
 
 type FilterKey = "all" | "free" | "beginner" | "intermediate" | "advanced";
 
@@ -109,7 +109,7 @@ export async function generateMetadata({
     title: t("title"),
     description: t("description"),
     // ⛔ 同上:只寫 canonical 會把 layout 的 hreflang 整組洗掉(Next 對 alternates 是整包覆蓋)
-    alternates: bilingualAlternates("/templates", locale),
+    alternates: await brandedAlternates("/templates", locale),
   };
 }
 

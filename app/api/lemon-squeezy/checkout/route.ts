@@ -23,6 +23,7 @@ import {
   isSellableTool,
 } from "@/lib/lemon-squeezy/tier-map";
 import { checkLemonSqueezyConfig } from "@/lib/lemon-squeezy/config";
+import { brandFromHeaders, neutralOrigin } from "@/lib/brand-hosts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,14 +59,23 @@ async function handle(req: NextRequest, params: URLSearchParams): Promise<Respon
 
   // success URL 帶回 /[locale]/my-subscription
   // ⚠️ 原本指 /account 但該 page 不存在(只有 /account/designs),會 404。
-  const origin = req.headers.get("origin") ?? new URL(req.url).origin;
+  //
+  // 中性品牌網域（Furniture Blueprints）：回跳網址一律用白名單裡的中性網域（不信任 Origin header），
+  // custom_data 記 brand=neutral → webhook 寄信時改用中性品牌（見 lib/email/brand.ts）。
+  // 主站維持原本行為。
+  const neutral = brandFromHeaders(req.headers) === "neutral";
+  const origin = neutral
+    ? neutralOrigin(req.headers.get("host"))
+    : (req.headers.get("origin") ?? new URL(req.url).origin);
   const successUrl = `${origin}/${locale}/my-subscription?checkout=success`;
 
   const baseOpts = {
     customerEmail: user.email ?? undefined,
     customerName: (user.user_metadata?.name as string | undefined) ?? undefined,
     successUrl,
-    customData: { user_id: user.id, locale },
+    customData: neutral
+      ? { user_id: user.id, locale, brand: "neutral" as const }
+      : { user_id: user.id, locale },
   };
 
   try {

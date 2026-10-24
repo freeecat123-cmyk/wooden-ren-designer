@@ -1,4 +1,6 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import { brandFromHeaders, neutralOrigin, normalizeHost } from "@/lib/brand-hosts";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
@@ -18,7 +20,7 @@ function withEnglishPaths(paths: string[]): string[] {
   return [...paths, ...paths.map((p) => `/en${p}`)];
 }
 
-export default function robots(): MetadataRoute.Robots {
+function mainRobots(): MetadataRoute.Robots {
   return {
     rules: [
       {
@@ -65,4 +67,26 @@ export default function robots(): MetadataRoute.Robots {
     sitemap: `${BASE}/sitemap.xml`,
     host: BASE,
   };
+}
+
+/**
+ * 中性品牌網域（Furniture Blueprints）：同一套擋法，但 sitemap / host 指向中性網域自己。
+ * ⛔ 不能指回 designer.woodenren.com（爬蟲會把兩個網域連在一起）。
+ */
+function neutralRobots(origin: string): MetadataRoute.Robots {
+  const base = mainRobots();
+  return { ...base, sitemap: `${origin}/sitemap.xml`, host: origin };
+}
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  let neutral = false;
+  let host: string | null = null;
+  try {
+    const h = await headers();
+    neutral = brandFromHeaders(h) === "neutral";
+    host = h.get("host");
+  } catch {
+    // 非請求情境（測試 / build）→ 主站
+  }
+  return neutral ? neutralRobots(neutralOrigin(normalizeHost(host))) : mainRobots();
 }

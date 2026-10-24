@@ -22,6 +22,7 @@
 
 import { type NextRequest, after } from "next/server";
 import { sendEmail, FROM_EN } from "@/lib/email/send";
+import { isNeutralCustomData, neutralFrom, neutralizeEmail } from "@/lib/email/brand";
 import { lemonPaymentFailedEmail } from "@/lib/email/templates/lemon-payment-failed";
 import { lemonSubscriptionActivatedEmail } from "@/lib/email/templates/lemon-subscription-activated";
 import { lemonUnlockSuccessEmail } from "@/lib/email/templates/lemon-single-template-success";
@@ -290,15 +291,18 @@ async function handleOrderCreated(
 
   // 寄發木頭仁品牌確認信(LS 自家 invoice 並行送一封)
   if (unlockEmailItem && userEmail) {
-    const mail = lemonUnlockSuccessEmail({
+    // 從中性品牌網域（Furniture Blueprints）下的單：信件內容與寄件人改中性品牌
+    const neutral = isNeutralCustomData(custom);
+    const rawMail = lemonUnlockSuccessEmail({
       kind: unlockEmailItem.kind,
       itemLabel: unlockEmailItem.label,
       amount: amountUsd,
       itemHref: unlockEmailItem.href,
     });
+    const mail = neutral ? neutralizeEmail(rawMail) : rawMail;
     await sendEmail({
       to: userEmail,
-      from: FROM_EN,
+      from: neutral ? neutralFrom(FROM_EN) : FROM_EN,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -384,14 +388,16 @@ async function handleSubscriptionCreated(
   if (email) {
     const planLabel = `Pro ${variant.period === "yearly" ? "Annual" : "Monthly"}`;
     const totalCents = (sub.total ?? 0) as number;
-    const mail = lemonSubscriptionActivatedEmail({
+    const neutral = isNeutralCustomData(custom);
+    const rawMail = lemonSubscriptionActivatedEmail({
       planLabel,
       renewsAt,
       amount: Math.round(totalCents / 100),
     });
+    const mail = neutral ? neutralizeEmail(rawMail) : rawMail;
     await sendEmail({
       to: email,
-      from: FROM_EN,
+      from: neutral ? neutralFrom(FROM_EN) : FROM_EN,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -610,15 +616,18 @@ async function handleSubscriptionPaymentFailed(
   }
   if (email) {
     const planLabel = `${subRow.plan === "pro" ? "Pro" : subRow.plan} ${subRow.period === "yearly" ? "Annual" : "Monthly"}`;
-    const mail = lemonPaymentFailedEmail({
+    // 訂閱事件的 meta.custom_data 會帶當初結帳時的 custom（含 brand）
+    const neutral = isNeutralCustomData(payload.meta.custom_data);
+    const rawMail = lemonPaymentFailedEmail({
       planLabel,
       amount,
       reason: declineReason,
       attemptNumber: undefined,
     });
+    const mail = neutral ? neutralizeEmail(rawMail) : rawMail;
     await sendEmail({
       to: email,
-      from: FROM_EN,
+      from: neutral ? neutralFrom(FROM_EN) : FROM_EN,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,

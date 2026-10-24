@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { checkAndLogAIUsage } from "@/lib/ai-rate-limit";
 import { aiFeaturesEnabled } from "@/lib/ai-features";
+import { brandFromHeaders } from "@/lib/brand-hosts";
+import { neutralizePrompt } from "@/lib/brand-text";
 
 /**
  * 「🤖 AI 微調」端點。
@@ -147,9 +149,11 @@ ${JSON.stringify(currentParams, null, 2)}
 
 請依「判斷原則」給出 5-10 個 key 的微調建議。回傳純 JSON、不要包 markdown code fence。`;
 
+    // 中性品牌網域：拿掉 prompt 裡的木頭仁身分設定
+    const basePrompt = brandFromHeaders(req.headers) === "neutral" ? neutralizePrompt(SYSTEM_PROMPT) : SYSTEM_PROMPT;
     const systemForLocale = isEn
-      ? `${SYSTEM_PROMPT}\n\n---\n\n# Language\nThe user is on the English site. Write the "rationale" and "warnings" fields in English. The suggestions object's keys / values stay as-is (OptionSpec keys are technical IDs). Use imperial-friendly wording when discussing dimensions (e.g. "≈ 12 in / 300 mm").`
-      : SYSTEM_PROMPT;
+      ? `${basePrompt}\n\n---\n\n# Language\nThe user is on the English site. Write the "rationale" and "warnings" fields in English. The suggestions object's keys / values stay as-is (OptionSpec keys are technical IDs). Use imperial-friendly wording when discussing dimensions (e.g. "≈ 12 in / 300 mm").`
+      : basePrompt;
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,

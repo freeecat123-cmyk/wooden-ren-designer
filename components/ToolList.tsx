@@ -55,9 +55,14 @@ const PRIORITY_BADGE: Record<ToolPriority, string> = {
 interface ToolListProps {
   design: FurnitureDesign;
   locale?: string;
+  /**
+   * 中性品牌網域（Furniture Blueprints）傳 true：價格與商城連結都來自木頭仁木匠商城
+   * （woodenren.easy.co），整欄不顯示、說明文字也拿掉。主站不傳＝原行為。
+   */
+  hideShop?: boolean;
 }
 
-export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
+export function ToolList({ design, locale = "zh-TW", hideShop = false }: ToolListProps) {
   const tools = deriveRequiredTools(design, locale);
   const isEn = locale === "en";
   const categoryLabel = isEn ? CATEGORY_LABEL_EN : CATEGORY_LABEL_ZH;
@@ -96,8 +101,12 @@ export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
                 <tr>
                   <th className="text-left px-4 py-2 font-normal">{isEn ? "Tool" : "工具"}</th>
                   <th className="text-left px-4 py-2 font-normal">{isEn ? "Use" : "用途"}</th>
+                  {!hideShop && (
+                    <>
                   <th className="text-right px-4 py-2 font-normal">{isEn ? "Price" : "價格"}</th>
                   <th className="text-right px-4 py-2 font-normal">{isEn ? "Shop" : "商城"}</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -115,6 +124,8 @@ export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-zinc-600">{rt.reason}</td>
+                    {!hideShop && (
+                    <>
                     <td className="px-4 py-2.5 text-right text-zinc-700 tabular-nums">
                       {rt.tool.priceCached
                         ? isEn
@@ -136,6 +147,8 @@ export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
                         <span className="text-xs text-zinc-400">{isEn ? "Coming soon" : "尚未上架"}</span>
                       )}
                     </td>
+                    </>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -143,11 +156,13 @@ export function ToolList({ design, locale = "zh-TW" }: ToolListProps) {
           </div>
         );
       })}
+      {!hideShop && (
       <p className="text-xs text-zinc-500">
         {isEn
           ? "Shop links go to the Wooden Ren carpenter store (TWD, ships from Taiwan). Prices are cached — actual price on the store page wins."
           : "點選商品連結將前往木頭仁木匠商城。價格為快取，實際以商城頁面為準。"}
       </p>
+      )}
     </div>
   );
 }

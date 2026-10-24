@@ -1,4 +1,4 @@
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates } from "@/lib/brand";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { RefundClient } from "./RefundClient";
@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: bilingualAlternates("/refund", locale),
+    alternates: await brandedAlternates("/refund", locale),
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),

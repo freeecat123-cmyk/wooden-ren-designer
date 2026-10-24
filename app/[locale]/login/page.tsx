@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeNext } from "@/lib/safe-next";
 import { routing, type Locale } from "@/i18n/routing";
 import { LoginPageClient } from "./LoginPageClient";
+import { isNeutralBrand } from "@/lib/brand";
 
 export async function generateMetadata({
   params,
@@ -44,6 +45,7 @@ export default async function LoginPage({
   }
 
   const t = await getTranslations({ locale, namespace: "login" });
+  const neutral = await isNeutralBrand();
 
   return (
     <main className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-12">
@@ -68,6 +70,9 @@ export default async function LoginPage({
         </div>
         <p className="text-center text-xs text-zinc-500 mt-6 leading-relaxed">
           {t("footnote")}
+          {/* 中性品牌網域：LINE 官方帳號是 Wooden Ren 的，不顯示 */}
+          {!neutral && (
+            <>
           <br />
           {t("helpPrefix")}
           <a
@@ -78,6 +83,8 @@ export default async function LoginPage({
           >
             {t("lineLabel")}
           </a>
+            </>
+          )}
         </p>
       </div>
     </main>

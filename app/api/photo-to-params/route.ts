@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { checkAndLogAIUsage } from "@/lib/ai-rate-limit";
 import { aiFeaturesEnabled } from "@/lib/ai-features";
+import { brandFromHeaders } from "@/lib/brand-hosts";
+import { neutralizePrompt } from "@/lib/brand-text";
 
 /**
  * 「📷 照片轉設計」端點。
@@ -144,7 +146,8 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
-      system: SYSTEM_PROMPT,
+      // 中性品牌網域：拿掉 prompt 裡的木頭仁身分設定
+      system: brandFromHeaders(req.headers) === "neutral" ? neutralizePrompt(SYSTEM_PROMPT) : SYSTEM_PROMPT,
       messages: [
         {
           role: "user",

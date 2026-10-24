@@ -20,6 +20,8 @@ import { WebInstallBanner } from "@/components/WebInstallBanner";
 import { pickClientMessages } from "@/lib/i18n/client-namespaces";
 import { PrivacySafeAnalytics } from "@/components/PrivacySafeAnalytics";
 import { SignupTracker } from "@/components/SignupTracker";
+import { BrandProvider } from "@/components/brand/BrandProvider";
+import { getBrand, getSiteOrigin, NEUTRAL_BRAND_NAME } from "@/lib/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,6 +76,55 @@ function urlFor(locale: Locale, path: string = "") {
     : `${SITE_URL}/${locale}${path}`;
 }
 
+/**
+ * 中性品牌網域（Furniture Blueprints）的 metadata —— 只有英文、canonical/hreflang 全指中性網域自己，
+ * 圖示與 og 圖由 next.config.ts 的 host 條件 rewrite 換成中性版本（/neutral/*）。
+ */
+const NEUTRAL_META = {
+  title: `${NEUTRAL_BRAND_NAME} — parametric furniture plans with joinery`,
+  description:
+    "Generate three-view drawings, exploded views, mortise & tenon details, cut lists, and printable plans from dimensions.",
+};
+
+function neutralMetadata(origin: string): Metadata {
+  const m = NEUTRAL_META;
+  const home = `${origin}/en`;
+  return {
+    metadataBase: new URL(origin),
+    title: m.title,
+    description: m.description,
+    alternates: {
+      canonical: home,
+      languages: { en: home, "x-default": home },
+    },
+    manifest: "/manifest.en.json",
+    appleWebApp: { capable: true, title: NEUTRAL_BRAND_NAME, statusBarStyle: "default" },
+    icons: {
+      icon: [
+        { url: "/icon.svg", type: "image/svg+xml" },
+        { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+        { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      url: home,
+      siteName: NEUTRAL_BRAND_NAME,
+      title: m.title,
+      description: m.description,
+      images: [{ url: "/og.png", width: 1200, height: 630, alt: m.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: m.title,
+      description: m.description,
+      images: ["/og.png"],
+    },
+  };
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -81,6 +132,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale: raw } = await params;
   const locale = hasLocale(routing.locales, raw) ? raw : routing.defaultLocale;
+  if ((await getBrand()) === "neutral") return neutralMetadata(await getSiteOrigin());
   const m = META[locale];
 
   return {
@@ -166,6 +218,8 @@ export default async function LocaleLayout({
   } = await supabase.auth.getUser();
 
   const m = META[locale];
+  const brand = await getBrand();
+  const neutralOrigin = brand === "neutral" ? await getSiteOrigin() : "";
 
   // JSON-LD 價格鎖 locale，不跟著 CurrencyToggle cookie 變。
   // 理由：付款系統是 locale-pinned（ZH→ECPay TWD、EN→LemonSqueezy USD），
@@ -178,6 +232,31 @@ export default async function LocaleLayout({
       style={{ colorScheme: "light" }}
     >
       <body className="bg-[#fafaf7] text-zinc-900">
+        {brand === "neutral" ? (
+          // 中性網域：只宣告產品本身，不放 creator / Organization（那兩塊全是 Wooden Ren 的身分資訊）
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                name: NEUTRAL_BRAND_NAME,
+                applicationCategory: "DesignApplication",
+                operatingSystem: "Web",
+                url: `${neutralOrigin}/en`,
+                description: NEUTRAL_META.description,
+                inLanguage: "en",
+                offers: [
+                  { "@type": "Offer", name: "Free trial", price: "0", priceCurrency: "USD" },
+                  { "@type": "Offer", name: "Pro Monthly", price: "9", priceCurrency: "USD" },
+                  { "@type": "Offer", name: "Pro Annual", price: "79", priceCurrency: "USD" },
+                  { "@type": "Offer", name: "Lifetime", price: "129", priceCurrency: "USD" },
+                ],
+              }),
+            }}
+          />
+        ) : (
+        <>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -254,6 +333,8 @@ export default async function LocaleLayout({
             }),
           }}
         />
+        </>
+        )}
         {/*
           ⛔ 不傳 messages 的話,next-intl 會把**整包** 243KB 的翻譯字典塞進
              每一頁的 HTML —— gzip 後佔傳輸量約 69%,而其中九成以上是那一頁
@@ -269,6 +350,7 @@ export default async function LocaleLayout({
              CI 有 `--check` 擋過期。(2026-08-24)
         */}
         <NextIntlClientProvider messages={pickClientMessages(await getMessages())}>
+          <BrandProvider brand={brand}>
           <AuthProvider initialUser={user}>
             {/* 學員到期前 30 天頂部橫幅（其他狀態自動隱藏） */}
             <StudentExpiryNotice />
@@ -287,6 +369,7 @@ export default async function LocaleLayout({
             <IOSInstallBanner />
             <WebInstallBanner />
           </AuthProvider>
+          </BrandProvider>
         </NextIntlClientProvider>
         <PrivacySafeAnalytics />
       </body>

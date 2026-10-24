@@ -77,7 +77,8 @@ import {
 } from "@/lib/design/parse-search-params";
 import { getUnitFromCookies } from "@/lib/units/server-unit";
 import { formatMm, formatDimensions } from "@/lib/units/format";
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates, getSiteOrigin, isNeutralBrand, ogBrandQuery } from "@/lib/brand";
+import { neutralizeText } from "@/lib/brand-text";
 import { localePath } from "@/i18n/metadata";
 
 interface PageProps {
@@ -105,7 +106,7 @@ export async function generateMetadata({
     if (typeof v === "string" && v) ogParams.set(k, v);
   }
   if (locale !== routing.defaultLocale) ogParams.set("locale", locale);
-  const ogImage = `/api/og?${ogParams.toString()}`;
+  const ogImage = `/api/og?${ogParams.toString()}${await ogBrandQuery()}`;
   const isDefault = locale === routing.defaultLocale;
   const canonical = isDefault
     ? `/design/${entry.category}`
@@ -176,7 +177,7 @@ export async function generateMetadata({
      *    24 個設計頁全中,等於中英版本之間沒有任何互相指認,Google 會當成兩份無關的頁。
      *    (i18n/metadata.ts 檔頭就寫過這個雷,只是這裡沒照做。)
      */
-    alternates: bilingualAlternates(`/design/${entry.category}`, locale),
+    alternates: await brandedAlternates(`/design/${entry.category}`, locale),
     ...(devCategory ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title,
@@ -194,6 +195,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const locale: Locale = (rawLocale as Locale) ?? routing.defaultLocale;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "design" });
+  // 中性品牌網域：工具清單不顯示木頭仁商城的價格與連結
+  const neutralBrand = await isNeutralBrand();
+  // 模板產生的提醒文字有少數寫到本人（例：工作桌重量提醒「木頭仁 ≥80kg」），中性網域過一次轉換
+  const brandOrigin = neutralBrand ? await getSiteOrigin() : "";
+  const warnText = (w: string) => (neutralBrand ? neutralizeText(w, brandOrigin) : w);
   const sp = await searchParams;
   const unit = await getUnitFromCookies(locale);
   const rawDesignId = Array.isArray(sp.designId) ? sp.designId[0] : sp.designId;
@@ -390,7 +396,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const cutPlanUrl = `${designUrl}/cut-plan?${printQuery.toString()}`;
   const entryName = getEntryName(entry, locale);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
+  // 主站 = 原本的 NEXT_PUBLIC_SITE_URL；中性品牌網域 = 自己的網域
+  const siteUrl = await getSiteOrigin();
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -501,7 +508,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <summary className="cursor-pointer font-medium">{frozen
                 ? (locale === "en" ? "Saved model warnings" : "儲存模型的提醒")
                 : t("warnings.title")} ({design.warnings.length})</summary>
-              <ul className="mt-2 list-disc space-y-1 pl-5">{design.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+              <ul className="mt-2 list-disc space-y-1 pl-5">{design.warnings.map((w, i) => <li key={i}>{warnText(w)}</li>)}</ul>
             </details>}
             <DeflectionHints parts={design.parts} />
             {!!design.suggestions?.length && <SuggestionsBox suggestions={design.suggestions} />}
@@ -558,7 +565,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             </section>
             <section>
               <h2 className="mb-4 text-base font-semibold">{t("section.toolList")}</h2>
-              <ToolList design={design} locale={locale} />
+              <ToolList design={design} locale={locale} hideShop={neutralBrand} />
             </section>
           </div>}
           exports={(() => {

@@ -2,6 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useIsNeutralBrand } from "@/components/brand/BrandProvider";
+import { allowedOnNeutralHost } from "@/lib/brand-hosts";
 
 /**
  * 站底版本資訊：學生回報 bug 時可以告訴你他用哪版。
@@ -42,7 +44,11 @@ const LINK_HREFS: Record<(typeof LINK_KEYS)[number], string> = {
 export function SiteFooter() {
   const t = useTranslations();
   // 英文版沒有更新紀錄頁（changelog/page.tsx 對 en 回 404），頁尾不放這個連結
-  const linkKeys = useLocale() === "en" ? LINK_KEYS.filter((k) => k !== "changelog") : LINK_KEYS;
+  const enKeys = useLocale() === "en" ? LINK_KEYS.filter((k) => k !== "changelog") : LINK_KEYS;
+  // 中性品牌網域（Furniture Blueprints）：社群列整列不顯示、品牌字不連 woodenren.com、
+  // 站內連結只留中性網域開放的頁面（about / contact 在那邊是封鎖頁）
+  const neutral = useIsNeutralBrand();
+  const linkKeys = neutral ? enKeys.filter((k) => allowedOnNeutralHost(LINK_HREFS[k])) : enKeys;
   const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
   const env = process.env.NEXT_PUBLIC_VERCEL_ENV ?? "local";
   const year = new Date().getFullYear();
@@ -79,6 +85,13 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-6 py-9">
         {/* 品牌列 */}
         <div className="flex flex-col items-center gap-2 text-center">
+          {neutral ? (
+            <Link href="/" className="inline-flex items-center gap-2 group">
+              <span className="font-serif-tc text-base font-bold text-amber-900 group-hover:text-amber-700 transition-colors">
+                {t("footer.brand")}
+              </span>
+            </Link>
+          ) : (
           <a
             href="https://woodenren.com"
             className="inline-flex items-center gap-2 group"
@@ -87,10 +100,12 @@ export function SiteFooter() {
               {t("footer.brand")}
             </span>
           </a>
+          )}
           <p className="text-xs text-zinc-500">{t("footer.tagline")}</p>
         </div>
 
-        {/* 社群連結列 */}
+        {/* 社群連結列（中性網域整列隱藏：全是 Wooden Ren 的帳號） */}
+        {!neutral && (
         <nav className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {socials.map((s) => (
             <a
@@ -107,6 +122,7 @@ export function SiteFooter() {
             </a>
           ))}
         </nav>
+        )}
 
         {/* 站內連結列 */}
         <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-1 gap-y-1">

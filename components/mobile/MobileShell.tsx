@@ -37,6 +37,7 @@ import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/
 import { groupSpecsByGroup, groupLabel } from "@/lib/design/option-groups";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 import { downloadPartsCsv } from "@/components/CsvExportButton";
+import { useIsNeutralBrand } from "@/components/brand/BrandProvider";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
 // serialised when passing from Server → Client Component. MobileShell
@@ -85,6 +86,8 @@ interface MobileShellProps {
 
 export function MobileShell(props: MobileShellProps) {
   const t = useTranslations("mobile");
+  // 中性品牌網域：工具清單不顯示木頭仁商城的價格與連結
+  const neutralBrand = useIsNeutralBrand();
   // 材料 CSV 的欄位標題走 csvExport namespace(與桌面版共用同一份實作與字串)
   const tCsv = useTranslations("csvExport");
   const locale = useLocale();
@@ -478,7 +481,7 @@ export function MobileShell(props: MobileShellProps) {
         </CollapsibleSection>
 
         <CollapsibleSection title={t("section.toolList")}>
-          <ToolList design={design} locale={locale} />
+          <ToolList design={design} locale={locale} hideShop={neutralBrand} />
         </CollapsibleSection>
       </DesignFormShell>
 

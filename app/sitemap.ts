@@ -1,4 +1,12 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import {
+  brandFromHeaders,
+  neutralOrigin,
+  normalizeHost,
+  allowedOnNeutralHost,
+  NEUTRAL_PUBLIC_PATHS,
+} from "@/lib/brand-hosts";
 import { FURNITURE_CATALOG , isDevCategory } from "@/lib/templates";
 import { FEATURED_TEMPLATE_CATEGORIES, FEATURED_TEMPLATE_CATEGORIES_EN } from "@/lib/templates/marketing";
 
@@ -66,7 +74,7 @@ function twOnlyEntry(
   };
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+function mainSitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   // ⚠️ biLocaleEntry 現在回傳「兩筆」(中/英各一),所以這裡要 flat() 攤平
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -107,4 +115,42 @@ export default function sitemap(): MetadataRoute.Sitemap {
   );
 
   return [...staticRoutes, ...twOnlyRoutes, ...templateRoutes, ...designRoutes];
+}
+
+/**
+ * 中性品牌網域（Furniture Blueprints）的 sitemap：只收中性網域開放的英文路徑，
+ * 網址一律用中性網域自己，沒有 hreflang（中性網域沒有中文版，也不能指回 woodenren）。
+ */
+export function neutralSitemap(origin: string): MetadataRoute.Sitemap {
+  const now = new Date();
+  const en = (p: string) => (p === "/" ? `${origin}/en` : `${origin}/en${p}`);
+  const statics: MetadataRoute.Sitemap = NEUTRAL_PUBLIC_PATHS.map((p) => ({
+    url: en(p),
+    lastModified: now,
+    changeFrequency: p === "/" || p === "/app" || p === "/templates" ? "weekly" : "monthly",
+    priority: p === "/" ? 1 : 0.8,
+  }));
+  const design: MetadataRoute.Sitemap = FURNITURE_CATALOG
+    .filter((e) => !isDevCategory(e.category) && !e.zhOnly)
+    .map((e) => ({ url: en(`/design/${e.category}`), lastModified: now, changeFrequency: "monthly", priority: 0.8 }));
+  const templates: MetadataRoute.Sitemap = (FEATURED_TEMPLATE_CATEGORIES_EN as string[])
+    .filter((c) => !isDevCategory(c))
+    .map((c) => ({ url: en(`/templates/${c}`), lastModified: now, changeFrequency: "monthly", priority: 0.85 }));
+  // 保險：只留中性網域真的開放的路徑
+  return [...statics, ...templates, ...design].filter((e) =>
+    allowedOnNeutralHost(new URL(e.url).pathname),
+  );
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  let neutral = false;
+  let host: string | null = null;
+  try {
+    const h = await headers();
+    neutral = brandFromHeaders(h) === "neutral";
+    host = h.get("host");
+  } catch {
+    // 非請求情境（build）→ 主站
+  }
+  return neutral ? neutralSitemap(neutralOrigin(normalizeHost(host))) : mainSitemap();
 }

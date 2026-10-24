@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { getTemplate } from "@/lib/templates";
 import { MATERIALS } from "@/lib/materials";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
+import { brandFromHeaders, NEUTRAL_BRAND_NAME } from "@/lib/brand-hosts";
 
 // nodejs runtime（不是 edge）：og 透過 getTemplate import 整套模板/geometry 引擎，
 // 模板持續長大後 edge bundle 撐破 1 MB 上限→部署失敗卡住整批。Node 函式 ~250MB 無此限，
@@ -73,8 +74,17 @@ export async function GET(req: Request) {
     ? (mat?.nameEn ?? material)
     : (mat?.nameZh ?? material);
   const styleName = (isEn ? STYLE_LABEL_EN : STYLE_LABEL_ZH)[style] ?? "";
-  const brandLine = isEn ? "Wooden Ren Blueprint" : "木頭仁 木作藍圖";
-  const footerTagline = isEn
+  /**
+   * 中性品牌網域（Furniture Blueprints）：API route 不經過 middleware，直接看請求的 Host。
+   * ⛔ 不看 query —— 頁面那邊雖然會加 `b=n`，那只是讓 CDN 快取 key 跟主站分開，
+   *    不能讓任何人用網址參數在主站網域產出中性圖（反之亦然）。
+   */
+  const neutral = brandFromHeaders(req.headers) === "neutral";
+  const brandLine = neutral ? NEUTRAL_BRAND_NAME : isEn ? "Wooden Ren Blueprint" : "木頭仁 木作藍圖";
+  const footerTagline = neutral
+    ? // 中性網域字串較長（furniture-blueprints.vercel.app），帶網域會擠成兩行 → 只留功能說明
+      "3-views, cut list and quote in one click"
+    : isEn
     ? "woodenren.com · 3-views, cut list and quote in one click"
     : "woodenren.com · 三視圖 / 材料單 / 報價一鍵生成";
   const ctaLine = isEn ? "👉 Open for the 3D view" : "👉 點開連結看 3D";

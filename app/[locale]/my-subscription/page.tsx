@@ -1,4 +1,4 @@
-import { bilingualAlternates } from "@/i18n/metadata";
+import { brandedAlternates } from "@/lib/brand";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { LemonSubscriptionClient } from "@/components/LemonSubscriptionClient";
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: t("metaTitle"),
     description: t("metaDescription"),
-    alternates: bilingualAlternates("/my-subscription", locale),
+    alternates: await brandedAlternates("/my-subscription", locale),
   };
 }
 
