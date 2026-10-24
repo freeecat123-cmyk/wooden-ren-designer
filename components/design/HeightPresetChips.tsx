@@ -1,6 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useUnit } from "@/hooks/useUnit";
+import { formatMm } from "@/lib/units/format";
 
 export function HeightPresetChips({
   presets,
@@ -11,6 +13,8 @@ export function HeightPresetChips({
   maxHeight?: number;
 }) {
   const t = useTranslations("heightChip");
+  const locale = useLocale();
+  const unit = useUnit();
   const valid = maxHeight ? presets.filter((p) => p.value <= maxHeight) : presets;
   if (valid.length === 0) return null;
 
@@ -38,7 +42,8 @@ export function HeightPresetChips({
           }}
           className="h-7 px-2 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
         >
-          {p.label}{p.value}
+          {/* 英文版：標籤與數字中間空一格，數字跟著 mm/inch 切換；中文版維持「餐椅450」 */}
+          {locale === "en" ? `${p.label} ${formatMm(p.value, unit)}` : `${p.label}${p.value}`}
         </button>
       ))}
     </span>

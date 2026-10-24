@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -41,6 +41,8 @@ const LINK_HREFS: Record<(typeof LINK_KEYS)[number], string> = {
 
 export function SiteFooter() {
   const t = useTranslations();
+  // 英文版沒有更新紀錄頁（changelog/page.tsx 對 en 回 404），頁尾不放這個連結
+  const linkKeys = useLocale() === "en" ? LINK_KEYS.filter((k) => k !== "changelog") : LINK_KEYS;
   const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
   const env = process.env.NEXT_PUBLIC_VERCEL_ENV ?? "local";
   const year = new Date().getFullYear();
@@ -108,7 +110,7 @@ export function SiteFooter() {
 
         {/* 站內連結列 */}
         <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
-          {LINK_KEYS.map((key, i) => (
+          {linkKeys.map((key, i) => (
             <span key={key} className="flex items-center">
               <Link
                 href={LINK_HREFS[key]}
@@ -116,7 +118,7 @@ export function SiteFooter() {
               >
                 {t(`nav.${key}`)}
               </Link>
-              {i < LINK_KEYS.length - 1 && (
+              {i < linkKeys.length - 1 && (
                 <span aria-hidden className="text-amber-900/20 select-none">
                   ·
                 </span>

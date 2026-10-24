@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { HeaderUser } from "@/components/auth/HeaderUser";
 import { UnitToggle } from "@/components/UnitToggle";
@@ -34,6 +34,8 @@ export function SiteHeader() {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const tLogo = useTranslations("logo");
+  // 英文版沒有更新紀錄頁（changelog/page.tsx 對 en 回 404），選單不放這個連結
+  const navKeys = useLocale() === "en" ? NAV_KEYS.filter((k) => k !== "changelog") : NAV_KEYS;
   const [open, setOpen] = useState(false);
 
   // 路徑切換時關閉行動選單
@@ -86,7 +88,7 @@ export function SiteHeader() {
 
         {/* 桌面 nav */}
         <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-          {NAV_KEYS.map((key) => {
+          {navKeys.map((key) => {
             const href = NAV_HREFS[key];
             return (
               <Link
@@ -129,7 +131,7 @@ export function SiteHeader() {
       {open && (
         <nav className="md:hidden border-t border-amber-900/10 bg-white shadow-lg">
           <ul className="max-w-7xl mx-auto px-4 py-2 flex flex-col">
-            {NAV_KEYS.map((key) => {
+            {navKeys.map((key) => {
               const href = NAV_HREFS[key];
               return (
                 <li key={key}>
