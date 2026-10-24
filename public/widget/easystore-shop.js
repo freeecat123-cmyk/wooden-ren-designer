@@ -19,6 +19,28 @@
 (function () {
   if (window.__wrShopWidgetLoaded) return;
   window.__wrShopWidgetLoaded = true;
+  window.__wrShopWidgetVersion = "2026-10-24-seo"; // 換版辨識用（curl 線上檔 grep 這串）
+
+  // 2026-10-24 佈景主題每頁都宣告 <html lang="en">，內容是繁中 ⇒ 先在 JS 改成 zh-Hant-TW。
+  // 這是治標：Google 會跑 JS 看得到，不跑 JS 的爬蟲還是看到 en；治本是後台語言設定／主題 layout 檔。
+  // 只有 lang 是空的或 en 開頭才改（哪天開英文版 /en/ 路徑就不動）。
+  (function fixLang() {
+    try {
+      var de = document.documentElement;
+      var cur = (de.getAttribute("lang") || "").toLowerCase();
+      if (/^\/en(\/|$)/.test(location.pathname)) return;
+      if (!cur || cur.indexOf("en") === 0) de.setAttribute("lang", "zh-Hant-TW");
+    } catch (e) {}
+  })();
+
+  // 2026-10-24 課程商品頁（木匠學院）專用：只認這一個商品網址
+  var COURSE_HANDLE = "木匠學院-系統化的線上木工課程";
+  function isCoursePage() {
+    var p = location.pathname;
+    try { p = decodeURIComponent(p); } catch (e) {}
+    var m = /\/products\/([^\/]+)\/?$/.exec(p);
+    return !!m && m[1] === COURSE_HANDLE;
+  }
 
   // 2026-10-15 頂部公告列是佈景主題設定（沒有 API），活動改了先在這裡換字：
   // 岩崎握把活動＝官網買 1 支就送原廠木握把、滿 4 支升級紅木握把。後台改掉舊字後這段找不到就不做事。
@@ -98,7 +120,11 @@
       // 手機整頁左右滑：佈景主題把頁面撐到 620px 寬（手機 390px），主題自己的
       // html{overflow-x:hidden} 擋不住 iPhone 的觸控捲動。clip 不會變成捲動容器，
       // 吸頂/吸底元件照常運作。（2026-10-01 WebKit 實測：可滑出 230px → 0）
-      "html,body{overflow-x:clip}"
+      "html,body{overflow-x:clip}",
+      // 2026-10-24 課程商品頁：藏全站公告列（岩崎促銷／免運，課程用不到）；
+      // 評價 0 則時藏「總分 0 - 0」與「成為首位評論者」（body class 由 courseReviews() 判斷後才加）
+      "body.wr-course slider-announcement-bar-app,body.wr-course #wr-annc{display:none!important}",
+      "body.wr-course-norev .es-avg-rates,body.wr-course-norev #sr-input-wrapper{display:none!important}"
     ].join("");
     document.head.appendChild(st);
   }
@@ -276,7 +302,166 @@
     sel.setAttribute("data-wr-px", "1");
   }
 
+  // ---- 2026-10-24 課程商品頁：藏公告列＋0 則評價時藏評價區 ----
+  // 評價數由評價 App 用 JS 晚點填進 #starReviewCount ⇒ 每次輪詢重判，有評價就把評價區放回來。
+  function courseFixes() {
+    if (!isCoursePage() || !document.body) return;
+    document.body.classList.add("wr-course");
+    var ids = ["starReviewCount", "starReviewCountReviewSectionHeader"];
+    var zero = true, seen = false;
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (!el) continue;
+      seen = true;
+      var n = parseInt((el.textContent || "").replace(/[^\d]/g, ""), 10);
+      if (!(n === 0)) zero = false; // 讀不到數字也當「不是 0」，寧可不藏
+    }
+    var nz = document.getElementById("nonZeroComment");
+    if (nz && nz.style.display !== "none") zero = false; // App 已顯示評價列表
+    document.body.classList.toggle("wr-course-norev", seen && zero);
+  }
+
+  // ---- 2026-10-24 商品頁 JSON-LD：補 brand / mpn / 多規格 AggregateOffer ----
+  // 主題只有 microdata Product（名稱、圖、最低價一個 Offer）。這裡補一個 JSON-LD Product：
+  // @id＝商品網址#product、url／name 跟 microdata 完全相同，並把 microdata 的 itemid 設成同一個 @id
+  // （同一個商品，不是第二個）。商品描述裡如果已經自帶 JSON-LD Product（鑿刀套裝頁），就只補它缺的欄位、不另外再加。
+  // 資料來源：頁面 inline script 裡主題給 EasyStore.OptionSelectors 的商品 JSON（不是 window 變數；/products/x.json 也只回 HTML）。
+  // variants[].price 以「分」計，price_min／price_max 是元；兩者對得上、且等於 microdata 價格才用。
+  var BRANDS = [ // 商品名開頭（去掉【木頭仁】、日本 等前綴）→ 品牌；沒列到的不寫 brand
+    [/^Shapton\b/i, "Shapton"],
+    [/^岩崎/, "岩崎 Iwasaki"],
+    [/^Temple Tool\b/i, "Temple Tool Co."],
+    [/^(Z-Saw|Z牌|岡田)/i, "Z-Saw"],
+    [/^SHINWA/i, "SHINWA"],
+    [/^別所二郎/, "別所二郎"],
+    [/^KING\b/i, "KING"],
+    [/^PuriCurrent\b/i, "PuriCurrent"],
+    [/^CO-MATIC\b/i, "CO-MATIC"],
+    [/^TENZ/i, "TENZ"]
+  ];
+  function brandFromTitle(t) {
+    var s = String(t || "").replace(/^(\s*([\[【［]\s*木頭仁\s*[\]】］]|🔨|【|日本)\s*)+/, "");
+    for (var i = 0; i < BRANDS.length; i++) if (BRANDS[i][0].test(s)) return BRANDS[i][1];
+    return "";
+  }
+  function mpnFromTitle(t, brand) {
+    var re = /(?:^|[^A-Za-z0-9-])([A-Z]{1,4}-(?=[A-Z0-9]*\d)[A-Z0-9]{2,12})(?![A-Za-z0-9-])/g, m, found = {};
+    while ((m = re.exec(t))) found[m[1]] = 1;
+    if (brand === "Z-Saw") { var z = /No\.\s?(\d{5})\b/.exec(t); if (z) found[z[1]] = 1; }
+    var keys = Object.keys(found);
+    return keys.length === 1 ? keys[0] : ""; // 0 個或多個不同型號 ⇒ 不寫
+  }
+  function readJsonObjectAt(src, i) { // 從 src[i]==='{' 抓出完整 JSON 物件（略過字串內的括號）
+    var depth = 0, inStr = false, esc = false;
+    for (var j = i; j < src.length; j++) {
+      var c = src[j];
+      if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) return JSON.parse(src.slice(i, j + 1));
+    }
+    return null;
+  }
+  function pageProductJson(handle) {
+    var ss = document.scripts;
+    for (var i = 0; i < ss.length; i++) {
+      if (ss[i].src) continue;
+      var tx = ss[i].textContent || "";
+      var k = tx.indexOf("OptionSelectors('productSelect'");
+      if (k < 0) continue;
+      var p = tx.indexOf("product:", k);
+      var b = p < 0 ? -1 : tx.indexOf("{", p);
+      if (b < 0) continue;
+      try {
+        var o = readJsonObjectAt(tx, b);
+        if (o && o.handle === handle && o.variants && o.variants.length) return o;
+      } catch (e) {}
+    }
+    return null;
+  }
+  function addProductJsonLd() {
+    var m = /^\/products\/([^\/?#]+)\/?$/.exec(location.pathname);
+    if (!m || document.getElementById("wr-product-ld")) return;
+    var md = document.querySelector('[itemscope][itemtype$="schema.org/Product"]');
+    if (!md) return;
+    var mdUrlEl = md.querySelector('meta[itemprop="url"]');
+    var mdNameEl = md.querySelector('[itemprop="name"]');
+    var mdPriceEl = md.querySelector('[itemprop="price"]');
+    var mdCurEl = md.querySelector('[itemprop="priceCurrency"]');
+    var mdAvailEl = md.querySelector('[itemprop="availability"]');
+    var url = mdUrlEl && mdUrlEl.getAttribute("content");
+    var name = mdNameEl && (mdNameEl.getAttribute("content") || mdNameEl.textContent || "").trim();
+    if (!url || !name) return;
+    var handle = m[1];
+    try { handle = decodeURIComponent(handle); } catch (e) {}
+    var prod = pageProductJson(handle);
+    if (!prod) return; // 主題的 OptionSelectors 還沒輸出 ⇒ 下一輪再試
+
+    var brand = (prod.vendor && String(prod.vendor).trim()) ||
+      (prod.brands && prod.brands[0] && (prod.brands[0].name || prod.brands[0])) || brandFromTitle(prod.name || name);
+    if (typeof brand !== "string") brand = "";
+    var mpn = mpnFromTitle(prod.name || name, brand);
+    var currency = (mdCurEl && mdCurEl.getAttribute("content")) || "TWD";
+    var mdPrice = mdPriceEl ? parseFloat(mdPriceEl.getAttribute("content")) : NaN;
+
+    var agg = null;
+    var vs = prod.variants.filter(function (v) { return v && v.price > 0; });
+    if (vs.length > 1) {
+      var lo = Infinity, hi = -Infinity, anyAvail = false;
+      vs.forEach(function (v) { lo = Math.min(lo, v.price / 100); hi = Math.max(hi, v.price / 100); if (v.available) anyAvail = true; });
+      var ok = Math.abs(lo - Number(prod.price_min)) < 0.01 && Math.abs(hi - Number(prod.price_max)) < 0.01 &&
+        (!isFinite(mdPrice) || Math.abs(lo - mdPrice) < 0.01);
+      if (ok && hi > lo) {
+        agg = { "@type": "AggregateOffer", priceCurrency: currency, lowPrice: lo, highPrice: hi, offerCount: vs.length,
+          availability: anyAvail ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", url: url };
+      }
+    }
+    if (!brand && !mpn && !agg) return; // 沒東西可補就不加
+    var id = url.split("#")[0] + "#product";
+
+    // 商品描述已自帶 JSON-LD Product（同網址）⇒ 只補缺的欄位
+    var lds = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < lds.length; i++) {
+      var data;
+      try { data = JSON.parse(lds[i].textContent); } catch (e) { continue; }
+      var arr = Array.isArray(data) ? data : data && data["@graph"] ? data["@graph"] : [data];
+      for (var j = 0; j < arr.length; j++) {
+        var n = arr[j];
+        if (!n || n["@type"] !== "Product") continue;
+        var nu = String(n["@id"] || n.url || "").split("#")[0];
+        if (nu !== url.split("#")[0]) continue;
+        if (brand && !n.brand) n.brand = { "@type": "Brand", name: brand };
+        if (mpn && !n.mpn) n.mpn = mpn;
+        if (agg && !n.offers) n.offers = agg;
+        lds[i].textContent = JSON.stringify(data);
+        lds[i].id = "wr-product-ld";
+        if (n["@id"]) md.setAttribute("itemid", n["@id"]);
+        return;
+      }
+    }
+
+    var node = { "@context": "https://schema.org", "@type": "Product", "@id": id, url: url, name: name };
+    var img = document.querySelector('meta[property="og:image"]');
+    if (img && img.getAttribute("content")) node.image = img.getAttribute("content");
+    if (brand) node.brand = { "@type": "Brand", name: brand };
+    if (mpn) node.mpn = mpn;
+    if (agg) node.offers = agg;
+    else if (isFinite(mdPrice)) {
+      node.offers = { "@type": "Offer", priceCurrency: currency, price: mdPrice, url: url };
+      var av = mdAvailEl && (mdAvailEl.getAttribute("href") || mdAvailEl.getAttribute("content"));
+      if (av) node.offers.availability = av.indexOf("schema.org") >= 0 ? av.replace(/^http:/, "https:") : "https://schema.org/" + av;
+    }
+    var s = document.createElement("script");
+    s.type = "application/ld+json";
+    s.id = "wr-product-ld";
+    s.textContent = JSON.stringify(node);
+    document.head.appendChild(s);
+    md.setAttribute("itemid", id);
+  }
+
   function runProductFeatures() {
+    try { addProductJsonLd(); } catch (e) {}
+    try { courseFixes(); } catch (e) {}
     fixVariantPrices();
     addShipInfo();
     addTrustBadges();
@@ -297,6 +482,11 @@
       if (++tries > 20 || done) clearInterval(iv);
     }, 500);
     runProductFeatures();
+    // 課程頁評價數是評價 App 晚點才填的 ⇒ 另外每秒重判 20 秒（上面的輪詢可能一秒內就收工）
+    if (isCoursePage()) {
+      var ct = 0;
+      var civ = setInterval(function () { try { courseFixes(); } catch (e) {} if (++ct > 20) clearInterval(civ); }, 1000);
+    }
   }
 
   if (document.readyState === "loading") {
