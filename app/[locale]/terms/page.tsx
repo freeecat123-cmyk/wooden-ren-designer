@@ -1,4 +1,4 @@
-import { brandedAlternates } from "@/lib/brand";
+import { brandedAlternates, getBrand, supportEmailFor } from "@/lib/brand";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
@@ -26,6 +26,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function TermsPage({ params }: PageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "terms" });
+  // 客服信箱：中性品牌（Furniture Blueprints）用中性信箱
+  const email = supportEmailFor(await getBrand());
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 leading-relaxed text-zinc-800">
@@ -38,8 +40,8 @@ export default async function TermsPage({ params }: PageProps) {
           {t("sec1Pre")}
           <strong>{t("sec1Strong")}</strong>
           {t("sec1Suffix")}
-          <a className="underline" href="mailto:wengbinren@gmail.com">
-            wengbinren@gmail.com
+          <a className="underline" href={`mailto:${email}`}>
+            {email}
           </a>
           {t("sec1Period")}
         </p>
@@ -67,8 +69,8 @@ export default async function TermsPage({ params }: PageProps) {
           <li>{t("sec4Li2")}</li>
           <li>
             {t("sec4Li3Pre")}
-            <a className="underline" href="mailto:wengbinren@gmail.com">
-              wengbinren@gmail.com
+            <a className="underline" href={`mailto:${email}`}>
+              {email}
             </a>
             {t("sec4Li3Suffix")}
           </li>
@@ -126,8 +128,8 @@ export default async function TermsPage({ params }: PageProps) {
 
       <p className="mt-10 text-sm text-zinc-500">
         {t("footerPre")}
-        <a className="underline" href="mailto:wengbinren@gmail.com">
-          wengbinren@gmail.com
+        <a className="underline" href={`mailto:${email}`}>
+          {email}
         </a>
         {t("footerSuffix")}
       </p>

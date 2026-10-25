@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { sanitizeNext } from "@/lib/safe-next";
 import { sendEmail, FROM_EN } from "@/lib/email/send";
 import { neutralFrom, neutralizeEmail } from "@/lib/email/brand";
 import { brandFromHeaders, neutralOrigin } from "@/lib/brand-hosts";
 import { welcomeEmail } from "@/lib/email/templates/welcome";
+import { isOtpLinkType, type OtpLinkType } from "@/lib/auth/neutral-link";
+import { neutralSmtpConfigured, sendNeutralEmail } from "@/lib/email/neutral-smtp";
 
 /**
  * Google OAuth 流程：
@@ -17,16 +19,25 @@ import { welcomeEmail } from "@/lib/email/templates/welcome";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const otpType = searchParams.get("type");
   const next = sanitizeNext(searchParams.get("next"));
   // 從 next 推 locale prefix → /en 訪客的錯誤頁也保持 EN
   const localePrefix = next.startsWith("/en/") || next === "/en" ? "/en" : "";
 
-  if (!code) {
+  // 兩種進來的方式：
+  //  - ?code=...：Google OAuth / 主站 signInWithOtp（PKCE）→ exchangeCodeForSession
+  //  - ?token_hash=...&type=...：中性網域自己寄的登入信（app/api/auth/neutral-link，
+  //    用 admin.generateLink 的 hashed_token 組連結）→ verifyOtp
+  const useOtp = !code && !!tokenHash && isOtpLinkType(otpType);
+  if (!code && !useOtp) {
     return NextResponse.redirect(`${origin}${localePrefix}/auth/error?reason=missing`);
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } = useOtp
+    ? await supabase.auth.verifyOtp({ token_hash: tokenHash!, type: otpType as OtpLinkType })
+    : await supabase.auth.exchangeCodeForSession(code!);
   if (!error) {
     // 偵測是否新註冊：users.welcome_email_sent_at IS NULL → 寄歡迎信
       // （非 await 給 user redirect，避免 email 延遲卡住跳轉）
@@ -48,13 +59,14 @@ export async function GET(request: Request) {
             const payload = neutral
               ? neutralizeEmail(rawPayload, neutralOrigin(request.headers.get("host")))
               : rawPayload;
-            void sendEmail({
-              to: u.email,
-              ...(neutral ? { from: neutralFrom(FROM_EN) } : {}),
-              subject: payload.subject,
-              text: payload.text,
-              html: payload.html,
-            }).then(async (res) => {
+            // 中性網域有設 Gmail SMTP 就走它（寄件人 Furniture Blueprints <furnitureblueprints@gmail.com>）；
+            // 沒設才退回 Resend（寄件人網域仍是 woodenren，見 lib/email/brand.ts 說明）
+            const mail = { to: u.email, subject: payload.subject, text: payload.text, html: payload.html };
+            const sending =
+              neutral && neutralSmtpConfigured()
+                ? sendNeutralEmail(mail)
+                : sendEmail({ ...mail, ...(neutral ? { from: neutralFrom(FROM_EN) } : {}) });
+            const job = sending.then(async (res) => {
               if (res.ok) {
                 await admin
                   .from("users")
@@ -62,6 +74,10 @@ export async function GET(request: Request) {
                   .eq("id", user.id);
               }
             });
+            // SMTP 連線要好幾秒，serverless 回應送出後可能被凍結 → 中性網域用 after() 讓它寄完；
+            // 主站維持原本 fire-and-forget 行為不變
+            if (neutral) after(job);
+            else void job;
           }
         }
       } catch (e) {

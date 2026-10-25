@@ -1,7 +1,7 @@
 /**
  * 中性品牌（Furniture Blueprints）網域分流的守門測試。
  *
- * 1. en.json 轉換後整包不能有任何 Wooden Ren / woodenren / 木頭仁 / 200K / YouTuber
+ * 1. en.json 轉換後整包不能有任何 Wooden Ren / woodenren / 木頭仁 / 200K / YouTuber / 本人信箱 wengbinren
  * 2. 模板行銷文案（marketing-en.ts）轉換後同樣乾淨
  * 3. Lemon Squeezy 三封英文信 + 英文歡迎信轉換後乾淨、LINE 連結拿掉、連結指中性網域
  * 4. 網域白名單 / 允許路徑 / 本機強制開關只在非 production 生效
@@ -15,6 +15,8 @@ import {
   brandFromHeaders,
   isNeutralHost,
   neutralOrigin,
+  supportEmailFor,
+  NEUTRAL_SUPPORT_EMAIL,
 } from "@/lib/brand-hosts";
 import { TEMPLATE_MARKETING_EN } from "@/lib/templates/marketing-en";
 import { lemonUnlockSuccessEmail } from "@/lib/email/templates/lemon-single-template-success";
@@ -50,8 +52,25 @@ describe("en.json 中性化", () => {
     expect(collectLeaks(en).length).toBeGreaterThan(50);
   });
 
-  it("轉換後整包沒有 /wooden ?ren|woodenren|木頭仁|200K|YouTuber/i", () => {
+  it("轉換後整包沒有 /wooden ?ren|woodenren|木頭仁|200K|YouTuber|wengbinren/i", () => {
     expect(collectLeaks(out)).toEqual([]);
+  });
+
+  it("本人信箱 wengbinren 換成中性客服信箱（轉換前確實有）", () => {
+    expect(JSON.stringify(en)).toMatch(/wengbinren@gmail\.com/);
+    expect(JSON.stringify(out)).not.toMatch(/wengbinren/i);
+    expect(JSON.stringify(out)).toContain(NEUTRAL_SUPPORT_EMAIL);
+    expect(neutralizeText("email wengbinren@gmail.com now", ORIGIN)).toBe(`email ${NEUTRAL_SUPPORT_EMAIL} now`);
+    expect(supportEmailFor("neutral")).toBe("furnitureblueprints@gmail.com");
+    expect(supportEmailFor("woodenren")).toBe("wengbinren@gmail.com");
+  });
+
+  it("中性網域不提 Google 登入（登入頁 / 需登入提示）", () => {
+    const o = out as typeof en;
+    expect(o.login.footnote).not.toMatch(/Google/);
+    expect(o.login.metadata.description).not.toMatch(/Google/);
+    expect(o.mySubscription.loginRequired).not.toMatch(/Google/);
+    expect(o.help.account.q1A).not.toMatch(/Google/);
   });
 
   it("結構不變：字串數量相同、不改原物件", () => {
@@ -144,6 +163,16 @@ describe("網域判斷", () => {
     expect(brandFromHeaders(H({ host: "localhost:3078" }))).toBe("woodenren");
     vi.stubEnv("BRAND_FORCE_NEUTRAL", "1");
     expect(brandFromHeaders(H({ host: "localhost:3078" }))).toBe("neutral");
+  });
+
+  it("Vercel Preview：BRAND_FORCE_NEUTRAL=1 才切中性；Production 部署（VERCEL_ENV=production）不受影響", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    expect(brandFromHeaders(H({ host: "x-git-branch.vercel.app" }))).toBe("woodenren");
+    vi.stubEnv("BRAND_FORCE_NEUTRAL", "1");
+    expect(brandFromHeaders(H({ host: "x-git-branch.vercel.app" }))).toBe("neutral");
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(brandFromHeaders(H({ host: "designer.woodenren.com" }))).toBe("woodenren");
   });
 
   it("允許路徑（/en 前綴剝掉後比對）", () => {

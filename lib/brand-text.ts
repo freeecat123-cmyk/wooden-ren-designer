@@ -7,13 +7,13 @@
  *
  * ⚠️ 只有中性網域才會呼叫；主站（designer.woodenren.com / cnc.woodenren.com）完全不經過這裡。
  * ⚠️ 測試（lib/brand-text.test.ts）會把轉換後的整包 messages 掃一遍，
- *    斷言不含 /wooden ?ren|woodenren|木頭仁|200K|YouTuber/i —— en.json 加新字串時被擋，
+ *    斷言不含 BRAND_LEAK_RE（品牌字＋本人信箱 wengbinren） —— en.json 加新字串時被擋，
  *    就到下面 KEY_OVERRIDES 補一條或調整通用規則。
  */
-import { NEUTRAL_BRAND_NAME } from "./brand-hosts";
+import { NEUTRAL_BRAND_NAME, NEUTRAL_SUPPORT_EMAIL } from "./brand-hosts";
 
 /** 掃描用的露餡字樣（測試與 QA 腳本共用） */
-export const BRAND_LEAK_RE = /wooden ?ren|woodenren|木頭仁|200K|YouTuber/i;
+export const BRAND_LEAK_RE = /wooden ?ren|woodenren|木頭仁|200K|YouTuber|wengbinren/i;
 
 /**
  * 逐 key 覆寫：通用替換會變成怪句子、或整句是在介紹本人的，直接給中性版本。
@@ -99,6 +99,16 @@ export const KEY_OVERRIDES: Record<string, string> = {
     "Please retry or refresh the page. If the issue keeps happening, contact us at ",
   "askMaster.btnTitle": "Copy the current design as a question",
 
+  // 中性網域只提供 email 連結登入（Google OAuth 同意畫面是 Wooden Ren 品牌，先隱藏）
+  "login.metadata.description": "Sign in to Furniture Blueprints with an email sign-in link.",
+  "login.footnote": "First-time use = automatic account. No password needed — sign in with an email link.",
+  "mySubscription.loginRequired": "Sign in to view your subscription status (top-right \"Sign in\").",
+  "projectsClient.loginRequired": "Sign in to manage your projects (top-right \"Sign in\").",
+  "myDesignsPage.loginRequired": "Sign in to view your saved designs (top-right \"Sign in\").",
+  "customersPage.loginRequired": "Sign in to view your customer list (top-right \"Sign in\").",
+  "help.account.q1A":
+    "Enter your email on the sign-in page and tap the link in your inbox within 10 minutes — no password needed. If the link opens inside LINE / FB / IG, tap the top-right \"⋯\" and choose <b>Open in browser</b>.",
+
   // AI 師傅（/chat 在中性網域封鎖；字串仍要乾淨）
   "chat.metaTitle": "AI Woodworking Assistant · 24h Q&A",
   "chat.metaDescription":
@@ -116,6 +126,8 @@ function genericRules(origin: string): Array<[RegExp, string]> {
   const host = origin.replace(/^https?:\/\//, "");
   const B = NEUTRAL_BRAND_NAME;
   return [
+    // 本人信箱 → 中性客服信箱（要在網域規則之前，免得被其他規則切碎）
+    [/wengbinren@gmail\.com/gi, NEUTRAL_SUPPORT_EMAIL],
     [/https?:\/\/designer\.woodenren\.com/gi, origin],
     [/designer\.woodenren\.com/gi, host],
     [/https?:\/\/(www\.)?woodenren\.com\/?/gi, origin],

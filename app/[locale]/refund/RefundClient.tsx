@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useBrand } from "@/components/brand/BrandProvider";
+import { supportEmailFor } from "@/lib/brand-hosts";
 import { Link } from "@/i18n/navigation";
 
 interface RefundRequest {
@@ -28,6 +30,7 @@ function fmtDate(iso: string | null): string {
 
 export function RefundClient() {
   const t = useTranslations("refund.client");
+  const supportEmail = supportEmailFor(useBrand());
   const [requests, setRequests] = useState<RefundRequest[] | null>(null);
   const [notLoggedIn, setNotLoggedIn] = useState(false);
 
@@ -69,9 +72,9 @@ export function RefundClient() {
           <p className="text-sm text-zinc-700 mb-1">{t("emailLabel")}</p>
           <a
             className="text-base font-mono font-semibold text-amber-800 hover:underline"
-            href={`mailto:wengbinren@gmail.com?subject=${encodeURIComponent(t("mailtoSubject"))}`}
+            href={`mailto:${supportEmail}?subject=${encodeURIComponent(t("mailtoSubject"))}`}
           >
-            wengbinren@gmail.com
+            {supportEmail}
           </a>
           <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
             {t("emailHint")}

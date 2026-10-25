@@ -2,6 +2,8 @@
 
 import { Link } from "@/i18n/navigation";
 import { useEffect } from "react";
+import { useBrand } from "@/components/brand/BrandProvider";
+import { supportEmailFor } from "@/lib/brand-hosts";
 import { useTranslations } from "next-intl";
 import { reportClientError } from "@/components/ClientErrorReporter";
 
@@ -13,6 +15,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   const t = useTranslations("error");
+  const brand = useBrand();
 
   useEffect(() => {
     console.error("[app error boundary]", error);
@@ -49,7 +52,7 @@ export default function GlobalError({
           {t("home")}
         </Link>
         <a
-          href={`mailto:wengbinren@gmail.com?subject=${subject}&body=${body}`}
+          href={`mailto:${supportEmailFor(brand)}?subject=${subject}&body=${body}`}
           className="rounded-lg border border-zinc-300 px-5 py-2.5 hover:bg-zinc-50"
         >
           {t("report")}

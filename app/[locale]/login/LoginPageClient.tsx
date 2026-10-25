@@ -8,6 +8,7 @@ import {
   MagicLinkForm,
   WebviewWarning,
 } from "@/components/auth/LoginButton";
+import { useIsNeutralBrand } from "@/components/brand/BrandProvider";
 
 /**
  * /login 頁面內容。沿用 LoginButton 內部 MagicLinkForm + GoogleButton 元件、
@@ -18,6 +19,8 @@ import {
  */
 export function LoginPageClient({ next }: { next: string }) {
   const t = useTranslations("login");
+  // 中性品牌網域：Google OAuth 同意畫面會顯示 Wooden Ren 品牌 → 先只提供 email 連結登入
+  const neutral = useIsNeutralBrand();
   const [webviewApp, setWebviewApp] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,16 +38,20 @@ export function LoginPageClient({ next }: { next: string }) {
 
   return (
     <div>
-      {webviewApp && <WebviewWarning app={webviewApp} />}
+      {webviewApp && !neutral && <WebviewWarning app={webviewApp} />}
       <MagicLinkForm />
-      <div className="my-4 flex items-center gap-2 text-xs text-zinc-400">
-        <div className="h-px flex-1 bg-zinc-200" />
-        <span>{t("divider")}</span>
-        <div className="h-px flex-1 bg-zinc-200" />
-      </div>
-      <GoogleButton
-        disabledReason={webviewApp ? t("googleDisabledTpl", { app: webviewApp }) : null}
-      />
+      {!neutral && (
+        <>
+          <div className="my-4 flex items-center gap-2 text-xs text-zinc-400">
+            <div className="h-px flex-1 bg-zinc-200" />
+            <span>{t("divider")}</span>
+            <div className="h-px flex-1 bg-zinc-200" />
+          </div>
+          <GoogleButton
+            disabledReason={webviewApp ? t("googleDisabledTpl", { app: webviewApp }) : null}
+          />
+        </>
+      )}
     </div>
   );
 }

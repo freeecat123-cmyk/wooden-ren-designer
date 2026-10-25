@@ -2,6 +2,8 @@
 
 import { Link } from "@/i18n/navigation";
 import { useEffect } from "react";
+import { useBrand } from "@/components/brand/BrandProvider";
+import { supportEmailFor } from "@/lib/brand-hosts";
 import { useTranslations, useLocale } from "next-intl";
 
 export default function DesignError({
@@ -12,6 +14,7 @@ export default function DesignError({
   reset: () => void;
 }) {
   const t = useTranslations("designError");
+  const brand = useBrand();
   const en = useLocale() === "en";
 
   useEffect(() => {
@@ -63,7 +66,7 @@ export default function DesignError({
             {t("btnReset")}
           </Link>
           <a
-            href={`mailto:wengbinren@gmail.com?subject=${subject}&body=${body}`}
+            href={`mailto:${supportEmailFor(brand)}?subject=${subject}&body=${body}`}
             className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 hover:bg-zinc-50"
           >
             {t("btnReport")}

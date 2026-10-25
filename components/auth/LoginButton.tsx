@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { detectWebviewApp, isInAppBrowser } from "@/lib/webview";
+import { useIsNeutralBrand } from "@/components/brand/BrandProvider";
 
 type Mode = "idle" | "sending" | "sent" | "error";
 
 export function LoginButton({ className = "" }: { className?: string }) {
   const t = useTranslations("loginButton");
+  // 中性品牌網域：Google OAuth 同意畫面會顯示 Wooden Ren 品牌 → 先不提供 Google 登入
+  const neutral = useIsNeutralBrand();
   const [open, setOpen] = useState(false);
   const [webviewApp, setWebviewApp] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -49,16 +52,20 @@ export function LoginButton({ className = "" }: { className?: string }) {
       {open && (
         <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white ring-1 ring-amber-900/10 shadow-xl overflow-hidden z-50">
           <div className="p-4">
-            {webviewApp && <WebviewWarning app={webviewApp} />}
+            {webviewApp && !neutral && <WebviewWarning app={webviewApp} />}
             <MagicLinkForm />
-            <div className="my-3 flex items-center gap-2 text-xs text-zinc-400">
-              <div className="h-px flex-1 bg-zinc-200" />
-              <span>{t("divider")}</span>
-              <div className="h-px flex-1 bg-zinc-200" />
-            </div>
-            <GoogleButton
-              disabledReason={webviewApp ? t("googleDisabledTpl", { app: webviewApp }) : null}
-            />
+            {!neutral && (
+              <>
+                <div className="my-3 flex items-center gap-2 text-xs text-zinc-400">
+                  <div className="h-px flex-1 bg-zinc-200" />
+                  <span>{t("divider")}</span>
+                  <div className="h-px flex-1 bg-zinc-200" />
+                </div>
+                <GoogleButton
+                  disabledReason={webviewApp ? t("googleDisabledTpl", { app: webviewApp }) : null}
+                />
+              </>
+            )}
           </div>
         </div>
       )}
@@ -107,8 +114,35 @@ function zhAuthError(
   return t("errFallbackTpl", { msg });
 }
 
+/**
+ * 中性品牌網域：改打 /api/auth/neutral-link，由網站自己用 Gmail SMTP 寄英文信
+ * （Supabase 內建寄信是全站共用的中文模板＋木頭仁署名，中文站還在用不能改）。
+ */
+async function sendNeutralLink(
+  email: string,
+  t: ReturnType<typeof useTranslations<"loginButton">>,
+): Promise<string | null> {
+  try {
+    const res = await fetch("/api/auth/neutral-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, next: window.location.pathname + window.location.search }),
+    });
+    if (res.ok) return null;
+    if (res.status === 429) return t("errRate");
+    if (res.status === 400) {
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (j?.error === "invalid_email") return t("errInvalid");
+    }
+    return t("errFallbackTpl", { msg: `HTTP ${res.status}` });
+  } catch {
+    return t("errNetwork");
+  }
+}
+
 export function MagicLinkForm() {
   const t = useTranslations("loginButton");
+  const neutral = useIsNeutralBrand();
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +152,16 @@ export function MagicLinkForm() {
     if (!email.trim()) return;
     setMode("sending");
     setError(null);
+    if (neutral) {
+      const err = await sendNeutralLink(email.trim(), t);
+      if (err) {
+        setMode("error");
+        setError(err);
+      } else {
+        setMode("sent");
+      }
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),

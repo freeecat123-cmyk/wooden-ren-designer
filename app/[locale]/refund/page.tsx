@@ -1,4 +1,4 @@
-import { brandedAlternates } from "@/lib/brand";
+import { brandedAlternates, getBrand, supportEmailFor } from "@/lib/brand";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { RefundClient } from "./RefundClient";
@@ -27,6 +27,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function RefundPage({ params }: PageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "refund" });
+  // 客服信箱：中性品牌（Furniture Blueprints）用中性信箱
+  const email = supportEmailFor(await getBrand());
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 leading-relaxed text-zinc-800">
       <h1 className="text-3xl font-bold tracking-tight">{t("h1")}</h1>
@@ -73,7 +75,7 @@ export default async function RefundPage({ params }: PageProps) {
         <ol className="ml-5 list-decimal space-y-2">
           <li>
             {t("sec4Li1Pre")}
-            <a className="underline" href="mailto:wengbinren@gmail.com">
+            <a className="underline" href={`mailto:${email}`}>
               {t("sec4Li1Email")}
             </a>
             {t("sec4Li1Suffix")}
@@ -97,8 +99,8 @@ export default async function RefundPage({ params }: PageProps) {
           {t("sec5Addr")}
           <br />
           {t("sec5EmailLabel")}
-          <a className="underline" href="mailto:wengbinren@gmail.com">
-            wengbinren@gmail.com
+          <a className="underline" href={`mailto:${email}`}>
+            {email}
           </a>
         </p>
       </section>

@@ -1,9 +1,19 @@
 "use client";
 
+import { NEUTRAL_SUPPORT_EMAIL, SUPPORT_EMAIL, isNeutralHost } from "@/lib/brand-hosts";
+
 const COPY = {
   en: {
     h: "Something went wrong",
     bodyPre: "Please retry or refresh the page. If the issue keeps happening, contact Wooden Ren at ",
+    bodySuf: ".",
+    retry: "Retry",
+    htmlLang: "en",
+  },
+  // 中性品牌網域（Furniture Blueprints）：不提 Wooden Ren、信箱換中性客服信箱
+  neutral: {
+    h: "Something went wrong",
+    bodyPre: "Please retry or refresh the page. If the issue keeps happening, contact us at ",
     bodySuf: ".",
     retry: "Retry",
     htmlLang: "en",
@@ -17,8 +27,13 @@ const COPY = {
   },
 } as const;
 
-function detectLocale(): "en" | "zh" {
+function isNeutralSite(): boolean {
+  return typeof window !== "undefined" && isNeutralHost(window.location.hostname);
+}
+
+function detectLocale(): "en" | "zh" | "neutral" {
   if (typeof window === "undefined") return "zh";
+  if (isNeutralSite()) return "neutral";
   return window.location.pathname.startsWith("/en") ? "en" : "zh";
 }
 
@@ -30,6 +45,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   const c = COPY[detectLocale()];
+  const email = isNeutralSite() ? NEUTRAL_SUPPORT_EMAIL : SUPPORT_EMAIL;
   return (
     <html lang={c.htmlLang}>
       <body
@@ -47,7 +63,8 @@ export default function GlobalError({
         </h1>
         <p style={{ marginTop: 8, color: "#52525b" }}>
           {c.bodyPre}
-          wengbinren@gmail.com{c.bodySuf}
+          {email}
+          {c.bodySuf}
         </p>
         <pre
           style={{

@@ -13,6 +13,14 @@ export const NEUTRAL_HOSTS = ["furniture-blueprints.vercel.app"] as const;
 
 export const NEUTRAL_BRAND_NAME = "Furniture Blueprints";
 
+/** 客服信箱：主站是本人信箱，中性品牌一律用中性信箱（不能露出 wengbinren） */
+export const SUPPORT_EMAIL = "wengbinren@gmail.com";
+export const NEUTRAL_SUPPORT_EMAIL = "furnitureblueprints@gmail.com";
+
+export function supportEmailFor(brand: Brand): string {
+  return brand === "neutral" ? NEUTRAL_SUPPORT_EMAIL : SUPPORT_EMAIL;
+}
+
 /** middleware 傳給 server component 的 request header（只是輔助；權威判斷仍是 Host） */
 export const BRAND_HEADER = "x-wr-brand";
 
@@ -29,12 +37,17 @@ export function isNeutralHost(host: string | null | undefined): boolean {
 }
 
 /**
- * 本機開發用的強制中性模式：只有 NODE_ENV !== "production" 且 BRAND_FORCE_NEUTRAL=1 才生效。
+ * 強制中性模式：BRAND_FORCE_NEUTRAL=1 且（NODE_ENV !== "production" 或 VERCEL_ENV === "preview"）才生效。
  * ⛔ 正式環境不能被 query / cookie / 任何 client 可控的東西切到中性模式
  *   （切錯一次，CDN 快取就可能把中性頁面餵給主站訪客，或反過來）。
  */
 export function devForceNeutral(): boolean {
-  return process.env.NODE_ENV !== "production" && process.env.BRAND_FORCE_NEUTRAL === "1";
+  if (process.env.BRAND_FORCE_NEUTRAL !== "1") return false;
+  // Vercel Preview（NODE_ENV 也是 production）：preview 網址不在白名單，
+  // 要在 preview 上實測中性品牌（例如登入信）只能靠這個開關。
+  // VERCEL_ENV 由平台注入、client 改不了；Production 部署的 VERCEL_ENV 是 "production"，不受影響。
+  if (process.env.VERCEL_ENV === "preview") return true;
+  return process.env.NODE_ENV !== "production";
 }
 
 /**
@@ -46,8 +59,8 @@ export function brandFromHeaders(h: { get(name: string): string | null }): Brand
   if (isNeutralHost(h.get("host"))) return "neutral";
   if (process.env.NODE_ENV !== "production") {
     if (isNeutralHost(h.get("x-forwarded-host"))) return "neutral";
-    if (devForceNeutral()) return "neutral";
   }
+  if (devForceNeutral()) return "neutral";
   return "woodenren";
 }
 

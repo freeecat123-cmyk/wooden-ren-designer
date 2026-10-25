@@ -9,11 +9,22 @@
  */
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { NEUTRAL_SUPPORT_EMAIL, brandFromHeaders } from "@/lib/brand-hosts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(req: Request) {
+  // 中性品牌網域：英文、不提本人、信箱換中性客服信箱
+  if (brandFromHeaders(req.headers) === "neutral") {
+    return NextResponse.json(
+      {
+        error: "online_refund_disabled",
+        message: `Online refund requests are disabled. Please email ${NEUTRAL_SUPPORT_EMAIL} and we'll handle it manually.`,
+      },
+      { status: 410 },
+    );
+  }
   return NextResponse.json(
     {
       error: "online_refund_disabled",

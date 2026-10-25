@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useBrand } from "@/components/brand/BrandProvider";
+import { supportEmailFor } from "@/lib/brand-hosts";
 import { usePathname } from "next/navigation";
 
 export function BugReportFab() {
   const t = useTranslations("bugReport");
+  // 收件信箱：中性品牌（Furniture Blueprints）用中性客服信箱
+  const supportEmail = supportEmailFor(useBrand());
   const inDesigner = /\/(?:design)\/[^/]+/.test(usePathname() ?? "");
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -34,7 +38,7 @@ export function BugReportFab() {
 
   function openGmailCompose() {
     const { subject, body } = buildReport();
-    const to = "wengbinren@gmail.com";
+    const to = supportEmail;
 
     const webUrl = new URL("https://mail.google.com/mail/");
     webUrl.searchParams.set("view", "cm");
@@ -75,7 +79,7 @@ export function BugReportFab() {
 
   async function copyToClipboard() {
     const { subject, body } = buildReport();
-    const text = `To: wengbinren@gmail.com\nSubject: ${subject}\n\n${body}`;
+    const text = `To: ${supportEmail}\nSubject: ${subject}\n\n${body}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -95,7 +99,7 @@ export function BugReportFab() {
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-zinc-600">
             {t("panelBodyPre")}
-            <span className="font-mono text-zinc-800">wengbinren@gmail.com</span>
+            <span className="font-mono text-zinc-800">{supportEmail}</span>
           </p>
           <button
             onClick={openGmailCompose}
