@@ -1,14 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
+
+/**
+ * 「回報問題」浮動鈕跟放大／全螢幕浮層同為 z-50,而它掛在 layout 的 children 之後,
+ * DOM 順序讓它畫在浮層上面 → 放大三視圖時會壓住圖面右下角(實測 desktop 1440x900
+ * 蓋掉 110x48px 的圖)。這支負責從「畫面中心最上層的元素」往上找有沒有吃點擊的全螢幕浮層。
+ *
+ * ⚠️ 三個排除條件都是實測踩過的,拿掉任何一條都會讓回報鈕在不該消失的時候消失:
+ *   - display:none / visibility:hidden —— 關著的 <dialog> 一直留在 DOM 裡
+ *   - pointer-events:none —— TrialWatermark 是常駐的 fixed inset-0,不吃點擊
+ *   - 沒鋪滿畫面的 fixed(sticky header、側邊欄)不算浮層
+ */
+export function fullscreenLayerAbove(
+  start: Element | null,
+  win: {
+    innerWidth: number;
+    innerHeight: number;
+    getComputedStyle: (el: Element) => Pick<
+      CSSStyleDeclaration,
+      "position" | "display" | "visibility" | "pointerEvents"
+    >;
+  },
+): boolean {
+  for (let node = start; node; node = node.parentElement) {
+    const cs = win.getComputedStyle(node);
+    if (cs.position !== "fixed") continue;
+    if (cs.display === "none" || cs.visibility === "hidden") continue;
+    if (cs.pointerEvents === "none") continue;
+    const r = node.getBoundingClientRect();
+    if (r.width >= win.innerWidth * 0.9 && r.height >= win.innerHeight * 0.9) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function BugReportFab() {
   const t = useTranslations("bugReport");
   const inDesigner = /\/(?:design)\/[^/]+/.test(usePathname() ?? "");
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [behindOverlay, setBehindOverlay] = useState(false);
+
+  // 浮層一開就讓位(等同 MobileShell 用 body.wr-sheet-open 讓位的作法,只是這裡自己偵測,
+  // 不用去改 ZoomableThreeViews / PartDrawingsPanel 等 6 支浮層)。
+  useEffect(() => {
+    let raf = 0;
+    const scan = () => {
+      raf = 0;
+      const mid = document.elementFromPoint(
+        Math.round(window.innerWidth / 2),
+        Math.round(window.innerHeight / 2),
+      );
+      setBehindOverlay(fullscreenLayerAbove(mid, window));
+    };
+    const queue = () => {
+      if (!raf) raf = window.requestAnimationFrame(scan);
+    };
+    queue();
+    const mo = new MutationObserver(queue);
+    mo.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "open", "hidden"],
+    });
+    window.addEventListener("resize", queue);
+    window.addEventListener("scroll", queue, { passive: true });
+    return () => {
+      mo.disconnect();
+      window.removeEventListener("resize", queue);
+      window.removeEventListener("scroll", queue);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const sha =
     (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
@@ -89,7 +157,7 @@ export function BugReportFab() {
   return (
     <>
       {open && (
-        <div className="no-print fixed bottom-40 lg:bottom-20 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl">
+        <div className={`no-print ${behindOverlay ? "pointer-events-none opacity-0" : ""} fixed bottom-40 lg:bottom-20 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl transition-opacity`}>
           <div className="text-sm font-semibold text-zinc-900">
             {t("panelH")}
           </div>
@@ -121,7 +189,7 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title={t("fabTitle")}
         aria-label={t("fabTitle")}
-        className={`no-print ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 items-center gap-1.5 rounded-full bg-white pl-1.5 pr-3.5 shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
+        className={`no-print ${behindOverlay ? "pointer-events-none opacity-0" : ""} ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 items-center gap-1.5 rounded-full bg-white pl-1.5 pr-3.5 shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
       >
         <img
           src="/logo-mark.png"
