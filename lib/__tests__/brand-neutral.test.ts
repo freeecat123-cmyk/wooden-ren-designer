@@ -73,9 +73,12 @@ describe("en.json 中性化", () => {
     expect(missing).toEqual([]);
   });
 
-  it("模板行銷文案（marketing-en.ts）中性化後乾淨", () => {
+  it("模板行銷文案（marketing-en.ts）中性化後乾淨，且沒有「幾秒出圖」的假宣稱", () => {
     expect(collectLeaks(TEMPLATE_MARKETING_EN).length).toBeGreaterThan(0);
     expect(collectLeaks(neutralizeMessages(TEMPLATE_MARKETING_EN, ORIGIN))).toEqual([]);
+    // 中文站一律寫「3 分鐘」。英文版 23 處誤譯成 three seconds / Three-second，
+    // 等於對英文客人自誇快 60 倍（2026-10-27 修）。「3-view」不在規則內，別誤抓。
+    expect(JSON.stringify(TEMPLATE_MARKETING_EN).match(/(?:three|3)[ -]seconds?/gi) ?? []).toEqual([]);
   });
 
   it("neutralizeText 不會疊出重複品牌名", () => {
