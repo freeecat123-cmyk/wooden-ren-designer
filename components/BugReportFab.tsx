@@ -121,7 +121,7 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title={t("fabTitle")}
         aria-label={t("fabTitle")}
-        className={`no-print ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 items-center gap-1.5 rounded-full bg-white pl-1.5 pr-3.5 shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
+        className={`wr-fab no-print ${inDesigner ? "relative ml-auto mr-4 mt-4 mb-24 md:fixed md:m-0 md:bottom-24 lg:bottom-4 md:right-4" : "fixed bottom-24 lg:bottom-4 right-4"} z-50 flex h-12 items-center gap-1.5 rounded-full bg-white pl-1.5 pr-3.5 shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 [body.wr-sheet-open_&]:pointer-events-none [body.wr-sheet-open_&]:opacity-0 transition-opacity`}
       >
         <img
           src="/logo-mark.png"

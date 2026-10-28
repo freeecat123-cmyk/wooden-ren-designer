@@ -203,3 +203,24 @@ html[data-fullscreen-tool] > body {
   overflow: hidden;
   overscroll-behavior: none;
 }
+
+/* 🧷 全螢幕浮層打開時，右下角「回報問題」浮動鈕自動讓位。
+   ⛔ 實測正式站 /design/stool（chromium 1440×900，2026-10-28）：點「點擊放大」開三視圖
+      放大層之後，FAB 的 rect 是 x=1314 y=836 110×48、z-index 50、opacity 1，
+      `document.elementFromPoint()` 回傳的最上層**就是 FAB**，它底下是
+      `svg.bg-white w-full h-full` —— 也就是那張放大的三視圖本身。
+      客人放大圖面要看細節，右下角卻被一顆白色膠囊蓋住，點下去還跳回報信。
+   原因：FAB 掛在 app/[locale]/layout.tsx 的 children 之後、同為 z-50，
+      z 打平時由 DOM 順序決定 → FAB 永遠畫在這些浮層上面。
+   既有做法只有 MobileShell 的進階面板會掛 `wr-sheet-open`（2026-08-24 那次修法），
+      其餘 z-50 浮層一個都沒有讓位機制。
+   這裡用 :has() 一條規則涵蓋全部，不必每支浮層各寫一份（同一個判斷只能有一套）。
+   z-[60] / z-[80] / z-[100] 那些浮層本來就贏過 FAB，不在這條規則內、行為不變。
+   不支援 :has() 的瀏覽器＝維持今天的行為，不會比現在差。
+   ⛔ 本來還寫了一條 `body:has(dialog[open]) .wr-fab`，**實測必須拿掉**：
+      /design/stool 在沒開任何浮層時頁面上就有 open 的 <dialog>，那條會讓回報鈕
+      整頁都按不動（反向測試量到 pointer-events:none、topIsFab:false）。 */
+body:has(.fixed.inset-0.z-50) .wr-fab {
+  opacity: 0;
+  pointer-events: none;
+}
