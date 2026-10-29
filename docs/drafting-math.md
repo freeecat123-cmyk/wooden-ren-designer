@@ -33,6 +33,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | Half-lap / blind rebate cut coverage | `"rectangular cut coverage\|coplanar"` | §A10.7 |
 | Revised construction / frame rear rebate | `"constructionVersion\|A10.15"` | §A10.15 |
 | 側視座標還原 / 外框深度錯誤 | `"world-bounds\|negative world Z"` | §A10.7 |
+| 放大的圖面被浮動鈕蓋住 / 浮層 z-index | `"wr-fab\|overlay-fab\|全螢幕浮層"` | §UI.1 |
 | 兩向弧肩 / 側視變方框 | `"twoWay\|兩向弧肩\|curvedTaperInsetAtY"` | §A9.9 |
 | 橫撐處的第二道弧肩 / 只有一邊有弧 | `"lowerCove\|接撐段2\|coveInset.*flip"` | §A9.9b |
 | 弧肩要圓弧還是 S 形 / 肩根太利 | `"sCurve\|smoothstep\|弧肩曲線"` | §A9.9c |
@@ -6598,3 +6599,44 @@ local y→世界 x（y=18 那面在 origin.x+9）。所以背緣放 local +x（`
   ＋材料厚度白名單＋**榫頭配對**＋**非通孔深度**＋**腳座斜切逐層量**＋**手掛槽**＋**貫穿榫**＋**滑軌槽不切穿鳩尾**＋**螺釘鎖入方向**＋**工序工時**＋**三視圖真的標得出評審表要量的東西**。
   **37 個變異全紅**（其中「天板木釘列 62→70」「上橫檔木釘 14｜32｜14 改掉」兩條是第一輪沒抓到、
   補上「木釘實際位置」那條測試才補起來的 —— **只驗鏈的加總抓不到擺錯位**）。
+
+---
+
+## §UI.1 全螢幕浮層 vs「回報問題」浮動鈕（2026-10-29 訂）
+
+**規則：每一個 `fixed inset-0` 全螢幕浮層，都必須至少滿足一項，否則客人放大圖面時
+右下角會被回報鈕吃掉點擊。**
+
+| # | 條件 | 說明 |
+|---|---|---|
+| a | z 值 > `.wr-fab` 的 z（目前 50） | 本來就贏 |
+| b | class 命中 `app/globals.css` 的 `body:has(.fixed.inset-0.z-50) .wr-fab` | 浮層打開時回報鈕自己讓位 |
+| c | `pointer-events-none` | 不吃點擊，蓋不到東西 |
+| d | 原生 `<dialog>` | 瀏覽器 top layer，永遠在 z-index 之上 |
+| e | 只在 `<md` 出現的浮層 | 設計器的回報鈕在 `<md` 是 `relative` 排在流裡（2026-10-29 iPhone 13 實測 `position:relative`、`y=1352` 在折線下），浮不起來 |
+
+### §UI.1.1 為什麼需要這條
+
+2026-10-28 正式站實測：`/design/stool` → 三視圖 → 點擊放大，
+`document.elementFromPoint()` 在 FAB 幾何中心拿到的最上層**就是 FAB**，
+把 FAB 設 `pointer-events:none` 後底下才是那張放大的三視圖 svg。
+⇒ 客人放大看細節，點右下角跳出的是回報表單。修法是 globals.css 那條 `:has()`。
+
+### §UI.1.2 夾制與稽核
+
+- 判斷只有一套：**寫在 `globals.css`**，不要每支浮層各寫一份隱藏邏輯
+  （6 支受影響的浮層裡有 3 支命中 ship gate 的 PROTECTED，分開改會半自動半 HOLD）。
+- 守門：`scripts/audit-overlay-fab.ts`（已接進 `npm run audit` 與 `npm run audit:overlay-fab`）。
+  它**不寫死 50 也不寫死選字串** —— FAB 的 z 從 `BugReportFab.tsx` 讀、讓位規則從
+  `globals.css` 解析，所以改了那兩邊稽核會跟著變，不會退化成過期註解。
+- `z` class 由 props 傳進來的浮層（`ZoomableJoineryDetail` 的 `zModal`）會回去掃
+  **元件預設值 + 每一個呼叫點的字面值**逐個檢查。
+- 條件 (e) 的放行**帶前提檢查**：`MobileShell` 根節點仍是 `md:hidden`、
+  且 `BugReportFab` 在設計器 `<md` 仍是 `relative`＋`md:fixed`。前提一破就報紅。
+
+### §UI.1.3 兩個踩過的坑（寫在這裡免得重踩）
+
+1. ⛔ **不要加 `body:has(dialog[open]) .wr-fab`。** 實測 `/design/stool`
+   在沒開任何浮層時頁面上就有 open 的 `<dialog>` ⇒ 回報鈕整頁按不動。
+2. 比對 class 鉤子要比**完整 token**，`includes("wr-fab")` 連 `wr-fabx` 都會過
+   ⇒ 鉤子被改名時稽核抓不到（2026-10-29 變異測試 M3 當場抓到這個假綠）。
