@@ -11,7 +11,8 @@
  * 跑：npm run audit:2d-joints（全掃約 8~10 分鐘，所以沒接進 `npm run audit` 預設鏈；改三視圖／模板長度後手動跑）
  * 2026-09-02 首跑抓到 7 款 314 條：吧檯椅兩向弧肩腳踏短 13mm、俯視圖只畫腳頂面、衣帽架掛鉤浮在柱頂、
  * 餐椅椅背條榫頭插在座板裡、床倒錐腳楔形縫、錐腳橫撐 0.55/0.6 不一致。依賴 svg-views 每個零件的 <g data-part-id>。
- * 剩下的 7 條＝衣帽架底爪 vs 車旋柱的收腰（1.7mm，共用 LATHE_SEG 不能動，見 §A12）。
+ * 剩下的 7 條＝衣帽架底爪 vs 車旋柱的收腰（1.7mm，共用 LATHE_SEG 不能動，見 §A12），
+ * 2026-10-31 收進下面的 KNOWN 已知例外（帶 maxMm 上限），讓這支的 exit code 重新有意義。
  */
 import React from "react";
 import { renderToString } from "react-dom/server";
@@ -21,6 +22,27 @@ import { OrthoView } from "../lib/render/svg-views";
 import { buildWorldMortiseIndex, tenonWorld, matchMortiseForTenon } from "../lib/assembly/joint-world";
 
 const TOL = 0.5;
+
+type Gap = { category: string; tag: string; view: string; a: string; b: string; dist: number };
+/**
+ * 已知例外（§A12）：圖上量得到縫，但 3D 上接得到、而且不該為它去改共用資料。
+ *
+ * ⚠️ 每筆**必須**有 `maxMm` 上限 —— 只放行「不超過這個數字」的縫。
+ * 不給上限＝整對零件永久豁免＝把這支稽核對那一對關掉，縫被改成 20mm 也不會紅。
+ * 要加新的一筆之前先確認「真的不能修」，並在 `why` 寫清楚為什麼，同時補進 §A12。
+ */
+type KnownGap = { category: string; a: string; b: string; view: string; maxMm: number; why: string };
+const KNOWN: KnownGap[] = [
+  {
+    category: "coat-rack", a: "foot-1", b: "column", view: "front", maxMm: 2.0,
+    why: "車旋柱底段收腰（LATHE_SEG 底段 0.8）讓柱的正視輪廓比 legSize 窄，而底爪的榫是插進柱心的，"
+       + "縫藏在車旋造型裡、3D 接得到。LATHE_SEG 是共用資料不能動（§A12）。實測 1.7mm，上限放 2.0mm。",
+  },
+];
+const matchKnown = (g: Gap) => KNOWN.find(k =>
+  k.category === g.category && k.view === g.view
+  && ((k.a === g.a && k.b === g.b) || (k.a === g.b && k.b === g.a)));
+const gapLine = (g: Gap) => `${g.category} [${g.tag}] ${g.view}: ${g.a} ↔ ${g.b} 圖上差 ${g.dist.toFixed(1)}mm`;
 const NEG = !!process.env.NEG_CTL;
 const ONLY = process.env.ONLY; // 逗號分隔 category
 type Pt = { x: number; y: number };
@@ -200,7 +222,7 @@ function variantsFor(e: any): [string, any][] {
   return out;
 }
 // ─── 主程式 ──────────────────────────────────────────────────────────────────
-const gaps: string[] = []; const missing: string[] = []; const errors: string[] = [];
+const gaps: Gap[] = []; const missing: string[] = []; const errors: string[] = [];
 let pairsChecked = 0, designs = 0;
 const VIEWS = ["front", "side", "top"] as const;
 for (const e of FURNITURE_CATALOG as any[]) {
@@ -235,15 +257,33 @@ for (const e of FURNITURE_CATALOG as any[]) {
         pairsChecked++;
         const dist = setDist(A, B);
         if (dist > TOL && process.env.DEBUG) { const ba = bbox(A), bb = bbox(B); console.log(`DBG ${e.category} [${tag}] ${view} ${a} bbox=${[ba.x0,ba.y0,ba.x1,ba.y1].map(v=>v.toFixed(1))} (${A.length}段) | ${b} bbox=${[bb.x0,bb.y0,bb.x1,bb.y1].map(v=>v.toFixed(1))} (${B.length}段)`); }
-        if (dist > TOL) gaps.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm`);
+        if (dist > TOL) gaps.push({ category: e.category, tag, view, a, b, dist });
       }
     }
   }
 }
 console.log(`掃了 ${designs} 個設計 / ${pairsChecked} 個接合×視圖`);
 const uniq = (arr: string[]) => [...new Set(arr)];
-console.log(`\n圖上接不上（> ${TOL}mm）：${uniq(gaps).length}`); for (const g of uniq(gaps)) console.log("  ❌ " + g);
+
+// 已知例外 vs 真的紅：超過自己的 maxMm 上限就照樣算紅，不受豁免保護
+const hard: string[] = [], waived: string[] = [];
+const hitKnown = new Set<KnownGap>();
+for (const g of gaps) {
+  const k = matchKnown(g);
+  if (!k) { hard.push(gapLine(g)); continue; }
+  hitKnown.add(k);
+  if (g.dist > k.maxMm) hard.push(`${gapLine(g)} ← 已知例外上限 ${k.maxMm}mm，縫變大了`);
+  else waived.push(gapLine(g));
+}
+const stale = KNOWN.filter(k => !hitKnown.has(k));
+
+console.log(`\n圖上接不上（> ${TOL}mm）：${uniq(hard).length}`); for (const g of uniq(hard)) console.log("  ❌ " + g);
+console.log(`\n已知例外（不計失敗，見 §A12）：${uniq(waived).length}`); for (const g of uniq(waived)) console.log("  ⬜ " + g);
+if (stale.length) {
+  console.log(`\n⚠️ KNOWN 有 ${stale.length} 筆沒對到任何縫 —— 可能已經修好了，請從 scripts/audit-2d-joints.ts 的 KNOWN 刪掉（不計失敗）：`);
+  for (const k of stale) console.log(`  ⬜→ ${k.category} ${k.view} ${k.a} ↔ ${k.b}`);
+}
 console.log(`\n零件沒畫出來：${uniq(missing).length}`); for (const g of uniq(missing).slice(0, 60)) console.log("  ⚠️ " + g);
 if (uniq(missing).length > 60) console.log(`  …還有 ${uniq(missing).length - 60} 條`);
 console.log(`\n炸掉：${errors.length}`); for (const g of errors) console.log("  💥 " + g);
-process.exit(gaps.length ? 1 : 0);
+process.exit(hard.length ? 1 : 0);
