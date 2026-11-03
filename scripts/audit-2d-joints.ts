@@ -12,6 +12,7 @@
  * 2026-09-02 首跑抓到 7 款 314 條：吧檯椅兩向弧肩腳踏短 13mm、俯視圖只畫腳頂面、衣帽架掛鉤浮在柱頂、
  * 餐椅椅背條榫頭插在座板裡、床倒錐腳楔形縫、錐腳橫撐 0.55/0.6 不一致。依賴 svg-views 每個零件的 <g data-part-id>。
  * 剩下的 7 條＝衣帽架底爪 vs 車旋柱的收腰（1.7mm，共用 LATHE_SEG 不能動，見 §A12）。
+ * 2026-11-03：那 7 條進 `KNOWN_GAPS` 白名單（上限 2.0mm）→ 這支終於能綠，新冒出來的縫才會紅。
  */
 import React from "react";
 import { renderToString } from "react-dom/server";
@@ -21,6 +22,25 @@ import { OrthoView } from "../lib/render/svg-views";
 import { buildWorldMortiseIndex, tenonWorld, matchMortiseForTenon } from "../lib/assembly/joint-world";
 
 const TOL = 0.5;
+
+// ─── 已知可接受的縫（§A12）────────────────────────────────────────────────────
+// 2026-09-02 首跑 314 條修到剩 7 條,全是「衣帽架底爪 vs 車旋柱收腰」同一個原因:
+// 底爪榫進柱心,3D 上那條縫是縫在車旋造型裡的,而 `LATHE_SEG` 底段 0.8 是共用資料
+// 不能為了一款家具改(§A12)。所以這條是**畫法上可接受**,不是待修的 bug。
+//
+// 🩸 但它放著不管的代價是:這支稽核從那天起天天 exit 1 → 任何**新**的接不上
+//    都淹在同一片紅裡,看的人分不出來,等於沒有防護(2026-11-03 發現)。
+//    所以改成白名單:只有列在這裡、而且縫沒有變大的才放行,其他一律紅。
+//
+// key   = `<category>|<view>|<零件 id 排序後 ↔ 相接>`（跟勾選框變體無關,所以不含 tag）
+// value = 圖上允許的最大距離 mm（量到的是 1.7,留 0.3 餘裕吸收四捨五入;變大就該紅）
+// ⚠️ 修好之後要把那一行**刪掉**,刪掉才會回去吃 TOL 真上限。下面有 stale 提醒。
+const KNOWN_GAPS: Record<string, number> = {
+  "coat-rack|front|column↔foot-1": 2.0,
+};
+const knownHit = new Set<string>();
+const accepted: string[] = [];
+
 const NEG = !!process.env.NEG_CTL;
 const ONLY = process.env.ONLY; // 逗號分隔 category
 type Pt = { x: number; y: number };
@@ -235,7 +255,14 @@ for (const e of FURNITURE_CATALOG as any[]) {
         pairsChecked++;
         const dist = setDist(A, B);
         if (dist > TOL && process.env.DEBUG) { const ba = bbox(A), bb = bbox(B); console.log(`DBG ${e.category} [${tag}] ${view} ${a} bbox=${[ba.x0,ba.y0,ba.x1,ba.y1].map(v=>v.toFixed(1))} (${A.length}段) | ${b} bbox=${[bb.x0,bb.y0,bb.x1,bb.y1].map(v=>v.toFixed(1))} (${B.length}段)`); }
-        if (dist > TOL) gaps.push(`${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm`);
+        if (dist > TOL) {
+          const line = `${e.category} [${tag}] ${view}: ${a} ↔ ${b} 圖上差 ${dist.toFixed(1)}mm`;
+          const key = `${e.category}|${view}|${[a, b].sort().join("↔")}`;
+          const cap = KNOWN_GAPS[key];
+          // 白名單只在「這條縫沒有變大」時放行;變大＝有人動到了,要紅
+          if (cap !== undefined && dist <= cap) { knownHit.add(key); accepted.push(line); }
+          else gaps.push(line);
+        }
       }
     }
   }
@@ -243,6 +270,12 @@ for (const e of FURNITURE_CATALOG as any[]) {
 console.log(`掃了 ${designs} 個設計 / ${pairsChecked} 個接合×視圖`);
 const uniq = (arr: string[]) => [...new Set(arr)];
 console.log(`\n圖上接不上（> ${TOL}mm）：${uniq(gaps).length}`); for (const g of uniq(gaps)) console.log("  ❌ " + g);
+console.log(`\n已知可接受（§A12 白名單,不算紅）：${uniq(accepted).length}`); for (const g of uniq(accepted)) console.log("  ✅ " + g);
+const stale = Object.keys(KNOWN_GAPS).filter((k) => !knownHit.has(k) && (!ONLY || ONLY.split(",").includes(k.split("|")[0])));
+if (stale.length) {
+  console.log(`\n白名單已經用不到的 ${stale.length} 條（縫不見了＝有人修好了,請從 KNOWN_GAPS 刪掉,刪掉才會回去吃 ${TOL}mm 真上限）：`);
+  for (const k of stale) console.log("  🧹 " + k);
+}
 console.log(`\n零件沒畫出來：${uniq(missing).length}`); for (const g of uniq(missing).slice(0, 60)) console.log("  ⚠️ " + g);
 if (uniq(missing).length > 60) console.log(`  …還有 ${uniq(missing).length - 60} 條`);
 console.log(`\n炸掉：${errors.length}`); for (const g of errors) console.log("  💥 " + g);
