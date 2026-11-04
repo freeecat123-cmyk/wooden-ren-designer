@@ -7,6 +7,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ShareButtons } from "@/components/ShareButtons";
+import { TOOL_UNLOCK_PRICES } from "@/lib/pricing/tool-unlock";
 
 type UserStatus = "guest" | "loggedInNoAccess";
 
@@ -151,7 +152,7 @@ export async function CncMarketing({
     brand: { "@type": "Brand", name: t("schema.brandName") },
     offers: {
       "@type": "Offer",
-      price: isEn ? "9.99" : "390",
+      price: isEn ? "9.99" : String(TOOL_UNLOCK_PRICES["cnc"]),
       priceCurrency: isEn ? "USD" : "TWD",
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}${isEn ? "/en" : ""}/pricing`,
