@@ -15,6 +15,7 @@ import { createServerClient } from "@supabase/ssr";
 import { routing } from "./i18n/routing";
 import { GEO_DEFAULTS_COOKIE, resolveGeoDefaults } from "./lib/geo-defaults";
 import { allowedOnNeutralHost, brandFromHeaders } from "./lib/brand-hosts";
+import { ZH_ONLY_CATEGORIES } from "./lib/templates/zh-only";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -66,6 +67,13 @@ function allowedOnCncHost(pathname: string): boolean {
  * - Accept-Language 為空（多半是爬蟲，保留 zh-TW 為 canonical SEO）
  * - 主要語言以 zh 開頭（zh-TW / zh-CN / zh-HK / zh-SG）
  */
+/** 哪些沒有 locale 前綴的路徑要做英文偵測（白名單，其餘照舊）。只做中文的範本沒有英文頁，排除。 */
+export function isEnDetectPath(pathname: string): boolean {
+  if (pathname === "/" || pathname === "/templates") return true;
+  const m = pathname.match(/^\/templates\/([^/]+)\/?$/);
+  return !!m && !ZH_ONLY_CATEGORIES.has(m[1]);
+}
+
 function shouldRedirectToEn(request: NextRequest): boolean {
   if (request.cookies.has("NEXT_LOCALE")) return false;
   const acceptLang = request.headers.get("accept-language") ?? "";
@@ -148,9 +156,12 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  // 根 `/` 智慧語言跳轉（在 intl 處理之前；只針對 `/`，不包含 `/en` 或其他路徑）
-  if (pathname === "/" && shouldRedirectToEn(request)) {
-    return NextResponse.redirect(new URL("/en", request.url));
+  // 智慧語言跳轉（在 intl 處理之前）：根 `/` + 家具介紹頁 `/templates`、`/templates/*`。
+  // 2026-11-04 加 templates：woodenren.com/designer/ 的家具卡片直連 /templates/<slug>，
+  // 外國人點進去原本落在中文頁。其他路徑（/design、/pricing…）照舊不動。
+  if (isEnDetectPath(pathname) && shouldRedirectToEn(request)) {
+    const target = pathname === "/" ? "/en" : `/en${pathname}`;
+    return NextResponse.redirect(new URL(target + request.nextUrl.search, request.url));
   }
 
   // 先讓 intl 處理 locale 偵測（可能會 redirect 或 rewrite）
