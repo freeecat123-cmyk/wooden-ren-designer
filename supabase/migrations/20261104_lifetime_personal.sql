@@ -70,3 +70,28 @@ end;
 $$;
 
 grant execute on function public.auth_has_active_paid_plan() to authenticated;
+
+-- 3. 自我檢查：上面兩步只要有一步沒真的生效，這裡直接報錯（整支回滾），不會出現「跑完了但其實沒改到」
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.users'::regclass
+       and conname = 'users_plan_check'
+       and pg_get_constraintdef(oid) like '%lifetime_personal%'
+  ) then
+    raise exception 'migration 失敗：users_plan_check 沒有放行 lifetime_personal';
+  end if;
+
+  if pg_get_functiondef('public.auth_has_active_paid_plan()'::regprocedure) not like '%lifetime_personal%' then
+    raise exception 'migration 失敗：auth_has_active_paid_plan() 沒有放行 lifetime_personal';
+  end if;
+
+  if (select count(*) from pg_constraint
+       where conrelid = 'public.users'::regclass and contype = 'c'
+         and pg_get_constraintdef(oid) like '%plan%ANY%') <> 1 then
+    raise exception 'migration 失敗：users 上的 plan 約束不是剛好一條，請先檢查';
+  end if;
+end $$;
+
+select 'OK：lifetime_personal 已放行' as result;
