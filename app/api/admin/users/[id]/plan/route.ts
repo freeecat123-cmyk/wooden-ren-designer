@@ -3,7 +3,7 @@
  *   admin 改 user plan / subscription_status / subscription_expires_at。
  *
  *   body: {
- *     plan: 'free' | 'personal' | 'pro' | 'lifetime' | 'student',
+ *     plan: 'free' | 'personal' | 'pro' | 'lifetime' | 'lifetime_personal' | 'student',
  *     subscription_status?: 'active' | 'inactive' | 'cancelled' | 'expired',
  *     subscription_expires_at?: string (ISO) | null,
  *     reason?: string  // 給 admin_actions log（之後做）
@@ -14,7 +14,7 @@ import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 
-const VALID_PLANS = ["free", "personal", "pro", "lifetime", "student"] as const;
+const VALID_PLANS = ["free", "personal", "pro", "lifetime", "lifetime_personal", "student"] as const;
 const VALID_STATUS = ["active", "inactive", "cancelled", "expired"] as const;
 
 type ValidPlan = (typeof VALID_PLANS)[number];
@@ -92,7 +92,7 @@ export async function PATCH(
   if (expiresAt !== undefined) update.subscription_expires_at = expiresAt;
 
   // lifetime 自動清掉 expires_at（一輩子）
-  if (plan === "lifetime" && update.subscription_expires_at === undefined) {
+  if ((plan === "lifetime" || plan === "lifetime_personal") && update.subscription_expires_at === undefined) {
     update.subscription_expires_at = null;
     if (!update.subscription_status) update.subscription_status = "active";
   }

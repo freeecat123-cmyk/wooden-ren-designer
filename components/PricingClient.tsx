@@ -7,6 +7,7 @@ import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCa
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { TemplateUnlockSection } from "./TemplateUnlockSection";
 import { ToolUnlockSection } from "./ToolUnlockSection";
+import { LifetimeBuyoutSection } from "./LifetimeBuyoutSection";
 import { FURNITURE_CATALOG , DEV_CATEGORIES } from "@/lib/templates";
 import { isPaidCategory } from "@/lib/permissions";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
@@ -359,6 +360,8 @@ export function PricingClient() {
           }))}
         lockedCategory={needQuote ? null : lockedCategory}
       />
+
+      <LifetimeBuyoutSection />
 
       <ToolUnlockSection />
 

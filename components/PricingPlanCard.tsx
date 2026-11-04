@@ -40,6 +40,7 @@ const TIER: Record<string, number> = {
   personal: 1,
   student: 2,
   pro: 2,
+  lifetime_personal: 1, // 功能同個人版
   lifetime: 3,
 };
 function tier(p: string | null | undefined): number {

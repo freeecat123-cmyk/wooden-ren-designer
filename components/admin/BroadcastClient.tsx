@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { SURVEYS } from "@/lib/survey/configs";
 
 type AudienceKind = "all" | "unpaid" | "paid" | "plan" | "manual";
-type PlanId = "free" | "personal" | "pro" | "student" | "lifetime";
+type PlanId = "free" | "personal" | "pro" | "student" | "lifetime" | "lifetime_personal";
 
 interface UserRow {
   email: string;
@@ -24,6 +24,7 @@ function getEffectivePlan(r: UserRow): PlanId {
     return "free";
   }
   if (r.plan === "lifetime") return "lifetime";
+  if (r.plan === "lifetime_personal") return "lifetime_personal";
   if (
     r.subscription_status === "active" &&
     r.subscription_expires_at &&
@@ -111,7 +112,7 @@ export function BroadcastClient() {
   }, [users, audienceKind, audiencePlan, manualEmails, excludedEmails]);
 
   const breakdown = useMemo(() => {
-    const counts = { free: 0, personal: 0, pro: 0, student: 0, lifetime: 0 } as Record<string, number>;
+    const counts = { free: 0, personal: 0, pro: 0, student: 0, lifetime: 0, lifetime_personal: 0 } as Record<string, number>;
     for (const u of users) counts[getEffectivePlan(u)]++;
     return counts;
   }, [users]);
@@ -215,6 +216,7 @@ export function BroadcastClient() {
             <span className="px-2 py-1 rounded bg-purple-100 border border-purple-300">專業 {breakdown.pro}</span>
             <span className="px-2 py-1 rounded bg-amber-100 border border-amber-300">學員 {breakdown.student}</span>
             <span className="px-2 py-1 rounded bg-rose-100 border border-rose-300">終身 {breakdown.lifetime}</span>
+            <span className="px-2 py-1 rounded bg-fuchsia-100 border border-fuchsia-300">終身個人 {breakdown.lifetime_personal}</span>
           </div>
         )}
       </section>
@@ -256,6 +258,7 @@ export function BroadcastClient() {
             <option value="pro">專業版</option>
             <option value="student">學員版</option>
             <option value="lifetime">終身版</option>
+            <option value="lifetime_personal">終身個人版</option>
           </select>
         )}
         {audienceKind === "manual" && (

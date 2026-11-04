@@ -277,9 +277,9 @@ function EditPlanModal({
     try {
       const body: Record<string, string | null> = { plan, reason };
       // free / lifetime 自動清 expires_at（後端也會處理、前端統一顯示）
-      if (plan === "free" || plan === "lifetime") {
+      if (plan === "free" || plan === "lifetime" || plan === "lifetime_personal") {
         body.subscription_expires_at = null;
-        body.subscription_status = plan === "lifetime" ? "active" : "inactive";
+        body.subscription_status = plan === "free" ? "inactive" : "active";
       } else {
         body.subscription_status = status;
         body.subscription_expires_at = expires
@@ -308,7 +308,7 @@ function EditPlanModal({
     setExpires(d.toISOString().slice(0, 10));
   }
 
-  const noExpires = plan === "free" || plan === "lifetime";
+  const noExpires = plan === "free" || plan === "lifetime" || plan === "lifetime_personal";
 
   return (
     <div
@@ -333,7 +333,8 @@ function EditPlanModal({
           <option value="free">免費版</option>
           <option value="personal">個人版</option>
           <option value="pro">專業版</option>
-          <option value="lifetime">終身版</option>
+          <option value="lifetime">終身版（專業級）</option>
+          <option value="lifetime_personal">終身個人版（限量買斷）</option>
           <option value="student">學員版</option>
         </select>
 

@@ -36,6 +36,7 @@ export function UpgradePrompt({
     pro: t("planPricePro"),
     student: t("planPriceStudent"),
     lifetime: t("planPriceLifetime"),
+    lifetime_personal: t("planPriceLifetimePersonal"),
   };
   const priceLine = PLAN_PRICE_LINE[requiredPlan];
 

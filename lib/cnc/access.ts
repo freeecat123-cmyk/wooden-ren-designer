@@ -81,6 +81,7 @@ const PLAN_LABEL_ZH: Record<string, string> = {
   pro: "專業版",
   student: "學員方案",
   lifetime: "永久版",
+  lifetime_personal: "終身個人版",
 };
 
 /**
@@ -89,7 +90,7 @@ const PLAN_LABEL_ZH: Record<string, string> = {
  */
 function planExpiry(profile: UserPlanProfile | null): string | null {
   if (!profile) return null;
-  if (profile.plan === "lifetime") return null;
+  if (profile.plan === "lifetime" || profile.plan === "lifetime_personal") return null;
   if (profile.plan === "student") return profile.student_expires_at ?? null;
   return profile.subscription_expires_at ?? null;
 }

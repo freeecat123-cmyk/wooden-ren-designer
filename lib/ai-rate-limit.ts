@@ -19,6 +19,7 @@ const DAILY_LIMITS: Record<string, number> = {
   pro: 50,
   student: 50,
   lifetime: 50,
+  lifetime_personal: 10, // 個人版等級
 };
 
 export interface RateLimitResult {

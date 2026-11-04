@@ -103,6 +103,7 @@ function makeQuery(
     or: () => q,
     eq: () => q,
     neq: () => q,
+    gte: () => q,
     order: () => q,
     limit: () => q,
     update: (row: unknown) => {
@@ -592,5 +593,104 @@ describe("/api/ecpay/periodic-notify", () => {
       expect(users.some((r) => r.plan || r.subscription_status === "active")).toBe(false);
       expect(subs.some((r) => r.status === "active")).toBe(false);
     });
+  });
+});
+
+/**
+ * 🔒 終身買斷（kind = lifetime_buyout）：付款成功 → users.plan 設成 lifetime_personal。
+ * 守住的是「不能把已有訂閱的人覆寫掉」——否則專業版會員被降級、綠界月扣還在繼續。
+ */
+describe("/api/ecpay/return — 終身買斷", () => {
+  const PENDING_LIFETIME = {
+    id: "pay-L",
+    user_id: "user-1",
+    amount: 6900,
+    status: "pending",
+    raw_response: {
+      orderId: "ORDER1",
+      kind: "lifetime_buyout",
+      amount: 6900,
+      itemName: "木作藍圖 終身買斷（限量）",
+      plan: "lifetime_personal",
+    },
+  };
+  const userRow = (over: Record<string, unknown> = {}) => ({
+    email: "buyer@example.com",
+    plan: "free",
+    subscription_status: "inactive",
+    subscription_expires_at: null,
+    ...over,
+  });
+
+  const pay = async (opts: { user?: Record<string, unknown>; extra?: Record<string, string> } = {}) => {
+    tableResults.payments = { data: PENDING_LIFETIME, error: null };
+    tableResults.users = { data: userRow(opts.user), error: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await returnPOST(callback({ SimulatePaid: "0", TradeAmt: "6900", ...opts.extra }) as any);
+    await runAfterCallbacks();
+  };
+  const planWrites = () => updates.filter((u) => u.table === "users" && "plan" in u.row);
+
+  it("① 免費版付款成功 → plan 寫成 lifetime_personal、啟用、沒有到期日", async () => {
+    await pay();
+    expect(planWrites()).toHaveLength(1);
+    expect(planWrites()[0].row).toEqual({
+      plan: "lifetime_personal",
+      subscription_status: "active",
+      subscription_expires_at: null,
+    });
+  });
+
+  it("② 發票品項名稱帶「終身買斷」（綠界後台、發票上分辨得出來），金額 6,900", async () => {
+    await pay();
+    expect(issueInvoiceCalls).toHaveLength(1);
+    const inv = issueInvoiceCalls[0] as { itemName: string; amount: number };
+    expect(inv.itemName).toContain("終身買斷");
+    expect(inv.amount).toBe(6900);
+  });
+
+  it("③ 成功信寄給客人、品項是終身買斷", async () => {
+    await pay();
+    expect(sendEmailCalls).toHaveLength(1);
+    expect(JSON.stringify(sendEmailCalls[0])).toContain("終身買斷");
+  });
+
+  it("④ 模擬付款（SimulatePaid=1）：不改 plan、不開發票", async () => {
+    await pay({ extra: { SimulatePaid: "1" } });
+    expect(planWrites()).toEqual([]);
+    expect(issueInvoiceCalls).toEqual([]);
+  });
+
+  it("⑤ 金額不符：不出貨", async () => {
+    await pay({ extra: { TradeAmt: "6000" } });
+    expect(planWrites()).toEqual([]);
+    expect(issueInvoiceCalls).toEqual([]);
+  });
+
+  it("⑥ ⛔ 付款當下帳號已是專業版訂閱：不准覆寫 plan，也不寄「解鎖成功」信給客人", async () => {
+    await pay({
+      user: {
+        plan: "pro",
+        subscription_status: "active",
+        subscription_expires_at: new Date(Date.now() + 20 * 86_400_000).toISOString(),
+      },
+    });
+    expect(planWrites()).toEqual([]);
+    const toBuyer = sendEmailCalls.filter((m) => (m as { to?: string }).to === "buyer@example.com");
+    expect(toBuyer).toEqual([]);
+    // payment 上留記號，後台看得到要人工處理
+    const marked = updates.some(
+      (u) => u.table === "payments" && JSON.stringify(u.row).includes("_unlock_failed"),
+    );
+    expect(marked).toBe(true);
+  });
+
+  it("⑦ 綠界重送（帳號已經是 lifetime_personal）：視為成功，不重寫、不標失敗", async () => {
+    await pay({ user: { plan: "lifetime_personal", subscription_status: "active" } });
+    expect(planWrites()).toEqual([]);
+    const marked = updates.some(
+      (u) => u.table === "payments" && JSON.stringify(u.row).includes("_unlock_failed"),
+    );
+    expect(marked).toBe(false);
   });
 });

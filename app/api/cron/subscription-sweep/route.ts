@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   const { data: usersToExpire, error: selErr } = await admin
     .from("users")
     .select("id, email, plan, subscription_expires_at")
-    .not("plan", "in", "(free,lifetime)")
+    .not("plan", "in", "(free,lifetime,lifetime_personal)")
     .lt("subscription_expires_at", cutoff);
 
   if (selErr) {

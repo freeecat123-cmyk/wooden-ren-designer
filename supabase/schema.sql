@@ -17,7 +17,7 @@ create table if not exists public.users (
   email text unique not null,
   name text,
   plan text not null default 'free'
-    check (plan in ('free', 'personal', 'pro', 'lifetime', 'student')),
+    check (plan in ('free', 'personal', 'pro', 'lifetime', 'lifetime_personal', 'student')),
   subscription_status text not null default 'inactive'
     check (subscription_status in ('inactive', 'active', 'cancelled', 'expired')),
   subscription_expires_at timestamptz,

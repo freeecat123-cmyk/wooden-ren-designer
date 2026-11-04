@@ -9,7 +9,7 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string | null;
-  plan: "free" | "personal" | "pro" | "lifetime" | "student";
+  plan: "free" | "personal" | "pro" | "lifetime" | "lifetime_personal" | "student";
   subscription_status: "inactive" | "active" | "cancelled" | "expired";
   subscription_expires_at: string | null;
   created_at: string;

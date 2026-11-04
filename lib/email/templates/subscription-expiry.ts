@@ -235,6 +235,7 @@ const PLAN_NAME_EN: Record<string, string> = {
   pro: "Professional",
   student: "Student",
   lifetime: "Lifetime",
+  lifetime_personal: "Lifetime Personal",
   free: "Free",
 };
 
@@ -247,6 +248,7 @@ export function planLabelFromUserPlan(plan: string | null | undefined, locale: s
     pro: "專業版",
     student: "學員版",
     lifetime: "終身版",
+    lifetime_personal: "終身個人版",
     free: "免費版",
   };
   if (plan in map) return map[plan];

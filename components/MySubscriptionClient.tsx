@@ -254,6 +254,13 @@ export function MySubscriptionClient() {
           </div>
         )}
 
+        {!isStudent && profile?.plan === "lifetime_personal" && (
+          <div>
+            <h2 className="font-semibold text-zinc-900 mb-1">{t("lifetimePersonalH")}</h2>
+            <p className="text-sm text-zinc-600">{t("lifetimePersonalBody")}</p>
+          </div>
+        )}
+
         {!isStudent && (profile?.plan === "personal" || profile?.plan === "pro") && (
           <PaidPlanSection
             planLabel={tPlanLabel(profile.plan)}
@@ -279,7 +286,7 @@ export function MySubscriptionClient() {
 
       {!isStudent &&
         profile &&
-        (profile.plan === "personal" || profile.plan === "pro" || profile.plan === "lifetime") && (
+        (profile.plan === "personal" || profile.plan === "pro" || profile.plan === "lifetime" || profile.plan === "lifetime_personal") && (
           <InvoicePreferenceCard />
         )}
     </main>

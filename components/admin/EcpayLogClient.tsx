@@ -58,6 +58,7 @@ const PLAN_ZH: Record<string, string> = {
   personal: "個人版",
   pro: "專業版",
   lifetime: "終身版",
+  lifetime_personal: "終身個人版",
   student: "學員版",
 };
 

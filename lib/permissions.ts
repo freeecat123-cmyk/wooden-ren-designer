@@ -6,7 +6,12 @@
 import type { FurnitureCategory } from "./types";
 import { isExpiredPastGrace } from "@/lib/pricing/expiry";
 
-export type PlanId = "free" | "personal" | "pro" | "lifetime" | "student";
+/**
+ * `lifetime`          = 專業版等級、永久（英文站 Lemon Squeezy 買斷／後台手動升級），既有會員在用。
+ * `lifetime_personal` = 個人版等級、永久、限量（中文站綠界買斷，見 lib/pricing/lifetime.ts）。
+ * 兩者功能不同，不可合併，也不可把前者降成後者。
+ */
+export type PlanId = "free" | "personal" | "pro" | "lifetime" | "lifetime_personal" | "student";
 
 /**
  * 免費版可訪問的家具範本——「練習小物」2 種 + 木工工作桌（2026-09-03 木頭仁：「工作桌我想用送的」）。
@@ -49,7 +54,8 @@ export interface PlanFeatures {
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
   free: {
-    maxDesigns: 1,
+    // 2026-11-04 木頭仁：免費版存檔上限 1 → 3 件
+    maxDesigns: 3,
     canDownloadPdf: false,
     hasWatermark: true,
     canUseQuoteSystem: false,
@@ -115,6 +121,21 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseRaisedFloorTool: true,
     canUseCncTool: true,
   },
+  // 限量終身買斷：功能與個人版完全相同（不含報價／客戶管理／設計師模式），只是永久。
+  // 這裡刻意複製個人版而不是引用，之後個人版加功能時由 permissions.test.ts 的「等於個人版」測試提醒要不要跟。
+  lifetime_personal: {
+    maxDesigns: Infinity,
+    canDownloadPdf: true,
+    hasWatermark: false,
+    canUseQuoteSystem: false,
+    canCustomizeQuoteHeader: false,
+    canManageCustomers: false,
+    canUseDesignerMode: false,
+    canUseCeilingTool: true,
+    canUseFloorTool: true,
+    canUseRaisedFloorTool: true,
+    canUseCncTool: true,
+  },
 };
 
 export const PLAN_LABEL: Record<PlanId, string> = {
@@ -123,6 +144,7 @@ export const PLAN_LABEL: Record<PlanId, string> = {
   pro: "專業版",
   student: "學員版",
   lifetime: "終身版",
+  lifetime_personal: "終身個人版",
 };
 
 /** users 表回傳的 row 型別（permissions 只需要這幾個欄位） */
@@ -172,6 +194,7 @@ export function getEffectivePlan(profile: UserPlanProfile | null | undefined): P
   }
 
   if (profile.plan === "lifetime") return "lifetime";
+  if (profile.plan === "lifetime_personal") return "lifetime_personal";
 
   if (
     ENTITLED_SUB_STATUSES.includes(profile.subscription_status) &&

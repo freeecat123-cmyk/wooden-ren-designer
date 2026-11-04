@@ -25,6 +25,7 @@ const PLAN_LABEL: Record<string, string> = {
   pro: "專業版",
   student: "學員版",
   lifetime: "終身版",
+  lifetime_personal: "終身個人版",
 };
 
 const PLAN_COLOR: Record<string, string> = {
@@ -33,6 +34,7 @@ const PLAN_COLOR: Record<string, string> = {
   pro: "bg-amber-400",
   student: "bg-blue-400",
   lifetime: "bg-purple-400",
+  lifetime_personal: "bg-fuchsia-400",
 };
 
 export function AdminDashboardClient() {

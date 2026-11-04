@@ -6,12 +6,15 @@
 export type ToolId = "ceiling" | "floor" | "raised-floor" | "cnc";
 
 // 木頭仁 2026-10-13「都改成 390」：原本程式收 499、三個裝潢工具行銷頁卻寫 590、CNC 頁寫 499，
-// 三個數字互打 ⇒ 統一 390（文案那邊也一起改了，改價記得兩邊一起動）。
+// 三個數字互打 ⇒ 統一 390。
+// 2026-11-04 木頭仁：工具單買 390 → 490（新單才用新價，已買過的人不受影響）。
+// ⚠️ 個人版月費 390 是另一個價，別跟這個搞混；文案（messages/zh-TW.json 的單買卡、CNC 頁）要跟著這個數字一起動。
+// 英文站走 Lemon Squeezy 的美金定價（US$9.99），不在這裡。
 export const TOOL_UNLOCK_PRICES: Record<ToolId, number> = {
-  ceiling: 390,
-  floor: 390,
-  "raised-floor": 390,
-  cnc: 390,
+  ceiling: 490,
+  floor: 490,
+  "raised-floor": 490,
+  cnc: 490,
 };
 
 export const TOOL_LABEL_ZH: Record<ToolId, string> = {

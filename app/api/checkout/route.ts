@@ -107,6 +107,18 @@ export async function POST(req: NextRequest) {
   }
   const currentPlan = currentUser?.plan as string | null;
   const currentStatus = currentUser?.subscription_status as string | null;
+  // 限量終身個人版：訂閱成功時 users.plan 會被覆寫成訂閱方案，之後訂閱一到期就掉回免費版，
+  // 等於買斷的資格被訂閱吃掉。所以這個身分不能再走訂閱結帳（要加購專業版請人工處理）。
+  if (currentPlan === "lifetime_personal") {
+    return NextResponse.json(
+      {
+        error: "lifetime_owned",
+        message:
+          "你已經是終身個人版會員，不需要再訂閱。若想加購專業版功能，請先聯絡我們，避免終身資格被訂閱覆蓋。",
+      },
+      { status: 409 },
+    );
+  }
   const hasActivePaidSub =
     currentStatus === "active" &&
     currentPlan &&

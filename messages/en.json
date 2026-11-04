@@ -1069,7 +1069,7 @@
           "Permanent unlock of the CNC toolpath generator",
           "Use it without subscribing",
           "Future tool updates included",
-          "NT$390 in Taiwan"
+          "NT$490 in Taiwan"
         ],
         "cta": "Buy to unlock"
       },
@@ -1119,7 +1119,7 @@
         },
         {
           "q": "One-time vs. subscription?",
-          "a": "One-time (US$9.99 / NT$390) permanently unlocks this one tool. The Personal plan additionally includes every furniture template and the other interior tools, so it's much better value."
+          "a": "One-time (US$9.99 / NT$490 in Taiwan) permanently unlocks this one tool. The Personal plan additionally includes every furniture template and the other interior tools, so it's much better value."
         },
         {
           "q": "I'm a beginner — is it hard?",
@@ -2333,6 +2333,8 @@
     "seePlans": "See plans →",
     "lifetimeH": "Lifetime",
     "lifetimeBody": "You own Lifetime — all paid features are unlocked permanently.",
+    "lifetimePersonalH": "Lifetime Personal",
+    "lifetimePersonalBody": "You own Lifetime Personal: every Personal-plan feature, permanently, with no further charges. Quotes, customer management and designer mode are not included.",
     "subStatus": {
       "active": "Active",
       "inactive": "Inactive",
@@ -4144,7 +4146,8 @@
     "personal": "Personal",
     "pro": "Pro",
     "student": "Student",
-    "lifetime": "Lifetime"
+    "lifetime": "Lifetime",
+    "lifetime_personal": "Lifetime Personal"
   },
   "projectDetailClient": {
     "commonRooms": [
@@ -4808,6 +4811,7 @@
     "planPricePro": "Lifetime $129 one-time",
     "planPriceStudent": "Student plan (academy student only)",
     "planPriceLifetime": "Lifetime (discontinued)",
+    "planPriceLifetimePersonal": "Lifetime Personal (limited)",
     "inlineTpl": "🌱 Want {feature}? Upgrade to {plan}",
     "inlineCta": "See plans →",
     "cardH": "Want \"{feature}\"?",
@@ -4822,6 +4826,30 @@
     "loading": "Loading…",
     "owned": "✓ Owned",
     "buyBtn": "Buy now →"
+  },
+  "lifetimeBuyout": {
+    "badge": "Limited",
+    "title": "Lifetime",
+    "price": "NT${price}",
+    "unit": "one-time",
+    "intro": "Pay once and keep every Personal-plan feature permanently. Limited to {quota} buyers; once they are gone it is no longer sold.",
+    "features": [
+      "Every furniture template plus the ceiling, floor, raised-floor and CNC tools",
+      "PDF and print packages without watermark",
+      "Unlimited saved designs",
+      "Templates and tools added later are included"
+    ],
+    "notIncluded": "Quotes, customer management and designer mode are Pro features and are not included.",
+    "remaining": "{remaining} of {quota} spots left",
+    "cta": "Buy Lifetime NT${price}",
+    "refundNote": "Refunds follow the same rules as the other plans.",
+    "soldOutTitle": "Lifetime is sold out",
+    "soldOutBody": "All {quota} spots are taken and it is no longer sold. You can subscribe to the Personal plan instead.",
+    "hasPlan": "This account already has a subscription or student plan. Lifetime is only for free accounts to avoid double charges; contact us if you want to switch.",
+    "owned": "You already have a lifetime plan.",
+    "noticeAdmin": "Admin accounts do not need to buy.",
+    "noticeSoldout": "The spots just sold out. You were not charged.",
+    "noticeHasPlan": "This account already has a plan. No order was created and you were not charged."
   },
   "toolUnlock": {
     "h": "🔨 Interior tool one-time purchase",

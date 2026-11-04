@@ -24,6 +24,7 @@ import { isGetCodeSuccess, buildPaymentInfo } from "@/lib/ecpay/payment-info";
 import { sendEmail } from "@/lib/email/send";
 import { awaitingPaymentEmail } from "@/lib/email/templates/payment-pending";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
+import { LIFETIME_PAYMENT_KIND } from "@/lib/pricing/lifetime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       .select("id, user_id, amount, raw_response")
       .eq("status", "pending")
       .filter("raw_response->>orderId", "eq", orderId)
-      .or("raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock")
+      .or(`raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock,raw_response->>kind.eq.${LIFETIME_PAYMENT_KIND}`)
       .maybeSingle();
     if (tplPending) {
       if (params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {

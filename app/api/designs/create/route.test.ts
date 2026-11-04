@@ -21,11 +21,21 @@ it("honors the server-verified administrator's existing unlimited entitlement", 
   expect(state.insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: "owner" }));
   expect((await response.json()).updated_at).toBe("2026-09-06T00:00:00Z");
 });
-it("keeps the free account's one-design limit", async () => {
+it("keeps the free account's three-design limit (2026-11-04: raised from 1 to 3)", async () => {
+  state.count = 3;
   const response = await create();
   expect(response.status).toBe(403);
   expect((await response.json()).error).toBe("max_designs_reached");
   expect(state.insert).not.toHaveBeenCalled();
+});
+it("lets a free account save while under the limit (1 and 2 existing designs: the old limit blocked at 1)", async () => {
+  for (const count of [1, 2]) {
+    state.count = count;
+    state.insert.mockClear();
+    const response = await create();
+    expect(response.status).toBe(201);
+    expect(state.insert).toHaveBeenCalledTimes(1);
+  }
 });
 it("requires authentication even when administrator detection is mocked true", async () => {
   state.admin = true; state.user = null;

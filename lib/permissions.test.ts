@@ -3,6 +3,7 @@ import {
   getEffectivePlan,
   getPlanFeatures,
   canUseFeature,
+  PLAN_FEATURES,
   type UserPlanProfile,
 } from "./permissions";
 
@@ -102,6 +103,54 @@ describe("權限（不只是標籤）跟著一起對", () => {
     const keys = Object.keys(getPlanFeatures(active)) as (keyof ReturnType<typeof getPlanFeatures>)[];
     for (const k of keys) {
       expect(canUseFeature(cancelled, k)).toBe(canUseFeature(active, k));
+    }
+  });
+});
+
+/**
+ * 🔒 限量終身買斷（lifetime_personal）＋ 免費版件數。
+ * 重點是「新方案不能影響舊方案」：既有 lifetime 是專業級，絕不能被降成個人級。
+ */
+describe("lifetime_personal（限量終身個人版）", () => {
+  it("永久：不看 status、也不看到期日", () => {
+    for (const subscription_status of ["active", "cancelled", "expired", "inactive"] as const) {
+      expect(
+        getEffectivePlan(profile({ plan: "lifetime_personal", subscription_status, subscription_expires_at: past() })),
+      ).toBe("lifetime_personal");
+    }
+    expect(
+      getEffectivePlan(profile({ plan: "lifetime_personal", subscription_status: "active", subscription_expires_at: null })),
+    ).toBe("lifetime_personal");
+  });
+
+  it("功能跟個人版逐項相同（可用的工具、PDF、無浮水印、不限件數）", () => {
+    expect(PLAN_FEATURES.lifetime_personal).toEqual(PLAN_FEATURES.personal);
+  });
+
+  it("不含專業版功能：報價、客戶管理、自訂抬頭、設計師模式都是 false", () => {
+    const p = profile({ plan: "lifetime_personal", subscription_expires_at: null });
+    for (const k of ["canUseQuoteSystem", "canManageCustomers", "canCustomizeQuoteHeader", "canUseDesignerMode"] as const) {
+      expect(canUseFeature(p, k)).toBe(false);
+    }
+    expect(canUseFeature(p, "canUseCncTool")).toBe(true);
+    expect(canUseFeature(p, "canDownloadPdf")).toBe(true);
+  });
+
+  it("⛔ 既有 lifetime 沒被動到：功能仍然跟專業版逐項相同", () => {
+    expect(PLAN_FEATURES.lifetime).toEqual(PLAN_FEATURES.pro);
+    expect(getEffectivePlan(profile({ plan: "lifetime", subscription_status: "expired", subscription_expires_at: past() }))).toBe("lifetime");
+  });
+});
+
+describe("免費版存檔上限", () => {
+  it("3 件", () => {
+    expect(PLAN_FEATURES.free.maxDesigns).toBe(3);
+    expect(getPlanFeatures(null).maxDesigns).toBe(3);
+  });
+
+  it("付費版仍然不限（Infinity），沒有被誤改", () => {
+    for (const plan of ["personal", "pro", "student", "lifetime", "lifetime_personal"] as const) {
+      expect(PLAN_FEATURES[plan].maxDesigns).toBe(Infinity);
     }
   });
 });

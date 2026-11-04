@@ -54,6 +54,8 @@ const TIER: Record<string, number> = {
   personal: 1,
   student: 2,
   pro: 2,
+  // 限量終身個人版：功能同個人版，排序也同個人版（買專業版算升級）
+  lifetime_personal: 1,
   lifetime: 3,
 };
 

@@ -33,6 +33,13 @@ import { voidOrAllowanceAfterRefund } from "@/lib/ecpay/invoice-after-refund";
 import { requestRefund } from "@/lib/ecpay/refund";
 import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 import { calcProrateRefund, inferBillingPeriod } from "@/lib/pricing/prorate";
+import { getEffectivePlan, type UserPlanProfile } from "@/lib/permissions";
+import {
+  LIFETIME_PAYMENT_KIND,
+  LIFETIME_QUOTA,
+  lifetimeEligibility,
+} from "@/lib/pricing/lifetime";
+import { countLifetimeTaken } from "@/lib/pricing/lifetime-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,7 +108,7 @@ export async function POST(req: NextRequest) {
       .select("id, user_id, amount, raw_response, status")
       .in("status", ["pending", "awaiting_payment"])
       .filter("raw_response->>orderId", "eq", orderId)
-      .or("raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock")
+      .or(`raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock,raw_response->>kind.eq.${LIFETIME_PAYMENT_KIND}`)
       .maybeSingle();
     const tplPending = pending;
     if (tplPending) {
@@ -147,7 +154,67 @@ export async function POST(req: NextRequest) {
        *
        * (2026-08-21 稽核發現。查過正式站:3 筆買斷全都有對應解鎖,目前 0 位受害者。)
        */
+      /**
+       * 終身買斷（限量，個人版等級）：把 users.plan 設成 lifetime_personal，永久。
+       *
+       * ⛔ 只在「這個人現在實際是免費版」時才改。結帳時雖然擋過，但客人可以在付款前另開分頁訂閱：
+       *    這時若硬把 plan 蓋成 lifetime_personal，專業版訂閱的權限會被降級、綠界卻還在月扣。
+       *    所以遇到非免費版就**不動 plan**，走既有的失敗路徑（payment 留 _unlock_failed 記號、
+       *    寄信通知管理員人工處理、不寄「解鎖成功」信），錢已收到、發票照開。
+       * 綠界重送時 plan 已經是 lifetime_personal，視為成功（idempotent）。
+       */
+      const grantLifetime = async (): Promise<{ ok: boolean; detail?: string }> => {
+        const { data: profile, error: readErr } = await admin
+          .from("users")
+          .select("plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at")
+          .eq("id", tplPending.user_id)
+          .single();
+        if (readErr || !profile) {
+          return { ok: false, detail: `讀取使用者方案失敗：${readErr?.message ?? "no row"}` };
+        }
+        if ((profile as { plan?: string }).plan === "lifetime_personal") return { ok: true };
+        const eligibility = lifetimeEligibility(getEffectivePlan(profile as UserPlanProfile));
+        if (!eligibility.ok) {
+          return {
+            ok: false,
+            detail: `付款時這個帳號已經是 ${(profile as { plan?: string }).plan}（${eligibility.reason}），沒有自動改成終身個人版，請人工處理（退款或手動升級）`,
+          };
+        }
+        let last = "";
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const { error } = await admin
+            .from("users")
+            .update({
+              plan: "lifetime_personal",
+              subscription_status: "active",
+              subscription_expires_at: null,
+            })
+            .eq("id", tplPending.user_id);
+          if (!error) {
+            // 名額在開單時就檢查過；這裡只做事後提醒，不拒絕已付款的客人
+            try {
+              const taken = await countLifetimeTaken(admin);
+              if (taken > LIFETIME_QUOTA) {
+                console.warn("[ecpay/return/lifetime] 名額超賣(同時付款所致),已照常出貨", {
+                  orderId,
+                  taken,
+                  quota: LIFETIME_QUOTA,
+                });
+              }
+            } catch {
+              /* 提醒而已，算不出來不影響出貨 */
+            }
+            return { ok: true };
+          }
+          last = error.message ?? String(error);
+          console.error(`[ecpay/return/${kind}] 升級終身個人版失敗(第 ${attempt} 次)`, error);
+          if (attempt < 3) await new Promise((r) => setTimeout(r, 300 * attempt));
+        }
+        return { ok: false, detail: last };
+      };
+
       const grantUnlock = async (): Promise<{ ok: boolean; detail?: string }> => {
+        if (kind === LIFETIME_PAYMENT_KIND) return grantLifetime();
         const table = kind === "template_unlock" ? "template_unlocks" : "tool_unlocks";
         // 套組（丙級三題 290）：raw_response.categories 帶整組，每一支各寫一列；舊單只有 category
         const templateCategories =
@@ -192,7 +259,7 @@ export async function POST(req: NextRequest) {
       };
 
       const unlockResult =
-        kind === "template_unlock" || kind === "tool_unlock"
+        kind === "template_unlock" || kind === "tool_unlock" || kind === LIFETIME_PAYMENT_KIND
           ? await grantUnlock()
           : { ok: true as const };
       await admin
@@ -226,7 +293,9 @@ export async function POST(req: NextRequest) {
         "raised-floor": "/raised-floor",
         cnc: "/cnc",
       };
-      const destinationUrl = unlockCategory
+      const destinationUrl = kind === LIFETIME_PAYMENT_KIND
+        ? `${siteBase}/app`
+        : unlockCategory
         ? `${siteBase}/design/${unlockCategory}`
         : unlockTool && toolDestPaths[unlockTool]
           ? `${siteBase}${toolDestPaths[unlockTool]}`

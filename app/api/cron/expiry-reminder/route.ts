@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     .select(
       "id, email, plan, subscription_expires_at, subscription_status, last_expiry_reminder_at",
     )
-    .not("plan", "in", "(free,lifetime)")
+    .not("plan", "in", "(free,lifetime,lifetime_personal)")
     .not("email", "is", null)
     .gte("subscription_expires_at", lowerBound)
     .lte("subscription_expires_at", upperBound)
