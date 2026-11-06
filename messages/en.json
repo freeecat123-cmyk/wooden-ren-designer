@@ -235,9 +235,9 @@
   },
   "about": {
     "metadata": {
-      "title": "About · Wooden Ren Designer — dimensions in, plans in 3 minutes",
-      "description": "From Wooden Ren Academy. 25+ furniture templates. Enter dimensions, get three-view drawings, exploded 3D, joinery details, cut lists, build order, and printable PDFs. Built for DIYers, working woodworkers, designers, and students.",
-      "ogTitle": "About · Wooden Ren Designer — dimensions in, plans in 3 minutes",
+      "title": "About Wooden Ren Designer | Plans in 3 Minutes",
+      "description": "From Wooden Ren Academy: 25+ furniture templates. Enter dimensions, get three-view drawings, exploded 3D, joinery details, cut lists and printable PDFs.",
+      "ogTitle": "About Wooden Ren Designer | Plans in 3 Minutes",
       "ogDescription": "From Wooden Ren Academy. 25+ templates, auto three-view, joinery, cut list, PDF plans.",
       "twitterTitle": "About · Wooden Ren Designer",
       "twitterDescription": "Dimensions in, plans / joinery details / cut list in 3 minutes. From Wooden Ren Academy."
@@ -442,10 +442,10 @@
   },
   "landing": {
     "metadata": {
-      "title": "Free Furniture Design Plan Generator | Auto Three-View Drawings + Cut Lists — Wooden Ren Designer",
-      "description": "Free online furniture design plan generator, no CAD needed: enter dimensions to auto-generate three-view drawings, joinery details, a materials list, and a cut list in 3 minutes. By the Wooden Ren woodworking academy — free forever for the square stool, pencil holder and workbench.",
-      "ogTitle": "Free Furniture Design Plan Generator | Auto Three-Views + Cut Lists",
-      "ogDescription": "Enter dimensions, get furniture three-view drawings, a materials list and a cut list in 3 minutes. By Wooden Ren woodworking academy — free forever for stool, pencil holder and workbench."
+      "title": "Free Furniture Design Plan Generator | 3-View Drawings",
+      "description": "Free furniture design plan generator, no CAD needed: enter dimensions to get three-view drawings, joinery details, a materials list and a cut list in 3 min.",
+      "ogTitle": "Free Furniture Plan Generator | 3-Views + Cut Lists",
+      "ogDescription": "Enter dimensions, get three-view drawings, a materials list and a cut list in 3 minutes. Stool, pencil holder and workbench free forever."
     },
     "hero": {
       "badge": "Wooden Ren Academy · Designer v0.5",
@@ -595,7 +595,7 @@
   "templates": {
     "metadata": {
       "title": "25 Furniture Templates · Full Guide | Wooden Ren Blueprint",
-      "description": "From square stools, pencil holders and side tables to wardrobes, desks and dining chairs — full overview of 25 parameterizable furniture templates. Each entry shows what it builds, who it suits, what tools you need, and how to vary it."
+      "description": "All 25 parameterizable furniture templates, from stools and pencil holders to wardrobes, desks and dining chairs. Each shows what it builds and who it suits."
     },
     "filter": {
       "label": "Filter",
@@ -4995,8 +4995,8 @@
   },
   "installPage": {
     "metadata": {
-      "title": "Install the App | Add Wooden Ren Designer to your home screen",
-      "description": "No download, no app store. Add Wooden Ren Designer to your phone's home screen or desktop in three steps and open it like a native app. Works on iOS, Android, and desktop.",
+      "title": "Install the App | Wooden Ren Designer",
+      "description": "No download, no app store. Add Wooden Ren Designer to your phone home screen or desktop in three steps and open it like a native app. iOS, Android, desktop.",
       "ogTitle": "Install Wooden Ren Designer on your phone",
       "ogDescription": "No download, no app store — add to your home screen in one tap and open it like a native app."
     },
@@ -5289,15 +5289,15 @@
     },
     "raisedFloor": {
       "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
-      "metaDescription": "How far apart should raised-floor battens go? Main battens every 30cm, sub battens every 40cm. Sketch the platform and the frame, plywood, finish, vapor barrier and baseboard quantities are worked out for you — rectangle or L-shape, pillars cut out, plywood auto-nested, A4 customer quote in one page. Defaults you can change: 60×36mm main battens, 30×36mm sub battens, an 18mm plywood deck (4×8 ft) and a 30cm platform height."
+      "metaDescription": "How far apart should raised-floor battens go? Main battens every 30cm, sub battens every 40cm. Sketch the platform to get batten, plywood and finish amounts."
     },
     "ceiling": {
-      "metaTitle": "Ceiling Furring Spacing Calculator｜90cm main / 36cm sub, auto-laid · Wooden Ren",
-      "metaDescription": "How far apart should ceiling furring go? Main-batten centers = board width + seam gap (90.3cm for 3×6 boards, 120.3cm for 4×8); sub battens divide the board length down to ~36cm; hangers every 90cm along each main batten. Draw the room → frame, boards and hangers auto-calculated → A4 quote."
+      "metaTitle": "Ceiling Furring Spacing Calculator · Wooden Ren",
+      "metaDescription": "How far apart should ceiling furring go? Main-batten centers = board width + seam gap (90.3cm for 3×6 boards); sub battens ~36cm; hangers every 90cm."
     },
     "floor": {
-      "metaTitle": "Wood Floor Estimator | Herringbone Waste, Plank Count & Price · Wooden Ren",
-      "metaDescription": "How much waste does a herringbone floor really have? Draw the room and get the layout, the real plank count and the measured waste — no more guessing at 20%. Nine room shapes (rectangle / L / U / cross / hexagon), four patterns (straight, 1/2 and 1/3 stagger, random, herringbone), five starting corners, laminate 121×19.5, engineered and solid 3in / 5in stock, doorways and baseboard deducted automatically, A4 quote plus a CSV cut list."
+      "metaTitle": "Wood Floor Estimator | Herringbone Waste & Plank Count",
+      "metaDescription": "How much waste does a herringbone floor really have? Draw the room and get the layout, the real plank count and measured waste — no more guessing at 20%."
     },
     "ceilingQuote": {
       "metaTitle": "Ceiling Engineering Quote · Wooden Ren"
@@ -5436,10 +5436,10 @@
   },
   "workbenchLanding": {
     "metadata": {
-      "title": "Draw Your Workbench Free — Enter your height, pick a style, get three-views, cut list and part drawings in 3 minutes",
-      "description": "Wooden Ren gives the workbench template away to everyone who wants to start woodworking: Roubo slab-top, apron (Nicholson), tool-well, 20mm MFT grid and double-sided classroom bench. Height-based bench height, front vise, dog holes and holdfast holes placed automatically. No login, no signup — three-views, cut list, part drawings and stock layout right away.",
+      "title": "Free Workbench Plan Generator | 3-Views + Cut List",
+      "description": "Free workbench template: Roubo slab-top, Nicholson apron, tool-well, MFT grid or classroom bench. Height-based sizing, vise and dog holes placed automatically.",
       "ogTitle": "Draw Your Workbench Free — Wooden Ren Designer",
-      "ogDescription": "Every woodworker's first project is their own workbench. Five bench styles, height-based sizing, vise and dog holes placed for you. Free, no signup, plans in 3 minutes."
+      "ogDescription": "Every woodworker’s first project is their own workbench. Five styles, height-based sizing, vise and dog holes placed for you. Free, no signup, plans in 3 min."
     },
     "hero": {
       "badge": "Wooden Ren · Free for everyone who wants to start woodworking",
